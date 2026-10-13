@@ -265,6 +265,21 @@ export function openaiResponsesToOpenAIRequest(model, body, stream, credentials)
   }
   delete result.reasoning;
   delete result.client_metadata;
+  // `text` (verbosity + structured-output format) is a Responses-only control.
+  // Every other Responses-only field is stripped above; leaving this one made
+  // strict chat backends reject the whole body — OpenCode Go's glm-5.3-flash
+  // answers HTTP 400 `unknown field "text"` (9router #4637). The structured
+  // output survives as response_format via the dedicated mapping below.
+  const textControl = result.text;
+  delete result.text;
+  if (textControl?.format && result.response_format === undefined) {
+    const fmt = textControl.format;
+    if (fmt.type === "json_schema" && fmt.schema) {
+      result.response_format = { type: "json_schema", json_schema: { name: fmt.name || "response", strict: fmt.strict !== false, schema: fmt.schema } };
+    } else if (fmt.type === "json_object") {
+      result.response_format = { type: "json_object" };
+    }
+  }
 
   return result;
 }
