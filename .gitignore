@@ -100,3 +100,7 @@ graphify-out/*
 .zcode/
 .kiro/
 *.tgz
+
+# Audit/knowledge-map docs (see docs/audit/README.md)
+!docs/audit/
+!docs/audit/**
