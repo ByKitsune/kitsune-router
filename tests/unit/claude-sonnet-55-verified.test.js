@@ -134,7 +134,11 @@ describe("Sonnet 5.5 request restrictions", () => {
       model: id, reasoning_effort: "none", messages: [{ role: "user", content: "hi" }],
     }, true, null, "claude");
     expect(out.thinking).toBeUndefined();
-    expect(out.output_config.effort).toBe("minimal");
+    // The model cannot disable thinking, so "none" clamps to the lowest
+    // available effort. The Anthropic wire has no "minimal" level (its
+    // enum starts at "low"), so the clamped intent must go out as "low"
+    // (9router #4600) — sending "minimal" is an invalid body upstream.
+    expect(out.output_config.effort).toBe("low");
   });
 
   it.each(["claude-sonnet-5-5", "claude-opus-5-5"])("preserves explicitly requested thinking display for %s", (id) => {

@@ -140,6 +140,8 @@ export const PROVIDER_IDENTITIES = {
   "opencode-go": "opencode-go",
   "openrouter": "openrouter",
   "pa": "perplexity-agent",
+  "paralon": "paraloncloud",
+  "paraloncloud": "paraloncloud",
   "perplexity": "perplexity",
   "perplexity-agent": "perplexity-agent",
   "perplexity-web": "perplexity-web",
@@ -283,6 +285,7 @@ export const PROVIDER_STORAGE_ALIASES = {
   "opencode": "oc",
   "opencode-go": "opencode-go",
   "openrouter": "openrouter",
+  "paraloncloud": "paraloncloud",
   "perplexity": "perplexity",
   "perplexity-agent": "perplexity-agent",
   "perplexity-web": "perplexity-web",
@@ -323,6 +326,14 @@ export const PROVIDER_STORAGE_ALIASES = {
 
 export const DECLARED_UPSTREAM_MODEL_IDS = {
   "antigravity": {
+    "claude-opus-5-5": "claude-opus-5-5-high(high)",
+    "claude-opus-5-5-high": "claude-opus-5-5-high(high)",
+    "claude-opus-5-5-low": "claude-opus-5-5-low(low)",
+    "claude-opus-5-5-medium": "claude-opus-5-5-medium(medium)",
+    "claude-sonnet-5-5": "claude-sonnet-5-5-high(high)",
+    "claude-sonnet-5-5-high": "claude-sonnet-5-5-high(high)",
+    "claude-sonnet-5-5-low": "claude-sonnet-5-5-low(low)",
+    "claude-sonnet-5-5-medium": "claude-sonnet-5-5-medium(medium)",
     "gemini-3.5-flash-high": "gemini-3-flash-agent",
     "gemini-3.6-flash-high": "gemini-3.6-flash-tiered(high)",
     "gemini-3.6-flash-low": "gemini-3.6-flash-tiered(low)",
