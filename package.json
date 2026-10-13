@@ -31,9 +31,7 @@
     "bcryptjs": "^3.0.3",
     "chalk": "^6.0.1",
     "confbox": "^0.3.1",
-    "express": "^5.2.1",
     "jose": "^6.2.12",
-    "marked": "^18.0.14",
     "material-symbols": "^0.47.6",
     "monaco-editor": "^0.57.0",
     "next": "^16.3.8",
@@ -46,7 +44,6 @@
     "react-dom": "19.3.0",
     "react-is": "19.3.0",
     "recharts": "^3.10.1",
-    "selfsigned": "^5.5.0",
     "sql.js": "^1.14.2",
     "undici": "^8.11.2",
     "uuid": "^14.0.2",
@@ -64,6 +61,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "espree": "^11.2.0",
     "postcss": "^8.5.29",
+    "selfsigned": "^5.5.0",
     "tailwindcss": "^4.3.3"
   },
   "overrides": {
