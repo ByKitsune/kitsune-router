@@ -110,11 +110,17 @@ function normalizeCodexTools(body) {
     const parameters = (tool.parameters && typeof tool.parameters === "object" && !Array.isArray(tool.parameters))
       ? tool.parameters
       : (fn?.parameters && typeof fn.parameters === "object" && !Array.isArray(fn.parameters) ? fn.parameters : { type: "object", properties: {} });
+    // Capture strict before the delete loop clears it: rebuilding the flat
+    // declaration without it silently lost both false and true (9router #4543,
+    // fixes #4542 — losing strict:false let upstream defaults change
+    // optional-argument behavior).
+    const strict = typeof tool.strict === "boolean" ? tool.strict : fn?.strict;
     for (const k of Object.keys(tool)) delete tool[k];
     tool.type = "function";
     tool.name = name.slice(0, 128);
     if (description) tool.description = description;
     tool.parameters = stripCodexUnsupportedPatterns(parameters, patternStats);
+    if (typeof strict === "boolean") tool.strict = strict;
     validNames.add(name);
     return true;
   });
