@@ -8,6 +8,7 @@ import CapacityBadges from "./CapacityBadges";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, AI_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, getProviderAlias } from "@/shared/constants/providers";
+import { filterEnabledConnections, visibleNoAuthProviderIds } from "@/shared/utils/modelPickerFilter";
 
 // Provider order: OAuth first, then Free Tier, then API Key (matches dashboard/providers)
 const PROVIDER_ORDER = [
@@ -16,9 +17,6 @@ const PROVIDER_ORDER = [
   ...Object.keys(FREE_TIER_PROVIDERS),
   ...Object.keys(APIKEY_PROVIDERS),
 ];
-
-// Providers that need no auth — always show in model selector
-const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth);
 
 export default function ModelSelectModal({
   isOpen,
@@ -36,13 +34,26 @@ export default function ModelSelectModal({
 }) {
   // Filter activeProviders by serviceKinds when kindFilter set (e.g. "webSearch", "webFetch")
   const filteredActiveProviders = useMemo(() => {
-    if (!kindFilter) return activeProviders;
-    return activeProviders.filter((p) => {
+    // Only providers the router can actually serve from: a provider whose every
+    // connection is disabled must not be offered (#4681).
+    const enabled = filterEnabledConnections(activeProviders);
+    if (!kindFilter) return enabled;
+    return enabled.filter((p) => {
       const info = AI_PROVIDERS[p.provider];
       const kinds = info?.serviceKinds || ["llm"];
       return kinds.includes(kindFilter);
     });
   }, [activeProviders, kindFilter]);
+
+  // Providers that need no auth — always show in model selector (registry-hidden
+  // entries excluded, #4681)
+  const noAuthProviderIds = useMemo(
+    () => visibleNoAuthProviderIds(
+      Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth),
+      AI_PROVIDERS,
+    ),
+    [],
+  );
   const { getCaps } = useModelCaps();
   const [searchQuery, setSearchQuery] = useState("");
   const [combos, setCombos] = useState([]);
@@ -227,8 +238,8 @@ export default function ModelSelectModal({
 
     // No-auth providers: filter by kindFilter as well
     const noAuthIds = kindFilter
-      ? NO_AUTH_PROVIDER_IDS.filter((id) => (AI_PROVIDERS[id]?.serviceKinds || ["llm"]).includes(kindFilter))
-      : NO_AUTH_PROVIDER_IDS;
+      ? noAuthProviderIds.filter((id) => (AI_PROVIDERS[id]?.serviceKinds || ["llm"]).includes(kindFilter))
+      : noAuthProviderIds;
 
     // Only show connected providers (including both standard and custom)
     const providerIdsToShow = new Set([
@@ -457,7 +468,7 @@ export default function ModelSelectModal({
     });
 
     return groups;
-  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, activeProviders, cursorModels, liveModelsByProvider]);
+  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, activeProviders, cursorModels, liveModelsByProvider, noAuthProviderIds]);
 
   // Filter combos by search query (and hide combos when kindFilter is set — combos are LLM-only by design)
   const filteredCombos = useMemo(() => {
