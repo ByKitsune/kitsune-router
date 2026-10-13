@@ -92,6 +92,15 @@ export const MODEL_CAPABILITIES = {
   "claude-fable-5-1": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-fable-5":   { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5-5": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
+  // Antigravity2 catalog ids (9router #4600/#4548): the (high|medium|low)
+  // suffix is part of the upstream model id, not a thinking annotation.
+  // Opus 5.5 rejects thinking.type "disabled" and forced tool_choice.
+  "claude-opus-5-5-high": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-opus-5-5-medium": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-opus-5-5-low": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-sonnet-5-5-high": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, thinkingOffType: "between_tools", forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-sonnet-5-5-medium": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, thinkingOffType: "between_tools", forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-sonnet-5-5-low": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, thinkingOffType: "between_tools", forcedToolChoice: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5.5": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5-5-20260922": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5-5-thinking": { vision: true, pdf: true, tools: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },

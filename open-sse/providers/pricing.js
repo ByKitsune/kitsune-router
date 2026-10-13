@@ -66,6 +66,13 @@ export const MODEL_PRICING = {
   // Dot-form aliases (pricing lookup is exact-match; the claude-opus-*/claude-sonnet-* patterns would misprice them)
   "claude-opus-5.5":              { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-sonnet-5.5":            { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  // Antigravity2 tier-suffixed ids (9router #4600/#4548) — same model, same rates.
+  "claude-opus-5-5-high":         { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5-medium":       { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5-low":          { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-sonnet-5-5-high":       { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-medium":     { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-low":        { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
 
   // === OpenAI / GPT (developers.openai.com/api/docs/pricing, snapshot 2026-09-23) ===
   // GPT-5+ cache reads = 10% of input; gpt-4.1 family = 25%; o3/o4-mini = 25%.
