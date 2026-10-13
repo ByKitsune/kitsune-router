@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getComboById, updateCombo, deleteCombo, getComboByName } from "@/lib/localDb";
 import { resetComboRotation } from "open-sse/services/combo.js";
+import { normalizeComboModelIds } from "../modelIds.js";
 
 // Validate combo name: only a-z, A-Z, 0-9, -, _
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
@@ -27,7 +28,16 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    
+
+    // Normalize legacy model objects to stable "provider/model" strings and
+    // reject malformed entries before persistence (#4584).
+    if (body.models !== undefined) {
+      body.models = normalizeComboModelIds(body.models);
+      if (!body.models) {
+        return NextResponse.json({ error: "Models must contain valid model IDs" }, { status: 400 });
+      }
+    }
+
     // Validate name format if provided
     if (body.name) {
       if (!VALID_NAME_REGEX.test(body.name)) {
