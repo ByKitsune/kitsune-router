@@ -513,9 +513,23 @@ export const PATTERN_PRICING = [
 /**
  * Match a model ID against a glob pattern (* = wildcard). Case-insensitive:
  * registry ids mix casing (e.g. "MiniMax-M2.5" vs "minimax-m2.5").
+ *
+ * Compiled patterns are cached on the function itself. getPricingForModel walks
+ * the whole PATTERN_PRICING list on every lookup, so building each RegExp from
+ * scratch paid compilation once per pattern per resolution — measured ~32x
+ * slower than the cached form (9router #4628/#4622).
+ *
+ * The cache hangs off the function rather than a module-scope const: this file
+ * is bundled into the server/CLI chunks, and a module-scope binding read during
+ * module init is a TDZ hazard there.
  */
 export function matchPattern(pattern, model) {
-  const regex = new RegExp("^" + pattern.split("*").map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "i");
+  const cache = matchPattern._cache || (matchPattern._cache = new Map());
+  let regex = cache.get(pattern);
+  if (regex === undefined) {
+    regex = new RegExp("^" + pattern.split("*").map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "i");
+    cache.set(pattern, regex);
+  }
   return regex.test(model);
 }
 

@@ -5,6 +5,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Fixed
+- **perf(pricing): cache compiled glob regexes in `matchPattern`** (`open-sse/providers/pricing.js`, 9router #4628): `getPricingForModel` walks the whole `PATTERN_PRICING` table per lookup and `matchPattern` built a fresh `RegExp` per pattern per call — measured ~32x slower than the cached form. Compiled patterns are now memoized on the function (avoids the module-scope TDZ hazard in bundled chunks) with identical match semantics, locked by a whole-table equivalence test.
+
 ## [0.9.7] - 2026-10-06
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.7) · [Technical changelog](docs/CHANGELOG_v0.9.7.md) · [Release notes](releases/RELEASE_NOTES_v0.9.7.md)
