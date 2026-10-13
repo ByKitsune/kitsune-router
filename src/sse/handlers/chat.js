@@ -192,6 +192,13 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
  * Handle single model chat request
  */
 async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
+  // Optional account pinning, same opt-in header as the image/video endpoints:
+  // `x-connection-id: <providerConnection id>` (9router #4718). Falls back to
+  // the normal account strategy when the header is absent or the id is
+  // unknown/unavailable — getProviderCredentials only honors ids that are in
+  // the resolved provider's active, unexcluded, unlocked selectable set, so a
+  // pinned id can never select a cross-provider account.
+  const preferredConnectionId = request?.headers?.get("x-connection-id") || null;
   const modelInfo = await getModelInfo(modelStr);
 
   // If provider is null, this might be a combo name - check and handle
@@ -291,7 +298,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return errorResponse(499, "Client Closed Request");
     }
 
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { sessionKey });
+    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { sessionKey, preferredConnectionId });
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
