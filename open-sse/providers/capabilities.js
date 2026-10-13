@@ -457,6 +457,11 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*qwq*",           caps: { reasoning: true, thinkingFormat: "qwen", thinkingCanDisable: false, contextWindow: 131072 } },
   { pattern: "*qwen*",          caps: { reasoning: true, thinkingFormat: "qwen", contextWindow: 262144 } },
 
+  // ── LongCat (Meituan; seen via OpenCode free tier) ───────────────
+  // Reasons but previously matched nothing, landing on DEFAULT_CAPABILITIES
+  // (~32k ctx). ~650k context verified live (9router #4514).
+  { pattern: "*longcat-2.5*",   caps: { reasoning: true, contextWindow: 650000 } },
+
   // ── Kimi (enabled→reasoning_effort; K2.7-code cannot disable) ─────
   { pattern: "*kimi*k3*",       caps: { vision: true, pdf: true, videoInput: true, reasoning: true, thinkingFormat: "kimi", thinkingCanDisable: false, contextWindow: 1048576, maxOutput: 1048576 } },
   { pattern: "*kimi*for-coding*", caps: { vision: true, pdf: true, videoInput: true, reasoning: true, thinkingFormat: "kimi", thinkingCanDisable: true, contextWindow: 1048576, maxOutput: 65536 } },
