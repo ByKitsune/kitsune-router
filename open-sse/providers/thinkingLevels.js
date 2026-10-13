@@ -54,17 +54,24 @@ const PATTERN_THINKING = [
   { pattern: "*mimo*v2.6*", levels: ["none", "low", "medium", "high", "xhigh"] },
   // mimo-v2.5-pro on opencode-go rejects reasoning_effort "max" (probed live); v2.5 accepts it.
   { pattern: "*mimo*v2.5-pro*", levels: ["none", "low", "medium", "high", "xhigh"] },
+  // ── codebuddy-cn per-model effort sets (e014cb537, resynced 2026-09-30 in #4614) ──
+  // The server's product-config payload publishes reasoning.supportedEfforts per
+  // model. The gateway accepts any level you send but silently clamps values
+  // outside a model's set, so the declared set stays authoritative for the picker.
+  // ⚠️ These exact ids MUST stay ABOVE the unqualified `*deepseek-v4.*` glob:
+  // PATTERN_THINKING is first-match-wins, so a provider-qualified entry after the
+  // glob would never fire for dotted ids like deepseek-v4.1-flash.
+  { provider: "codebuddy-cn", pattern: "deepseek-v4-pro",     levels: ["low", "high", "xhigh"] },
+  { provider: "codebuddy-cn", pattern: "deepseek-v4.1-flash", levels: ["low", "high", "max"] },
   // DeepSeek v4.*: effort low|medium|high|xhigh|max
   { pattern: "*deepseek-v4.*", levels: ["none", "low", "medium", "high", "xhigh", "max"] },
-  // ── codebuddy-cn per-model effort sets (e014cb537) — read off the client picker
-  // (server-delivered supportedEfforts), 2026-08-30. Gateway uses thinkingFormat "openai"
-  // but rejects levels outside each model's set, so we must clamp per model, not per format.
-  // hy3* limited to low/high (no medium/xhigh), hy4* only high, glm-5.3* low/high/max,
-  // deepseek-v4* low/high/xhigh.
-  { provider: "codebuddy-cn", pattern: "glm-5.3*",     levels: ["low", "high", "max"] },
-  { provider: "codebuddy-cn", pattern: "deepseek-v4*", levels: ["low", "high", "xhigh"] },
-  { provider: "codebuddy-cn", pattern: "hy3*",         levels: ["low", "high"] },
-  { provider: "codebuddy-cn", pattern: "hy4*",         levels: ["high"] },
+  { provider: "codebuddy-cn", pattern: "glm-5.3",      levels: ["low", "high", "max"] },
+  { provider: "codebuddy-cn", pattern: "glm-5.3-flash", levels: ["low", "high", "max"] },
+  { provider: "codebuddy-cn", pattern: "kimi-k2.8-preview", levels: ["low", "medium", "high"] },
+  // Models that publish no supportedEfforts (glm-5.1 / kimi-k3-1 / minimax-m3)
+  // fall through to the openai format default.
+  { provider: "codebuddy-cn", pattern: "hy3",          levels: ["low", "high"] },
+  { provider: "codebuddy-cn", pattern: "hy4-preview",  levels: ["high"] },
 ];
 
 // Returns valid thinking levels for a model, or null when the model has no reasoning.
