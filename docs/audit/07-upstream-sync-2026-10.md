@@ -125,3 +125,29 @@ attestation + timestamp encoding into Zen's single executor (or adopt the split)
 - Static analysis; nothing was executed. Node modules not installed in this checkout.
 - Verdicts rest on Zen's exhaustive CHANGELOG convention for ports (zero hits for all scored IDs except the documented set) plus direct code inspection; upstream PR diffs were spot-fetched (#4784/#4786) where the cluster was hot.
 - Upstream master paused after v0.5.99 (8 Oct); unmerged PR flow through 13 Oct means Tier-1/Tier-2 items tied to open PRs may evolve — re-check the PR before porting.
+
+## 8. Implementation status (updated 2026-10-13, same day)
+
+Every Tier-1 item was ported, each as its own commit with tests, a CHANGELOG entry
+and a green lint/test gate. Two report rows turned out to be mis-scoped and were
+re-verified against the actual upstream diffs before porting:
+
+| Report row | Outcome |
+|---|---|
+| #4628, #4633, #4715, #4718, #4691, #4706, #4635, #4643, #4637, #4735 | Ported as described. |
+| #4584 | The upstream PR normalizes combo model **IDs** at the API boundary, not `body.model`. Ported the real change (`combos/modelIds.js`); no `body.model` trim was added. |
+| #4607 | Upstream fixes the **request translators** (`claude-to-openai`), plus a separate PR (#4543) fixes the Codex tool flattener. Both ported. |
+| #4691 | Upstream clamps in the **translator + executor** and lowers the advertised `maxOutput`; ported that shape (`COMMANDCODE_MAX_OUTPUT_TOKENS`), not the report's `paramSupport` sketch. |
+| #4643 | Upstream persists Codex **image** usage through an `onUsage` callback (not `input_tokens_details.image_tokens`). Ported the real change. |
+| #4507 | Already in Zen (`*gemini-4*` pattern + `gemini-4-argon` pricing with the documented intro rates). Not re-ported. |
+| #4524 (codex 872k) | Already in Zen (`capabilities.js` codex block). Not re-ported. |
+| #4514 | Only the LongCat half was missing; the qwen3.8 half already existed. LongCat ported. |
+| #4548 | Landed as the full #4600 port (registry + caps + pricing + usage + MITM + `thinkingUnified` minimal→low). |
+| #4524-kin / #4614 | Ported as the real PR #4614 (catalog sync + thinking-level glob shadowing fix), with Zen's `deprecated` convention instead of upstream's row deletion. |
+| #4681 | Implemented from the issue (no upstream PR): pure filter module + modal wiring. |
+| 24034f69 | Ported in full (the commit also moved the 3.5 synonyms and flash patterns to 3.8). |
+| #4740 | Ported; the upstream icon PNG is not on master, so an equivalent 128×128 icon was generated locally. |
+| #4785 / #4731 | **Deferred.** v1m/System One needs a native decision-pass-through handler (`/v1/systemone`), which Zen does not have — it is not a plain OpenAI-compatible registry entry as the report assumed. |
+
+Tier-2/Tier-3 items remain open; the OpenCode free-tier 403 cluster still requires
+re-verifying PRs #4782/#4784/#4786 against upstream HEAD before porting.
