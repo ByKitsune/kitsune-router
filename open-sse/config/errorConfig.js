@@ -71,6 +71,11 @@ export const ERROR_RULES = [
   { text: "rate limit",               backoff: true },
   { text: "too many requests",        backoff: true },
   { text: "quota exceeded",           backoff: true },
+  // Credit exhaustion can ride on HTTP 400 (upstream reports it as a bad
+  // request instead of 402). The account is out of credits for this model but
+  // the combo should advance to the next member rather than fail the request
+  // (9router #4715/#4713).
+  { text: "insufficient credit",      backoff: true },
   { text: "capacity",                 backoff: true },
   { text: "overloaded",               backoff: true },
   // Model-scoped permanent failures (9router #4271/#4263): the account cannot

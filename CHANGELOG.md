@@ -7,6 +7,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Fixed
 - **perf(pricing): cache compiled glob regexes in `matchPattern`** (`open-sse/providers/pricing.js`, 9router #4628): `getPricingForModel` walks the whole `PATTERN_PRICING` table per lookup and `matchPattern` built a fresh `RegExp` per pattern per call — measured ~32x slower than the cached form. Compiled patterns are now memoized on the function (avoids the module-scope TDZ hazard in bundled chunks) with identical match semantics, locked by a whole-table equivalence test.
+- **fix(executors): request `include_usage` on streaming OpenAI-compatible chat calls** (`open-sse/executors/default.js`, 9router #4633): streaming requests to `openai-compatible-*` chat nodes never set `stream_options.include_usage`, so gateways like Alibaba MaaS omit the final usage chunk and the stream path falls back to chars/4 estimation — inflating `prompt_tokens` and dropping `cached_tokens` entirely (cache hits billed at full input rate; verified live on `kimi-k3`: estimated `{prompt 50116, no cache}` became real `{prompt 34349, cached 32256}`). Injection is gated to streaming + chat api-type + `messages[]` present + no caller-provided `stream_options`; providers that reject the field (codex, grok-cli, antigravity) delete it in their own executors.
+- **fix(fallback): try the next combo member when credits run out on HTTP 400** (`open-sse/config/errorConfig.js`, 9router #4715): credit exhaustion can ride on a 400 instead of 402. New `insufficient credit` text rule (exponential backoff, account-scoped) lets the combo advance to the next model while the ordinary bad request still stops the request.
 
 ## [0.9.7] - 2026-10-06
 
