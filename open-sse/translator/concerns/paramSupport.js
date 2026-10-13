@@ -19,8 +19,12 @@ const CHAT_EXTENSION_PARAMS = [
 const STRIP_RULES = [
   // All Claude models: temperature deprecated/rejected upstream (Anthropic 400). #1748
   { match: /claude/i, drop: ["temperature"] },
-  // GitHub Copilot gpt-5.4: temperature unsupported.
-  { provider: "github", match: /gpt-5\.4/i, drop: ["temperature"] },
+  // GitHub Copilot GPT-5.4+ and GPT-6.x: temperature unsupported. Originally
+  // gpt-5.4 only; the Responses route bypassed the chat-path filter entirely,
+  // letting temperature through for gpt-6.1-sol and newer (9router #4706).
+  // Boundaries: gpt-5.4 .. gpt-5.<any 2+ digits>, gpt-6.<digit>.*; gpt-5.3 and
+  // below, gpt-4.x, gpt-7 keep temperature.
+  { provider: "github", match: /^gpt-(?:5\.(?:[4-9]|[1-9]\d+)|6\.\d+)(?:-|$)/i, drop: ["temperature"] },
   // GitHub Copilot Claude (opus/sonnet 4.6, 4.7, 4.8, 5, 5.5): allow thinking + reasoning_effort; drop on older. #713
   { provider: "github", match: (m) => /claude/i.test(m) && !/claude.*(opus|sonnet).*(4\.[6-9]|5)/i.test(m), drop: ["thinking", "reasoning_effort"] },
   // Mistral rejects native thinking and replayed reasoning message fields (#4143).

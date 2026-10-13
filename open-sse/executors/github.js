@@ -12,6 +12,7 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
 import { reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
+import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
 import crypto from "crypto";
 
 export class GithubExecutor extends BaseExecutor {
@@ -169,6 +170,9 @@ export class GithubExecutor extends BaseExecutor {
     const headers = this.buildHeaders(credentials, stream);
 
     const transformedBody = openaiToOpenAIResponsesRequest(model, body, stream, credentials);
+    // The Responses route bypassed the chat-path param filter, letting
+    // unsupported temperature through for gpt-5.4+/gpt-6.x (9router #4706).
+    stripUnsupportedParams("github", model, transformedBody);
 
     log?.debug("GITHUB", "Sending translated request to /responses");
 
