@@ -14,7 +14,7 @@ import { FORMATS } from "../formats.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 import { randomUUID } from "crypto";
 import { ROLE, OPENAI_BLOCK } from "../schema/index.js";
-import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
+import { DEFAULT_MAX_TOKENS, COMMANDCODE_MAX_OUTPUT_TOKENS } from "../../config/runtimeConfig.js";
 import { parseDataUri } from "../concerns/image.js";
 
 function flattenText(content) {
@@ -163,11 +163,18 @@ function convertTools(tools) {
 
 export function openaiToCommandCodeRequest(model, body, stream /* , credentials */) {
   const { messages, system } = convertMessages(body.messages);
+  // CommandCode's upstream schema rejects max_tokens above 200000 with a 400
+  // (9router #4691). Clients send the advertised model ceiling (e.g. 384000
+  // for deepseek-v4-pro), so clamp every output-cap spelling to the limit.
+  const rawMaxTokens = readOutputTokenCap(body, ["max_completion_tokens", "max_tokens", "max_output_tokens"]) ?? DEFAULT_MAX_TOKENS;
+  const max_tokens = typeof rawMaxTokens === "number" && rawMaxTokens > 0
+    ? Math.min(rawMaxTokens, COMMANDCODE_MAX_OUTPUT_TOKENS)
+    : COMMANDCODE_MAX_OUTPUT_TOKENS;
   const params = {
     model,
     messages,
     stream: stream !== false,
-    max_tokens: readOutputTokenCap(body, ["max_completion_tokens", "max_tokens", "max_output_tokens"]) ?? DEFAULT_MAX_TOKENS,
+    max_tokens,
     temperature: body.temperature ?? 0.3,
   };
 

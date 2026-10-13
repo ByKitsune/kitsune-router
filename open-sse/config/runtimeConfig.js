@@ -77,6 +77,11 @@ export const GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS = envMs("GEMINI_NATIVE_TTS_FETCH
 export const DEFAULT_MAX_TOKENS = 64000;
 export const DEFAULT_MIN_TOKENS = 32000;
 export const REASONING_MIN_OUTPUT_FLOOR = 65536;
+// CommandCode /alpha/generate rejects max_tokens above this with a 400
+// ("integer above maximum value"). Clients send the advertised model ceiling
+// (384000 for deepseek-v4-pro, 1000000 elsewhere), so every output-cap
+// spelling is clamped to it (9router #4691).
+export const COMMANDCODE_MAX_OUTPUT_TOKENS = 200000;
 export const TOKEN_SAVER_HEADER = "x-zenrouter-token-saver";
 
 // Retry config for 429 responses (legacy - kept for backward compatibility)

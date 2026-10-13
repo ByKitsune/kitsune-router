@@ -4,6 +4,7 @@ import { PROVIDERS } from "../config/providers.js";
 import { commandCodeToOpenAIResponse } from "../translator/response/commandcode-to-openai.js";
 import { FORMATS } from "../translator/formats.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
+import { COMMANDCODE_MAX_OUTPUT_TOKENS } from "../config/runtimeConfig.js";
 
 /**
  * CommandCodeExecutor — talks to https://api.commandcode.ai/alpha/generate
@@ -23,6 +24,11 @@ export class CommandCodeExecutor extends BaseExecutor {
 
   transformRequest(model, body, stream, credentials) {
     body.stream = true;
+    // Defensive clamp: bodies that skip the translator (already in CommandCode
+    // shape) must also respect the upstream 200k schema limit (#4691).
+    if (body?.params && typeof body.params.max_tokens === "number" && body.params.max_tokens > COMMANDCODE_MAX_OUTPUT_TOKENS) {
+      body.params.max_tokens = COMMANDCODE_MAX_OUTPUT_TOKENS;
+    }
     return body;
   }
 
