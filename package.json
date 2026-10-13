@@ -1,6 +1,6 @@
 {
   "name": "zenrouter-app",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "ZenRouter web dashboard & Serene AI Gateway",
   "private": true,
   "scripts": {

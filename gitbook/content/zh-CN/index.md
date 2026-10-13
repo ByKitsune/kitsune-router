@@ -1,6 +1,6 @@
 # 欢迎使用 ZenRouter
 
-**当前版本：0.9.7（2026-10-06）。** 请阅读[更新日志](/zh-CN/changelog/)，了解变更、验证范围和升级要求。需要 Node.js >=22.19.0；目录条目不保证账户访问权限或上游实际可用性。
+**当前版本：0.9.8（2026-10-13）。** 请阅读[更新日志](/zh-CN/changelog/)，了解变更、验证范围和升级要求。需要 Node.js >=22.19.0；目录条目不保证账户访问权限或上游实际可用性。
 
 **免费使用 Claude、Codex、Gemini • 超低价替代方案,每 1M token 仅需 $0.20**
 
@@ -107,7 +107,7 @@ ZenRouter 是一款智能代理,位于你的编码工具(Cursor、Cline、Claude
 
 ```bash
 # 全局安装
-npm install -g @joyccn/zenrouter@0.9.7
+npm install -g @joyccn/zenrouter@0.9.8
 
 # 启动(仪表盘自动打开)
 zenrouter

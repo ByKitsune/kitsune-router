@@ -1,11 +1,11 @@
 # 🌿 ZenRouter Docker Image
 
-Official **linux/amd64** Docker container for **ZenRouter 0.9.7** — AI Gateway & Multi-Provider Routing Platform. The current publication workflow builds linux/amd64 only; it does not publish native ARM64 or a multi-architecture image.
+Official **linux/amd64** Docker container for **ZenRouter 0.9.8** — AI Gateway & Multi-Provider Routing Platform. The current publication workflow builds linux/amd64 only; it does not publish native ARM64 or a multi-architecture image.
 
 - **GitHub Repository**: [https://github.com/ZenRouter/ZenRouter](https://github.com/ZenRouter/ZenRouter)
 - **NPM Package**: [@joyccn/zenrouter](https://www.npmjs.com/package/@joyccn/zenrouter)
-- **Release**: **0.9.7**, dated **2026-10-06** — [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.7), [changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md), [technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.7.md), [release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.7.md).
-- **Pinned images**: `joyccn/zenrouter:0.9.7` and `ghcr.io/zenrouter/zenrouter:0.9.7`. Examples apply after publication; this guide does not establish that a tag is already available.
+- **Release**: **0.9.8**, dated **2026-10-13** — [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8), [changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md), [technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.8.md), [release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md).
+- **Pinned images**: `joyccn/zenrouter:0.9.8` and `ghcr.io/zenrouter/zenrouter:0.9.8`. Examples apply after publication; this guide does not establish that a tag is already available.
 - **Runtime**: the app requires Node.js >=22.19.0; the container supplies its own Node runtime.
 - **Limits**: catalog reconciliation does not prove provider account entitlement or live availability. Unresolved upstream dependency advisories remain; this is not a vulnerability-free release.
 
@@ -19,7 +19,7 @@ docker run -d \
   -p 20128:20128 \
   -v zenrouter-data:/app/data \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.7
+  joyccn/zenrouter:0.9.8
 ```
 
 Open `http://localhost:20128` in your browser to access the dashboard.
@@ -31,7 +31,7 @@ Open `http://localhost:20128` in your browser to access the dashboard.
 ```yaml
 services:
   zenrouter:
-    image: joyccn/zenrouter:0.9.7
+    image: joyccn/zenrouter:0.9.8
     platform: linux/amd64
     container_name: zenrouter
     restart: unless-stopped

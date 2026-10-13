@@ -1,5 +1,39 @@
 # 更新日志
 
+## 0.9.8 — 2026-10-13
+
+清除默认分支上的严重依赖告警，并合入 9router 上游同步分析的 Tier-1 批次。二十项变更，每项独立提交并测试。需要 **Node.js >=22.19.0**。包名仍为 `@joyccn/zenrouter`，命令仍为 `zenrouter`。无破坏性 API 变更。
+
+### 安全
+
+**已清除严重项：** `proxy-addr`（GHSA-jqcg-44mw-7w3h，通过 IPv4 映射 IPv6 信任子网进行 IP 欺骗）仅来自 `express`，而后者虽在 `dependencies` 中声明却从未被导入。该依赖被移除而非固定版本；锁文件减少 40 个传递依赖。`marked` 与 `selfsigned`（仅测试使用，现为 devDependency）一并移除。
+
+**本版本并非无漏洞，也不作此声明。** `node-forge` GHSA-86w9-cpqp-85rv（高危）上游尚无补丁（1.4.0 为最新）。其唯一生产消费者只解析、生成、签发和序列化证书，从不调用签名验证函数，因此受影响的 RSA PKCS#1 v1.5 验证路径在此代码库中不可达 —— 现由测试断言。
+
+### 用量与计费
+
+OpenAI 兼容的流式请求现在发送 `include_usage`，缓存命中按缓存价格计费而非按字符估算。Codex 图像请求将真实 token 计入用量历史。带 effort 后缀的模型按基础模型价格计费，而非 `$0`。
+
+### 路由与回退
+
+表示"额度耗尽"的 400 现在会继续尝试组合中的下一个模型。聊天端点支持 `x-connection-id` 账户固定并自动回退。模型选择器不再展示连接全部禁用的提供商。
+
+### 翻译与协议
+
+`strict` 工具声明在双向翻译中保留。Chat 的 `response_format` 映射为 Responses 的 `text.format`，Responses 专有的 `text` 字段在返回时移除。CommandCode 输出被限制在其真实的 200k schema 上限。
+
+### 目录
+
+Antigravity Claude Sonnet 5.5 / Opus 5.5、CodeBuddy CN `kimi-k2.8-preview` 与 `deepseek-v4.1-flash`、LongCat 2.5、对齐 3.8 世代的 MITM 映射，以及新增的 ParalonCloud 提供商。目录条目仅为声明，不代表账户权益或实际可用性。
+
+### 验证
+
+隔离测试套件：**1,386 个文件、4,335 个用例 —— 4,234 通过、100 跳过、1 todo、0 失败**（Node 24.19.0）；lint 零警告。注册表基线逐字节一致。生产构建与隔离 `DATA_DIR` 的 standalone 冒烟测试通过；未使用生产账户或计费推理。
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.8.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md) · [Previous release 0.9.7 (historical)](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.7.md)
+
+---
+
 ## 0.9.7 — 2026-10-06
 
 本版本汇总此前已合并的全部维护变更；版本号升级本身不增加独立产品功能。需要 **Node.js >=22.19.0**。包名仍为 `@joyccn/zenrouter`，命令仍为 `zenrouter`。

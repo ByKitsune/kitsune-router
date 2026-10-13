@@ -26,24 +26,24 @@ Designed for developers, agentic frameworks, and multi-account setups, ZenRouter
 
 ---
 
-## Current release: 0.9.7
+## Current release: 0.9.8
 
-Dated **2026-10-06**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.7) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.7.md) · [Release notes](releases/RELEASE_NOTES_v0.9.7.md).
+Dated **2026-10-13**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.8.md) · [Release notes](releases/RELEASE_NOTES_v0.9.8.md).
 
 This release reconciles provider-scoped catalogs, reasoning caps/usage, grounded search and dependencies. Catalog metadata does not establish account entitlement or live upstream availability; unresolved dependency advisories remain.
 
 ## 🚀 Quick Start
 
-Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.7 and apply after the package/image is published; preparing release documentation does not publish it.
+Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.8 and apply after the package/image is published; preparing release documentation does not publish it.
 
 ### 1. Run with NPX (Zero-Install)
 ```bash
-npx @joyccn/zenrouter@0.9.7
+npx @joyccn/zenrouter@0.9.8
 ```
 
 ### 2. Global NPM Install
 ```bash
-npm install -g @joyccn/zenrouter@0.9.7
+npm install -g @joyccn/zenrouter@0.9.8
 zenrouter
 ```
 
@@ -56,14 +56,14 @@ docker run -d \
   -p 20128:20128 \
   -v zenrouter-data:/app/data \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.7
+  joyccn/zenrouter:0.9.8
 ```
 
 Using `docker-compose.yml`:
 ```yaml
 services:
   zenrouter:
-    image: joyccn/zenrouter:0.9.7
+    image: joyccn/zenrouter:0.9.8
     platform: linux/amd64
     container_name: zenrouter
     restart: unless-stopped

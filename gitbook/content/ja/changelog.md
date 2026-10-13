@@ -1,5 +1,39 @@
 # 変更履歴
 
+## 0.9.8 — 2026-10-13
+
+デフォルトブランチの重大な依存関係アドバイザリを解消し、9router 上流同期分析の Tier-1 バッチを反映しました。20 件の変更をそれぞれ個別にコミット・テストしています。**Node.js >=22.19.0** が必要です。パッケージは `@joyccn/zenrouter`、バイナリは `zenrouter` のままです。破壊的な API 変更はありません。
+
+### セキュリティ
+
+**重大項目を解消:** `proxy-addr`（GHSA-jqcg-44mw-7w3h、IPv4-mapped IPv6 信頼サブネット経由の IP スプーフィング）は `express` 経由でのみ到達可能でしたが、`express` は `dependencies` に宣言されているだけでリポジトリ内のどこからもインポートされていませんでした。バージョン固定ではなく依存自体を削除し、ロックファイルから 40 個の推移的パッケージが減りました。`marked` と `selfsigned`（テスト専用、現在は devDependency）も削除しました。
+
+**脆弱性ゼロのリリースではなく、そう主張しません。** `node-forge` GHSA-86w9-cpqp-85rv（高）には上流の修正版がありません（1.4.0 が最新）。本番での唯一の利用箇所は証明書の解析・生成・署名・シリアライズのみで、署名検証関数を呼び出さないため、影響を受ける RSA PKCS#1 v1.5 検証経路はこのコードベースから到達できません。これはコメントではなくテストで検証されます。
+
+### 使用量と課金
+
+OpenAI 互換のストリーミング呼び出しが `include_usage` を要求するようになり、キャッシュヒットは文字数推定ではなくキャッシュ料金で課金されます。Codex の画像リクエストは実際のトークンを使用履歴に記録します。effort 注釈付きモデル ID は `$0` ではなくベースモデルの料金で計算されます。
+
+### ルーティングとフォールバック
+
+「クレジット切れ」を意味する 400 はリクエストを失敗させる代わりにコンボの次のモデルへ進みます。チャットエンドポイントは `x-connection-id` によるアカウント固定と自動フォールバックに対応しました。モデル選択画面は、接続がすべて無効なプロバイダーを表示しなくなりました。
+
+### 翻訳とプロトコル
+
+`strict` ツール宣言が双方向の翻訳で保持されます。Chat の `response_format` は Responses の `text.format` にマップされ、Responses 専用の `text` フィールドは戻り時に削除されます。CommandCode の出力は実際の 200k スキーマ上限に制限されます。
+
+### カタログ
+
+Antigravity Claude Sonnet 5.5 / Opus 5.5、CodeBuddy CN の `kimi-k2.8-preview` と `deepseek-v4.1-flash`、LongCat 2.5、3.8 世代に合わせた MITM マップ、新規プロバイダー ParalonCloud。カタログ項目は宣言であり、アカウントの権利や実際の可用性を保証しません。
+
+### 検証
+
+分離テストスイート: **1,386 ファイル、4,335 ケース — 4,234 成功、100 スキップ、1 todo、0 失敗**（Node 24.19.0）。lint は警告ゼロ。レジストリのベースラインはバイト単位で一致。本番ビルドと分離 `DATA_DIR` での standalone スモークが成功。本番アカウントや課金対象の推論は使用していません。
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.8.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md) · [Previous release 0.9.7 (historical)](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.7.md)
+
+---
+
 ## 0.9.7 — 2026-10-06
 
 本リリースは既に統合済みの保守変更全体をまとめたものです。バージョン更新自体で独立した製品機能を追加しません。**Node.js >=22.19.0** が必要です。パッケージは `@joyccn/zenrouter`、コマンドは `zenrouter` のままです。

@@ -1,5 +1,39 @@
 # Nhật ký thay đổi
 
+## 0.9.8 — 2026-10-13
+
+Xóa cảnh báo phụ thuộc nghiêm trọng và đưa vào lô Tier-1 từ phân tích đồng bộ upstream 9router. Hai mươi thay đổi, mỗi thay đổi có commit và kiểm thử riêng. Yêu cầu **Node.js >=22.19.0**. Gói vẫn là `@joyccn/zenrouter`, lệnh vẫn là `zenrouter`. Không có thay đổi API phá vỡ tương thích.
+
+### Bảo mật
+
+**Đã xóa mức nghiêm trọng:** `proxy-addr` (GHSA-jqcg-44mw-7w3h, giả mạo IP qua subnet tin cậy IPv4-mapped IPv6) chỉ đến từ `express`, vốn được khai báo trong `dependencies` nhưng không được import ở đâu. Phụ thuộc này bị xóa thay vì ghim phiên bản; lockfile giảm 40 gói bắc cầu. `marked` và `selfsigned` (chỉ dùng cho kiểm thử, nay là devDependency) cũng bị xóa.
+
+**Không phải bản phát hành không có lỗ hổng.** `node-forge` GHSA-86w9-cpqp-85rv (cao) chưa có bản vá (1.4.0 là mới nhất). Trình tiêu thụ duy nhất trong sản phẩm chỉ phân tích, tạo, ký và tuần tự hóa chứng chỉ, không bao giờ gọi hàm xác minh chữ ký, nên đường xác minh RSA PKCS#1 v1.5 bị ảnh hưởng không thể truy cập từ đây. Điều này nay được khẳng định bằng kiểm thử.
+
+### Sử dụng và tính toán
+
+Yêu cầu chat streaming tương thích OpenAI nay gửi `include_usage`, nên cache được tính đúng giá thay vì ước lượng theo ký tự. Yêu cầu tạo ảnh Codex báo cáo token thực vào lịch sử sử dụng. Model có hậu tố effort được tính theo giá model gốc thay vì `$0`.
+
+### Định tuyến và dự phòng
+
+Lỗi 400 mang nghĩa "hết tín dụng" nay chuyển sang model tiếp theo trong combo thay vì làm hỏng yêu cầu. Các endpoint chat hỗ trợ ghim tài khoản `x-connection-id` với dự phòng tự động. Bộ chọn model không còn hiển thị provider có toàn bộ kết nối bị tắt.
+
+### Dịch và giao thức
+
+Khai báo công cụ `strict` được giữ nguyên khi dịch. `response_format` của Chat ánh xạ sang `text.format` của Responses, và trường `text` chỉ có ở Responses bị loại bỏ khi quay lại. CommandCode bị giới hạn ở 200k theo schema thật.
+
+### Danh mục
+
+Antigravity Claude Sonnet 5.5 / Opus 5.5, CodeBuddy CN `kimi-k2.8-preview` và `deepseek-v4.1-flash`, LongCat 2.5, bản đồ MITM theo thế hệ 3.8, và ParalonCloud. Các mục danh mục chỉ là khai báo: chúng không xác lập quyền tài khoản hay khả dụng thực tế.
+
+### Kiểm chứng
+
+Bộ kiểm thử độc lập: **1.386 tệp, 4.335 trường hợp — 4.234 đạt, 100 bỏ qua, 1 todo, 0 lỗi** trên Node 24.19.0; lint không có cảnh báo. Baseline registry khớp từng byte. Build sản phẩm và chạy thử standalone trên `DATA_DIR` cách ly đều đạt; không dùng tài khoản sản phẩm hay suy luận tính phí.
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.8.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md) · [Previous release 0.9.7 (historical)](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.7.md)
+
+---
+
 ## 0.9.7 — 2026-10-06
 
 Phiên bản này tập hợp toàn bộ đợt bảo trì đã hợp nhất; việc tăng số phiên bản không thêm tính năng sản phẩm riêng. Yêu cầu **Node.js >=22.19.0**. Gói vẫn là `@joyccn/zenrouter`, lệnh vẫn là `zenrouter`.

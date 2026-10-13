@@ -1,5 +1,39 @@
 # Registro de cambios
 
+## 0.9.8 — 2026-10-13
+
+Elimina el aviso crítico de dependencias y añade el lote Tier-1 del análisis de sincronización con 9router. Veinte cambios, cada uno con su propio commit y pruebas. Requiere **Node.js >=22.19.0**. El paquete sigue siendo `@joyccn/zenrouter`, con binario `zenrouter`. Sin cambios de API incompatibles.
+
+### Seguridad
+
+**Crítico eliminado:** `proxy-addr` (GHSA-jqcg-44mw-7w3h, suplantación de IP mediante una subred de confianza IPv4-mapped IPv6) llegaba solo a través de `express`, declarado en `dependencies` pero sin importarse en ningún lugar. Se eliminó la dependencia en lugar de fijarla; el lockfile pierde 40 paquetes transitivos. También se retiraron `marked` y `selfsigned` (solo para pruebas, ahora devDependency).
+
+**No es una versión sin vulnerabilidades, y no se afirma que lo sea.** `node-forge` GHSA-86w9-cpqp-85rv (alta) no tiene parche upstream (1.4.0 es la más reciente). Su único consumidor en producción analiza, genera, firma y serializa certificados, pero nunca llama a un verificador de firmas, por lo que la ruta de verificación RSA PKCS#1 v1.5 afectada es inalcanzable aquí — ahora verificado por una prueba.
+
+### Uso y facturación
+
+Las llamadas de streaming compatibles con OpenAI solicitan `include_usage`, así que los aciertos de caché se facturan a la tarifa de caché en vez de una estimación por caracteres. Las peticiones de imagen de Codex registran sus tokens reales. Los ids con sufijo de esfuerzo se facturan a la tarifa del modelo base en lugar de `$0`.
+
+### Enrutamiento y fallback
+
+Un 400 que significa "sin créditos" avanza al siguiente miembro del combo en lugar de fallar la petición. Los endpoints de chat admiten el pinning de cuenta `x-connection-id` con fallback automático. El selector de modelos ya no ofrece proveedores cuyas conexiones están todas deshabilitadas.
+
+### Traducción y protocolo
+
+Las declaraciones de herramientas `strict` sobreviven a la traducción. `response_format` de Chat se asigna a `text.format` de Responses, y el campo `text` exclusivo de Responses se elimina al volver. La salida de CommandCode se limita a su esquema real de 200k.
+
+### Catálogo
+
+Antigravity Claude Sonnet 5.5 / Opus 5.5, CodeBuddy CN `kimi-k2.8-preview` y `deepseek-v4.1-flash`, LongCat 2.5, el mapa MITM alineado con la generación 3.8, y ParalonCloud como nuevo proveedor. Las entradas de catálogo son declaraciones: no establecen derechos de cuenta ni disponibilidad real.
+
+### Verificación
+
+Suite aislada: **1.386 archivos, 4.335 casos — 4.234 aprobados, 100 omitidos, 1 todo, 0 fallos** en Node 24.19.0; lint sin advertencias. Las baselines del registro coinciden byte a byte. La compilación de producción y una prueba standalone con `DATA_DIR` aislado pasan; no se usaron cuentas de producción ni inferencia facturable.
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.8.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md) · [Previous release 0.9.7 (historical)](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.7.md)
+
+---
+
 ## 0.9.7 — 2026-10-06
 
 Esta versión reúne todo el lote de mantenimiento ya integrado; el cambio de versión no añade una función de producto independiente. Requiere **Node.js >=22.19.0**. El paquete sigue siendo `@joyccn/zenrouter` y el comando, `zenrouter`.
