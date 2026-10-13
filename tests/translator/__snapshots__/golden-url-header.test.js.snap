@@ -336,6 +336,13 @@ exports[`GOLDEN buildUrl (default executor providers) > openrouter → url (stre
 }
 `;
 
+exports[`GOLDEN buildUrl (default executor providers) > paraloncloud → url (stream + non-stream) 1`] = `
+{
+  "nonStream": "https://paraloncloud.com/v1/chat/completions",
+  "stream": "https://paraloncloud.com/v1/chat/completions",
+}
+`;
+
 exports[`GOLDEN buildUrl (default executor providers) > perplexity → url (stream + non-stream) 1`] = `
 {
   "nonStream": "https://api.perplexity.ai/chat/completions",
