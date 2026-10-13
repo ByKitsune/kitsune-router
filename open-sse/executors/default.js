@@ -98,7 +98,7 @@ export class DefaultExecutor extends BaseExecutor {
     super(provider, PROVIDERS[provider] || PROVIDERS.openai);
   }
 
-  transformRequest(model, body) {
+  transformRequest(model, body, stream = false, credentials = null) {
     // Final thinking reconciliation is request-local; retries/accounts reuse body.
     const requestBody = /^claude-/.test(model || "") && body?.thinking?.type === "enabled" ? { ...body } : body;
     const transformed = this.applyJsonSchemaFallback(requestBody);
@@ -107,6 +107,19 @@ export class DefaultExecutor extends BaseExecutor {
       // quirk: some openai-compatible providers reject Anthropic's client_metadata field
       if (this.config.quirks?.dropClientMetadata) {
         delete transformed.client_metadata;
+      }
+      // Ask the upstream for usage on SSE. Without include_usage OpenAI-compatible
+      // gateways (Alibaba MaaS etc.) omit the final usage chunk, and the stream
+      // path falls back to chars/4 estimation — inflating prompt_tokens and
+      // dropping cached_tokens entirely, so cache hits get billed at full rate
+      // (9router #4633, verified live on kimi-k3: estimated {prompt 50116, no
+      // cache} became real {prompt 34349, cached 32256}). Custom executors that
+      // reject the field (codex, grok-cli, antigravity) delete it themselves;
+      // only the OpenAI-compatible chat path is touched.
+      if (stream === true && this.provider?.startsWith?.("openai-compatible-")
+        && resolveOpenAICompatibleApiType(this.provider, credentials) === "chat"
+        && Array.isArray(transformed.messages) && !transformed.stream_options) {
+        transformed.stream_options = { include_usage: true };
       }
     }
 
