@@ -2,7 +2,6 @@ import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
 import { getProviderIdentityTokens } from "open-sse/providers/identity.js";
-
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
@@ -66,7 +65,29 @@ export async function getPricingForModel(provider, model) {
   if (!model) return null;
   const userPricing = await getUserPricing();
   const { getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
-  return resolvePricing(userPricing, provider, model, resolveConst);
+  // A user override on the exact (effort-annotated) id always wins.
+  if (hasUserOverride(userPricing, provider, model)) {
+    return resolvePricing(userPricing, provider, model, resolveConst);
+  }
+  // Usage rows keep the effort-annotated id ("gpt-6.1-sol(xhigh)"); resolving
+  // it as-is missed the base model's exact entry and fell through to a broader
+  // glob or to null ($0). Price the variant at its base model's rate — which
+  // also honors a user override saved on the base id (9router #4635).
+  const { stripThinkingSuffix } = await import("open-sse/translator/concerns/thinkingUnified.js");
+  const base = stripThinkingSuffix(model);
+  if (base === model) {
+    return resolvePricing(userPricing, provider, model, resolveConst);
+  }
+  return resolvePricing(userPricing, provider, base, resolveConst);
+}
+
+function hasUserOverride(userPricing, provider, model) {
+  for (const token of getProviderIdentityTokens(provider)) {
+    if (!Object.hasOwn(userPricing, token)) continue;
+    const models = userPricing[token];
+    if (models && Object.hasOwn(models, model)) return true;
+  }
+  return false;
 }
 
 // Atomic merge inside transaction (per-provider read-modify-write)
