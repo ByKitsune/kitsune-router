@@ -13,6 +13,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
+import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
 
 /**
@@ -221,7 +222,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${credentials.connectionName}\x1b[0m`);
+    log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
     const refreshedCredentials = await checkAndRefreshToken(providerId, credentials);
 
@@ -251,7 +252,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, credentialProviderId, searchLockKey);
 
     if (shouldFallback) {
-      log.warn("AUTH", `Account ${credentials.connectionName} unavailable (${result.status}), trying fallback`);
+      log.warn("AUTH", `Account ${redactAccountName(credentials.connectionName, credentials.connectionId)} unavailable (${result.status}), trying fallback`);
       excludeConnectionIds.add(credentials.connectionId);
       lastError = result.error;
       lastStatus = result.status;

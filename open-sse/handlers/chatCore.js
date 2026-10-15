@@ -35,6 +35,7 @@ import { clientRequestedStreaming } from "./chatCore/streamMode.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { normalizeToolSchemasForProvider } from "../utils/toolSchemaCompatibility.js";
 import { parseTimeMs } from "../services/oauthCredentialManager.js";
+import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -263,7 +264,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     const fmtStr = passthrough ? `FMT: ${sourceFormat} (passthrough)` : `FMT: ${sourceFormat}→${targetFormat}`;
     const showThinking = provider !== "grok-cli" || supportsGrokCliReasoningEffort(model);
     const think = showThinking ? log.fmtThink?.(extractThinking(translatedBody)) : null;
-    const acc = credentials?.connectionName || credentials?.connectionId?.slice(0, 8) || "-";
+    const acc = credentials?.connectionName || credentials?.connectionId
+      ? redactAccountName(credentials?.connectionName, credentials?.connectionId)
+      : "-";
     const parts = [
       `POST ${clientModel} → ${provider}/${model}`,
       fmtStr,

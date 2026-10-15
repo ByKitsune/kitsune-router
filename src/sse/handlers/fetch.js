@@ -14,6 +14,7 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { assertPublicUrlAsync } from "@/shared/utils/ssrfGuard.js";
+import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 
 /**
  * Handle web fetch (URL extraction) request for the SSE/Next.js server.
@@ -181,7 +182,7 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${credentials.connectionName}\x1b[0m`);
+    log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
     const refreshedCredentials = await checkAndRefreshToken(providerId, credentials);
 
@@ -219,7 +220,7 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
     );
 
     if (shouldFallback) {
-      log.warn("AUTH", `Account ${credentials.connectionName} unavailable (${result.status}), trying fallback`);
+      log.warn("AUTH", `Account ${redactAccountName(credentials.connectionName, credentials.connectionId)} unavailable (${result.status}), trying fallback`);
       excludeConnectionIds.add(credentials.connectionId);
       lastError = result.error;
       lastStatus = result.status;

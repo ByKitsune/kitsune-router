@@ -27,6 +27,7 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
+import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 
 /**
  * Handle chat completion request
@@ -407,7 +408,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     const retryable5xx = [500, 502, 503, 504].includes(Number(result.status));
     if (retryable5xx && !retriedConnectionIds.has(credentials.connectionId) && !request?.signal?.aborted) {
       retriedConnectionIds.add(credentials.connectionId);
-      log.warn("RETRY", `transient ${result.status} on ACC:${credentials.connectionName} — one immediate retry before fallback`);
+      log.warn("RETRY", `transient ${result.status} on ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} — one immediate retry before fallback`);
       continue;
     }
 
@@ -429,7 +430,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       : (await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, resetsAtMs)).shouldFallback;
 
     if (shouldFallback) {
-      log.warn("FALLBACK", `⇄ ACC:${credentials.connectionName} UNAVAILABLE (${result.status}) → NEXT ACCOUNT`);
+      log.warn("FALLBACK", `⇄ ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} UNAVAILABLE (${result.status}) → NEXT ACCOUNT`);
       excludeConnectionIds.add(credentials.connectionId);
       
       // Fast-fail circuit breaker: if multiple accounts fail with the exact same systemic error,
