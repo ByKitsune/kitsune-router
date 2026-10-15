@@ -9,11 +9,16 @@ import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { KIRO_CLI_USER_AGENT } from "../config/clientVersions.js";
 import { allowsClaudeManualInterleaving, reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
+import { setBounded, CACHE_LIMITS } from "../utils/boundedCache.js";
 
 // Per-connection set of `anthropic-beta` flags the upstream rejected for that
 // account. Process-local by design: getProviderCredentials() rebuilds
 // providerSpecificData per request, so this cannot live on the credential.
 const rejectedBetaByConnection = new Map();
+
+// Bounded: keys are connection ids / credentials, and a pooled account that is
+// removed or rotated leaves an entry nothing will ever read again. Without a
+// cap this grows for the life of the process.
 
 // Stable identity for the denylist: connection id when present, else the
 // credential itself. Distinct pooled accounts hold distinct tokens, so they
@@ -37,7 +42,7 @@ function rememberRejectedBeta(credentials, flags) {
   if (!key) return;
   const known = rejectedBetaByConnection.get(key) || new Set();
   for (const flag of flags) known.add(flag);
-  rejectedBetaByConnection.set(key, known);
+  setBounded(rejectedBetaByConnection, key, known, CACHE_LIMITS.rejectedBeta);
 }
 // Auth header descriptors — derived from registry transport.auth, fallback to hardcoded defaults.
 const BEARER = { combined: true, header: "Authorization", scheme: "bearer" };

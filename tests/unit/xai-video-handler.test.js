@@ -103,7 +103,11 @@ describe("handleVideoCreate", () => {
       "generations"
     );
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("does not support video generation");
+    const body = await res.text();
+    // The reason is still communicated, but the internal provider id is not
+    // exposed to the caller (see src/shared/utils/clientErrors.js).
+    expect(body).toContain("does not support the requested operation");
+    expect(body).not.toContain("openai");
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -183,7 +187,11 @@ describe("handleVideoCreate", () => {
     authMocks.getProviderCredentials.mockResolvedValueOnce(null);
     const res = await handleVideoCreate(makeRequest({ prompt: "x" }), "generations");
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("No credentials for provider: xai");
+    const body = await res.text();
+    // Neutral message: the caller must not learn which provider/account is
+    // involved. The specific reason stays in the operator log.
+    expect(body).toContain("not available right now");
+    expect(body).not.toMatch(/provider:\s*xai/i);
   });
 
   it("returns 400 on invalid JSON", async () => {

@@ -184,12 +184,23 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     if (stripUnsupportedModalities(body, sourceFormat, caps)) {
       log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
     }
-    // Convert remote image URLs to base64 for targets that can't fetch URLs.
-    try {
-      const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: undefined });
-      if (n > 0) log?.debug?.("MODALITY", `prefetched ${n} remote image(s) for ${targetFormat}`);
-    } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
   }
+  // Remote-image prefetch runs on BOTH paths.
+  //
+  // It used to be inside the `!passthrough` branch, so a native passthrough
+  // request carrying an HTTP image_url was forwarded as-is to a target that
+  // cannot fetch URLs, and the upstream failed with a confusing 400. The helper
+  // is a no-op when the target does not need inlining (prefetch.js checks the
+  // format itself), so running it on the passthrough path only adds work when
+  // there is work to do.
+  //
+  // stripUnsupportedModalities stays translation-only on purpose: dropping a
+  // media block from a body the client sent in the provider's OWN native format
+  // would silently alter a request the gateway promised to pass through.
+  try {
+    const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: undefined });
+    if (n > 0) log?.debug?.("MODALITY", `prefetched ${n} remote image(s) for ${targetFormat}`);
+  } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
 
   let translatedBody;
   let toolNameMap;

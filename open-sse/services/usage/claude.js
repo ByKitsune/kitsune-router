@@ -5,6 +5,7 @@
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { ANTHROPIC_API_VERSION } from "../../providers/shared.js";
 import { U, parseResetTime } from "./shared.js";
+import { setBounded, sweepExpired, CACHE_LIMITS } from "../../utils/boundedCache.js";
 
 // Claude API config (urls from registry, apiVersion is header logic kept here)
 const CLAUDE_CONFIG = {
@@ -17,15 +18,24 @@ const CLAUDE_CONFIG = {
 // OAuth usage endpoint rate-limits (429); cool down per-token to stop hammering it.
 // Only the quota endpoint is affected — chat with the same token still works.
 const OAUTH_429_COOLDOWN_MS = 180000;
+// Bounded: keyed by raw access token, and tokens rotate — every rotation
+// leaves an entry nothing reads again.
 const oauthCooldown = new Map();
 
 // Dedup + short TTL cache per access token. Many tabs / many accounts / auto-refresh
 // all funnel through here; without this each call hits Anthropic and triggers 429.
 const USAGE_CACHE_TTL_MS = 300000;
+// Bounded: same rotation concern as oauthCooldown above. Entries also carry
+// their own expiresAt, so expired ones are swept as well.
 const usageCache = new Map(); // token -> { promise } | { result, expiresAt }
 
 export async function getClaudeUsage(accessToken, proxyOptions = null, options = {}) {
   const force = options?.force === true;
+
+  // Drop expired entries opportunistically (size cap alone would keep a dead
+  // token's entry until 500 newer tokens appeared, which on a single gateway
+  // can take a very long time). Cheap: the map is tiny by construction.
+  sweepExpired(usageCache, (entry) => entry?.expiresAt ?? null);
 
   // Serve in-flight or fresh cached result (skip on manual force)
   if (!force && accessToken) {
@@ -40,10 +50,10 @@ export async function getClaudeUsage(accessToken, proxyOptions = null, options =
     const result = await fetchClaudeUsageRaw(accessToken, proxyOptions);
     // Only cache real quota data, not soft-failure {message: ...} payloads
     if (accessToken && result?.quotas) {
-      usageCache.set(accessToken, {
+      setBounded(usageCache, accessToken, {
         result,
         expiresAt: Date.now() + USAGE_CACHE_TTL_MS,
-      });
+      }, CACHE_LIMITS.usageCache);
       return result;
     }
     // Soft failure (429/error): prefer the last good read over a transient error
@@ -51,7 +61,7 @@ export async function getClaudeUsage(accessToken, proxyOptions = null, options =
     return result;
   })();
 
-  if (accessToken) usageCache.set(accessToken, { promise });
+  if (accessToken) setBounded(usageCache, accessToken, { promise }, CACHE_LIMITS.usageCache);
   return promise;
 }
 
@@ -62,6 +72,8 @@ async function fetchClaudeUsageRaw(accessToken, proxyOptions = null) {
     if (cooldownUntil && Date.now() < cooldownUntil) {
       return await getClaudeUsageLegacy(accessToken, proxyOptions);
     }
+    // Expired cooldown: sweep so a rotated token cannot leave a permanent entry.
+    if (cooldownUntil) sweepExpired(oauthCooldown, (until) => until);
 
     // Primary: OAuth usage endpoint (Claude Code consumer OAuth tokens)
     const oauthResponse = await proxyAwareFetch(CLAUDE_CONFIG.oauthUsageUrl, {
@@ -135,7 +147,7 @@ async function fetchClaudeUsageRaw(accessToken, proxyOptions = null) {
 
     // Cool down OAuth usage polling after a 429 (quota endpoint only)
     if (oauthResponse.status === 429) {
-      oauthCooldown.set(accessToken, Date.now() + OAUTH_429_COOLDOWN_MS);
+      setBounded(oauthCooldown, accessToken, Date.now() + OAUTH_429_COOLDOWN_MS, CACHE_LIMITS.oauthCooldown);
     }
 
     // Fallback: legacy settings + org usage endpoint

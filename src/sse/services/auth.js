@@ -4,6 +4,7 @@ import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLock
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
+import { setBounded, CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
 import { getAntigravityQuotaCache } from "./antigravityQuota.js";
 import { getClaudeUsage } from "open-sse/services/usage/claude.js";
 import { getCodexUsage } from "open-sse/services/usage/codex.js";
@@ -18,12 +19,14 @@ import * as log from "../utils/logger.js";
 // Per-provider mutexes to prevent race conditions without cross-provider serialization (#3629)
 // Previously a single global Promise chain serialized ALL providers, causing TTFT degradation
 // when Claude + Codex + OpenAI requests arrived concurrently.
+// Bounded: keyed by provider id, and a removed/custom provider would otherwise
+// leave an entry for the life of the process.
 const providerMutexes = new Map(); // providerId -> Promise
 function getProviderMutex(providerId) {
   return providerMutexes.get(providerId) || Promise.resolve();
 }
 function setProviderMutex(providerId, promise) {
-  providerMutexes.set(providerId, promise);
+  setBounded(providerMutexes, providerId, promise, CACHE_LIMITS.providerMutexes);
 }
 
 const quotaSnapshotCacheByTtl = new Map();
