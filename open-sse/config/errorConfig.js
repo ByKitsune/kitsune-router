@@ -121,6 +121,23 @@ export const ERROR_RULES = [
   },
   { text: "function_declarations",      cooldownMs: 0 },
   { text: "unsupported schema",         cooldownMs: 0 },
+  // Context-window overflow is a CLIENT error. It deliberately does NOT get a
+  // rule here: the generic request-scoped 4xx handling already returns
+  // { shouldFallback: false, cooldownMs: 0 } for a 400, which is the correct
+  // contract (a prompt that is too long fails identically on every account, so
+  // falling through just multiplies the latency of an unavoidable error — see
+  // #20a43f5a2 and the "request-scoped vs account-scoped" test).
+  //
+  // What WAS wrong is the status the client received. The Codex executor used to
+  // turn an in-stream context overflow into 503/502, which is both a lie (the
+  // body says invalid_request_error) and harmful (clients retry 5xx). That is
+  // fixed at the source in executors/codex.js, which now surfaces 400. These
+  // rules only ensure the ACCOUNT is never locked if such text ever arrives
+  // alongside a 5xx — the prompt is the problem, not the credential.
+  { text: "context_length_exceeded",    cooldownMs: 0, accountFault: false },
+  { text: "exceeds the context window", cooldownMs: 0, accountFault: false },
+  { text: "maximum context length",     cooldownMs: 0, accountFault: false },
+  { text: "context length exceeded",    cooldownMs: 0, accountFault: false },
   // Request-scoped reasoning exhaustion: a different combo model may fit the
   // budget, but the upstream account is healthy and must never be locked.
   { text: "output budget exhausted before any text or tool calls", cooldownMs: 0 },

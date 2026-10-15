@@ -201,4 +201,58 @@ describe("Codex preheader SSE inspection", () => {
     expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  it("reports a context overflow as 400, not a retryable 502/503", async () => {
+    // Production: an over-long prompt produced context_length_exceeded inside the
+    // 200-OK stream. The generic `response.failed` branch turned it into 503, the
+    // client saw 502 (which ByKitsune treats as retryable), and every healthy
+    // account was locked for 30s in turn for a request that could never succeed.
+    const source = upstream(frame("response.failed", {
+      response: {
+        status: "failed",
+        error: {
+          code: "context_length_exceeded",
+          message: "Your input exceeds the context window of this model. Please adjust your input and try again.",
+        },
+      },
+    }));
+    source.close();
+    vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);
+    const result = await execute();
+
+    expect(result.response.status).toBe(400);
+    const body = await result.response.json();
+    expect(body.error.code).toBe("invalid_request_error");
+    expect(body.error.message).toMatch(/exceeds the context window/i);
+  });
+
+  it("does not rotate accounts for a context overflow (no retry attempt)", async () => {
+    const source = upstream(frame("error", {
+      error: { code: "context_length_exceeded", message: "exceeds the context window" },
+    }));
+    source.close();
+    vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);
+    const executor = new CodexExecutor();
+    executor.config = { ...executor.config, retry: { 503: { attempts: 3, delayMs: 10 } } };
+    const result = await execute(executor);
+
+    expect(result.response.status).toBe(400);
+    // A retry would have called the upstream again; the credential is healthy.
+    expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("still treats a genuine overload as a retryable transient error", async () => {
+    // The client-error branch must not swallow real gateway faults.
+    const source = upstream(frame("error", { error: { code: "server_is_overloaded", message: "Busy" } }));
+    source.close();
+    vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);
+    const executor = new CodexExecutor();
+    executor.config = { ...executor.config, retry: { 503: { attempts: 0, delayMs: 10 } } };
+    const result = await execute(executor);
+
+    expect(result.response.status).toBe(503);
+    const body = await result.response.json();
+    expect(body.error.code).toBe("service_unavailable");
+  });
 });

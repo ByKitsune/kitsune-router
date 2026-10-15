@@ -199,6 +199,14 @@ export function checkFallbackError(status, errorText, backoffLevel = 0, response
   for (const rule of ERROR_RULES) {
     // Text-based rule: match substring in error message
     if (rule.text && lowerError && lowerError.includes(rule.text)) {
+      // Request-scoped text rule: the wording identifies a problem with the
+      // request, so the credential must never be locked regardless of which
+      // status the upstream attached to it. `shouldFallback` stays false on
+      // 4xx (fail fast, per #20a43f5a2) but a 5xx carrying the same text still
+      // routes onward without a cooldown.
+      if (rule.accountFault === false) {
+        return { shouldFallback: status >= 500, cooldownMs: 0 };
+      }
       if (rule.terminal) {
         return { shouldFallback: true, cooldownMs: rule.cooldownMs, terminal: true };
       }

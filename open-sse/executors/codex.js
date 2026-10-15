@@ -29,6 +29,19 @@ const CODEX_SSE_USER_OUTPUT_EVENTS = new Set([
   "response.function_call_arguments.delta",
   "response.custom_tool_call_input.delta",
 ]);
+// Request-scoped failures that ride inside a 200-OK SSE body. These describe the
+// REQUEST, not upstream health, so they must surface as 400 (the client can fix
+// the prompt) and must never cool the account down. Observed live: an over-long
+// prompt produced `context_length_exceeded` inside the stream; the generic
+// `response.failed` branch turned it into 503, the client saw 502 (which it
+// treats as retryable), and every healthy account was locked for 30s in turn
+// while the request could never succeed.
+const CODEX_SSE_CLIENT_ERROR_PATTERNS = [
+  "context_length_exceeded",
+  "exceeds the context window",
+  "maximum context length",
+  "context length exceeded",
+];
 const CODEX_SSE_PEEK_BYTES = 256 * 1024;
 const CODEX_MODEL_CAPACITY_MESSAGE = "Selected model is at capacity. Please try a different model.";
 
@@ -176,12 +189,20 @@ function findNestedMessage(value, depth = 0) {
 }
 
 
-function codexSseErrorResponse(status, message) {
+function codexSseErrorResponse(status, message, clientError = false) {
+  // Keep the error `code` meaningful so callers can branch on it. The previous
+  // single "upstream_error" value made a context overflow indistinguishable
+  // from a genuine gateway fault.
+  const code = clientError
+    ? "invalid_request_error"
+    : status === HTTP_STATUS.SERVICE_UNAVAILABLE
+      ? "service_unavailable"
+      : "upstream_error";
   return new Response(JSON.stringify({
     error: {
       message,
       type: status >= 500 ? "server_error" : "invalid_request_error",
-      code: status === HTTP_STATUS.SERVICE_UNAVAILABLE ? "service_unavailable" : "upstream_error",
+      code,
     }
   }), {
     status,
@@ -309,6 +330,14 @@ export class CodexExecutor extends BaseExecutor {
         }
         return result;
       }
+      // Request-scoped failure (context overflow, bad schema): surface it as a
+      // 400 so the client can fix the request, and do NOT rotate accounts — the
+      // credential is healthy and the identical request would fail on every one.
+      if (peek.clientError) {
+        args.log?.warn?.("RETRY", `CODEX | SSE client error "${peek.message}" — not an account fault`);
+        result.response = codexSseErrorResponse(HTTP_STATUS.BAD_REQUEST, peek.message || peek.matched, true);
+        return result;
+      }
       if (peek.accountFallback) {
         args.log?.warn?.("RETRY", `CODEX | SSE account fallback "${peek.message}"`);
         result.response = codexSseErrorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, peek.message || CODEX_MODEL_CAPACITY_MESSAGE);
@@ -331,7 +360,7 @@ export class CodexExecutor extends BaseExecutor {
   async _peekSseTransientError(response, signal) {
     if (!response || !response.ok || !response.body
       || response.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "text/event-stream") {
-      return { matched: null, message: null, accountFallback: false, replacementBody: null };
+      return { matched: null, message: null, accountFallback: false, clientError: false, replacementBody: null };
     }
     signal?.throwIfAborted();
     const reader = response.body.getReader();
@@ -347,6 +376,7 @@ export class CodexExecutor extends BaseExecutor {
     let matched = null;
     let message = null;
     let accountFallback = false;
+    let clientError = false;
 
     const inspectFrame = () => {
       const payload = dataLines.join("\n");
@@ -363,6 +393,17 @@ export class CodexExecutor extends BaseExecutor {
       const error = data?.error || data?.response?.error;
       if (!error && type !== "error" && type !== "response.failed") return false;
       const lowerError = JSON.stringify(error || data).toLowerCase();
+      // Request-scoped failures are checked FIRST: upstream reports context
+      // overflow as `response.failed` too, and matching that generic pattern
+      // first is what converted a client error into a retryable 503/502.
+      const clientHit = CODEX_SSE_CLIENT_ERROR_PATTERNS.find(pattern => lowerError.includes(pattern));
+      if (clientHit) {
+        matched = clientHit;
+        clientError = true;
+        accountFallback = false;
+        message = findNestedMessage(error || data) || clientHit;
+        return true;
+      }
       const accountHit = CODEX_SSE_ACCOUNT_FALLBACK_PATTERNS.find(pattern => lowerError.includes(pattern));
       matched = accountHit || (type === "response.failed" ? "response.failed" : null);
       accountFallback = !!matched;
@@ -445,7 +486,7 @@ export class CodexExecutor extends BaseExecutor {
 
     if (matched) {
       await cancelReader();
-      return { matched, message, accountFallback, replacementBody: null };
+      return { matched, message, accountFallback, clientError, replacementBody: null };
     }
 
     let finished = false;
@@ -496,7 +537,7 @@ export class CodexExecutor extends BaseExecutor {
         await cancelReader(reason);
       },
     });
-    return { matched: null, message: null, accountFallback: false, replacementBody };
+    return { matched: null, message: null, accountFallback: false, clientError: false, replacementBody };
   }
 
   // Parse Codex usage_limit_reached to extract precise resetsAtMs; fallback to default otherwise
