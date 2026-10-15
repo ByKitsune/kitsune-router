@@ -192,14 +192,29 @@ export async function parseUpstreamError(response, executor = null) {
   const messageStr = safeDiagnostic(message);
   const finalMessage = withLocationGateHint(messageStr || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`);
 
-  // Generic reset-time extraction for rate limits (GLM "reset at ...", Retry-After, ...) — PR #3612
-  if (response.status === 429) {
+  // Provider-reported precise reset time (Retry-After header or "reset at/in"
+  // wording). A 403/503 carrying `Retry-After: 3600` used to be discarded, so
+  // the account fell back to exponential-backoff guessing (1s→2s→4s…) and
+  // hammered an upstream that had explicitly asked for an hour of quiet.
+  // Downstream, markAccountUnavailable() already accepts resetsAtMs and prefers
+  // it over the guessed backoff.
+  //
+  // Restricted to statuses that actually mean "come back later". A 400/404/422
+  // describes the request, not account health, and extractResetsAtMs() also
+  // matches loose wording like "retry in 5 minutes" — applying that to a client
+  // error would cool down a perfectly healthy account.
+  if (RESET_BEARING_STATUSES.has(response.status)) {
     const resetsAtMs = extractResetsAtMs(response, finalMessage);
-    if (resetsAtMs) return { statusCode: 429, message: finalMessage, ...diagnostics, resetsAtMs };
+    if (resetsAtMs) return { statusCode: response.status, message: finalMessage, ...diagnostics, resetsAtMs };
   }
 
   return { statusCode: response.status, message: finalMessage, ...diagnostics };
 }
+
+// Upstream statuses that legitimately carry a retry/reset hint. 403 is included
+// because several providers (Anthropic org limits, Antigravity quota) report
+// quota exhaustion there instead of 429, and 402 for credit/billing resets.
+const RESET_BEARING_STATUSES = new Set([402, 403, 429, 500, 502, 503, 504, 529]);
 
 function safeDiagnostic(value) {
   if (typeof value !== "string") return undefined;
@@ -241,17 +256,23 @@ export function createErrorResult(statusCode, message, resetsAtMs, diagnostics =
  * @returns {Response}
  */
 export function unavailableResponse(statusCode, message, retryAfter, retryAfterHuman) {
-  const retryAfterSec = Math.max(Math.ceil((new Date(retryAfter).getTime() - Date.now()) / 1000), 1);
   const msg = `${message} (${retryAfterHuman})`;
+  const headers = { "Content-Type": "application/json" };
+
+  // `retryAfter` arrives from provider payloads and is not guaranteed to be a
+  // parseable date: values like "soon", "1 minute", "" or "30" all yield NaN,
+  // which previously emitted the literal header `Retry-After: NaN`. Clients
+  // (and intermediaries) cannot act on that, and it is worse than omitting the
+  // header entirely — so only send a header when the value is a real instant.
+  const retryAfterMs = retryAfter == null ? NaN : new Date(retryAfter).getTime();
+  if (Number.isFinite(retryAfterMs)) {
+    const retryAfterSec = Math.max(Math.ceil((retryAfterMs - Date.now()) / 1000), 1);
+    if (Number.isFinite(retryAfterSec)) headers["Retry-After"] = String(retryAfterSec);
+  }
+
   return new Response(
     JSON.stringify({ error: { message: msg } }),
-    {
-      status: statusCode,
-      headers: {
-        "Content-Type": "application/json",
-        "Retry-After": String(retryAfterSec)
-      }
-    }
+    { status: statusCode, headers }
   );
 }
 

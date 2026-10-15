@@ -609,7 +609,11 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       try {
         const errorBody = await result.clone().json();
         errorText = errorBody?.error?.message || errorBody?.error || errorBody?.message || errorText;
-        retryAfter = errorBody?.retryAfter || null;
+        // Validate before use: provider payloads carry values like "soon",
+        // "1 minute", "" or "30". A non-parseable value used to flow into the
+        // `Retry-After` response header as the literal string "NaN".
+        const candidate = errorBody?.retryAfter ?? null;
+        retryAfter = candidate != null && Number.isFinite(new Date(candidate).getTime()) ? candidate : null;
       } catch {
         // Ignore JSON parse errors
       }
@@ -624,8 +628,11 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
         try { errorText = JSON.stringify(errorText); } catch { errorText = String(errorText); }
       }
 
-      // Check if should fallback to next model
-      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorText);
+      // Check if should fallback to next model. The Response is passed so
+      // checkFallbackError() can honour a provider-sent Retry-After instead of
+      // guessing an exponential backoff (the parameter existed but no caller
+      // ever supplied it, leaving that whole branch dead).
+      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorText, 0, result);
 
       if (!shouldFallback) {
         log.warn("COMBO", `Model ${modelStr} failed (no fallback)`, { status: result.status });
