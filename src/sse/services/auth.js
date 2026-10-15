@@ -1,8 +1,9 @@
 import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
-import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
+import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil, needsOperatorReauth } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
+import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { getAntigravityQuotaCache } from "./antigravityQuota.js";
 import { getClaudeUsage } from "open-sse/services/usage/claude.js";
 import { getCodexUsage } from "open-sse/services/usage/codex.js";
@@ -264,7 +265,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     // Pin to preferred connection if specified and available
     if (preferredConnectionId) {      connection = selectable.find((c) => c.id === preferredConnectionId);
       if (connection) {
-        log.info("AUTH", `${provider} | pinned to ${connection.id?.slice(0, 8)} (${connection.name || connection.email || "unnamed"})`);
+        log.info("AUTH", `${provider} | pinned to ${connection.id?.slice(0, 8)} (${redactAccountName(connection.name, connection.id)})`);
       }
     }
     // Session-sticky (9router #4297): stable-hash the conversation session to
@@ -413,9 +414,15 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   const reason = describeProviderError(errorText);
   const lockUpdate = buildModelLockUpdate(githubResetAtMs ? null : model, cooldownMs);
 
+  // A revoked/invalidated OAuth credential cannot be healed by a refresh, so
+  // the operator must re-auth. Surface that distinctly instead of the generic
+  // "unavailable", which the dashboard renders as a temporary cooldown and
+  // which is why a dead account could sit in the pool for hours unnoticed.
+  const needsReauth = needsOperatorReauth(status, errorText);
+
   await updateProviderConnection(connectionId, {
     ...lockUpdate,
-    testStatus: "unavailable",
+    testStatus: needsReauth ? "needs_reauth" : "unavailable",
     lastError: reason,
     errorCode: status,
     lastErrorAt: new Date().toISOString(),
@@ -423,8 +430,9 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   });
 
   const lockKey = Object.keys(lockUpdate)[0];
-  const connName = conn?.displayName || conn?.name || conn?.email || connectionId.slice(0, 8);
-  log.warn("AUTH", `${connName} locked ${lockKey} for ${Math.round(cooldownMs / 1000)}s [${status}]`);
+  // Never log the raw identity: connection labels are usually the account email.
+  const connName = safeAccountLabel(conn);
+  log.warn("AUTH", `${connName} locked ${lockKey} for ${Math.round(cooldownMs / 1000)}s [${status}]${needsReauth ? " · NEEDS RE-AUTH" : ""}`);
 
   if (provider && status && reason) {
     console.error(`❌ ${provider} [${status}]: ${reason}`);

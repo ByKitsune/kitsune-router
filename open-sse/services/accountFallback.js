@@ -92,6 +92,38 @@ export const PERMANENT_AUTH_DENIAL_TEXTS = [
 ];
 
 /**
+ * Revoked / invalidated OAuth credential substrings (lowercase).
+ *
+ * Deliberately SEPARATE from PERMANENT_AUTH_DENIAL_TEXTS. An org-policy denial
+ * provably cannot be healed by refreshing (the policy is server-side), so that
+ * path skips refresh entirely. A revoked token is different: the provider
+ * rejected this credential, but a still-valid refresh token may legitimately
+ * mint a working access token, and providers also emit these codes when only
+ * the access token was invalidated. Skipping refresh here would lock a
+ * recoverable account for an hour — a worse failure than the retry storm we
+ * are fixing. So these codes keep the normal refresh attempt (one bounded HTTP
+ * call, which fails fast with `invalid_grant` when truly dead) and only change
+ * the COOLDOWN once the retry also fails.
+ *
+ * Production evidence (0.9.7, journal): Codex returned
+ * `{"code":"token_revoked","message":"Encountered invalidated oauth token for
+ * user"}` 31 times across 8h, retrying one account 16 times and another 15
+ * times, because the text matched no rule and fell through to the generic 401
+ * rule (2 min cooldown, forever).
+ */
+export const REVOKED_CREDENTIAL_TEXTS = [
+  "token_revoked",
+  "token revoked",
+  "token has been revoked",
+  "revoked token",
+  "invalidated oauth token",
+  "invalidated token",
+  "credentials revoked",
+  "refresh token has been revoked",
+  "refresh_token_reused",
+];
+
+/**
  * True when an upstream 401/403 carries a permanent org-policy denial.
  * Callers must skip token refresh AND retry for these — refreshing a
  * denied credential only burns rate-limit budget and locks every sibling
@@ -105,6 +137,35 @@ export function isPermanentAuthDenial(status, errorText) {
   if (!errorText) return false;
   const lower = (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase();
   return PERMANENT_AUTH_DENIAL_TEXTS.some((t) => lower.includes(t));
+}
+
+/**
+ * True when an upstream error reports a revoked/invalidated credential.
+ * These get the long revocation cooldown and the `needs_reauth` status (the
+ * operator must re-auth if a refresh attempt also fails), but they still get
+ * one refresh attempt first — see REVOKED_CREDENTIAL_TEXTS.
+ * @param {number} status - HTTP status code
+ * @param {string} errorText - Error message text (any shape)
+ * @returns {boolean}
+ */
+export function isRevokedCredentialError(status, errorText) {
+  if (status !== 401 && status !== 403) return false;
+  if (!errorText) return false;
+  const lower = (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase();
+  return REVOKED_CREDENTIAL_TEXTS.some((t) => lower.includes(t));
+}
+
+/**
+ * True when the credential needs operator action (re-auth) rather than an
+ * automatic cooldown: either a server-side org-policy denial or a revoked
+ * token. Drives the `needs_reauth` connection status so the dashboard stops
+ * rendering a dead account as a temporary cooldown.
+ * @param {number} status
+ * @param {string} errorText
+ * @returns {boolean}
+ */
+export function needsOperatorReauth(status, errorText) {
+  return isPermanentAuthDenial(status, errorText) || isRevokedCredentialError(status, errorText);
 }
 
 /**

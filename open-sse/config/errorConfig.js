@@ -44,9 +44,20 @@ export const MAX_RATE_LIMIT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 // Cooldown durations (ms)
 const COOLDOWN = {
   extended: 15 * 60 * 1000, // 15m for zero balance / quota exhausted across accounts
+  revoked: 60 * 60 * 1000,  // 1h for a revoked/invalidated OAuth token (see below)
   long: 2 * 60 * 1000,
   short: 5 * 1000,
 };
+
+// Cooldown for a provider-revoked OAuth token, exported for the regression test.
+// Rationale: a revoked token does NOT heal on its own — only a human re-auth
+// fixes it, and the retry budget is otherwise wasted every `COOLDOWN.long`
+// (observed: one account retried 16x across 8h). 1h is deliberately bounded so
+// a credential that starts working again (operator re-auth, provider-side
+// reinstatement) returns to rotation within the hour without operator action,
+// while cutting the wasted retry rate by ~30x. The refresh path still runs
+// first, so a token that a refresh CAN heal never reaches this cooldown.
+export const REVOKED_TOKEN_COOLDOWN_MS = COOLDOWN.revoked;
 
 /**
  * Unified error classification rules.
@@ -132,6 +143,28 @@ export const ERROR_RULES = [
   { text: "oauth_org_not_allowed",      cooldownMs: COOLDOWN.extended, terminal: true },
   { text: "oauth authentication is currently not allowed", cooldownMs: COOLDOWN.extended, terminal: true },
   { text: "organization has disabled",  cooldownMs: COOLDOWN.extended, terminal: true },
+
+  // Permanently revoked / invalidated OAuth credentials. A revoked token cannot
+  // be healed by refreshing it, so the generic 401 rule (2 min) turned a dead
+  // account into an endless retry loop — production observed one account
+  // retried 16x across 8h and 31 `token_revoked` events total, each burning a
+  // refresh round-trip plus upstream rate-limit budget. These are marked
+  // terminal with the dedicated 1h cooldown (see REVOKED_TOKEN_COOLDOWN_MS):
+  // long enough to stop the storm, short enough that a human re-auth returns
+  // the account to rotation within the hour. Checked BEFORE the generic 401
+  // status rule, which otherwise matches first.
+  //   - OpenAI/Codex: {"code":"token_revoked","message":"Encountered invalidated oauth token for user"}
+  //   - xAI/Grok CLI: "invalid_grant"/"refresh token has been revoked"
+  //   - generic OAuth: "token has been revoked", "token revoked", "credentials revoked"
+  { text: "token_revoked",              cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "token revoked",              cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "token has been revoked",     cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "revoked token",              cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "invalidated oauth token",    cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "invalidated token",          cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "credentials revoked",        cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "refresh token has been revoked", cooldownMs: COOLDOWN.revoked, terminal: true },
+  { text: "refresh_token_reused",       cooldownMs: COOLDOWN.revoked, terminal: true },
 
   // --- Status-based rules (fallback when text doesn't match) ---
   { status: 401, cooldownMs: COOLDOWN.long, terminal: true },
