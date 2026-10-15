@@ -2,7 +2,7 @@
 
 ## 0.9.9 — 2026-10-15
 
-> **Upgrading from 0.9.7? This release also contains 0.9.8.** The 0.9.8 batch was committed but never published (no `v0.9.8` tag, no GitHub release, npm `latest` stayed 0.9.7). 0.9.9 is 44 commits on top of `v0.9.7`, so you receive both batches at once — the critical dependency-advisory removal and Tier-1 upstream ports from 0.9.8, plus everything below.
+> **Upgrading from 0.9.7? This release also contains 0.9.8.** The 0.9.8 batch was committed but never published (no `v0.9.8` tag, no GitHub release, npm `latest` stayed 0.9.7). 0.9.9 is 45 commits between `v0.9.7` and `v0.9.9`, so you receive both batches at once — the critical dependency-advisory removal and Tier-1 upstream ports from 0.9.8, plus everything below.
 
 Answers an external audit (11 prompt documents) plus a full catalog verification against [models.dev](https://models.dev). Every finding was reproduced against the running gateway before being changed, and each fix ships with a regression test. Requires **Node.js >=22.19.0**. The package remains `@joyccn/zenrouter`, with binary `zenrouter`. No breaking API change.
 
