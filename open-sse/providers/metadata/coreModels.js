@@ -2097,6 +2097,13 @@ for (const id of ["gpt-5.4", "gpt-5.4-mini"]) {
   entry.limits.apiMaxInput = openai[id].capabilities.maxInput ?? null;
   for (const field of ["contextWindow", "maxInput", "maxOutput"]) delete entry.capabilities[field];
   entry.limits.unverifiedCapabilityFields = ["contextWindow", "maxInput", "maxOutput"];
+  // Reproduced against the running gateway: the ChatGPT-account Codex route
+  // rejects this model outright ("not supported when using Codex with a
+  // ChatGPT account"). The id is retained so stored combos still resolve
+  // instead of 404ing, but it is flagged as not servable so a consumer like
+  // ByKitsune can hide it rather than advertise an unusable model.
+  entry.limits.routeAvailable = false;
+  entry.limits.routeUnavailableReason = "rejected-by-codex-chatgpt-route";
   codex[id] = entry;
 }
 codex["gpt-5.3-codex-spark"] = {
@@ -2118,6 +2125,13 @@ codex["gpt-5.3-codex-spark"] = {
     apiMaxOutput: 32000,
     unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
     note: "Omitted from pinned rust-v0.160.0 bundle; retain compatibility ID without treating models.dev vision claims as official.",
+    // Reproduced against the running gateway: the ChatGPT-account Codex route
+    // rejects this model outright ("not supported when using Codex with a
+    // ChatGPT account"). The id is retained so stored combos still resolve
+    // instead of 404ing, but it is flagged as not servable so a consumer like
+    // ByKitsune can hide it rather than advertise an unusable model.
+    routeAvailable: false,
+    routeUnavailableReason: "rejected-by-codex-chatgpt-route",
   },
 };
 codex["codex-auto-review"] = {
