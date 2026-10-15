@@ -63,6 +63,25 @@ const nextConfig = {
     // (does not block by itself) but if proxy sends enforcing `Content-Security-Policy:
     // connect-src 'none'` it WILL block. Remove that at proxy (nginx add_header,
     // Cloudflare Transform Rules). This header below is the correct enforcing policy.
+    // Baseline security headers. Zen binds 127.0.0.1 but is published through a
+    // Cloudflare tunnel (zen.hlcyn.xyz → 127.0.0.1:20128), so responses do reach
+    // the public internet and the hardening applies.
+    //   - X-Content-Type-Options stops MIME sniffing (a JSON error body must
+    //     never be interpreted as HTML/script).
+    //   - X-Frame-Options + frame-ancestors block clickjacking of the dashboard.
+    //   - Referrer-Policy keeps a dashboard URL (which may carry a query) out of
+    //     third-party Referer headers.
+    //   - Permissions-Policy denies device APIs the dashboard never uses.
+    // HSTS is only meaningful over HTTPS; the tunnel terminates TLS upstream, so
+    // it is sent for the tunnel hostname while a plain-HTTP loopback request is
+    // unaffected (browsers ignore HSTS on http://).
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+      { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+    ];
     const dashboardCsp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://cdn.jsdelivr.net",
@@ -82,19 +101,19 @@ const nextConfig = {
       {
         // API/SSE are non-browser or same-origin fetch — minimal CSP, no inline needed
         source: "/api/:path*",
-        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }],
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }, ...securityHeaders],
       },
       {
         source: "/v1/:path*",
-        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }],
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }, ...securityHeaders],
       },
       {
         source: "/v1beta/:path*",
-        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }],
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }, ...securityHeaders],
       },
       {
         source: "/((?!api|v1|v1beta|_next/static|_next/image).*)",
-        headers: [{ key: "Content-Security-Policy", value: dashboardCsp }],
+        headers: [{ key: "Content-Security-Policy", value: dashboardCsp }, ...securityHeaders],
       },
     ];
   },

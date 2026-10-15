@@ -2,6 +2,7 @@ import { handleChat } from "@/sse/handlers/chat.js";
 import { correlateResponse, sanitizeErrorResponse } from "@/sse/utils/requestCorrelation.js";
 import { initTranslators } from "open-sse/translator/index.js";
 import * as log from "@/sse/utils/logger.js";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 export { sanitizeErrorResponse };
 
@@ -19,7 +20,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "*"
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"]
     }
   });
 }

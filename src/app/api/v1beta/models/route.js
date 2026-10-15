@@ -1,4 +1,5 @@
 import { PROVIDER_MODELS } from "@/shared/constants/models";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 /**
  * Handle CORS preflight
@@ -8,7 +9,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "*"
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"]
     }
   });
 }

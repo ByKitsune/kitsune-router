@@ -1,4 +1,5 @@
 import { handleEmbeddings } from "@/sse/handlers/embeddings.js";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 /**
  * Handle CORS preflight
@@ -8,7 +9,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "*"
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"]
     }
   });
 }

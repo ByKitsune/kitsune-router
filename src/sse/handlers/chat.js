@@ -29,6 +29,30 @@ import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { consume, rateLimitKey, rateLimitHeaders, rateLimitedResponse } from "@/lib/rateLimit/v1Limiter.js";
+import { getClientIp } from "@/lib/auth/loginLimiter.js";
+
+// Attach the advisory x-ratelimit-* headers to a response.
+//
+// Takes the limiter result explicitly rather than reading module state, so it is
+// pure and testable. Copies into a new Response instead of mutating: the body
+// may be a live SSE ReadableStream, and constructing a Response around the same
+// stream preserves it (no buffering, no re-read).
+function withRateLimitHeaders(response, limitInfo) {
+  if (!limitInfo || !(response instanceof Response) || response.bodyUsed) return response;
+  try {
+    const headers = new Headers(response.headers);
+    for (const [k, v] of Object.entries(rateLimitHeaders(limitInfo))) headers.set(k, v);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch {
+    // Never let advisory headers break a response.
+    return response;
+  }
+}
 
 /**
  * Handle chat completion request
@@ -120,6 +144,17 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     }
   }
 
+  // Inbound rate limit, after authentication so the bucket is attributable.
+  // Keyed by the API key (many clients share one NAT); an unauthenticated
+  // request falls back to the peer address so a missing key cannot become an
+  // unmetered path. Counters are hashed, bounded and in-memory — see
+  // src/lib/rateLimit/v1Limiter.js for the reasoning and the tunables.
+  const rateLimit = consume(apiKey ? rateLimitKey(apiKey) : `ip:${getClientIp(request)}`);
+  if (!rateLimit.allowed) {
+    log.warn("RATELIMIT", `429 for ${apiKey ? log.maskKey(apiKey) : "unauthenticated"} (limit ${rateLimit.limit}/min)`);
+    return rateLimitedResponse(rateLimit, { "Access-Control-Allow-Origin": "*" });
+  }
+
   if (!modelStr) {
     log.warn("CHAT", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
@@ -153,7 +188,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
             const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
             cleanRawReq = { ...clientRawRequest, body: cleanBody };
           }
-          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
+          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, rateLimit);
         },
         log,
         comboName: modelStr,
@@ -168,7 +203,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
       body,
       models: augmentedModels,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
         adapterAdded
       ),
       log,
@@ -188,7 +223,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
       body,
       models: soloAugmented,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
         adapterAdded
       ),
       log,
@@ -197,13 +232,13 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     });
   }
 
-  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey);
+  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, rateLimit);
 }
 
 /**
  * Handle single model chat request
  */
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, rateLimit = null) {
   // Optional account pinning, same opt-in header as the image/video endpoints:
   // `x-connection-id: <providerConnection id>` (9router #4718). Falls back to
   // the normal account strategy when the header is absent or the id is
@@ -237,7 +272,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
               const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
               cleanRawReq = { ...clientRawRequest, body: cleanBody };
             }
-            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
+            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, rateLimit);
           },
           log,
           comboName: modelStr,
@@ -252,7 +287,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         body,
         models: augmentedModels,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
           adapterAdded
         ),
         log,
@@ -301,6 +336,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   const retriedConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
+  // Structured error response built by the engine for the last failure. Its
+  // body is Zen-authored (type/code/param), so it is safe to forward; the raw
+  // upstream text lives in lastError and is never sent to a client.
   let lastResponse = null;
   let consecutiveSameErrors = 0;
   const MAX_CONSECUTIVE_SAME_ERRORS = 3;
@@ -320,7 +358,15 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         // Always return 503 for allRateLimited to avoid echoing stale 500 error code from DB (#3712)
         const status = HTTP_STATUS.SERVICE_UNAVAILABLE;
         log.warn("CHAT", `[${provider}/${model}] ${errorMsg} (${credentials.retryAfterHuman})`);
-        return unavailableResponse(status, `[${provider}/${model}] ${errorMsg}`, credentials.retryAfter, credentials.retryAfterHuman);
+        // The client gets a neutral message: the previous body embedded
+        // `[provider/model]` plus the raw upstream error text, which leaked both
+        // the routing provider and internal wording.
+        return unavailableResponse(
+          status,
+          publicMessage("all_accounts_unavailable"),
+          credentials.retryAfter,
+          credentials.retryAfterHuman,
+        );
       }
       if (excludeConnectionIds.size === 0) {
         // Full detail stays in the operator log; the client gets a neutral message
@@ -329,7 +375,18 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         return errorResponse(HTTP_STATUS.NOT_FOUND, publicMessage("no_credentials"));
       }
       log.warn("CHAT", "No more accounts available", { provider });
-      return lastResponse || errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
+      // Prefer the structured error the engine already built for this failure.
+      //
+      // That response carries machine-readable diagnostics produced by Zen
+      // itself (`type`/`code`/`param`, e.g. `output_budget_exhausted` with a
+      // "increase max_tokens or reduce reasoning effort" message) which are
+      // actionable for the caller and reveal nothing about routing. Only the
+      // free-text `lastError` — which can quote an upstream body naming the
+      // provider/account — is withheld in favour of a neutral message.
+      return lastResponse || errorResponse(
+        lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE,
+        publicMessage("all_accounts_unavailable"),
+      );
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
@@ -424,13 +481,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
     });
 
-    if (result.success) return result.response;
+    if (result.success) return withRateLimitHeaders(result.response, rateLimit);
 
     // Client abort: client disconnected / cancelled. Do not lock account or retry/fallback.
     const isClientAborted = request?.signal?.aborted || result.error === "client_aborted" || Number(result.status) === 499;
     if (isClientAborted) {
       log.warn("CHAT", "Client aborted before upstream completion");
-      return result.response || errorResponse(499, "Client Closed Request");
+      return withRateLimitHeaders(result.response || errorResponse(499, "Client Closed Request"), rateLimit);
     }
     // Sporadic upstream 5xx (9router #4277): grant one immediate same-account
     // retry BEFORE locking/fallback. A single flaky 500 (identical request
@@ -478,12 +535,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
       if (consecutiveSameErrors >= MAX_CONSECUTIVE_SAME_ERRORS) {
         log.warn("FALLBACK", `Circuit breaker: fast-failing ${provider}/${model} after ${consecutiveSameErrors} consecutive accounts failed with status ${result.status}`);
-        return result.response;
+        return withRateLimitHeaders(result.response, rateLimit);
       }
 
       continue;
     }
 
-    return result.response;
+    return withRateLimitHeaders(result.response, rateLimit);
   }
 }

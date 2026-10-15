@@ -22,6 +22,7 @@ import { capabilitiesFromServiceKind, getCapabilitiesForModel, withDeclaredCapab
 import { canonicalizeProviderId as resolveProviderAlias } from "open-sse/providers/identity.js";
 import { applyReviewedCapabilities, getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
 import { inferModelKind } from "open-sse/providers/models/schema.js";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -550,7 +551,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"],
     },
   });
 }

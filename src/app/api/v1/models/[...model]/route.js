@@ -1,4 +1,5 @@
 import { buildModelsList } from "../route.js";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 // URL slug → service kind(s). `web` covers both webSearch and webFetch.
 const KIND_SLUG_MAP = {
@@ -19,7 +20,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"],
     },
   });
 }

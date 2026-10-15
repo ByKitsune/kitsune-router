@@ -1,11 +1,12 @@
 import { handleVideoGet } from "@/sse/handlers/videoGeneration.js";
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 
 export async function OPTIONS() {
   return new Response(null, {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"],
     },
   });
 }

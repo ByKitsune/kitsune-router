@@ -1,7 +1,8 @@
+import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "*"
+  "Access-Control-Allow-Headers": API_CORS_HEADERS["Access-Control-Allow-Headers"]
 };
 
 /**
