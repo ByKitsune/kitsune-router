@@ -18,6 +18,10 @@ Giải đáp một cuộc kiểm toán bên ngoài (11 tài liệu) cùng đợt
 
 **Tiêu đề bảo mật cơ bản và danh sách CORS tường minh.** Cổng được công bố qua đường hầm Cloudflare (`zen.hlcyn.xyz` → `127.0.0.1:20128`), nên đây không phải chuyện hình thức.
 
+### Đã sửa
+
+**Tự cập nhật hoạt động trở lại.** Mã nguồn truy vấn npm bằng tên trần `zenrouter`, vốn chưa được đăng ký (404), nên `/api/version` luôn báo `latestVersion: null` và lệnh cài đặt của trình cập nhật sẽ thất bại. Tên có phạm vi `@joyccn/zenrouter` nay là một hằng số dùng chung cho tuyến phiên bản, trình cập nhật và trang đích.
+
 ### Định tuyến và lỗi
 
 **Tràn ngữ cảnh không còn báo là 502.** Câu lệnh quá dài đến dưới dạng `context_length_exceeded` bên trong luồng SSE trạng thái 200 và bị chuyển thành 503 → 502. ByKitsune thử lại 502, nên một câu lệnh không thể thành công bị thử lại trong khi mọi tài khoản khoẻ mạnh lần lượt bị khoá 30 giây. Nay là 400 với `invalid_request_error`, không xoay tài khoản.

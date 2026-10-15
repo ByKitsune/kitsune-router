@@ -45,6 +45,11 @@ contains", not as a prior published version.
 - **Account emails are out of the logs.** Journald carried 589 lines with 27 unique email
   addresses. Identities are now a salted short hash — still greppable and distinguishable
   for debugging, not reversible.
+- **Self-update works again.** The code asked npm about the bare name `zenrouter`, which
+  is unclaimed (404), so `/api/version` always reported `latestVersion: null` and the
+  updater's install command would have failed. The scoped `@joyccn/zenrouter` is now one
+  shared constant used by the version route, the updater and the landing page — the
+  registry lookup resolves again, verified at runtime.
 - **Translation stops silently changing behaviour.** `top_p`, `stop`/`stop_sequences`,
   `seed` and `metadata.user_id` were dropped on several hops, and a failed tool result was
   reported through a non-standard field the model cannot see. A client setting
@@ -128,7 +133,7 @@ named the upstream provider, PII-redacted logs, and the new inbound rate limit.
 
 ## Verification and caveats
 
-- Isolated Vitest suite on Node 24.19.0: **1,436 files, 4,525 cases — 4,424 passed, 0 failed**. `npx eslint .` is clean with zero warnings.
+- Isolated Vitest suite on Node 24.19.0: **1,441 files, 4,539 cases — 4,438 passed, 0 failed**. `npx eslint .` is clean with zero warnings.
 - Registry baselines (82 providers, 117 alias tokens, OAuth URLs) byte-for-byte equal.
 - Production build succeeds; a standalone smoke run on an isolated `DATA_DIR` verified the
   deep health JSON, all five security headers, the explicit CORS allowlist, `429` with

@@ -18,6 +18,10 @@ Answers an external audit (11 prompt documents) plus a full catalog verification
 
 **Baseline security headers and an explicit CORS allowlist.** The gateway is published through a Cloudflare tunnel (`zen.hlcyn.xyz` → `127.0.0.1:20128`), so this is not cosmetic.
 
+### Fixed
+
+**Self-update works again.** The code queried npm for the bare name `zenrouter`, which is unclaimed (404), so `/api/version` always reported `latestVersion: null` and the updater's install command would have failed. The scoped `@joyccn/zenrouter` is now a single shared constant used by the version route, the updater and the landing page.
+
 ### Routing and errors
 
 **Context overflow stops reporting itself as 502.** An over-long prompt arrived as `context_length_exceeded` inside a 200-OK SSE stream and was converted to 503 → 502. ByKitsune retries 502, so a prompt that could never succeed was retried while every healthy account was locked for 30s in turn. It is now a 400 with `invalid_request_error`, without rotating accounts.

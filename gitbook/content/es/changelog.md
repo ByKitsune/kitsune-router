@@ -18,6 +18,10 @@ Responde a una auditoría externa (11 documentos) y a una verificación completa
 
 **Cabeceras de seguridad base y una lista CORS explícita.** La pasarela se publica a través de un túnel de Cloudflare (`zen.hlcyn.xyz` → `127.0.0.1:20128`), así que no es cosmético.
 
+### Correcciones
+
+**La actualización automática vuelve a funcionar.** El código consultaba npm con el nombre simple `zenrouter`, que no está registrado (404), así que `/api/version` siempre informaba `latestVersion: null` y el comando de instalación del actualizador habría fallado. El nombre con ámbito `@joyccn/zenrouter` es ahora una única constante compartida por la ruta de versión, el actualizador y la página de inicio.
+
 ### Enrutamiento y errores
 
 **El desbordamiento de contexto dejó de reportarse como 502.** Un prompt demasiado largo llegaba como `context_length_exceeded` dentro de un flujo SSE con estado 200 y se convertía en 503 → 502. ByKitsune reintenta 502, así que un prompt que nunca podría tener éxito se reintentaba mientras cada cuenta sana quedaba bloqueada 30s por turno. Ahora es un 400 con `invalid_request_error`, sin rotar cuentas.

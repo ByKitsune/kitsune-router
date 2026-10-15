@@ -320,6 +320,31 @@ account-health path, when the real one is `src/sse/services/auth.js`
 merged — they were measured to handle different inputs (only the accountFallback copy
 parses compound durations such as "reset after 1m 51s") and both are live.
 
+## Self-update could never detect an update
+
+The package is published as the **scoped** name `@joyccn/zenrouter`; the bare
+`zenrouter` is unclaimed (`npm view zenrouter` → 404). The code queried the bare name in
+three places and each failed silently:
+
+| Site | Effect |
+|---|---|
+| `src/app/api/version/route.js` | `/api/version` always answered `latestVersion: null` |
+| `UPDATER_CONFIG` | `npm i -g zenrouter` would 404 instead of installing |
+| landing page + i18n literals | the advertised `npx zenrouter` 404s for the user |
+
+Reproduced on production 0.9.7: `{"currentVersion":"0.9.7","latestVersion":null}`.
+
+`NPM_PACKAGE_NAME` is now exported once from `src/shared/constants/config.js` and the
+version route, the updater commands and the landing page all derive from it — the
+duplicated literal is exactly how the two drifted apart. The i18n literal **keys** moved
+too: `translate()` looks up the rendered DOM text as the key, so a stale key falls through
+to English without any error.
+
+Verified at runtime against an isolated `DATA_DIR`:
+`{"currentVersion":"0.9.9","latestVersion":"0.9.7","hasUpdate":false}` — the registry lookup
+resolves again. Regression coverage: `tests/unit/npm-package-name.test.js` (14 cases),
+including a scan that no locale or source file reintroduces the bare name.
+
 ## Observability
 
 **Deep health probe.** `/api/health` returned a constant `{"ok":true}`, and the tunnel
@@ -356,7 +381,7 @@ editing them would swap one unverified claim for another.
 
 ## Verification
 
-- Full isolated suite: **1,436 files, 4,525 cases — 4,424 passed, 0 failed**.
+- Full isolated suite: **1,441 files, 4,539 cases — 4,438 passed, 0 failed**.
 - `npx eslint .` — zero errors, zero warnings.
 - Registry baselines byte-for-byte equal: 82 providers, 117 alias tokens, OAuth URLs.
 - Production build (`next build --webpack`) succeeds.

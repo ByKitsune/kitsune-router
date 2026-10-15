@@ -18,6 +18,10 @@
 
 **基础安全响应头与显式 CORS 白名单。** 网关通过 Cloudflare 隧道对外发布（`zen.hlcyn.xyz` → `127.0.0.1:20128`），因此这不是表面文章。
 
+### 修复
+
+**自动更新恢复可用。** 代码使用未注册（返回 404）的裸名称 `zenrouter` 查询 npm，因此 `/api/version` 始终报告 `latestVersion: null`，更新器的安装命令也会失败。现在带作用域的 `@joyccn/zenrouter` 是版本路由、更新器与落地页共用的唯一常量。
+
 ### 路由与错误
 
 **上下文溢出不再被报告为 502。** 过长的提示在 200 OK 的 SSE 流内以 `context_length_exceeded` 形式到达，并被转换成 503 → 502。ByKitsune 会重试 502，于是一个永远不可能成功的提示被反复重试，同时每个健康账户依次被锁定 30 秒。现在返回 400 与 `invalid_request_error`，且不轮换账户。
