@@ -1,14 +1,21 @@
 # ZenRouter 0.9.9 release notes
 
-**2026-10-15** · Previous release: **0.9.8** · Requires **Node.js >=22.19.0**.
+**2026-10-15** · Previous **published** release: **0.9.7** · Requires **Node.js >=22.19.0**.
+
+> **If you are upgrading from 0.9.7, this release also contains 0.9.8.** The 0.9.8 batch
+> was committed but never published (no tag, no GitHub release, npm `latest` stayed
+> 0.9.7). 0.9.9 is 41 commits on top of `v0.9.7`, so you get both batches at once: the
+> critical dependency-advisory removal and the Tier-1 upstream ports from 0.9.8, plus
+> everything described here.
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.9) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.9/CHANGELOG.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.9/docs/CHANGELOG_v0.9.9.md)
 
 0.9.9 answers an external audit (11 prompt documents) and a full catalog verification
 against models.dev. Every finding was reproduced against the running gateway before
 being changed, and each fix ships with a regression test. No breaking API change.
-[0.9.8 release notes](https://github.com/ZenRouter/ZenRouter/blob/v0.9.9/releases/RELEASE_NOTES_v0.9.8.md)
-remain historical and unchanged.
+[0.9.8 release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.8.md)
+were written for an unpublished batch and remain historical; read them as "what 0.9.9 also
+contains", not as a prior published version.
 
 ## Highlights
 
