@@ -87,6 +87,11 @@ describe("verified specs for flagship 2026 models", () => {
   });
 
   it("uses the official text-only Spark preview instead of secondary catalog limits", () => {
+    // The ChatGPT-account Codex route rejects this model outright:
+    // "The 'gpt-5.3-codex-spark' model is not supported when using Codex with a
+    // ChatGPT account" (reproduced live, HTTP 400). Its context_length therefore
+    // stays unset rather than advertising a window the route cannot serve; the
+    // reference numbers are recorded under limits for display.
     expect(getCapabilitiesForModel("codex", "gpt-5.3-codex-spark")).toMatchObject({
       vision: false, pdf: false, contextWindow: null, maxOutput: null,
     });
@@ -95,7 +100,8 @@ describe("verified specs for flagship 2026 models", () => {
     expect(spark.limits).toMatchObject({
       scope: "cli-preview", authenticatedRouteVerified: false,
       routeContextWindow: null, routeMaxOutput: null,
-      unverifiedCapabilityFields: ["contextWindow", "maxOutput"],
+      apiContextWindow: 128000, apiMaxInput: 100000, apiMaxOutput: 32000,
+      unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
     });
     expect(getCapabilitiesForModel("openai", "gpt-5.4-mini")).toMatchObject({
       contextWindow: 400000, maxInput: 272000, maxOutput: 128000, vision: true,

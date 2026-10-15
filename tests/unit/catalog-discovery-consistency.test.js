@@ -130,8 +130,17 @@ describe("catalog live and declared metadata", () => {
   it("publishes API versus CLI provenance and never restores guessed static limits", async () => {
     connect("codex", { enabledModels: ["gpt-6.1-sol"] });
     const sol = (await buildModelsList(["llm"])).find(m => m.id === "cx/gpt-6.1-sol");
-    expect(sol.metadata.limits).toMatchObject({ cliMaxContext: 872000, apiContextWindow: 1050000 });
-    expect(sol).not.toHaveProperty("max_completion_tokens");
+    // The CLI ceiling stays recorded, but the published window is the API one:
+    // the Codex route used to advertise 872000 while the backend accepted
+    // 902,486 input tokens (true ceiling apiMaxInput 922,000).
+    expect(sol.metadata.limits).toMatchObject({
+      cliMaxContext: 872000, apiContextWindow: 1050000, apiMaxInput: 922000,
+    });
+    expect(sol.context_length).toBe(1050000);
+    // maxOutput is now sourced (models.dev + live gateway), so it is published.
+    expect(sol.max_completion_tokens).toBe(128000);
+    // A provider whose output limit is genuinely unknown must stay unset — the
+    // rule that "unknown is not a guess" still holds.
     connect("grok-cli", { enabledModels: ["grok-build"] });
     const grok = (await buildModelsList(["llm"])).find(m => m.id === "gcli/grok-build");
     expect(grok.capabilities.maxOutput).toBeNull();

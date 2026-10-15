@@ -5,11 +5,16 @@ import { getPricingForModel, resolveEffectivePricing } from "../../open-sse/prov
 // Exact scope and sources are recorded in the reviewed metadata shards. These
 // assert the runtime consumer, not merely that a disconnected data file exists.
 describe("researched factual metadata reaches the real resolvers", () => {
-  it("separates OpenAI total context, input and output from Codex client limits", () => {
+  it("reports OpenAI total context, input and output on both the API and Codex routes", () => {
     expect(getCapabilitiesForModel("openai", "gpt-6.1-sol")).toMatchObject({
       contextWindow: 1050000, maxInput: 922000, maxOutput: 128000, thinkingCanDisable: false,
     });
-    expect(getCapabilitiesForModel("cx", "gpt-6.1-sol").contextWindow).toBe(872000);
+    // The Codex route reports the same API limits. It used to publish the CLI
+    // configuration ceiling (872000), which under-advertised the real window:
+    // a live probe served 902,486 input tokens for that model.
+    expect(getCapabilitiesForModel("cx", "gpt-6.1-sol")).toMatchObject({
+      contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
+    });
   });
   it("corrects Cohere output caps rather than inheriting a chat family guess", () => {
     expect(getCapabilitiesForModel("cohere", "command-a-03-2025").maxOutput).toBe(8000);
@@ -41,11 +46,15 @@ describe("researched factual metadata reaches the real resolvers", () => {
     expect(withDeclaredCapabilities(base, { maxInput: 100000 }).maxInput).toBe(100000);
   });
   it("does not present undocumented output or combined-context maxima as facts", () => {
+    // Still unknown, so still unset.
     expect(getCapabilitiesForModel("xai", "grok-4.7").maxOutput).toBeNull();
-    expect(getCapabilitiesForModel("cx", "gpt-6.1-sol").maxOutput).toBeNull();
     expect(getCapabilitiesForModel("gemini", "gemini-3.5-flash-lite")).toMatchObject({
       contextWindow: null, maxInput: 1048576, maxOutput: 65536,
     });
+    // Now documented: models.dev's official OpenAI entry, the live gateway and
+    // 9router all state 128,000 output for this model, so it is published
+    // instead of being withheld as unknown.
+    expect(getCapabilitiesForModel("cx", "gpt-6.1-sol").maxOutput).toBe(128000);
   });
   it("does not apply direct-vendor facts to an unrelated restricted gateway", () => {
     expect(getCapabilitiesForModel("ag", "claude-sonnet-4-6")).toMatchObject({

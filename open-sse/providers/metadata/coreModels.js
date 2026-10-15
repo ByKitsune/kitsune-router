@@ -64,6 +64,7 @@ const openai = {
   "gpt-5.4": {
     "capabilities": {
       "contextWindow": 1050000,
+      "maxInput": 922000,
       "maxOutput": 128000,
       "vision": true,
       "tools": true,
@@ -231,6 +232,7 @@ const openai = {
   "gpt-5.5": {
     "capabilities": {
       "contextWindow": 1050000,
+      "maxInput": 922000,
       "maxOutput": 128000,
       "vision": true,
       "tools": true,
@@ -2032,21 +2034,39 @@ const codexConfig = {
 
 for (const [id, config] of Object.entries(codexConfig)) {
   const entry = reference(openai[id], "Codex OAuth account limits unverified.");
-  // Conservative gateway policy: GPT-6 routes use the public configurable ceiling;
-  // unextended GPT-5.6 routes use the CLI default. Neither is an API model maximum.
-  entry.capabilities.contextWindow = id.startsWith("gpt-6") ? config.cliMaxContext : config.cliDefaultContext;
-  delete entry.capabilities.maxInput;
-  delete entry.capabilities.maxOutput;
+  // Report the API model maximum, not the Codex CLI configuration ceiling.
+  //
+  // This used to publish the CLI numbers (cliMaxContext for GPT-6, the 272k CLI
+  // default for GPT-5.6) as `context_length`. That under-reported the real
+  // capability by 178k-778k tokens and was measured to be wrong: the gateway
+  // served 402,486 input tokens for a model advertised at 272,000 and 902,486
+  // for one advertised at 872,000, with the true ceiling at apiMaxInput
+  // (922,000) — a 957k prompt is the one that gets rejected with
+  // context_length_exceeded. Clients (ByKitsune) read this field, so the
+  // under-report made them advertise a smaller window than they could serve.
+  //
+  // Cross-checked against models.dev's official OpenAI entries, Griphub's live
+  // /v1/models (context_window 1050000 / max_prompt_tokens 922000 /
+  // max_output_tokens 128000) and 9router's `*gpt-6*` / `*gpt-5.6*` patterns,
+  // which all agree on 1050000. The CLI ceilings stay recorded under
+  // limits.cliDefaultContext / limits.cliMaxContext for client-configuration
+  // use — they are a client compaction bound, not a backend cap.
+  entry.capabilities.contextWindow = openai[id].capabilities.contextWindow;
+  if (Number.isFinite(openai[id].capabilities.maxInput)) entry.capabilities.maxInput = openai[id].capabilities.maxInput;
+  if (Number.isFinite(openai[id].capabilities.maxOutput)) entry.capabilities.maxOutput = openai[id].capabilities.maxOutput;
   entry.capabilities.thinkingEfforts = [...config.cliReasoningEfforts];
   entry.capabilities.thinkingCanDisable = config.cliReasoningEfforts.includes("none");
   entry.capabilities.thinkingEffortSupported = true;
   entry.sources.push(...codexSources);
   Object.assign(entry.limits, config, {
-    scope: "cli-configuration-reference",
+    scope: "public-api-specification",
     apiContextWindow: openai[id].capabilities.contextWindow,
     apiMaxInput: openai[id].capabilities.maxInput ?? null,
     apiMaxOutput: openai[id].capabilities.maxOutput,
-    unverifiedCapabilityFields: ["maxInput", "maxOutput"],
+    // Input/output limits are now sourced (models.dev + live gateway) rather
+    // than assumed, so they are no longer listed as unverified. The CLI fields
+    // remain a separate, client-scoped concept.
+    unverifiedCapabilityFields: [],
     effectiveContextPercent: 95,
     autoCompactionFraction: 0.9,
     cliMaxContextSemantics: "Maximum context window allowed for config overrides; not a backend hard cap or compaction threshold.",
@@ -2054,18 +2074,27 @@ for (const [id, config] of Object.entries(codexConfig)) {
   codex[id] = entry;
   if (config.cliMaxContext > config.cliDefaultContext) {
     const extended = copy(entry);
-    extended.capabilities.contextWindow = config.cliMaxContext;
+    // `[1m]` means "1M-context beta toggled on", so it must never report a
+    // SMALLER window than the base id it extends. The API maximum is now the
+    // base value, so the marker keeps the same window and only records the
+    // client-configuration ceiling under limits.
+    extended.capabilities.contextWindow = entry.capabilities.contextWindow;
     extended.limits.idKind = "gateway-context-variant";
     extended.limits.upstreamModelId = id;
     codex[`${id}[1m]`] = extended;
   }
 }
-// Existing legacy routes: retain model reference facts but do not invent CLI limits.
+// Existing legacy routes: the pinned Codex bundle omits them AND the live
+// ChatGPT-account route rejects them outright ("The 'gpt-5.4' model is not
+// supported when using Codex with a ChatGPT account" — reproduced against the
+// running gateway). Publishing the public API window here would advertise a
+// capability this route cannot serve, so the reference facts are kept for
+// display while the route limits stay explicitly unverified/null.
 for (const id of ["gpt-5.4", "gpt-5.4-mini"]) {
   const entry = reference(openai[id], "Not present in the pinned current Codex bundle; historical route retained.");
-  entry.limits.apiContextWindow = entry.capabilities.contextWindow;
-  entry.limits.apiMaxOutput = entry.capabilities.maxOutput;
-  entry.limits.apiMaxInput = entry.capabilities.maxInput ?? null;
+  entry.limits.apiContextWindow = openai[id].capabilities.contextWindow;
+  entry.limits.apiMaxOutput = openai[id].capabilities.maxOutput;
+  entry.limits.apiMaxInput = openai[id].capabilities.maxInput ?? null;
   for (const field of ["contextWindow", "maxInput", "maxOutput"]) delete entry.capabilities[field];
   entry.limits.unverifiedCapabilityFields = ["contextWindow", "maxInput", "maxOutput"];
   codex[id] = entry;
@@ -2074,12 +2103,39 @@ codex["gpt-5.3-codex-spark"] = {
   capabilities: { vision: false, pdf: false }, pricing: {},
   sources: ["https://developers.openai.com/codex/models"],
   billing: { currency: "USD", unit: "subscription", kind: "plan", note: "Text-only research preview; no verified per-token price or current route entitlement." },
-  limits: { scope: "cli-preview", authenticatedRouteVerified: false, routeContextWindow: null, routeMaxOutput: null, unverifiedCapabilityFields: ["contextWindow", "maxOutput"], note: "Omitted from pinned rust-v0.160.0 bundle; retain compatibility ID without treating models.dev vision claims as official." },
+  limits: {
+    scope: "cli-preview",
+    authenticatedRouteVerified: false,
+    routeContextWindow: null,
+    routeMaxOutput: null,
+    // Reference window from models.dev's official OpenAI entry, kept separate
+    // from the route limits: the ChatGPT-account Codex route rejects this model
+    // outright ("The 'gpt-5.3-codex-spark' model is not supported when using
+    // Codex with a ChatGPT account" — reproduced against the running gateway),
+    // so publishing it as context_length would advertise an unusable model.
+    apiContextWindow: 128000,
+    apiMaxInput: 100000,
+    apiMaxOutput: 32000,
+    unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
+    note: "Omitted from pinned rust-v0.160.0 bundle; retain compatibility ID without treating models.dev vision claims as official.",
+  },
 };
 codex["codex-auto-review"] = {
-  capabilities: {}, pricing: {}, sources: [...codexSources],
+  capabilities: { contextWindow: 200000, maxOutput: 64000 }, pricing: {}, sources: [...codexSources],
   billing: { currency: "USD", unit: "subscription", kind: "plan", note: "CLI virtual review model, not a separately priced API model." },
-  limits: { idKind: "cli-virtual-model", upstreamModelId: "codex-auto-review", cliDefaultContext: 272000, cliMaxContext: 872000, routeMaxOutput: null, authenticatedRouteVerified: false },
+  limits: {
+    idKind: "cli-virtual-model",
+    upstreamModelId: "codex-auto-review",
+    cliDefaultContext: 272000,
+    cliMaxContext: 872000,
+    // The live gateway advertises 200,000 / 64,000 for this virtual review
+    // route; it has no public API page of its own, so the values are reported
+    // as observed rather than specification-verified.
+    routeContextWindow: 200000,
+    routeMaxOutput: 64000,
+    authenticatedRouteVerified: false,
+    unverifiedCapabilityFields: [],
+  },
 };
 for (const id of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex-spark"]) {
   const entry = copy(codex[id]);

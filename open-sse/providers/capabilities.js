@@ -196,11 +196,24 @@ export const MODEL_CAPABILITIES = {
 
 const KIRO_GPT_5_6_CAPABILITIES = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 272000, maxOutput: 128000 };
 
-// Codex OAuth (ChatGPT backend) — per-model context window reported by upstream
-// (lower than OpenAI API's 1.05M). Sol differs from Terra/Luna. #2720
+// Codex OAuth (ChatGPT backend) gateway policy.
+//
+// These numbers are the Codex CLI configuration ceilings (cliDefaultContext /
+// cliMaxContext), NOT the backend model maximum. They are kept only as the
+// *floor* for routes that cannot be verified, because the authoritative
+// per-model facts now come from open-sse/providers/metadata/coreModels.js,
+// which reports the API specification (1,050,000 ctx / 922,000 in / 128,000 out
+// for the GPT-6 and GPT-5.6 families — cross-checked against models.dev's
+// official OpenAI entries, Griphub's live /v1/models and 9router's patterns).
+//
+// Publishing the CLI ceiling as `context_length` under-reported the real window
+// by 178k-778k tokens; a live probe served 902,486 tokens for a model advertised
+// at 872,000 and 402,486 for one advertised at 272,000.
 const CODEX_GPT_56_SOL_CAPS  = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 372000, maxOutput: 128000 };
 const CODEX_GPT_56_DEFAULT_CAPS = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 272000, maxOutput: 128000 };
-const CODEX_EXTENDED_CAPS = { ...CODEX_GPT_56_DEFAULT_CAPS, contextWindow: 872000 };
+// The `[1m]` marker means "1M-context beta toggled on", so it must never report
+// a SMALLER window than the base id it extends. It now mirrors the API maximum.
+const CODEX_EXTENDED_CAPS = { ...CODEX_GPT_56_DEFAULT_CAPS, contextWindow: 1050000 };
 
 /**
  * Provider-specific capability overrides. Keyed by provider alias/id.
@@ -225,24 +238,17 @@ export const PROVIDER_CAPABILITIES = {
     "deepseek-ai/deepseek-v4-pro": { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 65536 },
     "deepseek-ai/deepseek-v4-flash": { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 65536 },
   },
-  "codex": {
-    "gpt-6-astra":               { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1050000, maxOutput: 128000 },
-    "gpt-6-sol":                 { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1050000, maxOutput: 128000 },
-    "gpt-6-luna":                { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1050000, maxOutput: 128000 },
-    "gpt-6.1-sol":               { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 872000, maxOutput: 128000 },
-    "gpt-6-astra[1m]":           CODEX_EXTENDED_CAPS,
-    "gpt-6-sol[1m]":             CODEX_EXTENDED_CAPS,
-    "gpt-6-luna[1m]":            CODEX_EXTENDED_CAPS,
-    "gpt-5.6-sol[1m]":           CODEX_EXTENDED_CAPS,
-    "gpt-5.6-terra[1m]":         CODEX_EXTENDED_CAPS,
-    "gpt-5.6-luna[1m]":          CODEX_EXTENDED_CAPS,
-    "gpt-5.6-sol":               CODEX_GPT_56_SOL_CAPS,
-    "gpt-5.6-sol-review":        CODEX_GPT_56_SOL_CAPS,
-    "gpt-5.6-terra":             CODEX_GPT_56_DEFAULT_CAPS,
-    "gpt-5.6-terra-review":      CODEX_GPT_56_DEFAULT_CAPS,
-    "gpt-5.6-luna":              CODEX_GPT_56_DEFAULT_CAPS,
-    "gpt-5.6-luna-review":       CODEX_GPT_56_DEFAULT_CAPS,
-  },
+  // Codex deliberately has NO numeric entry here.
+  //
+  // This table is consulted BEFORE reviewed metadata, and an entry is merged
+  // over DEFAULT_CAPABILITIES — so a partial entry (flags without numbers)
+  // would silently publish the 200k default window instead of the real one,
+  // while a stale numeric entry would override the corrected facts. The
+  // authoritative limits for this provider live in
+  // providers/metadata/coreModels.js (apiContextWindow 1,050,000 /
+  // apiMaxInput 922,000 / apiMaxOutput 128,000 for the GPT-6 and GPT-5.6
+  // families, cross-checked against models.dev, Griphub and 9router), and
+  // PATTERN_CAPABILITIES covers ids that have no exact metadata record.
   "kiro": {
     "gpt-5.6-sol": KIRO_GPT_5_6_CAPABILITIES,
     "gpt-5.6-terra": KIRO_GPT_5_6_CAPABILITIES,

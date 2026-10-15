@@ -146,43 +146,45 @@ describe("Model Capabilities Matrix", () => {
       expect(PROVIDER_CAPABILITIES.cx).toBe(PROVIDER_CAPABILITIES.codex);
     });
 
-    it("applies 872000 contextWindow ceiling for codex provider", () => {
+    it("reports the API context window for codex (not the CLI configuration ceiling)", () => {
+      // These ids used to report 872000 — the Codex CLI configuration ceiling,
+      // not a backend cap. Live measurement served 902,486 input tokens for a
+      // model advertised at 872,000, with the true ceiling at apiMaxInput
+      // (922,000). models.dev's official OpenAI entries, Griphub's live
+      // /v1/models and 9router's patterns all agree on 1,050,000.
       for (const model of ceilingModels) {
         const caps = getCapabilitiesForModel("codex", model);
-        expect(caps.contextWindow).toBe(872000);
-        expect(caps.maxOutput).toBeNull();
+        expect(caps.contextWindow).toBe(1050000);
         expect(caps.vision).toBe(true);
         expect(caps.reasoning).toBe(true);
         expect(caps.search).toBe(true);
       }
     });
 
-    it("applies 872000 contextWindow ceiling for cx provider alias", () => {
+    it("reports the same window through the cx provider alias", () => {
       for (const model of ceilingModels) {
         const caps = getCapabilitiesForModel("cx", model);
-        expect(caps.contextWindow).toBe(872000);
-        expect(caps.maxOutput).toBeNull();
+        expect(caps.contextWindow).toBe(1050000);
         expect(caps.vision).toBe(true);
         expect(caps.reasoning).toBe(true);
         expect(caps.search).toBe(true);
       }
     });
 
-    it("keeps selected context separate from official CLI defaults, maxima, and API limits", () => {
+    it("keeps the published window separate from the CLI configuration ceilings", () => {
       for (const provider of ["codex", "cx"]) {
-        for (const [model, selectedContext] of [
-          ["gpt-6-astra", 872000], ["gpt-5.6-sol", 272000],
-          ["gpt-5.6-terra", 272000], ["gpt-5.6-luna", 272000],
-        ]) {
+        for (const model of ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
           expect(getCapabilitiesForModel(provider, model)).toMatchObject({
-            contextWindow: selectedContext, maxInput: null, maxOutput: null,
+            contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
           });
           const metadata = getReviewedModelMetadata(provider, model);
           expect(metadata.limits).toMatchObject({
+            // CLI ceilings remain recorded, but as a client-scoped concept.
             cliDefaultContext: 272000, cliMaxContext: 872000,
             apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000,
-            routeContextWindow: null, routeMaxOutput: null, authenticatedRouteVerified: false,
+            authenticatedRouteVerified: false,
           });
+          expect(metadata.limits.cliMaxContextSemantics).toMatch(/not a backend hard cap/i);
           expect(metadata.sources).toContain(
             "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/models-manager/models.json",
           );
@@ -190,7 +192,6 @@ describe("Model Capabilities Matrix", () => {
         for (const model of ceilingModels) {
           expect(getReviewedModelMetadata(provider, model).limits).toMatchObject({
             cliDefaultContext: 272000, cliMaxContext: 872000,
-            routeMaxOutput: null, unverifiedCapabilityFields: ["maxInput", "maxOutput"],
           });
         }
       }

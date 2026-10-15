@@ -5,17 +5,24 @@ const url = new URL("../../open-sse/providers/metadata/coreModels.js", import.me
 const core = existsSync(url) ? (await import(url.href)).default : {};
 
 describe("provider-scoped primary-evidence core metadata shard", () => {
-  it("separates OpenAI API limits from Codex configuration limits", () => {
+  it("reports the API limits on the Codex route while keeping CLI ceilings separate", () => {
     expect(core.openai?.["gpt-6.1-sol"]?.capabilities).toMatchObject({
       contextWindow: 1050000, maxInput: 922000, maxOutput: 128000, thinkingCanDisable: false,
     });
-    expect(core.codex?.["gpt-6.1-sol"]?.capabilities.contextWindow).toBe(872000);
+    // The Codex route publishes the API window, not the CLI configuration
+    // ceiling. It used to report 872000 for GPT-6 and 272000 for GPT-5.6, which
+    // under-advertised the real capability (live probe: 902,486 input tokens
+    // accepted for a model advertised at 872,000).
+    expect(core.codex?.["gpt-6.1-sol"]?.capabilities.contextWindow).toBe(1050000);
     expect(core.codex?.["gpt-6.1-sol"]?.limits).toMatchObject({
-      cliDefaultContext: 272000, cliMaxContext: 872000, routeMaxOutput: null,
+      cliDefaultContext: 272000, cliMaxContext: 872000,
+      apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000,
       effectiveContextPercent: 95, autoCompactionFraction: 0.9,
     });
-    expect(core.codex?.["gpt-5.6-sol"]?.capabilities.contextWindow).toBe(272000);
-    expect(core.codex?.["gpt-5.6-sol[1m]"]?.capabilities.contextWindow).toBe(872000);
+    expect(core.codex?.["gpt-5.6-sol"]?.capabilities.contextWindow).toBe(1050000);
+    // `[1m]` means "1M-context beta toggled on", so it can never be smaller than
+    // the base id it extends.
+    expect(core.codex?.["gpt-5.6-sol[1m]"]?.capabilities.contextWindow).toBe(1050000);
   });
 
   it("keeps Sol generations' long-context cached input distinct", () => {

@@ -82,27 +82,55 @@ describe("getCapabilitiesForModel", () => {
     expect(getCapabilitiesForModel("kiro", "gpt-5.6-sol-thinking-agentic")).toMatchObject(kiroGpt56Expected);
   });
 
-  it("separates GPT-6 API limits from Codex configuration maxima and unknown route output", () => {
-    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+  it("reports the GPT-6 / GPT-5.6 API limits for both the API and Codex routes", () => {
+    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-6.1-sol", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
       expect(getCapabilitiesForModel("openai", model)).toMatchObject({
         contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
         thinkingFormat: "openai", reasoning: true, vision: true, search: true,
       });
+      // The Codex route reports the same API limits. It used to publish the CLI
+      // configuration ceiling (cliMaxContext 872000 / the 272000 CLI default),
+      // which under-reported the real window — a live probe served 902,486 input
+      // tokens for a model advertised at 872,000 and 402,486 for one advertised
+      // at 272,000, with the true ceiling at apiMaxInput (922,000).
       expect(getCapabilitiesForModel("codex", model)).toMatchObject({
-        contextWindow: 872000, maxInput: null, maxOutput: null,
+        contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
         thinkingFormat: "openai", reasoning: true, vision: true, search: true,
       });
       const metadata = getReviewedModelMetadata("codex", model);
       expect(metadata.limits).toMatchObject({
-        scope: "cli-configuration-reference", authenticatedRouteVerified: false,
+        scope: "public-api-specification", authenticatedRouteVerified: false,
+        // CLI ceilings stay recorded as a client-scoped concept, not a backend cap.
         cliDefaultContext: 272000, cliMaxContext: 872000,
-        routeContextWindow: null, routeMaxOutput: null,
         apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000,
-        unverifiedCapabilityFields: ["maxInput", "maxOutput"],
+        unverifiedCapabilityFields: [],
       });
       expect(metadata.sources).toContain(
         "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/models-manager/models.json",
       );
+    }
+  });
+
+  it("keeps the [1m] marker from reporting a smaller window than its base id", () => {
+    // `[1m]` means "1M-context beta toggled on", so it can never be smaller than
+    // the base id. It resolved to 872000 while the base reported 1050000 after
+    // the limits correction.
+    for (const base of ["gpt-6-luna", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-astra"]) {
+      const baseCtx = getCapabilitiesForModel("codex", base).contextWindow;
+      const extCtx = getCapabilitiesForModel("codex", `${base}[1m]`).contextWindow;
+      expect(extCtx, `${base}[1m] must not be smaller than ${base}`).toBeGreaterThanOrEqual(baseCtx);
+    }
+  });
+
+  it("resolves a namespaced Codex id to the same limits as its bare id", () => {
+    // Regression guard: removing the stale provider-level numeric override must
+    // not let a namespaced id fall through to the 200k/64k DEFAULT_CAPABILITIES.
+    for (const [namespaced, bare] of [["openai/gpt-6-astra", "gpt-6-astra"], ["openai/gpt-5.6-luna", "gpt-5.6-luna"]]) {
+      const ns = getCapabilitiesForModel("codex", namespaced);
+      const plain = getCapabilitiesForModel("codex", bare);
+      expect(ns.contextWindow).toBe(plain.contextWindow);
+      expect(ns.maxOutput).toBe(plain.maxOutput);
+      expect(ns.contextWindow).not.toBe(200000);
     }
   });
 
