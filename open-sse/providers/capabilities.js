@@ -415,7 +415,10 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*gpt-5*codex*",   caps: { vision: true, pdf: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 400000, maxOutput: 128000 } },
   { pattern: "*gpt-5*",         caps: { vision: true, pdf: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 400000, maxOutput: 128000 } },
   { pattern: "*gpt-4o*",        caps: { vision: true, pdf: true, search: true, contextWindow: 128000, maxOutput: 16384 } },
-  { pattern: "*gpt-4.1*",       caps: { vision: true, pdf: true, contextWindow: 1000000, maxOutput: 32768 } },
+  // models.dev's official OpenAI entry reports 1,047,576 for the GPT-4.1 family
+  // (the vendor's exact figure), not a rounded 1,000,000. Under-reporting by
+  // ~47k tokens is small but wrong, and this number is published to clients.
+  { pattern: "*gpt-4.1*",       caps: { vision: true, pdf: true, contextWindow: 1047576, maxOutput: 32768 } },
   { pattern: "*gpt-4-turbo*",   caps: { vision: true, contextWindow: 128000 } },
   { pattern: "*gpt-4*",         caps: { contextWindow: 128000 } },
   { pattern: "*gpt-3.5*",       caps: { contextWindow: 16385, maxOutput: 4096 } },
@@ -518,6 +521,15 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*llama*",         caps: { contextWindow: 128000 } },
 
   // ── Mistral (Large 3 = vision/256K; Medium & Small latest = 256K + reasoning) ──
+  // Ministral 3B is 131,072 while 8B/14B are 262,144 (models.dev mistral entries);
+  // the generic `*mistral*` glob below would otherwise give all three 128,000.
+  { pattern: "*ministral-3b*",  caps: { contextWindow: 131072 } },
+  { pattern: "*ministral-8b*",  caps: { contextWindow: 262144 } },
+  { pattern: "*ministral-14b*", caps: { contextWindow: 262144 } },
+  { pattern: "*ministral*",     caps: { contextWindow: 262144 } },
+  // Codestral latest is 256,000; the older codestral-2405 was 32,000. Use the
+  // current published figure for the unversioned id.
+  { pattern: "*codestral-latest*", caps: { contextWindow: 256000 } },
   { pattern: "*codestral*",     caps: { contextWindow: 128000 } },
   { pattern: "*pixtral*",       caps: { vision: true, pdf: true, contextWindow: 128000 } },
   { pattern: "*mistral-large*", caps: { vision: true, contextWindow: 256000 } },
@@ -530,6 +542,10 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*command-a-03-2025*", caps: { contextWindow: 256000 } },
   { pattern: "*command-a-reasoning*", caps: { reasoning: true, contextWindow: 256000 } },
   { pattern: "*command-a-vision*", caps: { vision: true, contextWindow: 128000 } },
+  // The translate variant is a SMALL model: models.dev's official Cohere entry
+  // reports 8,000, and it must be matched before the generic `*command-a*`
+  // family glob below (which would give it 128,000 and over-promise ~16x).
+  { pattern: "*command-a-translate*", caps: { contextWindow: 8000, maxOutput: 8000 } },
   { pattern: "*command*",       caps: { contextWindow: 128000 } },
 
   // ── Perplexity (web search native) ───────────────────────────────
