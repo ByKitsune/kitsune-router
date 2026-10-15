@@ -2,7 +2,7 @@
 
 ## 0.9.9 — 2026-10-15
 
-> **Nâng cấp từ 0.9.7? Bản này cũng bao gồm 0.9.8.** Lô 0.9.8 đã được commit nhưng chưa bao giờ phát hành (không có thẻ `v0.9.8`, không có bản phát hành GitHub, `latest` trên npm vẫn là 0.9.7). 0.9.9 là 41 commit trên `v0.9.7`, nên bạn nhận cả hai lô cùng lúc — việc gỡ bỏ cảnh báo phụ thuộc nghiêm trọng và các cổng Tier-1 từ 0.9.8, cùng mọi thứ dưới đây.
+> **Nâng cấp từ 0.9.7? Bản này cũng bao gồm 0.9.8.** Lô 0.9.8 đã được commit nhưng chưa bao giờ phát hành (không có thẻ `v0.9.8`, không có bản phát hành GitHub, `latest` trên npm vẫn là 0.9.7). 0.9.9 là 44 commit trên `v0.9.7`, nên bạn nhận cả hai lô cùng lúc — việc gỡ bỏ cảnh báo phụ thuộc nghiêm trọng và các cổng Tier-1 từ 0.9.8, cùng mọi thứ dưới đây.
 
 Giải đáp một cuộc kiểm toán bên ngoài (11 tài liệu) cùng đợt xác minh toàn bộ danh mục theo [models.dev](https://models.dev). Mọi phát hiện đều được tái hiện trên cổng đang chạy trước khi sửa, và mỗi bản sửa đều kèm kiểm thử hồi quy. Yêu cầu **Node.js >=22.19.0**. Gói vẫn là `@joyccn/zenrouter`, lệnh vẫn là `zenrouter`. Không có thay đổi API phá vỡ tương thích.
 

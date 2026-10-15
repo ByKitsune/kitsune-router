@@ -6,7 +6,7 @@ Release date: **2026-10-15** · Previous **published** release: **0.9.7**.
 > [CHANGELOG_v0.9.8.md](CHANGELOG_v0.9.8.md)) was prepared in the repository but
 > **never published** — there is no `v0.9.8` tag, no GitHub release, and npm's
 > `latest` remained 0.9.7. Its commits are ancestors of this release, so **0.9.9
-> delivers both batches**: 41 commits since `v0.9.7`. Anyone upgrading from 0.9.7
+> delivers both batches**: 44 commits since `v0.9.7`. Anyone upgrading from 0.9.7
 > receives the dependency-advisory removal and Tier-1 upstream ports described in
 > the 0.9.8 document, in addition to everything below.
 

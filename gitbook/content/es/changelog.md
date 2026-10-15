@@ -2,7 +2,7 @@
 
 ## 0.9.9 — 2026-10-15
 
-> **¿Actualizas desde 0.9.7? Esta versión también incluye 0.9.8.** El lote 0.9.8 se confirmó pero nunca se publicó (sin etiqueta `v0.9.8`, sin release en GitHub, npm `latest` siguió en 0.9.7). 0.9.9 son 41 commits sobre `v0.9.7`, así que recibes ambos lotes a la vez: la eliminación del aviso crítico de dependencias y los ports Tier-1 de 0.9.8, además de todo lo siguiente.
+> **¿Actualizas desde 0.9.7? Esta versión también incluye 0.9.8.** El lote 0.9.8 se confirmó pero nunca se publicó (sin etiqueta `v0.9.8`, sin release en GitHub, npm `latest` siguió en 0.9.7). 0.9.9 son 44 commits sobre `v0.9.7`, así que recibes ambos lotes a la vez: la eliminación del aviso crítico de dependencias y los ports Tier-1 de 0.9.8, además de todo lo siguiente.
 
 Responde a una auditoría externa (11 documentos) y a una verificación completa del catálogo contra [models.dev](https://models.dev). Cada hallazgo se reprodujo contra la pasarela en ejecución antes de cambiarlo, y cada corrección incluye una prueba de regresión. Requiere **Node.js >=22.19.0**. El paquete sigue siendo `@joyccn/zenrouter`, con binario `zenrouter`. Sin cambios de API incompatibles.
 

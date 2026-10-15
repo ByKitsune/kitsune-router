@@ -4,7 +4,7 @@
 
 > **If you are upgrading from 0.9.7, this release also contains 0.9.8.** The 0.9.8 batch
 > was committed but never published (no tag, no GitHub release, npm `latest` stayed
-> 0.9.7). 0.9.9 is 41 commits on top of `v0.9.7`, so you get both batches at once: the
+> 0.9.7). 0.9.9 is 44 commits on top of `v0.9.7`, so you get both batches at once: the
 > critical dependency-advisory removal and the Tier-1 upstream ports from 0.9.8, plus
 > everything described here.
 

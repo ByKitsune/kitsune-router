@@ -57,7 +57,7 @@ No breaking API change.
 
 > This batch was committed to the repository but no `v0.9.8` tag, GitHub release or npm
 > publication was ever made; npm `latest` remained 0.9.7. Its changes ship as part of
-> **[0.9.9]** above, which is 41 commits on top of `v0.9.7`. If you are upgrading from
+> **[0.9.9]** above, which is 44 commits on top of `v0.9.7`. If you are upgrading from
 > 0.9.7, read this section as "additional changes included in 0.9.9".
 
 
