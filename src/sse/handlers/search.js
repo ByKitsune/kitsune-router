@@ -14,6 +14,7 @@ import * as log from "../utils/logger.js";
 import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
+import { publicMessage } from "@/shared/utils/clientErrors.js";
 const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
 
 /**
@@ -216,7 +217,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
       }
       if (excludeConnectionIds.size === 0) {
         log.error("AUTH", `No credentials for provider: ${providerId}`);
-        return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${providerId}`);
+        return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
       }
       log.warn("SEARCH", "No more accounts available", { provider: providerId });
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");

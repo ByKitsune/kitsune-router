@@ -15,6 +15,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { assertPublicUrlAsync } from "@/shared/utils/ssrfGuard.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
+import { publicMessage } from "@/shared/utils/clientErrors.js";
 
 /**
  * Handle web fetch (URL extraction) request for the SSE/Next.js server.
@@ -176,7 +177,7 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
       }
       if (excludeConnectionIds.size === 0) {
         log.error("AUTH", `No credentials for provider: ${providerId}`);
-        return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${providerId}`);
+        return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
       }
       log.warn("FETCH", "No more accounts available", { provider: providerId });
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");

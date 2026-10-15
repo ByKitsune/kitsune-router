@@ -28,6 +28,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
+import { publicMessage } from "@/shared/utils/clientErrors.js";
 
 /**
  * Handle chat completion request
@@ -263,7 +264,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     const disabled = await getDisabledByProvider(provider);
     if (Array.isArray(disabled) && disabled.includes(model)) {
       log.warn("CHAT", `Model disabled by operator: ${provider}/${model}`);
-      return errorResponse(HTTP_STATUS.FORBIDDEN, `Model ${provider}/${model} is disabled`);
+      log.warn("CHAT", `Model ${provider}/${model} is disabled by configuration`);
+      return errorResponse(HTTP_STATUS.FORBIDDEN, publicMessage("model_disabled"));
     }
   } catch {
     // Fail-open: a disabled-list read failure must not block routing.
@@ -311,8 +313,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         return unavailableResponse(status, `[${provider}/${model}] ${errorMsg}`, credentials.retryAfter, credentials.retryAfterHuman);
       }
       if (excludeConnectionIds.size === 0) {
+        // Full detail stays in the operator log; the client gets a neutral message
+        // that does not name the upstream provider (see clientErrors.js).
         log.warn("AUTH", `No active credentials for provider: ${provider}`);
-        return errorResponse(HTTP_STATUS.NOT_FOUND, `No active credentials for provider: ${provider}`);
+        return errorResponse(HTTP_STATUS.NOT_FOUND, publicMessage("no_credentials"));
       }
       log.warn("CHAT", "No more accounts available", { provider });
       return lastResponse || errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");

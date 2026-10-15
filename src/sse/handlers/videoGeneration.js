@@ -12,6 +12,7 @@ import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import * as log from "../utils/logger.js";
+import { publicMessage } from "@/shared/utils/clientErrors.js";
 
 // Video generation is xAI-only today; requests without a provider prefix
 // (bare model id, or multipart bodies we deliberately don't parse) land here.
@@ -74,7 +75,8 @@ async function resolveVideoProvider(parsedBody) {
     if (!modelStr.includes("/")) {
       return { provider: DEFAULT_VIDEO_PROVIDER, model: modelStr };
     }
-    return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, `Provider '${modelInfo.provider}' does not support video generation`) };
+    log.warn("VIDEO", `Provider ${modelInfo.provider} does not support video generation`);
+    return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("provider_unsupported_modality")) };
   }
   return { provider: modelInfo.provider, model: modelInfo.model };
 }
@@ -126,7 +128,7 @@ export async function handleVideoCreate(request, action) {
         return unavailableResponse(status, `[${provider}/${model || "video"}] ${errorMsg}`, credentials.retryAfter, credentials.retryAfterHuman);
       }
       if (excludeConnectionIds.size === 0) {
-        return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${provider}`);
+        return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
       }
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
@@ -190,7 +192,7 @@ export async function handleVideoGet(request, requestId) {
 
   const credentials = await getProviderCredentials(provider, null, null, { preferredConnectionId });
   if (!credentials || credentials.allRateLimited) {
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${provider}`);
+    return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
   }
 
   const refreshedCredentials = await checkAndRefreshToken(provider, credentials);

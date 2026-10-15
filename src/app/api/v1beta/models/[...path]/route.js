@@ -9,6 +9,7 @@ import { getSettings, isApiKeyRequired } from "@/lib/localDb";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
+import { publicMessage } from "@/shared/utils/clientErrors.js";
 
 let initialized = false;
 const GEMINI_NATIVE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -251,9 +252,11 @@ async function forwardGeminiNativeRequest(request, body, model, action) {
   while (true) {
     const credentials = await getProviderCredentials("gemini", excludeConnectionIds, modelId);
     if (!credentials || credentials.allRateLimited) {
-      console.log(`[GEMINI_NATIVE] exhausted model=${modelId} status=${lastStatus || Number(credentials?.lastErrorCode) || 503} error=${lastError || credentials?.lastError || "No active credentials for provider: gemini"}`);
+      // Operator log keeps the full reason; the client only learns that the
+      // model is unavailable (never which provider/account is involved).
+      console.log(`[GEMINI_NATIVE] exhausted model=${modelId} status=${lastStatus || Number(credentials?.lastErrorCode) || 503} error=${lastError || credentials?.lastError || "no active credentials"}`);
       return Response.json(
-        { error: { message: lastError || credentials?.lastError || "No active credentials for provider: gemini" } },
+        { error: { message: publicMessage("no_credentials") } },
         { status: lastStatus || Number(credentials?.lastErrorCode) || 503 }
       );
     }
