@@ -165,7 +165,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
 /**
  * Build onStreamComplete callback for streaming usage tracking.
  */
-export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log }) {
+export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, onStreamFailed }) {
   const streamDetailId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   // Terminal accounting may precede transport EOF; completion and abort share one claim.
   let persistenceClaimed = false;
@@ -185,6 +185,27 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     const streamError = failed
       ? (typeof streamMeta?.error === "string" && streamMeta.error.trim() ? streamMeta.error.trim() : "upstream stream failed")
       : null;
+
+    // Mark the account unhealthy for a mid-stream failure.
+    //
+    // markAccountUnavailable() was only ever called on the pre-stream error
+    // path, so an account that consistently failed AFTER the 200 header (Codex
+    // response.failed, quota exhausted mid-generation) kept being selected:
+    // every request returned 200 with truncated content and no failover ever
+    // happened. Operators could not see it either, because every monitor
+    // observed 200.
+    //
+    // A client disconnect cannot reach this branch: onStreamAborted() claims
+    // persistenceClaimed first and this callback returns early, so an abort is
+    // never recorded as an account fault.
+    if (failed && typeof onStreamFailed === "function") {
+      try {
+        onStreamFailed({ error: streamError, status: streamMeta?.status || 502 });
+      } catch (err) {
+        // Accounting must never break the response path.
+        console.error("[ChatCore] onStreamFailed failed:", err?.message || err);
+      }
+    }
 
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,

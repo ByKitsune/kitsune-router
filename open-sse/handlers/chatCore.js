@@ -71,7 +71,7 @@ function requestBudgetError(error) {
   });
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, clientSignal }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, clientSignal }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -549,7 +549,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Streaming response
-  const { onStreamComplete, onStreamAborted, streamDetailId } = buildOnStreamComplete({ ...sharedCtx });
+  const { onStreamComplete, onStreamAborted, streamDetailId } = buildOnStreamComplete({ ...sharedCtx, onStreamFailed });
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, userAgent, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, onStreamAborted, streamDetailId });
 }
 

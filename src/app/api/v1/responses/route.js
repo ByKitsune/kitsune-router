@@ -1,6 +1,7 @@
 import { handleChat } from "@/sse/handlers/chat.js";
 import { correlateResponse, sanitizeErrorResponse } from "@/sse/utils/requestCorrelation.js";
 import { initTranslators } from "open-sse/translator/index.js";
+import * as log from "@/sse/utils/logger.js";
 
 export { sanitizeErrorResponse };
 
@@ -32,7 +33,15 @@ export async function POST(request) {
   try {
     await ensureInitialized();
     return await handleChat(request, null, serverRequestId);
-  } catch {
+  } catch (error) {
+    // Same reasoning as src/sse/handlers/chat.js: a bare `catch {}` hid every
+    // unexpected failure behind a generic 500 while still handing the client a
+    // serverRequestId that appeared nowhere in the logs. errorLine() is always
+    // printed regardless of LOG_LEVEL. Identity + stack only; no prompt or
+    // response content.
+    const detail = `${error?.name || "Error"}: ${error?.message || error}`;
+    if (log.errorLine) log.errorLine("RESPONSES", "❌", `[${serverRequestId}] unhandled failure: ${detail}`);
+    if (error?.stack) console.error(`[${serverRequestId}] ${error.stack}`);
     return correlateResponse(new Response(JSON.stringify({ error: { message: "Responses request failed", type: "server_error", code: "internal_server_error" } }), {
       status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }

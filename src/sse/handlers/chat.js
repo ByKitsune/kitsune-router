@@ -39,7 +39,17 @@ export async function handleChat(request, clientRawRequest = null, serverRequest
   try {
     const response = await handleChatInternal(request, clientRawRequest, serverRequestId);
     return correlateResponse(response, serverRequestId);
-  } catch {
+  } catch (error) {
+    // Previously a bare `catch {}`: any unexpected exception anywhere in the
+    // chat pipeline (translation, executor, DB, streaming) collapsed into
+    // "Chat request failed" with no stack trace and no trace of the
+    // serverRequestId the client received — so the id was useless for
+    // correlation. errorLine() is always printed regardless of LOG_LEVEL
+    // (an unexpected crash must never be hidden by log configuration).
+    // Identity + stack only; never the prompt or the response body.
+    const detail = `${error?.name || "Error"}: ${error?.message || error}`;
+    if (log.errorLine) log.errorLine("CHAT", "❌", `[${serverRequestId}] unhandled failure: ${detail}`);
+    if (error?.stack) console.error(`[${serverRequestId}] ${error.stack}`);
     return correlateResponse(errorResponse(HTTP_STATUS.SERVER_ERROR, "Chat request failed"), serverRequestId);
   }
 }
@@ -380,6 +390,24 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           existingProviderSpecificData: credentials.providerSpecificData,
           testStatus: "active"
         });
+      },
+      // Mid-stream failure: the upstream returned 200 + SSE and then failed
+      // inside the body (Codex response.failed, quota exhausted mid-generation).
+      // Previously the account was only marked on the pre-stream error path, so
+      // a consistently failing account stayed in rotation and every request
+      // returned 200 with truncated content — invisible to status-based
+      // monitoring. No byte can be un-sent at this point, so failover is not
+      // possible; the account is still marked so the NEXT request uses another
+      // one. A client disconnect never reaches here (it takes the abort path).
+      onStreamFailed: async ({ error: streamError, status }) => {
+        log.warn("FALLBACK", `⇄ ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} mid-stream failure (${status}) — marking unavailable`);
+        await markAccountUnavailable(
+          credentials.connectionId,
+          status || 502,
+          streamError || "upstream stream failed",
+          provider,
+          model
+        );
       },
       onRequestSuccess: async () => {
         await clearAccountError(credentials.connectionId, credentials, model);
