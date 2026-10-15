@@ -79,8 +79,14 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 |---|---|
 | Claude image `source.type="url"` dropped (only base64) | `request/claude-to-openai.js:133-141` |
 | `tool_result` image block → raw JSON | `request/claude-to-openai.js:155-173` |
-| `tool_result.is_error` lost | `request/claude-to-openai.js:155-173` |
 | `thinking`/`redacted_thinking` dropped via bridge | `request/claude-to-openai.js:128` |
+
+**Fixed (kept out of the `it.fails` list on purpose):**
+
+| Fix | Where |
+|---|---|
+| `tool_result.is_error` carried as a `[tool_error]` content marker (OpenAI has no such field, so a non-standard field would be ignored or rejected and the model could conclude the tool succeeded) | `request/claude-to-openai.js` (`TOOL_ERROR_PREFIX`) |
+| Sampling/stop/attribution parameters preserved: `stop` ⇄ `stop_sequences`, `top_p`, `user` ⇄ `metadata.user_id`, Gemini `stopSequences`/`seed` | `request/openai-to-claude.js`, `request/claude-to-openai.js`, `request/openai-to-gemini.js` |
 
 **OpenAI → Claude (`bugs-toClaude-context.test.js`)**
 | Bug | Source |

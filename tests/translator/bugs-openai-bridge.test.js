@@ -77,9 +77,11 @@ describe("bug: Claude → OpenAI bridge data loss", () => {
     expect(toolMsg?.content, "image in tool_result lost").not.toMatch(/^\[/);
   });
 
-  // claude-to-openai.js:260-265 — is_error preserved internally but stripped in final OpenAI format
-  // KNOWN BUG
-  it.fails("tool_result is_error flag is preserved", () => {
+  // FIXED (was claude-to-openai.js:260-265): OpenAI Chat Completions has no
+  // `is_error` field on tool messages — a strict upstream ignores or rejects it,
+  // and the receiving model then cannot tell the tool failed. The flag is now
+  // carried as an explicit `[tool_error]` marker in the content the model reads.
+  it("tool_result is_error flag is preserved as a content marker", () => {
     const out = T(FORMATS.CLAUDE, FORMATS.OPENAI, {
       messages: [
         { role: "assistant", content: [{ type: "tool_use", id: "call_1", name: "f", input: {} }] },
@@ -88,8 +90,26 @@ describe("bug: Claude → OpenAI bridge data loss", () => {
         ] },
       ],
     });
-    const json = JSON.stringify(out);
-    expect(json, "is_error dropped → model can't see tool failure").toContain("is_error");
+    const toolMsg = out.messages.find((m) => m.role === "tool");
+    // The failure must be visible to the model.
+    expect(toolMsg?.content, "is_error dropped → model can't see tool failure").toMatch(/\[tool_error\]/);
+    expect(toolMsg?.content).toContain("boom");
+    // ...and must not be a non-standard field the upstream would reject.
+    expect(toolMsg?.is_error).toBeUndefined();
+  });
+
+  it("does not mark a successful tool_result", () => {
+    const out = T(FORMATS.CLAUDE, FORMATS.OPENAI, {
+      messages: [
+        { role: "assistant", content: [{ type: "tool_use", id: "call_2", name: "f", input: {} }] },
+        { role: "user", content: [
+          { type: "tool_result", tool_use_id: "call_2", content: "all good" },
+        ] },
+      ],
+    });
+    const toolMsg = out.messages.find((m) => m.role === "tool");
+    expect(toolMsg?.content).not.toMatch(/tool_error/);
+    expect(toolMsg?.content).toContain("all good");
   });
 
   // claude-to-openai.js:24-27 — system array only takes .text, drops cache_control/non-text

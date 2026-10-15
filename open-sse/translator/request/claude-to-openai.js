@@ -5,6 +5,12 @@ import { encodeDataUri } from "../concerns/image.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
 
+// Marker prepended to a tool result that the client reported as an error.
+// OpenAI-format tool messages have no error flag, so the signal must live in
+// the text the model reads. Kept short and unambiguous so it cannot be
+// confused with real tool output.
+export const TOOL_ERROR_PREFIX = "[tool_error] ";
+
 function stripAnthropicBillingHeader(text) {
   if (typeof text !== "string") return "";
   return text.replace(/^x-anthropic-billing-header:[^\n]*(?:\r?\n)?/i, "");
@@ -28,6 +34,28 @@ export function claudeToOpenAIRequest(model, body, stream) {
   if (body.temperature !== undefined) {
     result.temperature = body.temperature;
   }
+
+  // Sampling / stop / attribution parameters.
+  //
+  // `stop_sequences` had no `stop` counterpart, so a Claude client that asked
+  // for deterministic truncation silently received untruncated output when the
+  // request was served through an OpenAI-format upstream. `top_p` and
+  // `metadata.user_id` were dropped the same way.
+  if (body.top_p !== undefined) {
+    result.top_p = body.top_p;
+  }
+  // Anthropic `stop_sequences` (array) ⇄ OpenAI `stop` (string or array).
+  if (Array.isArray(body.stop_sequences)) {
+    const cleaned = body.stop_sequences.filter((s) => typeof s === "string" && s.length > 0);
+    if (cleaned.length > 0) result.stop = cleaned;
+  } else if (typeof body.stop_sequences === "string" && body.stop_sequences) {
+    result.stop = body.stop_sequences;
+  }
+  // Anthropic metadata.user_id is an abuse-tracking/attribution field. OpenAI
+  // Chat Completions has `user` for the same purpose, so it is carried over
+  // rather than dropped.
+  const userId = body.metadata && typeof body.metadata.user_id === "string" ? body.metadata.user_id.trim() : "";
+  if (userId) result.user = userId;
 
   // System message
   if (body.system) {
@@ -263,8 +291,12 @@ function convertClaudeMessage(msg) {
           toolResults.push({
             role: ROLE.TOOL,
             tool_call_id: block.tool_use_id,
-            content: resultContent,
-            ...(typeof block.is_error === "boolean" ? { is_error: block.is_error } : {})
+            // OpenAI Chat Completions has no `is_error` field on tool messages:
+            // unknown fields are ignored or rejected by strict upstreams, and the
+            // receiving model then cannot tell that the tool FAILED — it may
+            // conclude the opposite and continue from a false premise. The flag
+            // is therefore carried as an explicit marker in the content instead.
+            content: block.is_error === true ? `${TOOL_ERROR_PREFIX}${resultContent}` : resultContent,
           });
           if (toolImages.length > 0) {
             parts.push(...toolImages);

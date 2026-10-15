@@ -62,6 +62,35 @@ export function openaiToClaudeRequest(model, body, stream) {
     result.temperature = body.temperature;
   }
 
+  // Sampling / determinism parameters.
+  //
+  // These were previously dropped, which is the "succeeds but behaves
+  // differently" class of bug: a client that sets `stop: ["</end>"]` for
+  // deterministic truncation silently received untruncated output whenever the
+  // gateway routed to Claude — including when a combo failed over mid-request.
+  // Anthropic's Messages API accepts all of these, so they map directly.
+  if (body.top_p !== undefined) {
+    result.top_p = body.top_p;
+  }
+  // OpenAI `stop` (string or array) ⇄ Anthropic `stop_sequences` (array).
+  if (body.stop !== undefined) {
+    const stops = Array.isArray(body.stop) ? body.stop : [body.stop];
+    const cleaned = stops.filter((s) => typeof s === "string" && s.length > 0);
+    if (cleaned.length > 0) result.stop_sequences = cleaned;
+  }
+  // Anthropic has no `seed`; determinism is approximated by temperature/top_p,
+  // so it is deliberately not invented here.
+  // `user` maps to Anthropic's abuse-tracking field metadata.user_id.
+  const metadataUser = typeof body.user === "string" && body.user.trim()
+    ? body.user.trim()
+    : null;
+  if (metadataUser) {
+    result.metadata = { ...(result.metadata || {}), user_id: metadataUser };
+  }
+  // Anthropic has no presence/frequency penalty. Deliberately NOT invented:
+  // dropping them is documented behavior, and fabricating an equivalent would
+  // change sampling in an unverifiable way.
+
   // Messages
   result.messages = [];
   const systemParts = [];

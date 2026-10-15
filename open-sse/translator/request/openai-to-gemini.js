@@ -148,6 +148,20 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
   if (body.top_k !== undefined) {
     result.generationConfig.topK = body.top_k;
   }
+  // OpenAI `stop` (string or array) ⇄ Gemini `stopSequences` (array, max 5).
+  // Previously dropped, so a client asking for deterministic truncation got
+  // untruncated output whenever the request was served by a Gemini upstream.
+  if (body.stop !== undefined) {
+    const stops = (Array.isArray(body.stop) ? body.stop : [body.stop])
+      .filter((s) => typeof s === "string" && s.length > 0)
+      .slice(0, 5);
+    if (stops.length > 0) result.generationConfig.stopSequences = stops;
+  }
+  // `seed` maps to Gemini's deterministic-sampling seed. Carried over so a
+  // reproducibility request is not silently ignored.
+  if (Number.isFinite(body.seed)) {
+    result.generationConfig.seed = body.seed;
+  }
   const outputCap = readOutputTokenCap(body);
   if (outputCap !== undefined) {
     result.generationConfig.maxOutputTokens = outputCap;
