@@ -1,6 +1,6 @@
 # Chào mừng đến với ZenRouter
 
-**Phiên bản hiện tại: 0.9.8 (2026-10-13).** Xem [nhật ký thay đổi](/vi/changelog/) để biết các sửa đổi, giới hạn kiểm chứng và yêu cầu nâng cấp. Yêu cầu Node.js >=22.19.0; mục danh mục không bảo đảm quyền truy cập của tài khoản hay khả năng phục vụ thực tế.
+**Phiên bản hiện tại: 0.9.9 (2026-10-15).** Xem [nhật ký thay đổi](/vi/changelog/) để biết các sửa đổi, giới hạn kiểm chứng và yêu cầu nâng cấp. Yêu cầu Node.js >=22.19.0; mục danh mục không bảo đảm quyền truy cập của tài khoản hay khả năng phục vụ thực tế.
 
 **Dùng Claude, Codex, Gemini MIỄN PHÍ • Lựa chọn siêu rẻ từ $0.20/1M tokens**
 
@@ -107,7 +107,7 @@ Bắt đầu trong 2 phút:
 
 ```bash
 # Install globally
-npm install -g @joyccn/zenrouter@0.9.8
+npm install -g @joyccn/zenrouter@0.9.9
 
 # Start (dashboard opens automatically)
 zenrouter

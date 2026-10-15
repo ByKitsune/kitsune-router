@@ -1,5 +1,49 @@
 # Nhật ký thay đổi
 
+## 0.9.9 — 2026-10-15
+
+Giải đáp một cuộc kiểm toán bên ngoài (11 tài liệu) cùng đợt xác minh toàn bộ danh mục theo [models.dev](https://models.dev). Mọi phát hiện đều được tái hiện trên cổng đang chạy trước khi sửa, và mỗi bản sửa đều kèm kiểm thử hồi quy. Yêu cầu **Node.js >=22.19.0**. Gói vẫn là `@joyccn/zenrouter`, lệnh vẫn là `zenrouter`. Không có thay đổi API phá vỡ tương thích.
+
+### Bảo mật
+
+**Một khách hàng không còn có thể rút cạn mọi nhà cung cấp.** Bảng `apiKeys` hoàn toàn không có cột hạn mức và `validateApiKey()` chỉ trả về boolean, nên không có gì giới hạn mức tiêu thụ của *khách hàng* — giới hạn duy nhất là bộ giới hạn đăng nhập bảng điều khiển và thời gian hồi của tài khoản *thượng nguồn*. `/v1` nay có giới hạn theo khoá (600 RPM, đột biến 120/giây, `V1_RATE_LIMIT_RPM`/`V1_RATE_LIMIT_BURST`), khoá nhóm được băm, bảng đếm có giới hạn, và `Retry-After` cùng `x-ratelimit-*` khi trả 429. Giá trị mặc định lấy từ lưu lượng đo được (đỉnh ~246 yêu cầu/phút → dư ~30 lần).
+
+**Chi tiết định tuyến nội bộ không còn rò rỉ.** Môi trường thật trả về `"No active credentials for provider: openai"`, nêu tên nhà cung cấp thượng nguồn. Cách diễn đạt tương tự cũng có trong các trình xử lý hình ảnh, video, tìm kiếm, tts, stt, embeddings, fetch và Gemini gốc. Khách hàng nay nhận thông báo trung tính; các chẩn đoán máy đọc được do chính Zen tạo (`output_budget_exhausted` và tương tự) vẫn được chuyển tiếp.
+
+**Email tài khoản đã rời khỏi nhật ký.** Journald có 589 dòng chứa 27 địa chỉ duy nhất, vì `connectionName` phân giải thành `displayName || name || email || id`. Danh tính nay là một hàm băm ngắn có muối — vẫn tìm kiếm và phân biệt được, không thể đảo ngược.
+
+**Token bị thu hồi là vĩnh viễn, không tạm thời.** `token_revoked` không khớp quy tắc nào và rơi vào thời gian hồi 401 chung, nên một tài khoản đã chết bị thử lại mỗi 2 phút: 31 sự kiện trong 8 giờ, một tài khoản bị thử lại 16 lần. Nay là thời gian hồi 1 giờ kèm trạng thái `needs_reauth`. Việc thử làm mới được giữ lại có chủ đích: khác với từ chối theo chính sách tổ chức, token bị thu hồi có thể vẫn cứu được.
+
+**Tiêu đề bảo mật cơ bản và danh sách CORS tường minh.** Cổng được công bố qua đường hầm Cloudflare (`zen.hlcyn.xyz` → `127.0.0.1:20128`), nên đây không phải chuyện hình thức.
+
+### Định tuyến và lỗi
+
+**Tràn ngữ cảnh không còn báo là 502.** Câu lệnh quá dài đến dưới dạng `context_length_exceeded` bên trong luồng SSE trạng thái 200 và bị chuyển thành 503 → 502. ByKitsune thử lại 502, nên một câu lệnh không thể thành công bị thử lại trong khi mọi tài khoản khoẻ mạnh lần lượt bị khoá 30 giây. Nay là 400 với `invalid_request_error`, không xoay tài khoản.
+
+**Cửa sổ ngữ cảnh bị báo thấp tới 778k token.** `/v1/models` công bố giới hạn của Codex CLI (872.000; 272.000 với GPT-5.6) như `context_length`. Đo thực tế: 402.486 token được chấp nhận cho mô hình quảng cáo 272.000, và 902.486 cho mô hình quảng cáo 872.000, với giới hạn thật là 922.000. GPT-6/GPT-5.6 nay báo theo đặc tả API (1.050.000 / 922.000 / 128.000); giới hạn CLI vẫn nằm ở `limits.cliDefaultContext`/`cliMaxContext`.
+
+**Lỗi giữa luồng nay đánh dấu tài khoản.** Trước đây tài khoản lỗi sau tiêu đề 200 vẫn nằm trong vòng xoay, nên mọi yêu cầu trả 200 với nội dung bị cắt và không có chuyển đổi dự phòng — một sự cố mà giám sát theo mã trạng thái không thấy được. Khách ngắt kết nối không thể chạm nhánh này.
+
+**`Retry-After` của nhà cung cấp là mã chết.** `checkFallbackError` nhận một `Response` để đọc tiêu đề, nhưng không lời gọi nào truyền vào, nên nhà cung cấp trả `Retry-After: 3600` bị thử lại sau vài giây.
+
+**Ngoại lệ bất ngờ được ghi lại.** Một `catch {}` trần trả 500 chung kèm `serverRequestId` không xuất hiện ở đâu trong nhật ký. Nay tên, thông báo và ngăn xếp lỗi được ghi cùng id đó. Nội dung câu lệnh và phản hồi thì không bao giờ.
+
+### Dịch thuật
+
+`top_p`, `stop`/`stop_sequences`, `seed` và `metadata.user_id` bị mất qua nhiều chặng, nên khách đặt `stop: ["</end>"]` nhận đầu ra không bị cắt mỗi khi cổng định tuyến sang Claude. Kết quả công cụ thất bại được báo qua trường `is_error` phi tiêu chuẩn mà tin nhắn công cụ của OpenAI không có, nên mô hình nhận có thể tưởng công cụ đã thành công; nay là dấu `[tool_error]` trong nội dung.
+
+### Danh mục
+
+Năm cửa sổ được sửa theo mục chính thức của nhà cung cấp trên models.dev: `gpt-4.1*` (1.000.000 → 1.047.576), `command-a-translate-08-2025` (128.000 → 8.000, quảng cáo thừa 16 lần), `ministral-3b/8b/14b` (128.000 → 131.072/262.144), `codestral-latest` (128.000 → 256.000). So sánh ngây thơ báo 206 khác biệt; sau khi loại trừ quy ước đơn vị (256000 so với 262144) và giới hạn riêng của cổng, còn 5 khác biệt thật. Bốn tuyến Codex bị tài khoản ChatGPT từ chối (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex-spark`) nay mang `routeAvailable: false` kèm lý do máy đọc được.
+
+### Điểm cuối mới
+
+`GET /api/health` nay là phép dò thật: đọc cơ sở dữ liệu, **503** khi kho lưu trữ không phản hồi, kèm thời gian hoạt động, phiên bản, số tài khoản đang khoá và số cần xác thực lại. `GET /api/metrics` phục vụ văn bản Prometheus (mô hình đang dùng, lỗi theo mã trạng thái, yêu cầu đang xử lý), có cổng token và chỉ tổng hợp.
+
+### Xác minh và giới hạn
+
+Bộ kiểm thử tách biệt: **1.436 tệp, 4.525 trường hợp — 4.424 đạt, 0 lỗi**; `npx eslint .` sạch. Đường cơ sở đăng ký giống hệt từng byte. Đã xác minh khi chạy với `DATA_DIR` tách biệt: JSON sức khoẻ, tiêu đề bảo mật, danh sách CORS, 429 kèm `Retry-After`, và metrics trả 401 khi chưa xác thực. Công việc danh mục là siêu dữ liệu: không xác lập quyền sử dụng hay khả dụng trực tiếp, và 448 dòng không có tham chiếu models.dev. Không phải bản phát hành không có lỗ hổng: cảnh báo `node-forge` vẫn chưa có bản sửa thượng nguồn và đường ảnh hưởng vẫn không thể tới, điều này được khẳng định bằng kiểm thử.
+
 ## 0.9.8 — 2026-10-13
 
 Xóa cảnh báo phụ thuộc nghiêm trọng và đưa vào lô Tier-1 từ phân tích đồng bộ upstream 9router. Hai mươi thay đổi, mỗi thay đổi có commit và kiểm thử riêng. Yêu cầu **Node.js >=22.19.0**. Gói vẫn là `@joyccn/zenrouter`, lệnh vẫn là `zenrouter`. Không có thay đổi API phá vỡ tương thích.

@@ -1,5 +1,49 @@
 # Registro de cambios
 
+## 0.9.9 — 2026-10-15
+
+Responde a una auditoría externa (11 documentos) y a una verificación completa del catálogo contra [models.dev](https://models.dev). Cada hallazgo se reprodujo contra la pasarela en ejecución antes de cambiarlo, y cada corrección incluye una prueba de regresión. Requiere **Node.js >=22.19.0**. El paquete sigue siendo `@joyccn/zenrouter`, con binario `zenrouter`. Sin cambios de API incompatibles.
+
+### Seguridad
+
+**Un cliente ya no puede agotar todos los proveedores.** La tabla `apiKeys` no tenía ninguna columna de cuota y `validateApiKey()` devolvía un booleano, así que nada limitaba lo que consumía un *cliente*: los únicos límites eran el del inicio de sesión del panel y los enfriamientos de las cuentas *upstream*. `/v1` ahora aplica un límite por clave (600 RPM, ráfaga de 120/s, `V1_RATE_LIMIT_RPM`/`V1_RATE_LIMIT_BURST`), con claves de cubo con hash, tabla de contadores acotada y `Retry-After` más `x-ratelimit-*` en 429. Los valores por defecto salen del tráfico medido (pico ~246 req/min → ~30x de margen).
+
+**El detalle interno de enrutamiento dejó de filtrarse.** Producción devolvía `"No active credentials for provider: openai"`, nombrando el proveedor upstream. La misma fórmula existía en los manejadores de imagen, vídeo, búsqueda, tts, stt, embeddings, fetch y Gemini nativo. El cliente recibe ahora un mensaje neutro; los diagnósticos legibles por máquina que genera el propio Zen (`output_budget_exhausted` y similares) siguen reenviándose.
+
+**Los correos de las cuentas salieron de los registros.** Journald contenía 589 líneas con 27 direcciones únicas, porque `connectionName` se resuelve como `displayName || name || email || id`. Las identidades son ahora un hash corto con sal: localizable y distinguible, no reversible.
+
+**Los tokens revocados son permanentes, no transitorios.** `token_revoked` no coincidía con ninguna regla y caía en el enfriamiento genérico de 401, así que una cuenta muerta se reintentaba cada 2 minutos: 31 eventos en 8h en producción, una cuenta reintentada 16 veces. Ahora hay un enfriamiento de 1h y un estado `needs_reauth`. El intento de refresco se conserva a propósito: a diferencia de una denegación por política de organización, un token revocado puede seguir siendo recuperable.
+
+**Cabeceras de seguridad base y una lista CORS explícita.** La pasarela se publica a través de un túnel de Cloudflare (`zen.hlcyn.xyz` → `127.0.0.1:20128`), así que no es cosmético.
+
+### Enrutamiento y errores
+
+**El desbordamiento de contexto dejó de reportarse como 502.** Un prompt demasiado largo llegaba como `context_length_exceeded` dentro de un flujo SSE con estado 200 y se convertía en 503 → 502. ByKitsune reintenta 502, así que un prompt que nunca podría tener éxito se reintentaba mientras cada cuenta sana quedaba bloqueada 30s por turno. Ahora es un 400 con `invalid_request_error`, sin rotar cuentas.
+
+**Las ventanas de contexto estaban subestimadas hasta en 778k tokens.** `/v1/models` publicaba el techo de la CLI de Codex (872.000; 272.000 para GPT-5.6) como `context_length`. Medido en vivo: se aceptaron 402.486 tokens para un modelo anunciado con 272.000, y 902.486 para uno anunciado con 872.000, con el techo real en 922.000. GPT-6/GPT-5.6 informan ahora de la especificación de la API (1.050.000 / 922.000 / 128.000); los techos de la CLI quedan en `limits.cliDefaultContext`/`cliMaxContext`.
+
+**Un fallo a mitad de flujo ahora marca la cuenta.** Antes, una cuenta que fallaba después de la cabecera 200 seguía en rotación, así que cada petición devolvía 200 con contenido truncado y sin failover: una caída invisible para la monitorización basada en estados. Una desconexión del cliente no puede alcanzar esa ruta.
+
+**El `Retry-After` del proveedor era código muerto.** `checkFallbackError` aceptaba un `Response` para leer la cabecera, pero ningún llamador lo pasaba, así que un proveedor que respondía `Retry-After: 3600` se reintentaba a los segundos.
+
+**Las excepciones inesperadas se registran.** Un `catch {}` desnudo devolvía un 500 genérico con un `serverRequestId` que no aparecía en ningún registro. Ahora se registran nombre, mensaje y traza con ese id. El contenido de los prompts y las respuestas, nunca.
+
+### Traducción
+
+`top_p`, `stop`/`stop_sequences`, `seed` y `metadata.user_id` se perdían en varios saltos, así que un cliente que fijaba `stop: ["</end>"]` recibía salida sin truncar siempre que la pasarela enrutaba a Claude. Un resultado de herramienta fallido se señalaba mediante un campo `is_error` no estándar que los mensajes de herramienta de OpenAI no tienen, así que el modelo receptor podía concluir que la herramienta había funcionado; ahora es un marcador `[tool_error]` dentro del contenido.
+
+### Catálogo
+
+Cinco ventanas corregidas contra las entradas oficiales de los proveedores en models.dev: `gpt-4.1*` (1.000.000 → 1.047.576), `command-a-translate-08-2025` (128.000 → 8.000, una sobrepromesa de 16x), `ministral-3b/8b/14b` (128.000 → 131.072/262.144), `codestral-latest` (128.000 → 256.000). Una comparación ingenua reportaba 206 diferencias; al excluir convenciones de unidades (256000 vs 262144) y topes propios de pasarelas, quedaron 5 reales. Cuatro rutas de Codex que la cuenta de ChatGPT rechaza (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex-spark`) ahora llevan `routeAvailable: false` con un motivo legible por máquina.
+
+### Nuevos endpoints
+
+`GET /api/health` es ahora una sonda real: una lectura de base de datos, **503** cuando el almacenamiento no responde, más tiempo activo, versión y recuentos de cuentas bloqueadas y que necesitan reautenticación. `GET /api/metrics` sirve texto Prometheus (modelos en uso, fallos por estado, peticiones en vuelo), protegido por token y estrictamente agregado.
+
+### Verificación y límites
+
+Suite aislada: **1.436 archivos, 4.525 casos — 4.424 superados, 0 fallidos**; `npx eslint .` limpio. Las líneas base del registro son idénticas byte a byte. Verificado en ejecución con un `DATA_DIR` aislado: JSON de salud, cabeceras de seguridad, lista CORS, 429 con `Retry-After` y metrics devolviendo 401 sin autenticar. El trabajo de catálogo es metadato: no establece derecho de uso ni disponibilidad en vivo, y 448 filas no tienen referencia en models.dev. No está libre de vulnerabilidades: el aviso de `node-forge` sigue sin corrección upstream y su ruta afectada sigue siendo inalcanzable, algo que una prueba afirma.
+
 ## 0.9.8 — 2026-10-13
 
 Elimina el aviso crítico de dependencias y añade el lote Tier-1 del análisis de sincronización con 9router. Veinte cambios, cada uno con su propio commit y pruebas. Requiere **Node.js >=22.19.0**. El paquete sigue siendo `@joyccn/zenrouter`, con binario `zenrouter`. Sin cambios de API incompatibles.

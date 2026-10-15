@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.9.9 — 2026-10-15
+
+Answers an external audit (11 prompt documents) plus a full catalog verification against [models.dev](https://models.dev). Every finding was reproduced against the running gateway before being changed, and each fix ships with a regression test. Requires **Node.js >=22.19.0**. The package remains `@joyccn/zenrouter`, with binary `zenrouter`. No breaking API change.
+
+### Security
+
+**A client can no longer drain every provider.** The `apiKeys` table had no quota column at all and `validateApiKey()` returned a plain boolean, so nothing bounded what a *client* consumed — the only limits were the dashboard login limiter and the upstream account cooldowns. `/v1` now has per-key rate limiting (600 RPM, 120/s burst, `V1_RATE_LIMIT_RPM`/`V1_RATE_LIMIT_BURST`), with hashed bucket keys, a bounded counter table, and `Retry-After` plus `x-ratelimit-*` on 429. Defaults came from measured traffic (peak ~246 req/min → ~30x headroom).
+
+**Internal routing detail stopped leaking.** Production returned `"No active credentials for provider: openai"`, naming the upstream provider. The same phrasing existed in the image, video, search, tts, stt, embeddings, fetch and Gemini-native handlers. Clients now get a neutral message; machine-readable diagnostics Zen itself produces (`output_budget_exhausted` and friends) are still forwarded.
+
+**Account emails left the logs.** Journald carried 589 lines with 27 unique addresses, because `connectionName` resolves to `displayName || name || email || id`. Identities are now a salted short hash — greppable and distinguishable, not reversible.
+
+**Revoked tokens are permanent, not transient.** `token_revoked` matched no rule and fell through to the generic 401 cooldown, so a dead account was retried every 2 minutes — 31 events across 8h in production, one account retried 16 times. Now a 1h cooldown plus a `needs_reauth` status. The refresh attempt is deliberately kept: unlike an org-policy denial, a revoked token may still be recoverable.
+
+**Baseline security headers and an explicit CORS allowlist.** The gateway is published through a Cloudflare tunnel (`zen.hlcyn.xyz` → `127.0.0.1:20128`), so this is not cosmetic.
+
+### Routing and errors
+
+**Context overflow stops reporting itself as 502.** An over-long prompt arrived as `context_length_exceeded` inside a 200-OK SSE stream and was converted to 503 → 502. ByKitsune retries 502, so a prompt that could never succeed was retried while every healthy account was locked for 30s in turn. It is now a 400 with `invalid_request_error`, without rotating accounts.
+
+**Context windows were under-reported by up to 778k tokens.** `/v1/models` published the Codex CLI ceiling (872,000; 272,000 for GPT-5.6) as `context_length`. Measured live: 402,486 tokens accepted for a model advertised at 272,000, and 902,486 for one advertised at 872,000, with the real ceiling at 922,000. GPT-6/GPT-5.6 now report the API specification (1,050,000 / 922,000 / 128,000); CLI ceilings stay under `limits.cliDefaultContext`/`cliMaxContext`.
+
+**A mid-stream failure now marks the account.** Previously an account that failed after the 200 header stayed in rotation, so every request returned 200 with truncated content and no failover — an outage invisible to status-based monitoring. A client disconnect cannot reach that path.
+
+**Provider `Retry-After` was dead code.** `checkFallbackError` accepted a `Response` to read the header, but no caller passed it, so a provider answering `Retry-After: 3600` was retried after seconds.
+
+**Unexpected exceptions were logged.** A bare `catch {}` returned a generic 500 with a `serverRequestId` that appeared nowhere in the logs. The error name, message and stack are now logged with that id. Prompt and response content never are.
+
+### Translation
+
+`top_p`, `stop`/`stop_sequences`, `seed` and `metadata.user_id` were dropped on several hops, so a client setting `stop: ["</end>"]` received untruncated output whenever the gateway routed to Claude. A failed tool result was signalled through a non-standard `is_error` field that OpenAI tool messages do not have, so the receiving model could conclude the tool succeeded; it is now an in-content `[tool_error]` marker.
+
+### Catalog
+
+Five windows corrected against models.dev's official vendor entries: `gpt-4.1*` (1,000,000 → 1,047,576), `command-a-translate-08-2025` (128,000 → 8,000, a 16x over-promise), `ministral-3b/8b/14b` (128,000 → 131,072/262,144), `codestral-latest` (128,000 → 256,000). A naive comparison reported 206 differences; excluding unit conventions (256000 vs 262144) and route-scoped bridge caps left 5 real ones. Four Codex routes the ChatGPT account rejects (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex-spark`) now carry `routeAvailable: false` with a machine-readable reason.
+
+### New endpoints
+
+`GET /api/health` is now a real probe — a database read, **503** when storage is unreachable, plus uptime, version, locked-account and needs-reauth counts. `GET /api/metrics` serves Prometheus text (models in use, failures per status, in-flight requests), token-gated and strictly aggregate.
+
+### Verification and limits
+
+Isolated suite: **1,436 files, 4,525 cases — 4,424 passed, 0 failed**; `npx eslint .` clean. Registry baselines byte-for-byte equal. Runtime-verified on an isolated `DATA_DIR`: health JSON, security headers, CORS allowlist, 429 with `Retry-After`, and metrics returning 401 unauthenticated. Catalog work is metadata: it does not establish entitlement or live availability, and 448 rows have no models.dev reference. Not vulnerability-free — the `node-forge` advisory still has no upstream fix and its affected path remains unreachable, asserted by a test.
+
 ## 0.9.8 — 2026-10-13
 
 Clears the critical dependency advisory and lands the Tier-1 batch from the 9router upstream sync analysis. Twenty changes, each committed and tested separately. Requires **Node.js >=22.19.0**. The package remains `@joyccn/zenrouter`, with binary `zenrouter`. No breaking API change.

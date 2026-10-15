@@ -1,6 +1,6 @@
 # Welcome to ZenRouter
 
-**Current release: 0.9.8 (2026-10-13).** [Read the changelog](/en/changelog/) for changes, verification limits and upgrade requirements. Requires Node.js >=22.19.0; catalog entries do not guarantee account entitlement or live availability.
+**Current release: 0.9.9 (2026-10-15).** [Read the changelog](/en/changelog/) for changes, verification limits and upgrade requirements. Requires Node.js >=22.19.0; catalog entries do not guarantee account entitlement or live availability.
 
 **Use Claude, Codex, Gemini for FREE • Ultra-cheap alternatives from $0.20/1M tokens**
 
@@ -107,7 +107,7 @@ Get started in 2 minutes:
 
 ```bash
 # Install globally
-npm install -g @joyccn/zenrouter@0.9.8
+npm install -g @joyccn/zenrouter@0.9.9
 
 # Start (dashboard opens automatically)
 zenrouter
