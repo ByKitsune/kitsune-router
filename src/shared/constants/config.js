@@ -1,5 +1,17 @@
 import pkg from "../../../package.json" with { type: "json" };
 
+// The package's real npm identity.
+//
+// This was previously the bare string "zenrouter", which is UNCLAIMED — npm
+// returns 404 for it. Two user-visible consequences, both reproduced:
+//   - /api/version fetched https://registry.npmjs.org/zenrouter/latest and always
+//     answered latestVersion: null, so the dashboard could never report an update.
+//   - the updater's `npm i -g zenrouter` (bare) would fail with 404 instead of installing.
+// Exported from here so the version route and the updater share one value rather
+// than repeating the literal (src/app/api/version/route.js used to hardcode its own
+// copy, which is how the two could drift apart again).
+export const NPM_PACKAGE_NAME = "@joyccn/zenrouter";
+
 // App configuration
 export const APP_CONFIG = {
   name: "ZenRouter",
@@ -9,9 +21,9 @@ export const APP_CONFIG = {
 
 // Updater configuration
 export const UPDATER_CONFIG = {
-  npmPackageName: "zenrouter",
-  installCmd: "npm i -g zenrouter",
-  installCmdLatest: "npm i -g zenrouter@latest --prefer-online",
+  npmPackageName: NPM_PACKAGE_NAME,
+  installCmd: `npm i -g ${NPM_PACKAGE_NAME}`,
+  installCmdLatest: `npm i -g ${NPM_PACKAGE_NAME}@latest --prefer-online`,
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
   statusPort: 20129,

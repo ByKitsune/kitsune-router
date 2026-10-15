@@ -1,7 +1,8 @@
 import https from "https";
-import { APP_CONFIG } from "@/shared/constants/config.js";
+import { APP_CONFIG, NPM_PACKAGE_NAME } from "@/shared/constants/config.js";
 
-const NPM_PACKAGE_NAME = "zenrouter";
+// Scoped name, or the registry answers 404 and latestVersion is always null.
+// Shares the constant with the updater so the two cannot drift apart again.
 const VERSION_CACHE_TTL_MS = 3600000; // cache npm latest lookup for 1h
 
 // Survive hot reload; one cache per process

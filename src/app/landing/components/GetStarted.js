@@ -1,5 +1,11 @@
 "use client";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
+import { NPM_PACKAGE_NAME } from "@/shared/constants/config.js";
+
+// Built from the real package name. The bare-name literal this replaced
+// named an UNCLAIMED package, so anyone copying the command from the landing page
+// got an npm 404.
+const RUN_CMD = `npx ${NPM_PACKAGE_NAME}`;
 
 export default function GetStarted() {
   const { copied, copy } = useCopyToClipboard();
@@ -61,10 +67,10 @@ export default function GetStarted() {
               <div className="p-6 font-mono text-sm leading-relaxed overflow-x-auto">
                 <div 
                   className="flex items-center gap-2 mb-4 group cursor-pointer"
-                  onClick={() => handleCopy("npx zenrouter")}
+                  onClick={() => handleCopy(RUN_CMD)}
                 >
                   <span className="text-emerald-400">$</span>
-                  <span className="text-white font-medium">npx zenrouter</span>
+                  <span className="text-white font-medium">{RUN_CMD}</span>
                   <span className="ml-auto text-gray-400 text-xs opacity-0 group-hover:opacity-100">
                     {copied === "landing" ? "✓ Copied" : "Copy"}
                   </span>

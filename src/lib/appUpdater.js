@@ -156,10 +156,10 @@ export async function killAppProcesses() {
   }
 }
 
-// Resolve npx/zenrouter binary to relaunch after update (cross-platform)
+// Resolve the npx binary + package to relaunch after update (cross-platform)
 function resolveRelaunchCommand() {
   const isWin = process.platform === "win32";
-  // Prefer `npx zenrouter` — works regardless of global bin path changes after npm i -g
+  // Prefer `npx @joyccn/zenrouter` — works regardless of global bin path changes after npm i -g
   const npx = isWin ? "npx.cmd" : "npx";
   return { cmd: npx, args: [UPDATER_CONFIG.npmPackageName] };
 }
