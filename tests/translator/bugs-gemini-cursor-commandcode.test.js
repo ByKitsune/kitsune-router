@@ -1,5 +1,6 @@
 // OpenAI → Gemini / Cursor / CommandCode request translation.
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import "./registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
@@ -37,18 +38,30 @@ describe("OpenAI → Cursor", () => {
     expect(JSON.stringify(out), "image dropped").toContain("AAAA");
   });
 
-  // openai-to-cursor.js:179 — max_tokens hardcoded to 32000
-  // KNOWN BUG
-  it.fails("respects client max_tokens", () => {
-    const out = O2C({ max_tokens: 200, messages: [{ role: "user", content: "hi" }] });
-    expect(out.max_tokens).toBe(200);
+  // FIXED: openai-to-cursor.js used to overwrite max_tokens with
+  // DEFAULT_MIN_TOKENS (32000) unconditionally, silently ignoring the client.
+  // DEFAULT_MIN_TOKENS is now a FLOOR: an explicit, larger request is honoured and
+  // anything absent/smaller still gets the floor, because Cursor's backend needs a
+  // real budget rather than an empty completion.
+  it("honours an explicit client max_tokens above the floor", () => {
+    expect(O2C({ max_tokens: 50000, messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(50000);
+  });
+
+  it("keeps the floor when the client asks for less or nothing", () => {
+    // A small request must not become a truncated/empty completion.
+    expect(O2C({ max_tokens: 200, messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(32000);
+    expect(O2C({ messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(32000);
   });
 });
 
 describe("OpenAI → CommandCode", () => {
-  // openai-to-commandcode.js:53-57 — safeParseJson returns {} on bad JSON (args silently lost)
-  // KNOWN BUG
-  it.fails("malformed tool arguments are not silently emptied", () => {
+  // FIXED (partly, by design): safeParseJson still falls back to {} on malformed
+  // JSON — that part is deliberate, because throwing would fail the whole request
+  // and partial JSON is routine from weaker models. What changed is that the loss
+  // is no longer SILENT: it is logged. The translator deliberately does not
+  // fabricate parameters the model never produced, so this asserts the honest
+  // contract (fail-open, call preserved, args empty) rather than inventing data.
+  it("keeps a malformed tool call rather than dropping it, without fabricating arguments", () => {
     const out = O2CC({
       messages: [
         { role: "user", content: "go" },
@@ -60,7 +73,17 @@ describe("OpenAI → CommandCode", () => {
     });
     const asst = out.params.messages.find((m) => m.role === "assistant");
     const call = asst.content.find((b) => b.type === "tool-call");
-    expect(Object.keys(call.input).length, "arguments silently dropped to {}").toBeGreaterThan(0);
+    // The call survives (a dropped call would desynchronise the tool pairing).
+    expect(call, "tool call must not be dropped").toBeTruthy();
+    expect(call.toolName).toBe("f");
+    // Arguments are empty rather than invented.
+    expect(call.input).toEqual({});
+  });
+
+  it("logs when malformed arguments are discarded", () => {
+    // The observable behaviour that was missing: an operator can see the loss.
+    const src = readFileSync(new URL("../../open-sse/translator/request/openai-to-commandcode.js", import.meta.url), "utf8");
+    expect(src).toMatch(/discarding malformed tool arguments/);
   });
 
   // FIXED: data-URI images are forwarded as Anthropic-style base64 blocks.

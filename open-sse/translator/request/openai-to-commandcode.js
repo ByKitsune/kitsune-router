@@ -79,7 +79,15 @@ function toContentBlocks(content) {
 function safeParseJson(s) {
   if (s == null) return {};
   if (typeof s !== "string") return s;
-  try { return JSON.parse(s); } catch { return {}; }
+  try {
+    return JSON.parse(s);
+  } catch {
+    // Fail open (a throw would fail the whole request) but NOT silently: a
+    // malformed arguments string means the tool will be called with no
+    // parameters, and hiding that makes the wrong call look correct.
+    console.warn(`[commandcode] discarding malformed tool arguments (len=${s.length})`);
+    return {};
+  }
 }
 
 function convertMessages(messages = []) {

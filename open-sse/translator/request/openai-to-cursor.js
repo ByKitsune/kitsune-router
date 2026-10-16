@@ -175,10 +175,18 @@ export function openaiToCursorRequest(model, body, stream, credentials) {
   // Strip fields irrelevant to Cursor (OpenAI/Anthropic-specific)
   const { user, metadata, tool_choice, stream_options, system, ...rest } = body;
 
+  // Honour an explicit client max_tokens; DEFAULT_MIN_TOKENS is a floor, not an
+  // override. Cursor's backend needs a real budget, so anything absent, invalid or
+  // below the floor still gets the floor rather than an empty completion.
+  const requestedMax = Number(rest.max_tokens ?? rest.max_completion_tokens);
+  const maxTokens = Number.isFinite(requestedMax) && requestedMax > DEFAULT_MIN_TOKENS
+    ? Math.floor(requestedMax)
+    : DEFAULT_MIN_TOKENS;
+
   return {
     ...rest,
     messages,
-    max_tokens: DEFAULT_MIN_TOKENS
+    max_tokens: maxTokens
   };
 }
 
