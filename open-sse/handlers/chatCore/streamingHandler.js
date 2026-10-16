@@ -170,7 +170,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
   // Terminal accounting may precede transport EOF; completion and abort share one claim.
   let persistenceClaimed = false;
 
-  const onStreamComplete = (contentObj, usage, ttftAt, streamMeta) => {
+  const onStreamComplete = (contentObj, usage, ttftAt, streamMeta, firstTokenAt) => {
     if (persistenceClaimed) return;
     persistenceClaimed = true;
     const latency = {
@@ -226,8 +226,13 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       console.error("[RequestDetail] Failed to update streaming content:", err.message);
     });
 
+    // Keep first-byte detail/log timings separate from measured semantic TTFT.
+    const usageLatency = {
+      ...latency,
+      ttft: Number.isFinite(firstTokenAt) ? firstTokenAt - requestStartTime : null,
+    };
     // Persist stream usage to DB (no console line; the "📊 done" line below is authoritative)
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency, label: "STREAM USAGE", silent: true });
+    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true });
     if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
   };
 

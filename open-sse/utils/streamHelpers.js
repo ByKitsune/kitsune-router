@@ -1,5 +1,6 @@
 import { FORMATS } from "../translator/formats.js";
 import { extractReasoningText } from "../translator/concerns/reasoning.js";
+import { CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 
 // Parse SSE data line
 export function parseSSELine(line, format = null) {
@@ -66,6 +67,39 @@ export function hasValuableContent(chunk, format) {
   }
 
   return true; // Other formats: keep all chunks
+}
+
+// Only generated deltas count as TTFT, unlike role/finish/usage protocol frames.
+const RESPONSES_TOKEN_DELTAS = new Set([
+  "response.output_text.delta",
+  "response.reasoning_summary_text.delta",
+  "response.function_call_arguments.delta",
+  "response.custom_tool_call_input.delta",
+]);
+
+const nonEmptyText = (value) => typeof value === "string" && value.length > 0;
+
+export function hasSemanticContent(chunk, eventName = null) {
+  if (!chunk || chunk.error || chunk.response?.error) return false;
+  if (Array.isArray(chunk.choices) && chunk.choices.some((choice) => {
+    const delta = choice?.delta;
+    return nonEmptyText(delta?.content) || Boolean(extractReasoningText(delta)) ||
+      (Array.isArray(delta?.tool_calls) && delta.tool_calls.some((call) => nonEmptyText(call?.function?.name) || nonEmptyText(call?.function?.arguments)));
+  })) return true;
+
+  if (chunk.type === "content_block_delta" &&
+      (nonEmptyText(chunk.delta?.text) || nonEmptyText(chunk.delta?.thinking) || nonEmptyText(chunk.delta?.partial_json))) return true;
+  if (chunk.content_block?.type === CLAUDE_BLOCK.TOOL_USE && nonEmptyText(chunk.content_block.name)) return true;
+
+  const parts = (chunk.candidates || chunk.response?.candidates)?.[0]?.content?.parts;
+  if (Array.isArray(parts) && parts.some((part) => nonEmptyText(part?.text) || nonEmptyText(part?.functionCall?.name))) return true;
+  if (nonEmptyText(chunk.message?.content) || nonEmptyText(chunk.message?.thinking)) return true;
+
+  const type = eventName || chunk.type || chunk.event;
+  if (type === "response.output_item.added" &&
+      (chunk.item?.type === RESPONSES_ITEM.FUNCTION_CALL || chunk.item?.type === RESPONSES_ITEM.CUSTOM_TOOL_CALL) &&
+      nonEmptyText(chunk.item.name)) return true;
+  return RESPONSES_TOKEN_DELTAS.has(type) && nonEmptyText(chunk.delta);
 }
 
 // Fix invalid id (generic or too short)

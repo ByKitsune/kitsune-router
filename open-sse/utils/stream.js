@@ -2,7 +2,7 @@ import { translateResponse, initState } from "../translator/index.js";
 import { FORMATS } from "../translator/formats.js";
 import { trackPendingRequest, appendRequestLog } from "@/lib/usageDb.js";
 import { extractUsage, mergeUsage, hasValidUsage, estimateUsage, logUsage, COLORS } from "./usageTracking.js";
-import { parseSSELine, hasValuableContent, fixInvalidId, formatSSE } from "./streamHelpers.js";
+import { parseSSELine, hasValuableContent, hasSemanticContent, fixInvalidId, formatSSE } from "./streamHelpers.js";
 import { getOpenAIResponsesEventName, isOpenAIResponsesTerminalEvent, formatIncompleteOpenAIResponsesStreamFailure } from "./responsesStreamHelpers.js";
 import { dbg, isDebugEnabled } from "./debugLog.js";
 import { extractReasoningText } from "../translator/concerns/reasoning.js";
@@ -154,6 +154,8 @@ export function createSSEStream(options = {}) {
   const thinkingChunks = [];
   const toolCallStore = new Map();
   let ttftAt = null;
+  let firstTokenAt = null;
+  let lastChunkAt = null;
   let sseLineCount = 0;
   let sseEmittedCount = 0;
   const eventTypeCounts = {};
@@ -183,6 +185,10 @@ export function createSSEStream(options = {}) {
       totalContentLength += reasoning.length;
       thinkingChunks.push(reasoning);
     }
+  };
+
+  const captureFirstToken = (parsed, observedAt = lastChunkAt) => {
+    if (firstTokenAt === null && hasSemanticContent(parsed, currentOpenAIResponsesEvent)) firstTokenAt = observedAt;
   };
 
   // In-stream failure tracking (#4104): an upstream can end an HTTP-200 stream
@@ -266,7 +272,7 @@ export function createSSEStream(options = {}) {
         content: contentChunks.join(""),
         thinking: thinkingChunks.join(""),
         toolCalls: [...toolCallStore.values()].filter((call) => call.name || call.arguments)
-      }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage });
+      }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage }, firstTokenAt);
     }
   };
 
@@ -302,7 +308,8 @@ export function createSSEStream(options = {}) {
 
   const sseStream = new TransformStream({
     transform(chunk, controller) {
-      if (!ttftAt) ttftAt = Date.now();
+      lastChunkAt = Date.now();
+      if (!ttftAt) ttftAt = lastChunkAt;
       const text = decoder.decode(chunk, { stream: true });
       buffer += text;
       reqLogger?.appendProviderChunk?.(text);
@@ -395,6 +402,7 @@ export function createSSEStream(options = {}) {
               }
 
 
+              captureFirstToken(parsed);
               if (!hasValuableContent(parsed, FORMATS.OPENAI)) {
                 continue;
               }
@@ -524,6 +532,8 @@ export function createSSEStream(options = {}) {
         }
 
 
+        captureFirstToken(parsed);
+
         // Claude format - content
         if (parsed.delta?.text) {
           totalContentLength += parsed.delta.text.length;
@@ -633,6 +643,7 @@ export function createSSEStream(options = {}) {
         if (buffer.trim()) {
           const tail = parseSSELine(buffer.trim(), targetFormat);
           if (emitUpstreamError(tail, controller)) return;
+          captureFirstToken(tail);
           accumulateOpenAIContent(tail);
           accumulateToolCalls(toolCallStore, tail);
           captureUsage(tail);
