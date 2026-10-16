@@ -9,9 +9,9 @@ Official CLI package for running, configuring, and managing **ZenRouter** on mac
 
 ---
 
-## Current release: 0.9.9
+## Current release: 0.9.10
 
-Dated **2026-10-15**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.9) · [Changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.9.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.9.md).
+Dated **2026-10-16**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.10) · [Changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.10.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.10.md).
 
 ## ⚡ Installation & Usage
 
@@ -19,12 +19,12 @@ Requires **Node.js >=22.19.0**. The package is `@joyccn/zenrouter`; the command 
 
 ### Run instantly with NPX:
 ```bash
-npx @joyccn/zenrouter@0.9.9
+npx @joyccn/zenrouter@0.9.10
 ```
 
 ### Install globally:
 ```bash
-npm install -g @joyccn/zenrouter@0.9.9
+npm install -g @joyccn/zenrouter@0.9.10
 zenrouter
 ```
 

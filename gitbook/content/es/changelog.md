@@ -1,5 +1,27 @@
 # Registro de cambios
 
+## 0.9.10 — 2026-10-16
+
+Versión de parche para los cambios realizados al reverificar los hallazgos de la auditoría contra el código, después de publicar 0.9.9. Las versiones de npm son inmutables, así que no estaban en ninguna versión publicada. Sin cambios de API incompatibles; dos columnas de base de datos se añaden automáticamente en el primer arranque.
+
+### Correcciones
+
+**Los modelos retirados ya no se anuncian.** `gemini-2.5-pro` y `gemini-2.5-flash-lite` responden 404 *"is no longer available to new users"* — reproducido 5/5 y 2/2, y corroborado por 30 días de registros de producción. Ambos aparecían y parecían utilizables. Ahora se ocultan mientras los ids permanecen en el registro, de modo que un combo guardado resuelve en un fallo claro en lugar de un 404.
+
+**Quince modelos `deprecated` seguían ofreciéndose.** La marca existía y estaba documentada, pero solo la consumía la interfaz del panel: no había ningún filtro en la ruta de la API. Reproducido con una conexión deepseek activa: se listaban dos alias de compatibilidad retirados. Ahora se filtran, con una distinción importante: un `deprecated: true` a **nivel de proveedor** es un aviso de riesgo de ToS para claude/codex/antigravity/… y no debe ocultar los modelos de ese proveedor.
+
+**Las ventanas de contexto de Gemini se ocultaban, no se desconocían.** Once registros declaraban la ventana como no verificada, lo que la anulaba; como `/v1/models` solo emite `context_length` cuando es finito, **17 de 334 modelos** llegaban a los clientes sin ventana alguna. Las entradas oficiales de models.dev publican 1.048.576 para estos ids y las rutas se sirven, así que eliminar el número era la peor opción. Ahora **12** modelos carecen de ventana, cada uno realmente no servible o realmente no verificado.
+
+**Dos errores de traducción con pérdida silenciosa de datos.** `openai-to-cursor` sobrescribía el `max_tokens` del cliente con 32000 fijo — un cliente que pedía 200 recibía 32000; ahora la constante es un suelo, no una anulación. `openai-to-commandcode` convertía argumentos de herramienta malformados en `{}` sin señal, así que el modelo recibía una llamada sin parámetros y nada indicaba la pérdida.
+
+### Añadido
+
+**El TTFT por fin es medible.** El manejador de streaming calculaba el tiempo hasta el primer token y lo imprimía, pero nunca lo guardaba — por eso la auditoría tuvo que analizar 304 líneas de registro para reportar una mediana de 5.471 ms. Ahora se persiste en columnas anulables (escrito como NULL, nunca 0, para que las peticiones no medidas no arrastren la mediana) y se expone como `zenrouter_ttft_ms{quantile=...}` en `/api/metrics`.
+
+### Nota
+
+Tres hallazgos de esta versión provienen de reverificar una conclusión anterior en lugar de confiar en ella: la auditoría reportó **3** modelos con `context_length` nulo y el recuento real era **17**; `gemini-3.5-flash-lite` aparecía junto a modelos realmente retirados pero devuelve **HTTP 200** (un 429 anterior era cuota); y 250.000 resultó ser el tope del *puente Antigravity* para `claude-sonnet-4-6`, no la ventana de la API de Anthropic, que es 1.000.000.
+
 ## 0.9.9 — 2026-10-15
 
 > **¿Actualizas desde 0.9.7? Esta versión también incluye 0.9.8.** El lote 0.9.8 se preparó el 2026-10-13 pero no se publicó entonces; se **publicó después, el 2026-10-16**, como release propia, dejando `latest` en 0.9.9 en todos los registros. 0.9.9 son 45 commits entre `v0.9.7` y `v0.9.9`, así que contiene todo lo que trae 0.9.8 —la eliminación del aviso crítico de dependencias y los ports Tier-1— además de todo lo siguiente. **Prefiere 0.9.9:** 0.9.8 no incluye ninguna de las correcciones de auditoría.

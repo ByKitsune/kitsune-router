@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.9.10 — 2026-10-16
+
+Patch release for changes made while re-verifying the audit findings against the code, after 0.9.9 was published. npm versions are immutable, so these were in no released version until now. No breaking API change; two database columns are added automatically on first boot.
+
+### Fixed
+
+**Retired models are no longer advertised.** `gemini-2.5-pro` and `gemini-2.5-flash-lite` both answer 404 *"is no longer available to new users"* — reproduced 5/5 and 2/2, and corroborated by 30 days of production logs. Both were listed and looked callable. They are now hidden while the ids stay in the registry, so a stored combo resolves into a clear failure instead of a 404.
+
+**Fifteen `deprecated` models were still being offered.** The flag existed and was documented, but was consumed only by the dashboard UI — no filter existed on the API path. Reproduced with one active deepseek connection: two retired compatibility aliases were listed. Now filtered, with an important distinction: a **provider-level** `deprecated: true` is a ToS risk notice for claude/codex/antigravity/… and must not hide that provider's models.
+
+**Gemini context windows were withheld, not unknown.** Eleven records declared the window unverified, which nulled it; since `/v1/models` only emits `context_length` when finite, **17 of 334 models** reached clients with no window at all. models.dev's official entries publish 1,048,576 for these ids and the routes are served, so removing the number was the worst option. Now **12** models lack a window, each genuinely unservable or genuinely unverified.
+
+**Two silent-data-loss translation bugs.** `openai-to-cursor` overwrote the client's `max_tokens` with a hardcoded 32000 — a client asking for 200 received 32000; the constant is now a floor, not an override. `openai-to-commandcode` turned malformed tool arguments into `{}` with no signal, so the model received a tool call with no parameters and nothing indicated the loss.
+
+### Added
+
+**TTFT is finally measurable.** The streaming handler computed time-to-first-token and printed it, but never stored it — which is why the audit had to parse 304 log lines to report a 5,471 ms median. It is now persisted as nullable columns (written as NULL, never 0, so unmeasured requests do not drag the median down) and exposed as `zenrouter_ttft_ms{quantile=...}` on `/api/metrics`.
+
+### Note
+
+Three findings in this release came from re-checking an earlier conclusion rather than trusting it: the audit reported **3** models with a null `context_length` and the real count was **17**; `gemini-3.5-flash-lite` appeared alongside genuinely retired models but returns **HTTP 200** (an earlier 429 was quota); and 250,000 turned out to be the *Antigravity bridge* cap for `claude-sonnet-4-6`, not the Anthropic API window, which is 1,000,000.
+
 ## 0.9.9 — 2026-10-15
 
 > **Upgrading from 0.9.7? This release also contains 0.9.8.** The 0.9.8 batch was prepared on 2026-10-13 but not published then; it was **backfilled on 2026-10-16** as its own release, with `latest` left on 0.9.9 in every registry. 0.9.9 is 45 commits between `v0.9.7` and `v0.9.9`, so it contains everything 0.9.8 has — the critical dependency-advisory removal and Tier-1 upstream ports — plus everything below. **Prefer 0.9.9:** 0.9.8 has none of the audit fixes below.

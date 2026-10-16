@@ -1,5 +1,27 @@
 # Nhật ký thay đổi
 
+## 0.9.10 — 2026-10-16
+
+Bản vá cho các thay đổi được thực hiện khi xác minh lại các phát hiện kiểm toán với mã nguồn, sau khi 0.9.9 được phát hành. Phiên bản npm là bất biến, nên chúng chưa từng nằm trong bản phát hành nào. Không có thay đổi API phá vỡ tương thích; hai cột cơ sở dữ liệu được thêm tự động ở lần khởi động đầu tiên.
+
+### Đã sửa
+
+**Các mô hình đã ngừng hoạt động không còn được quảng cáo.** `gemini-2.5-pro` và `gemini-2.5-flash-lite` đều trả 404 *"is no longer available to new users"* — tái hiện 5/5 và 2/2, cùng 30 ngày nhật ký sản xuất xác nhận. Cả hai đều được liệt kê và trông như dùng được. Nay chúng bị ẩn trong khi id vẫn nằm trong sổ đăng ký, để combo đã lưu phân giải thành lỗi rõ ràng thay vì 404.
+
+**Mười lăm mô hình `deprecated` vẫn được cung cấp.** Cờ này tồn tại và có tài liệu, nhưng chỉ được dùng bởi giao diện bảng điều khiển — không có bộ lọc nào trên đường API. Tái hiện với một kết nối deepseek đang hoạt động: hai bí danh tương thích đã ngừng được liệt kê. Nay đã lọc, với một phân biệt quan trọng: `deprecated: true` ở **cấp nhà cung cấp** là cảnh báo rủi ro ToS cho claude/codex/antigravity/… và không được ẩn các mô hình của nhà cung cấp đó.
+
+**Cửa sổ ngữ cảnh Gemini bị giữ lại, không phải chưa biết.** Mười một bản ghi khai báo cửa sổ chưa xác minh, khiến nó bị null; vì `/v1/models` chỉ phát `context_length` khi giá trị hữu hạn, **17 trong 334 mô hình** đến tay khách hàng mà không có cửa sổ nào. Các mục chính thức của models.dev công bố 1.048.576 cho những id này và các tuyến vẫn phục vụ, nên việc xóa con số là lựa chọn tồi nhất. Nay còn **12** mô hình thiếu cửa sổ, mỗi mô hình thực sự không phục vụ được hoặc thực sự chưa xác minh.
+
+**Hai lỗi dịch gây mất dữ liệu âm thầm.** `openai-to-cursor` ghi đè `max_tokens` của khách hàng bằng 32000 cố định — khách yêu cầu 200 nhận được 32000; nay hằng số này là mức sàn, không phải ghi đè. `openai-to-commandcode` biến đối số công cụ sai định dạng thành `{}` không có tín hiệu, nên mô hình nhận được lệnh gọi công cụ không có tham số và không có gì báo hiệu mất mát.
+
+### Đã thêm
+
+**TTFT cuối cùng đã đo được.** Trình xử lý luồng đã tính thời gian tới token đầu tiên và in ra, nhưng chưa bao giờ lưu — đó là lý do kiểm toán phải phân tích 304 dòng nhật ký để báo cáo trung vị 5.471 ms. Nay nó được lưu vào các cột cho phép NULL (ghi là NULL, không bao giờ là 0, để các yêu cầu chưa đo không kéo trung vị xuống) và được công bố dưới dạng `zenrouter_ttft_ms{quantile=...}` trên `/api/metrics`.
+
+### Ghi chú
+
+Ba phát hiện trong bản này đến từ việc xác minh lại kết luận trước đó thay vì tin tưởng nó: kiểm toán báo cáo **3** mô hình có `context_length` null nhưng con số thực là **17**; `gemini-3.5-flash-lite` xuất hiện cạnh các mô hình thực sự đã ngừng nhưng trả **HTTP 200** (429 trước đó là hạn mức); và 250.000 hóa ra là giới hạn của *cầu Antigravity* cho `claude-sonnet-4-6`, không phải cửa sổ API Anthropic vốn là 1.000.000.
+
 ## 0.9.9 — 2026-10-15
 
 > **Nâng cấp từ 0.9.7? Bản này cũng bao gồm 0.9.8.** Lô 0.9.8 được chuẩn bị ngày 2026-10-13 nhưng không phát hành khi đó; nó đã được **phát hành bổ sung vào 2026-10-16** như một bản riêng, với `latest` vẫn là 0.9.9 trên mọi registry. 0.9.9 là 45 commit trong khoảng `v0.9.7` đến `v0.9.9`, nên chứa mọi thứ của 0.9.8 — gỡ bỏ cảnh báo phụ thuộc nghiêm trọng và các cổng Tier-1 — cùng mọi thứ dưới đây. **Nên dùng 0.9.9:** 0.9.8 không có bản sửa lỗi kiểm toán nào.
