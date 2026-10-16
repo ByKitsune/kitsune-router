@@ -11,6 +11,15 @@ released version until now. No breaking API change.
 **Upgrading from 0.9.9 is optional but recommended** — 0.9.9 is not wrong, it simply does not
 contain these six changes. Two database columns are added automatically on first boot.
 
+> **Known issues and publication correction (2026-10-16):** The Gemini 2.5 Pro/Flash-Lite
+> retirement conclusion below was incorrect. Google's [official lifecycle notice](https://ai.google.dev/gemini-api/docs/deprecations?hl=en)
+> explicitly says these models are **not deprecated**; access is limited to projects with
+> prior active use, and no shutdown date is announced. Version 0.9.10 incorrectly hides
+> them for eligible users. Also, its `24h` TTFT query has an invalid SQL cutoff, so the
+> metrics endpoint does not emit the promised TTFT samples. Corrections are being tested
+> on `master`; **they are not in the published 0.9.10 artifacts**. The existing release
+> tag and tarball are unchanged. No production deployment is performed by these notes.
+
 ## Highlights
 
 - **Retired models are no longer advertised.** `gemini-2.5-pro` and `gemini-2.5-flash-lite`

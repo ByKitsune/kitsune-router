@@ -1,112 +1,85 @@
-# P04-C — Alerting recommendations
+# P04-C — Alerting recommendations (corrected 2026-10-16)
 
-**Date:** 2026-10-16 · **Scope:** recommendations only, as the audit asked ("sebutkan rekomendasi, bukan harus diimplementasikan sekarang").
+Recommendations only. No notification service, timer, or production configuration was installed.
+The original examples had an inverted health predicate and unsafe assumptions about metrics;
+use the corrected requirements below, not the older release-tag examples.
 
-The audit's evidence: `token_revoked` fired **31 times in 8 hours** and nobody noticed. One account was retried 16 times. The gateway had metrics but no way to tell a human that something was wrong.
+## Signals and limitations
 
----
-
-## What is now observable
-
-These exist after 0.9.9 plus the post-publication fixes, so an alert can be built on them without new instrumentation:
-
-| Signal | Source | Example |
+| Signal | Source | Meaning and limitation |
 |---|---|---|
-| Failures by HTTP status | `zenrouter_failures_total{status}` (`/api/metrics`) | `zenrouter_failures_total{status="401"} 31` |
-| TTFT distribution | `zenrouter_ttft_ms{quantile}` | `zenrouter_ttft_ms{quantile="0.9"} 18067` |
-| TTFT sample count | `zenrouter_ttft_samples_total` | guards against alerting on a thin window |
-| Locked / needs-reauth accounts | `/api/health` (JSON, not Prometheus) → `accounts.locked`, `accounts.needsReauth` | `{"locked":3,"needsReauth":1}` |
-| In-flight requests | `zenrouter_requests_in_flight` | detects a stuck queue |
-| Requests and cost | `zenrouter_requests_total`, `zenrouter_cost_usd_total` | budget drift |
+| Accounts needing reauthentication | `/api/health` JSON, `accounts.needsReauth` | An aggregate state, not a Prometheus series |
+| Database readiness | `/api/health` JSON, `checks.database` | Probe transport failures separately from a false check |
+| TTFT percentiles | `zenrouter_ttft_ms{quantile="0.5"}` / `"0.9"` | Measured usage rows only; requires the unreleased `24h` cutoff correction |
+| TTFT sample count | `zenrouter_ttft_samples_total` | Rolling-window count, **not** a monotonic counter despite its name |
+| Requests, tokens and cost | `zenrouter_*_total` exports | Currently rolling 24h snapshots; **do not use `rate()` or `increase()`** |
+| Failure breakdown | `zenrouter_failures_total{status}` | Not yet a reliable incident signal: the exporter expects status objects but the log API returns formatted strings; the legacy append-log hook is a no-op |
+| In-flight requests | `zenrouter_requests_in_flight` | A current count, not proof that all accounts for a model are unavailable |
 
-Scrape both over loopback. `/api/metrics` is token-gated (`x-zen-cli-token`); `/api/health` is public because the tunnel watchdog reads it. **They are different formats** — metrics is Prometheus text, health is JSON — so a health-based rule needs a JSON check, not PromQL. Every series named below exists in `src/app/api/metrics/route.js`; the health fields exist in `src/app/api/health/route.js`.
+Metrics require a dashboard session or `x-zen-cli-token`. Health is a JSON probe, not a
+Prometheus exporter. Scrape over loopback and do not store tokens in command logs.
+Missing measurements or missing series mean **unknown**, not zero errors or instant TTFT.
 
----
+## 1. Reauthentication required
 
-## Recommended alerts, in priority order
-
-### 1. Accounts need a human to re-authenticate (highest value)
-
-There is **no Prometheus series** for this state, so it cannot be expressed in
-PromQL. Poll the JSON endpoint and compare the field:
+Notify when the count is positive; notify separately for probe/schema failure. `notify` below
+represents the operator's existing notification integration and is not a ZenRouter command.
 
 ```bash
-# Fires when any account has been permanently revoked rather than cooled down.
-curl -sf http://127.0.0.1:20128/api/health \
-  | jq -e '.accounts.needsReauth > 0' >/dev/null || notify "Zen: an account needs re-authentication"
+if ! payload="$(curl --fail --silent --show-error --max-time 5 http://127.0.0.1:20128/api/health)"; then
+  notify "Zen health probe failed"
+elif ! jq -e '.accounts.needsReauth | type == "number"' <<<"$payload" >/dev/null; then
+  notify "Zen health response has an unexpected schema"
+elif jq -e '.accounts.needsReauth > 0' <<<"$payload" >/dev/null; then
+  notify "Zen: an account needs reauthentication"
+fi
 ```
 
-**Why first:** this is precisely the failure that went unnoticed for 8 hours. A revoked token never heals on its own — the account stays dead until a person re-links it, and every retry is wasted latency for a real user. The fix in 0.9.9 made this state *visible* (`needs_reauth`); the alert makes it *actionable*.
+Group and deduplicate notifications until the condition clears. Repeating the same revoked
+account every minute recreates the incident's 31-event noise rather than helping an operator.
 
-**Suggested severity:** page, but only once — do not repeat every cooldown cycle.
+## 2. Every account for a model exhausted
 
-### 2. Every account for a model is exhausted
+The current aggregate health and usage endpoints cannot establish this condition. A model-aware
+availability signal or an operator-side read of account lock state is needed first. Do not infer
+it from zero recorded requests, absence of a time series, or a single upstream 5xx. Do not run
+billable synthetic inference every minute merely to populate an alert.
+
+## 3. Authentication and rate-limit pressure
+
+A future implementation needs independently recorded terminal request outcomes and the source
+of a 429 (inbound limiter versus upstream quota). Current rolling usage/log snapshots do not
+support reliable 10-minute failure rates, and one 429 does not prove the cause. Do not deploy
+the earlier `increase(zenrouter_failures_total[...])` or `rate(...)` examples.
+
+The journald state-transition messages can provide a temporary deduplicated operator signal;
+verify message coverage and redaction first rather than assuming every failure is recorded.
+
+## 4. TTFT regression
+
+After the cutoff correction is deployed, an example percentile threshold is:
 
 ```promql
-# Any model whose failures cluster while no request succeeds.
-increase(zenrouter_failures_total{status=~"5.."}[10m]) > 20
-and
-increase(zenrouter_requests_total[10m]) == 0
+(zenrouter_ttft_ms{quantile="0.9"} > 15000)
+and on(job, instance)
+(zenrouter_ttft_samples_total > 20)
 ```
 
-**Why:** when all accounts for a model are down, users see errors and the operator sees a flat line of 5xx. Catching it before a user reports it is the difference between a blip and an outage.
+The explicit target-label match matters: the left operand has a `quantile` label and the right
+one does not. Without `on(...)`, default vector matching makes the rule silently empty.
+Preserve any additional deployment target labels in the match if present. These are 24h
+percentiles, not a 10-minute regression detector. Also, the stored timing currently reflects
+the handler's first-byte measurement, which can include metadata/heartbeats; do not claim
+semantic first-generated-token accuracy until that upstream measurement is corrected.
 
-### 3. Authentication failures rising
+## Single-host implementation choices
 
-```promql
-increase(zenrouter_failures_total{status="401"}[15m]) > 5
-increase(zenrouter_failures_total{status="403"}[15m]) > 5
-```
+1. A systemd timer plus a small JSON-checking script is sufficient for the health-state alert.
+   Use the existing notification channel, a timeout, grouping, and state persistence.
+2. An existing Prometheus/Alloy and Alertmanager deployment can scrape metrics with authentication.
+   Add failure-counter instrumentation before enabling failure-rate rules.
+3. A journald watcher is a temporary option for specific redacted state transitions, not an
+   authoritative request/failure-rate database.
 
-**Why:** 401/403 is the fingerprint of both a revoked token (alert 1) and a credential misconfiguration. A sudden rise is the earliest signal that a provider changed something.
-
-### 4. Rate-limit pressure
-
-```promql
-# Sustained 429s mean either a provider quota is exhausted or an inbound client
-# is hitting the new /v1 limiter.
-rate(zenrouter_failures_total{status="429"}[10m]) > 0.5
-```
-
-**Why:** distinguishes "the provider is throttling us" from "we are throttling a client". Both need a different action: buy quota, or raise `V1_RATE_LIMIT_RPM`.
-
-### 5. TTFT regression
-
-```promql
-# p90 above 15s with enough samples to be meaningful.
-zenrouter_ttft_ms{quantile="0.9"} > 15000
-and
-zenrouter_ttft_samples_total > 20
-```
-
-**Why:** the audit measured a p90 of 18,067 ms. Latency degrades gradually, so nobody notices until users complain. The sample-count guard matters: alerting on three requests is noise.
-
----
-
-## Implementation options on a single shared host
-
-Zen and ByKitsune share one machine, so a heavyweight observability stack is the wrong shape. In increasing order of effort:
-
-**Option A — systemd + a script (no new service).** A timer runs every minute, scrapes `/api/health` and `/api/metrics` over loopback, and calls the operator's existing notification channel (a Telegram bot, or `ntfy`) when a threshold trips. Fits the current deployment — there is already a `zenrouter.service` unit and a logs directory. No container, no database.
-
-**Option B — point Prometheus at it.** Both endpoints already speak the right format, so an existing Prometheus (or Grafana Alloy) can scrape `127.0.0.1:20128` with no agent on the box. Best if a monitoring host already exists. Alertmanager then handles routing, silencing and grouping — which matters for alert 1, where the same condition is true every minute until a human acts.
-
-**Option C — journald-native (least new code).** A small script greps `journalctl -u zenrouter` for the state transitions the logger already emits (`NEEDS RE-AUTH`, `Circuit breaker:`, `locked modelLock_`) and notifies on first occurrence. Cheapest to write, and it reuses log lines that are already verified to contain no PII. Weakest at rate-based conditions like "TTFT got worse".
-
-**Recommendation: A now, B when a monitoring host exists.** Option A adds no long-running service and directly covers alerts 1–3, which are the ones with production evidence behind them. Option B is the right destination, because alert grouping is what stops a 31-event incident from becoming 31 notifications.
-
----
-
-## Anti-noise rules (learned from this incident, not theory)
-
-1. **Alert on state, not on events.** `token_revoked` fired 31 times for one root cause. Alert on "an account needs re-auth" (a state that persists), not on each retry (an event that repeats).
-2. **Always ship a sample-count guard** with any percentile alert. `zenrouter_ttft_samples_total` exists for exactly this.
-3. **Group by condition, not by account.** One notification listing the affected accounts beats one per account.
-4. **Distinguish cooldown from revocation.** A cooldown is self-healing and should not page; a revocation needs a person.
-5. **Never alert on a single 5xx.** 0.9.9 added a one-retry grace for sporadic upstream 5xx precisely because a lone flake is not an incident.
-
----
-
-## Not implemented
-
-No alerting is implemented — this is the recommendation the audit requested. Nothing here requires a code change to Zen: every signal is already exposed by `/api/health` and `/api/metrics`, and both were verified at runtime in an isolated `DATA_DIR`.
+Nothing here authorizes a service restart or mutates production. The unpublished fixes and
+remaining instrumentation limitations are intentional requirements, not already-completed alerts.

@@ -5,6 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Corrections After 0.9.10 (Not Yet Published)
+
+- Fix persisted latency windows: `24h` previously produced an invalid SQLite date modifier and no TTFT metrics; calendar periods now use matching parameterized ISO boundaries, with unknown/future samples excluded. Add real SQLite tests through the authenticated metrics route.
+- Increment the schema-backup version before additive latency-column upgrades. A version-one database is backed up before ALTER operations, its settings/usage survive, and reopening does not repeat the backup.
+- Add a network-free lifecycle inventory for all 120 active providers and 1,582 source/model/voice/reference rows. Exact missing catalog matches remain unknown. The report distinguishes source aliases, account restrictions, scheduled deprecation and shutdown; it does not certify every provider's live availability.
+- Correct the alerting recommendations: notify on positive reauthentication counts, separate probe failures, match target labels explicitly for TTFT rules, and stop recommending `rate`/`increase` over rolling-window exports or incomplete failure-log series.
+- Preserve `gemini-2.5-pro` and `gemini-2.5-flash-lite` for existing eligible API projects. Google's official deprecation page says they are **not deprecated**, limits new users, and announces no shutdown date. A project-specific 404 must not hide either model globally. Discovery behavior tests cover chat, transcription and vision, and CLI metadata keeps API eligibility reference-only.
+- Correct the 0.9.10 retirement claims below: those describe the behavior shipped in that tag, not verified global shutdowns. The fixes on `master` are not in immutable npm/Docker 0.9.10 artifacts.
+
 ## [0.9.10] - 2026-10-16
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.10) · [Complete changelog](CHANGELOG.md)
