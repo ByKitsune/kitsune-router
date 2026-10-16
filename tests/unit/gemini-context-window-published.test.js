@@ -24,10 +24,11 @@ import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.j
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 
 // Every id models.dev's official google provider documents at 1,048,576.
+// Served models only. gemini-2.5-pro and gemini-2.5-flash-lite were later
+// found to be retired (404 "no longer available to new users", reproduced and
+// corroborated by 30 days of production logs) and are asserted separately below.
 const VERIFIED = [
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-pro",
   "gemini-3.1-flash-lite",
   "gemini-3.1-pro-preview",
   "gemini-3.5-flash",
@@ -94,4 +95,30 @@ describe("the fix did not leak onto other providers", () => {
     // model's 1M API window. Both values are correct for their own route.
     expect(getCapabilitiesForModel("ag", "claude-sonnet-4-6").contextWindow).toBe(250000);
   });
+});
+
+describe("retired Gemini models are flagged and withheld", () => {
+  const RETIRED = ["gemini-2.5-pro", "gemini-2.5-flash-lite"];
+
+  it.each(RETIRED)("%s is marked routeAvailable:false", (model) => {
+    const limits = getReviewedModelMetadata("gemini", model)?.limits;
+    expect(limits?.routeAvailable, model).toBe(false);
+    expect(limits?.routeUnavailableReason, model).toBe("retired-by-google");
+  });
+
+  it.each(RETIRED)("%s keeps its reference figures for provenance", (model) => {
+    // The window is retained in metadata rather than deleted; the catalog filter
+    // is what stops it being advertised.
+    expect(getCapabilitiesForModel("gemini", model).contextWindow, model).toBe(1048576);
+  });
+
+  it.each(["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"])(
+    "%s is NOT flagged: it answered 200 or 429 (quota), not 404",
+    (model) => {
+      // Distinguishing retirement from quota matters: an earlier 429 on
+      // gemini-3.1-pro-preview looked like failure but the model is in fact the
+      // replacement Google's own error message recommends.
+      expect(getReviewedModelMetadata("gemini", model)?.limits?.routeAvailable, model).not.toBe(false);
+    },
+  );
 });

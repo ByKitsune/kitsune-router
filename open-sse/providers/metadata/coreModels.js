@@ -1206,7 +1206,10 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": []
+      "unverifiedCapabilityFields": [],
+      "routeAvailable": false,
+      "routeUnavailableReason": "retired-by-google",
+      "note": "Retired upstream. The API answers 404 \"This model models/gemini-2.5-flash-lite is no longer available to new users\", reproduced 2/2 and confirmed by 30 days of production logs. The reference figures above are kept for provenance; the id is no longer advertised."
     }
   },
   "gemini-2.5-pro": {
