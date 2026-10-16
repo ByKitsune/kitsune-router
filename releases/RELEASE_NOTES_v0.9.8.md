@@ -4,6 +4,14 @@
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.8/CHANGELOG.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.8/docs/CHANGELOG_v0.9.8.md)
 
+> **Backfilled release.** This batch was prepared on 2026-10-13 but published on
+> **2026-10-16**, after 0.9.9. `latest` was deliberately left on 0.9.9 in every registry,
+> so `npm i @joyccn/zenrouter` still installs 0.9.9. **0.9.9 is the recommended release and
+> already contains everything below.** Install 0.9.8 only if you specifically need the
+> dependency-advisory fix without the later changes — it does **not** include the
+> external-audit fixes (context-window reporting, the context-overflow 400, revoked-token
+> cooldown, inbound rate limiting, log PII redaction, neutral client errors).
+
 0.9.8 clears the critical dependency advisory on the default branch and lands the Tier-1
 batch from the 9router upstream sync analysis. Twenty changes, each committed and tested
 separately. No breaking API change. [0.9.7 release notes](https://github.com/ZenRouter/ZenRouter/blob/v0.9.8/releases/RELEASE_NOTES_v0.9.7.md) remain historical and unchanged.

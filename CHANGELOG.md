@@ -53,12 +53,17 @@ No breaking API change.
 - Rate-limit defaults are a guard rail, not billing: counters are in-memory and reset on restart.
 - Upstream Tier-2/Tier-3 items from `docs/audit/07-upstream-sync-2026-10.md` remain open.
 
-## [0.9.8] - 2026-10-13 — **never published**
+## [0.9.8] - 2026-10-13 — **backfilled on 2026-10-16**
 
-> This batch was committed to the repository but no `v0.9.8` tag, GitHub release or npm
-> publication was ever made; npm `latest` remained 0.9.7. Its changes ship as part of
-> **[0.9.9]** above, which is 45 commits between `v0.9.7` and `v0.9.9`. If you are upgrading from
-> 0.9.7, read this section as "additional changes included in 0.9.9".
+> This batch was prepared on 2026-10-13 but was not published at the time: no `v0.9.8` tag,
+> GitHub release or npm publication was made, and npm `latest` stayed 0.9.7. It was
+> **published later, on 2026-10-16**, so the version history is complete and the critical
+> dependency-advisory fix is installable. npm `latest` was **not** moved back — 0.9.9
+> remains the recommended release.
+>
+> If you are upgrading from 0.9.7, note that **0.9.9 already contains everything below**
+> (45 commits between `v0.9.7` and `v0.9.9`). Installing 0.9.8 is only useful if you
+> specifically need the advisory fix without the later changes.
 
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.8) · [Technical changelog](docs/CHANGELOG_v0.9.8.md) · [Release notes](releases/RELEASE_NOTES_v0.9.8.md)

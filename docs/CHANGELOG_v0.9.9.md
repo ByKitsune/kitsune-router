@@ -3,12 +3,15 @@
 Release date: **2026-10-15** · Previous **published** release: **0.9.7**.
 
 > **Note on 0.9.8.** The 0.9.8 batch (20 changes, documented in
-> [CHANGELOG_v0.9.8.md](CHANGELOG_v0.9.8.md)) was prepared in the repository but
-> **never published** — there is no `v0.9.8` tag, no GitHub release, and npm's
-> `latest` remained 0.9.7. Its commits are ancestors of this release, so **0.9.9
-> delivers both batches**: 45 commits between `v0.9.7` and `v0.9.9`. Anyone upgrading from 0.9.7
-> receives the dependency-advisory removal and Tier-1 upstream ports described in
-> the 0.9.8 document, in addition to everything below.
+> [CHANGELOG_v0.9.8.md](CHANGELOG_v0.9.8.md)) was prepared on 2026-10-13 but was **not
+> published at the time**; npm `latest` stayed 0.9.7. It was **backfilled on 2026-10-16**,
+> so 0.9.8 is now installable (npm, Docker Hub, GHCR, GitHub release) while 0.9.9 remains
+> `latest` in every registry. Its commits are ancestors of this release, so **0.9.9
+> contains everything 0.9.8 has** — 45 commits between `v0.9.7` and `v0.9.9`.
+>
+> **Prefer 0.9.9.** 0.9.8 does not include any of the audit fixes documented below; it
+> only carries the dependency-advisory removal and the Tier-1 upstream ports. Installing
+> 0.9.8 is useful only if you specifically need the advisory fix without the later work.
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.9) · [Complete changelog](../CHANGELOG.md) · [Release notes](../releases/RELEASE_NOTES_v0.9.9.md)
 

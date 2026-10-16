@@ -3,10 +3,11 @@
 **2026-10-15** · Previous **published** release: **0.9.7** · Requires **Node.js >=22.19.0**.
 
 > **If you are upgrading from 0.9.7, this release also contains 0.9.8.** The 0.9.8 batch
-> was committed but never published (no tag, no GitHub release, npm `latest` stayed
-> 0.9.7). 0.9.9 is 45 commits between `v0.9.7` and `v0.9.9`, so you get both batches at once: the
-> critical dependency-advisory removal and the Tier-1 upstream ports from 0.9.8, plus
-> everything described here.
+> was prepared on 2026-10-13 but not published then; it was **backfilled on 2026-10-16**
+> as its own release, with npm `latest` left on 0.9.9. 0.9.9 is 45 commits between
+> `v0.9.7` and `v0.9.9`, so it contains everything 0.9.8 has — the critical
+> dependency-advisory removal and the Tier-1 upstream ports — plus everything described
+> here. **Prefer 0.9.9:** 0.9.8 has none of the audit fixes below.
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.9) · [Complete changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.9/CHANGELOG.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.9/docs/CHANGELOG_v0.9.9.md)
 
