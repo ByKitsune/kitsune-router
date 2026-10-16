@@ -452,6 +452,15 @@ export async function buildModelsList(kindFilter) {
       const allowAsLlm = kind === "imageToText" && kindFilter.includes(LLM_KIND);
       if (isDisabled(outputAlias, modelId) || isDisabled(staticAlias, modelId) || isDisabled(providerId, modelId)) continue;
 
+      // Do not advertise a model its own registry entry marks deprecated.
+      // Without this the flag was UI-only and the id still reached clients (e.g.
+      // deepseek/deepseek-v4-flash, a retired compatibility alias). An operator's
+      // explicit custom declaration is honoured regardless.
+      const isCustomDeclared = customRows.has(modelId);
+      const isDeprecated = [staticRows.get(modelId), liveRows.get(modelId)]
+        .some((byKind) => byKind && [...byKind.values()].some((row) => row?.deprecated === true));
+      if (isDeprecated && !isCustomDeclared) continue;
+
       const model = {
         id: `${outputAlias}/${modelId}`,
         object: "model",
