@@ -32,6 +32,7 @@ const PENDING_TIMEOUT_MS = 60 * 1000;
 const RING_CAP = 50;
 const CONN_CACHE_TTL_MS = 30 * 1000;
 const PERIOD_MS = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
+const USAGE_PERIODS = new Set(["today", "24h", "7d", "30d", "60d", "all"]);
 
 // In-memory state shared across Next.js modules
 if (!global._pendingRequests) global._pendingRequests = { byModel: {}, byAccount: {} };
@@ -382,6 +383,7 @@ function loadDaysInRange(adapter, maxDays) {
 }
 
 export async function getUsageStats(period = "all") {
+  if (!USAGE_PERIODS.has(period)) throw new RangeError("Invalid usage period");
   const db = await getAdapter();
 
   const [{ getProviderConnections }, { getApiKeys }, { getProviderNodes }] = await Promise.all([
@@ -482,9 +484,19 @@ export async function getUsageStats(period = "all") {
   }
 
   const useDailySummary = period !== "24h" && period !== "today";
+  const periodDays = { "7d": 7, "30d": 30, "60d": 60 };
+  let dateStart = null;
+  if (period === "today") {
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    dateStart = startOfDay.toISOString();
+  } else if (period === "24h") {
+    dateStart = new Date(now.getTime() - PERIOD_MS["24h"]).toISOString();
+  } else if (periodDays[period]) {
+    dateStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - periodDays[period] + 1).toISOString();
+  }
 
   if (useDailySummary) {
-    const periodDays = { "7d": 7, "30d": 30, "60d": 60 };
     const maxDays = periodDays[period] || null;
     const dayRows = loadDaysInRange(db, maxDays);
 
@@ -631,17 +643,9 @@ export async function getUsageStats(period = "all") {
     }
   } else {
     // 24h / today: live history
-    let cutoff;
-    if (period === "today") {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      cutoff = startOfDay.toISOString();
-    } else {
-      cutoff = new Date(Date.now() - PERIOD_MS["24h"]).toISOString();
-    }
     const filtered = db.all(
       `SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, tokens FROM usageHistory WHERE timestamp >= ?`,
-      [cutoff]
+      [dateStart]
     );
 
     for (const r of filtered) {
@@ -727,13 +731,15 @@ export async function getUsageStats(period = "all") {
   // Latency aggregates over rows that actually recorded a measurement.
   // percentiles via SQL so the whole window is considered, not a sample.
   try {
-    const where = period === "all" ? "" : `WHERE timestamp >= datetime('now', '${period === "today" ? "-1 day" : `-${period.replace("d", "")} days`}')`;
+    const where = dateStart ? "WHERE timestamp >= ? AND timestamp <= ?" : "WHERE timestamp <= ?";
+    const latencyParams = dateStart ? [dateStart, now.toISOString()] : [now.toISOString()];
     const row = db.get(
       `SELECT COUNT(*) AS n,
               MIN(ttftMs) AS min,
               MAX(ttftMs) AS max,
               AVG(ttftMs) AS mean
-         FROM usageHistory ${where} ${where ? "AND" : "WHERE"} ttftMs IS NOT NULL`
+         FROM usageHistory ${where} AND ttftMs IS NOT NULL`,
+      latencyParams
     );
     if (row && row.n > 0) {
       // Median and p90 by offset. Fine for the row counts this gateway produces;
@@ -741,8 +747,8 @@ export async function getUsageStats(period = "all") {
       const pick = (fraction) => {
         const off = Math.min(row.n - 1, Math.floor(row.n * fraction));
         const r = db.get(
-          `SELECT ttftMs FROM usageHistory ${where} ${where ? "AND" : "WHERE"} ttftMs IS NOT NULL ORDER BY ttftMs ASC LIMIT 1 OFFSET ?`,
-          [off]
+          `SELECT ttftMs FROM usageHistory ${where} AND ttftMs IS NOT NULL ORDER BY ttftMs ASC LIMIT 1 OFFSET ?`,
+          [...latencyParams, off]
         );
         return r?.ttftMs ?? null;
       };
