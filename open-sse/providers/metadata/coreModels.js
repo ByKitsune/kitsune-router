@@ -1179,6 +1179,7 @@ const gemini = {
       "reasoning": 0.4
     },
     "sources": [
+      "https://ai.google.dev/gemini-api/docs/deprecations?hl=en",
       "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite",
       "https://ai.google.dev/gemini-api/docs/pricing"
     ],
@@ -1207,9 +1208,11 @@ const gemini = {
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
       "unverifiedCapabilityFields": [],
-      "routeAvailable": false,
-      "routeUnavailableReason": "retired-by-google",
-      "note": "Retired upstream. The API answers 404 \"This model models/gemini-2.5-flash-lite is no longer available to new users\", reproduced 2/2 and confirmed by 30 days of production logs. The reference figures above are kept for provenance; the id is no longer advertised."
+      "lifecycleStatus": "active-restricted",
+      "accountEligibility": "prior-use-required",
+      "availabilityScope": "google-public-api-project",
+      "shutdownDate": null,
+      "note": "Google limits these models to users with prior active use and explicitly says they are not deprecated. A project-specific 404 for new users does not establish global retirement. See the official deprecations page."
     }
   },
   "gemini-2.5-pro": {
@@ -1241,6 +1244,7 @@ const gemini = {
       }
     },
     "sources": [
+      "https://ai.google.dev/gemini-api/docs/deprecations?hl=en",
       "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro",
       "https://ai.google.dev/gemini-api/docs/pricing"
     ],
@@ -1263,9 +1267,11 @@ const gemini = {
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
       "unverifiedCapabilityFields": [],
-      "routeAvailable": false,
-      "routeUnavailableReason": "retired-by-google",
-      "note": "Retired upstream. The API answers 404 \"This model models/gemini-2.5-pro is no longer available\" on BOTH the chat and transcription routes, reproduced 5/5. The reference figures above are kept for provenance; the id is no longer advertised."
+      "lifecycleStatus": "active-restricted",
+      "accountEligibility": "prior-use-required",
+      "availabilityScope": "google-public-api-project",
+      "shutdownDate": null,
+      "note": "Google limits these models to users with prior active use and explicitly says they are not deprecated. A project-specific 404 for new users does not establish global retirement. See the official deprecations page."
     }
   },
   "gemini-3.1-flash-lite": {
@@ -1916,6 +1922,13 @@ const reference = (entry, note) => {
   result.limits.scope = "api-reference-for-client-route";
   result.limits.routeContextWindow = null;
   result.limits.routeMaxOutput = null;
+  // API project eligibility does not establish entitlement on an OAuth bridge.
+  if (result.limits.accountEligibility) {
+    result.limits.apiAccountEligibility = result.limits.accountEligibility;
+    result.limits.apiAvailabilityScope = result.limits.availabilityScope;
+    delete result.limits.accountEligibility;
+    delete result.limits.availabilityScope;
+  }
   return result;
 };
 const codex = {};

@@ -188,12 +188,14 @@ describe("catalog live and declared metadata", () => {
     for (const kind of ["llm", "stt"]) expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-flash")).toBe(true);
   });
 
-  it("does not advertise a retired Gemini model in either kind", async () => {
-    // gemini-2.5-pro answers 404 "is no longer available" on both routes, so
-    // neither the chat nor the STT list may offer it.
-    connect("gemini", { enabledModels: ["gemini-2.5-pro"] });
-    for (const kind of ["llm", "stt"]) {
-      expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-pro"), kind).toBe(false);
+  it.each(["gemini-2.5-pro", "gemini-2.5-flash-lite"])("preserves %s for eligible existing accounts across kinds", async model => {
+    // Official Google docs distinguish prior-use eligibility from shutdown.
+    connect("gemini", { enabledModels: [model] });
+    for (const kind of ["llm", "stt", "imageToText"]) {
+      const row = (await buildModelsList([kind])).find(m => m.id === `gemini/${model}`);
+      expect(row, kind).toBeDefined();
+      expect(row.metadata?.limits?.routeAvailable).not.toBe(false);
+      expect(row.metadata?.limits?.accountEligibility).toBe("prior-use-required");
     }
   });
   it.each([[[]], [[{ provider: "openai" }]]])("lists noAuth independently of unrelated connections (%j)", async connections => {
