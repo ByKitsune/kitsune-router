@@ -97,6 +97,21 @@ export async function GET(request) {
       }
     }
 
+    // Latency. This is the number P04 asked for and that previously existed only
+    // as a journald line. Emitted only when samples exist, so a Prometheus scrape
+    // never records a misleading 0 for "no measurements yet".
+    if (stats.latency?.samples > 0) {
+      const l = stats.latency;
+      lines.push("# HELP zenrouter_ttft_ms Time to first token, over recorded samples");
+      lines.push("# TYPE zenrouter_ttft_ms gauge");
+      if (Number.isFinite(l.ttftMedianMs)) lines.push(`zenrouter_ttft_ms{quantile="0.5"} ${l.ttftMedianMs}`);
+      if (Number.isFinite(l.ttftP90Ms)) lines.push(`zenrouter_ttft_ms{quantile="0.9"} ${l.ttftP90Ms}`);
+      if (Number.isFinite(l.ttftMinMs)) lines.push(`zenrouter_ttft_ms{quantile="0"} ${l.ttftMinMs}`);
+      if (Number.isFinite(l.ttftMaxMs)) lines.push(`zenrouter_ttft_ms{quantile="1"} ${l.ttftMaxMs}`);
+      if (Number.isFinite(l.ttftMeanMs)) lines.push(`zenrouter_ttft_ms{quantile="mean"} ${l.ttftMeanMs}`);
+      lines.push(`zenrouter_ttft_samples_total ${l.samples}`);
+    }
+
     // In-flight work: lets an operator see a stuck queue without the dashboard.
     if (Array.isArray(stats.activeRequests)) {
       const inflight = stats.activeRequests.reduce((n, r) => n + (Number(r?.count) || 0), 0);

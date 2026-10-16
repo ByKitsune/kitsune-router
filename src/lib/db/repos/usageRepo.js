@@ -307,12 +307,15 @@ export async function saveRequestUsage(entry) {
       }
 
       const result = db.run(
-        `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, ttftMs, totalMs) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           entry.timestamp, entry.provider || null, entry.model || null,
           entry.connectionId || null, entry.apiKey || null, entry.endpoint || null,
           promptTokens, completionTokens, entry.cost || 0, entry.status || "ok",
           stringifyJson(tokens), stringifyJson({}),
+          // NULL when unmeasured — never 0, which would read as "instant".
+          Number.isFinite(entry.latency?.ttft) && entry.latency.ttft > 0 ? Math.round(entry.latency.ttft) : null,
+          Number.isFinite(entry.latency?.total) && entry.latency.total > 0 ? Math.round(entry.latency.total) : null,
         ]
       );
       try {
@@ -721,6 +724,41 @@ export async function getUsageStats(period = "all") {
   }
 
   stats.totalRequests = Object.values(stats.byProvider).reduce((sum, p) => sum + (p.requests || 0), 0);
+  // Latency aggregates over rows that actually recorded a measurement.
+  // percentiles via SQL so the whole window is considered, not a sample.
+  try {
+    const where = period === "all" ? "" : `WHERE timestamp >= datetime('now', '${period === "today" ? "-1 day" : `-${period.replace("d", "")} days`}')`;
+    const row = db.get(
+      `SELECT COUNT(*) AS n,
+              MIN(ttftMs) AS min,
+              MAX(ttftMs) AS max,
+              AVG(ttftMs) AS mean
+         FROM usageHistory ${where} ${where ? "AND" : "WHERE"} ttftMs IS NOT NULL`
+    );
+    if (row && row.n > 0) {
+      // Median and p90 by offset. Fine for the row counts this gateway produces;
+      // avoids pulling the full window into memory just to sort it.
+      const pick = (fraction) => {
+        const off = Math.min(row.n - 1, Math.floor(row.n * fraction));
+        const r = db.get(
+          `SELECT ttftMs FROM usageHistory ${where} ${where ? "AND" : "WHERE"} ttftMs IS NOT NULL ORDER BY ttftMs ASC LIMIT 1 OFFSET ?`,
+          [off]
+        );
+        return r?.ttftMs ?? null;
+      };
+      stats.latency = {
+        samples: row.n,
+        ttftMinMs: row.min,
+        ttftMeanMs: Math.round(row.mean),
+        ttftMedianMs: pick(0.5),
+        ttftP90Ms: pick(0.9),
+        ttftMaxMs: row.max,
+      };
+    }
+  } catch {
+    // Latency is additive; a failure here must not break the stats call.
+  }
+
   return stats;
 }
 

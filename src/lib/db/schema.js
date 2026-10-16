@@ -121,6 +121,11 @@ export const TABLES = {
       status: "TEXT",
       tokens: "TEXT",
       meta: "TEXT",
+      // Milliseconds. Nullable on purpose: a failed request has no TTFT, and a
+      // pre-existing row predates the column. NULL means "not measured", which is
+      // different from 0 ("measured instantly").
+      ttftMs: "INTEGER",
+      totalMs: "INTEGER",
     },
     indexes: [
       "CREATE INDEX IF NOT EXISTS idx_uh_ts ON usageHistory(timestamp DESC)",
