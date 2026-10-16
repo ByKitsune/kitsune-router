@@ -182,8 +182,19 @@ describe("catalog live and declared metadata", () => {
     expect((await buildModelsList(["stt"])).find(m => m.id === "openai/whisper-1")?.capabilities).toMatchObject({ audioInput: true, vision: true });
   });
   it("retains both intentional Gemini chat and STT kinds in a whitelist", async () => {
+    // Uses gemini-2.5-flash rather than the retired gemini-2.5-pro: same
+    // chat+STT id collision, and verified live with HTTP 200.
+    connect("gemini", { enabledModels: ["gemini-2.5-flash"] });
+    for (const kind of ["llm", "stt"]) expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-flash")).toBe(true);
+  });
+
+  it("does not advertise a retired Gemini model in either kind", async () => {
+    // gemini-2.5-pro answers 404 "is no longer available" on both routes, so
+    // neither the chat nor the STT list may offer it.
     connect("gemini", { enabledModels: ["gemini-2.5-pro"] });
-    for (const kind of ["llm", "stt"]) expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-pro")).toBe(true);
+    for (const kind of ["llm", "stt"]) {
+      expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-pro"), kind).toBe(false);
+    }
   });
   it.each([[[]], [[{ provider: "openai" }]]])("lists noAuth independently of unrelated connections (%j)", async connections => {
     mocks.getProviderConnections.mockResolvedValue(connections);

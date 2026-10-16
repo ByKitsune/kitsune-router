@@ -1259,7 +1259,10 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": []
+      "unverifiedCapabilityFields": [],
+      "routeAvailable": false,
+      "routeUnavailableReason": "retired-by-google",
+      "note": "Retired upstream. The API answers 404 \"This model models/gemini-2.5-pro is no longer available\" on BOTH the chat and transcription routes, reproduced 5/5. The reference figures above are kept for provenance; the id is no longer advertised."
     }
   },
   "gemini-3.1-flash-lite": {
