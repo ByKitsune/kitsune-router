@@ -57,6 +57,7 @@ docs/*
 !docs/CHANGELOG_v0.9.7.md
 !docs/CHANGELOG_v0.9.8.md
 !docs/CHANGELOG_v0.9.9.md
+!docs/CHANGELOG_v0.9.10.md
 !docs/CLIENT-MODEL-RECONCILIATION.md
 !docs/model-catalog-coverage.json
 !docs/REASONING-BUDGETS.md

@@ -5,20 +5,39 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
-### Fixed — landed after the 0.9.9 publication
+## [0.9.10] - 2026-10-16
 
-These changes were made while re-verifying the audit findings against the code, after
-0.9.9 had already been published to npm. npm versions are immutable, so **none of them
-are in the released 0.9.9**; they await the next patch release.
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.10) · [Complete changelog](CHANGELOG.md)
+
+Patch release for changes made while re-verifying the audit findings against the code,
+after 0.9.9 had already been published. npm versions are immutable, so these were in no
+released version until now; 0.9.9 remains a valid release and this supersedes it.
+
+No breaking API change. Two schema columns are added automatically on first boot.
+
+### Fixed
 
 - **Models marked `deprecated` were still advertised** (`src/app/api/v1/models/route.js`): fifteen model-level `deprecated: true` entries exist across clinepass, codebuddy-cn, deepseek and perplexity, each with a written reason ("no longer available on ClinePass", "Standalone Sonar ended September 27, 2026"). The flag was consumed only by the dashboard UI — no filter existed on the API path at all. Reproduced with one active deepseek connection: `/v1/models` returned `deepseek/deepseek-v4-flash` and `deepseek-v4-flash-vision-exp`, both retired compatibility aliases. They are now skipped, while the id stays in the registry so a stored combo resolves into a clear failure instead of a 404. An operator's explicit custom declaration is never filtered, and a **provider-level** `deprecated: true` (which means RISK_NOTICE for claude, codex, antigravity, gemini-cli, github and kiro) is deliberately not treated as a model retirement — filtering those would hide all 19 `cx/` models.
 - **`gemini-2.5-pro` was advertised but retired** (`open-sse/providers/registry/gemini.js`): Google answers 404 *"This model models/gemini-2.5-pro is no longer available to new users"*, reproduced 5/5 on both the chat and transcription routes. Now flagged with a notice naming replacements, and `routeAvailable: false` in metadata with the reference figures kept for provenance.
 - **`gemini-2.5-flash-lite` was also retired**, found by reading 30 days of production logs. Distinguished from quota on purpose: `gemini-3.5-flash-lite` and `gemini-2.5-flash` returned **200**, and `gemini-3.1-pro-preview` returned only **429 (quota)** — it is in fact the model Google's own retirement message recommends. Flagging any of those would have hidden a working model.
+- **Gemini context windows were withheld rather than published** (`open-sse/providers/metadata/coreModels.js`): eleven records declared `unverifiedCapabilityFields: ["contextWindow"]`, which nulled the field — and because `/v1/models` only emits `context_length` when the value is finite, those models reached clients with **no context window at all**. Reproduced against production 0.9.7: **17 of 334 models** had no numeric `context_length`, including `gemini/gemini-2.5-pro` and `gemini/gemini-2.5-flash`. The original reasoning ("Google does not document a combined window") is true but was the wrong call: models.dev's official google entries publish 1,048,576 for every one of these ids, and the routes are served. After the fix, models without a numeric window drop from 17 to 12 — and the remaining ones are either genuinely rejected upstream (`cx/gpt-5.4`, `cx/gpt-5.4-mini`, `cx/gpt-5.3-codex-spark`) or genuinely unverified (`grok-build`, the morph routes).
 - **Two silent-data-loss defects in translation fixed** (`openai-to-cursor.js`, `openai-to-commandcode.js`), both re-verified from the `it.fails` known-bug markers. `openai-to-cursor` overwrote the client's `max_tokens` with a hardcoded 32000 — reproduced: a client asking for 200 received 32000. That constant is now a **floor**, not an override. `openai-to-commandcode` turned malformed tool arguments into `{}` with no signal, so the model received a tool call with no parameters and nothing indicated the loss; the fail-open fallback is kept deliberately (throwing would fail the whole request, and partial JSON is routine from weaker models) but is now logged rather than silent. Both tests flip from `it.fails` to real assertions. The remaining `it.fails` markers were not re-verified and are not claimed fixed.
+
+### Added
 
 - **TTFT and latency are now persisted and queryable** (`src/lib/db/schema.js`, `src/lib/db/repos/usageRepo.js`, `open-sse/handlers/chatCore/requestDetail.js`, `src/app/api/metrics/route.js`): the streaming handler already computed `ttftAt - requestStartTime` and printed it, but never stored it — so P04's questions ("TTFT median? p90?") could only be answered by parsing journald, which is how the audit itself obtained its 5,471 ms median. `usageHistory` gains nullable `ttftMs`/`totalMs` (added to an existing database automatically by the `ALTER TABLE` pass in `migrate.js`, verified on a fresh `DATA_DIR`), written as **NULL rather than 0** when unmeasured so the median is not dragged down by rows that were never timed. `getUsageStats()` reports min/mean/median/p90/max plus a sample count, filtering `ttftMs IS NOT NULL` throughout, and `/api/metrics` exposes them as `zenrouter_ttft_ms{quantile=...}` — emitted only when at least one sample exists, so a scrape never records a misleading 0.
 
-- **Gemini context windows were withheld rather than published** (`open-sse/providers/metadata/coreModels.js`): eleven records declared `unverifiedCapabilityFields: ["contextWindow"]`, which nulled the field — and because `/v1/models` only emits `context_length` when the value is finite, those models reached clients with **no context window at all**. Reproduced against production 0.9.7: **17 of 334 models** had no numeric `context_length`, including `gemini/gemini-2.5-pro` and `gemini/gemini-2.5-flash`. The original reasoning ("Google does not document a combined window") is true but was the wrong call: models.dev's official google entries publish 1,048,576 for every one of these ids, and the routes are served. After the fix, models without a numeric window drop from 17 to 12 — and the remaining ones are either genuinely rejected upstream (`cx/gpt-5.4`, `cx/gpt-5.4-mini`, `cx/gpt-5.3-codex-spark`) or genuinely unverified (`grok-build`, the morph routes).
+### Verification
+
+- Full isolated suite: **1,454 files, 4,594 cases — 4,493 passed, 0 failed**; `npx eslint .` clean with zero warnings.
+- Registry baselines byte-for-byte equal (82 providers, 117 alias tokens, OAuth URLs).
+- Runtime-verified on isolated `DATA_DIR`s: Gemini windows published (17 → 12 models without one), deprecated ids hidden while all 19 `cx/` models remain, both retired Gemini ids hidden while `gemini-2.5-flash` and `gemini-3.5-flash-lite` remain listed, and TTFT aggregates with a NULL row correctly excluded (samples=3, median 210, p90 340).
+
+### Caveats
+
+- **0.9.9 remains valid.** This release is additive; nothing in 0.9.9 was wrong, it simply did not contain these six changes.
+- The remaining `it.fails` known-bug markers in `tests/translator` were **not** re-verified and are not claimed fixed.
+- Catalog work remains metadata: it does not establish account entitlement or live availability.
 
 ## [0.9.9] - 2026-10-15
 
