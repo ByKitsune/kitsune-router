@@ -1113,6 +1113,7 @@ const gemini = {
   "gemini-2.5-flash": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "tools": true,
       "search": true,
@@ -1155,14 +1156,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-2.5-flash-lite": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "pdf": true,
       "tools": true,
@@ -1206,14 +1206,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-2.5-pro": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "audioInput": true,
       "pdf": true,
@@ -1260,14 +1259,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.1-flash-lite": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1314,14 +1312,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.1-pro-preview": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1370,14 +1367,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.5-flash": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1418,14 +1414,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.5-flash-lite": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1466,14 +1461,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.6-flash": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1523,14 +1517,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.7-flash": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1580,14 +1573,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.8-flash": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1637,14 +1629,13 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ]
+      "unverifiedCapabilityFields": []
     }
   },
   "gemini-3.1-pro-preview-customtools": {
     "capabilities": {
       "maxInput": 1048576,
+      "contextWindow": 1048576,
       "maxOutput": 65536,
       "vision": true,
       "videoInput": true,
@@ -1693,9 +1684,7 @@ const gemini = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
-      "unverifiedCapabilityFields": [
-        "contextWindow"
-      ],
+      "unverifiedCapabilityFields": [],
       "variant": "Documented custom-tools-prioritizing API endpoint, not proven Gemini CLI entitlement."
     }
   }

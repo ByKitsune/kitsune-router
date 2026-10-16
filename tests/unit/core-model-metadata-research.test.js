@@ -38,10 +38,15 @@ describe("provider-scoped primary-evidence core metadata shard", () => {
     expect(core.claude?.["claude-opus-5-5"]?.limits.cliCompactionApproxTokens).toBe(967000);
   });
 
-  it("does not conflate Google input budgets with total context or cache storage", () => {
+  it("publishes the verified Google window while keeping input budgets and cache storage distinct", () => {
     const flash = core.gemini?.["gemini-3.5-flash-lite"];
     expect(flash?.capabilities).toMatchObject({ maxInput: 1048576, maxOutput: 65536 });
-    expect(flash?.capabilities).not.toHaveProperty("contextWindow");
+    // models.dev's official google entry reports 1,048,576 for this id, and the
+    // route is served (verified live with HTTP 200). The window is therefore
+    // published rather than withheld — a null removed `context_length` from the
+    // client catalog, which is worse than a slightly conservative number.
+    expect(flash?.capabilities).toMatchObject({ contextWindow: 1048576 });
+    expect(flash?.limits?.unverifiedCapabilityFields).not.toContain("contextWindow");
     expect(flash?.pricing).toMatchObject({ input: 0.3, output: 2.5, reasoning: 2.5, cached: 0.03 });
     expect(flash?.pricing).not.toHaveProperty("cache_creation");
     expect(flash?.billing.cacheStorage).toEqual({ currency: "USD", unit: "1M token-hours", price: 1 });

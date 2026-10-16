@@ -45,11 +45,15 @@ describe("researched factual metadata reaches the real resolvers", () => {
     const base = getCapabilitiesForModel("openai", "gpt-6.1-sol");
     expect(withDeclaredCapabilities(base, { maxInput: 100000 }).maxInput).toBe(100000);
   });
-  it("does not present undocumented output or combined-context maxima as facts", () => {
-    // Still unknown, so still unset.
+  it("publishes documented maxima and leaves genuinely unknown ones unset", () => {
+    // Still unknown, so still unset. grok-4.7 has no published output ceiling.
     expect(getCapabilitiesForModel("xai", "grok-4.7").maxOutput).toBeNull();
+    // Now documented: models.dev's official google entry reports 1,048,576 for
+    // this id, and the route is served (verified live with HTTP 200). Withholding
+    // it removed \`context_length\` from the client catalog entirely, which is worse
+    // than publishing the documented figure — so it is published.
     expect(getCapabilitiesForModel("gemini", "gemini-3.5-flash-lite")).toMatchObject({
-      contextWindow: null, maxInput: 1048576, maxOutput: 65536,
+      contextWindow: 1048576, maxInput: 1048576, maxOutput: 65536,
     });
     // Now documented: models.dev's official OpenAI entry, the live gateway and
     // 9router all state 128,000 output for this model, so it is published
