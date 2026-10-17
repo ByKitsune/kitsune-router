@@ -6,7 +6,7 @@ on:
       tag:
         description: "Stable release tag (must match all package versions)"
         required: true
-        default: "v0.9.9"
+        default: "v0.9.11"
 
 permissions:
   contents: write

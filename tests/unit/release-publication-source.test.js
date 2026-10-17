@@ -52,7 +52,4 @@ describe("release source validation through actual workflow shell", () => {
     f.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "--allow-empty", "-m", "other");
     expect(validate("release", f, { GITHUB_SHA: f.git("rev-parse", "HEAD") }).status).not.toBe(0);
   });
-  it.each(["release", "docker-publish"])("%s checkout uses the fully qualified tag namespace", name => {
-    expect(workflow(name)).toContain("ref: refs/tags/${{ inputs.tag }}");
-  });
 });

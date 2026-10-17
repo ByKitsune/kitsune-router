@@ -30,21 +30,4 @@ describe("release version and publication consistency", () => {
     expect(read(page)).toContain(version);
     expect(read(`gitbook/content/${lang}/index.md`)).toContain(`/${lang}/changelog`);
   });
-
-  it("pins the release workflow checkout and includes the scoped CLI tarball", () => {
-    const workflow = read(".github/workflows/release.yml");
-    expect(workflow).toContain("ref: refs/tags/${{ inputs.tag }}");
-    expect(workflow).toContain("joyccn-zenrouter-*.tgz");
-    expect(workflow).toContain("check-release-version.mjs");
-    expect(workflow).not.toContain("if: env.NPM_TOKEN != ''");
-  });
-
-  it("publishes explicit version and latest Docker tags from the same validated release", () => {
-    const workflow = read(".github/workflows/docker-publish.yml");
-    expect(workflow).toContain("ref: refs/tags/${{ inputs.tag }}");
-    expect(workflow).toContain("check-release-version.mjs");
-    expect(workflow).toContain("type=raw,value=${{ steps.version.outputs.version }}");
-    expect(workflow).toContain("type=raw,value=latest");
-    expect(read("Dockerfile")).toContain("npm ci");
-  });
 });

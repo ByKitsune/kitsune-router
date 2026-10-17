@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.11: 2026-10-17
+
+This release repairs multi-turn vision, reasoning controls, native failures and cache-aware cost estimates in the customized ZenRouter gateway.
+
+- Keep recognized images typed through tool results, compacted history, compression and cross-provider conversion instead of serializing base64 into text.
+- Preserve thinking settings, tool IDs, signatures and SSE/JSON failures. Unsupported native controls fail explicitly; invalid requests do not cool down healthy accounts.
+- Reconcile exact provider/model metadata against the October 17 models.dev snapshot. Keep context, input and output independent; preserve unknown charges and explicit free zeroes.
+- Save only edited pricing overrides. Gemini 2.5 Pro and Flash-Lite remain listed for eligible existing projects: the older global-retirement conclusion was incorrect.
+
+**Security warning:** [node-forge GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) remains unresolved in the app and CLI; GitHub lists no patched release. Protocol tests do not establish live account entitlement or invoices.
+
+[Release notes](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/releases/RELEASE_NOTES_v0.9.11.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/docs/CHANGELOG_v0.9.11.md)
+
 ## 0.9.10 — 2026-10-16
 
 Patch release for changes made while re-verifying the audit findings against the code, after 0.9.9 was published. npm versions are immutable, so these were in no released version until now. No breaking API change; two database columns are added automatically on first boot.

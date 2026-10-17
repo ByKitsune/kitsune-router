@@ -1,5 +1,18 @@
 # Registro de cambios
 
+## 0.9.11: 2026-10-17
+
+Esta versión corrige la visión multiturno, los controles de razonamiento, los fallos nativos y las estimaciones de coste del ZenRouter personalizado.
+
+- Conserva las imágenes tipadas en resultados de herramientas, historial compactado, compresión y conversiones entre proveedores, sin convertir base64 en texto.
+- Preserva thinking, identificadores de herramientas, firmas y errores SSE/JSON. Los controles nativos incompatibles fallan explícitamente; una petición inválida no bloquea cuentas sanas.
+- Contrasta productos e identificadores completos con models.dev del 17 de octubre. Separa contexto, entrada y salida; distingue costes desconocidos de tarifas gratuitas.
+- Guarda solo las tarifas editadas. Gemini 2.5 Pro y Flash-Lite siguen visibles para proyectos previamente elegibles: la conclusión anterior de retirada global era incorrecta.
+
+**Aviso de seguridad:** [node-forge GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) sigue sin resolverse en la aplicación y la CLI; GitHub no indica una versión corregida. Las pruebas de protocolo no verifican permisos de cuentas reales ni facturas.
+
+[Notas de versión](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/releases/RELEASE_NOTES_v0.9.11.md) · [Detalles técnicos](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/docs/CHANGELOG_v0.9.11.md)
+
 ## 0.9.10 — 2026-10-16
 
 Versión de parche para los cambios realizados al reverificar los hallazgos de la auditoría contra el código, después de publicar 0.9.9. Las versiones de npm son inmutables, así que no estaban en ninguna versión publicada. Sin cambios de API incompatibles; dos columnas de base de datos se añaden automáticamente en el primer arranque.

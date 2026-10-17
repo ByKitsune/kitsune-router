@@ -1,5 +1,18 @@
 # Nhật ký thay đổi
 
+## 0.9.11: 2026-10-17
+
+Bản này sửa xử lý ảnh nhiều lượt, tham số suy luận, lỗi giao thức gốc và ước tính chi phí trong ZenRouter đã tùy chỉnh.
+
+- Giữ ảnh đúng kiểu qua kết quả công cụ, lịch sử đã rút gọn, nén văn bản và chuyển đổi nhà cung cấp; không biến base64 thành văn bản.
+- Giữ tham số thinking, ID công cụ, chữ ký và lỗi SSE/JSON. Tham số gốc không hỗ trợ trả lỗi rõ ràng; yêu cầu sai không khóa tài khoản đang hoạt động tốt.
+- Đối chiếu từng sản phẩm nhà cung cấp và ID mô hình với dữ liệu models.dev ngày 17 tháng 10. Tách riêng giới hạn ngữ cảnh, đầu vào và đầu ra; phân biệt chi phí chưa biết với mức giá miễn phí bằng không.
+- Chỉ lưu giá đã chỉnh sửa. Gemini 2.5 Pro và Flash-Lite vẫn được liệt kê cho dự án đã đủ điều kiện; kết luận ngừng toàn cầu trước đây là sai.
+
+**Cảnh báo bảo mật:** [node-forge GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) vẫn chưa được xử lý trong ứng dụng và CLI; GitHub chưa liệt kê bản vá. Kiểm thử giao thức không xác minh quyền dùng tài khoản thật hoặc hóa đơn.
+
+[Ghi chú phát hành](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/releases/RELEASE_NOTES_v0.9.11.md) · [Chi tiết kỹ thuật](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/docs/CHANGELOG_v0.9.11.md)
+
 ## 0.9.10 — 2026-10-16
 
 Bản vá cho các thay đổi được thực hiện khi xác minh lại các phát hiện kiểm toán với mã nguồn, sau khi 0.9.9 được phát hành. Phiên bản npm là bất biến, nên chúng chưa từng nằm trong bản phát hành nào. Không có thay đổi API phá vỡ tương thích; hai cột cơ sở dữ liệu được thêm tự động ở lần khởi động đầu tiên.

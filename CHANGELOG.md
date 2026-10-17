@@ -5,7 +5,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
-### Corrections After 0.9.10 (Not Yet Published)
+## [0.9.11] - 2026-10-17
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.11) · [Technical changelog](docs/CHANGELOG_v0.9.11.md) · [Release notes](releases/RELEASE_NOTES_v0.9.11.md)
+
+### Corrections after 0.9.10
 
 - Fix persisted latency windows: `24h` previously produced an invalid SQLite date modifier and no TTFT metrics; calendar periods now use matching parameterized ISO boundaries, with unknown/future samples excluded. Add real SQLite tests through the authenticated metrics route.
 - Increment the schema-backup version before additive latency-column upgrades. A version-one database is backed up before ALTER operations, its settings/usage survive, and reopening does not repeat the backup.
@@ -31,8 +35,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 - Use the same canonical usage extractor for native JSON and SSE, including cache-inclusive input and separate cache-write TTLs. Save only edited pricing overrides; inherited reasoning rates and tiers must not become explicit overrides after an unrelated edit.
 - Harden remote-image downloads against global proxy overrides of pinned DNS, including IPv6 unspecified/mapped-private targets. One deadline covers DNS and HTTP; cancellation stops remaining downloads and upstream inference. Native Cursor egress fails closed for unsupported proxy/relay policy, and cancellation settles pre-header waits without retaining caller listeners.
 - Keep structured HTTP/SSE diagnostics and native failure usage while neutralizing routing details and excluding upstream debug payloads from public errors. Native Responses failures after partial output remain terminal errors, not successful assistant text; flat error events retain their framing and sequence. Native invalid-request failures retain HTTP 400 without cooling down healthy accounts.
+- Exclude the generated CLI build HOME from copied standalone artifacts. Build-only machine IDs, SQLite databases and telemetry settings must not ship in the npm package; a real filesystem-copy regression protects this boundary.
 
-These changes remain unreleased. They do not overwrite versioned 0.9.10 artifacts or establish live-provider availability, account entitlement or upstream invoices.
+Version 0.9.11 includes these corrections without rewriting immutable 0.9.10 artifacts. Catalog and protocol verification do not establish live-provider availability, account entitlement or upstream invoices.
+
+### Security and verification
+
+- Local release verification: 5,240 Vitest cases passed across 559 files, zero failed cases or suites, with 100 live/opt-in cases skipped. Four text-only workflow assertions were removed; executable tag/ref/SHA guard tests and the build-state packaging regression remain. Documentation tests/build, HTTP/2 compatibility, lint, CLI pack and provider/alias/OAuth baselines passed.
+- Isolated runtime checks covered 24 multimodal JSON/SSE combinations, 10 structured error paths, native Google client keys, cache-write TTL persistence and override-only pricing edits.
+- The root and CLI lockfiles retain the high-severity node-forge advisory [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv). GitHub lists no patched release. This version is not vulnerability-free.
 
 ## [0.9.10] - 2026-10-16
 

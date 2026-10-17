@@ -1,5 +1,18 @@
 # 更新日志
 
+## 0.9.11: 2026-10-17
+
+本版修复定制 ZenRouter 网关的多轮视觉、推理参数、原生协议错误和缓存计费估算。
+
+- 图片在工具结果、压缩后的历史、文本压缩及跨供应商转换中保持多模态类型，不再把 base64 序列化成普通文本。
+- 保留 thinking 配置、工具 ID、签名及 SSE/JSON 错误。不支持的原生参数明确报错；无效请求不会让健康账户进入冷却。
+- 按供应商产品及完整模型 ID 对照 10 月 17 日的 models.dev 数据，独立处理上下文、输入和输出上限，区分未知费用与免费零值。
+- 价格编辑器只保存实际修改的覆盖项。Gemini 2.5 Pro 和 Flash-Lite 仍对已符合条件的项目保留展示；此前的全球退役结论不正确。
+
+**安全警告：**应用和 CLI 仍包含未解决的 [node-forge GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv)，GitHub 尚未列出修复版本。协议测试不证明真实账户权限或实际账单。
+
+[发布说明](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/releases/RELEASE_NOTES_v0.9.11.md) · [技术变更](https://github.com/ZenRouter/ZenRouter/blob/v0.9.11/docs/CHANGELOG_v0.9.11.md)
+
 ## 0.9.10 — 2026-10-16
 
 本补丁版包含 0.9.9 发布后、对审计发现进行代码复核时所做的更改。npm 版本不可变，因此这些更改此前不在任何已发布版本中。无破坏性 API 变更；首次启动时会自动添加两个数据库列。

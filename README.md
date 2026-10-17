@@ -26,24 +26,24 @@ Designed for developers, agentic frameworks, and multi-account setups, ZenRouter
 
 ---
 
-## Current release: 0.9.10
+## Current release: 0.9.11
 
-Dated **2026-10-16**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.10) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.10.md) · [Release notes](releases/RELEASE_NOTES_v0.9.10.md).
+Dated **2026-10-17**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.11) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.11.md) · [Release notes](releases/RELEASE_NOTES_v0.9.11.md).
 
-This release reconciles provider-scoped catalogs, reasoning caps/usage, grounded search and dependencies. Catalog metadata does not establish account entitlement or live upstream availability; unresolved dependency advisories remain.
+This release fixes multi-turn vision, reasoning translation, native failure handling, model metadata and cache-aware cost estimates. Catalog metadata does not prove account entitlement or live availability. See the [security limits](releases/RELEASE_NOTES_v0.9.11.md#security-and-verification-limits) for the unresolved node-forge advisory.
 
 ## 🚀 Quick Start
 
-Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.10 and apply after the package/image is published; preparing release documentation does not publish it.
+Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.11 and apply after the package/image is published; preparing release documentation does not publish it.
 
 ### 1. Run with NPX (Zero-Install)
 ```bash
-npx @joyccn/zenrouter@0.9.10
+npx @joyccn/zenrouter@0.9.11
 ```
 
 ### 2. Global NPM Install
 ```bash
-npm install -g @joyccn/zenrouter@0.9.10
+npm install -g @joyccn/zenrouter@0.9.11
 zenrouter
 ```
 
@@ -56,14 +56,14 @@ docker run -d \
   -p 20128:20128 \
   -v zenrouter-data:/app/data \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.10
+  joyccn/zenrouter:0.9.11
 ```
 
 Using `docker-compose.yml`:
 ```yaml
 services:
   zenrouter:
-    image: joyccn/zenrouter:0.9.10
+    image: joyccn/zenrouter:0.9.11
     platform: linux/amd64
     container_name: zenrouter
     restart: unless-stopped
