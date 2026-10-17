@@ -17,6 +17,7 @@ const EXCLUDE_PATTERNS = [
   "@img",           // Sharp image processing (not needed with unoptimized images)
   "sharp",          // Sharp core lib (not needed with unoptimized images)
   "detect-libc",    // Sharp dependency
+  path.basename(buildHomeDir), // Generated build HOME can contain identity, database, and telemetry state
   ".env",           // Environment files
   ".env.local",
   ".env.*.local",

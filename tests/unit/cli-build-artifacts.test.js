@@ -51,6 +51,25 @@ afterEach(() => {
 });
 
 describe("CLI build server artifacts", () => {
+  it("excludes traced build HOME state while retaining executable server artifacts", () => {
+    const root = createTempDir();
+    const appDir = path.join(root, "zenrouter");
+    const buildDistDir = path.join(appDir, ".next-cli-build");
+    const standaloneDir = path.join(buildDistDir, "standalone", "zenrouter");
+    const cliAppDir = path.join(root, "cli-app");
+    writeFixture(standaloneDir, "server.js", "standalone server");
+    writeFixture(standaloneDir, ".next-cli-build/server/app/api/v1/messages/route.js", "messages runtime");
+    writeFixture(standaloneDir, "cli/.build-home/.zenrouter/machine-id", "build identity");
+    writeFixture(standaloneDir, "cli/.build-home/.zenrouter/db/data.sqlite", "build database");
+    writeFixture(standaloneDir, "cli/.build-home/.config/nextjs-nodejs/config.json", "build settings");
+
+    copyStandaloneBuild(appDir, buildDistDir, cliAppDir);
+
+    assert.equal(fs.existsSync(path.join(cliAppDir, "cli/.build-home")), false);
+    assert.equal(fs.readFileSync(path.join(cliAppDir, "server.js"), "utf8"), "standalone server");
+    assert.equal(fs.readFileSync(path.join(cliAppDir, ".next-cli-build/server/app/api/v1/messages/route.js"), "utf8"), "messages runtime");
+  });
+
   for (const { name, standalonePath } of [
     {
       name: "legacy nested app",
