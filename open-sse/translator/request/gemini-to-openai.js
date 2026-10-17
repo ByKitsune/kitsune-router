@@ -1,12 +1,13 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { adjustMaxTokens, requiresMaxCompletionTokens } from "../formats/maxTokens.js";
-import { encodeDataUri } from "../concerns/image.js";
-import { collapseTextParts } from "../concerns/message.js";
+import { normalizeMediaPart } from "../concerns/multimodal.js";
+import { convertGeminiFunctionResponseContent, copyGeminiRequestControls, geminiSchemaToJSONSchema, collapseGeminiParts } from "../formats/gemini.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
 
 // Convert Gemini request to OpenAI format
 export function geminiToOpenAIRequest(model, body, stream) {
+  body = body.request || body;
   const result = {
     model: model,
     messages: [],
@@ -28,6 +29,7 @@ export function geminiToOpenAIRequest(model, body, stream) {
       result.top_p = config.topP;
     }
   }
+  copyGeminiRequestControls(result, body);
 
   // System instruction
   if (body.systemInstruction) {
@@ -45,7 +47,7 @@ export function geminiToOpenAIRequest(model, body, stream) {
     for (const content of body.contents) {
       const converted = convertGeminiContent(content);
       if (converted) {
-        result.messages.push(converted);
+        result.messages.push(...(Array.isArray(converted) ? converted : [converted]));
       }
     }
   }
@@ -61,7 +63,7 @@ export function geminiToOpenAIRequest(model, body, stream) {
             function: {
               name: func.name,
               description: func.description || "",
-              parameters: func.parameters || { type: "object", properties: {} }
+              parameters: func.parametersJsonSchema ?? geminiSchemaToJSONSchema(func.parameters) ?? { type: "object", properties: {} }
             }
           });
         }
@@ -82,6 +84,7 @@ function convertGeminiContent(content) {
 
   const parts = [];
   const toolCalls = [];
+  const toolResults = [];
   const reasoningChunks = [];
 
   for (const part of content.parts) {
@@ -89,17 +92,16 @@ function convertGeminiContent(content) {
       if (part.thought === true) {
         if (role === ROLE.ASSISTANT && typeof part.text === "string") reasoningChunks.push(part.text);
       } else {
-        parts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
+        const signature = part.thoughtSignature ?? part.thought_signature;
+        parts.push({ type: OPENAI_BLOCK.TEXT, text: part.text,
+          ...(typeof signature === "string" ? { extra_content: { google: { thought_signature: signature } } } : {}) });
       }
     }
 
-    if (part.inlineData) {
-      parts.push({
-        type: OPENAI_BLOCK.IMAGE_URL,
-        image_url: {
-          url: encodeDataUri(part.inlineData.mimeType, part.inlineData.data)
-        }
-      });
+    const media = normalizeMediaPart(part);
+    if (media) {
+      const signature = part.thoughtSignature ?? part.thought_signature;
+      parts.push(typeof signature === "string" ? { ...media, extra_content: { google: { thought_signature: signature } } } : media);
     }
 
     if (part.functionCall) {
@@ -116,11 +118,12 @@ function convertGeminiContent(content) {
     }
 
     if (part.functionResponse) {
-      return {
+      toolResults.push({
         role: ROLE.TOOL,
         tool_call_id: part.functionResponse.id || `call_${part.functionResponse.name}`,
-        content: JSON.stringify(part.functionResponse.response?.result || part.functionResponse.response || {})
-      };
+        content: convertGeminiFunctionResponseContent(part.functionResponse),
+        ...(Object.hasOwn(part.functionResponse.response || {}, "error") ? { is_error: part.functionResponse.response.error != null && part.functionResponse.response.error !== false } : {})
+      });
     }
   }
   const reasoningContent = reasoningChunks.join("");
@@ -128,23 +131,23 @@ function convertGeminiContent(content) {
   if (toolCalls.length > 0) {
     const result = { role: ROLE.ASSISTANT };
     if (parts.length > 0) {
-      result.content = parts.length === 1 ? parts[0].text : parts;
+      result.content = collapseGeminiParts(parts);
     }
     result.tool_calls = toolCalls;
     if (reasoningContent) result.reasoning_content = reasoningContent;
-    return result;
+    return toolResults.length ? [...toolResults, result] : result;
   }
 
   if (parts.length > 0 || reasoningContent) {
     const result = {
       role,
-      content: parts.length > 0 ? collapseTextParts(parts) : ""
+      content: parts.length > 0 ? collapseGeminiParts(parts) : ""
     };
     if (reasoningContent) result.reasoning_content = reasoningContent;
-    return result;
+    return toolResults.length ? [...toolResults, result] : result;
   }
 
-  return null;
+  return toolResults.length ? toolResults : null;
 }
 
 // Extract text from Gemini content

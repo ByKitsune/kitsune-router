@@ -128,4 +128,33 @@ describe("reasoning caps and usage over real loopback HTTP", () => {
     expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
     expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
   });
+  it("returns unwrapped native Gemini reasoning SSE through a Responses provider", async () => {
+    fixture.sse = true;
+    const terminal = {
+      ...responseReply,
+      output: [{ id: "rs_native", type: "reasoning", summary: [{ type: "summary_text", text: "Thought." }] }, ...responseReply.output],
+    };
+    fixture.reply = [
+      { type: "response.created", response: { id: terminal.id, status: "in_progress" } },
+      { type: "response.reasoning_summary_text.delta", item_id: "rs_native", summary_index: 0, delta: "Thought." },
+      { type: "response.output_text.delta", item_id: "msg_native", content_index: 0, delta: "answer" },
+      { type: "response.completed", response: terminal },
+    ].map(event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join("");
+    const result = await dispatch("codex", "gpt-5.6-sol", "gemini", {
+      contents: [{ role: "user", parts: [{ text: "Explain the result." }] }],
+      generationConfig: { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 4096, includeThoughts: true } },
+      stream: true,
+    });
+    expect(result.success).toBe(true);
+    const frames = (await result.response.text()).split("\n")
+      .filter(line => line.startsWith("data:") && line.slice(5).trim() !== "[DONE]")
+      .map(line => JSON.parse(line.slice(5).trim()));
+    expect(frames.some(frame => frame.response !== undefined)).toBe(false);
+    const parts = frames.flatMap(frame => frame.candidates?.[0]?.content?.parts || []);
+    expect(parts.filter(part => part.thought === true).map(part => part.text || "").join("")).toBe("Thought.");
+    expect(parts.filter(part => part.thought !== true).map(part => part.text || "").join("")).toBe("answer");
+    expect(frames.filter(frame => frame.usageMetadata).at(-1).usageMetadata).toEqual({
+      promptTokenCount: 12, candidatesTokenCount: 3, thoughtsTokenCount: 13, totalTokenCount: 28,
+    });
+  });
 });

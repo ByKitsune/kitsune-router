@@ -10,22 +10,16 @@ import baiduRegistry from "../../open-sse/providers/registry/baidu.js";
 import tencentRegistry from "../../open-sse/providers/registry/tencent.js";
 
 describe("Qwen registries", () => {
-  it("retains Coding Plan's exact supported list and labels unsupported compatibility IDs", () => {
+  it("retains Coding Plan's current exact supported list without obsolete defaults", () => {
     const supported = [
       "qwen3.7-plus", "qwen3.6-plus", "kimi-k2.5", "glm-5", "MiniMax-M2.5",
-      "qwen3.5-plus", "qwen3-max-2026-01-23", "qwen3-coder-next", "qwen3-coder-plus", "glm-4.7",
+      "qwen3.5-plus",
     ];
-    const compatibilityOnly = ["kimi-k2.6", "qwen3-coder-flash"];
-    expect(alicodeRegistry.models.map((m) => m.id).sort()).toEqual([...supported, ...compatibilityOnly].sort());
-    for (const id of [...supported, ...compatibilityOnly]) {
+    expect(alicodeRegistry.models.map((m) => m.id).sort()).toEqual(supported.sort());
+    for (const id of supported) {
       const metadata = getReviewedModelMetadata("alicode", id);
       expect(metadata.sources).toContain("https://help.aliyun.com/zh/model-studio/coding-plan");
       expect(metadata.billing).toMatchObject({ kind: "subscription", currency: "CNY", unit: "month" });
-      if (compatibilityOnly.includes(id)) {
-        expect(metadata.billing.note).toContain("Compatibility ID retained; absent from current exhaustive supported-model list.");
-      } else {
-        expect(metadata.billing.note).not.toContain("Compatibility ID retained");
-      }
     }
     expect(getReviewedModelMetadata("alicode", "kimi-k2.5").capabilities.vision).toBe(true);
   });

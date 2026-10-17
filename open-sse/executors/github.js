@@ -12,7 +12,10 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
 import { reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
+import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
 import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
+import { normalizeMediaPart, splitToolResultContent } from "../translator/concerns/multimodal.js";
+import { OPENAI_BLOCK, CLAUDE_BLOCK } from "../translator/schema/index.js";
 import crypto from "crypto";
 
 export class GithubExecutor extends BaseExecutor {
@@ -58,7 +61,7 @@ export class GithubExecutor extends BaseExecutor {
   // Sanitize messages for GitHub Copilot /chat/completions endpoint (gpt/gemini/grok models —
   // claude models never reach this, see execute() below).
   // The endpoint only accepts 'text' and 'image_url' content part types.
-  // Tool-related content (tool_use, tool_result, thinking) must be serialized as text.
+  // Preserve typed images when flattening non-native tool content.
   sanitizeMessagesForChatCompletions(body) {
     if (!body?.messages) return body;
 
@@ -73,7 +76,20 @@ export class GithubExecutor extends BaseExecutor {
       // Array content: filter/convert unsupported part types
       if (Array.isArray(msg.content)) {
         const cleanContent = msg.content
-          .map(part => {
+          .flatMap(part => {
+            const media = normalizeMediaPart(part);
+            if (media?.type === OPENAI_BLOCK.IMAGE_URL) {
+              return { type: OPENAI_BLOCK.IMAGE_URL, image_url: { url: media.image_url.url, ...(media.image_url.detail ? { detail: media.image_url.detail } : {}) } };
+            }
+            if (part.type === CLAUDE_BLOCK.TOOL_RESULT) {
+              const { text, media: attachments } = splitToolResultContent(part.content);
+              return [
+                ...(text ? [{ type: OPENAI_BLOCK.TEXT, text }] : []),
+                ...attachments.filter(item => item.type === OPENAI_BLOCK.IMAGE_URL).map(item => ({
+                  type: OPENAI_BLOCK.IMAGE_URL, image_url: { url: item.image_url.url },
+                })),
+              ];
+            }
             if (part.type === "text") return part;
             if (part.type === "image_url") return part;
             // Serialize tool_use, tool_result, thinking, etc. as text
@@ -103,10 +119,6 @@ export class GithubExecutor extends BaseExecutor {
     if (outputCap !== undefined && (this.requiresMaxCompletionTokens(model) || body.max_completion_tokens !== undefined)) {
       transformed.max_completion_tokens = outputCap;
       delete transformed.max_tokens;
-    }
-    // "none" means no thinking — strip it so models that don't support "none" don't 400
-    if (transformed.reasoning_effort === "none") {
-      delete transformed.reasoning_effort;
     }
     return transformed;
   }
@@ -169,7 +181,9 @@ export class GithubExecutor extends BaseExecutor {
     const url = this.config.responsesUrl;
     const headers = this.buildHeaders(credentials, stream);
 
+    const thinkingIntent = captureThinking(body);
     const transformedBody = openaiToOpenAIResponsesRequest(model, body, stream, credentials);
+    applyThinking(FORMATS.OPENAI_RESPONSES, model, transformedBody, "github", thinkingIntent);
     // The Responses route bypassed the chat-path param filter, letting
     // unsupported temperature through for gpt-5.4+/gpt-6.x (9router #4706).
     stripUnsupportedParams("github", model, transformedBody);
@@ -213,8 +227,9 @@ export class GithubExecutor extends BaseExecutor {
           }
 
           const converted = openaiResponsesToOpenAIResponse(parsed, state);
-          if (converted) {
-            const sseString = formatSSE(converted, "openai");
+          for (const item of Array.isArray(converted) ? converted : [converted]) {
+            if (!item) continue;
+            const sseString = formatSSE(item, "openai");
             controller.enqueue(new TextEncoder().encode(sseString));
           }
         }
@@ -224,8 +239,8 @@ export class GithubExecutor extends BaseExecutor {
           const parsed = parseSSELine(buffer.trim());
           if (parsed && !parsed.done) {
             const converted = openaiResponsesToOpenAIResponse(parsed, state);
-            if (converted) {
-              controller.enqueue(new TextEncoder().encode(formatSSE(converted, "openai")));
+            for (const item of Array.isArray(converted) ? converted : [converted]) {
+              if (item) controller.enqueue(new TextEncoder().encode(formatSSE(item, "openai")));
             }
           }
         }

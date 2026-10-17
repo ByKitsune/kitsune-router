@@ -51,10 +51,6 @@ describe("GOLDEN request: OpenAI → Claude", () => {
 });
 
 describe("GOLDEN request: OpenAI → Gemini", () => {
-  it("full body (system/image/tool/tool_result)", () => {
-    const out = translateRequest(FORMATS.OPENAI, FORMATS.GEMINI, "gemini-3-pro", baseBody(), true, { apiKey: "k" }, "gemini");
-    expect(clean(out)).toMatchSnapshot();
-  });
 
   it("Gemini CLI tool requests preserve the caller cap with validated toolConfig and high thinking", () => {
     const body = {

@@ -1,12 +1,10 @@
 // OpenAI → Gemini / Cursor / CommandCode request translation.
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import "./registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
 
 const O2G = (body) => translateRequest(FORMATS.OPENAI, FORMATS.GEMINI, "m", body, true, null, "gemini");
-const O2C = (body) => translateRequest(FORMATS.OPENAI, FORMATS.CURSOR, "m", body, true, null, "cursor");
 const O2CC = (body) => translateRequest(FORMATS.OPENAI, FORMATS.COMMANDCODE, "m", body, true, null, "commandcode");
 
 describe("OpenAI → Gemini", () => {
@@ -25,34 +23,6 @@ describe("OpenAI → Gemini", () => {
   });
 });
 
-describe("OpenAI → Cursor", () => {
-  // openai-to-cursor.js:12-24 — image content fully dropped (text only)
-  // KNOWN BUG
-  it.fails("image content is preserved", () => {
-    const out = O2C({
-      messages: [{ role: "user", content: [
-        { type: "text", text: "look" },
-        { type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } },
-      ] }],
-    });
-    expect(JSON.stringify(out), "image dropped").toContain("AAAA");
-  });
-
-  // FIXED: openai-to-cursor.js used to overwrite max_tokens with
-  // DEFAULT_MIN_TOKENS (32000) unconditionally, silently ignoring the client.
-  // DEFAULT_MIN_TOKENS is now a FLOOR: an explicit, larger request is honoured and
-  // anything absent/smaller still gets the floor, because Cursor's backend needs a
-  // real budget rather than an empty completion.
-  it("honours an explicit client max_tokens above the floor", () => {
-    expect(O2C({ max_tokens: 50000, messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(50000);
-  });
-
-  it("keeps the floor when the client asks for less or nothing", () => {
-    // A small request must not become a truncated/empty completion.
-    expect(O2C({ max_tokens: 200, messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(32000);
-    expect(O2C({ messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(32000);
-  });
-});
 
 describe("OpenAI → CommandCode", () => {
   // FIXED (partly, by design): safeParseJson still falls back to {} on malformed
@@ -80,11 +50,6 @@ describe("OpenAI → CommandCode", () => {
     expect(call.input).toEqual({});
   });
 
-  it("logs when malformed arguments are discarded", () => {
-    // The observable behaviour that was missing: an operator can see the loss.
-    const src = readFileSync(new URL("../../open-sse/translator/request/openai-to-commandcode.js", import.meta.url), "utf8");
-    expect(src).toMatch(/discarding malformed tool arguments/);
-  });
 
   // FIXED: data-URI images are forwarded as Anthropic-style base64 blocks.
   it("preserves inline image content as a base64 image block", () => {

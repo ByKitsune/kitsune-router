@@ -1,14 +1,41 @@
 import { NextResponse } from "next/server";
 import { getPricing, updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
 import { getDefaultPricing } from "open-sse/providers/pricing.js";
+import { getSavedPricing } from "@/lib/db/repos/pricingRepo.js";
+
+const RATE_FIELDS = new Set(["input", "output", "cached", "reasoning", "cache_creation", "cache_creation_1h"]);
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
+}
+
+function validateTier(tier, model) {
+  if (tier === null) return null;
+  if (!isPlainObject(tier)) return `Invalid pricing tier for ${model}`;
+  for (const [field, value] of Object.entries(tier)) {
+    if (field === "threshold") {
+      if (!Number.isFinite(value) || value <= 0) {
+        return `Invalid tier threshold for ${model}: must be a finite positive number`;
+      }
+    } else if (field === "inclusive") {
+      if (typeof value !== "boolean") return `Invalid tier inclusive flag for ${model}: must be a boolean`;
+    } else if (!RATE_FIELDS.has(field)) {
+      return `Invalid tier pricing field: ${field} for ${model}`;
+    } else if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      return `Invalid tier pricing value for ${field} in ${model}: must be null or a finite non-negative number`;
+    }
+  }
+  return null;
+}
 
 /**
  * GET /api/pricing
- * Get current pricing configuration (merged user + defaults)
+ * Merged rates by default; ?view=overrides returns only explicit saved fields.
  */
-export async function GET() {
+export async function GET(request) {
   try {
-    const pricing = await getPricing();
+    const overrides = request?.url && new URL(request.url).searchParams.get("view") === "overrides";
+    const pricing = overrides ? await getSavedPricing() : await getPricing();
     return NextResponse.json(pricing);
   } catch (error) {
     console.error("Error fetching pricing:", error);
@@ -22,14 +49,14 @@ export async function GET() {
 /**
  * PATCH /api/pricing
  * Update pricing configuration
- * Body: { provider: { model: { input: number, output: number, cached: number, ... } } }
+ * Rate fields accept non-negative numbers or null (unknown); tier:null disables inheritance.
  */
 export async function PATCH(request) {
   try {
     const body = await request.json();
 
     // Validate body structure
-    if (typeof body !== "object" || body === null) {
+    if (!isPlainObject(body)) {
       return NextResponse.json(
         { error: "Invalid pricing data format" },
         { status: 400 }
@@ -38,7 +65,7 @@ export async function PATCH(request) {
 
     // Validate pricing structure
     for (const [provider, models] of Object.entries(body)) {
-      if (typeof models !== "object" || models === null) {
+      if (!isPlainObject(models)) {
         return NextResponse.json(
           { error: `Invalid pricing for provider: ${provider}` },
           { status: 400 }
@@ -46,7 +73,7 @@ export async function PATCH(request) {
       }
 
       for (const [model, pricing] of Object.entries(models)) {
-        if (typeof pricing !== "object" || pricing === null) {
+        if (!isPlainObject(pricing)) {
           return NextResponse.json(
             { error: `Invalid pricing for model: ${provider}/${model}` },
             { status: 400 }
@@ -54,17 +81,21 @@ export async function PATCH(request) {
         }
 
         // Validate pricing fields
-        const validFields = ["input", "output", "cached", "reasoning", "cache_creation"];
+        const tierError = Object.hasOwn(pricing, "tier") ? validateTier(pricing.tier, `${provider}/${model}`) : null;
+        if (tierError) {
+          return NextResponse.json({ error: tierError }, { status: 400 });
+        }
         for (const [key, value] of Object.entries(pricing)) {
-          if (!validFields.includes(key)) {
+          if (key === "tier") continue;
+          if (!RATE_FIELDS.has(key)) {
             return NextResponse.json(
               { error: `Invalid pricing field: ${key} for ${provider}/${model}` },
               { status: 400 }
             );
           }
-          if (typeof value !== "number" || isNaN(value) || value < 0) {
+          if (value !== null && (!Number.isFinite(value) || value < 0)) {
             return NextResponse.json(
-              { error: `Invalid pricing value for ${key} in ${provider}/${model}: must be non-negative number` },
+              { error: `Invalid pricing value for ${key} in ${provider}/${model}: must be null or a finite non-negative number` },
               { status: 400 }
             );
           }

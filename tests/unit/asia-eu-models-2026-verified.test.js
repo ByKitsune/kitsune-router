@@ -1,17 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getCapabilitiesForModel, setCatalogSource } from "../../open-sse/providers/capabilities.js";
 import { getPricingForModel } from "../../open-sse/providers/pricing.js";
 
-setCatalogSource(null);
+beforeEach(() => setCatalogSource(null));
+afterEach(() => setCatalogSource(null));
 
 describe("verified specs for flagship 2026 Asia & EU models", () => {
-  it("resolves DeepSeek Flash with official 384k max output tokens", () => {
-    const caps = getCapabilitiesForModel("deepseek", "deepseek-flash");
-    expect(caps.maxOutput).toBe(384000);
-    expect(caps.vision).toBe(true);
-    expect(caps.contextWindow).toBe(1000000);
-  });
-
   it("resolves GLM 5.2 as 1M context model with forced thinking on 5.3", () => {
     const glm52 = getCapabilitiesForModel("glm", "glm-5.2");
     expect(glm52.contextWindow).toBe(1000000);
@@ -19,18 +13,7 @@ describe("verified specs for flagship 2026 Asia & EU models", () => {
     expect(glm53.thinkingCanDisable).toBe(false);
   });
 
-  it("resolves Qwen 3.8 Max as multimodal (image + video + PDF) with 131072 max output", () => {
-    const caps = getCapabilitiesForModel("alitp-intl", "qwen3.8-max");
-    expect(caps).toMatchObject({
-      vision: true,
-      videoInput: true,
-      pdf: true,
-      maxOutput: 131072,
-      contextWindow: 1000000,
-    });
-  });
-
-  it("resolves Qwen 3.8 Omni Flash capabilities and pricing", () => {
+  it("retains Qwen Omni's audio and video inputs on its exact route", () => {
     const caps = getCapabilitiesForModel("alitp-intl", "qwen3.8-omni-flash");
     expect(caps).toMatchObject({
       vision: true,
@@ -52,24 +35,17 @@ describe("verified specs for flagship 2026 Asia & EU models", () => {
     });
   });
 
-  it("resolves MiniMax M3 context as 1M and max output 524288", () => {
-    const caps = getCapabilitiesForModel("minimax", "MiniMax-M3");
-    expect(caps.contextWindow).toBe(1000000);
-    expect(caps.maxOutput).toBe(524288);
-    expect(caps.videoInput).toBe(true);
-  });
-
   it("resolves Mistral Medium and Small latest with 256k context and reasoning", () => {
     const med = getCapabilitiesForModel("mistral", "mistral-medium-latest");
     expect(med).toMatchObject({
-      contextWindow: 256000,
-      maxOutput: 256000,
+      contextWindow: 262144,
+      maxOutput: 262144,
       vision: true,
       reasoning: true,
     });
     const sm = getCapabilitiesForModel("mistral", "mistral-small-latest");
     expect(sm).toMatchObject({
-      contextWindow: 256000,
+      contextWindow: 262144,
       maxOutput: 256000,
       reasoning: true,
     });

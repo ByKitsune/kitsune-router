@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import "./registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
+import { TOOL_ERROR_PREFIX } from "../../open-sse/translator/schema/index.js";
 import { convertResponsesApiFormat } from "../../open-sse/translator/formats/responsesApi.js";
 import { openaiToClaudeRequest } from "../../open-sse/translator/request/openai-to-claude.js";
 import { openaiResponsesToOpenAIRequest } from "../../open-sse/translator/request/openai-responses.js";
@@ -64,7 +65,7 @@ describe("Responses screenshot tool output (#4517)", () => {
   it("lowers screenshots to valid final Chat tool text and a following user image turn", () => {
     const result = translate(FORMATS.OPENAI, body());
     const toolIndex = result.messages.findIndex((msg) => msg.role === "tool");
-    expect(result.messages[toolIndex]).toEqual({ role: "tool", tool_call_id: "call_screenshot", content: output[0].text });
+    expect(result.messages[toolIndex]).toEqual({ role: "tool", tool_call_id: "call_screenshot", content: `${TOOL_ERROR_PREFIX}${output[0].text}` });
     expect(result.messages[toolIndex + 1]).toEqual({ role: "user", content: [
       { type: "image_url", image_url: { url, detail: "auto" } },
       { type: "image_url", image_url: { url: output[2].image_url.url, detail: "auto" } },
@@ -112,7 +113,10 @@ describe("Responses screenshot tool output (#4517)", () => {
     expect(chatTool.tool_call_id).toBe("call_screenshot");
     expect(chatTool.content).toContain("file_screenshot");
     expect(chatTool.content).toContain("file_document");
-    expect(chatTool.content).toContain("data:application/pdf;base64,cGRm");
+    expect(chatTool.content).not.toContain("cGRm");
+    const files = chat.messages.flatMap((msg) => Array.isArray(msg.content) ? msg.content : [])
+      .filter((part) => part.type === "file");
+    expect(files).toEqual([{ type: "file", file: { filename: "capture.pdf", file_data: "data:application/pdf;base64,cGRm" } }]);
   });
   it("normalizes nested OpenAI tool_result content without changing strings", () => {
     const result = openaiToClaudeRequest("claude-sonnet-4", { messages: [

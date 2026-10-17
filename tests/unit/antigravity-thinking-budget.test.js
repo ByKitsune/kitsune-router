@@ -27,7 +27,7 @@ describe("Antigravity thinkingConfig and maxOutputTokens adjustment (#3979)", ()
     expect(genConfig.maxOutputTokens).toBe(2048);
   });
 
-  it("bounds compatibility effort inside an explicit cap", () => {
+  it("preserves an explicit output cap when compatibility effort maps to a native thinking level", () => {
     const body = {
       reasoning_effort: "high",
       request: {
@@ -42,7 +42,7 @@ describe("Antigravity thinkingConfig and maxOutputTokens adjustment (#3979)", ()
     const genConfig = transformed.request.generationConfig;
 
     expect(genConfig.thinkingConfig).toEqual({
-      thinkingBudget: 999,
+      thinkingLevel: "high",
       includeThoughts: true,
     });
     expect(genConfig.maxOutputTokens).toBe(1000);

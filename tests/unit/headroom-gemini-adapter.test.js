@@ -9,7 +9,7 @@ describe("compressWithHeadroom Gemini & Antigravity format (#4070)", () => {
       json: async () => ({
         messages: [
           { role: "user", content: "Inspect this" },
-          { role: "tool", content: "compacted log line 1\ncompacted log line 2" },
+          { role: "tool", content: "compacted log line 1\ncompacted log line 2", tool_call_id: "read_log" },
         ],
         tokens_before: 500,
         tokens_after: 100,

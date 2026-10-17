@@ -82,7 +82,9 @@ export async function GET(request) {
     lines.push(line("zenrouter_prompt_tokens_total", stats.totalPromptTokens || 0, null, "Prompt tokens in the window", "counter"));
     lines.push(line("zenrouter_completion_tokens_total", stats.totalCompletionTokens || 0, null, "Completion tokens in the window", "counter"));
     lines.push(line("zenrouter_cached_tokens_total", stats.totalCachedTokens || 0, null, "Cached prompt tokens in the window", "counter"));
-    lines.push(line("zenrouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the window", "counter"));
+    if (stats.totalCost !== null) {
+      lines.push(line("zenrouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the window", "counter"));
+    }
 
     // Per-model request counts. The model id is already published in the
     // client-visible catalog, so it is not internal detail — but the provider

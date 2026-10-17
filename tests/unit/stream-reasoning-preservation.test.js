@@ -124,7 +124,7 @@ describe.each(["passthrough", "translate"])("%s OpenAI reasoning preservation", 
     expect(result.payloads[1]).toEqual({ error });
     expect(result.payloads.some((value) => value.choices?.[0]?.finish_reason)).toBe(false);
     expect(result.completion.value.thinking).toBe("Partial");
-    expect(result.completion.status).toEqual({ failed: true, error: "synthetic failure" });
+    expect(result.completion.status).toMatchObject({ failed: true, error: "synthetic failure" });
     expect(result.text.match(/data: \[DONE\]/g)).toHaveLength(1);
   });
 });
@@ -165,7 +165,7 @@ describe("translated stream reasoning separation", () => {
     expect(parts).toEqual([
       { thought: true, text: "Think 😀" },
       { text: "Answer" },
-      { functionCall: { name: "lookup", args: { q: "weather" } } },
+      { functionCall: { id: "call_ag", name: "lookup", args: { q: "weather" } } },
     ]);
     expect(responses.at(-1).candidates[0].finishReason).toBe("STOP");
     expect(responses.at(-1).usageMetadata).toEqual({ promptTokenCount: 7, candidatesTokenCount: 3, totalTokenCount: 10 });

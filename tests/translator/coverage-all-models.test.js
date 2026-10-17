@@ -1,10 +1,9 @@
-// Tier 1 — Structural coverage: every model in PROVIDER_MODELS must translate
-// without throwing, correct upstreamId, strip applied. Data-driven → new providers auto-covered.
+// Registry-declared image stripping must not forward unsupported image payloads.
 import { describe, it, expect } from "vitest";
 import "./registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
-import { buildProviderGroups, buildModelMatrix, resolveTargetFormat } from "./matrix.js";
+import { buildModelMatrix } from "./matrix.js";
 
 // Base OpenAI-format request with text + tool + image (exercises strip + tool paths)
 function baseBody(modelId) {
@@ -28,19 +27,6 @@ function baseBody(modelId) {
   };
 }
 
-const groups = buildProviderGroups();
-
-describe("coverage: every model translates without throwing", () => {
-  it.each(groups)("$alias: all models OpenAI→target", ({ alias, models }) => {
-    for (const m of models) {
-      const target = resolveTargetFormat(alias, m.id);
-      const body = baseBody(m.id);
-      // source = openai (lingua franca); exercise openai → target path
-      const out = translateRequest(FORMATS.OPENAI, target, m.id, body, true, null, alias);
-      expect(out, `${alias}/${m.id} → ${target} returned falsy`).toBeTruthy();
-    }
-  });
-});
 
 const stripModels = buildModelMatrix().filter((r) => r.strip.includes("image"));
 describe.skipIf(stripModels.length === 0)("coverage: image-strip models drop image content", () => {

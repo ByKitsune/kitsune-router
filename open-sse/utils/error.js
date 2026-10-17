@@ -142,7 +142,7 @@ export function withLocationGateHint(message) {
  * Parse upstream provider error response
  * @param {Response} response - Fetch response from provider
  * @param {object} [executor] - Optional executor with parseError() override for provider-specific parsing
- * @returns {Promise<{statusCode: number, message: string, type?: string, param?: string, code?: string, request_id?: string, resetsAtMs?: number}>}
+ * @returns {Promise<{statusCode: number, message: string, type?: string, param?: string, code?: string|number, request_id?: string, resetsAtMs?: number}>}
  */
 export async function parseUpstreamError(response, executor = null) {
   let bodyText = "";
@@ -151,43 +151,30 @@ export async function parseUpstreamError(response, executor = null) {
   } catch {
     bodyText = "";
   }
+  const generic = parseUpstreamErrorBody(response, bodyText);
+  const { message, ...diagnostics } = generic;
 
   // Let executor-specific parser extract provider-specific fields (e.g. codex resetsAtMs)
   if (executor && typeof executor.parseError === "function") {
     try {
-      const parsed = executor.parseError(response, bodyText);
+      const parsed = executor.parseError(response, bodyText, generic);
       if (parsed && typeof parsed === "object") {
-        const msg = safeDiagnostic(parsed.message) || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
+        const msg = safeDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
         // Executor parse wins; fill resetsAtMs from generic patterns when absent — PR #3612
-        const resetsAtMs = parsed.resetsAtMs ?? (response.status === 429 ? extractResetsAtMs(response, msg) : null);
+        const resetsAtMs = parsed.resetsAtMs ?? (response.status === 429 ? extractResetsAtMs(response, bodyText || msg) : null);
         return {
           statusCode: parsed.status || response.status,
           message: withLocationGateHint(msg),
-          type: safeDiagnostic(parsed.type),
-          param: safeDiagnostic(parsed.param),
-          code: safeDiagnostic(parsed.code),
-          request_id: safeRequestId(response, parsed.request_id),
+          type: safeDiagnostic(parsed.type) ?? diagnostics.type,
+          param: safeDiagnostic(parsed.param) ?? diagnostics.param,
+          code: safeDiagnosticCode(parsed.code) ?? diagnostics.code,
+          request_id: safeRequestId(response, parsed.request_id) || diagnostics.request_id,
           resetsAtMs
         };
       }
     } catch { /* fall through to default parsing */ }
   }
 
-  let message = "";
-  let diagnostics = {};
-  try {
-    const json = JSON.parse(bodyText);
-    const source = json.error && typeof json.error === "object" ? json.error : json;
-    diagnostics = {
-      type: safeDiagnostic(source?.type),
-      param: safeDiagnostic(source?.param),
-      code: safeDiagnostic(source?.code),
-      request_id: safeRequestId(response, source?.request_id || json.request_id)
-    };
-    message = source?.message || json.message || (typeof json.error === "string" ? json.error : "");
-  } catch {
-    message = "";
-  }
 
   const messageStr = safeDiagnostic(message);
   const finalMessage = withLocationGateHint(messageStr || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`);
@@ -211,6 +198,22 @@ export async function parseUpstreamError(response, executor = null) {
   return { statusCode: response.status, message: finalMessage, ...diagnostics };
 }
 
+export function parseUpstreamErrorBody(response, bodyText) {
+  try {
+    const json = JSON.parse(bodyText);
+    const source = json.error && typeof json.error === "object" ? json.error : json;
+    return {
+      message: safeDiagnostic(source?.message || json.message || (typeof json.error === "string" ? json.error : "")),
+      type: safeDiagnostic(source?.type),
+      param: safeDiagnostic(source?.param),
+      code: safeDiagnosticCode(source?.code),
+      request_id: safeRequestId(response, source?.request_id || json.request_id),
+    };
+  } catch {
+    return {};
+  }
+}
+
 // Upstream statuses that legitimately carry a retry/reset hint. 403 is included
 // because several providers (Anthropic org limits, Antigravity quota) report
 // quota exhaustion there instead of 429, and 402 for credit/billing resets.
@@ -219,6 +222,10 @@ const RESET_BEARING_STATUSES = new Set([402, 403, 429, 500, 502, 503, 504, 529])
 function safeDiagnostic(value) {
   if (typeof value !== "string") return undefined;
   return value.replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]").replace(/[\r\n\0]/g, " ").trim().slice(0, 500) || undefined;
+}
+
+function safeDiagnosticCode(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : safeDiagnostic(value);
 }
 
 function safeRequestId(response, value) {

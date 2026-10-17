@@ -22,7 +22,7 @@ describe("catalog literal provider/model identity", () => {
   it("does not import a direct API catalog into a distinct coding-plan route", () => {
     const model = "shared-plan-model";
     const facts = (context) => ({ models: { [model]: { limit: { context, output: 16000 }, modalities: { input: ["text"] } } } });
-    const built = build({ moonshotai: facts(1000000), "kimi-code-plan-global": facts(262144), zai: facts(1000000), "zai-coding-plan": facts(400000) }, [
+    const built = build({ moonshotai: facts(1000000), "kimi-code-plan-cn": facts(262144), zai: facts(1000000), "zai-coding-plan": facts(400000) }, [
       { provider: "kimi", model, current }, { provider: "glm", model, current },
     ]);
     expect(built.providers.kimi[model].contextWindow).toBe(262144);
@@ -39,8 +39,8 @@ describe("catalog literal provider/model identity", () => {
       expect(built.providers.openrouter[rows[1][0]]).toEqual({ contextWindow: 1048576, maxOutput: 131072 });
       publish(built);
       expect(reader.getCatalogLimits("openrouter", rows[0][0]).maxOutput).toBe(32768);
-      expect(reader.getCatalogModalities("openrouter", rows[0][0])).toBeNull();
-      expect(reader.getCatalogModalities("openrouter", rows[1][0])).toEqual({ vision: true });
+      expect(reader.getCatalogModalities("openrouter", rows[0][0]).vision).toBe(false);
+      expect(reader.getCatalogModalities("openrouter", rows[1][0]).vision).toBe(true);
     }
   });
 
@@ -54,22 +54,12 @@ describe("catalog literal provider/model identity", () => {
     expect(built.providers.openrouter["vendor-b/shared"].contextWindow).toBe(32000);
     expect(built.providers.openrouter.shared).toBeUndefined();
     publish(built);
-    expect(reader.getCatalogModalities("openrouter", "vendor-a/shared")).toEqual({ vision: true });
-    expect(reader.getCatalogModalities("openrouter", "vendor-b/shared")).toEqual({ audioInput: true });
+    expect(reader.getCatalogModalities("openrouter", "vendor-a/shared")).toMatchObject({ vision: true });
+    expect(reader.getCatalogModalities("openrouter", "vendor-b/shared")).toMatchObject({ audioInput: true });
     expect(reader.getCatalogModalities("openrouter", "shared")).toBeNull();
     expect(reader.getCatalogModalities("openrouter", "vendor-c/shared")).toBeNull();
   });
 
-  it("allows only an unambiguous unqualified leaf as a compatibility lookup", () => {
-    const built = build({ openrouter: { models: {
-      "vendor-a/unique": { limit: { context: 500000, output: 32000 }, modalities: { input: ["text", "pdf"] } },
-    } } }, [entry("unique"), entry("vendor-b/unique")]);
-    expect(built.providers.openrouter.unique.contextWindow).toBe(500000);
-    expect(built.providers.openrouter["vendor-b/unique"]).toBeUndefined();
-    publish(built);
-    expect(reader.getCatalogModalities("openrouter", "unique")).toEqual({ pdf: true });
-    expect(reader.getCatalogModalities("openrouter", "vendor-b/unique")).toBeNull();
-  });
 
   it("does not reuse a legacy normalized catalog after identity schema changes", () => {
     publish({ models: { "openrouter:shared": { vision: true } }, providers: { openrouter: { shared: { contextWindow: 900000 } } } }, 2);

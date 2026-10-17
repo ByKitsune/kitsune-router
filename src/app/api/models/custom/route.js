@@ -14,12 +14,17 @@ function sanitizeCaps(caps, metadata) {
     if (typeof source[key] === "boolean") clean[key] = source[key];
   }
   const limitNames = {
-    contextWindow: "context_length",
-    maxInput: "max_input_tokens",
-    maxOutput: "max_completion_tokens",
+    contextWindow: ["context_length", "context_window", "contextLength"],
+    maxInput: ["max_input_tokens", "maxInputTokens"],
+    maxOutput: ["max_completion_tokens", "max_output_tokens", "maxOutputTokens"],
   };
-  for (const [key, alias] of Object.entries(limitNames)) {
-    const value = source[key] ?? metadata[key] ?? metadata[alias];
+  for (const [key, aliases] of Object.entries(limitNames)) {
+    let value = source[key] ?? metadata[key];
+    if (value == null) {
+      for (const alias of aliases) {
+        if (metadata[alias] != null) { value = metadata[alias]; break; }
+      }
+    }
     if (Number.isSafeInteger(value) && value > 0) clean[key] = value;
   }
   return Object.keys(clean).length ? clean : null;

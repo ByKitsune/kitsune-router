@@ -5,6 +5,10 @@
 
 import { v4 as uuidv4 } from "uuid";
 import zlib from "zlib";
+import { ROLE as MESSAGE_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../translator/schema/index.js";
+import { normalizeMediaPart } from "../translator/concerns/multimodal.js";
+import { parseDataUri } from "../translator/concerns/image.js";
+import { CURSOR_UNSUPPORTED_GENERATION_PARAMS } from "../config/cursorConstants.js";
 
 const DEBUG = process.env.CURSOR_PROTOBUF_DEBUG === "1";
 const log = (tag, ...args) => DEBUG && console.log(`[PROTOBUF:${tag}]`, ...args);
@@ -892,7 +896,103 @@ export function extractTextFromResponse(payload) {
 // RunRequest path (executors/cursor.js) to advertise MCP tools and to
 // decode/answer server-initiated tool calls.
 
-const AGENT_TOOL_PROVIDER = "zenrouter";
+export const AGENT_TOOL_PROVIDER = "zenrouter";
+
+export function validateAgentRequestControls(body) {
+  const unsupported = CURSOR_UNSUPPORTED_GENERATION_PARAMS.find((param) => body?.[param] !== undefined);
+  const param = unsupported || (body?.tool_choice != null && !["auto", "none"].includes(body.tool_choice) ? "tool_choice" : null);
+  if (!param) return;
+  const error = new Error(`This destination does not support ${param}; omit it or select a destination with a verified native mapping.`);
+  error.code = "unsupported_parameter";
+  error.param = param;
+  throw error;
+}
+
+// Cursor CLI 2026.10.16-e3cb207, dist-package/index.js generated agent.v1
+// descriptors. Current SelectedImage.data is bytes; history image.data is a
+// string in the image oneof, never a text content item.
+function cursorImageSource(part) {
+  const media = normalizeMediaPart(part);
+  if (media?.type !== OPENAI_BLOCK.IMAGE_URL) return null;
+  const image = parseDataUri(media.image_url.url);
+  if (!image || !image.mimeType.toLowerCase().startsWith("image/")) {
+    throw new Error("Cursor images must be resolved to inline image data before protobuf encoding");
+  }
+  return image;
+}
+
+export function encodeAgentSelectedContext(content) {
+  if (!Array.isArray(content)) return null;
+  const images = [];
+  for (const part of content) {
+    const image = cursorImageSource(part);
+    if (!image) continue;
+    images.push(encodeField(1, WIRE_TYPE.LEN, concatArrays(
+      encodeField(2, WIRE_TYPE.LEN, uuidv4()),
+      encodeField(7, WIRE_TYPE.LEN, image.mimeType),
+      encodeField(8, WIRE_TYPE.LEN, Buffer.from(image.base64, "base64")),
+    )));
+  }
+  return images.length ? concatArrays(...images) : null;
+}
+
+function encodeAgentHistoryContent(content, assistant) {
+  const parts = typeof content === "string" ? [{ type: OPENAI_BLOCK.TEXT, text: content }] : Array.isArray(content) ? content : [];
+  const encoded = [];
+  for (const part of parts) {
+    if (part?.type === OPENAI_BLOCK.TEXT && typeof part.text === "string") {
+      encoded.push(encodeField(1, WIRE_TYPE.LEN, encodeField(1, WIRE_TYPE.LEN, part.text)));
+      continue;
+    }
+    if (assistant && part?.type === CLAUDE_BLOCK.THINKING) {
+      encoded.push(encodeField(2, WIRE_TYPE.LEN, concatArrays(
+        encodeField(1, WIRE_TYPE.LEN, part.thinking || ""),
+        ...(part.signature ? [encodeField(2, WIRE_TYPE.LEN, part.signature)] : []),
+      )));
+      continue;
+    }
+    if (assistant && part?.type === CLAUDE_BLOCK.REDACTED_THINKING) {
+      encoded.push(encodeField(3, WIRE_TYPE.LEN, encodeField(1, WIRE_TYPE.LEN, part.data || "")));
+      continue;
+    }
+    const image = cursorImageSource(part);
+    if (image) {
+      if (assistant) throw new Error("Cursor assistant history does not accept image content");
+      encoded.push(encodeField(2, WIRE_TYPE.LEN, concatArrays(
+        encodeField(1, WIRE_TYPE.LEN, image.base64),
+        encodeField(2, WIRE_TYPE.LEN, image.mimeType),
+      )));
+    }
+  }
+  return encoded;
+}
+
+export function encodeAgentHistoryMessage(message, toolNames = new Map()) {
+  const assistant = message.role === MESSAGE_ROLE.ASSISTANT;
+  const content = encodeAgentHistoryContent(message.content, assistant);
+  if (assistant) {
+    if (typeof message.reasoning_content === "string" && message.reasoning_content) {
+      content.unshift(encodeField(2, WIRE_TYPE.LEN, encodeField(1, WIRE_TYPE.LEN, message.reasoning_content)));
+    }
+    for (const call of message.tool_calls || []) {
+      content.push(encodeField(4, WIRE_TYPE.LEN, concatArrays(
+        encodeField(1, WIRE_TYPE.LEN, call.id),
+        encodeField(2, WIRE_TYPE.LEN, call.function?.name),
+        encodeField(3, WIRE_TYPE.LEN, typeof call.function?.arguments === "string" ? call.function.arguments : JSON.stringify(call.function?.arguments || {})),
+      )));
+    }
+    return encodeField(2, WIRE_TYPE.LEN, concatArrays(...content.map((item) => encodeField(1, WIRE_TYPE.LEN, item))));
+  }
+  if (message.role === MESSAGE_ROLE.TOOL) {
+    return encodeField(3, WIRE_TYPE.LEN, concatArrays(
+      encodeField(1, WIRE_TYPE.LEN, message.tool_call_id),
+      encodeField(2, WIRE_TYPE.LEN, message.name || toolNames.get(message.tool_call_id) || ""),
+      ...content.map((item) => encodeField(3, WIRE_TYPE.LEN, item)),
+      ...(message.is_error !== undefined ? [encodeField(4, WIRE_TYPE.VARINT, message.is_error ? 1 : 0)] : []),
+    ));
+  }
+  return encodeField(1, WIRE_TYPE.LEN, concatArrays(...content.map((item) => encodeField(1, WIRE_TYPE.LEN, item))));
+}
 
 function encodeFixed64Double(value) {
   const buf = new ArrayBuffer(8);
@@ -941,7 +1041,7 @@ export function decodeAgentValue(data) {
   if (msg.has(3)) return utf8(msg.get(3)[0].value);
   if (msg.has(4)) return msg.get(4)[0].value === 1;
   if (msg.has(5)) {
-    const out = {};
+    const out = Object.create(null);
     const structBytes = msg.get(5)[0].value;
     const entries = structBytes.length ? decodeMessage(structBytes).get(1) || [] : [];
     for (const entry of entries) {
@@ -983,12 +1083,13 @@ export function encodeMcpTools(tools = []) {
 
 // McpArgs: name=1, args(map<string,Value>)=2, tool_call_id=3, tool_name=5.
 export function decodeMcpArgs(data) {
-  const out = { name: "", toolName: "", toolCallId: "", args: {} };
+  const out = { name: "", toolName: "", toolCallId: "", providerIdentifier: "", args: Object.create(null) };
   const msg = decodeMessage(data);
   for (const [fieldNum, occurrences] of msg.entries()) {
     for (const { value } of occurrences) {
       if (fieldNum === 1) out.name = utf8(value);
       else if (fieldNum === 3) out.toolCallId = utf8(value);
+      else if (fieldNum === 4) out.providerIdentifier = utf8(value);
       else if (fieldNum === 5) out.toolName = utf8(value);
       else if (fieldNum === 2) {
         const entry = decodeMessage(value);

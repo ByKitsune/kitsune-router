@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setCatalogSource } from "../../open-sse/providers/capabilities.js";
 import { augmentModelsWithCapacityAdapter, getCapacityAdapterModels } from "../../open-sse/services/capacityAdapter.js";
-import deepseek from "../../open-sse/providers/registry/deepseek.js";
+import { getModelUpstreamId } from "../../open-sse/config/providerModels.js";
 
 // DeepSeek renamed its flash model on 2026-09-10: `deepseek-flash` is the
 // canonical id for V4.1 Flash, and `deepseek-v4-flash` /
@@ -10,36 +10,23 @@ import deepseek from "../../open-sse/providers/registry/deepseek.js";
 const V41_FLASH_IDS = ["deepseek-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"];
 
 const TEXT_ONLY_MODEL = "oc/text-only-model";
-const BOTH_POOLS_ENABLED_EMPTY = {
+const FALLBACK_POOLS = {
   capacityAdapter: {
-    vision: { enabled: true, models: [] },
-    audioInput: { enabled: true, models: [] },
+    vision: { enabled: true, models: ["openai/gpt-4o"] },
+    audioInput: { enabled: true, models: ["gemini/gemini-3.8-flash"] },
   },
 };
 
-describe("DeepSeek V4.1 Flash capabilities", () => {
-  for (const id of V41_FLASH_IDS) {
-    it(`${id} is reported as vision-capable with the full 1M window`, () => {
-      const caps = getCapabilitiesForModel("deepseek", id);
-      expect(caps.vision).toBe(true);
-      expect(caps.reasoning).toBe(true);
-      expect(caps.contextWindow).toBe(1000000);
-      expect(caps.maxOutput).toBe(384000);
-    });
-  }
-
-  it("exposes the canonical id in the registry and points the retired ids at it", () => {
-    const byId = Object.fromEntries(deepseek.models.map((m) => [m.id, m]));
-    expect(Object.keys(byId)).toContain("deepseek-flash");
-    expect(byId["deepseek-v4-flash"].upstreamModelId).toBe("deepseek-flash");
-    expect(byId["deepseek-v4-flash-vision-exp"].upstreamModelId).toBe("deepseek-flash");
-  });
-});
+beforeEach(() => setCatalogSource(null));
+afterEach(() => setCatalogSource(null));
 
 describe("capacity adapter pooling", () => {
-  it("leaves a model list alone when the requested model already covers the capability", () => {
-    const models = ["ds/deepseek-v4-flash"];
-    expect(augmentModelsWithCapacityAdapter(models, ["vision"], BOTH_POOLS_ENABLED_EMPTY)).toEqual(models);
+  it.each(V41_FLASH_IDS)("does not replace the vision-capable %s with a pool model", (id) => {
+    const models = [`ds/${id}`];
+    expect(augmentModelsWithCapacityAdapter(models, ["vision"], FALLBACK_POOLS)).toEqual(models);
+  });
+  it.each(["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"])("routes the legacy %s identity to the canonical upstream", (id) => {
+    expect(getModelUpstreamId("deepseek", id)).toBe("deepseek-flash");
   });
 
   it("prepends a capable pool model when no requested model covers the capability", () => {
@@ -50,9 +37,7 @@ describe("capacity adapter pooling", () => {
   });
 
   it("only pools models for the capabilities the request needs", () => {
-    const onlyAudioEnabled = { capacityAdapter: { audioInput: { enabled: true, models: [] } } };
-    // Every pool (unchanged behaviour for callers that pass no capabilities).
-    expect(getCapacityAdapterModels(onlyAudioEnabled)).toEqual(["oc/mimo-v2.5-free"]);
+    const onlyAudioEnabled = { capacityAdapter: { audioInput: { enabled: true, models: ["gemini/gemini-3.8-flash"] } } };
     // A vision request must not pick up an audio pool's models.
     expect(getCapacityAdapterModels(onlyAudioEnabled, ["vision"])).toEqual([]);
     expect(augmentModelsWithCapacityAdapter([TEXT_ONLY_MODEL], ["vision"], onlyAudioEnabled)).toEqual([TEXT_ONLY_MODEL]);

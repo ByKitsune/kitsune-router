@@ -260,7 +260,7 @@ function normalizeProxyUrl(proxyUrl) {
   }
 }
 
-function resolveConnectionProxyUrl(targetUrl, proxyOptions) {
+export function resolveConnectionProxyUrl(targetUrl, proxyOptions) {
   const enabled = proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true;
   if (!enabled) return null;
   if (isLoopbackTarget(targetUrl)) return null;

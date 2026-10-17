@@ -36,6 +36,10 @@ import { resolveSessionId } from "../utils/sessionManager.js";
 import { normalizeToolSchemasForProvider } from "../utils/toolSchemaCompatibility.js";
 import { parseTimeMs } from "../services/oauthCredentialManager.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
+import { cloneRequestBody } from "../utils/requestBody.js";
+import { normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
+
+const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -64,8 +68,8 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-function requestBudgetError(error) {
-  if (error?.code !== "invalid_thinking_budget" && error?.code !== "invalid_output_budget") return null;
+function requestParameterError(error) {
+  if (error?.code !== "invalid_thinking_budget" && error?.code !== "invalid_output_budget" && error?.code !== "unsupported_parameter") return null;
   return createErrorResult(HTTP_STATUS.BAD_REQUEST, error.message, undefined, {
     type: "invalid_request_error", code: error.code, param: error.param,
   });
@@ -89,6 +93,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Check for bypass patterns (warmup, skip, cc naming)
   const bypassResponse = handleBypassRequest(body, model, userAgent, ccFilterNaming);
   if (bypassResponse) return bypassResponse;
+
+  // Each account/model attempt owns its mutations; retries keep the source history.
+  body = cloneRequestBody(body);
 
   const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
   const isMuseOnOpenCode = (provider === "opencode" || alias === "oc") && /muse/i.test(model);
@@ -169,19 +176,26 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   reqLogger.logRawRequest(body);
   log?.debug?.("FORMAT", `${sourceFormat} → ${targetFormat} | stream=${stream}`);
 
-  // Native passthrough: CLI tool and provider are the same ecosystem
-  // Skip all translation/normalization — only model and Bearer are swapped
+  // Native CLI headers only enable passthrough when the actual wire format matches.
   const clientTool = detectClientTool(clientRawRequest?.headers || {}, body);
-  const passthrough = isNativePassthrough(clientTool, provider);
+  const responsesWire = (sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX) &&
+    (targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX);
+  const googleWire = GOOGLE_WIRE_FORMATS.has(sourceFormat) && GOOGLE_WIRE_FORMATS.has(targetFormat);
+  const passthrough = isNativePassthrough(clientTool, provider) && (sourceFormat === targetFormat || responsesWire || googleWire);
 
   // Expose raw client headers to translators/executors for session-id resolution
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
 
+  // Legacy tool arrays must become typed media even on native Google passthrough.
+  if (GOOGLE_WIRE_FORMATS.has(sourceFormat)) normalizeGeminiToolResultMedia(body);
+
   // Auto-strip media blocks the model can't read (vision/audio/pdf) before translation.
+  let capabilities;
   if (!passthrough) {
-    const declared = await getDeclaredModelCaps(provider, model);
-    const caps = withDeclaredCapabilities(getCapabilitiesForModel(provider, model), declared);
-    if (stripUnsupportedModalities(body, sourceFormat, caps)) {
+    const capabilityModel = stripThinkingSuffix(model);
+    const declared = await getDeclaredModelCaps(provider, capabilityModel);
+    capabilities = withDeclaredCapabilities(getCapabilitiesForModel(provider, capabilityModel), declared);
+    if (stripUnsupportedModalities(body, sourceFormat, capabilities)) {
       log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
     }
   }
@@ -198,7 +212,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // media block from a body the client sent in the provider's OWN native format
   // would silently alter a request the gateway promised to pass through.
   try {
-    const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: undefined });
+    const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: clientSignal });
     if (n > 0) log?.debug?.("MODALITY", `prefetched ${n} remote image(s) for ${targetFormat}`);
   } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
 
@@ -226,17 +240,17 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       try {
         normalizeClaudePassthrough(translatedBody, translatedBody.model, clientRawRequest?.headers || null);
       } catch (error) {
-        const invalidBudget = requestBudgetError(error);
-        if (invalidBudget) return invalidBudget;
+        const invalidRequest = requestParameterError(error);
+        if (invalidRequest) return invalidRequest;
         throw error;
       }
     }
   } else {
     try {
-      translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool);
+      translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool, capabilities);
     } catch (error) {
-      const invalidBudget = requestBudgetError(error);
-      if (invalidBudget) return invalidBudget;
+      const invalidRequest = requestParameterError(error);
+      if (invalidRequest) return invalidRequest;
       throw error;
     }
     if (!translatedBody) {
@@ -363,6 +377,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     anchorClaudeCache(translatedBody);
   }
 
+  if (clientSignal?.aborted) return createErrorResult(499, "Client closed request");
+
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
@@ -437,8 +453,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     providerResponseFormat = result.responseFormat || targetFormat;
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
-    const invalidBudget = requestBudgetError(error);
-    const status = error.name === "AbortError" ? 499 : invalidBudget ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.BAD_GATEWAY;
+    const invalidRequest = requestParameterError(error);
+    const status = error.name === "AbortError" ? 499 : invalidRequest ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.BAD_GATEWAY;
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${status}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
@@ -456,7 +472,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       streamController.handleError(error);
       return createErrorResult(499, "Request aborted");
     }
-    if (invalidBudget) return invalidBudget;
+    if (invalidRequest) return invalidRequest;
     const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
     if (log?.errorLine) {
       log.errorLine(reqTag, "✗", `ERROR 502 · ${provider}/${model} · ${Date.now() - requestStartTime}ms\n    ${errMsg}${error.stack ? `\n    ${error.stack}` : ""}`);
@@ -547,7 +563,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // Provider forced streaming but client wants JSON
   if (!clientWantsStream && providerRequiresStreaming) {
-    const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, customToolNames, trackDone, appendLog });
+    const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, toolNameMap, customToolNames, trackDone, appendLog });
     if (result) { streamController.handleComplete(); return result; }
   }
 

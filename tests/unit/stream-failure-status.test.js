@@ -9,6 +9,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   saveRequestDetail: vi.fn(async () => {}),
   trackPendingRequest: vi.fn(),
   appendRequestLog: vi.fn(async () => {}),
+  saveRequestUsage: vi.fn(async () => {}),
 }));
 
 const { buildOnStreamComplete } = await import(
@@ -47,7 +48,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
     const calls = [];
     const t = createPassthroughStreamWithLogger(
       "codex", null, "gpt-5.3-codex", null, { model: "gpt-5.3-codex" },
-      (...args) => calls.push(args), null
+      (...args) => calls.push(args), null, null, FORMATS.OPENAI_RESPONSES
     );
     const out = await drain(
       sseSource([
@@ -58,8 +59,8 @@ describe("in-stream failure is not logged as success (#4104)", () => {
       ]).pipeThrough(t)
     );
     expect(calls.length).toBe(1);
-    expect(calls[0][3]).toEqual({ failed: true, error: "boom from upstream" });
-    // The failure event itself must still reach the client verbatim.
+    expect(calls[0][3]).toMatchObject({ failed: true, error: "boom from upstream" });
+    // The failure retains its native event framing.
     expect(out).toContain("response.failed");
   });
 
@@ -67,7 +68,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
     const calls = [];
     const t = createPassthroughStreamWithLogger(
       "codex", null, "gpt-5.3-codex", null, { model: "gpt-5.3-codex" },
-      (...args) => calls.push(args), null
+      (...args) => calls.push(args), null, null, FORMATS.OPENAI_RESPONSES
     );
     await drain(
       sseSource([
@@ -135,6 +136,25 @@ describe("in-stream failure is not logged as success (#4104)", () => {
     expect(record.status).toBe("success");
     expect(record.response.error).toBeUndefined();
   });
+  it("records a request-scoped late failure without poisoning the account", async () => {
+    const onStreamFailed = vi.fn();
+    const { onStreamComplete } = buildOnStreamComplete({
+      provider: "openai", model: "gpt-5-pro", connectionId: "request-fault-fixture",
+      body: { messages: [] }, stream: true, requestStartTime: Date.now(), onStreamFailed,
+    });
+    const transform = createSSETransformStreamWithLogger(
+      FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI, "openai", null, null,
+      "gpt-5-pro", "request-fault-fixture", { messages: [] }, onStreamComplete,
+    );
+    await drain(sseSource([
+      'data: {"type":"response.output_text.delta","delta":"Partial answer","output_index":0,"item_id":"partial"}', "",
+      'data: {"type":"response.failed","response":{"status":"failed","error":{"type":"invalid_request_error","code":"unsupported_parameter","param":"max_tokens","message":"Invalid request control"},"usage":{"input_tokens":11,"output_tokens":2,"total_tokens":13}}}', "",
+    ]).pipeThrough(transform));
+    expect(onStreamFailed).not.toHaveBeenCalled();
+    const record = saveRequestDetail.mock.calls.at(-1)[0];
+    expect(record.status).toBe("failed");
+    expect(record.tokens).toMatchObject({ prompt_tokens: 11, completion_tokens: 2 });
+  });
 });
 
 describe("late OpenAI errors reach every client format", () => {
@@ -167,6 +187,6 @@ describe("late OpenAI errors reach every client format", () => {
     if (sourceFormat === FORMATS.CLAUDE) expect(output).toContain("event: error");
     if (sourceFormat === FORMATS.OPENAI_RESPONSES) expect(output).toContain("event: response.failed");
     expect(calls).toHaveLength(1);
-    expect(calls[0][3]).toEqual({ failed: true, error: "Queue limit" });
+    expect(calls[0][3]).toMatchObject({ failed: true, error: "Queue limit" });
   });
 });

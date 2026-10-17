@@ -1,16 +1,664 @@
 /**
- * Reviewed core TEXT metadata from primary evidence captured 2026-10-06.
- * Standalone factual shard: no resolver imports and no implied integration.
+ * Reviewed core text metadata: primary facts plus exact models.dev cross-checks
+ * as of 2026-10-17. Standalone factual shard without resolver or network imports.
  * API specifications are not proof of OAuth account entitlement or route limits.
  * Missing values are UNKNOWN, not zero/free/unlimited. When integrating, honor
  * limits.unverifiedCapabilityFields and billing.unverifiedPriceFields instead of
  * resurrecting guessed fallback values (notably Grok output and cache writes).
- * Gemini publishes input limits, not a separately documented total context.
+ * Most Gemini pages publish input allowances; Argon documents a unified window.
  */
 
 const openai = {
-  "gpt-5.3-codex": {
+  "gpt-5.5-pro": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.5-pro",
+      "catalogAsOf": "2026-10-17"
+    },
     "capabilities": {
+      "contextWindow": 1050000,
+      "maxInput": 922000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Highest-accuracy GPT-5.5 tier for slower, precision-heavy reasoning and coding"
+  },
+  "gpt-5.4-pro": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.4-pro",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 1050000,
+      "maxInput": 922000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": false,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "More exact GPT-5.4 tier for demanding professional reasoning and agent tasks"
+  },
+  "gpt-5.2": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.2",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Reliable GPT generation for broad coding, writing, and tool-assisted product work"
+  },
+  "gpt-5.2-pro": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.2-pro",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": false,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Higher-accuracy GPT-5.2 variant for tougher reasoning and review workflows"
+  },
+  "gpt-5.1": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.1",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Sharper GPT-5 generation for coding, product work, and tool-assisted tasks"
+  },
+  "gpt-5": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Original GPT-5 workhorse for reasoning, coding, writing, and tool workflows"
+  },
+  "gpt-5-mini": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5-mini",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Small GPT-5 for responsive agents, coding help, and everyday automation"
+  },
+  "gpt-5-nano": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5-nano",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 128000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Tiny GPT-5 lane for routing, extraction, classification, and bulk jobs"
+  },
+  "gpt-5-pro": {
+    "sources": [
+      "https://models.dev/api.json",
+      "https://developers.openai.com/api/docs/models/gpt-5-pro.md"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5-pro",
+      "catalogAsOf": "2026-10-17",
+      "supportedApiFormats": ["openai-responses"],
+      "transportScope": "Native OpenAI API; GPT-5 Pro supports Responses, not Chat Completions."
+    },
+    "capabilities": {
+      "contextWindow": 400000,
+      "maxInput": 272000,
+      "maxOutput": 272000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Higher-accuracy GPT-5 tier for tough analysis, coding reviews, and planning"
+  },
+  "gpt-4o": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4o",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 128000,
+      "maxOutput": 16384,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Omni-era GPT for multimodal chat, practical coding, and general assistants"
+  },
+  "gpt-4o-mini": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4o-mini",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 128000,
+      "maxOutput": 16384,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Small omni GPT for cheap multimodal assistance and production-scale traffic"
+  },
+  "gpt-4-turbo": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4-turbo",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 128000,
+      "maxOutput": 4096,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": false,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Compact GPT model for low-latency assistance and high-volume workloads"
+  },
+  "gpt-4.1": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4.1",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 1047576,
+      "maxOutput": 32768,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Long-lived GPT workhorse for coding, instruction following, and production apps"
+  },
+  "gpt-4.1-mini": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4.1-mini",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 1047576,
+      "maxOutput": 32768,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Affordable GPT-4.1 lane for fast coding help and structured extraction"
+  },
+  "gpt-4.1-nano": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-4.1-nano",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 1047576,
+      "maxOutput": 32768,
+      "reasoning": false,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Tiny GPT-4.1 option for classification, routing, and very high-volume tasks"
+  },
+  "o3": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o3",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Deliberate o-series reasoner for hard math, coding, and multi-step analysis"
+  },
+  "o3-mini": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o3-mini",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": false,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Smaller o-series reasoner for economical coding, math, and planning tasks"
+  },
+  "o3-pro": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o3-pro",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "High-effort o3 tier for difficult technical reasoning and careful answers"
+  },
+  "o4-mini": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o4-mini",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Fast o-series model for compact reasoning, coding, and tool use"
+  },
+  "o1": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o1",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "O-series reasoning model for hard analysis, math, coding, and planning"
+  },
+  "o1-pro": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "openai",
+      "catalogModelId": "o1-pro",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 200000,
+      "maxOutput": 100000,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "O-series reasoning model for hard analysis, math, coding, and planning"
+  },
+  "gpt-5.3-codex": {
+    "description": "Coding-optimized GPT model for repository edits, reviews, and agentic software work",
+    "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 400000,
       "maxInput": 272000,
       "maxOutput": 128000,
@@ -35,7 +683,8 @@ const openai = {
       "cached": 0.175
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.3-codex.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.3-codex.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -48,6 +697,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.3-codex",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -62,7 +714,13 @@ const openai = {
     }
   },
   "gpt-5.4": {
+    "description": "Agent-ready GPT for coding and computer-use workflows at a lower cost",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -95,7 +753,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.4.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.4.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -112,6 +771,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.4",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -124,7 +786,13 @@ const openai = {
     }
   },
   "gpt-5.4-mini": {
+    "description": "Strong small GPT for coding subagents, quick tool use, and high-volume work",
     "capabilities": {
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 400000,
       "maxInput": 272000,
       "maxOutput": 128000,
@@ -150,7 +818,8 @@ const openai = {
       "cached": 0.075
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -165,6 +834,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.4-mini",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -177,7 +849,13 @@ const openai = {
     }
   },
   "gpt-5.4-nano": {
+    "description": "Cheapest GPT-5.4 lane for simple routing, extraction, and bulk automation",
     "capabilities": {
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 400000,
       "maxInput": 272000,
       "maxOutput": 128000,
@@ -203,7 +881,8 @@ const openai = {
       "cached": 0.02
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.4-nano.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.4-nano.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -218,6 +897,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.4-nano",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -230,7 +912,13 @@ const openai = {
     }
   },
   "gpt-5.5": {
+    "description": "Default frontier GPT for coding, computer use, research, and knowledge work",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -263,7 +951,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.5.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.5.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -280,6 +969,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -341,7 +1033,13 @@ const openai = {
     }
   },
   "gpt-5.6-luna": {
+    "description": "Cost-efficient GPT-5.6 model for fast, high-volume workloads",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -377,7 +1075,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.6-luna.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.6-luna.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -390,6 +1089,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.6-luna",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -403,7 +1105,13 @@ const openai = {
     }
   },
   "gpt-5.6-sol": {
+    "description": "Frontier GPT-5.6 model for complex professional work, coding, and agentic workflows",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -439,7 +1147,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.6-sol.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.6-sol.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -454,6 +1163,9 @@ const openai = {
       "promotionGuaranteedThrough": "2026-11-21"
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.6-sol",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -467,7 +1179,13 @@ const openai = {
     }
   },
   "gpt-5.6-terra": {
+    "description": "Balanced GPT-5.6 model for capable, cost-efficient everyday work",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -503,7 +1221,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.6-terra.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.6-terra.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -516,6 +1235,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-5.6-terra",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -529,7 +1251,13 @@ const openai = {
     }
   },
   "gpt-6-astra": {
+    "description": "GPT-6 Astra is OpenAI's most capable model for complex reasoning, coding, computer use, research, and document creation.",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -564,7 +1292,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-6-astra.md"
+      "https://developers.openai.com/api/docs/models/gpt-6-astra.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -578,6 +1307,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-6-astra",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -590,7 +1322,13 @@ const openai = {
     }
   },
   "gpt-6-luna": {
+    "description": "OpenAI's most efficient model for focused, high-volume tasks",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -621,7 +1359,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-6-luna.md"
+      "https://developers.openai.com/api/docs/models/gpt-6-luna.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -637,6 +1376,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-6-luna",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -646,7 +1388,13 @@ const openai = {
     }
   },
   "gpt-6-sol": {
+    "description": "OpenAI model for complex coding and agentic workflows",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -677,7 +1425,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-6-sol.md"
+      "https://developers.openai.com/api/docs/models/gpt-6-sol.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -693,6 +1442,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-6-sol",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -702,7 +1454,13 @@ const openai = {
     }
   },
   "gpt-6.1-sol": {
+    "description": "Near-Astra performance for complex coding, computer use, and professional work at a lower cost.",
     "capabilities": {
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1050000,
       "maxInput": 922000,
       "maxOutput": 128000,
@@ -737,7 +1495,8 @@ const openai = {
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-6.1-sol.md"
+      "https://developers.openai.com/api/docs/models/gpt-6.1-sol.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -754,6 +1513,9 @@ const openai = {
       ]
     },
     "limits": {
+      "catalogProvider": "openai",
+      "catalogModelId": "gpt-6.1-sol",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
@@ -774,8 +1536,84 @@ const openai = {
 };
 
 const anthropic = {
-  "claude-fable-5": {
+  "claude-haiku-5-5": {
     "capabilities": {
+      "contextWindow": 1000000,
+      "maxOutput": 128000,
+      "vision": true,
+      "pdf": true,
+      "reasoning": true,
+      "tools": true,
+      "search": true,
+      "structuredOutput": true,
+      "thinkingFormat": "claude-adaptive",
+      "thinkingCanDisable": true,
+      "thinkingEffortSupported": true,
+      "thinkingEfforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    },
+    "description": "Fast Claude model for high-volume, latency-sensitive classification, extraction, routing, and lightweight agents.",
+    "sources": [
+      "https://platform.claude.com/docs/en/models/haiku-5-5/overview.md",
+      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+    ],
+    "limits": {
+      "scope": "public-api-specification",
+      "authenticatedRouteVerified": false,
+      "maxOutputScope": "Synchronous Messages API",
+      "maxInputStatus": "Not independently documented; do not subtract output from context.",
+      "batchMaxOutput": 300000,
+      "batchOutputBeta": "output-300k-2026-03-24",
+      "apiDefaultEffort": "medium",
+      "unverifiedCapabilityFields": [
+        "maxInput"
+      ]
+    },
+    "pricing": {
+      "input": 0.1,
+      "output": 0.5,
+      "cached": 0.01,
+      "cache_creation": 0.125,
+      "tier": {
+        "threshold": 100000,
+        "inclusive": false,
+        "input": 0.5,
+        "output": 2.5,
+        "cached": 0.05,
+        "cache_creation": 0.625,
+        "cache_creation_1h": 1
+      },
+      "cache_creation_1h": 0.2
+    },
+    "billing": {
+      "currency": "USD",
+      "unit": "1M tokens",
+      "kind": "api",
+      "cacheWriteTtl": "5m",
+      "cacheWrite1h": 0.2,
+      "cacheWrite1hTier": {
+        "threshold": 100000,
+        "inclusive": false,
+        "price": 1
+      },
+      "note": "Standard API prices. Prompt length includes all input including cache reads/writes; >100000 prompt tokens applies the high rates to the full request. 5m cache writes in pricing; 1h writes retained separately. No account entitlement or inference verified."
+    }
+  },
+  "claude-fable-5": {
+    "description": "Claude model for creative writing, analysis, and controlled agent workflows",
+    "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -784,6 +1622,7 @@ const anthropic = {
       "thinkingCanDisable": false
     },
     "pricing": {
+      "cache_creation_1h": 20,
       "input": 10.0,
       "output": 50.0,
       "cached": 1.0,
@@ -791,7 +1630,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/fable-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -804,6 +1644,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-fable-5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -811,7 +1654,15 @@ const anthropic = {
     }
   },
   "claude-fable-5-1": {
+    "description": "Claude model for demanding reasoning and long-horizon agentic work",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -820,6 +1671,7 @@ const anthropic = {
       "thinkingCanDisable": false
     },
     "pricing": {
+      "cache_creation_1h": 20,
       "input": 10.0,
       "output": 50.0,
       "cached": 0.25,
@@ -827,7 +1679,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/fable-5-1/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -840,6 +1693,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-fable-5-1",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -847,7 +1703,15 @@ const anthropic = {
     }
   },
   "claude-haiku-4-5-20251001": {
+    "description": "Fast Claude model for responsive assistance, classification, and lightweight agents",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 200000,
       "maxOutput": 64000,
       "vision": true,
@@ -855,6 +1719,7 @@ const anthropic = {
       "thinkingFormat": "claude-budget"
     },
     "pricing": {
+      "cache_creation_1h": 2,
       "input": 1.0,
       "output": 5.0,
       "cached": 0.1,
@@ -862,7 +1727,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/haiku-4-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -875,6 +1741,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-haiku-4-5-20251001",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -882,7 +1751,15 @@ const anthropic = {
     }
   },
   "claude-opus-4-6": {
+    "description": "High-end Claude for difficult coding, planning, and slower expert reasoning",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -890,6 +1767,7 @@ const anthropic = {
       "thinkingFormat": "claude-adaptive"
     },
     "pricing": {
+      "cache_creation_1h": 10,
       "input": 5.0,
       "output": 25.0,
       "cached": 0.5,
@@ -897,7 +1775,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/opus-4-6/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -910,6 +1789,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-opus-4-6",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -919,7 +1801,15 @@ const anthropic = {
     }
   },
   "claude-opus-5": {
+    "description": "Strongest Claude Opus model for coding, agents, and professional work",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -927,6 +1817,7 @@ const anthropic = {
       "thinkingFormat": "claude-adaptive"
     },
     "pricing": {
+      "cache_creation_1h": 10,
       "input": 5.0,
       "output": 25.0,
       "cached": 0.5,
@@ -934,7 +1825,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/opus-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -947,6 +1839,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-opus-5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -956,7 +1851,15 @@ const anthropic = {
     }
   },
   "claude-opus-5-5": {
+    "description": "Claude model for long-running agentic coding and knowledge work",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -965,6 +1868,7 @@ const anthropic = {
       "thinkingCanDisable": false
     },
     "pricing": {
+      "cache_creation_1h": 8,
       "input": 4.0,
       "output": 20.0,
       "cached": 0.2,
@@ -972,7 +1876,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/opus-5-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -985,6 +1890,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-opus-5-5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -994,7 +1902,15 @@ const anthropic = {
     }
   },
   "claude-sonnet-4-6": {
+    "description": "Claude workhorse for coding agents, careful analysis, and production cost control",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -1002,6 +1918,7 @@ const anthropic = {
       "thinkingFormat": "claude-adaptive"
     },
     "pricing": {
+      "cache_creation_1h": 6,
       "input": 3.0,
       "output": 15.0,
       "cached": 0.3,
@@ -1009,7 +1926,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/sonnet-4-6/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1022,6 +1940,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-sonnet-4-6",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -1031,7 +1952,15 @@ const anthropic = {
     }
   },
   "claude-sonnet-5": {
+    "description": "Everyday Claude agent model for coding, planning, browsing, and general work",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -1039,6 +1968,7 @@ const anthropic = {
       "thinkingFormat": "claude-adaptive"
     },
     "pricing": {
+      "cache_creation_1h": 4,
       "input": 2.0,
       "output": 10.0,
       "cached": 0.2,
@@ -1046,7 +1976,8 @@ const anthropic = {
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1059,6 +1990,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-sonnet-5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -1068,7 +2002,15 @@ const anthropic = {
     }
   },
   "claude-sonnet-5-5": {
+    "description": "Fast Claude model for everyday coding, agents, and knowledge work",
     "capabilities": {
+      "tools": true,
+      "structuredOutput": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "vision": true,
@@ -1076,14 +2018,16 @@ const anthropic = {
       "thinkingFormat": "claude-adaptive"
     },
     "pricing": {
+      "cache_creation_1h": 4,
       "input": 2.0,
       "output": 10.0,
-      "cached": 0.2,
+      "cached": 0.1,
       "cache_creation": 2.5
     },
     "sources": [
       "https://platform.claude.com/docs/en/models/sonnet-5-5/overview.md",
-      "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1096,6 +2040,9 @@ const anthropic = {
       "batchDiscount": "50% on input/output"
     },
     "limits": {
+      "catalogProvider": "anthropic",
+      "catalogModelId": "claude-sonnet-5-5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputScope": "Synchronous Messages API",
@@ -1110,8 +2057,158 @@ const anthropic = {
 };
 
 const gemini = {
-  "gemini-2.5-flash": {
+  "gemini-3-flash-preview": {
+    "sources": [
+      "https://models.dev/api.json",
+      "https://ai.google.dev/gemini-api/docs/pricing"
+    ],
+    "billing": {
+      "kind": "api",
+      "note": "Paid standard text/image/video input and text output including thinking. Separate audio input is $1/cache $0.10 per1M. Time-based cache storage is not a per-token cache-write charge. No account entitlement verified.",
+      "currency": "USD",
+      "unit": "1M tokens",
+      "cacheStorage": {
+        "currency": "USD",
+        "unit": "1M token-hours",
+        "price": 1
+      },
+      "audioInputRates": {
+        "input": 1,
+        "cached": 0.1
+      },
+      "unverifiedPriceFields": [
+        "cache_creation"
+      ]
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3-flash-preview",
+      "catalogAsOf": "2026-10-17"
+    },
     "capabilities": {
+      "contextWindow": 1048576,
+      "maxOutput": 65536,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": true,
+      "audioInput": true,
+      "videoInput": true,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "New Gemini flash lane bringing frontier-style multimodal reasoning to cheaper runs",
+    "pricing": {
+      "input": 0.5,
+      "output": 3,
+      "cached": 0.05,
+      "reasoning": 3
+    }
+  },
+  "gemma-4-31b-it": {
+    "sources": [
+      "https://models.dev/api.json"
+    ],
+    "billing": {
+      "kind": "catalog-metadata-only",
+      "note": "Exact provider and literal model catalog comparison; pricing, live availability and account entitlement are not established."
+    },
+    "limits": {
+      "scope": "exact-route-modelsdev-catalog",
+      "authenticatedRouteVerified": false,
+      "catalogProvider": "google",
+      "catalogModelId": "gemma-4-31b-it",
+      "catalogAsOf": "2026-10-17"
+    },
+    "capabilities": {
+      "contextWindow": 262144,
+      "maxOutput": 32768,
+      "reasoning": true,
+      "tools": true,
+      "structuredOutput": true,
+      "vision": true,
+      "pdf": false,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false
+    },
+    "description": "Largest Gemma 4 instruction model for open, self-hosted chat and reasoning"
+  },
+  "gemini-4-argon": {
+    "capabilities": {
+      "contextWindow": 1048576,
+      "maxOutput": 32768,
+      "vision": true,
+      "pdf": true,
+      "audioInput": true,
+      "videoInput": true,
+      "imageOutput": false,
+      "audioOutput": false,
+      "reasoning": true,
+      "tools": true,
+      "search": true,
+      "structuredOutput": true,
+      "thinkingFormat": "gemini-level",
+      "thinkingCanDisable": false,
+      "thinkingEfforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "description": "Google flagship reasoning model for complex software engineering, deep mathematical and scientific problem solving, and multi-step agents.",
+    "pricing": {
+      "input": 2,
+      "output": 10,
+      "reasoning": 10,
+      "cached": 0.1
+    },
+    "sources": [
+      "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
+      "https://ai.google.dev/gemini-api/docs/generate-content/long-decode",
+      "https://ai.google.dev/gemini-api/docs/long-decode",
+      "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+      "https://ai.google.dev/gemini-api/docs/pricing"
+    ],
+    "billing": {
+      "currency": "USD",
+      "unit": "1M tokens",
+      "kind": "api",
+      "note": "Published introductory standard paid rates; implicit caching only. Native long decode requires continuation hops not implemented by this gateway. No account entitlement or inference verified.",
+      "unverifiedPriceFields": [
+        "cache_creation"
+      ]
+    },
+    "limits": {
+      "scope": "public-generate-content-rest-api",
+      "authenticatedRouteVerified": false,
+      "contextWindowStatus": "Unified shared input, thinking and output limit; not a separate maximum input allowance.",
+      "maxOutputScope": "Direct v1beta REST generateContent single request without continuation; shared discovery uses the non-streaming ceiling.",
+      "nonStreamMaxOutput": 32768,
+      "modelPageDefaultSynchronousMaxOutput": 65536,
+      "interactionsSynchronousMaxOutput": 65536,
+      "outputLimitNote": "The Oct 14 model page summarizes a 65,536 synchronous default and links the Interactions guide. The API-specific GenerateContent guide explicitly retains 32,768 for direct non-streaming REST and 65,536 for streaming/SDK calls. This gateway calls REST GenerateContent, not Interactions or the auto-continuing GenAI SDK. Long decode up to the unified window requires continuation; it is not a single-request gateway output allowance.",
+      "streamMaxOutput": 65536,
+      "longDecodeMaxOutput": 1048576,
+      "continuationImplemented": false,
+      "apiDefaultThinkingLevel": "medium",
+      "explicitCachingSupported": false,
+      "unverifiedCapabilityFields": [
+        "maxInput"
+      ]
+    }
+  },
+  "gemini-2.5-flash": {
+    "description": "Fast Gemini workhorse for multimodal apps where latency and price matter",
+    "capabilities": {
+      "vision": true,
+      "pdf": true,
+      "audioInput": true,
+      "videoInput": true,
       "maxInput": 1048576,
       "contextWindow": 1048576,
       "maxOutput": 65536,
@@ -1130,7 +2227,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1153,6 +2251,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-2.5-flash",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1160,7 +2261,11 @@ const gemini = {
     }
   },
   "gemini-2.5-flash-lite": {
+    "description": "Lean Gemini 2.5 lane for cheap multimodal traffic and quick agents",
     "capabilities": {
+      "vision": true,
+      "audioInput": true,
+      "videoInput": true,
       "maxInput": 1048576,
       "contextWindow": 1048576,
       "maxOutput": 65536,
@@ -1181,7 +2286,8 @@ const gemini = {
     "sources": [
       "https://ai.google.dev/gemini-api/docs/deprecations?hl=en",
       "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1204,6 +2310,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-2.5-flash-lite",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1216,7 +2325,10 @@ const gemini = {
     }
   },
   "gemini-2.5-pro": {
+    "description": "Google's proven reasoning model for coding, math, and multimodal analysis",
     "capabilities": {
+      "vision": true,
+      "videoInput": true,
       "maxInput": 1048576,
       "contextWindow": 1048576,
       "maxOutput": 65536,
@@ -1246,7 +2358,8 @@ const gemini = {
     "sources": [
       "https://ai.google.dev/gemini-api/docs/deprecations?hl=en",
       "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1263,6 +2376,9 @@ const gemini = {
       ]
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-2.5-pro",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1275,6 +2391,7 @@ const gemini = {
     }
   },
   "gemini-3.1-flash-lite": {
+    "description": "Low-latency Gemini model for high-volume multimodal and agent workloads",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1298,7 +2415,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1321,6 +2439,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.1-flash-lite",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1328,6 +2449,7 @@ const gemini = {
     }
   },
   "gemini-3.1-pro-preview": {
+    "description": "Reasoning-first Gemini preview for agentic coding and complex problem solving",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1359,7 +2481,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1376,6 +2499,9 @@ const gemini = {
       ]
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.1-pro-preview",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1383,6 +2509,7 @@ const gemini = {
     }
   },
   "gemini-3.5-flash": {
+    "description": "Fast Gemini model balancing multimodal reasoning, tool use, and cost",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1406,7 +2533,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1423,6 +2551,9 @@ const gemini = {
       ]
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.5-flash",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1430,6 +2561,7 @@ const gemini = {
     }
   },
   "gemini-3.5-flash-lite": {
+    "description": "Fast Gemini model balancing multimodal reasoning, tool use, and cost",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1453,7 +2585,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1470,6 +2603,9 @@ const gemini = {
       ]
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.5-flash-lite",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1477,6 +2613,7 @@ const gemini = {
     }
   },
   "gemini-3.6-flash": {
+    "description": "Fast Gemini model balancing multimodal reasoning, tool use, and cost",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1500,7 +2637,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1526,6 +2664,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.6-flash",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1533,6 +2674,7 @@ const gemini = {
     }
   },
   "gemini-3.7-flash": {
+    "description": "High-efficiency Gemini model for agentic workflows, coding, and multimodal reasoning",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1556,7 +2698,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1582,6 +2725,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.7-flash",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1589,6 +2735,7 @@ const gemini = {
     }
   },
   "gemini-3.8-flash": {
+    "description": "Google's most intelligent Flash model, engineered for long-horizon software engineering, autonomous agents, and complex enterprise workflows",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1612,7 +2759,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1638,6 +2786,9 @@ const gemini = {
       }
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.8-flash",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1645,6 +2796,7 @@ const gemini = {
     }
   },
   "gemini-3.1-pro-preview-customtools": {
+    "description": "Advanced Gemini model for complex reasoning, coding, and multimodal analysis",
     "capabilities": {
       "maxInput": 1048576,
       "contextWindow": 1048576,
@@ -1676,7 +2828,8 @@ const gemini = {
     },
     "sources": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview",
-      "https://ai.google.dev/gemini-api/docs/pricing"
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1693,6 +2846,9 @@ const gemini = {
       ]
     },
     "limits": {
+      "catalogProvider": "google",
+      "catalogModelId": "gemini-3.1-pro-preview-customtools",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
@@ -1704,7 +2860,14 @@ const gemini = {
 
 const xai = {
   "grok-4.3": {
+    "description": "xAI's Grok for chat, coding, agentic tools, and lower hallucination risk",
     "capabilities": {
+      "reasoning": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 1000000,
       "vision": true,
       "tools": true,
@@ -1724,7 +2887,8 @@ const xai = {
     },
     "sources": [
       "https://docs.x.ai/developers/models/grok-4.3",
-      "https://docs.x.ai/developers/pricing"
+      "https://docs.x.ai/developers/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1736,6 +2900,9 @@ const xai = {
       ]
     },
     "limits": {
+      "catalogProvider": "xai",
+      "catalogModelId": "grok-4.3",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputStatus": "Not separately established from current exact-model page",
@@ -1745,7 +2912,14 @@ const xai = {
     }
   },
   "grok-4.5": {
+    "description": "xAI's Grok model for chat, coding, agentic tools, and lower hallucination risk",
     "capabilities": {
+      "reasoning": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 500000,
       "vision": true,
       "tools": true,
@@ -1765,7 +2939,8 @@ const xai = {
     },
     "sources": [
       "https://docs.x.ai/developers/models/grok-4.5",
-      "https://docs.x.ai/developers/pricing"
+      "https://docs.x.ai/developers/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1777,6 +2952,9 @@ const xai = {
       ]
     },
     "limits": {
+      "catalogProvider": "xai",
+      "catalogModelId": "grok-4.5",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputStatus": "Not separately established from current exact-model page",
@@ -1786,7 +2964,14 @@ const xai = {
     }
   },
   "grok-4.6": {
+    "description": "xAI's frontier model for long-running agents, coding, knowledge work, and visual projects",
     "capabilities": {
+      "reasoning": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 500000,
       "vision": true,
       "tools": true,
@@ -1806,7 +2991,8 @@ const xai = {
     },
     "sources": [
       "https://docs.x.ai/developers/models/grok-4.6",
-      "https://docs.x.ai/developers/pricing"
+      "https://docs.x.ai/developers/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1818,6 +3004,9 @@ const xai = {
       ]
     },
     "limits": {
+      "catalogProvider": "xai",
+      "catalogModelId": "grok-4.6",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputStatus": "Not separately established from current exact-model page",
@@ -1827,7 +3016,14 @@ const xai = {
     }
   },
   "grok-4.7": {
+    "description": "xAI's frontier model for long-running agents, coding, knowledge work, and visual projects",
     "capabilities": {
+      "reasoning": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 500000,
       "vision": true,
       "tools": true,
@@ -1848,7 +3044,8 @@ const xai = {
     "sources": [
       "https://docs.x.ai/developers/models/grok-4.7",
       "https://docs.x.ai/developers/pricing",
-      "https://docs.x.ai/developers/grok-4-7"
+      "https://docs.x.ai/developers/grok-4-7",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1860,6 +3057,9 @@ const xai = {
       ]
     },
     "limits": {
+      "catalogProvider": "xai",
+      "catalogModelId": "grok-4.7",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputStatus": "No text output limit",
@@ -1869,7 +3069,14 @@ const xai = {
     }
   },
   "grok-build-0.1": {
+    "description": "Fast Grok coding model tuned for agentic engineering and iterative edits",
     "capabilities": {
+      "reasoning": true,
+      "pdf": true,
+      "audioInput": false,
+      "videoInput": false,
+      "imageOutput": false,
+      "audioOutput": false,
       "contextWindow": 256000,
       "vision": true,
       "tools": true,
@@ -1889,7 +3096,8 @@ const xai = {
     },
     "sources": [
       "https://docs.x.ai/developers/models/grok-build-0.1",
-      "https://docs.x.ai/developers/pricing"
+      "https://docs.x.ai/developers/pricing",
+      "https://models.dev/api.json"
     ],
     "billing": {
       "currency": "USD",
@@ -1901,6 +3109,9 @@ const xai = {
       ]
     },
     "limits": {
+      "catalogProvider": "xai",
+      "catalogModelId": "grok-build-0.1",
+      "catalogAsOf": "2026-10-17",
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "maxOutputStatus": "Not separately established from current exact-model page",
@@ -2166,6 +3377,7 @@ for (const id of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gp
 }
 const claude = {};
 for (const [id, api] of Object.entries(anthropic)) {
+  if (id === "claude-haiku-5-5") continue;
   const entry = reference(api, "Claude Code compaction/configuration does not change the public API model specification.");
   entry.sources.push("https://code.claude.com/docs/en/model-config.md");
   if (["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-sonnet-5", "claude-fable-5-1", "claude-fable-5"].includes(id)) {
@@ -2188,7 +3400,7 @@ claude["claude-opus-5-5-20260922"] = {
 };
 const geminiCli = {};
 for (const [id, api] of Object.entries(gemini)) {
-  if (id.endsWith("-customtools")) continue;
+  if (id.endsWith("-customtools") || id === "gemini-4-argon") continue;
   geminiCli[id] = reference(api, "Google API model facts do not establish Code Assist / Gemini CLI availability or limits.");
 }
 const grokCli = {};

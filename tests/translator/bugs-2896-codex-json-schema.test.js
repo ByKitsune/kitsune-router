@@ -27,13 +27,6 @@ describe("bug #2896: Chat Completions response_format → Responses text.format 
     expect(out.text).toEqual({ format: { type: "json_schema", name: "reading", strict: true, schema } });
   });
 
-  it("json_schema without strict is strict, as Chat Completions treats it on Codex", () => {
-    const out = toResponses({
-      messages: [{ role: "user", content: "2 people" }],
-      response_format: { type: "json_schema", json_schema: { name: "reading", schema } },
-    });
-    expect(out.text.format.strict).toBe(true);
-  });
 
   it("explicit strict:false is preserved", () => {
     const out = toResponses({

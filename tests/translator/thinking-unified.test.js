@@ -80,7 +80,8 @@ describe("applyThinking per provider format", () => {
     // thinking:{type:"adaptive"} is sent explicitly; output_config alone is not
     // enough (and Anthropic-compatible shims like Copilot default off even on
     // Sonnet 5). Both fields together are the documented adaptive shape.
-    expect(out.thinking).toEqual({ type: "adaptive" });
+    expect(out.thinking.type).toBe("adaptive");
+    expect(out.thinking).not.toHaveProperty("budget_tokens");
   });
   it("claude adaptive thinking maps auto effort to a supported level", () => {
     const out = apply("claude", "claude-opus-4.7", { thinking: { type: "adaptive" } }, "claude");
@@ -97,16 +98,13 @@ describe("applyThinking per provider format", () => {
     // the Anthropic wire is invalid, so it must go out as "low".
     const out = apply("claude", "claude-opus-4.7", { reasoning_effort: "minimal" }, "claude");
     expect(out.output_config).toEqual({ effort: "low" });
-    expect(out.thinking).toEqual({ type: "adaptive" });
-  });
-  it("Fable 5.1 → effort without a redundant thinking switch", () => {
-    const out = apply("claude", "claude-fable-5-1", { reasoning_effort: "high" }, "claude");
-    expect(out.output_config).toEqual({ effort: "high" });
-    expect(out.thinking).toBeUndefined();
+    expect(out.thinking.type).toBe("adaptive");
+    expect(out.thinking).not.toHaveProperty("budget_tokens");
   });
   it("claude haiku → enabled+budget", () => {
     const out = apply("claude", "claude-haiku-4.5", { reasoning_effort: "high" }, "claude");
-    expect(out.thinking).toEqual({ type: "enabled", budget_tokens: 24576 });
+    expect(out.thinking.type).toBe("enabled");
+    expect(out.thinking.budget_tokens).toBe(24576);
   });
   it("gemini-3 → thinkingLevel", () => {
     const out = apply("gemini", "gemini-3-pro", { reasoning_effort: "medium" }, "gemini");

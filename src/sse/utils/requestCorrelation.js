@@ -1,3 +1,5 @@
+import { sanitizeClientError } from "@/shared/utils/clientErrors.js";
+
 const SAFE_UPSTREAM_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 
 function safeText(value) {
@@ -25,11 +27,7 @@ export async function sanitizeErrorResponse(response, serverRequestId = crypto.r
   let source;
   try { source = await response.clone().json(); } catch { source = null; }
   const sourceError = source?.error && typeof source.error === "object" && !Array.isArray(source.error) ? source.error : {};
-  const error = { message: safeText(sourceError.message) || "Upstream request failed" };
-  for (const key of ["type", "param", "code"]) {
-    const value = safeText(sourceError[key]);
-    if (value) error[key] = value;
-  }
+  const error = sanitizeClientError(sourceError);
   error.request_id = serverRequestId;
   const upstreamRequestId = safeUpstreamId(sourceError.upstream_request_id || sourceError.request_id);
   if (upstreamRequestId && upstreamRequestId !== serverRequestId) error.upstream_request_id = upstreamRequestId;

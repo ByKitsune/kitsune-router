@@ -1,25 +1,67 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
-import { GEMINI_ROLE, OPENAI_FINISH, GEMINI_FINISH } from "../schema/index.js";
+import { GEMINI_ROLE } from "../schema/index.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
+import { toGeminiUsage } from "../concerns/usage.js";
+import { fromOpenAIFinish } from "../concerns/finishReason.js";
+import { splitToolCallId } from "../concerns/thoughtSignature.js";
+import { normalizeMediaPart } from "../concerns/multimodal.js";
+import { parseDataUri } from "../concerns/image.js";
+
+export function openAIImagesToGeminiParts(images) {
+  const parts = [];
+  for (const image of images || []) {
+    const normalized = normalizeMediaPart(image);
+    const url = normalized?.image_url?.url;
+    if (!url) continue;
+    const thoughtSignature = image.extra_content?.google?.thought_signature;
+    const signature = typeof thoughtSignature === "string" && thoughtSignature ? { thoughtSignature } : {};
+    const parsed = parseDataUri(url);
+    if (parsed?.mimeType.toLowerCase().startsWith("image/")) {
+      parts.push({ inlineData: { mimeType: parsed.mimeType, data: parsed.base64 }, ...signature });
+    } else if (/^https?:\/\//i.test(url)) {
+      const mimeType = normalized.image_url.mime_type || normalized.image_url.mimeType;
+      parts.push({ fileData: { fileUri: url, ...(mimeType ? { mimeType } : {}) }, ...signature });
+    }
+  }
+  return parts;
+}
+
+export function openAIToolCallToGeminiPart(call, toolNameMap = null) {
+  const fn = call.function || {};
+  let args = fn.arguments || {};
+  if (typeof args === "string") {
+    try { args = JSON.parse(args); } catch { args = {}; }
+  }
+  const { rawId, thoughtSignature } = splitToolCallId(call.id);
+  const id = thoughtSignature ? rawId : call.id;
+  return { functionCall: { ...(id ? { id } : {}),
+    name: toolNameMap?.get(fn.name) || fn.name || call.name || "", args },
+    ...(thoughtSignature ? { thoughtSignature } : {}) };
+}
 
 // Convert OpenAI SSE chunk to Antigravity SSE format
 // Real Antigravity format:
 //   data: {"response":{"candidates":[{"content":{"role":"model","parts":[...]}, "finishReason":"STOP"}], "usageMetadata":{...}, "modelVersion":"...", "responseId":"..."}}
 // Tool calls: OpenAI sends incremental args across chunks → accumulate and emit ONCE at finish
 export function openaiToAntigravityResponse(chunk, state) {
-  if (!chunk) return null;
-
-  const choice = chunk.choices?.[0];
-  if (!choice) {
-    if (chunk.usage) {
-      state._usage = chunk.usage;
-    }
-    return null;
+  const flushing = !chunk;
+  if (!chunk) {
+    if (!state._geminiFinishPending || state._geminiTerminalEmitted) return null;
+    chunk = { choices: [{ delta: {}, finish_reason: state._geminiFinishPending }], usage: state._usage };
   }
+  if (chunk.usage) state._usage = chunk.usage;
+  const choice = chunk.choices?.[0];
+  if (!choice) return state._geminiFinishPending ? openaiToAntigravityResponse(null, state) : null;
+  if (state._geminiTerminalEmitted) return null;
 
   const delta = choice.delta || {};
-  const finishReason = choice.finish_reason;
+  let finishReason = choice.finish_reason;
+  const completeUsage = typeof chunk.usage?.prompt_tokens === "number" && typeof chunk.usage?.completion_tokens === "number";
+  if (finishReason && !flushing && !completeUsage && state.targetFormat === FORMATS.OPENAI) {
+    state._geminiFinishPending = finishReason;
+    finishReason = null;
+  }
 
   // Init state
   if (!state._toolCallAccum) state._toolCallAccum = {};
@@ -38,18 +80,20 @@ export function openaiToAntigravityResponse(chunk, state) {
   if (delta.content) {
     parts.push({ text: delta.content });
   }
+  if (typeof delta.refusal === "string" && delta.refusal) parts.push({ text: delta.refusal });
+  parts.push(...openAIImagesToGeminiParts(delta.images));
 
   // Accumulate tool calls silently (no emit until finish)
   if (delta.tool_calls) {
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
       if (!state._toolCallAccum[idx]) {
-        state._toolCallAccum[idx] = { id: "", name: "", arguments: "" };
+        state._toolCallAccum[idx] = { id: "", name: "", arguments: [] };
       }
       const accum = state._toolCallAccum[idx];
       if (tc.id) accum.id = tc.id;
       if (tc.function?.name) accum.name += tc.function.name;
-      if (tc.function?.arguments) accum.arguments += tc.function.arguments;
+      if (tc.function?.arguments) accum.arguments.push(tc.function.arguments);
     }
     // Skip emit — wait for finish_reason
     if (parts.length === 0 && !finishReason) return null;
@@ -57,19 +101,14 @@ export function openaiToAntigravityResponse(chunk, state) {
 
   // On finish, emit accumulated tool calls as complete functionCall parts
   if (finishReason) {
+    state._geminiTerminalEmitted = true;
+    state._geminiFinishPending = null;
+    state.finishReason = finishReason;
     const indices = Object.keys(state._toolCallAccum);
     for (const idx of indices) {
       const accum = state._toolCallAccum[idx];
-      let args = {};
-      try { args = JSON.parse(accum.arguments); } catch { /* empty */ }
-      // Restore original tool name if it was prefixed during cloaking
-      const originalName = state.toolNameMap?.get(accum.name) || accum.name;
-      parts.push({
-        functionCall: {
-          name: originalName,
-          args
-        }
-      });
+      parts.push(openAIToolCallToGeminiPart({ id: accum.id,
+        function: { name: accum.name, arguments: accum.arguments.join("") } }, state.toolNameMap));
     }
   }
 
@@ -86,13 +125,7 @@ export function openaiToAntigravityResponse(chunk, state) {
 
   // Finish reason mapping
   if (finishReason) {
-    const reasonMap = {
-      [OPENAI_FINISH.STOP]: GEMINI_FINISH.STOP,
-      [OPENAI_FINISH.LENGTH]: GEMINI_FINISH.MAX_TOKENS,
-      [OPENAI_FINISH.TOOL_CALLS]: GEMINI_FINISH.STOP,
-      [OPENAI_FINISH.CONTENT_FILTER]: GEMINI_FINISH.SAFETY
-    };
-    candidate.finishReason = reasonMap[finishReason] || GEMINI_FINISH.STOP;
+    candidate.finishReason = fromOpenAIFinish(finishReason, FORMATS.GEMINI);
   }
 
   // Build response
@@ -102,24 +135,14 @@ export function openaiToAntigravityResponse(chunk, state) {
     responseId: state._responseId
   };
 
-  // Usage metadata
   const usage = chunk.usage || state._usage;
-  if (usage) {
-    response.usageMetadata = {
-      promptTokenCount: usage.prompt_tokens || 0,
-      candidatesTokenCount: usage.completion_tokens || 0,
-      totalTokenCount: usage.total_tokens || 0
-    };
-    if (usage.completion_tokens_details?.reasoning_tokens) {
-      response.usageMetadata.thoughtsTokenCount = usage.completion_tokens_details.reasoning_tokens;
-    }
-    if (usage.prompt_tokens_details?.cached_tokens) {
-      response.usageMetadata.cachedContentTokenCount = usage.prompt_tokens_details.cached_tokens;
-    }
-  }
+  if (usage) response.usageMetadata = toGeminiUsage(usage);
 
-  return { response };
+  return state.sourceFormat === FORMATS.GEMINI || state.sourceFormat === FORMATS.VERTEX ? response : { response };
 }
 
 // Register
 register(FORMATS.OPENAI, FORMATS.ANTIGRAVITY, null, openaiToAntigravityResponse);
+register(FORMATS.OPENAI, FORMATS.GEMINI, null, openaiToAntigravityResponse);
+register(FORMATS.OPENAI, FORMATS.GEMINI_CLI, null, openaiToAntigravityResponse);
+register(FORMATS.OPENAI, FORMATS.VERTEX, null, openaiToAntigravityResponse);

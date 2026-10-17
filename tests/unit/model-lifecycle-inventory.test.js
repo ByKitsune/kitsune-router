@@ -104,6 +104,37 @@ describe("whole-catalog lifecycle inventory", () => {
     expect(report.rows.map((row) => row.disposition)).toEqual(["modelsdev-deprecated-candidate", "unverified", "unverified"]);
   });
 
+  it.each([
+    ["kimi", "kimi-code-plan-cn", "kimi-code-plan-global"],
+    ["vertex-partner", "google-vertex", "google-vertex-anthropic"],
+    ["github", "github-copilot", "github-models"],
+  ])("joins default %s inventory to its exact catalog product", (provider, expectedProduct, unrelatedProduct) => {
+    const report = buildLifecycleInventory({
+      registry: [{ id: provider, models: [{ id: "shared" }] }],
+      modelsDev: {
+        [expectedProduct]: { models: { shared: { status: "active" } } },
+        [unrelatedProduct]: { models: { shared: { status: "deprecated" } } },
+      },
+      officialEvidence: [],
+    });
+    expect(report.rows[0]).toMatchObject({
+      disposition: "unverified", shutdownConfirmed: false,
+      modelsDev: { provider: expectedProduct, status: "exact-match", deprecated: false },
+    });
+  });
+
+  it("does not classify Claude Code using native Anthropic retirement flags", () => {
+    const report = buildLifecycleInventory({
+      registry: [{ id: "claude", models: [{ id: "shared" }] }],
+      modelsDev: { anthropic: { models: { shared: { status: "deprecated" } } } },
+      officialEvidence: [],
+    });
+    expect(report.rows[0]).toMatchObject({
+      disposition: "unverified", shutdownConfirmed: false,
+      modelsDev: { provider: null, status: "provider-unmapped" },
+    });
+  });
+
   it.each([{ status: "deprecated" }, { deprecated: true }])("treats models.dev deprecation as a candidate, not confirmed retirement (%j)", (record) => {
     const report = fixture({ providerModels: { v: [{ id: "model" }] }, modelsDev: { vendor: { models: { model: record } } } });
     expect(report.rows[0]).toMatchObject({ disposition: "modelsdev-deprecated-candidate", needsCorroboration: true, shutdownConfirmed: false });

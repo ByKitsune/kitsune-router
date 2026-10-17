@@ -104,3 +104,28 @@ describe("researched Go additions dispatch to documented endpoint", () => {
     });
   }
 });
+
+describe("native OpenAI Pro endpoint declaration", () => {
+  it("translates GPT-5 Pro Chat Completions input onto the Responses-only endpoint", async () => {
+    // https://developers.openai.com/api/docs/models/gpt-5-pro.md
+    let captured;
+    executeMock.mockImplementationOnce(async args => {
+      const executor = new DefaultExecutor("openai");
+      captured = { url: executor.buildUrl(args.model, false, 0, args.credentials), body: args.body };
+      return {
+        response: new Response(JSON.stringify({ error: { message: "offline transport captured" } }), { status: 400, headers: { "content-type": "application/json" } }),
+        transformedBody: args.body,
+      };
+    });
+    await handleChatCore({
+      body: { model: "gpt-5-pro", messages: [{ role: "user", content: "hi" }], max_tokens: 16, stream: false },
+      modelInfo: { provider: "openai", model: "gpt-5-pro" },
+      credentials: { apiKey: "offline-fixture", providerSpecificData: {} },
+      connectionId: "openai-pro-offline", sourceFormatOverride: "openai",
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    });
+    expect(captured.url).toBe("https://api.openai.com/v1/responses");
+    expect(captured.body).toHaveProperty("input");
+    expect(captured.body).not.toHaveProperty("messages");
+  });
+});

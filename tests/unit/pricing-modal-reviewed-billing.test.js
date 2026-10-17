@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { getProviderIdentityTokens } from "../../open-sse/providers/identity.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -15,7 +16,7 @@ const code = babel.transformSync(readFileSync(filename, "utf8"), {
 
 // Execute the actual component, including loading effects and rendered event
 // callbacks. Only React scheduling, network, and imported catalog data are seams.
-function fixture(data, metadata = {}, { fallback = false } = {}) {
+function fixture(data, metadata = {}, { fallback = false, overrides = {} } = {}) {
   const slots = [];
   const effects = [];
   let cursor = 0;
@@ -25,6 +26,11 @@ function fixture(data, metadata = {}, { fallback = false } = {}) {
       if (!(slot in slots)) slots[slot] = initial;
       return [slots[slot], (value) => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }];
     },
+    useRef(initial) {
+      const slot = cursor++;
+      if (!(slot in slots)) slots[slot] = { current: initial };
+      return slots[slot];
+    },
     useEffect(effect, deps) {
       const slot = cursor++;
       if (!slots[slot] || deps.some((dep, index) => !Object.is(dep, slots[slot][index]))) {
@@ -33,7 +39,7 @@ function fixture(data, metadata = {}, { fallback = false } = {}) {
       }
     },
   };
-  const fetch = vi.fn(async (_url, options) => ({ ok: !!options || !fallback, json: async () => data }));
+  const fetch = vi.fn(async (url, options) => ({ ok: !!options || !fallback, json: async () => url.includes("view=overrides") ? overrides : data }));
   const props = { isOpen: true, onClose: vi.fn(), onSave: vi.fn() };
   const jsx = (type, props) => ({ type, props: props || {} });
   const fixtureModule = { exports: {} };
@@ -45,6 +51,7 @@ function fixture(data, metadata = {}, { fallback = false } = {}) {
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "open-sse/providers/pricing.js") return { getDefaultPricing: () => data };
       if (id === "open-sse/providers/metadata/reviewed.js") return { getReviewedModelMetadata: (provider, model) => metadata[provider]?.[model] ?? null };
+      if (id === "open-sse/providers/identity.js") return { getProviderIdentityTokens };
       throw new Error(`Unexpected fixture import: ${id}`);
     },
   }, { filename });
@@ -80,34 +87,10 @@ function fields(tree, model) {
 const sample = () => ({ fixture: { "known-model": { input: 1.5, output: 6, cached: 0 } } });
 
 describe("PricingModal reviewed billing behavior", () => {
-  it.each([
-    ["time-dependent-payg", "per_1000000_tokens", "Off-peak tariff only; peak prices differ."],
-    ["plan", "subscription", "Subscription access is not a per-token debit."],
-    ["media", "per_second", "Video billed per second, not per token."],
-    ["estimate", "per_image", "Image estimate varies with resolution."],
-  ])("discloses %s scope, native units and provenance without putting metadata in PATCH", async (kind, unit, note) => {
-    const data = { ...sample(), custom: { "unreviewed-model": { input: 3 } } };
-    const source = "https://example.com/official-pricing";
-    const modal = fixture(data, { fixture: { "known-model": { billing: { kind, unit, currency: "USD", note, rates: { native: 0.1 } }, sources: [source] } } });
-    const tree = await modal.mount();
-    expect(text(tree)).toMatch(/USD per million tokens/);
-    expect(text(tree)).toMatch(/estimates.*not.*upstream invoice/i);
-    expect(text(tree)).toMatch(/subscriptions.*media units.*not equivalent/i);
-    const row = nodes(tree).find((node) => node.type === "tr" && text(node).includes("known-model"));
-    expect(text(row)).toContain(kind.replaceAll("_", " "));
-    expect(text(row)).toContain(unit.replaceAll("_", " "));
-    expect(text(row)).toContain(note);
-    const link = nodes(row).find((node) => node.type === "a" && node.props.href === source);
-    expect(link).toBeTruthy();
-    expect(text(link)).toMatch(/source/i);
-    expect(text(tree)).toMatch(/billing scope unverified/i);
-    await modal.save();
-    expect(modal.payload()).toEqual(data);
-  });
-  it.each([false, true])("edits immutable fetched/default rows and omits cleared tariffs without fabricating zero (fallback=%s)", async (fallback) => {
+  it("edits explicit saved rows and clears an override without fabricating zero", async () => {
     const data = sample();
     const original = structuredClone(data);
-    const modal = fixture(data, {}, { fallback });
+    const modal = fixture(data, {}, { overrides: data });
     let tree = await modal.mount();
     fields(tree, "known-model")[0].props.onChange({ target: { value: "2.75" } });
     tree = modal.render();
@@ -125,23 +108,53 @@ describe("PricingModal reviewed billing behavior", () => {
     expect(modal.payload()).toEqual({ fixture: { "known-model": { output: 6, cached: 0, cache_creation: 0 } } });
     expect(data).toEqual(original);
   });
-  it("renders unspecified tariffs as blank with accessible labels and preserves absent fields on save", async () => {
+  it("edits hourly cache writes, including zero, without changing the default TTL or saved tier", async () => {
+    const data = { fixture: { "known-model": {
+      input: 1.5, cache_creation: 2.5, cache_creation_1h: 4,
+      tier: { threshold: 200000, inclusive: true, input: 3, cache_creation_1h: 8 },
+    } } };
+    const original = structuredClone(data);
+    const modal = fixture(data, {}, { overrides: data });
+    let tree = await modal.mount();
+    expect(fields(tree, "known-model")[4].props.value).toBe(2.5);
+    expect(fields(tree, "known-model")[5].props.value).toBe(4);
+    fields(tree, "known-model")[5].props.onChange({ target: { value: "0" } });
+    tree = modal.render();
+    expect(fields(tree, "known-model")[5].props.value).toBe(0);
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "known-model": {
+      input: 1.5, cache_creation: 2.5, cache_creation_1h: 0,
+      tier: { threshold: 200000, inclusive: true, input: 3, cache_creation_1h: 8 },
+    } } });
+    expect(data).toEqual(original);
+  });
+  it("keeps unspecified rates unset when editing a different component", async () => {
     const data = sample();
     const modal = fixture(data);
     const tree = await modal.mount();
     const inputs = fields(tree, "known-model");
-    expect(inputs.map((input) => input.props.value)).toEqual([1.5, 6, 0, "", ""]);
-    for (const input of inputs) {
-      expect(input.props.placeholder).toBe("Not specified");
-      const label = nodes(tree).find((node) => node.type === "label" && (node.props.htmlFor === input.props.id && input.props.id || nodes(node).includes(input)));
-      expect(text(label)).toContain("known-model");
-      expect(text(label)).toMatch(/input|output|cached|reasoning|cache creation/i);
-      expect(nodes(tree).some((node) => node.props.id === input.props["aria-describedby"])).toBe(true);
-    }
+    expect(inputs.map((input) => input.props.value)).toEqual([1.5, 6, 0, "", "", ""]);
+    inputs[0].props.onChange({ target: { value: "2" } });
     await modal.save();
-    expect(modal.payload()).toEqual(data);
+    expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 2 } } });
     expect(modal.payload().fixture["known-model"]).not.toHaveProperty("cache_creation");
-    expect(modal.props.onSave).toHaveBeenCalledOnce();
-    expect(modal.props.onClose).toHaveBeenCalledOnce();
+  });
+  it("does not concretize inherited reasoning or tier rates when editing an hourly fee", async () => {
+    const data = { anthropic: { "claude-haiku-5-5": {
+      input: 0.1, output: 0.5, reasoning: 0.5, cached: null, cache_creation_1h: 0.2,
+      tier: { threshold: 100000, input: 0.5, output: 2.5 },
+    } } };
+    const modal = fixture(data, {}, { overrides: { anthropic: { "claude-haiku-5-5": { cached: null } } } });
+    const tree = await modal.mount();
+    fields(tree, "claude-haiku-5-5")[5].props.onChange({ target: { value: "1.25" } });
+    await modal.save();
+    expect(modal.payload()).toEqual({ anthropic: { "claude-haiku-5-5": { cached: null, cache_creation_1h: 1.25 } } });
+  });
+
+  it("keeps the editor read-only when either pricing view cannot be loaded", async () => {
+    const modal = fixture(sample(), {}, { fallback: true });
+    const tree = await modal.mount();
+    expect(nodes(tree).find(node => node.props.role === "alert")).toBeDefined();
+    expect(nodes(tree).find(node => node.type === "button" && text(node) === "Save Changes").props.disabled).toBe(true);
   });
 });

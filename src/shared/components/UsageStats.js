@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FREE_PROVIDERS, AI_PROVIDERS } from "@/shared/constants/providers";
+import { addNullableCost } from "@/shared/utils/cost.js";
 
 // Keep providers without serviceKinds (default LLM) or with "llm" in serviceKinds
 function isLLMProvider(id) {
@@ -90,36 +91,46 @@ function RecentRequests({ requests = [] }) {
   );
 }
 
+function estimateLegacyComponentCost(tokens, totalTokens, totalCost) {
+  if (tokens === 0 || totalTokens === 0) return 0;
+  return totalCost === null ? null : tokens * (totalCost / totalTokens);
+}
+
+function compareUsageData(a, b, sortBy, sortOrder) {
+  let valA = a[sortBy];
+  let valB = b[sortBy];
+  if (sortBy === "cost" || sortBy.endsWith("Cost")) {
+    if (valA === null && valB !== null) return 1;
+    if (valB === null && valA !== null) return -1;
+  }
+  if (typeof valA === "string") valA = valA.toLowerCase();
+  if (typeof valB === "string") valB = valB.toLowerCase();
+  if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+  if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+  return 0;
+}
+
 function sortData(dataMap, pendingMap = {}, sortBy, sortOrder) {
   return Object.entries(dataMap || {})
     .map(([key, data]) => {
       const totalTokens = (data.promptTokens || 0) + (data.completionTokens || 0);
-      const totalCost = data.cost || 0;
-      // Exact component cost breakdown when recorded; fallback to token share only for legacy rows without stored rates
+      const totalCost = data.totalCost !== undefined ? data.totalCost : data.cost === undefined ? 0 : data.cost;
+      const cachedTokens = data.cachedTokens || 0;
+      const nonCachedInput = Math.max(0, (data.promptTokens || 0) - cachedTokens);
       const hasStoredComponentCosts = data.inputCost !== undefined && data.outputCost !== undefined;
-      let inputCost, cachedCost, outputCost;
-      if (hasStoredComponentCosts) {
-        inputCost = data.inputCost || 0;
-        cachedCost = data.cachedCost || 0;
-        outputCost = data.outputCost || 0;
-      } else {
-        const cachedTokens = data.cachedTokens || 0;
-        const nonCachedInput = Math.max(0, (data.promptTokens || 0) - cachedTokens);
-        inputCost = totalTokens > 0 ? nonCachedInput * (totalCost / totalTokens) : 0;
-        cachedCost = totalTokens > 0 ? cachedTokens * (totalCost / totalTokens) : 0;
-        outputCost = totalTokens > 0 ? (data.completionTokens || 0) * (totalCost / totalTokens) : 0;
-      }
-      return { ...data, key, totalTokens, totalCost, inputCost, cachedCost, outputCost, pending: pendingMap[key] || 0 };
+      // Preserve recorded components, including null; estimate only absent legacy fields.
+      const inputCost = data.inputCost !== undefined
+        ? data.inputCost
+        : estimateLegacyComponentCost(nonCachedInput, totalTokens, totalCost);
+      const cachedCost = data.cachedCost !== undefined
+        ? data.cachedCost
+        : hasStoredComponentCosts ? 0 : estimateLegacyComponentCost(cachedTokens, totalTokens, totalCost);
+      const outputCost = data.outputCost !== undefined
+        ? data.outputCost
+        : estimateLegacyComponentCost(data.completionTokens || 0, totalTokens, totalCost);
+      return { ...data, key, totalTokens, cost: totalCost, totalCost, inputCost, cachedCost, outputCost, pending: pendingMap[key] || 0 };
     })
-    .sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
-      if (typeof valA === "string") valA = valA.toLowerCase();
-      if (typeof valB === "string") valB = valB.toLowerCase();
-      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
-      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
+    .sort((a, b) => compareUsageData(a, b, sortBy, sortOrder));
 }
 
 function getGroupKey(item, keyField) {
@@ -132,7 +143,7 @@ function getGroupKey(item, keyField) {
   }
 }
 
-function groupDataByKey(data, keyField) {
+function groupDataByKey(data, keyField, sortBy, sortOrder) {
   if (!Array.isArray(data)) return [];
   const groups = {};
   data.forEach((item) => {
@@ -140,7 +151,7 @@ function groupDataByKey(data, keyField) {
     if (!groups[gk]) {
       groups[gk] = {
         groupKey: gk,
-        summary: { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, totalTokens: 0, cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0, lastUsed: null, pending: 0 },
+        summary: { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, totalTokens: 0, cost: 0, totalCost: 0, inputCost: 0, cachedCost: 0, outputCost: 0, lastUsed: null, pending: 0 },
         items: [],
       };
     }
@@ -150,17 +161,22 @@ function groupDataByKey(data, keyField) {
     s.completionTokens += item.completionTokens || 0;
     s.cachedTokens += item.cachedTokens || 0;
     s.totalTokens += item.totalTokens || 0;
-    s.cost += item.cost || 0;
-    s.inputCost += item.inputCost || 0;
-    s.cachedCost += item.cachedCost || 0;
-    s.outputCost += item.outputCost || 0;
+    s.cost = addNullableCost(s.cost, item.totalCost);
+    s.totalCost = s.cost;
+    s.inputCost = addNullableCost(s.inputCost, item.inputCost);
+    s.cachedCost = addNullableCost(s.cachedCost, item.cachedCost);
+    s.outputCost = addNullableCost(s.outputCost, item.outputCost);
     s.pending += item.pending || 0;
     if (item.lastUsed && (!s.lastUsed || new Date(item.lastUsed) > new Date(s.lastUsed))) {
       s.lastUsed = item.lastUsed;
     }
     groups[gk].items.push(item);
   });
-  return Object.values(groups);
+  const grouped = Object.values(groups);
+  if (sortBy === "cost" || sortBy.endsWith("Cost")) {
+    grouped.sort((a, b) => compareUsageData(a.summary, b.summary, sortBy, sortOrder));
+  }
+  return grouped;
 }
 
 const MODEL_COLUMNS = [
@@ -333,7 +349,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         const pendingMap = stats.pending?.byModel || {};
         return {
           columns: MODEL_COLUMNS,
-          groupedData: groupDataByKey(sortData(stats.byModel, pendingMap, sortBy, sortOrder), "rawModel"),
+          groupedData: groupDataByKey(sortData(stats.byModel, pendingMap, sortBy, sortOrder), "rawModel", sortBy, sortOrder),
           storageKey: "usage-stats:expanded-models",
           emptyMessage: "No usage recorded yet.",
           renderSummaryCells: (group) => (
@@ -366,7 +382,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         }
         return {
           columns: ACCOUNT_COLUMNS,
-          groupedData: groupDataByKey(sortData(stats.byAccount, pendingMap, sortBy, sortOrder), "accountName"),
+          groupedData: groupDataByKey(sortData(stats.byAccount, pendingMap, sortBy, sortOrder), "accountName", sortBy, sortOrder),
           storageKey: "usage-stats:expanded-accounts",
           emptyMessage: "No account-specific usage recorded yet.",
           renderSummaryCells: (group) => (
@@ -391,7 +407,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       case "apiKey": {
         return {
           columns: API_KEY_COLUMNS,
-          groupedData: groupDataByKey(sortData(stats.byApiKey, {}, sortBy, sortOrder), "keyName"),
+          groupedData: groupDataByKey(sortData(stats.byApiKey, {}, sortBy, sortOrder), "keyName", sortBy, sortOrder),
           storageKey: "usage-stats:expanded-apikeys",
           emptyMessage: "No API key usage recorded yet.",
           renderSummaryCells: (group) => (
@@ -417,7 +433,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       default: {
         return {
           columns: ENDPOINT_COLUMNS,
-          groupedData: groupDataByKey(sortData(stats.byEndpoint, {}, sortBy, sortOrder), "endpoint"),
+          groupedData: groupDataByKey(sortData(stats.byEndpoint, {}, sortBy, sortOrder), "endpoint", sortBy, sortOrder),
           storageKey: "usage-stats:expanded-endpoints",
           emptyMessage: "No endpoint usage recorded yet.",
           renderSummaryCells: (group) => (

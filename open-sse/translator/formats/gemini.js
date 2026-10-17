@@ -1,7 +1,9 @@
 // Gemini helper functions for translator
 
 import { safeParseJSON } from "../concerns/json.js";
-import { OPENAI_BLOCK } from "../schema/index.js";
+import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
+import { OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
+import { collapseTextParts } from "../concerns/message.js";
 
 // Unsupported JSON Schema constraints that should be removed for Antigravity
 export const UNSUPPORTED_SCHEMA_CONSTRAINTS = [
@@ -61,6 +63,7 @@ export function convertOpenAIContentToParts(content) {
     }
   } else if (Array.isArray(content)) {
     for (const item of content) {
+      const start = parts.length;
       if (item.type === OPENAI_BLOCK.TEXT && item.text && item.text.trim() !== "") {
         parts.push({ text: item.text });
       } else if (item.type === OPENAI_BLOCK.IMAGE_URL && item.image_url?.url?.startsWith("data:")) {
@@ -77,7 +80,7 @@ export function convertOpenAIContentToParts(content) {
         }
       } else if (item.type === OPENAI_BLOCK.IMAGE_URL && item.image_url?.url && (item.image_url.url.startsWith("http://") || item.image_url.url.startsWith("https://"))) {
         parts.push({
-          fileData: { fileUri: item.image_url.url, mimeType: "image/*" }
+          fileData: { fileUri: item.image_url.url, mimeType: item.image_url.mime_type || item.image_url.mimeType || "image/*" }
         });
       } else if (item.type === OPENAI_BLOCK.INPUT_AUDIO && item.input_audio?.data) {
         const format = item.input_audio.format || "wav";
@@ -121,10 +124,140 @@ export function convertOpenAIContentToParts(content) {
         const mimeType = `video/${format}`;
         parts.push({ inlineData: { mime_type: mimeType, data: item.input_video.data } });
       }
+      const signature = item.extra_content?.google?.thought_signature;
+      if (parts.length > start && typeof signature === "string") {
+        parts.at(-1).thoughtSignature = signature;
+      }
     }
   }
 
   return parts;
+}
+
+// Native Google pivots must not join separately signed text Parts. Final Chat
+// lowering still applies its ordinary string-safe content policy afterward.
+export function collapseGeminiParts(parts) {
+  return parts.some(part => typeof part.extra_content?.google?.thought_signature === "string") ? parts : collapseTextParts(parts);
+}
+
+// Gemini's legacy Schema is an OpenAPI/protobuf dialect, not JSON Schema.
+export function geminiSchemaToJSONSchema(schema) {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) return schema;
+  const { nullable, enumDescriptions, propertyOrdering, ...result } = schema;
+  if (typeof result.type === "string") result.type = result.type.toLowerCase();
+  for (const key of ["properties", "$defs", "definitions", "patternProperties"]) {
+    if (result[key] && typeof result[key] === "object") {
+      result[key] = Object.fromEntries(Object.entries(result[key]).map(([name, child]) => [name, geminiSchemaToJSONSchema(child)]));
+    }
+  }
+  for (const key of ["items", "additionalProperties", "not"]) {
+    if (result[key] && typeof result[key] === "object") result[key] = geminiSchemaToJSONSchema(result[key]);
+  }
+  for (const key of ["anyOf", "oneOf", "allOf", "prefixItems"]) {
+    if (Array.isArray(result[key])) result[key] = result[key].map(geminiSchemaToJSONSchema);
+  }
+  if (nullable === true) {
+    if (result.type) result.type = [...new Set([...(Array.isArray(result.type) ? result.type : [result.type]), "null"])];
+    else return { anyOf: [result, { type: "null" }] };
+  }
+  return result;
+}
+
+export function copyGeminiRequestControls(result, request) {
+  const config = request.generationConfig || {};
+  if (config.topK !== undefined) result.top_k = config.topK;
+  if (config.seed !== undefined) result.seed = config.seed;
+  if (Array.isArray(config.stopSequences)) result.stop = [...config.stopSequences];
+  if (config.responseMimeType === "application/json") {
+    const schema = config.responseJsonSchema ?? (config.responseSchema ? geminiSchemaToJSONSchema(config.responseSchema) : undefined);
+    result.response_format = schema === undefined ? { type: "json_object" }
+      : { type: "json_schema", json_schema: { name: "response", schema } };
+  }
+  const choice = request.toolConfig?.functionCallingConfig;
+  if (!choice) return;
+  if (choice.mode === "NONE") result.tool_choice = "none";
+  else if (choice.mode === "ANY" && choice.allowedFunctionNames?.length === 1) {
+    result.tool_choice = { type: OPENAI_BLOCK.FUNCTION, function: { name: choice.allowedFunctionNames[0] } };
+  } else if (["ANY", "AUTO", "VALIDATED"].includes(choice.mode)) {
+    const mode = choice.mode === "ANY" ? "required" : "auto";
+    result.tool_choice = choice.allowedFunctionNames?.length ? {
+      type: "allowed_tools", allowed_tools: { mode, tools: choice.allowedFunctionNames.map(name => ({ type: OPENAI_BLOCK.FUNCTION, function: { name } })) },
+    } : mode;
+  }
+}
+
+// Called on Core's private request clone, including native passthrough. Only
+// recognized legacy media arrays are lowered; ordinary Structs stay untouched.
+export function normalizeGeminiToolResultMedia(body) {
+  const request = body?.request || body;
+  let count = 0;
+  for (const turn of request?.contents || []) {
+    if (!Array.isArray(turn.parts)) continue;
+    for (let index = 0; index < turn.parts.length; index++) {
+      const response = turn.parts[index].functionResponse;
+      if (!Array.isArray(response?.response?.result)) continue;
+      const parts = [];
+      const remaining = [];
+      for (const item of response.response.result) {
+        const normalized = normalizeMediaPart(item);
+        const converted = normalized ? convertOpenAIContentToParts([normalized]) : [];
+        if (converted.length) parts.push(...converted);
+        else remaining.push(item);
+      }
+      if (!parts.length) continue;
+      response.response.result = remaining.every(item => typeof item === "string" || item?.type === OPENAI_BLOCK.TEXT)
+        ? splitToolResultContent(remaining).text : remaining;
+      // Adjacent Content parts work on older Gemini models too. Do not append
+      // to caller-native FunctionResponse.parts, whose support is model-specific.
+      turn.parts.splice(index + 1, 0, ...parts);
+      index += parts.length;
+      count += parts.length;
+    }
+  }
+  return count;
+}
+
+// Tool JSON remains a Struct; recognized content blocks put media beside it.
+export function convertToolResultToGemini(content, isError = false) {
+  let value = content ?? "";
+  let media = [];
+  if (Array.isArray(value) || normalizeMediaPart(value)) {
+    const split = splitToolResultContent(value);
+    if (split.media.length || (Array.isArray(value) && value.some(part => part?.type === OPENAI_BLOCK.TEXT))) {
+      value = split.text;
+      media = split.media;
+    }
+  }
+  const markedError = typeof value === "string" && value.startsWith(TOOL_ERROR_PREFIX);
+  // A replayed error wrapper must remain a Struct rather than accumulating
+  // another JSON string at every Claude/Gemini hop. Plain traces keep their marker.
+  const errorValue = markedError ? tryParseJSON(value.slice(TOOL_ERROR_PREFIX.length)) : null;
+  let response = errorValue && typeof errorValue === "object" && Object.hasOwn(errorValue, "error") ? errorValue : tryParseJSON(value);
+  isError ||= markedError;
+  if (response === null || typeof response !== "object") response = { result: value };
+  else if (Array.isArray(response)) response = { result: response };
+  if (isError && !Object.hasOwn(response, "error")) response = { ...response, error: true };
+  return { response, parts: convertOpenAIContentToParts(media) };
+}
+
+// Keep the complete response wrapper so JSON-looking strings, falsy results and
+// sibling metadata survive another OpenAI -> Gemini hop without quote growth.
+export function convertGeminiFunctionResponseContent(functionResponse) {
+  let response = functionResponse.response ?? {};
+  let media = [];
+  if (Array.isArray(response.result)) {
+    const split = splitToolResultContent(response.result);
+    if (split.media.length) {
+      response = { ...response, result: split.text };
+      media = split.media;
+    }
+  }
+  for (const part of functionResponse.parts || []) {
+    const normalized = normalizeMediaPart(part);
+    if (normalized) media.push(normalized);
+  }
+  const text = JSON.stringify(response);
+  return media.length ? [{ type: OPENAI_BLOCK.TEXT, text }, ...media] : text;
 }
 
 // Extract text content from OpenAI content

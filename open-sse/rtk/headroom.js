@@ -1,11 +1,8 @@
-import { claudeToOpenAIRequest } from "../translator/request/claude-to-openai.js";
-import { openaiToClaudeRequest } from "../translator/request/openai-to-claude.js";
-import {
-  openaiResponsesToOpenAIRequest,
-  openaiToOpenAIResponsesRequest,
-} from "../translator/request/openai-responses.js";
+import { FORMATS } from "../translator/formats.js";
+import { ROLE, GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../translator/schema/index.js";
 
 const DEFAULT_TIMEOUT_MS = 3000;
+const byteEncoder = typeof Buffer === "undefined" ? new TextEncoder() : null;
 
 function normalizeTimeout(value) {
   return typeof value === "number" && Number.isFinite(value) && value > 0
@@ -15,7 +12,8 @@ function normalizeTimeout(value) {
 
 function jsonBytes(value) {
   try {
-    return new TextEncoder().encode(JSON.stringify(value) || "").length;
+    const json = JSON.stringify(value) || "";
+    return byteEncoder ? byteEncoder.encode(json).length : Buffer.byteLength(json, "utf8");
   } catch {
     return 0;
   }
@@ -93,75 +91,142 @@ function maskEndpoint(endpoint) {
   }
 }
 
-function collectResponsesHeadroomMessages(body) {
-  if (!Array.isArray(body?.input)) return null;
+const CHAT_TEXT_TYPES = [OPENAI_BLOCK.TEXT];
+const RESPONSES_TEXT_TYPES = [RESPONSES_ITEM.INPUT_TEXT, RESPONSES_ITEM.OUTPUT_TEXT];
 
-  const messages = [];
-  const targets = [];
+function isErrorResult(result) {
+  return result?.is_error === true || result?.status === "error";
+}
 
-  for (const item of body.input) {
-    if (!item || typeof item !== "object") continue;
-    const itemType = item.type || (item.role ? "message" : null);
+function addTextTarget(projection, role, object, key, extra = {}) {
+  const text = object?.[key];
+  if (typeof text !== "string") return;
+  if (role === ROLE.TOOL && text.startsWith(TOOL_ERROR_PREFIX)) return;
+  projection.messages.push({ role, content: text, ...extra });
+  projection.targets.push({ object, key });
+}
 
-    // 1. Regular message text
-    if (itemType === "message") {
-      const role = item.role || "user";
-      if (typeof item.content === "string") {
-        messages.push({ role, content: item.content });
-        targets.push({ object: item, key: "content" });
-      } else if (Array.isArray(item.content)) {
-        for (const part of item.content) {
-          if (part && (part.type === "input_text" || part.type === "output_text") && typeof part.text === "string") {
-            messages.push({ role, content: part.text });
-            targets.push({ object: part, key: "text" });
-          }
-        }
-      }
+function addContentTargets(projection, role, object, key, textTypes, extra = {}) {
+  const content = object?.[key];
+  if (typeof content === "string") {
+    addTextTarget(projection, role, object, key, extra);
+    return;
+  }
+  const parts = Array.isArray(content) ? content : content ? [content] : [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (typeof part === "string") {
+      addTextTarget(projection, role, parts, i, extra);
+    } else if (textTypes.includes(part?.type)) {
+      addTextTarget(projection, role, part, "text", extra);
     }
-    // 2. Tool outputs (function_call_output & custom_tool_call_output)
-    else if (itemType === "function_call_output" || itemType === "custom_tool_call_output") {
-      if (typeof item.output === "string") {
-        messages.push({ role: "tool", content: item.output, ...(item.call_id ? { tool_call_id: item.call_id } : {}) });
-        targets.push({ object: item, key: "output" });
-      } else if (Array.isArray(item.output)) {
-        for (const part of item.output) {
-          if (part && (part.type === "input_text" || part.type === "output_text") && typeof part.text === "string") {
-            messages.push({ role: "tool", content: part.text, ...(item.call_id ? { tool_call_id: item.call_id } : {}) });
-            targets.push({ object: part, key: "text" });
-          }
-        }
+  }
+}
+
+function collectChatHeadroomMessages(body, claude) {
+  const items = Array.isArray(body?.messages) ? body.messages
+    : !claude && Array.isArray(body?.input) ? body.input
+    : null;
+  if (!items) return null;
+
+  const projection = { messages: [], targets: [] };
+  if (claude) addContentTargets(projection, ROLE.SYSTEM, body, "system", CHAT_TEXT_TYPES);
+
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const role = item.role || ROLE.USER;
+    if (isErrorResult(item)) continue;
+
+    if (!claude) {
+      const extra = {
+        ...(item.tool_call_id ? { tool_call_id: item.tool_call_id } : {}),
+        ...(item.name ? { name: item.name } : {}),
+        ...(item.tool_calls ? { tool_calls: item.tool_calls } : {}),
+      };
+      addContentTargets(projection, role, item, "content", CHAT_TEXT_TYPES, extra);
+      continue;
+    }
+
+    if (typeof item.content === "string") {
+      addTextTarget(projection, role, item, "content");
+      continue;
+    }
+    const blocks = Array.isArray(item.content) ? item.content : item.content ? [item.content] : [];
+    for (const block of blocks) {
+      if (block?.type === CLAUDE_BLOCK.TEXT) {
+        addTextTarget(projection, role, block, "text");
+      } else if (block?.type === CLAUDE_BLOCK.TOOL_RESULT || block?.type === CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT) {
+        if (isErrorResult(block)) continue;
+        addContentTargets(projection, ROLE.TOOL, block, "content", CHAT_TEXT_TYPES,
+          block.tool_use_id ? { tool_call_id: block.tool_use_id } : {});
       }
     }
   }
-
-  return messages.length > 0 ? { messages, targets } : null;
+  return projection.messages.length > 0 ? projection : null;
 }
 
-function applyResponsesHeadroomMessages(projection, compressedMessages, diagnostics) {
+function collectResponsesHeadroomMessages(body) {
+  if (!Array.isArray(body?.input)) return null;
+  const projection = { messages: [], targets: [] };
+
+  for (const item of body.input) {
+    if (!item || typeof item !== "object" || isErrorResult(item)) continue;
+    const itemType = item.type || (item.role ? RESPONSES_ITEM.MESSAGE : null);
+    if (itemType === RESPONSES_ITEM.MESSAGE) {
+      addContentTargets(projection, item.role || ROLE.USER, item, "content", RESPONSES_TEXT_TYPES);
+    } else if (itemType === RESPONSES_ITEM.FUNCTION_CALL_OUTPUT || itemType === RESPONSES_ITEM.CUSTOM_TOOL_CALL_OUTPUT) {
+      addContentTargets(projection, ROLE.TOOL, item, "output", RESPONSES_TEXT_TYPES,
+        item.call_id ? { tool_call_id: item.call_id } : {});
+    }
+  }
+  return projection.messages.length > 0 ? projection : null;
+}
+
+function hasSameToolIdentity(expected, actual) {
+  for (const key of ["tool_call_id", "name"]) {
+    if (expected[key] !== undefined && actual[key] !== expected[key]) return false;
+  }
+  if (!expected.tool_calls) return true;
+  if (!Array.isArray(actual.tool_calls) || actual.tool_calls.length !== expected.tool_calls.length) return false;
+  return expected.tool_calls.every((call, index) => {
+    const returned = actual.tool_calls[index];
+    return returned?.id === call.id
+      && returned?.type === call.type
+      && returned?.function?.name === call.function?.name
+      && returned?.name === call.name;
+  });
+}
+
+function applyHeadroomMessages(projection, compressedMessages, diagnostics, label) {
   if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
-    setDiagnostic(diagnostics, "proxy response did not match Responses message count");
+    setDiagnostic(diagnostics, `proxy response did not match ${label} message count`);
     return false;
   }
 
-  const updates = [];
+  const texts = [];
   for (let i = 0; i < projection.messages.length; i++) {
     const expected = projection.messages[i];
     const actual = compressedMessages[i];
     if (!actual || actual.role !== expected.role) {
-      setDiagnostic(diagnostics, "proxy response did not preserve Responses message order/role");
+      setDiagnostic(diagnostics, `proxy response did not preserve ${label} message ${label === "Kiro" ? "order" : "order/role"}`);
       return false;
     }
-
+    if (!hasSameToolIdentity(expected, actual)) {
+      setDiagnostic(diagnostics, `proxy response did not preserve ${label} tool identity/order`);
+      return false;
+    }
     const text = textFromHeadroomMessage(actual);
     if (text === null) {
-      setDiagnostic(diagnostics, "proxy response missing Responses text content");
+      setDiagnostic(diagnostics, `proxy response missing ${label} text content`);
       return false;
     }
-    updates.push({ target: projection.targets[i], text });
+    texts.push(text);
   }
 
-  for (const update of updates) {
-    update.target.object[update.target.key] = update.text;
+  // Validate the complete response before changing any original text leaf.
+  for (let i = 0; i < projection.targets.length; i++) {
+    const target = projection.targets[i];
+    target.object[target.key] = texts[i];
   }
   return true;
 }
@@ -169,21 +234,13 @@ function applyResponsesHeadroomMessages(projection, compressedMessages, diagnost
 function collectKiroHeadroomMessages(body) {
   const state = body?.conversationState;
   if (!state || typeof state !== "object") return null;
-
-  const messages = [];
-  const targets = [];
-
-  const addTextTarget = (role, text, target, extra = {}) => {
-    if (typeof text !== "string") return;
-    messages.push({ role, content: text, ...extra });
-    targets.push(target);
-  };
+  const projection = { messages: [], targets: [] };
 
   const toToolCalls = (toolUses) => {
     if (!Array.isArray(toolUses) || toolUses.length === 0) return undefined;
     const calls = toolUses.map((toolUse) => ({
       id: toolUse?.toolUseId,
-      type: "function",
+      type: OPENAI_BLOCK.FUNCTION,
       function: {
         name: toolUse?.name || "",
         arguments: JSON.stringify(toolUse?.input || {}),
@@ -195,21 +252,16 @@ function collectKiroHeadroomMessages(body) {
   const visit = (item) => {
     const user = item?.userInputMessage;
     if (user) {
-      addTextTarget("system", user.systemInstruction, { object: user, key: "systemInstruction" });
-      addTextTarget("user", user.content, { object: user, key: "content" });
+      addTextTarget(projection, ROLE.SYSTEM, user, "systemInstruction");
+      addTextTarget(projection, ROLE.USER, user, "content");
 
       const toolResults = user.userInputMessageContext?.toolResults;
       if (Array.isArray(toolResults)) {
         for (const toolResult of toolResults) {
-          const content = toolResult?.content;
-          if (!Array.isArray(content)) continue;
-          for (const part of content) {
-            addTextTarget(
-              "tool",
-              part?.text,
-              { object: part, key: "text" },
-              toolResult?.toolUseId ? { tool_call_id: toolResult.toolUseId } : {}
-            );
+          if (isErrorResult(toolResult) || !Array.isArray(toolResult?.content)) continue;
+          for (const part of toolResult.content) {
+            addTextTarget(projection, ROLE.TOOL, part, "text",
+              toolResult.toolUseId ? { tool_call_id: toolResult.toolUseId } : {});
           }
         }
       }
@@ -219,12 +271,7 @@ function collectKiroHeadroomMessages(body) {
     const assistant = item?.assistantResponseMessage;
     if (assistant) {
       const toolCalls = toToolCalls(assistant.toolUses);
-      addTextTarget(
-        "assistant",
-        assistant.content,
-        { object: assistant, key: "content" },
-        toolCalls ? { tool_calls: toolCalls } : {}
-      );
+      addTextTarget(projection, ROLE.ASSISTANT, assistant, "content", toolCalls ? { tool_calls: toolCalls } : {});
     }
   };
 
@@ -232,8 +279,7 @@ function collectKiroHeadroomMessages(body) {
     for (const item of state.history) visit(item);
   }
   if (state.currentMessage) visit(state.currentMessage);
-
-  return messages.length > 0 ? { messages, targets } : null;
+  return projection.messages.length > 0 ? projection : null;
 }
 
 function textFromHeadroomMessage(message) {
@@ -245,8 +291,10 @@ function textFromHeadroomMessage(message) {
   for (const part of content) {
     if (typeof part === "string") {
       parts.push(part);
-    } else if (typeof part?.text === "string") {
+    } else if (part?.type === OPENAI_BLOCK.TEXT && typeof part.text === "string") {
       parts.push(part.text);
+    } else {
+      return null;
     }
   }
   return parts.length > 0 ? parts.join("\n") : null;
@@ -255,98 +303,30 @@ function textFromHeadroomMessage(message) {
 function collectGeminiHeadroomMessages(body) {
   const contents = body?.request?.contents || body?.contents;
   if (!Array.isArray(contents) || contents.length === 0) return null;
-
-  const messages = [];
-  const targets = [];
+  const projection = { messages: [], targets: [] };
 
   for (const turn of contents) {
     if (!turn || !Array.isArray(turn.parts)) continue;
-    const role = turn.role === "model" ? "assistant" : "user";
+    const role = turn.role === GEMINI_ROLE.MODEL ? ROLE.ASSISTANT : ROLE.USER;
 
     for (const part of turn.parts) {
       if (!part || typeof part !== "object") continue;
-
-      // 1. Plain text parts
       if (typeof part.text === "string" && part.text.trim()) {
-        messages.push({ role, content: part.text });
-        targets.push({ object: part, key: "text" });
-      }
-      // 2. Function responses (tool execution outputs)
-      else if (part.functionResponse && typeof part.functionResponse === "object") {
-        const resp = part.functionResponse.response;
-        if (resp && typeof resp === "object") {
-          // Look for text-bearing fields (output, result, content, text)
-          for (const key of ["output", "result", "content", "text"]) {
-            if (typeof resp[key] === "string" && resp[key].trim()) {
-              messages.push({ role: "tool", content: resp[key] });
-              targets.push({ object: resp, key });
-              break;
-            }
+        addTextTarget(projection, role, part, "text");
+      } else if (part.functionResponse && typeof part.functionResponse === "object") {
+        const response = part.functionResponse.response;
+        if (!response || typeof response !== "object" || isErrorResult(response) || response.error != null) continue;
+        const toolCallId = part.functionResponse.id || part.functionResponse.name;
+        for (const key of ["output", "result", "content", "text"]) {
+          if (typeof response[key] === "string" && response[key].trim()) {
+            addTextTarget(projection, ROLE.TOOL, response, key, toolCallId ? { tool_call_id: toolCallId } : {});
+            break;
           }
         }
       }
     }
   }
-
-  return messages.length > 0 ? { messages, targets } : null;
-}
-
-function applyGeminiHeadroomMessages(projection, compressedMessages, diagnostics) {
-  if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
-    setDiagnostic(diagnostics, "proxy response did not match Gemini message count");
-    return false;
-  }
-
-  const updates = [];
-  for (let i = 0; i < projection.messages.length; i++) {
-    const expected = projection.messages[i];
-    const actual = compressedMessages[i];
-    if (!actual || actual.role !== expected.role) {
-      setDiagnostic(diagnostics, "proxy response did not preserve Gemini message order/role");
-      return false;
-    }
-
-    const text = textFromHeadroomMessage(actual);
-    if (text === null) {
-      setDiagnostic(diagnostics, "proxy response missing Gemini text content");
-      return false;
-    }
-    updates.push({ target: projection.targets[i], text });
-  }
-
-  for (const update of updates) {
-    update.target.object[update.target.key] = update.text;
-  }
-  return true;
-}
-
-function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) {
-  if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
-    setDiagnostic(diagnostics, "proxy response did not match Kiro message count");
-    return false;
-  }
-
-  const updates = [];
-  for (let i = 0; i < projection.messages.length; i++) {
-    const expected = projection.messages[i];
-    const actual = compressedMessages[i];
-    if (!actual || actual.role !== expected.role) {
-      setDiagnostic(diagnostics, "proxy response did not preserve Kiro message order");
-      return false;
-    }
-
-    const text = textFromHeadroomMessage(actual);
-    if (text === null) {
-      setDiagnostic(diagnostics, "proxy response missing Kiro text content");
-      return false;
-    }
-    updates.push({ target: projection.targets[i], text });
-  }
-
-  for (const update of updates) {
-    update.target.object[update.target.key] = update.text;
-  }
-  return true;
+  return projection.messages.length > 0 ? projection : null;
 }
 
 // POST messages to Headroom /v1/compress; returns compressed messages + stats or null.
@@ -379,9 +359,9 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
   return data;
 }
 
-// Compress request body via Headroom proxy. Fail-open: returns null on any error.
-// /v1/compress only understands OpenAI shape, so Claude bodies are translated
-// to OpenAI, compressed, then translated back using ZenRouter's own translators.
+// Compress only projected text leaves. Never round-trip provider history through
+// another wire format or trust a text proxy to return its media/tool structure.
+// Fail-open: invalid or failed compression leaves the original request untouched.
 export async function compressWithHeadroom(body, { enabled, url, model, format, compressUserMessages, timeoutMs = DEFAULT_TIMEOUT_MS, diagnostics = null } = {}) {
   timeoutMs = normalizeTimeout(timeoutMs);
   if (!enabled) {
@@ -400,83 +380,31 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
   try {
     if (diagnostics) diagnostics.before = captureSizeSnapshot(body);
 
-    // Claude shape: translate → OpenAI → compress → translate back.
-    if (format === "claude") {
-      const oai = claudeToOpenAIRequest(model, body, false);
-      if (!Array.isArray(oai?.messages)) {
-        setDiagnostic(diagnostics, "Claude request did not translate to messages[]");
-        return null;
-      }
-      const data = await callCompress(url, oai.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
-      if (!data) return null;
-      const claudeBody = openaiToClaudeRequest(model, { ...oai, messages: data.messages }, false);
-      if (Array.isArray(claudeBody?.messages)) body.messages = claudeBody.messages;
-      if (claudeBody?.system !== undefined) body.system = claudeBody.system;
-      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
-      return data;
+    let projection;
+    let label;
+    if (format === FORMATS.CLAUDE) {
+      projection = collectChatHeadroomMessages(body, true);
+      label = "Claude";
+    } else if (format === FORMATS.OPENAI_RESPONSES) {
+      projection = collectResponsesHeadroomMessages(body);
+      label = "Responses";
+    } else if (format === FORMATS.KIRO) {
+      projection = collectKiroHeadroomMessages(body);
+      label = "Kiro";
+    } else if (format === FORMATS.GEMINI || format === FORMATS.ANTIGRAVITY
+      || Array.isArray(body.request?.contents) || Array.isArray(body.contents)) {
+      projection = collectGeminiHeadroomMessages(body);
+      label = "Gemini";
+    } else {
+      projection = collectChatHeadroomMessages(body, false);
+      label = "OpenAI";
     }
-
-    // OpenAI Responses shape (Codex): body.input holds Responses items, NOT OpenAI
-    // messages. Project text and tool outputs to messages[] for the proxy, then copy
-    // back in-place into body.input. Keeps non-text/tool-call/reasoning items and IDs
-    // 100% intact without unsafe roundtrip translation. (#1998, #3571)
-    if (format === "openai-responses") {
-      const projection = collectResponsesHeadroomMessages(body);
-      if (!projection) {
-        setDiagnostic(diagnostics, "Responses request did not project to messages[]");
-        return null;
-      }
-      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
-      if (!data) return null;
-      if (!applyResponsesHeadroomMessages(projection, data.messages, diagnostics)) return null;
-      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
-      return data;
-    }
-
-    // Kiro shape: conversationState.history/currentMessage are projected to
-    // OpenAI messages for the proxy, then copied back into the original Kiro
-    // fields. Keep the provider payload shape intact for Kiro's executor.
-    if (format === "kiro") {
-      const projection = collectKiroHeadroomMessages(body);
-      if (!projection) {
-        setDiagnostic(diagnostics, "Kiro request did not project to messages[]");
-        return null;
-      }
-      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
-      if (!data) return null;
-      if (!applyKiroHeadroomMessages(projection, data.messages, diagnostics)) return null;
-      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
-      return data;
-    }
-
-    // Gemini / Antigravity shape: request.contents[].parts[] or contents[].parts[]
-    // Project plain text and functionResponse text leaves to messages[], then copy back (#4070).
-    const isGeminiShape = format === "gemini" || format === "antigravity"
-      || Array.isArray(body.request?.contents) || Array.isArray(body.contents);
-    if (isGeminiShape) {
-      const projection = collectGeminiHeadroomMessages(body);
-      if (!projection) {
-        setDiagnostic(diagnostics, "Gemini request did not project to messages[]");
-        return null;
-      }
-      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
-      if (!data) return null;
-      if (!applyGeminiHeadroomMessages(projection, data.messages, diagnostics)) return null;
-      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
-      return data;
-    }
-
-    // OpenAI shape: messages/input go straight to the proxy.
-    const key = Array.isArray(body.messages) ? "messages"
-      : Array.isArray(body.input) ? "input"
-      : null;
-    if (!key) {
-      setDiagnostic(diagnostics, `unsupported ${format || "unknown"} request shape`);
+    if (!projection) {
+      setDiagnostic(diagnostics, `${label} request did not project to messages[]`);
       return null;
     }
-    const data = await callCompress(url, body[key], model, timeoutMs, compressUserMessages, diagnostics || {});
-    if (!data) return null;
-    body[key] = data.messages;
+    const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
+    if (!data || !applyHeadroomMessages(projection, data.messages, diagnostics, label)) return null;
     if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
     return data;
   } catch (error) {

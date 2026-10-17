@@ -27,6 +27,12 @@ describe("custom model explicit token limits", () => {
     expect(saved.rows[0].caps).toEqual({ contextWindow: 500000, maxInput: 460000, maxOutput: 40000, vision: true });
   });
 
+  it("persists context_window and max_output_tokens without conflating independent ceilings", async () => {
+    expect((await post({ context_window: 500000, max_input_tokens: 460000, max_output_tokens: 40000, caps: { vision: false } })).status).toBe(200);
+    const result = await (await GET()).json();
+    expect(result.models[0].caps).toEqual({ contextWindow: 500000, maxInput: 460000, maxOutput: 40000, vision: false });
+  });
+
   it("keeps explicit caps values ahead of equivalent top-level metadata", async () => {
     expect((await post({ contextWindow: 500000, caps: { contextWindow: 300000, maxOutput: 8000 } })).status).toBe(200);
     expect(saved.rows[0].caps).toEqual({ contextWindow: 300000, maxOutput: 8000 });

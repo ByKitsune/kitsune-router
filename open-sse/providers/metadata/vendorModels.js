@@ -1,10 +1,26 @@
-// Provider-scoped official-source facts reviewed 2026-10-06.
+// Provider-scoped primary facts plus exact models.dev comparisons reviewed 2026-10-17.
 // Missing fields are unverified, not false/zero. Billing notes preserve unsupported tariffs.
 // Resolver integration is deliberately separate from this dependency-free literal shard.
 export default {
   "deepseek": {
     "deepseek-flash": {
+      "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-flash",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "tools": true,
         "reasoning": true,
@@ -16,17 +32,35 @@ export default {
         "cached": 0.003
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     },
     "deepseek-v4-flash": {
+      "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-v4-flash",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "tools": true,
         "reasoning": true,
@@ -38,17 +72,35 @@ export default {
         "cached": 0.003
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     },
     "deepseek-v4-flash-vision-exp": {
+      "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-v4-flash-vision-exp",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "tools": true,
         "reasoning": true,
@@ -60,17 +112,35 @@ export default {
         "cached": 0.003
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 0.3, output 1.2, cached 0.006. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     },
     "deepseek-v4-pro": {
+      "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-v4-pro",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false,
         "tools": true,
         "reasoning": true,
@@ -82,17 +152,35 @@ export default {
         "cached": 0.022
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     },
     "deepseek-v4-pro-max": {
+      "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-v4-pro",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false,
         "tools": true,
         "reasoning": true,
@@ -104,17 +192,35 @@ export default {
         "cached": 0.022
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     },
     "deepseek-v4-pro-none": {
+      "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
+      "limits": {
+        "catalogProvider": "deepseek",
+        "catalogModelId": "deepseek-v4-pro",
+        "catalogAsOf": "2026-10-17",
+        "maxOutputScope": "Native Chat Completions max_tokens: 384K is explicitly 393216 tokens.",
+        "fieldSources": { "maxOutput": "https://api-docs.deepseek.com/api/create-chat-completion" }
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 393216,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false,
         "tools": true,
         "reasoning": true,
@@ -126,23 +232,41 @@ export default {
         "cached": 0.022
       },
       "sources": [
-        "https://api-docs.deepseek.com/quick_start/pricing"
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "time-dependent-payg",
-        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. Official limits are 1M context / 384K output; exact notation conversion deferred. No separate cache-creation fee verified."
+        "note": "Off-peak USD/1M token rates shown. Peak Monday-Friday 01:00-04:00 and 06:00-10:00 UTC: input 1.32, output 3.96, cached 0.044. The native Chat Completions schema defines 384K output as exactly 393216 tokens. No separate cache-creation fee verified."
       }
     }
   },
   "alicode": {
     "qwen3.5-plus": {
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "qwen3.5-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -151,20 +275,28 @@ export default {
         "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
       }
     },
-    "kimi-k2.6": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill. Compatibility ID retained; absent from current exhaustive supported-model list."
-      }
-    },
     "glm-5": {
+      "capabilities": {
+        "contextWindow": 202752,
+        "maxOutput": 16384,
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship GLM model for hybrid reasoning, coding, and agentic engineering",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "glm-5",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -174,63 +306,27 @@ export default {
       }
     },
     "MiniMax-M2.5": {
+      "capabilities": {
+        "contextWindow": 196608,
+        "maxOutput": 24576,
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "MiniMax-M2.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-max-2026-01-23": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-coder-next": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-coder-plus": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-coder-flash": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "CNY",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill. Compatibility ID retained; absent from current exhaustive supported-model list."
-      }
-    },
-    "glm-4.7": {
-      "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -240,11 +336,27 @@ export default {
       }
     },
     "qwen3.7-plus": {
+      "description": "Multimodal Qwen workhorse for long-context agents, visual inputs, and coding",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "qwen3.7-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -254,11 +366,27 @@ export default {
       }
     },
     "qwen3.6-plus": {
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "qwen3.6-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -268,11 +396,27 @@ export default {
       }
     },
     "kimi-k2.5": {
+      "description": "Kimi multimodal agent model for visual understanding, coding, and planning",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan-cn",
+        "catalogModelId": "kimi-k2.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 32768,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://help.aliyun.com/zh/model-studio/coding-plan"
+        "https://help.aliyun.com/zh/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -284,11 +428,27 @@ export default {
   },
   "alicode-intl": {
     "qwen3.5-plus": {
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "qwen3.5-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -298,11 +458,27 @@ export default {
       }
     },
     "kimi-k2.5": {
+      "description": "Kimi multimodal agent model for visual understanding, coding, and planning",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "kimi-k2.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 32768,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -312,8 +488,27 @@ export default {
       }
     },
     "glm-5": {
+      "capabilities": {
+        "contextWindow": 202752,
+        "maxOutput": 16384,
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship GLM model for hybrid reasoning, coding, and agentic engineering",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "glm-5",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -323,41 +518,28 @@ export default {
       }
     },
     "MiniMax-M2.5": {
+      "capabilities": {
+        "contextWindow": 196608,
+        "maxInput": 196601,
+        "maxOutput": 24576,
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "MiniMax-M2.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "USD",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-coder-next": {
-      "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "USD",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-coder-plus": {
-      "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "USD",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "glm-4.7": {
-      "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -367,11 +549,27 @@ export default {
       }
     },
     "qwen3.7-plus": {
+      "description": "Multimodal Qwen workhorse for long-context agents, visual inputs, and coding",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "qwen3.7-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -381,22 +579,27 @@ export default {
       }
     },
     "qwen3.6-plus": {
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-coding-plan",
+        "catalogModelId": "qwen3.6-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
-      ],
-      "billing": {
-        "currency": "USD",
-        "unit": "month",
-        "kind": "subscription",
-        "note": "Coding Plan subscription consumes request quota, not PAYG token charges. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
-      }
-    },
-    "qwen3-max-2026-01-23": {
-      "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/coding-plan"
+        "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -408,8 +611,32 @@ export default {
   },
   "alitp-intl": {
     "qwen3.8-max": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "2.4-trillion-parameter MoE flagship for coding, professional work, multimodal understanding, and long-horizon agentic workflows",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.8-max",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -418,8 +645,32 @@ export default {
       }
     },
     "qwen3.8-flash": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.8-flash",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -428,8 +679,32 @@ export default {
       }
     },
     "qwen3.7-max": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Qwen frontier model tuned for agent frameworks, coding assistants, and long tasks",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.7-max",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -438,8 +713,32 @@ export default {
       }
     },
     "qwen3.7-plus": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Multimodal Qwen workhorse for long-context agents, visual inputs, and coding",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.7-plus",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -448,6 +747,13 @@ export default {
       }
     },
     "qwen3.7-flash": {
+      "limits": {
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
         "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
       ],
@@ -458,8 +764,32 @@ export default {
       }
     },
     "qwen3.6-plus": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Earlier Qwen multimodal workhorse for million-token agent and document tasks",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.6-plus",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -468,8 +798,32 @@ export default {
       }
     },
     "qwen3.6-flash": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "qwen3.6-flash",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -478,6 +832,13 @@ export default {
       }
     },
     "qwen3.5-flash": {
+      "limits": {
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
         "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
       ],
@@ -488,8 +849,32 @@ export default {
       }
     },
     "glm-5.2": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Open flagship GLM for long-horizon coding agents and million-token context work",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "glm-5.2",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -498,8 +883,32 @@ export default {
       }
     },
     "deepseek-v4-pro": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Open MoE flagship with million-token context for coding and long agent runs",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "deepseek-v4-pro",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -508,6 +917,13 @@ export default {
       }
     },
     "auto": {
+      "limits": {
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
         "reasoning": true
       },
@@ -521,12 +937,32 @@ export default {
       }
     },
     "deepseek-v4.1-flash": {
+      "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "deepseek-v4.1-flash",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "tools": true,
+        "structuredOutput": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "reasoning": true,
         "vision": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -535,11 +971,32 @@ export default {
       }
     },
     "deepseek-v4-pro-0813": {
+      "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "deepseek-v4-pro-0813",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "reasoning": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -548,11 +1005,32 @@ export default {
       }
     },
     "deepseek-v4-flash-0731": {
+      "description": "Official DeepSeek V4 Flash release with enhanced agentic capabilities and integrated DSpark speculative decoding",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "deepseek-v4-flash-0731",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "reasoning": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -561,11 +1039,32 @@ export default {
       }
     },
     "glm-5.3": {
+      "description": "Flagship GLM model for long-horizon coding, agents, and complex project delivery",
+      "limits": {
+        "catalogProvider": "alibaba-token-plan",
+        "catalogModelId": "glm-5.3",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxInput",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "reasoning": true
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview"
+        "https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "credits",
@@ -576,12 +1075,35 @@ export default {
   },
   "alims-intl": {
     "qwen3.8-max": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "2.4-trillion-parameter MoE flagship for coding, professional work, multimodal understanding, and long-horizon agentic workflows",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3.8-max",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "pricing": {
         "input": 2,
         "output": 6
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -591,12 +1113,35 @@ export default {
       }
     },
     "qwen3.8-flash": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3.8-flash",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "pricing": {
         "input": 0.15,
         "output": 0.47
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -606,6 +1151,28 @@ export default {
       }
     },
     "qwen3.7-plus": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Multimodal Qwen workhorse for long-context agents, visual inputs, and coding",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3.7-plus",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "pricing": {
         "input": 0.4,
         "output": 1.6,
@@ -616,7 +1183,8 @@ export default {
         }
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -626,6 +1194,27 @@ export default {
       }
     },
     "qwen3.6-plus": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Earlier Qwen multimodal workhorse for million-token agent and document tasks",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3.6-plus",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "pricing": {
         "input": 0.5,
         "output": 3,
@@ -636,7 +1225,8 @@ export default {
         }
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -646,6 +1236,24 @@ export default {
       }
     },
     "qwen3.5-plus": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3.5-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.4,
         "output": 2.4,
@@ -656,7 +1264,8 @@ export default {
         }
       },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -666,8 +1275,27 @@ export default {
       }
     },
     "qwen3-coder-plus": {
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 65536,
+        "reasoning": false,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Hosted Qwen coder for software agents, repo edits, and long-context code",
+      "limits": {
+        "catalogProvider": "alibaba",
+        "catalogModelId": "qwen3-coder-plus",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -679,7 +1307,21 @@ export default {
   },
   "glm": {
     "glm-5.3": {
+      "description": "Flagship GLM model for long-horizon coding, agents, and complex project delivery",
+      "limits": {
+        "catalogProvider": "zai-coding-plan",
+        "catalogModelId": "glm-5.3",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 131072,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false,
         "reasoning": true,
         "tools": true,
@@ -687,7 +1329,8 @@ export default {
       },
       "sources": [
         "https://docs.z.ai/devpack/latest-model.md",
-        "https://docs.z.ai/guides/llm/glm-5.3.md"
+        "https://docs.z.ai/guides/llm/glm-5.3.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -696,7 +1339,20 @@ export default {
       }
     },
     "glm-5.3-flash": {
+      "description": "Native multimodal GLM model for efficient coding and long-horizon agent tasks",
+      "limits": {
+        "catalogProvider": "zai-coding-plan",
+        "catalogModelId": "glm-5.3-flash",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 131072,
+        "structuredOutput": true,
+        "pdf": true,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "videoInput": true,
         "reasoning": true,
@@ -705,7 +1361,8 @@ export default {
       },
       "sources": [
         "https://docs.z.ai/devpack/latest-model.md",
-        "https://docs.z.ai/guides/vlm/glm-5.3-flash.md"
+        "https://docs.z.ai/guides/vlm/glm-5.3-flash.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -725,8 +1382,28 @@ export default {
       }
     },
     "glm-5.2": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 131072,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Open flagship GLM for long-horizon coding agents and million-token context work",
+      "limits": {
+        "catalogProvider": "zai-coding-plan",
+        "catalogModelId": "glm-5.2",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.z.ai/devpack/latest-model.md"
+        "https://docs.z.ai/devpack/latest-model.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -755,8 +1432,28 @@ export default {
       }
     },
     "glm-5-turbo": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 131072,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Efficient GLM model for fast reasoning, coding, and agent workflows",
+      "limits": {
+        "catalogProvider": "zai-coding-plan",
+        "catalogModelId": "glm-5-turbo",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.z.ai/devpack/latest-model.md"
+        "https://docs.z.ai/devpack/latest-model.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -765,8 +1462,27 @@ export default {
       }
     },
     "glm-4.7": {
+      "capabilities": {
+        "contextWindow": 204800,
+        "maxOutput": 131072,
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship GLM model for hybrid reasoning, coding, and agentic engineering",
+      "limits": {
+        "catalogProvider": "zai-coding-plan",
+        "catalogModelId": "glm-4.7",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.z.ai/devpack/latest-model.md"
+        "https://docs.z.ai/devpack/latest-model.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -857,7 +1573,21 @@ export default {
   },
   "glm-cn": {
     "glm-5.3": {
+      "description": "Flagship GLM model for long-horizon coding, agents, and complex project delivery",
+      "limits": {
+        "catalogProvider": "zhipuai-coding-plan",
+        "catalogModelId": "glm-5.3",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 131072,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false,
         "reasoning": true,
         "tools": true,
@@ -865,7 +1595,8 @@ export default {
       },
       "sources": [
         "https://docs.bigmodel.cn/cn/coding-plan/overview",
-        "https://docs.z.ai/guides/llm/glm-5.3.md"
+        "https://docs.z.ai/guides/llm/glm-5.3.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -874,7 +1605,20 @@ export default {
       }
     },
     "glm-5.3-flash": {
+      "description": "Native multimodal GLM model for efficient coding and long-horizon agent tasks",
+      "limits": {
+        "catalogProvider": "zhipuai-coding-plan",
+        "catalogModelId": "glm-5.3-flash",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 131072,
+        "structuredOutput": true,
+        "pdf": true,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "videoInput": true,
         "reasoning": true,
@@ -883,7 +1627,8 @@ export default {
       },
       "sources": [
         "https://docs.bigmodel.cn/cn/coding-plan/overview",
-        "https://docs.z.ai/guides/vlm/glm-5.3-flash.md"
+        "https://docs.z.ai/guides/vlm/glm-5.3-flash.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -973,8 +1718,27 @@ export default {
       }
     },
     "glm-4.6v": {
+      "capabilities": {
+        "contextWindow": 128000,
+        "maxOutput": 32768,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "GLM vision model for visual reasoning, documents, and multimodal agents",
+      "limits": {
+        "catalogProvider": "zhipuai-coding-plan",
+        "catalogModelId": "glm-4.6v",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.bigmodel.cn/cn/coding-plan/overview"
+        "https://docs.bigmodel.cn/cn/coding-plan/overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "points",
@@ -1035,7 +1799,25 @@ export default {
   },
   "minimax": {
     "MiniMax-M2.7": {
+      "description": "Open MiniMax flagship for coding agents, office automation, and complex environments",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2.7",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1046,7 +1828,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1056,7 +1839,25 @@ export default {
       }
     },
     "MiniMax-M2.7-highspeed": {
+      "description": "Low-latency M2.7 variant for interactive coding plans and agent loops",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2.7-highspeed",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1067,7 +1868,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1077,7 +1879,25 @@ export default {
       }
     },
     "MiniMax-M2.5": {
+      "description": "Prior MiniMax coding model for agent workflows, office edits, and automation",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2.5",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1088,7 +1908,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1098,7 +1919,25 @@ export default {
       }
     },
     "MiniMax-M2.5-highspeed": {
+      "description": "High-speed MiniMax model for low-latency coding and agent workflows",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2.5-highspeed",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1109,7 +1948,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1119,7 +1959,25 @@ export default {
       }
     },
     "MiniMax-M2.1": {
+      "description": "Earlier MiniMax agent model for practical coding and productivity tasks",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2.1",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1130,7 +1988,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1140,6 +1999,12 @@ export default {
       }
     },
     "MiniMax-M2.1-highspeed": {
+      "limits": {
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
         "contextWindow": 204800
       },
@@ -1161,7 +2026,25 @@ export default {
       }
     },
     "MiniMax-M2": {
+      "description": "Efficient open MiniMax model built for coding agents and tool-heavy workflows",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M2",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "pricing": {
@@ -1172,7 +2055,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1182,7 +2066,25 @@ export default {
       }
     },
     "MiniMax-M3": {
+      "description": "MiniMax multimodal model for long-context coding, perception, and agent planning",
+      "limits": {
+        "catalogProvider": "minimax",
+        "catalogModelId": "MiniMax-M3",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 1000000
       },
       "pricing": {
@@ -1198,7 +2100,8 @@ export default {
       },
       "sources": [
         "https://platform.minimax.io/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1210,12 +2113,31 @@ export default {
   },
   "minimax-cn": {
     "MiniMax-M2.7": {
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2.7",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1225,12 +2147,31 @@ export default {
       }
     },
     "MiniMax-M2.7-highspeed": {
+      "description": "High-speed MiniMax model for low-latency coding and agent workflows",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2.7-highspeed",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1240,12 +2181,31 @@ export default {
       }
     },
     "MiniMax-M2.5": {
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2.5",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1255,12 +2215,31 @@ export default {
       }
     },
     "MiniMax-M2.5-highspeed": {
+      "description": "High-speed MiniMax model for low-latency coding and agent workflows",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2.5-highspeed",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1270,12 +2249,31 @@ export default {
       }
     },
     "MiniMax-M2.1": {
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2.1",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1285,6 +2283,12 @@ export default {
       }
     },
     "MiniMax-M2.1-highspeed": {
+      "limits": {
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
         "contextWindow": 204800
       },
@@ -1300,12 +2304,31 @@ export default {
       }
     },
     "MiniMax-M2": {
+      "description": "MiniMax model for chat, coding, office work, and agentic tasks",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M2",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 204800
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1315,12 +2338,31 @@ export default {
       }
     },
     "MiniMax-M3": {
+      "description": "MiniMax multimodal coding model for long-context reasoning and agent tasks",
+      "limits": {
+        "catalogProvider": "minimax-cn",
+        "catalogModelId": "MiniMax-M3",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 1000000
       },
       "sources": [
         "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
-        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md"
+        "https://platform.minimax.io/docs/api-reference/text-anthropic-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "CNY",
@@ -1332,7 +2374,23 @@ export default {
   },
   "kimi": {
     "k3": {
+      "description": "Multimodal Kimi model with 1M context and toggleable max-effort thinking for long-horizon agent work",
+      "limits": {
+        "catalogProvider": "kimi-code-plan-cn",
+        "catalogModelId": "k3",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "tools": true,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 1048576,
         "vision": true,
         "videoInput": true,
@@ -1341,7 +2399,8 @@ export default {
         "thinkingEffortSupported": true
       },
       "sources": [
-        "https://www.kimi.com/code/docs/en/kimi-code/models.html"
+        "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "quota",
@@ -1350,7 +2409,23 @@ export default {
       }
     },
     "k3-256k": {
+      "description": "256K-context version of Kimi K3, reducing token consumption for shorter coding sessions",
+      "limits": {
+        "catalogProvider": "kimi-code-plan-cn",
+        "catalogModelId": "k3-256k",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "tools": true,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 262144,
         "vision": true,
         "videoInput": false,
@@ -1359,7 +2434,8 @@ export default {
         "thinkingEffortSupported": true
       },
       "sources": [
-        "https://www.kimi.com/code/docs/en/kimi-code/models.html"
+        "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "quota",
@@ -1368,7 +2444,22 @@ export default {
       }
     },
     "kimi-for-coding": {
+      "description": "Kimi coding model with more efficient thinking and up to 1M context, available through Kimi Code",
+      "limits": {
+        "catalogProvider": "kimi-code-plan-cn",
+        "catalogModelId": "kimi-for-coding",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 1048576,
         "vision": true,
         "videoInput": true,
@@ -1377,7 +2468,8 @@ export default {
         "thinkingEffortSupported": true
       },
       "sources": [
-        "https://www.kimi.com/code/docs/en/kimi-code/models.html"
+        "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "quota",
@@ -1386,14 +2478,31 @@ export default {
       }
     },
     "kimi-for-coding-highspeed": {
+      "description": "Lower-latency Kimi Code variant for interactive edits and coding-agent loops",
+      "limits": {
+        "catalogProvider": "kimi-code-plan-cn",
+        "catalogModelId": "kimi-for-coding-highspeed",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "capabilities": {
+        "tools": true,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "contextWindow": 262144,
         "vision": true,
         "videoInput": true,
         "reasoning": true
       },
       "sources": [
-        "https://www.kimi.com/code/docs/en/kimi-code/models.html"
+        "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "unit": "quota",
@@ -1440,7 +2549,18 @@ export default {
   },
   "xiaomi-mimo": {
     "mimo-v2.6-pro": {
+      "description": "MiMo Pro model for multimodal coding agents and long-context automation",
+      "limits": {
+        "catalogProvider": "xiaomi",
+        "catalogModelId": "mimo-v2.6-pro",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 131072,
+        "pdf": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "audioInput": true,
         "videoInput": true,
@@ -1456,7 +2576,8 @@ export default {
       },
       "sources": [
         "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
-        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go"
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1466,7 +2587,18 @@ export default {
       }
     },
     "mimo-v2.6-flash": {
+      "description": "MiMo Flash model for multimodal coding agents and long-context automation",
+      "limits": {
+        "catalogProvider": "xiaomi",
+        "catalogModelId": "mimo-v2.6-flash",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 131072,
+        "pdf": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "audioInput": true,
         "videoInput": true,
@@ -1482,7 +2614,8 @@ export default {
       },
       "sources": [
         "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
-        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go"
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1492,7 +2625,18 @@ export default {
       }
     },
     "mimo-v2.5-pro": {
+      "description": "Stronger MiMo Pro tier for multimodal reasoning and coding-agent execution",
+      "limits": {
+        "catalogProvider": "xiaomi",
+        "catalogModelId": "mimo-v2.5-pro",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 131072,
+        "pdf": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "audioInput": true,
         "videoInput": true,
@@ -1508,7 +2652,8 @@ export default {
       },
       "sources": [
         "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
-        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go"
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1518,7 +2663,18 @@ export default {
       }
     },
     "mimo-v2.5": {
+      "description": "Open MiMo model for multimodal coding agents and long-context automation",
+      "limits": {
+        "catalogProvider": "xiaomi",
+        "catalogModelId": "mimo-v2.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 131072,
+        "pdf": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": true,
         "audioInput": true,
         "videoInput": true,
@@ -1534,7 +2690,8 @@ export default {
       },
       "sources": [
         "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
-        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go"
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -1643,13 +2800,28 @@ export default {
   },
   "cohere": {
     "command-a-03-2025": {
+      "description": "Cohere command model for multilingual enterprise agents, tools, and chat",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-a-03-2025",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 256000,
+        "reasoning": false,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 8000,
         "vision": false
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1657,14 +2829,28 @@ export default {
       }
     },
     "command-a-reasoning-08-2025": {
+      "description": "Cohere reasoning model for multilingual enterprise agents, tools, and complex workflows",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-a-reasoning-08-2025",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 256000,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 32000,
         "vision": false,
         "reasoning": true
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1672,13 +2858,28 @@ export default {
       }
     },
     "command-a-vision-07-2025": {
+      "description": "Cohere vision model for multilingual document analysis, OCR, and image understanding",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-a-vision-07-2025",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 128000,
+        "reasoning": false,
+        "tools": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 8000,
         "vision": true
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1686,13 +2887,28 @@ export default {
       }
     },
     "command-a-translate-08-2025": {
+      "description": "Translation model for multilingual conversion, localization, and cross-language workflows",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-a-translate-08-2025",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 8000,
+        "reasoning": false,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 8000,
         "vision": false
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1700,14 +2916,29 @@ export default {
       }
     },
     "command-a-plus-05-2026": {
+      "description": "Cohere's stronger command model for multilingual agents and enterprise workflows",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-a-plus-05-2026",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 128000,
+        "tools": true,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 64000,
         "vision": true,
         "reasoning": true
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1715,13 +2946,28 @@ export default {
       }
     },
     "command-r-plus-08-2024": {
+      "description": "Cohere's RAG workhorse for long-context enterprise search and tool use",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-r-plus-08-2024",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 128000,
+        "reasoning": false,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 4000,
         "vision": false
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1729,13 +2975,28 @@ export default {
       }
     },
     "command-r-08-2024": {
+      "description": "Cohere retrieval model for long-context chat and enterprise RAG workflows",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-r-08-2024",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 128000,
+        "reasoning": false,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 4000,
         "vision": false
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -1743,13 +3004,28 @@ export default {
       }
     },
     "command-r7b-12-2024": {
+      "description": "Cohere retrieval model for long-context chat and enterprise RAG workflows",
+      "limits": {
+        "catalogProvider": "cohere",
+        "catalogModelId": "command-r7b-12-2024",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 128000,
+        "reasoning": false,
+        "tools": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "maxOutput": 4000,
         "vision": false
       },
       "sources": [
         "https://docs.cohere.com/docs/models.md",
-        "https://docs.cohere.com/docs/compatibility-api.md"
+        "https://docs.cohere.com/docs/compatibility-api.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-pricing",
@@ -2106,7 +3382,23 @@ export default {
   },
   "mistral": {
     "zai-glm-5-3": {
+      "description": "Flagship GLM model for long-horizon coding, agents, and complex project delivery",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "zai-glm-5-3",
+        "catalogAsOf": "2026-10-17"
+      },
       "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 131072,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
         "vision": false
       },
       "pricing": {
@@ -2116,7 +3408,8 @@ export default {
       },
       "sources": [
         "https://docs.mistral.ai/models/zai-glm-5-3",
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2126,6 +3419,25 @@ export default {
       }
     },
     "ministral-14b-2512": {
+      "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 262144,
+        "reasoning": false,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Open vision-language model for efficient local deployment, instruction following, and tool use",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "ministral-14b-2512",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.2,
         "output": 0.2,
@@ -2133,7 +3445,8 @@ export default {
       },
       "sources": [
         "https://docs.mistral.ai/models/ministral-3-14b-25-12",
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2143,6 +3456,25 @@ export default {
       }
     },
     "ministral-8b-2512": {
+      "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 262144,
+        "reasoning": false,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Compact open vision-language model for edge deployment, instruction following, and tool use",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "ministral-8b-2512",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.15,
         "output": 0.15,
@@ -2150,7 +3482,8 @@ export default {
       },
       "sources": [
         "https://docs.mistral.ai/models/ministral-3-8b-25-12",
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2160,6 +3493,26 @@ export default {
       }
     },
     "ministral-3b-2512": {
+      "capabilities": {
+        "maxOutput": 262144,
+        "reasoning": false,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "contextWindow": 262144
+      },
+      "description": "Compact open vision-language model for edge deployment, instruction following, and tool use",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "ministral-3b-2512",
+        "catalogAsOf": "2026-10-17",
+        "contextWindowStatus": "Current API model page specifies256K; official architecture declares262144. Overrides stale131072 models.dev entry."
+      },
       "pricing": {
         "input": 0.1,
         "output": 0.1,
@@ -2167,7 +3520,10 @@ export default {
       },
       "sources": [
         "https://docs.mistral.ai/models/ministral-3-3b-25-12",
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/ministral-3-3b-25-12.md",
+        "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2177,13 +3533,32 @@ export default {
       }
     },
     "mistral-large-latest": {
+      "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 262144,
+        "reasoning": false,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship Mistral model for advanced reasoning, coding, and multilingual work",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "mistral-large-latest",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.5,
         "output": 1.5,
         "cached": 0.05
       },
       "sources": [
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2193,13 +3568,33 @@ export default {
       }
     },
     "mistral-medium-latest": {
+      "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 262144,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Balanced Mistral model for enterprise assistants, multilingual work, and tools",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "mistral-medium-latest",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 1.5,
         "output": 7.5,
         "cached": 0.15
       },
       "sources": [
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2209,13 +3604,32 @@ export default {
       }
     },
     "mistral-small-latest": {
+      "capabilities": {
+        "contextWindow": 262144,
+        "maxOutput": 256000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Efficient Mistral model for fast chat, extraction, and production assistants",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "mistral-small-latest",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.15,
         "output": 0.6,
         "cached": 0.015
       },
       "sources": [
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2225,13 +3639,32 @@ export default {
       }
     },
     "codestral-latest": {
+      "capabilities": {
+        "contextWindow": 256000,
+        "maxOutput": 4096,
+        "reasoning": false,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Mistral code model for completions, refactors, and developer IDE workflows",
+      "limits": {
+        "catalogProvider": "mistral",
+        "catalogModelId": "codestral-latest",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.3,
         "output": 0.9,
         "cached": 0.03
       },
       "sources": [
-        "https://docs.mistral.ai/inference/pricing"
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2243,19 +3676,69 @@ export default {
   },
   "poolside": {
     "poolside/laguna-s-2.1": {
+      "capabilities": {
+        "contextWindow": 1048576,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Poolside Laguna S 2.1 for long-horizon agentic coding and extended tool-use workflows.",
+      "limits": {
+        "catalogProvider": "poolside",
+        "catalogModelId": "poolside/laguna-s-2.1",
+        "catalogAsOf": "2026-10-17",
+        "fieldSources": { "contextWindow": "https://huggingface.co/poolside/Laguna-S-2.1/raw/main/config.json" },
+        "contextWindowScope": "Official model max_position_embeddings corroborates the exact hosted catalog window; no authenticated route limit verified.",
+        "unverifiedCapabilityFields": [
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
         "https://docs.poolside.ai/get-started/supported-models.md",
-        "https://poolside.ai/models"
+        "https://poolside.ai/models",
+        "https://huggingface.co/poolside/Laguna-S-2.1/raw/main/config.json",
+        "https://docs.poolside.ai/api/overview",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "promotional",
-        "note": "S/XS hosted access is advertised limited-time free; no permanent paid tariff or exact maximum output verified. XS 2.1 model spec says 256K context, hosted effective cap and notation conversion pending. Existing fallback token rates, if any, are retained only as unverified estimates, not a statement of this route's bill."
+        "note": "S/XS hosted access is advertised limited-time free; no permanent paid tariff or exact maximum output verified. Official Laguna S 2.1 weights define 1048576 positions, corroborating the exact hosted catalog's window. Account-specific availability and output ceilings remain unverified. Existing fallback rates, if any, are estimates, not this route's bill."
       }
     },
     "poolside/laguna-xs-2.1": {
+      "capabilities": {
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Agentic coding model from Poolside in the XS size class for local deployment",
+      "limits": {
+        "catalogProvider": "poolside",
+        "catalogModelId": "poolside/laguna-xs-2.1",
+        "catalogAsOf": "2026-10-17",
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "unknownLimitNote": "Primary route review leaves these quantities unspecified; generic model-family or catalog values are not proof of a route maximum."
+      },
       "sources": [
         "https://docs.poolside.ai/get-started/supported-models.md",
-        "https://poolside.ai/models"
+        "https://poolside.ai/models",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "promotional",
@@ -2265,8 +3748,27 @@ export default {
   },
   "perplexity": {
     "sonar-pro": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 8192,
+        "reasoning": false,
+        "tools": false,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Deeper Sonar search model with broader retrieval and stronger synthesis",
+      "limits": {
+        "catalogProvider": "perplexity",
+        "catalogModelId": "sonar-pro",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md"
+        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "legacy-migrating",
@@ -2274,8 +3776,27 @@ export default {
       }
     },
     "sonar": {
+      "capabilities": {
+        "contextWindow": 128000,
+        "maxOutput": 4096,
+        "reasoning": false,
+        "tools": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Fast web-grounded Sonar for current answers, citations, and lightweight retrieval",
+      "limits": {
+        "catalogProvider": "perplexity",
+        "catalogModelId": "sonar",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md"
+        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "legacy-migrating",
@@ -2283,8 +3804,27 @@ export default {
       }
     },
     "sonar-reasoning-pro": {
+      "capabilities": {
+        "contextWindow": 128000,
+        "maxOutput": 4096,
+        "reasoning": true,
+        "tools": false,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Web-grounded Sonar for multi-step research questions that need cited reasoning",
+      "limits": {
+        "catalogProvider": "perplexity",
+        "catalogModelId": "sonar-reasoning-pro",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md"
+        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "legacy-migrating",
@@ -2292,8 +3832,27 @@ export default {
       }
     },
     "sonar-deep-research": {
+      "capabilities": {
+        "contextWindow": 128000,
+        "maxOutput": 32768,
+        "reasoning": true,
+        "tools": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Sonar search model for current answers, retrieval, and citation-backed chat",
+      "limits": {
+        "catalogProvider": "perplexity",
+        "catalogModelId": "sonar-deep-research",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
-        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md"
+        "https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "legacy-migrating",
@@ -2388,6 +3947,24 @@ export default {
       }
     },
     "anthropic/claude-opus-4-7": {
+      "capabilities": {
+        "contextWindow": 1000000,
+        "maxOutput": 128000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-opus-4-7",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 5.0,
         "output": 25.0,
@@ -2395,7 +3972,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2405,6 +3983,24 @@ export default {
       }
     },
     "anthropic/claude-opus-4-6": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 128000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-opus-4-6",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 5.0,
         "output": 25.0,
@@ -2412,7 +4008,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2422,6 +4019,24 @@ export default {
       }
     },
     "anthropic/claude-opus-4-5": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-opus-4-5",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 5.0,
         "output": 25.0,
@@ -2429,7 +4044,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2473,6 +4089,24 @@ export default {
       }
     },
     "anthropic/claude-sonnet-4-6": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-sonnet-4-6",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 3.0,
         "output": 15.0,
@@ -2480,7 +4114,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2490,6 +4125,24 @@ export default {
       }
     },
     "anthropic/claude-sonnet-4-5": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-sonnet-4-5",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 3.0,
         "output": 15.0,
@@ -2497,7 +4150,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2507,6 +4161,24 @@ export default {
       }
     },
     "anthropic/claude-haiku-4-5": {
+      "capabilities": {
+        "contextWindow": 200000,
+        "maxOutput": 64000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Fast Claude model for responsive assistance, classification, and lightweight agents",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "anthropic/claude-haiku-4-5",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 1.0,
         "output": 5.0,
@@ -2514,7 +4186,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2662,6 +4335,25 @@ export default {
       }
     },
     "openai/gpt-5.5": {
+      "capabilities": {
+        "contextWindow": 1050000,
+        "maxInput": 922000,
+        "maxOutput": 128000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Frontier GPT model for professional reasoning, coding, and multimodal work",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "openai/gpt-5.5",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 5.0,
         "output": 30.0,
@@ -2675,7 +4367,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2685,6 +4378,24 @@ export default {
       }
     },
     "google/gemini-3.1-pro-preview": {
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": true,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Advanced Gemini model for complex reasoning, coding, and multimodal analysis",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "google/gemini-3.1-pro-preview",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 2.0,
         "output": 12.0,
@@ -2698,7 +4409,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2810,6 +4522,24 @@ export default {
       }
     },
     "google/gemini-3-flash-preview": {
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxOutput": 65536,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": true,
+        "audioInput": true,
+        "videoInput": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Fast Gemini model balancing multimodal reasoning, tool use, and cost",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "google/gemini-3-flash-preview",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.5,
         "output": 3.0,
@@ -2817,7 +4547,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -2844,6 +4575,25 @@ export default {
       }
     },
     "xai/grok-4.6": {
+      "capabilities": {
+        "contextWindow": 500000,
+        "maxOutput": 500000,
+        "reasoning": true,
+        "tools": true,
+        "structuredOutput": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "xAI's frontier model for long-running agents, coding, knowledge work, and visual projects",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "xai/grok-4.6",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 2.0,
         "output": 6.0,
@@ -2851,7 +4601,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -3014,6 +4765,24 @@ export default {
       }
     },
     "perplexity/sonar": {
+      "capabilities": {
+        "contextWindow": 128000,
+        "maxOutput": 8192,
+        "reasoning": false,
+        "tools": true,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Sonar search model for current answers, retrieval, and citation-backed chat",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "perplexity/sonar",
+        "catalogAsOf": "2026-10-17"
+      },
       "pricing": {
         "input": 0.25,
         "output": 2.5,
@@ -3021,7 +4790,8 @@ export default {
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "currency": "USD",
@@ -3031,9 +4801,29 @@ export default {
       }
     },
     "openai/gpt-5.4": {
+      "capabilities": {
+        "contextWindow": 1050000,
+        "maxInput": 922000,
+        "maxOutput": 128000,
+        "reasoning": true,
+        "tools": true,
+        "vision": true,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Frontier GPT model for professional reasoning, coding, and multimodal work",
+      "limits": {
+        "catalogProvider": "perplexity-agent",
+        "catalogModelId": "openai/gpt-5.4",
+        "catalogAsOf": "2026-10-17"
+      },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
-        "https://docs.perplexity.ai/docs/agent-api/quickstart.md"
+        "https://docs.perplexity.ai/docs/agent-api/quickstart.md",
+        "https://models.dev/api.json"
       ],
       "billing": {
         "kind": "unverified-legacy",

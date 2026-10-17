@@ -29,6 +29,8 @@ export function detectFormatByEndpoint(pathname, body) {
   // /v1/chat/completions is always OpenAI format (#4122)
   if (pathname.includes("/v1/chat/completions")) return FORMATS.OPENAI;
 
+  if (/\/v1beta\/models\/.+:(?:streamGenerateContent|generateContent)$/.test(pathname)) return FORMATS.GEMINI;
+
   return null;
 }
 

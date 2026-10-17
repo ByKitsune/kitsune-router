@@ -19,7 +19,7 @@ describe("declared pricing identity resolution", () => {
   });
 
   it("uses unambiguous case-folded exact rates before generic families", () => {
-    expect(price("siliconflow", "deepseek-ai/DeepSeek-V4-Pro")).toEqual(MODEL_PRICING["deepseek-v4-pro"]);
+    expect(price("siliconflow", "DEEPSEEK-AI/DEEPSEEK-V4-PRO")).toEqual(PROVIDER_PRICING.siliconflow["deepseek-ai/DeepSeek-V4-Pro"]);
     expect(price("tr", "DEEPSEEK/DEEPSEEK-V4-PRO")).toEqual(PROVIDER_PRICING.tokenrouter["deepseek/deepseek-v4-pro"]);
   });
 

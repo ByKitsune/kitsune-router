@@ -1,13 +1,17 @@
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS, PROVIDER_OAUTH } from "../config/providers.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
+import { CURSOR_CONNECT_ERROR_STATUS } from "../config/cursorConstants.js";
 import {
-  generateCursorBody,
   encodeField,
   encodeMcpTools,
+  encodeAgentSelectedContext,
+  encodeAgentHistoryMessage,
   wrapConnectRPCFrame,
+  decodeMcpArgs,
+  AGENT_TOOL_PROVIDER,
+  validateAgentRequestControls,
   decodeMessage,
-  parseConnectRPCFrame,
   extractTextFromResponse
 } from "../utils/cursorProtobuf.js";
 import { buildCursorHeaders } from "../utils/cursorChecksum.js";
@@ -15,7 +19,11 @@ import { estimateUsage } from "../utils/usageTracking.js";
 import { SSE_DONE, SSE_HEADERS } from "../utils/sseConstants.js";
 import { chatChunkSse, sseChunk } from "../utils/sse.js";
 import { FORMATS } from "../translator/formats.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../translator/schema/index.js";
+import { normalizeMediaPart } from "../translator/concerns/multimodal.js";
+import { fetchImageAsBase64, parseDataUri } from "../translator/concerns/image.js";
+import { cloneRequestBody } from "../utils/requestBody.js";
+import { getEnvProxyUrl, resolveConnectionProxyUrl } from "../utils/proxyFetch.js";
 import zlib from "zlib";
 import crypto from "crypto";
 
@@ -66,77 +74,79 @@ function textFromContent(content) {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
-    .filter((part) => part?.type === "text" && typeof part.text === "string")
+    .filter((part) => part?.type === OPENAI_BLOCK.TEXT && typeof part.text === "string")
     .map((part) => part.text)
     .join("\n");
 }
 
-function isAgentTextRequest(body) {
-  // Many compatible clients always attach their built-in tool schemas, even
-  // for a normal text turn. Cursor's retired ChatService rejects those
-  // requests; AgentService can still answer the text turn, so ignore schemas
-  // here. A real tool-call/result conversation is kept on the legacy path
-  // until its AgentService tool protocol is implemented.
-  return Array.isArray(body?.messages) && body.messages.every((message) => {
-    if (message?.tool_calls?.length || message?.role === "tool") return false;
-    return typeof message?.content === "string"
-      || Array.isArray(message?.content) && message.content.every((part) => part?.type === "text");
-  });
-}
-
-// Whether a request can be served by the agent.v1 AgentService path: every
-// message must carry text-only content (assistant tool_call turns with null
-// content and tool results count — their payload travels in the tool fields).
-// Unlike isAgentTextRequest, declared tools and tool history are allowed; the
-// caller decides whether to advertise them via RunRequest.mcp_tools.
 export function isAgentCapableRequest(body) {
-  if (!body || !Array.isArray(body.messages) || !body.messages.length) return false;
+  if (!Array.isArray(body?.messages) || !body.messages.length) return false;
   return body.messages.every((message) => {
-    const content = message?.content;
+    const role = message?.role;
+    if (![ROLE.SYSTEM, ROLE.DEVELOPER, ROLE.USER, ROLE.ASSISTANT, ROLE.TOOL].includes(role)) return false;
+    const content = message.content;
     if (typeof content === "string") return true;
-    if (Array.isArray(content)) return content.every((part) => part?.type === "text");
-    return Boolean(message?.tool_calls?.length || message?.role === "tool");
+    if (content == null) return Boolean(message.tool_calls?.length || role === ROLE.TOOL);
+    if (!Array.isArray(content)) return false;
+    return content.every((part) => {
+      if (part?.type === OPENAI_BLOCK.TEXT && typeof part.text === "string") return true;
+      if (role === ROLE.ASSISTANT && [CLAUDE_BLOCK.THINKING, CLAUDE_BLOCK.REDACTED_THINKING].includes(part?.type)) return true;
+      return (role === ROLE.USER || role === ROLE.TOOL) && normalizeMediaPart(part)?.type === OPENAI_BLOCK.IMAGE_URL;
+    });
   });
 }
 
-function encodeHistoryMessage(message) {
-  const content = textFromContent(message?.content);
-  if (!content) return null;
-
-  // ConversationHistoryMessage.user / .assistant -> repeated content -> text.
-  const text = agentString(1, content);
-  if (message.role === "assistant") {
-    return agentMessage(2, agentMessage(1, agentMessage(1, text)));
+async function resolveAgentImages(body, signal) {
+  let resolved = body;
+  let fetched = null;
+  for (let i = 0; i < body.messages.length; i++) {
+    const content = body.messages[i].content;
+    if (!Array.isArray(content)) continue;
+    for (let j = 0; j < content.length; j++) {
+      const media = normalizeMediaPart(content[j]);
+      if (media?.type !== OPENAI_BLOCK.IMAGE_URL || parseDataUri(media.image_url.url)) continue;
+      const url = media.image_url.url;
+      fetched ||= new Map();
+      if (!fetched.has(url)) fetched.set(url, await fetchImageAsBase64(url, { signal }));
+      if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
+      const image = fetched.get(url);
+      if (!image) throw new Error("Unable to fetch Cursor image as safe inline image data");
+      if (resolved === body) resolved = cloneRequestBody(body);
+      resolved.messages[i].content[j] = { ...media, image_url: { ...media.image_url, url: image.url } };
+    }
   }
-  return agentMessage(1, agentMessage(1, agentMessage(1, text)));
+  return resolved;
 }
 
 export function buildAgentRunFrame(messages, model, tools = []) {
-  const system = messages
-    .filter((message) => message?.role === "system")
-    .map((message) => textFromContent(message.content))
-    .filter(Boolean)
-    .join("\n\n");
-  const chatMessages = messages.filter((message) => message?.role !== "system");
-  const currentIndex = [...chatMessages].map((message) => message?.role).lastIndexOf("user");
-  const current = currentIndex >= 0 ? chatMessages[currentIndex] : chatMessages.at(-1);
-  const history = chatMessages
-    .slice(0, currentIndex >= 0 ? currentIndex : -1)
-    .map(encodeHistoryMessage)
-    .filter(Boolean);
-  const userText = textFromContent(current?.content) || "Continue.";
-
+  const isSystem = (message) => message?.role === ROLE.SYSTEM || message?.role === ROLE.DEVELOPER;
+  const system = messages.filter(isSystem).map((message) => textFromContent(message.content)).filter(Boolean).join("\n\n");
+  const chatMessages = messages.filter((message) => !isSystem(message));
+  const currentIndex = chatMessages.findLastIndex((message) => message?.role === ROLE.USER);
+  const current = currentIndex >= 0 ? chatMessages[currentIndex] : null;
+  const toolNames = new Map();
+  for (const message of chatMessages) {
+    for (const call of message.tool_calls || []) toolNames.set(call.id, call.function?.name);
+  }
+  const encodeHistory = (entries) => entries.length
+    ? concatBuffers(...entries.map((message) => agentMessage(1, encodeAgentHistoryMessage(message, toolNames))))
+    : null;
+  const history = encodeHistory(currentIndex >= 0 ? chatMessages.slice(0, currentIndex) : chatMessages);
+  const trailing = currentIndex >= 0 ? encodeHistory(chatMessages.slice(currentIndex + 1)) : null;
+  const userText = textFromContent(current?.content);
+  const selectedContext = encodeAgentSelectedContext(current?.content);
   // agent.v1.UserMessageAction.user_message and its optional history.
   const userMessage = concatBuffers(
     agentString(1, userText),
     agentString(2, crypto.randomUUID()),
+    ...(selectedContext ? [agentMessage(3, selectedContext)] : []),
   );
-  const conversationHistory = history.length
-    ? concatBuffers(...history.map((entry) => agentMessage(1, entry)))
-    : null;
+  // Calls/results following the last real user turn remain trailing history.
+  // Client-executed results resume in the next Run, never a fabricated reply.
   const userAction = concatBuffers(
     agentMessage(1, userMessage),
-    ...(conversationHistory ? [agentMessage(7, conversationHistory)] : []),
+    ...(history ? [agentMessage(7, history)] : []),
+    ...(trailing ? [agentMessage(8, trailing)] : []),
   );
   const conversationAction = agentMessage(1, userAction);
   const requestedModel = concatBuffers(agentString(1, model), agentBool(7, true));
@@ -161,7 +171,7 @@ function extractAgentString(message, field) {
   return value ? Buffer.from(value).toString("utf8") : "";
 }
 
-function decodeAgentFrames(buffer, onFrame) {
+function decodeAgentFrames(buffer, onFrame, onEnd) {
   let pending = Buffer.from(buffer || []);
   while (pending.length >= 5) {
     const flags = pending[0];
@@ -172,18 +182,42 @@ function decodeAgentFrames(buffer, onFrame) {
     if (flags & COMPRESS_FLAG.GZIP) {
       payload = zlib.gunzipSync(payload);
     }
-    if (!(flags & COMPRESS_FLAG.TRAILER)) onFrame(payload);
+    if (flags & COMPRESS_FLAG.TRAILER) {
+      // Connect EndStreamResponse is JSON even for application/connect+proto.
+      // The pinned official SDK treats a missing envelope as LostConnection.
+      // https://connectrpc.com/docs/protocol/#error-end-stream
+      let terminal;
+      try {
+        terminal = JSON.parse(payload.toString("utf8"));
+      } catch {
+        throw Object.assign(new Error("Cursor protocol error: invalid EndStreamResponse JSON"), { code: "protocol_error" });
+      }
+      if (!terminal || typeof terminal !== "object" || Array.isArray(terminal)) {
+        throw Object.assign(new Error("Cursor protocol error: invalid EndStreamResponse"), { code: "protocol_error" });
+      }
+      onEnd(terminal);
+    } else {
+      onFrame(payload);
+    }
   }
   return pending;
 }
 
-function createRequestContextResponse() {
+function createAgentExecResponse(execRequest, field, payload) {
+  const message = concatBuffers(
+    ...(execRequest?.has(1) ? [encodeField(1, PROTOBUF_VARINT, execRequest.get(1)[0].value >>> 0)] : []),
+    ...(execRequest?.has(15) ? [agentString(15, extractAgentString(execRequest, 15))] : []),
+    agentMessage(field, payload),
+  );
+  return wrapConnectRPCFrame(agentMessage(2, message));
+}
+
+function createRequestContextResponse(execRequest) {
   // AgentService asks every run for client context. zenrouter has no IDE file
   // context, so acknowledge with an empty RequestContext.
   const requestContextSuccess = agentMessage(1, new Uint8Array());
   const requestContextResult = agentMessage(1, requestContextSuccess);
-  const execClientMessage = agentMessage(10, requestContextResult);
-  return wrapConnectRPCFrame(agentMessage(2, execClientMessage));
+  return createAgentExecResponse(execRequest, 10, requestContextResult);
 }
 
 const CURSOR_STREAM_DEBUG = process.env.CURSOR_STREAM_DEBUG === "1";
@@ -300,7 +334,9 @@ export class CursorExecutor extends BaseExecutor {
   }
 
   buildUrl() {
-    return `${this.config.baseUrl}${this.config.chatPath}`;
+    const endpoint = PROVIDER_OAUTH.cursor?.agentEndpoint;
+    if (!endpoint) throw new Error("Cursor AgentService endpoint is not configured");
+    return `${endpoint}${AGENT_RUN_PATH}`;
   }
 
   buildHeaders(credentials) {
@@ -315,108 +351,25 @@ export class CursorExecutor extends BaseExecutor {
     return buildCursorHeaders(accessToken, machineId, ghostMode);
   }
 
-  transformRequest(model, body, stream, credentials) {
-    // Messages are already translated by chatCore (claude→openai→cursor)
-    // Do NOT call openaiToCursorRequest again — double-translation drops tool_results
-    const messages = body.messages || [];
-    const tools = body.tools || [];
-    const reasoningEffort = body.reasoning_effort || null;
-    // Detect Claude Code UA to force Agent mode (issue #643)
-    const ua = credentials?.rawHeaders?.["user-agent"] || "";
-    const forceAgentMode = ua.includes("claude-cli") || ua.includes("claude-code") || ua.includes("Claude Code");
-    return generateCursorBody(messages, model, tools, reasoningEffort, forceAgentMode);
-  }
-
-  async makeFetchRequest(url, headers, body, signal, proxyOptions = null) {
-    const response = await proxyAwareFetch(url, {
-      method: "POST",
-      headers,
-      body,
-      signal
-    }, proxyOptions);
-
-    return {
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
-      body: Buffer.from(await response.arrayBuffer())
-    };
-  }
-
-  makeHttp2Request(url, headers, body, signal) {
-    if (!http2) {
-      throw new Error("http2 module not available");
-    }
-
-    const HTTP2_TIMEOUT_MS = 60000; // 60s max — prevent hung sessions
-
-    return new Promise((resolve, reject) => {
-      const urlObj = new URL(url);
-      const client = http2.connect(`https://${urlObj.host}`);
-      const chunks = [];
-      let responseHeaders = {};
-      let settled = false;
-
-      // Ensure client is always closed on settle
-      const finish = (fn) => (...args) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(hangTimeout);
-        client.close();
-        fn(...args);
-      };
-
-      // Hard timeout: close session if server never responds
-      const hangTimeout = setTimeout(finish(() => {
-        reject(new Error("HTTP/2 request timed out"));
-      }), HTTP2_TIMEOUT_MS);
-
-      client.on("error", finish(reject));
-
-      const req = client.request({
-        ":method": "POST",
-        ":path": urlObj.pathname,
-        ":authority": urlObj.host,
-        ":scheme": "https",
-        ...headers
-      });
-
-      req.on("response", (hdrs) => { responseHeaders = hdrs; });
-      req.on("data", (chunk) => { chunks.push(chunk); });
-      req.on("end", finish(() => {
-        resolve({
-          status: responseHeaders[":status"],
-          headers: responseHeaders,
-          body: Buffer.concat(chunks)
-        });
-      }));
-      req.on("error", finish(reject));
-
-      if (signal) {
-        const onAbort = finish(() => reject(new Error("Request aborted")));
-        signal.addEventListener("abort", onAbort, { once: true });
-      }
-
-      req.write(body);
-      req.end();
-    });
-  }
-
   /**
    * AgentService (agent.api5.cursor.sh) is HTTP/2-only. Node's fetch/undici speaks
    * HTTP/1.1 and fails with HTTPParserError on the h2 preface — use http2 duplex.
    */
   openAgentHttp2Stream(url, headers, signal) {
+    if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
     if (!http2) {
       throw new Error("HTTP/2 is required for Cursor AgentService (endpoint is h2-only)");
     }
 
     const urlObj = new URL(url);
-    const client = http2.connect(`https://${urlObj.host}`);
+    const client = http2.connect(urlObj.origin);
     const chunkQueue = [];
     let waiting = null;
     let ended = false;
+    let closed = false;
     let streamError = null;
     let req = null;
+    let settleHeaders = null;
 
     const wake = (result) => {
       if (!waiting) return;
@@ -425,62 +378,81 @@ export class CursorExecutor extends BaseExecutor {
       resolve(result);
     };
 
-    const fail = (error) => {
-      if (streamError) return;
-      streamError = error;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      signal?.removeEventListener("abort", onAbort);
+      req?.off("response", onResponse);
+      settleHeaders?.(new Error("Cursor AgentService connection closed before response headers"));
       ended = true;
-      wake(null);
+      wake({ value: undefined, done: true });
+      try { req?.destroy(); } catch {}
+      try { client.destroy(); } catch {}
     };
 
-    const close = () => {
-      try { req?.destroy(); } catch {}
-      try { client.close(); } catch {}
+    const fail = (error) => {
+      if (closed) return;
+      streamError = error;
+      settleHeaders?.(error);
+      close();
+    };
+    const onAbort = () => fail(new DOMException("Request aborted", "AbortError"));
+    const onResponse = (hdrs) => settleHeaders?.(null, hdrs);
+    const onClose = () => {
+      if (!ended) fail(new Error("Cursor AgentService stream closed unexpectedly"));
+      else close();
     };
 
     client.on("error", fail);
+    client.once("close", onClose);
 
-    req = client.request({
-      ":method": "POST",
-      ":path": urlObj.pathname,
-      ":authority": urlObj.host,
-      ":scheme": "https",
-      ...headers,
+    try {
+      req = client.request({
+        ":method": "POST",
+        ":path": urlObj.pathname,
+        ":authority": urlObj.host,
+        ":scheme": urlObj.protocol.slice(0, -1),
+        ...headers,
+      });
+    } catch (error) {
+      close();
+      throw error;
+    }
+
+    const responseHeaders = new Promise((resolve, reject) => {
+      settleHeaders = (error, hdrs) => {
+        settleHeaders = null;
+        req.off("response", onResponse);
+        if (error) reject(error);
+        else resolve(hdrs);
+      };
+      req.once("response", onResponse);
     });
 
     req.on("error", fail);
+    req.once("close", onClose);
     req.on("data", (chunk) => {
       if (waiting) wake({ value: chunk, done: false });
       else chunkQueue.push(chunk);
     });
-    req.on("end", () => {
+    req.once("end", () => {
+      if (settleHeaders) {
+        fail(new Error("Cursor AgentService stream ended before response headers"));
+        return;
+      }
       ended = true;
       wake({ value: undefined, done: true });
     });
 
     if (signal) {
-      const onAbort = () => {
-        fail(new Error("Request aborted"));
-        close();
-      };
+      signal.addEventListener("abort", onAbort, { once: true });
       if (signal.aborted) onAbort();
-      else signal.addEventListener("abort", onAbort, { once: true });
     }
-
-    const responseHeaders = new Promise((resolve, reject) => {
-      const onEarlyError = (error) => reject(error);
-      client.once("error", onEarlyError);
-      req.once("error", onEarlyError);
-      req.once("response", (hdrs) => {
-        client.off("error", onEarlyError);
-        req.off("error", onEarlyError);
-        resolve(hdrs);
-      });
-    });
 
     return {
       responseHeaders,
       write(frame) {
-        if (req && !req.destroyed) req.write(Buffer.from(frame));
+        if (req && !req.destroyed) req.write(frame);
       },
       end() {
         try { if (req && !req.destroyed) req.end(); } catch {}
@@ -499,22 +471,29 @@ export class CursorExecutor extends BaseExecutor {
     };
   }
 
-  async executeAgent({ model, body, stream, credentials, signal }) {
-    const agentEndpoint = PROVIDER_OAUTH.cursor?.agentEndpoint;
-    if (!agentEndpoint) throw new Error("Cursor AgentService endpoint is not configured");
-
-    const url = `${agentEndpoint}${AGENT_RUN_PATH}`;
-    const headers = this.buildHeaders(credentials);
-    const requestController = new AbortController();
-    if (signal?.addEventListener) {
-      signal.addEventListener("abort", () => requestController.abort(signal.reason), { once: true });
+  async executeAgent({ model, body, stream, credentials, signal, proxyOptions = null }) {
+    if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
+    validateAgentRequestControls(body);
+    const tools = body.tool_choice === "none" ? [] : body.tools || [];
+    const url = this.buildUrl();
+    const relay = typeof proxyOptions?.vercelRelayUrl === "string" && proxyOptions.vercelRelayUrl.trim();
+    if (relay || resolveConnectionProxyUrl(url, proxyOptions) || getEnvProxyUrl(url) || proxyOptions?.strictProxy === true) {
+      throw new Error("Cursor native HTTP/2 cannot honor the required proxy or relay policy; no direct connection was opened");
     }
+    const headers = this.buildHeaders(credentials);
+    const preparedBody = await resolveAgentImages(body, signal);
+    if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
+    const runFrame = buildAgentRunFrame(preparedBody.messages || [], model, tools);
+    const requestController = new AbortController();
+    const requestSignal = signal ? AbortSignal.any([signal, requestController.signal]) : requestController.signal;
 
     let session;
     try {
-      session = this.openAgentHttp2Stream(url, headers, requestController.signal);
-      session.write(buildAgentRunFrame(body.messages || [], model));
+      session = this.openAgentHttp2Stream(url, headers, requestSignal);
+      session.write(runFrame);
     } catch (error) {
+      session?.close();
+      if (error.name === "AbortError") throw error;
       throw new Error(`Cursor AgentService request failed: ${error.message}`);
     }
 
@@ -523,6 +502,7 @@ export class CursorExecutor extends BaseExecutor {
       responseHeaders = await session.responseHeaders;
     } catch (error) {
       session.close();
+      if (error.name === "AbortError") throw error;
       throw new Error(`Cursor AgentService request failed: ${error.message}`);
     }
 
@@ -555,6 +535,16 @@ export class CursorExecutor extends BaseExecutor {
     const created = Math.floor(Date.now() / 1000);
     let pending = Buffer.alloc(0);
     let finished = false;
+    let endStreamReceived = false;
+    const toolCalls = [];
+    const toolCallIds = new Map();
+    const declaredToolNames = new Set(tools.map((tool) => tool.function?.name || tool.name));
+    let expectedToolCalls = null;
+    const finishTools = (onEvent) => {
+      if (finished || !toolCalls.length) return;
+      finished = true;
+      onEvent({ type: "done", finishReason: "tool_calls" });
+    };
 
     const consume = async (onEvent) => {
       try {
@@ -566,6 +556,7 @@ export class CursorExecutor extends BaseExecutor {
             // A single read can carry several frames; once the turn is over the
             // rest of the batch must not reach the already-closed controller.
             if (finished) return;
+            if (endStreamReceived) throw Object.assign(new Error("Cursor protocol error: data after EndStreamResponse"), { code: "protocol_error" });
             const serverMessage = decodeMessage(payload);
 
             // agent.v1.AgentServerMessage.interaction_update
@@ -575,14 +566,19 @@ export class CursorExecutor extends BaseExecutor {
                 const textDelta = extractAgentString(decodeMessage(update.get(1)[0].value), 1);
                 if (textDelta) onEvent({ type: "text", value: textDelta });
               }
+              if (update.has(27)) {
+                const listed = decodeMessage(update.get(27)[0].value);
+                expectedToolCalls = listed.get(1)?.[0]?.value ?? null;
+              }
               // Cursor's AgentService emits internal reasoning without the
               // cryptographic signature required by Anthropic thinking blocks.
               // Forwarding it makes strict Anthropic clients (Claude Code)
               // discard or wait on an otherwise complete response. Keep the
               // reasoning upstream-only and emit the normal answer text.
               if (update.has(14)) {
-                finished = true;
-                onEvent({ type: "done" });
+                if (expectedToolCalls != null && toolCalls.length && toolCalls.length < expectedToolCalls) {
+                  throw new Error("Cursor ended an incomplete MCP tool-call batch");
+                }
               }
             }
 
@@ -591,7 +587,31 @@ export class CursorExecutor extends BaseExecutor {
             if (serverMessage.has(2)) {
               const execRequest = decodeMessage(serverMessage.get(2)[0].value);
               if (execRequest.has(10)) {
-                session.write(createRequestContextResponse());
+                session.write(createRequestContextResponse(execRequest));
+              } else if (execRequest.has(42)) {
+                const args = decodeMessage(execRequest.get(42)[0].value);
+                const provider = extractAgentString(args, 1);
+                const name = extractAgentString(args, 2);
+                const allowlisted = provider === AGENT_TOOL_PROVIDER && declaredToolNames.has(name);
+                session.write(createAgentExecResponse(execRequest, 42, agentBool(1, allowlisted)));
+              } else if (execRequest.has(11)) {
+                const call = decodeMcpArgs(execRequest.get(11)[0].value);
+                const name = declaredToolNames.has(call.toolName) ? call.toolName : call.name;
+                if (!call.toolCallId || !declaredToolNames.has(name) || call.providerIdentifier && call.providerIdentifier !== AGENT_TOOL_PROVIDER) {
+                  finished = true;
+                  onEvent({ type: "error", value: "Cursor AgentService requested an unsupported IDE tool or malformed MCP call" });
+                } else {
+                  const toolCall = { id: call.toolCallId, type: OPENAI_BLOCK.FUNCTION, function: { name, arguments: JSON.stringify(call.args) } };
+                  const previous = toolCallIds.get(call.toolCallId);
+                  if (previous && (previous.function.name !== name || previous.function.arguments !== toolCall.function.arguments)) {
+                    throw new Error("Cursor reused a tool-call ID with conflicting arguments");
+                  }
+                  if (!previous) {
+                    toolCallIds.set(call.toolCallId, toolCall);
+                    toolCalls.push(toolCall);
+                    onEvent({ type: "tool_call", value: toolCall, index: toolCalls.length - 1 });
+                  }
+                }
               } else {
                 // Every other ExecServerMessage variant is an editor-backed tool
                 // (shell, read, write, …) that zenrouter cannot service. Fail the
@@ -601,28 +621,62 @@ export class CursorExecutor extends BaseExecutor {
                 onEvent({ type: "error", value: "Cursor AgentService requested an unsupported IDE tool" });
               }
             }
+          }, (terminal) => {
+            if (finished) return;
+            if (endStreamReceived) throw Object.assign(new Error("Cursor protocol error: duplicate EndStreamResponse"), { code: "protocol_error" });
+            endStreamReceived = true;
+            if (Object.hasOwn(terminal, "error")) {
+              const error = terminal.error;
+              if (!error || typeof error !== "object" || typeof error.code !== "string" || !error.code || error.message !== undefined && typeof error.message !== "string") {
+                throw Object.assign(new Error("Cursor protocol error: invalid EndStreamResponse error"), { code: "protocol_error" });
+              }
+              throw Object.assign(new Error(error.message || `Cursor AgentService returned ${error.code}`), {
+                code: error.code,
+                status: Object.hasOwn(CURSOR_CONNECT_ERROR_STATUS, error.code) ? CURSOR_CONNECT_ERROR_STATUS[error.code] : HTTP_STATUS.BAD_GATEWAY,
+              });
+            }
           });
+          if (endStreamReceived && !finished) {
+            if (pending.length) throw Object.assign(new Error("Cursor protocol error: data after EndStreamResponse"), { code: "protocol_error" });
+            if (expectedToolCalls != null && toolCalls.length && toolCalls.length < expectedToolCalls) throw new Error("Cursor ended an incomplete MCP tool-call batch");
+            finished = true;
+            onEvent({ type: "done", finishReason: toolCalls.length ? "tool_calls" : "stop" });
+          } else if (toolCalls.length && (expectedToolCalls == null || toolCalls.length >= expectedToolCalls)) {
+            // Deliberate client-tool handoff cancels the run while the server
+            // awaits real client results; no EndStreamResponse is expected.
+            finishTools(onEvent);
+          }
+        }
+        if (!finished) {
+          const message = pending.length ? "Cursor protocol error: truncated protobuf frame" : "Cursor protocol error: missing EndStreamResponse (unexpected EOF)";
+          throw Object.assign(new Error(message), { code: "protocol_error" });
+        }
+      } catch (error) {
+        if (!finished) {
+          finished = true;
+          onEvent({ type: "error", value: error.message, code: error.code || "connection_error", status: error.status || HTTP_STATUS.BAD_GATEWAY });
         }
       } finally {
         try { session.end(); } catch {}
         try { session.close(); } catch {}
-        if (!finished) onEvent({ type: "done" });
       }
     };
 
     if (stream === false) {
-      let content = "";
-      let reasoning = "";
+      const contentChunks = [];
+      const reasoningChunks = [];
       let agentError = null;
       await consume((event) => {
-        if (event.type === "text") content += event.value;
-        else if (event.type === "thinking") reasoning += event.value;
-        else if (event.type === "error") agentError = event.value;
+        if (event.type === "text") contentChunks.push(event.value);
+        else if (event.type === "thinking") reasoningChunks.push(event.value);
+        else if (event.type === "error") agentError = event;
       });
+      const content = contentChunks.join("");
+      const reasoning = reasoningChunks.join("");
       if (agentError) {
         return {
-          response: new Response(JSON.stringify({ error: { message: agentError, type: "api_error" } }), {
-            status: HTTP_STATUS.BAD_REQUEST,
+          response: new Response(JSON.stringify({ error: { message: agentError.value, type: "api_error", ...(agentError.code ? { code: agentError.code } : {}) } }), {
+            status: agentError.status || HTTP_STATUS.BAD_REQUEST,
             headers: { "Content-Type": "application/json" },
           }),
           url,
@@ -637,8 +691,8 @@ export class CursorExecutor extends BaseExecutor {
           object: "chat.completion",
           created,
           model,
-          choices: [{ index: 0, message: { role: "assistant", content: content || null, ...(reasoning ? { reasoning_content: reasoning } : {}) }, finish_reason: "stop" }],
-          usage: estimateUsage(body, content.length, FORMATS.OPENAI),
+          choices: [{ index: 0, message: { role: ROLE.ASSISTANT, content: content || null, ...(reasoning ? { reasoning_content: reasoning } : {}), ...(toolCalls.length ? { tool_calls: toolCalls } : {}) }, finish_reason: toolCalls.length ? "tool_calls" : "stop" }],
+          usage: estimateUsage(body, content.length + toolCalls.reduce((total, call) => total + call.function.arguments.length, 0), FORMATS.OPENAI),
         }), { headers: { "Content-Type": "application/json" } }),
         url,
         headers,
@@ -655,15 +709,17 @@ export class CursorExecutor extends BaseExecutor {
             controller.enqueue(encoder.encode(chatChunkSse({ id: responseId, created, model, delta: { content: event.value } })));
           } else if (event.type === "thinking") {
             controller.enqueue(encoder.encode(chatChunkSse({ id: responseId, created, model, delta: { reasoning_content: event.value } })));
+          } else if (event.type === "tool_call") {
+            controller.enqueue(encoder.encode(chatChunkSse({ id: responseId, created, model, delta: { tool_calls: [{ index: event.index, ...event.value }] } })));
           } else if (event.type === "error") {
             // An SSE error frame, not a content delta: a protocol failure must not
             // be rendered to the user as the assistant's reply, and downstream
             // usage tracking must not record the turn as a success.
-            controller.enqueue(encoder.encode(sseChunk({ error: { message: event.value, type: "api_error" } })));
+            controller.enqueue(encoder.encode(sseChunk({ error: { message: event.value, type: "api_error", ...(event.code ? { code: event.code } : {}) } })));
             controller.enqueue(encoder.encode(SSE_DONE));
             controller.close();
           } else if (event.type === "done") {
-            controller.enqueue(encoder.encode(chatChunkSse({ id: responseId, created, model, delta: {}, finishReason: "stop" })));
+            controller.enqueue(encoder.encode(chatChunkSse({ id: responseId, created, model, delta: {}, finishReason: event.finishReason || "stop" })));
             controller.enqueue(encoder.encode(SSE_DONE));
             controller.close();
           }
@@ -684,14 +740,15 @@ export class CursorExecutor extends BaseExecutor {
   }
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
-    if (isAgentTextRequest(body)) {
+    if (isAgentCapableRequest(body)) {
       try {
-        return await this.executeAgent({ model, body, stream, credentials, signal });
+        return await this.executeAgent({ model, body, stream, credentials, signal, proxyOptions });
       } catch (error) {
+        if (error.name === "AbortError") throw error;
         return {
           response: new Response(JSON.stringify({
-            error: { message: error.message, type: "connection_error", code: "" },
-          }), { status: HTTP_STATUS.SERVER_ERROR, headers: { "Content-Type": "application/json" } }),
+            error: { message: error.message, type: error.code === "unsupported_parameter" ? "invalid_request_error" : "connection_error", code: error.code || "", ...(error.param ? { param: error.param } : {}) },
+          }), { status: error.code === "unsupported_parameter" ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.SERVER_ERROR, headers: { "Content-Type": "application/json" } }),
           url: `${PROVIDER_OAUTH.cursor?.agentEndpoint || ""}${AGENT_RUN_PATH}`,
           headers: {},
           transformedBody: body,
@@ -699,49 +756,12 @@ export class CursorExecutor extends BaseExecutor {
       }
     }
 
-    const url = this.buildUrl();
-    const headers = this.buildHeaders(credentials);
-    const transformedBody = this.transformRequest(model, body, stream, credentials);
-
-    try {
-      const shouldForceFetch = proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true || !!proxyOptions?.vercelRelayUrl;
-      const response = (http2 && !shouldForceFetch)
-        ? await this.makeHttp2Request(url, headers, transformedBody, signal)
-        : await this.makeFetchRequest(url, headers, transformedBody, signal, proxyOptions);
-
-      if (response.status !== 200) {
-        const errorText = response.body?.toString() || "Unknown error";
-        const errorResponse = new Response(JSON.stringify({
-          error: {
-            message: `[${response.status}]: ${errorText}`,
-            type: "invalid_request_error",
-            code: ""
-          }
-        }), {
-          status: response.status,
-          headers: { "Content-Type": "application/json" }
-        });
-        return { response: errorResponse, url, headers, transformedBody: body };
-      }
-
-      const transformedResponse = stream !== false
-        ? this.transformProtobufToSSE(response.body, model, body)
-        : this.transformProtobufToJSON(response.body, model, body);
-
-      return { response: transformedResponse, url, headers, transformedBody: body };
-    } catch (error) {
-      const errorResponse = new Response(JSON.stringify({
-        error: {
-          message: error.message,
-          type: "connection_error",
-          code: ""
-        }
-      }), {
-        status: HTTP_STATUS.SERVER_ERROR,
-        headers: { "Content-Type": "application/json" }
-      });
-      return { response: errorResponse, url, headers, transformedBody: body };
-    }
+    return {
+      response: Response.json({ error: { message: "Cursor AgentService cannot represent this request's roles or content blocks", type: "invalid_request_error" } }, { status: HTTP_STATUS.BAD_REQUEST }),
+      url: `${PROVIDER_OAUTH.cursor?.agentEndpoint || ""}${AGENT_RUN_PATH}`,
+      headers: {},
+      transformedBody: body,
+    };
   }
 
   transformProtobufToJSON(buffer, model, body) {

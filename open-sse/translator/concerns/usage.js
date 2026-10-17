@@ -1,11 +1,30 @@
+// Cache TTL counters are subsets of the aggregate write count, never extra input.
+export function getCacheCreationUsage(raw) {
+  const total = raw?.cache_creation_input_tokens ?? raw?.cache_creation_tokens
+    ?? raw?.prompt_tokens_details?.cache_creation_tokens ?? raw?.input_tokens_details?.cache_creation_tokens;
+  const five = raw?.cache_creation_5m_tokens ?? raw?.prompt_tokens_details?.cache_creation_5m_tokens
+    ?? raw?.input_tokens_details?.cache_creation_5m_tokens ?? raw?.cache_creation?.ephemeral_5m_input_tokens;
+  const hour = raw?.cache_creation_1h_tokens ?? raw?.prompt_tokens_details?.cache_creation_1h_tokens
+    ?? raw?.input_tokens_details?.cache_creation_1h_tokens ?? raw?.cache_creation?.ephemeral_1h_input_tokens;
+  if (total == null && five == null && hour == null) return null;
+  const count = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+  return {
+    total: total == null ? count(five) + count(hour) : count(total),
+    ...(five == null ? {} : { fiveMinute: count(five) }),
+    ...(hour == null ? {} : { oneHour: count(hour) }),
+  };
+}
+
 // Build OpenAI usage object. Caller computes prompt/completion/total (provider math).
-// Optional details added only when > 0 (matches existing claude/gemini/codex behavior).
-export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, reasoningTokens = 0 }) {
+// TTL subsets retain explicit zeroes; other optional details are added when positive.
+export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, reasoningTokens = 0 }) {
   const usage = { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens };
-  if (cachedTokens > 0 || cacheCreationTokens > 0) {
+  if (cachedTokens > 0 || cacheCreationTokens > 0 || cacheCreation5mTokens !== undefined || cacheCreation1hTokens !== undefined) {
     usage.prompt_tokens_details = {};
     if (cachedTokens > 0) usage.prompt_tokens_details.cached_tokens = cachedTokens;
     if (cacheCreationTokens > 0) usage.prompt_tokens_details.cache_creation_tokens = cacheCreationTokens;
+    if (cacheCreation5mTokens !== undefined) usage.prompt_tokens_details.cache_creation_5m_tokens = cacheCreation5mTokens;
+    if (cacheCreation1hTokens !== undefined) usage.prompt_tokens_details.cache_creation_1h_tokens = cacheCreation1hTokens;
   }
   if (reasoningTokens > 0) {
     usage.completion_tokens_details = { reasoning_tokens: reasoningTokens };
@@ -18,9 +37,9 @@ const n = (v) => (typeof v === "number" ? v : 0);
 // Per-provider raw token field-map + math. Returns buildUsage() args (NOT the usage object).
 // Keeps each provider's exact semantics: claude/gemini fold cache+reasoning, others don't.
 const USAGE_EXTRACTORS = {
-  claude(raw) {
+  claude(raw, creation) {
     const input = n(raw.input_tokens), output = n(raw.output_tokens);
-    const cacheRead = n(raw.cache_read_input_tokens), cacheCreate = n(raw.cache_creation_input_tokens);
+    const cacheRead = n(raw.cache_read_input_tokens), cacheCreate = creation?.total ?? n(raw.cache_creation_input_tokens);
     const prompt = input + cacheRead + cacheCreate;
     return { promptTokens: prompt, completionTokens: output, totalTokens: prompt + output, cachedTokens: cacheRead, cacheCreationTokens: cacheCreate };
   },
@@ -99,5 +118,28 @@ const USAGE_EXTRACTORS = {
 export function toOpenAIUsage(raw, kind) {
   const extract = USAGE_EXTRACTORS[kind];
   if (!extract || !raw || typeof raw !== "object") return null;
-  return buildUsage(extract(raw));
+  const creation = getCacheCreationUsage(raw);
+  const args = extract(raw, creation);
+  if (creation) {
+    args.cacheCreationTokens = creation.total;
+    args.cacheCreation5mTokens = creation.fiveMinute;
+    args.cacheCreation1hTokens = creation.oneHour;
+  }
+  return buildUsage(args);
+}
+
+// Chat/Responses output counts include reasoning; Gemini reports that slice separately.
+export function toGeminiUsage(usage) {
+  const prompt = usage.prompt_tokens ?? usage.input_tokens ?? 0;
+  const output = usage.completion_tokens ?? usage.output_tokens ?? 0;
+  const thoughts = usage.completion_tokens_details?.reasoning_tokens ?? usage.output_tokens_details?.reasoning_tokens ?? usage.reasoning_tokens ?? 0;
+  const cached = usage.prompt_tokens_details?.cached_tokens ?? usage.input_tokens_details?.cached_tokens ?? usage.cached_tokens;
+  return {
+    promptTokenCount: prompt,
+    candidatesTokenCount: Math.max(0, output - thoughts),
+    totalTokenCount: usage.total_tokens ?? prompt + output,
+    ...(thoughts > 0 ? { thoughtsTokenCount: thoughts } : {}),
+    ...(cached !== undefined ? { cachedContentTokenCount: cached } : {}),
+    ...(usage.estimated ? { estimated: true } : {}),
+  };
 }

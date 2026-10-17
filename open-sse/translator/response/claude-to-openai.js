@@ -2,7 +2,7 @@ import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, OPENAI_FINISH } from "../schema/index.js";
 import { buildChunk } from "../concerns/chunk.js";
-import { toOpenAIUsage } from "../concerns/usage.js";
+import { getCacheCreationUsage, toOpenAIUsage } from "../concerns/usage.js";
 import { reasoningDelta } from "../concerns/reasoning.js";
 import { toOpenAIFinish } from "../concerns/finishReason.js";
 
@@ -23,13 +23,15 @@ function createChunk(state, delta, finishReason = null) {
 // prompt only when cached_tokens is absent). Keeping the raw Claude-exclusive
 // split here without cached_tokens dropped the cache from the client's final
 // chunk and double-counted the prompt in usage logs.
-function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens }) {
+function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, cacheCreation5mTokens, cacheCreation1hTokens }) {
   state.usage = {
     ...toOpenAIUsage({
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       cache_read_input_tokens: cacheReadTokens,
-      cache_creation_input_tokens: cacheCreationTokens
+      cache_creation_input_tokens: cacheCreationTokens,
+      cache_creation_5m_tokens: cacheCreation5mTokens,
+      cache_creation_1h_tokens: cacheCreation1hTokens,
     }, "claude"),
     cached_tokens: cacheReadTokens,
     input_tokens: inputTokens,
@@ -37,6 +39,8 @@ function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cach
   };
   if (cacheReadTokens > 0) state.usage.cache_read_input_tokens = cacheReadTokens;
   if (cacheCreationTokens > 0) state.usage.cache_creation_input_tokens = cacheCreationTokens;
+  if (cacheCreation5mTokens !== undefined) state.usage.cache_creation_5m_tokens = cacheCreation5mTokens;
+  if (cacheCreation1hTokens !== undefined) state.usage.cache_creation_1h_tokens = cacheCreation1hTokens;
 }
 
 // The OpenAI-facing subset of state.usage (drops the Claude-native mirror fields).
@@ -45,9 +49,71 @@ function clientUsage(usage) {
   return { prompt_tokens, completion_tokens, total_tokens, ...(prompt_tokens_details ? { prompt_tokens_details } : {}) };
 }
 
+function flushToolInputSnapshot(state, toolCall, results) {
+  if (!toolCall?.inputSnapshot || toolCall.hasInputDeltas || toolCall.snapshotEmitted) return;
+  toolCall.snapshotEmitted = true;
+  results.push(createChunk(state, { tool_calls: [{
+    index: toolCall.index, id: toolCall.id, function: { arguments: toolCall.inputSnapshot },
+  }] }));
+}
+
+function flushToolInputSnapshots(state, results) {
+  if (!state.toolCalls) return;
+  for (const toolCall of state.toolCalls.values()) flushToolInputSnapshot(state, toolCall, results);
+}
+
+function captureNativeClaudeResponse(chunk, state) {
+  if (chunk?.type === "message_start") {
+    const message = chunk.message || {};
+    state.nativeResponse = { ...message, content: [...(message.content || [])], usage: { ...message.usage } };
+    state.nativeBlockChunks = new Map();
+  }
+  const message = state.nativeResponse;
+  if (!message) return;
+  if (chunk?.type === "content_block_start") {
+    message.content[chunk.index] = { ...chunk.content_block };
+    state.nativeBlockChunks.set(chunk.index, {});
+  } else if (chunk?.type === "content_block_delta") {
+    const delta = chunk.delta;
+    const field = delta?.type === "text_delta" ? "text"
+      : delta?.type === "thinking_delta" ? "thinking"
+        : delta?.type === "signature_delta" ? "signature"
+          : delta?.type === "input_json_delta" ? "partial_json" : null;
+    const fields = state.nativeBlockChunks.get(chunk.index);
+    if (field && fields && typeof delta[field] === "string") (fields[field] ??= []).push(delta[field]);
+  } else if (chunk?.type === "message_delta") {
+    Object.assign(message, chunk.delta);
+    if (chunk.usage) {
+      message.usage = {
+        ...message.usage, ...chunk.usage,
+        ...(chunk.usage.cache_creation ? { cache_creation: { ...message.usage?.cache_creation, ...chunk.usage.cache_creation } } : {}),
+      };
+    }
+  }
+  if (!chunk || chunk.type === "message_stop") {
+    for (const [index, fields] of state.nativeBlockChunks) {
+      const block = message.content[index];
+      for (const field of ["text", "thinking", "signature"]) {
+        if (fields[field]) block[field] = (block[field] || "") + fields[field].join("");
+      }
+      if (fields.partial_json) {
+        try { block.input = JSON.parse(fields.partial_json.join("")); }
+        catch { /* An interrupted tool block has no completed native input object. */ }
+      }
+    }
+    state.nativeBlockChunks.clear();
+    message.content = message.content.filter(Boolean);
+  }
+}
+
 // Convert Claude stream chunk to OpenAI format
 export function claudeToOpenAIResponse(chunk, state) {
-  if (!chunk) return null;
+  if (state.collectNativeResponse) captureNativeClaudeResponse(chunk, state);
+  if (!chunk) {
+    const results = [];
+    flushToolInputSnapshots(state, results);
+    return results.length > 0 ? results : null;
+  }
 
   const results = [];
   const event = chunk.type;
@@ -62,11 +128,14 @@ export function claudeToOpenAIResponse(chunk, state) {
       // delta (output-only) doesn't reset it to zero.
       const startUsage = chunk.message?.usage;
       if (startUsage && typeof startUsage === "object") {
+        const creation = getCacheCreationUsage(startUsage);
         setUsageState(state, {
           inputTokens: typeof startUsage.input_tokens === "number" ? startUsage.input_tokens : 0,
           outputTokens: 0,
           cacheReadTokens: typeof startUsage.cache_read_input_tokens === "number" ? startUsage.cache_read_input_tokens : 0,
-          cacheCreationTokens: typeof startUsage.cache_creation_input_tokens === "number" ? startUsage.cache_creation_input_tokens : 0
+          cacheCreationTokens: creation?.total || 0,
+          cacheCreation5mTokens: creation?.fiveMinute,
+          cacheCreation1hTokens: creation?.oneHour,
         });
       }
       results.push(createChunk(state, { role: ROLE.ASSISTANT }));
@@ -82,6 +151,7 @@ export function claudeToOpenAIResponse(chunk, state) {
       }
       if (block?.type === CLAUDE_BLOCK.TEXT) {
         state.textBlockStarted = true;
+        if (typeof block.text === "string" && block.text) results.push(createChunk(state, { content: block.text }));
       } else if (block?.type === CLAUDE_BLOCK.THINKING) {
         // Track the thinking block internally only. Thinking text flows through
         // reasoning_content (see thinking_delta below) — never inject literal
@@ -91,6 +161,7 @@ export function claudeToOpenAIResponse(chunk, state) {
         // first position when a downstream proxy rebuilds a Claude message.
         state.inThinkingBlock = true;
         state.currentBlockIndex = chunk.index;
+        if (typeof block.thinking === "string" && block.thinking) results.push(createChunk(state, reasoningDelta(block.thinking)));
       } else if (block?.type === CLAUDE_BLOCK.TOOL_USE) {
         const toolCallIndex = state.toolCallIndex++;
         // Restore original tool name from mapping (Claude OAuth)
@@ -104,7 +175,11 @@ export function claudeToOpenAIResponse(chunk, state) {
             arguments: ""
           }
         };
-        state.toolCalls.set(chunk.index, toolCall);
+        state.toolCalls.set(chunk.index, {
+          index: toolCallIndex, id: block.id,
+          inputSnapshot: block.input && Object.keys(block.input).length > 0 ? JSON.stringify(block.input) : null,
+          hasInputDeltas: false, snapshotEmitted: false,
+        });
         results.push(createChunk(state, { tool_calls: [toolCall] }));
       }
       break;
@@ -118,10 +193,11 @@ export function claudeToOpenAIResponse(chunk, state) {
         results.push(createChunk(state, { content: delta.text }));
       } else if (delta?.type === "thinking_delta" && delta.thinking) {
         results.push(createChunk(state, reasoningDelta(delta.thinking)));
-      } else if (delta?.type === "input_json_delta" && delta.partial_json) {
+      } else if (delta?.type === "input_json_delta" && typeof delta.partial_json === "string") {
         const toolCall = state.toolCalls.get(chunk.index);
         if (toolCall) {
-          toolCall.function.arguments += delta.partial_json;
+          if (!delta.partial_json) break;
+          toolCall.hasInputDeltas = true;
           results.push(createChunk(state, {
             tool_calls: [{
               index: toolCall.index,
@@ -140,6 +216,7 @@ export function claudeToOpenAIResponse(chunk, state) {
         state.serverToolBlockIndex = -1;
         break;
       }
+      flushToolInputSnapshot(state, state.toolCalls.get(chunk.index), results);
       if (state.inThinkingBlock && chunk.index === state.currentBlockIndex) {
         // End of thinking is signaled by state, not by a literal </think> text
         // chunk (see content_block_start above). Consumers that need an explicit
@@ -158,15 +235,20 @@ export function claudeToOpenAIResponse(chunk, state) {
       // fall back to cache captured in message_start when the delta omits it.
       if (chunk.usage && typeof chunk.usage === "object") {
         const prev = state.usage || {};
+        const creation = getCacheCreationUsage(chunk.usage);
+        const previousCreation = getCacheCreationUsage(prev);
         setUsageState(state, {
           inputTokens: typeof chunk.usage.input_tokens === "number" ? chunk.usage.input_tokens : (prev.input_tokens || 0),
           outputTokens: typeof chunk.usage.output_tokens === "number" ? chunk.usage.output_tokens : 0,
           cacheReadTokens: typeof chunk.usage.cache_read_input_tokens === "number" ? chunk.usage.cache_read_input_tokens : (prev.cache_read_input_tokens || 0),
-          cacheCreationTokens: typeof chunk.usage.cache_creation_input_tokens === "number" ? chunk.usage.cache_creation_input_tokens : (prev.cache_creation_input_tokens || 0)
+          cacheCreationTokens: Math.max(creation?.total || 0, previousCreation?.total || 0),
+          cacheCreation5mTokens: creation?.fiveMinute ?? previousCreation?.fiveMinute,
+          cacheCreation1hTokens: creation?.oneHour ?? previousCreation?.oneHour,
         });
       }
 
       if (chunk.delta?.stop_reason) {
+        flushToolInputSnapshots(state, results);
         state.finishReason = convertStopReason(chunk.delta.stop_reason);
         const finalChunk = createChunk(state, {}, state.finishReason);
 
@@ -186,6 +268,7 @@ export function claudeToOpenAIResponse(chunk, state) {
     }
 
     case "message_stop": {
+      flushToolInputSnapshots(state, results);
       if (!state.finishReasonSent) {
         const finishReason = state.finishReason || (state.toolCalls?.size > 0 ? OPENAI_FINISH.TOOL_CALLS : OPENAI_FINISH.STOP);
         const usageObj = (state.usage && typeof state.usage === "object") ? { usage: clientUsage(state.usage) } : {};

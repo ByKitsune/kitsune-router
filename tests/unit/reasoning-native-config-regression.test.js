@@ -14,9 +14,11 @@ describe('Native DeepSeek effort mapping', () => {
     const body = applyThinking('openai', 'deepseek-v4-pro', { reasoning_effort: effort }, 'deepseek');
     expect(body.reasoning_effort).toBe(expected);
   });
-  it('retains distinct MiMo and reseller DeepSeek-format compatibility', () => {
+  it('retains distinct MiMo and OpenRouter native wire contracts', () => {
     expect(applyThinking('openai', 'mimo-v2.5-pro', { reasoning_effort: 'xhigh' }, 'opencode-go').reasoning_effort).toBe('xhigh');
-    expect(applyThinking('openai', 'deepseek-v4-pro', { reasoning_effort: 'xhigh' }, 'openrouter').reasoning_effort).toBe('max');
+    const routed = applyThinking('openai', 'deepseek-v4-pro', { reasoning_effort: 'xhigh' }, 'openrouter');
+    expect(routed.reasoning).toEqual({ effort: 'xhigh' });
+    expect(routed).not.toHaveProperty('reasoning_effort');
   });
 });
 

@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "crypto";
-import { CLAUDE_TOOL_SUFFIX, CC_DEFAULT_TOOLS } from "../config/appConstants.js";
+import { CLAUDE_TOOL_SUFFIX } from "../config/appConstants.js";
 import { CLAUDE_CODE_VERSION } from "../config/clientVersions.js";
 
 const CC_ENTRYPOINT = "cli";
@@ -88,31 +88,16 @@ export function cloakClaudeTools(body) {
   };
 }
 
-// Strip a trailing CLAUDE_TOOL_SUFFIX from a cloaked name as a last-resort
-// fallback when the name isn't in toolNameMap (e.g. map lost across a retry/
-// reconnect). Never strips decoy names — those are meant to reach the client
-// unresolved so it can see "tool unavailable" instead of silently no-oping.
-function stripCloakSuffix(name) {
-  if (typeof name !== "string" || !name.endsWith(CLAUDE_TOOL_SUFFIX)) return null;
-  if (CC_DEFAULT_TOOLS.has(name)) return null;
-  const original = name.slice(0, -CLAUDE_TOOL_SUFFIX.length);
-  return original.length > 0 ? original : null;
-}
-
 // Decloak tool_use names in non-streaming Claude response body (INPUT side)
 export function decloakToolNames(body, toolNameMap) {
-  if (!Array.isArray(body?.content)) return body;
+  if (!toolNameMap?.size || !Array.isArray(body?.content)) return body;
+  let changed = false;
   const content = body.content.map(block => {
-    if (block?.type !== "tool_use") return block;
-    if (toolNameMap?.has(block.name)) {
-      return { ...block, name: toolNameMap.get(block.name) };
-    }
-    // toolNameMap missing/stale for this name — fall back to suffix stripping
-    // rather than forwarding an unresolvable "<tool>_ide" name to the client.
-    const fallback = stripCloakSuffix(block.name);
-    return fallback ? { ...block, name: fallback } : block;
+    if (block?.type !== "tool_use" || !toolNameMap.has(block.name)) return block;
+    changed = true;
+    return { ...block, name: toolNameMap.get(block.name) };
   });
-  return { ...body, content };
+  return changed ? { ...body, content } : body;
 }
 
 /**
@@ -125,10 +110,8 @@ export function decloakToolNames(body, toolNameMap) {
  * name appears exactly once per call — on the content_block_start event of
  * a tool_use block; argument deltas carry no name.
  *
- * Falls back to stripping the literal CLAUDE_TOOL_SUFFIX when the name isn't
- * in toolNameMap (map lost across a retry/reconnect), matching the
- * non-streaming decloak behavior. Decoy tool names (real CC tool names) and
- * anything else pass through unchanged.
+ * Only names present in the request-local map are changed. A literal suffix is
+ * not evidence of cloaking; unrecognized native tool names remain exact.
  *
  * @param {object|null} chunk - Parsed SSE event (may be null on stream flush)
  * @param {Map|null} toolNameMap - Suffixed → original name map from cloakClaudeTools()
@@ -139,7 +122,7 @@ export function decloakStreamChunk(chunk, toolNameMap) {
   if (chunk.type !== "content_block_start") return chunk;
   const block = chunk.content_block;
   if (block?.type !== "tool_use" || typeof block.name !== "string") return chunk;
-  const original = toolNameMap?.get(block.name) || stripCloakSuffix(block.name);
+  const original = toolNameMap?.get(block.name);
   if (!original) return chunk;
   return { ...chunk, content_block: { ...block, name: original } };
 }

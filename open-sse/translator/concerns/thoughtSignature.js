@@ -40,8 +40,8 @@ export function isValidBase64(str) {
   return true;
 }
 
-export function buildToolCallId(name, index, thoughtSignature = "") {
-  const base = `${name}-${Date.now()}-${index}`;
+export function buildToolCallId(name, index, thoughtSignature = "", rawId = null) {
+  const base = rawId || `${name}-${Date.now()}-${index}`;
   if (!thoughtSignature) return base;
   cacheSignature(base, thoughtSignature);
   const encoded = Buffer.from(thoughtSignature, "utf8").toString("base64url");

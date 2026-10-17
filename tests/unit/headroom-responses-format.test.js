@@ -54,7 +54,7 @@ describe("compressWithHeadroom openai-responses format (#1998)", () => {
       json: async () => ({
         messages: [
           { role: "user", content: "investigate bug (compressed)" },
-          { role: "tool", content: "ok (compressed)" },
+          { role: "tool", content: "ok (compressed)", tool_call_id: "call_apply_patch_123" },
         ],
         tokens_saved: 20,
       }),

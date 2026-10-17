@@ -9,10 +9,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 - Fix persisted latency windows: `24h` previously produced an invalid SQLite date modifier and no TTFT metrics; calendar periods now use matching parameterized ISO boundaries, with unknown/future samples excluded. Add real SQLite tests through the authenticated metrics route.
 - Increment the schema-backup version before additive latency-column upgrades. A version-one database is backed up before ALTER operations, its settings/usage survive, and reopening does not repeat the backup.
-- Add a network-free lifecycle inventory for all 120 active providers and 1,582 source/model/voice/reference rows. Exact missing catalog matches remain unknown. The report distinguishes source aliases, account restrictions, scheduled deprecation and shutdown; it does not certify every provider's live availability.
+- Add a network-free lifecycle inventory for all 120 active providers and 1,570 source/model/voice/reference rows after the October 17 reconciliation. Exact missing catalog matches remain unknown. The report distinguishes source aliases, account restrictions, scheduled deprecation and shutdown; it does not certify every provider's live availability.
 - Correct the alerting recommendations: notify on positive reauthentication counts, separate probe failures, match target labels explicitly for TTFT rules, and stop recommending `rate`/`increase` over rolling-window exports or incomplete failure-log series.
 - Preserve `gemini-2.5-pro` and `gemini-2.5-flash-lite` for existing eligible API projects. Google's official deprecation page says they are **not deprecated**, limits new users, and announces no shutdown date. A project-specific 404 must not hide either model globally. Discovery behavior tests cover chat, transcription and vision, and CLI metadata keeps API eligibility reference-only.
 - Correct the 0.9.10 retirement claims below: those describe the behavior shipped in that tag, not verified global shutdowns. The fixes on `master` are not in immutable npm/Docker 0.9.10 artifacts.
+
+### Multimodal routing, reasoning and model metadata
+
+- Preserve typed image/file blocks across Chat, Responses, Messages and Google formats, including parallel tool results and compacted histories. Never stringify encoded media into tool-result prose. Each routing attempt owns its mutable request containers.
+- Compress text without replacing image payloads, tool identity or error traces. Usage estimates exclude recognized encoded media, not literal JSON, schemas or user text.
+- Preserve API reasoning aliases, native display/summary controls and model-specific budgets across request/response translation. Thinking suffixes no longer bypass exact native or operator-declared constraints.
+- Preserve sampling, instructions, structured-output schemas, function choice and parallel-tool identity where the target supports them. Stateful Responses references and known unsupported native controls fail explicitly instead of silently losing intent.
+- Restore request-local tool names in JSON, SSE and forced-SSE aggregation. Preserve exact argument deltas, refusals, incomplete terminals and opaque image signatures.
+- Route native Gemini chat through the shared codecs instead of a text-only request converter and fragment-unsafe SSE wrapper. Preserve namespaced model IDs and Google SDK client-key authentication.
+- Send Cursor vision/history/tool data through the verified AgentService schema. Propagate Connect terminal errors and unexpected EOF; do not invent client tool results. Unsupported generation/forced-choice controls return `unsupported_parameter`, replacing the unused 32,000-token floor.
+- Render and replay typed generated images in Basic Chat. Preserve distinct image occurrences, reconcile identified snapshots, restore persisted history after hydration, and surface malformed or unrecognized streams.
+- Reconcile exact provider/model metadata with the complete 2026-10-17 models.dev snapshot and endpoint-specific primary sources. Keep context, input and output independent. Preserve scheduled retirement and account eligibility distinctions.
+- Introduce catalog schema v4 for exact ceilings and explicit negative capabilities. Preserve full namespaces and declared upstream aliases; remove inferred bare-leaf compatibility matching and cross-product joins.
+- Resolve media-only model tables from registry aliases rather than requiring a chat transport. Preserve published route aliases while exposing embedding dimensions and speech character limits independently from token ceilings.
+- Use scoped token tariffs, saved override precedence and separate five-minute/one-hour cache-write rates. Explicit unknown rate/tier overrides round-trip through the pricing API. Unknown used charges remain `null` through persistence, aggregates, metrics and UI; genuine free zeroes remain numeric zero.
+- Use the same canonical usage extractor for native JSON and SSE, including cache-inclusive input and separate cache-write TTLs. Save only edited pricing overrides; inherited reasoning rates and tiers must not become explicit overrides after an unrelated edit.
+- Harden remote-image downloads against global proxy overrides of pinned DNS, including IPv6 unspecified/mapped-private targets. One deadline covers DNS and HTTP; cancellation stops remaining downloads and upstream inference. Native Cursor egress fails closed for unsupported proxy/relay policy, and cancellation settles pre-header waits without retaining caller listeners.
+- Keep structured HTTP/SSE diagnostics and native failure usage while neutralizing routing details and excluding upstream debug payloads from public errors. Native Responses failures after partial output remain terminal errors, not successful assistant text; flat error events retain their framing and sequence. Native invalid-request failures retain HTTP 400 without cooling down healthy accounts.
+
+These changes remain unreleased. They do not overwrite versioned 0.9.10 artifacts or establish live-provider availability, account entitlement or upstream invoices.
 
 ## [0.9.10] - 2026-10-16
 

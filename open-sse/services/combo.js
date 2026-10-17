@@ -8,6 +8,7 @@ import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 import { isOpenAIResponsesTerminalEvent } from "../utils/responsesStreamHelpers.js";
 import { extractReasoningText } from "../translator/concerns/reasoning.js";
+import { cloneRequestBody } from "../utils/requestBody.js";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -99,7 +100,7 @@ function flattenToolHistory(messages) {
 
 // Reorder combo models by capability fit. Stable; never drops a model (fallback intact).
 // Tier 0: satisfies all hard + all soft. Tier 1: all hard only. Tier 2: rest.
-export function reorderByCapabilities(models, required) {
+export function reorderByCapabilities(models, required, modelCapabilities = null) {
   if (!required || required.size === 0 || !Array.isArray(models) || models.length <= 1) return models;
   const hard = [...required].filter((c) => HARD_CAPS.has(c));
   const soft = [...required].filter((c) => !HARD_CAPS.has(c));
@@ -108,7 +109,7 @@ export function reorderByCapabilities(models, required) {
     const slash = typeof m === "string" ? m.indexOf("/") : -1;
     const provider = slash > 0 ? m.slice(0, slash) : "";
     const model = slash > 0 ? m.slice(slash + 1) : m;
-    const caps = getCapabilitiesForModel(provider, model);
+    const caps = modelCapabilities?.get(m) || getCapabilitiesForModel(provider, model);
     if (!hard.every((c) => caps[c] === true)) return 2;
     return soft.every((c) => caps[c] === true) ? 0 : 1;
   };
@@ -183,6 +184,7 @@ export function detectRequiredCapabilities(body) {
         else if (b.content.includes("data:application/pdf")) required.add("pdf");
       }
     }
+    if (Array.isArray(b.functionResponse?.parts)) scanContent(b.functionResponse.parts);
     if (b.functionResponse?.response) {
       const resp = b.functionResponse.response;
       if (typeof resp === "string") {
@@ -196,10 +198,13 @@ export function detectRequiredCapabilities(body) {
         addByMime(resp.inlineData?.mimeType || resp.fileData?.mimeType);
         if (Array.isArray(resp.parts)) scanContent(resp.parts);
         if (Array.isArray(resp.content)) scanContent(resp.content);
+        if (Array.isArray(resp.result)) scanContent(resp.result);
       }
     }
     // gemini parts: inlineData/fileData carry a mime
-    addByMime(b.inlineData?.mimeType || b.fileData?.mimeType);
+    const inline = b.inlineData || b.inline_data;
+    const file = b.fileData || b.file_data;
+    addByMime(inline?.mimeType || inline?.mime_type || file?.mimeType || file?.mime_type);
   };
 
   const scanContent = (content) => {
@@ -553,7 +558,7 @@ export async function peekStreamForContent(response, timeoutMs = 45000) {
   return { hasContent, body: replayedStream };
 }
 
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, modelCapabilities = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -561,7 +566,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   if (autoSwitch) {
     const required = detectRequiredCapabilities(body);
     if (required.size > 0) {
-      const reordered = reorderByCapabilities(rotatedModels, required);
+      const reordered = reorderByCapabilities(rotatedModels, required, modelCapabilities);
       if (reordered[0] !== rotatedModels[0]) {
         log.info("COMBO", `auto-switch for [${[...required].join(",")}] → ${reordered[0]}`);
       }
@@ -581,7 +586,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
     try {
       // Clone body so in-place mutations in downstream handlers/translators
       // don't corrupt the request for subsequent fallback models (#3619).
-      const modelBody = structuredClone(body);
+      const modelBody = cloneRequestBody(body);
       const rawResult = await handleSingleModel(modelBody, modelStr);
       const result = rawResult?.ok ? await rejectFastEmptyStream(rawResult) : rawResult;
       
@@ -831,7 +836,7 @@ function collectPanel(calls, { minPanel, stragglerGraceMs, panelHardTimeoutMs })
  */
 export function stripMultimodalContent(body) {
   if (!body || typeof body !== "object") return body;
-  const next = structuredClone(body);
+  const next = cloneRequestBody(body);
 
   const isMediaBlock = (b) => {
     if (!b || typeof b !== "object") return false;
@@ -840,7 +845,7 @@ export function stripMultimodalContent(body) {
     if (t === "input_audio" || t === "audio_url" || t === "audio") return true;
     if (t === "input_video" || t === "video_url" || t === "video") return true;
     if (t === "file" || t === "document" || t === "input_file") return true;
-    if (b.inlineData || b.fileData) return true;
+    if (b.inlineData || b.inline_data || b.fileData || b.file_data) return true;
     return false;
   };
 
@@ -868,6 +873,19 @@ export function stripMultimodalContent(body) {
       if (typeof b.content === "string") {
         return { ...b, content: cleanDataUris(b.content) };
       }
+    }
+    if (b.functionResponse) {
+      const result = { ...b.functionResponse };
+      const cleanParts = (parts) => parts.filter((part) => !isMediaBlock(part)).map(cleanBlock);
+      if (Array.isArray(result.parts)) result.parts = cleanParts(result.parts);
+      if (Array.isArray(result.response)) result.response = cleanParts(result.response);
+      else if (result.response && typeof result.response === "object") {
+        result.response = { ...result.response };
+        for (const key of ["parts", "content", "result"]) {
+          if (Array.isArray(result.response[key])) result.response[key] = cleanParts(result.response[key]);
+        }
+      }
+      return { ...b, functionResponse: result };
     }
     return b;
   };
@@ -927,6 +945,10 @@ export function stripMultimodalContent(body) {
       } else if (typeof item.content === "string") {
         item.content = cleanDataUris(item.content);
       }
+      if (Array.isArray(item.output)) {
+        const filtered = item.output.filter((block) => !isMediaBlock(block)).map(cleanBlock);
+        item.output = filtered.length ? filtered : [{ type: "input_text", text: "[media omitted]" }];
+      }
       return item;
     });
   }
@@ -977,7 +999,7 @@ export function stripMultimodalContent(body) {
  * @param {Object} [options.tuning] - Override FUSION_DEFAULTS (minPanel, grace, timeout)
  * @returns {Promise<Response>}
  */
-export async function handleFusionChat({ body, models, handleSingleModel, log, comboName, judgeModel, tuning }) {
+export async function handleFusionChat({ body, models, handleSingleModel, log, comboName, judgeModel, tuning, modelCapabilities = null }) {
   let panel = Array.isArray(models) ? models.filter(Boolean) : [];
   if (panel.length === 0) {
     return new Response(
@@ -995,7 +1017,7 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
       const slash = typeof m === "string" ? m.indexOf("/") : -1;
       const provider = slash > 0 ? m.slice(0, slash) : "";
       const model = slash > 0 ? m.slice(slash + 1) : m;
-      const caps = getCapabilitiesForModel(provider, model);
+      const caps = modelCapabilities?.get(m) || getCapabilitiesForModel(provider, model);
       return mediaCaps.every((c) => caps[c] === true);
     });
     if (capablePanel.length > 0) {

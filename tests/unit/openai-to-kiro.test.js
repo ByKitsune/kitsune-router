@@ -340,7 +340,7 @@ describe("openaiToKiroRequest", () => {
 
     it.each([
       ["xhigh", "gpt-5.6-terra", "xhigh"],
-      ["max", "gpt-5.6-sol", "xhigh"],
+      ["max", "gpt-5.6-sol", "max"],
     ])("preserves GPT-5.6 effort %s as supported wire effort %s", (effort, model, wireEffort) => {
       const body = {
         reasoning: { effort },
@@ -394,7 +394,7 @@ describe("openaiToKiroRequest", () => {
 
         const result = openaiToKiroRequest("gpt-5.6-luna", body, true, {});
 
-        expect(result.additionalModelRequestFields).toBeUndefined();
+        expect(result.additionalModelRequestFields).toEqual({ reasoning: { effort: "none" } });
         expect(systemPromptOf(result)).not.toContain("<thinking_mode>");
         expect(systemPromptOf(result)).not.toContain("<max_thinking_length>");
       }
@@ -618,7 +618,7 @@ describe("openaiToKiroRequest", () => {
 
       expect(systemPromptOf(result)).not.toContain("<thinking_mode>enabled</thinking_mode>");
       expect(systemPromptOf(result)).not.toContain("<max_thinking_length>");
-      expect(result.additionalModelRequestFields).toBeUndefined();
+      expect(result.additionalModelRequestFields).toEqual({ thinking: { type: "disabled" } });
     });
   });
 });

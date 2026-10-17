@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Badge, Button } from "@/shared/components";
 import { getModelsByProviderId } from "@/shared/constants/models";
 import { isAnthropicCompatibleProvider, isOpenAICompatibleProvider } from "@/shared/constants/providers";
+import { OPENAI_BLOCK, RESPONSES_ITEM } from "open-sse/translator/schema/blocks.js";
 
 const STORAGE_KEYS = {
   sessions: "basic-chat.sessions",
@@ -66,21 +67,32 @@ function makeSessionTitle(text = "") {
   return normalized.length > 52 ? `${normalized.slice(0, 52).trimEnd()}…` : normalized;
 }
 
-function buildUserContent(message) {
-  const text = textValue(message.content).trim();
-  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+function readContentText(value) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(readContentText).join("");
+  if (!value || typeof value !== "object") return "";
+  if (typeof value.refusal === "string") return value.refusal;
+  if (value.type === OPENAI_BLOCK.TEXT || value.type === RESPONSES_ITEM.INPUT_TEXT || value.type === RESPONSES_ITEM.OUTPUT_TEXT) {
+    return typeof value.text === "string" ? value.text : "";
+  }
+  return "";
+}
 
+function buildMessageContent(message) {
+  const text = readContentText(message.content);
+  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
   if (attachments.length === 0) return text;
 
   const content = [];
-  if (text) content.push({ type: "text", text });
-
+  if (text) content.push({ type: OPENAI_BLOCK.TEXT, text });
   for (const attachment of attachments) {
-    if (attachment?.dataUrl) {
-      content.push({ type: "image_url", image_url: { url: attachment.dataUrl } });
-    }
+    if (!attachment?.dataUrl) continue;
+    content.push({
+      type: OPENAI_BLOCK.IMAGE_URL,
+      image_url: { url: attachment.dataUrl, ...(attachment.detail ? { detail: attachment.detail } : {}) },
+      ...(attachment.extraContent ? { extra_content: attachment.extraContent } : {}),
+    });
   }
-
   return content.length > 0 ? content : text;
 }
 
@@ -88,10 +100,50 @@ function readAssistantText(chunk) {
   if (!chunk || typeof chunk !== "object") return "";
   const choice = chunk.choices?.[0];
   const delta = choice?.delta || {};
-  const pieces = [delta.content, choice?.message?.content, chunk.output_text, chunk.text]
-    .map(textValue)
-    .filter(Boolean);
-  return pieces[0] || "";
+  return [delta.content, choice?.message?.content, delta.refusal, choice?.message?.refusal, chunk.output_text, chunk.text]
+    .map(readContentText).find(Boolean) || "";
+}
+
+function mergeAssistantImages(attachments, chunk) {
+  const choice = chunk?.choices?.[0];
+  const content = choice?.delta?.content ?? choice?.message?.content;
+  const channel = choice?.delta?.images ?? choice?.message?.images;
+  const images = Array.isArray(channel) && channel.length ? channel : Array.isArray(content)
+    ? content.filter(part => part?.type === OPENAI_BLOCK.IMAGE_URL || part?.type === RESPONSES_ITEM.INPUT_IMAGE) : [];
+  if (!images.length) return attachments;
+  const incremental = Array.isArray(channel) && channel.length
+    ? channel === choice?.delta?.images : content === choice?.delta?.content;
+
+  const result = attachments.slice();
+  const claimed = new Set();
+  for (const image of images) {
+    const descriptor = image?.image_url;
+    const url = typeof image === "string" ? image : typeof descriptor === "string" ? descriptor : descriptor?.url || image?.url;
+    if (typeof url !== "string" || !url) continue;
+    if (!/^(?:https?:\/\/|data:image\/)/i.test(url)) throw new Error("Unsupported image URL in provider response.");
+    const sourceId = typeof image.id === "string" ? image.id : undefined;
+    const sourceIndex = Number.isInteger(image.index) && image.index >= 0 ? image.index : undefined;
+    const existingIndex = result.findIndex((item, index) => {
+      if (claimed.has(index)) return false;
+      if (sourceId !== undefined && item.sourceId !== undefined) return item.sourceId === sourceId;
+      if (sourceIndex !== undefined && item.sourceIndex !== undefined) return item.sourceIndex === sourceIndex;
+      return !incremental && item.dataUrl === url;
+    });
+    const index = existingIndex === -1 ? result.length : existingIndex;
+    result[index] = {
+      ...result[index],
+      id: result[index]?.id || createId(),
+      name: typeof image.name === "string" ? image.name : result[index]?.name || `Generated image ${index + 1}`,
+      type: url.match(/^data:([^;,]+)/i)?.[1] || "image/*",
+      dataUrl: url,
+      ...(sourceId !== undefined ? { sourceId } : {}),
+      ...(sourceIndex !== undefined ? { sourceIndex } : {}),
+      ...(descriptor?.detail ? { detail: descriptor.detail } : {}),
+      ...(image.extra_content ? { extraContent: image.extra_content } : {}),
+    };
+    claimed.add(index);
+  }
+  return result;
 }
 
 async function fileToDataUrl(file) {
@@ -171,29 +223,11 @@ export default function BasicChatPageClient() {
   const [providerGroups, setProviderGroups] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [sessions, setSessions] = useState(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = safeParse(globalThis.localStorage.getItem(STORAGE_KEYS.sessions), []);
-      return Array.isArray(saved) ? saved.map((session) => ({
-        ...session,
-        messages: Array.isArray(session.messages) ? session.messages : [],
-      })) : [];
-    } catch { return []; }
-  });
-  const [activeSessionId, setActiveSessionId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.activeSessionId) || "";
-  });
-  const [activeProviderId, setActiveProviderId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.activeProviderId) || "";
-  });
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState("");
+  const [activeProviderId, setActiveProviderId] = useState("");
   const [activeModelId, setActiveModelId] = useState("");
-  const [draft, setDraft] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.draft) || "";
-  });
+  const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState("");
@@ -210,8 +244,27 @@ export default function BasicChatPageClient() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!cancelled) setIsHydrated(true);
-    })();
+      try {
+        const storage = globalThis.localStorage;
+        const saved = safeParse(storage.getItem(STORAGE_KEYS.sessions), []);
+        const savedSessions = Array.isArray(saved) ? saved.map((session) => ({
+          ...session,
+          messages: Array.isArray(session.messages) ? session.messages : [],
+        })) : [];
+        const savedSessionId = storage.getItem(STORAGE_KEYS.activeSessionId) || "";
+        const savedProviderId = storage.getItem(STORAGE_KEYS.activeProviderId) || "";
+        const savedDraft = storage.getItem(STORAGE_KEYS.draft) || "";
+        if (cancelled) return;
+        setSessions(savedSessions);
+        setActiveSessionId(savedSessionId);
+        setActiveProviderId(savedProviderId);
+        setDraft(savedDraft);
+      } finally {
+        if (!cancelled) setIsHydrated(true);
+      }
+    })().catch(() => {
+      // Storage may be unavailable; the empty in-memory session remains usable.
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -651,7 +704,7 @@ export default function BasicChatPageClient() {
       .filter((message) => !(message.role === "assistant" && message.id === assistantMessageId))
       .map((message) => ({
         role: message.role,
-        content: message.role === "user" ? buildUserContent(message) : message.content,
+        content: buildMessageContent(message),
       }));
 
     try {
@@ -674,58 +727,114 @@ export default function BasicChatPageClient() {
         throw new Error(textValue(errorData.error || errorData.message || `Request failed (${response.status})`));
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        const data = await response.json().catch(() => ({}));
-        const fallbackText = textValue(data?.choices?.[0]?.message?.content || data?.output_text || data?.error || data?.message || "");
+      const mediaType = (response.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+      if (mediaType === "application/json") {
+        const data = await response.json();
+        if (data?.error) throw new Error(textValue(data.error));
+        if (!data?.choices?.some(choice => choice?.message || choice?.delta) &&
+            typeof data?.output_text !== "string" && typeof data?.text !== "string") {
+          throw new Error("Provider returned no valid chat completion.");
+        }
+        const content = readAssistantText(data);
+        const images = mergeAssistantImages([], data);
         updateSession(sessionId, (currentSession) => ({
           ...currentSession,
-          messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content: fallbackText, status: "done" } : message)),
+          messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content, attachments: images, status: "done" } : message)),
           updatedAt: new Date().toISOString(),
         }));
+        finalizeSessionTitle(sessionId, userText);
         return;
       }
+      if (mediaType !== "text/event-stream") throw new Error("Unexpected provider response type.");
 
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Provider returned an empty response body.");
       const decoder = new TextDecoder();
       let buffer = "";
+      let eventData = [];
+      let eventType = "";
+      let protocolSeen = false;
+      let completionSeen = false;
       let assistantText = "";
+      let assistantAttachments = [];
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split(/\r?\n/);
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-
-          const payload = trimmed.slice(5).trim();
-          if (!payload || payload === "[DONE]") continue;
-
-          try {
-            const chunk = JSON.parse(payload);
-            const text = readAssistantText(chunk);
-            if (!text) continue;
-
-            assistantText += text;
-            setStreamingText(assistantText);
-            updateSession(sessionId, (currentSession) => ({
-              ...currentSession,
-              messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content: assistantText, status: "streaming" } : message)),
-              updatedAt: new Date().toISOString(),
-            }));
-          } catch {
-            // Ignore malformed chunks.
+      const applyEvent = () => {
+        const payload = eventData.join("\n").trim();
+        const type = eventType;
+        eventData = [];
+        eventType = "";
+        if (!payload) return;
+        if (payload === "[DONE]") {
+          completionSeen = true;
+          return;
+        }
+        let chunk;
+        try {
+          chunk = JSON.parse(payload);
+        } catch {
+          throw new Error("Invalid JSON in streaming response.");
+        }
+        if (type === "error" || chunk?.type === "error" || chunk?.error) {
+          const message = typeof chunk?.error === "string" ? chunk.error
+            : chunk?.error?.message || chunk?.message || "Provider stream returned an error.";
+          throw new Error(typeof message === "string" ? message : "Provider stream returned an error.");
+        }
+        if (Array.isArray(chunk?.choices)) {
+          for (const choice of chunk.choices) {
+            if (choice?.delta || choice?.message || typeof choice?.text === "string") protocolSeen = true;
+            if (choice?.finish_reason != null) {
+              if (choice.finish_reason === "error") throw new Error("Provider stream returned an error.");
+              protocolSeen = true;
+              completionSeen = true;
+            }
           }
         }
+        if (chunk?.usage && [chunk.usage.prompt_tokens, chunk.usage.completion_tokens, chunk.usage.total_tokens].some(Number.isFinite)) protocolSeen = true;
+        const text = readAssistantText(chunk);
+        const images = mergeAssistantImages(assistantAttachments, chunk);
+        if (!text && images === assistantAttachments) return;
+        assistantText += text;
+        assistantAttachments = images;
+        setStreamingText(assistantText);
+        updateSession(sessionId, (currentSession) => ({
+          ...currentSession,
+          messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content: assistantText, attachments: assistantAttachments, status: "streaming" } : message)),
+          updatedAt: new Date().toISOString(),
+        }));
+      };
+      const applyLine = (line) => {
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line) applyEvent();
+        else if (line.startsWith("data:")) eventData.push(line.slice(5).replace(/^ /, ""));
+        else if (line.startsWith("event:")) eventType = line.slice(6).trim();
+      };
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          // Scan only newly decoded bytes, not an ever-growing base64 image line.
+          const lines = decoder.decode(value, { stream: true }).split("\n");
+          lines[0] = buffer + lines[0];
+          buffer = lines.pop() || "";
+          for (const line of lines) applyLine(line);
+        }
+        buffer += decoder.decode();
+        if (buffer) applyLine(buffer);
+        applyEvent();
+        if (!protocolSeen) throw new Error("Provider returned no valid chat completion.");
+        if (!completionSeen) throw new Error("Provider stream ended before completion.");
+      } catch (error) {
+        // Preserve the response failure if cancelling its stream also fails.
+        await reader.cancel().catch(() => {});
+        throw error;
+      } finally {
+        reader.releaseLock();
       }
 
       updateSession(sessionId, (currentSession) => ({
         ...currentSession,
-        messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content: assistantText || message.content, status: "done" } : message)),
+        messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, content: assistantText, attachments: assistantAttachments, status: "done" } : message)),
         updatedAt: new Date().toISOString(),
       }));
       finalizeSessionTitle(sessionId, userText);
@@ -897,7 +1006,7 @@ export default function BasicChatPageClient() {
                 const isUser = message.role === "user";
                 const isAssistant = message.role === "assistant";
                 const isStreaming = isAssistant && message.id === streamingMessageId && message.status === "streaming";
-                const content = textValue(message.content) || (isAssistant ? streamingText : "");
+                const content = readContentText(message.content) || (isStreaming ? streamingText : "");
 
                 return (
                   <div key={message.id} className={`flex w-full ${isUser ? "justify-end" : "justify-start"} mb-6`}>
@@ -907,7 +1016,7 @@ export default function BasicChatPageClient() {
                       </div>
 
                       {message.attachments?.length ? (
-                        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 mt-2">
+                        <div className="mb-3 mt-2 grid w-80 max-w-full grid-cols-2 gap-2 sm:grid-cols-3">
                           {message.attachments.map((attachment) => (
                             <a key={attachment.id} href={attachment.dataUrl} target="_blank" rel="noreferrer" className="relative block h-28 w-full overflow-hidden rounded-[18px] border border-white/10 bg-black/20">
                               <Image src={attachment.dataUrl} alt={attachment.name} fill unoptimized sizes="(max-width: 768px) 50vw, 33vw" className="object-cover" />

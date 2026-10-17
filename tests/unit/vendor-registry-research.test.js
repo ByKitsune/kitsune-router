@@ -12,16 +12,18 @@ import p9 from "../../open-sse/providers/registry/mistral.js";
 import p10 from "../../open-sse/providers/registry/perplexity-agent.js";
 
 describe("researched non-core vendor registry additions", () => {
-  it("lists documented alicode text models without dropping compatibility IDs", () => {
+  it("lists only the six versions supported by the current CN Coding Plan", () => {
     const ids = p0.models.map((model) => model.id);
     expect(ids).toEqual(expect.arrayContaining(["qwen3.7-plus", "qwen3.6-plus", "kimi-k2.5"]));
-    expect(ids).toEqual(expect.arrayContaining(["qwen3.5-plus", "kimi-k2.6", "glm-5", "MiniMax-M2.5", "qwen3-max-2026-01-23", "qwen3-coder-next", "qwen3-coder-plus", "qwen3-coder-flash", "glm-4.7"]));
+    expect(ids).toEqual(expect.arrayContaining(["qwen3.5-plus", "glm-5", "MiniMax-M2.5"]));
+    expect(ids).toHaveLength(6);
     expect(new Set(ids).size).toBe(ids.length);
   });
-  it("lists documented alicode-intl text models without dropping compatibility IDs", () => {
+  it("lists only the six versions supported by the current global Coding Plan", () => {
     const ids = p1.models.map((model) => model.id);
-    expect(ids).toEqual(expect.arrayContaining(["qwen3.7-plus", "qwen3.6-plus", "qwen3-max-2026-01-23"]));
-    expect(ids).toEqual(expect.arrayContaining(["qwen3.5-plus", "kimi-k2.5", "glm-5", "MiniMax-M2.5", "qwen3-coder-next", "qwen3-coder-plus", "glm-4.7"]));
+    expect(ids).toEqual(expect.arrayContaining(["qwen3.7-plus", "qwen3.6-plus", "kimi-k2.5"]));
+    expect(ids).toEqual(expect.arrayContaining(["qwen3.5-plus", "glm-5", "MiniMax-M2.5"]));
+    expect(ids).toHaveLength(6);
     expect(new Set(ids).size).toBe(ids.length);
   });
   it("lists documented alims-intl text models without dropping compatibility IDs", () => {

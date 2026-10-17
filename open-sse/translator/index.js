@@ -5,12 +5,12 @@ import { cloakClaudeTools, decloakStreamChunk } from "../utils/claudeCloaking.js
 import { compressToolNames, decloakOpenAIChunk } from "../utils/toolCompressor.js";
 import { filterToOpenAIFormat } from "./formats/openai.js";
 import { stripUnsupportedChatExtensions } from "./concerns/paramSupport.js";
-import { normalizeThinkingConfig } from "../services/provider.js";
 import { applyThinking, captureThinking } from "./concerns/thinkingUnified.js";
 import { captureSessionId } from "../utils/sessionManager.js";
 import { AntigravityExecutor } from "../executors/antigravity.js";
 import { PROVIDERS } from "../providers/index.js";
 import { ROLE, GEMINI_ROLE } from "./schema/roles.js";
+import { extractResponseError, responseErrorToClient } from "./concerns/responseError.js";
 
 // Registry for translators. Lazy-init guards against circular-import order:
 // translator modules call register() (side-effect) before this module's body runs.
@@ -66,8 +66,37 @@ function detectClientLastRole(body) {
 }
 
 // Translate request: source -> openai -> target
-export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null) {
+export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null, capabilities = null) {
   ensureInitialized();
+  const responsesSource = sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX;
+  const responsesTarget = targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX;
+  if (responsesSource && !responsesTarget) {
+    for (const param of ["previous_response_id", "conversation"]) {
+      if (body?.[param] == null) continue;
+      const error = new Error(`This destination cannot use ${param}; resend the complete conversation or select a Responses-compatible route.`);
+      error.code = "unsupported_parameter";
+      error.param = param;
+      throw error;
+    }
+  }
+  if (targetFormat === FORMATS.CLAUDE && PROVIDERS[provider]?.quirks?.dropOutputConfig) {
+    let param;
+    if (body?.response_format?.type === "json_schema") param = "response_format";
+    else if (body?.text?.format?.type === "json_schema") param = "text.format";
+    else if (body?.output_config?.format != null) param = "output_config.format";
+    else {
+      const request = body?.request || body;
+      if (request?.generationConfig?.responseJsonSchema != null) param = "generationConfig.responseJsonSchema";
+      else if (request?.generationConfig?.responseSchema != null) param = "generationConfig.responseSchema";
+      if (param && body?.request) param = `request.${param}`;
+    }
+    if (param) {
+      const error = new Error(`This destination does not support ${param}; select a destination with structured-output support.`);
+      error.code = "unsupported_parameter";
+      error.param = param;
+      throw error;
+    }
+  }
   let result = body;
   // Role the client actually ended on, before any translator drops an emptied turn.
   const clientLastRole = detectClientLastRole(body);
@@ -82,17 +111,12 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   // Strip explicit content types (opt-in via strip[] in PROVIDER_MODELS entry)
   stripContentTypes(result, stripList);
 
-  // Normalize thinking config: remove if lastMessage is not user
-  normalizeThinkingConfig(result);
+  // Fill missing IDs without applying a foreign alphabet before source conversion.
+  ensureToolCallIds(result, { sanitizeIds: false });
 
-  // Always ensure tool_calls have id (some providers require it)
-  ensureToolCallIds(result);
-  
-  // Kiro performs stricter source-aware reconciliation after session replay.
-  // The generic helper inserts OpenAI `role: tool` messages, which a direct
-  // Claude→Kiro translator cannot consume and which cannot repair partial
-  // parallel tool results.
-  if (targetFormat !== FORMATS.KIRO) {
+  // Kiro reconciles source-aware results after replay. Cursor's native history
+  // must contain only executions actually supplied by the client.
+  if (targetFormat !== FORMATS.KIRO && targetFormat !== FORMATS.CURSOR) {
     fixMissingToolResponses(result);
   }
 
@@ -124,6 +148,22 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
         }
       }
 
+      // Kiro consumes intent inside its request builder, before a KAS body exists.
+      if (targetFormat === FORMATS.KIRO && sourceFormat !== FORMATS.OPENAI && thinkingIntent) {
+        delete result.reasoning;
+        delete result.reasoning_effort;
+        delete result.output_config;
+        delete result.thinking;
+        if (thinkingIntent.mode === "level") result.reasoning_effort = thinkingIntent.level;
+        if (thinkingIntent.mode !== "level" || thinkingIntent.display) {
+          result.thinking = {
+            type: thinkingIntent.mode === "none" ? "disabled" : thinkingIntent.mode === "budget" ? "enabled" : "adaptive",
+            ...(thinkingIntent.mode === "budget" ? { budget_tokens: thinkingIntent.budget } : {}),
+            ...(thinkingIntent.display ? { display: thinkingIntent.display } : {}),
+          };
+        }
+      }
+
       // Step 2: openai -> target (if target is not openai)
       if (targetFormat !== FORMATS.OPENAI) {
         const fromOpenAI = requestRegistry.get(`${FORMATS.OPENAI}:${targetFormat}`);
@@ -142,12 +182,13 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     targetFormat === FORMATS.KIRO &&
     (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.CLAUDE);
   if (!kiroThinkingMappedByTranslator) {
-    applyThinking(targetFormat, model, result, provider, thinkingIntent);
+    applyThinking(targetFormat, model, result, provider, thinkingIntent, capabilities);
   }
 
   // Always normalize to clean OpenAI format when target is OpenAI
   // This handles hybrid requests (e.g., OpenAI messages + Claude tools)
   if (targetFormat === FORMATS.OPENAI) {
+    result = { ...result };
     result = filterToOpenAIFormat(result, {
       preserveCacheControl: !!PROVIDERS[provider]?.quirks?.preserveCacheControl,
       preserveDeveloperRole: provider === "openai" || !!PROVIDERS[provider]?.quirks?.preserveDeveloperRole,
@@ -163,9 +204,22 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
 
   // Final step: prepare request for Claude format endpoints
   if (targetFormat === FORMATS.CLAUDE) {
+    ensureToolCallIds(result, { sanitizeIds: true });
     const apiKey = credentials?.accessToken || credentials?.apiKey || null;
     result = prepareClaudeRequest(result, provider, apiKey, connectionId, credentials?.rawHeaders, clientSessionId);
     if (Array.isArray(result?.messages)) result.messages = ensureTrailingUserTurn(result.messages, clientLastRole);
+  }
+
+  // Converters may rebuild the body and add their own wire-name aliases.
+  if (compressedMap?.size > 0) {
+    const aliases = result._toolNameMap;
+    if (aliases instanceof Map && aliases !== compressedMap && aliases.size > 0) {
+      const merged = new Map(compressedMap);
+      for (const [wireName, original] of aliases) merged.set(wireName, compressedMap.get(original) || original);
+      result._toolNameMap = merged;
+    } else {
+      result._toolNameMap = compressedMap;
+    }
   }
 
   // Claude cloaking: rename client tools with CLAUDE_TOOL_SUFFIX (anti-ban)
@@ -205,6 +259,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
 // Translate response chunk: target -> openai -> source
 export function translateResponse(targetFormat, sourceFormat, chunk, state) {
   ensureInitialized();
+  if (state?.responseErrorSent) return [];
   // If same format, return as-is — except the tool name may still be cloaked or compressed:
   // translateRequest() suffixes client tools for OAuth-cloaked Claude providers and compresses
   // long tool names for Gemini/Vertex/OpenAI, so streamed tool_use blocks must be decloaked here.
@@ -217,6 +272,12 @@ export function translateResponse(targetFormat, sourceFormat, chunk, state) {
     }
     return [chunk];
   }
+  const failure = extractResponseError(chunk);
+  if (failure) {
+    if (state) state.responseErrorSent = true;
+    return [responseErrorToClient(sourceFormat, failure, state)];
+  }
+
 
   let results = [chunk];
   let openaiResults = null; // Store OpenAI intermediate results

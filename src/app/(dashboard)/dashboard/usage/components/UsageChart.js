@@ -20,7 +20,7 @@ const fmtTokens = (n) => {
   return String(n || 0);
 };
 
-const fmtCost = (n) => `$${(n || 0).toFixed(4)}`;
+const fmtCost = (n) => n === null ? "Not specified" : `$${(n || 0).toFixed(4)}`;
 
 export default function UsageChart({ period = "7d" }) {
   const [data, setData] = useState([]);
@@ -51,7 +51,7 @@ export default function UsageChart({ period = "7d" }) {
     return () => { cancelled = true; };
   }, [fetchData]);
 
-  const hasData = data.some((d) => d.tokens > 0 || d.cost > 0);
+  const hasData = data.some((d) => d.tokens > 0 || d.cost > 0 || d.cost === null);
 
   return (
     <Card className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
@@ -103,6 +103,7 @@ export default function UsageChart({ period = "7d" }) {
               width={50}
             />
             <Tooltip
+              filterNull={false}
               contentStyle={{
                 backgroundColor: "var(--color-bg)",
                 border: "1px solid var(--color-border)",
@@ -127,6 +128,7 @@ export default function UsageChart({ period = "7d" }) {
               <Area
                 type="monotone"
                 dataKey="cost"
+                connectNulls={false}
                 stroke="#f59e0b"
                 strokeWidth={2}
                 fill="url(#gradCost)"

@@ -1,23 +1,25 @@
-import { outputBudgetError, openAICompletionToResponses } from "./jsonCompletionOutcome.js";
+import { outputBudgetError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
 export { isTruncatedEmptyCompletion } from "./jsonCompletionOutcome.js";
 import { FORMATS } from "../../translator/formats.js";
 import { needsTranslation } from "../../translator/index.js";
-import { fromOpenAIFinish } from "../../translator/concerns/finishReason.js";
 import { ollamaBodyToOpenAI } from "../../translator/response/ollama-to-openai.js";
 import { toOpenAIUsage } from "../../translator/concerns/usage.js";
 import { filterUsageForFormat } from "../../utils/usageTracking.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
-import { parseSSEToOpenAIResponse } from "./sseToJsonHandler.js";
+import { parseSSEToOpenAIResponse, createSSEAggregationState, responsesJsonToClaudeMessage } from "./sseToJsonHandler.js";
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
 import { openaiResponsesObjectToCompletion } from "../../translator/response/openai-responses.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { decloakOpenAIChunk } from "../../utils/toolCompressor.js";
-import { buildToolCallId, cacheSignature } from "../../translator/concerns/thoughtSignature.js";
+import { buildToolCallId } from "../../translator/concerns/thoughtSignature.js";
 import { extractReasoningText } from "../../translator/concerns/reasoning.js";
 import { normalizeTypedContent } from "../../translator/concerns/typedContent.js";
+import { normalizeMediaPart } from "../../translator/concerns/multimodal.js";
+import { toOpenAIFinish } from "../../translator/concerns/finishReason.js";
+import { extractResponseError } from "../../translator/concerns/responseError.js";
 
 const DEFAULT_THOUGHT_SIGNATURE = "";
 
@@ -27,14 +29,7 @@ function extractGeminiThoughtSignature(part, pending = DEFAULT_THOUGHT_SIGNATURE
 
 function buildGeminiToolCall(part, index, pendingSignature) {
   const signature = extractGeminiThoughtSignature(part, pendingSignature);
-  const rawId = part.functionCall.id;
-  if (rawId && signature) {
-    cacheSignature(rawId, signature);
-  }
-  // Preserve the upstream Gemini call id when present, else derive a stable one.
-  const id = rawId
-    ? (signature ? `${rawId}_TSIG_${Buffer.from(signature, "utf8").toString("base64url")}` : rawId)
-    : buildToolCallId(part.functionCall.name, index, signature);
+  const id = buildToolCallId(part.functionCall.name, index, signature, part.functionCall.id);
   return {
     id,
     type: "function",
@@ -47,7 +42,13 @@ function buildGeminiToolCall(part, index, pendingSignature) {
 
 function appendGeminiToolCalls(parts, toolCalls) {
   let pendingSignature = DEFAULT_THOUGHT_SIGNATURE;
-  for (const part of parts) {
+  for (const part of parts || []) {
+    const media = part.inlineData || part.inline_data || part.fileData || part.file_data;
+    const mimeType = media?.mimeType || media?.mime_type;
+    if (typeof mimeType === "string" && mimeType.toLowerCase().startsWith("image/")) {
+      pendingSignature = DEFAULT_THOUGHT_SIGNATURE;
+      continue;
+    }
     const signature = extractGeminiThoughtSignature(part);
     if (signature) pendingSignature = signature;
     if (!part.functionCall) continue;
@@ -68,86 +69,25 @@ function convertGeminiParts(parts) {
 
 export const __test__ = { convertGeminiParts };
 
-function parseToolArguments(value) {
-  if (!value) return {};
-  if (typeof value === "object") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return {};
-  }
-}
-
-function openAICompletionToClaudeMessage(responseBody) {
-  if (!responseBody?.choices?.[0]) return responseBody;
-  const choice = responseBody.choices[0];
-  const message = choice.message || {};
-  const content = [];
-
-  const reasoning = extractReasoningText(message) || extractReasoningText(message.provider_specific_fields);
-  if (reasoning) {
-    content.push({ type: "thinking", thinking: reasoning });
-  }
-  if (typeof message.content === "string" && message.content.length > 0) {
-    content.push({ type: "text", text: message.content });
-  }
-  for (const toolCall of message.tool_calls || []) {
-    const fn = toolCall.function || {};
-    content.push({
-      type: "tool_use",
-      id: toolCall.id || `toolu_${Date.now()}_${content.length}`,
-      name: fn.name || toolCall.name || "",
-      input: parseToolArguments(fn.arguments || toolCall.arguments),
-    });
-  }
-  if (content.length === 0) content.push({ type: "text", text: "" });
-
-  const usage = responseBody.usage || {};
-  return {
-    id: String(responseBody.id || `msg_${Date.now()}`).replace(/^chatcmpl-/, ""),
-    type: "message",
-    role: "assistant",
-    model: responseBody.model || "unknown",
-    content,
-    stop_reason: fromOpenAIFinish(choice.finish_reason, FORMATS.CLAUDE),
-    stop_sequence: null,
-    usage: {
-      input_tokens: usage.prompt_tokens || usage.input_tokens || 0,
-      output_tokens: usage.completion_tokens || usage.output_tokens || 0,
-    },
-  };
-}
 
 /**
  * Translate non-streaming response body from provider format → OpenAI format.
  */
 export function translateNonStreamingResponse(responseBody, targetFormat, sourceFormat, customToolNames = null) {
+  // The actual body shape is authoritative, including gateways which answer
+  // Chat JSON after accepting a provider-native request.
   if (Array.isArray(responseBody?.choices)) {
     for (const choice of responseBody.choices) normalizeTypedContent(choice?.message);
+    return openAICompletionToClient(responseBody, sourceFormat, customToolNames);
   }
-  // Some OpenAI-compatible gateways report a Claude target format while still
-  // returning Chat Completions JSON. The client endpoint remains authoritative:
-  // `/v1/messages` must never leak `choices` back to a Claude client.
-  if (sourceFormat === FORMATS.CLAUDE && Array.isArray(responseBody?.choices)) {
-    return openAICompletionToClaudeMessage(responseBody);
+  if ([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX].includes(sourceFormat) &&
+      (responseBody?.candidates || responseBody?.response?.candidates)) {
+    return nativeGeminiResponseToClient(responseBody, sourceFormat);
   }
   if (targetFormat === sourceFormat) return responseBody;
-  // Provider answered with a completed Responses-API JSON body while the
-  // client speaks Chat Completions (e.g. OpenCode zen muse models).
   if (targetFormat === FORMATS.OPENAI_RESPONSES && responseBody?.object === "response") {
-    const completion = openaiResponsesObjectToCompletion(responseBody);
-    if (sourceFormat === FORMATS.CLAUDE && Array.isArray(completion?.choices)) {
-      return openAICompletionToClaudeMessage(completion);
-    }
-    return completion;
-  }
-  // Provider responded in OpenAI Chat Completions shape but the client speaks
-  // Responses API — convert so tool_calls/text surface as Responses `output`.
-  if (targetFormat === FORMATS.OPENAI && sourceFormat === FORMATS.OPENAI_RESPONSES) {
-    return openAICompletionToResponses(responseBody, customToolNames);
-  }
-  if (targetFormat === FORMATS.OPENAI && sourceFormat === FORMATS.CLAUDE) {
-    return openAICompletionToClaudeMessage(responseBody);
+    if (sourceFormat === FORMATS.CLAUDE) return responsesJsonToClaudeMessage(responseBody);
+    return openAICompletionToClient(openaiResponsesObjectToCompletion(responseBody), sourceFormat, customToolNames);
   }
   if (targetFormat === FORMATS.OPENAI) return responseBody;
 
@@ -160,16 +100,17 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     const content = candidate.content;
     const usage = response.usageMetadata || responseBody.usageMetadata;
     const convertedParts = convertGeminiParts(content?.parts);
-    let textContent = convertedParts.text;
+    const textContent = convertedParts.text;
     const reasoningContent = convertedParts.reasoning;
     const toolCalls = convertedParts.toolCalls;
 
-    // Handle inline image data (from image generation models)
+    const images = [];
     for (const part of content?.parts || []) {
-      const inlineData = part.inlineData || part.inline_data;
-      if (inlineData?.data) {
-        const mimeType = inlineData.mimeType || inlineData.mime_type || "image/png";
-        textContent += `\n![image](data:${mimeType};base64,${inlineData.data})\n`;
+      const image = normalizeMediaPart(part);
+      if (image?.image_url) {
+        const signature = extractGeminiThoughtSignature(part);
+        images.push({ ...image, index: images.length,
+          ...(signature ? { extra_content: { google: { thought_signature: signature } } } : {}) });
       }
     }
 
@@ -177,9 +118,10 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     if (textContent) message.content = textContent;
     if (reasoningContent) message.reasoning_content = reasoningContent;
     if (toolCalls.length > 0) message.tool_calls = toolCalls;
+    if (images.length > 0) message.images = images;
     if (!message.content && !message.tool_calls) message.content = "";
 
-    let finishReason = (candidate.finishReason || "stop").toLowerCase();
+    let finishReason = toOpenAIFinish(candidate.finishReason || "STOP", "gemini");
     if (finishReason === "stop" && toolCalls.length > 0) finishReason = "tool_calls";
 
     const result = {
@@ -193,13 +135,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     if (usage) {
       result.usage = toOpenAIUsage(usage, "gemini");
     }
-    if (sourceFormat === FORMATS.CLAUDE) {
-      return openAICompletionToClaudeMessage(result);
-    }
-    if (sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      return openAICompletionToResponses(result, customToolNames);
-    }
-    return result;
+    return openAICompletionToClient(result, sourceFormat, customToolNames);
   }
 
   // Claude
@@ -208,17 +144,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     // missing/null (e.g. M3 with max_tokens:1 spends the budget on thinking
     // and returns `content: null`). Returning the raw body would leave the
     // OpenAI client without a `choices` array and surface as a UI test error.
-    // Early return if the response is already in OpenAI format (has choices array)
-    // or if it has content as a non-array value (likely a different non-Claude format).
-    // Some providers (e.g. xiaomi-tokenplan) return OpenAI-format responses even when
-    // the request was translated to Claude format — the targetFormat is Claude but the
-    // actual response is OpenAI-native and needs no further translation.
-    if (responseBody.choices || (responseBody.content && !Array.isArray(responseBody.content))) {
-      if (sourceFormat === FORMATS.CLAUDE && Array.isArray(responseBody?.choices)) {
-        return openAICompletionToClaudeMessage(responseBody);
-      }
-      return responseBody;
-    }
+    if (responseBody.content && !Array.isArray(responseBody.content)) return responseBody;
 
     let textContent = "", thinkingContent = "";
     const toolCalls = [];
@@ -241,9 +167,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     if (toolCalls.length > 0) message.tool_calls = toolCalls;
     if (!message.content && !message.tool_calls) message.content = "";
 
-    let finishReason = responseBody.stop_reason || "stop";
-    if (finishReason === "end_turn") finishReason = "stop";
-    if (finishReason === "tool_use") finishReason = "tool_calls";
+    const finishReason = toOpenAIFinish(responseBody.stop_reason || "end_turn", "claude");
 
     const result = {
       id: `chatcmpl-${responseBody.id || Date.now()}`,
@@ -256,30 +180,15 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     if (responseBody.usage) {
       result.usage = toOpenAIUsage(responseBody.usage, "claude");
     }
-    if (sourceFormat === FORMATS.CLAUDE) {
-      return openAICompletionToClaudeMessage(result);
-    }
-    if (sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      return openAICompletionToResponses(result, customToolNames);
-    }
-    return result;
+    return openAICompletionToClient(result, sourceFormat, customToolNames);
   }
 
   // Ollama
   if (targetFormat === FORMATS.OLLAMA) {
     const result = ollamaBodyToOpenAI(responseBody);
-    if (sourceFormat === FORMATS.CLAUDE && Array.isArray(result?.choices)) {
-      return openAICompletionToClaudeMessage(result);
-    }
-    if (sourceFormat === FORMATS.OPENAI_RESPONSES && Array.isArray(result?.choices)) {
-      return openAICompletionToResponses(result, customToolNames);
-    }
-    return result;
+    return openAICompletionToClient(result, sourceFormat, customToolNames);
   }
 
-  if (sourceFormat === FORMATS.CLAUDE && Array.isArray(responseBody?.choices)) {
-    return openAICompletionToClaudeMessage(responseBody);
-  }
   return responseBody;
 }
 
@@ -295,12 +204,13 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
       responseBody = await convertResponsesStreamToJson(providerResponse.body);
     } else {
       const sseText = await providerResponse.text();
-      const parsed = parseSSEToOpenAIResponse(sseText, model);
+      const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
+      const parsed = parseSSEToOpenAIResponse(sseText, model, targetFormat, aggregationState);
       if (!parsed) {
         appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
         return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
       }
-      responseBody = parsed;
+      responseBody = aggregationState.nativeResponse || parsed;
     }
   } else {
     try {
@@ -319,6 +229,11 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   // Record incurred tokens before any terminal classification or fallback.
   const usage = extractUsageFromResponse(responseBody);
   saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
+  const failure = extractResponseError(responseBody);
+  if (failure) {
+    appendLog({ tokens: usage, status: `FAILED ${failure.status}` });
+    return createErrorResult(failure.status, failure.error.message || "Upstream response failed", null, failure.error);
+  }
   // Detect upstream gateway errors masked as HTTP 200 (e.g. OpenRouter
   // sending choices[0].native_finish_reason:"network_error" with empty content).
   const rawChoice = responseBody?.choices?.[0];
@@ -362,6 +277,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   // Decloak tool_use names once on raw body, before any translation (INPUT side)
   responseBody = decloakToolNames(responseBody, toolNameMap);
   responseBody = decloakOpenAIChunk(responseBody, toolNameMap);
+  customToolNames = new Set(Array.from(customToolNames || [], name => toolNameMap?.get(name) || name));
   for (const choice of responseBody?.choices || []) {
     const reasoning = extractReasoningText(choice?.message);
     if (reasoning) choice.message.reasoning_content = reasoning;
@@ -370,32 +286,33 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   appendLog({ tokens: usage, status: "200 OK" });
   if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency: { total: Date.now() - requestStartTime } }));
 
-  const translatedResponse = needsTranslation(targetFormat, sourceFormat)
+  let translatedResponse = needsTranslation(targetFormat, sourceFormat) || Array.isArray(responseBody?.choices)
     ? translateNonStreamingResponse(responseBody, targetFormat, sourceFormat, customToolNames)
     : responseBody;
   const isClaudeMessageResponse = sourceFormat === FORMATS.CLAUDE && translatedResponse?.type === "message";
   // Responses-format translation produces a `object:"response"` body with no
   // `choices`; skip the Chat-Completions-specific post-processing below for it.
   const isResponsesResponse = sourceFormat === FORMATS.OPENAI_RESPONSES && translatedResponse?.object === "response";
+  const isGeminiResponse = !!(translatedResponse?.candidates || translatedResponse?.response?.candidates);
 
   // Fix finish_reason for tool_calls: some providers return non-standard values (e.g. "other")
   if (translatedResponse?.choices?.[0]) {
     const choice = translatedResponse.choices[0];
     const msg = choice.message;
     const hasToolCalls = Array.isArray(msg?.tool_calls) && msg.tool_calls.length > 0;
-    if (hasToolCalls && choice.finish_reason !== "tool_calls") {
+    if (hasToolCalls && !["tool_calls", "length", "content_filter", "network_error"].includes(choice.finish_reason)) {
       choice.finish_reason = "tool_calls";
     }
   }
 
   // Ensure OpenAI-required fields
-  if (!isClaudeMessageResponse && !isResponsesResponse) {
+  if (!isClaudeMessageResponse && !isResponsesResponse && !isGeminiResponse) {
     if (!translatedResponse.object) translatedResponse.object = "chat.completion";
     if (!translatedResponse.created) translatedResponse.created = Math.floor(Date.now() / 1000);
   }
 
   // Strip Azure-specific fields
-  if (!isClaudeMessageResponse && !isResponsesResponse) {
+  if (!isClaudeMessageResponse && !isResponsesResponse && !isGeminiResponse) {
     delete translatedResponse.prompt_filter_results;
     if (translatedResponse?.choices) {
       for (const choice of translatedResponse.choices) delete choice.content_filter_results;
@@ -406,13 +323,6 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     translatedResponse.usage = filterUsageForFormat(translatedResponse.usage, sourceFormat);
   }
 
-  if (toolNameMap?.size > 0 && translatedResponse) {
-    if (isClaudeMessageResponse) {
-      translatedResponse = decloakToolNames(translatedResponse, toolNameMap);
-    } else if (translatedResponse?.choices) {
-      translatedResponse = decloakOpenAIChunk(translatedResponse, toolNameMap);
-    }
-  }
 
   reqLogger.logConvertedResponse(translatedResponse);
 

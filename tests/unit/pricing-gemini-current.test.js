@@ -1,11 +1,23 @@
-import { describe, it, expect } from "vitest";
-import { MODEL_PRICING, getPricingForModel } from "../../open-sse/providers/pricing.js";
-import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
-import geminiRegistry from "../../open-sse/providers/registry/gemini.js";
-import geminiCliRegistry from "../../open-sse/providers/registry/gemini-cli.js";
-import vertexRegistry from "../../open-sse/providers/registry/vertex.js";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { setCatalogSource } from "../../open-sse/providers/capabilities.js";
 
-// Official Gemini pricing + deprecations (ai.google.dev/gemini-api/docs/{pricing,deprecations}, snapshot 2026-09-23).
+vi.mock("@/lib/localDb", () => ({
+  getProviderConnections: async () => [],
+  getCombos: async () => [],
+  getCustomModels: async () => [],
+  getModelAliases: async () => ({}),
+}));
+vi.mock("@/lib/disabledModelsDb", () => ({ getDisabledModels: async () => ({}) }));
+const { buildModelsList } = await import("@/app/api/v1/models/route.js");
+
+beforeEach(() => {
+  setCatalogSource(null);
+  vi.stubGlobal("fetch", () => { throw new Error("Unexpected network request"); });
+});
+afterEach(() => { setCatalogSource(null); vi.unstubAllGlobals(); });
+
+// Paid API reference tariffs: https://ai.google.dev/gemini-api/docs/pricing
 describe("Gemini current pricing", () => {
   it("prices gemini-2.5-pro at 1.25/10 (not stale 2/12)", () => {
     expect(getPricingForModel("gemini", "gemini-2.5-pro")).toMatchObject({ input: 1.25, output: 10 });
@@ -17,46 +29,27 @@ describe("Gemini current pricing", () => {
     expect(getPricingForModel("gemini", "gemini-3.5-flash")).toMatchObject({ input: 1.5, output: 9 });
     expect(getPricingForModel("gemini", "gemini-3.1-flash-lite")).toMatchObject({ input: 0.25, output: 1.5 });
   });
-  it("has an embedding price for gemini-embedding-001", () => {
-    expect(MODEL_PRICING["gemini-embedding-001"].input).toBe(0.15);
+  it("bills embedding input without requiring unused output or cache tariffs", () => {
+    // https://ai.google.dev/gemini-api/docs/pricing
+    const tokens = { prompt_tokens: 1000000, completion_tokens: 0 };
+    expect(calculateCostFromTokens(tokens, getPricingForModel("gemini", "gemini-embedding-001"))).toBeCloseTo(0.15, 12);
   });
 });
 
-describe("Gemini registry lineup", () => {
-  const ids = geminiRegistry.models.map((m) => m.id);
-  it("lists current GA models and stable image IDs", () => {
-    for (const id of ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-flash-image", "gemini-3-pro-image"]) {
-      expect(ids).toContain(id);
-    }
+describe("Gemini consumer limit semantics", () => {
+  it("publishes an image input allowance without inventing a total context window", async () => {
+    // https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image
+    // Input/output allowances are independent; the reviewed route leaves context unknown.
+    const row = (await buildModelsList(["image"])).find(model => model.id === "gemini/gemini-3.1-flash-image");
+    expect(row).toMatchObject({
+      capabilities: { imageOutput: true, maxInput: 131072, maxOutput: 32768, contextWindow: null },
+    });
+    expect(row).not.toHaveProperty("context_length");
   });
-  it("removed retired previews and PaLM leftovers", () => {
-    for (const id of [
-      "gemini-3-pro-preview",
-      "gemini-3.1-flash-lite-preview",
-      "gemini-3.1-flash-image-preview",
-      "gemini-3-pro-image-preview",
-      "text-embedding-004",
-      "embedding-001",
-      "gemini-2.0-flash",
-    ]) {
-      expect(ids).not.toContain(id);
-    }
-  });
-  it("gemini-cli and vertex dropped the retired previews too", () => {
-    const cli = geminiCliRegistry.models.map((m) => m.id);
-    const vtx = vertexRegistry.models.map((m) => m.id);
-    expect(cli).not.toContain("gemini-3-pro-preview");
-    expect(cli).not.toContain("gemini-3.1-flash-lite-preview");
-    expect(vtx).not.toContain("gemini-3.1-flash-lite-preview");
-    expect(vtx).toContain("gemini-3.5-flash");
-  });
-});
 
-describe("Gemini capability corrections", () => {
-  it("gives image models the 128K class context, not 1M", () => {
-    expect(getCapabilitiesForModel("gemini", "gemini-3.1-flash-image").contextWindow).toBe(131072);
-  });
-  it("gives Gemma 4 31B 256K context", () => {
-    expect(getCapabilitiesForModel("gemini", "gemma-4-31b-it").contextWindow).toBe(256000);
+  it("advertises Gemma's exact binary-token window rather than a rounded decimal label", async () => {
+    // https://models.dev/api.json: google/gemma-4-31b-it, captured 2026-10-17.
+    const row = (await buildModelsList(["llm"])).find(model => model.id === "gemini/gemma-4-31b-it");
+    expect(row).toMatchObject({ context_length: 262144, max_completion_tokens: 32768 });
   });
 });

@@ -12,6 +12,7 @@
 
 import { getCustomModels } from "../../src/lib/db/repos/aliasRepo.js";
 import { canonicalizeProviderId } from "./identity.js";
+import { capabilitiesFromServiceKind } from "./capabilities.js";
 
 /** How long a resolved snapshot stays fresh, in ms. */
 const TTL_MS = 30_000;
@@ -28,13 +29,16 @@ function keyFor(provider, model) {
 async function load() {
   const models = await getCustomModels();
   const next = new Map();
+  const imageModels = new Map();
   for (const record of models) {
     if (!record?.providerAlias || typeof record.id !== "string" || !record.id) continue;
     const kind = record.kind || record.type || "llm";
     if (kind !== "llm" && kind !== "imageToText") continue;
     const key = keyFor(record.providerAlias, record.id);
-    if (record.caps && typeof record.caps === "object") next.set(key, record.caps);
+    const caps = { ...capabilitiesFromServiceKind(kind), ...(record.caps && typeof record.caps === "object" ? record.caps : {}) };
+    if (Object.keys(caps).length) (kind === "llm" ? next : imageModels).set(key, caps);
   }
+  for (const [key, caps] of imageModels) next.set(key, { ...caps, ...next.get(key) });
   cache = next;
   cacheAt = Date.now();
   return cache;

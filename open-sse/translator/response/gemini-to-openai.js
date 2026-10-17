@@ -26,7 +26,7 @@ function emitFunctionCall(functionCall, state) {
   const toolCallIndex = state.functionIndex++;
   const thoughtSignature = functionCallWithSignature.thoughtSignature;
   const toolCall = {
-    id: buildToolCallId(fcName, toolCallIndex, thoughtSignature),
+    id: buildToolCallId(fcName, toolCallIndex, thoughtSignature, functionCall.id),
     index: toolCallIndex,
     type: OPENAI_BLOCK.FUNCTION,
     function: { name: fcName, arguments: JSON.stringify(fcArgs) },
@@ -49,6 +49,17 @@ export function geminiToOpenAIResponse(chunk, state) {
   const results = [];
   const candidate = response.candidates[0];
   const content = candidate.content;
+  if (state.collectNativeResponse) {
+    const previous = state.nativeResponse?.response || state.nativeResponse || {};
+    const previousCandidate = previous.candidates?.[0] || {};
+    const parts = state.nativeGeminiParts ??= [];
+    if (Array.isArray(content?.parts)) parts.push(...content.parts);
+    const native = {
+      ...previous, ...response,
+      candidates: [{ ...previousCandidate, ...candidate, content: { ...previousCandidate.content, ...content, parts } }],
+    };
+    state.nativeResponse = chunk.response ? { ...state.nativeResponse, ...chunk, response: native } : native;
+  }
 
   // Initialize state
   if (!state.messageId) {
@@ -64,6 +75,18 @@ export function geminiToOpenAIResponse(chunk, state) {
     for (const part of content.parts) {
       const hasThoughtSig = part.thoughtSignature || part.thought_signature;
       const isThought = part.thought === true;
+      const inlineData = part.inlineData || part.inline_data;
+      if (inlineData?.data) {
+        const mimeType = inlineData.mimeType || inlineData.mime_type || DEFAULT_IMAGE_MIME;
+        const image = { type: OPENAI_BLOCK.IMAGE_URL, index: state.geminiImageIndex ?? 0,
+          image_url: { url: encodeDataUri(mimeType, inlineData.data) },
+          ...(hasThoughtSig ? { extra_content: { google: { thought_signature: hasThoughtSig } } } : {}) };
+        state.geminiImageIndex = image.index + 1;
+        results.push(buildChunk(chunkMeta(state), { images: [image] }, null));
+        // An image signature belongs to that occurrence, never to a later tool.
+        state.pendingThoughtSignature = null;
+        continue;
+      }
       
       // Handle thought signature (thinking mode)
       if (hasThoughtSig) {
@@ -104,21 +127,6 @@ export function geminiToOpenAIResponse(chunk, state) {
         state.pendingThoughtSignature = null;
       }
 
-      // Inline data (images)
-      const inlineData = part.inlineData || part.inline_data;
-      if (inlineData?.data) {
-        const mimeType = inlineData.mimeType || inlineData.mime_type || DEFAULT_IMAGE_MIME;
-        results.push(buildChunk(
-          chunkMeta(state),
-          {
-            images: [{
-              type: OPENAI_BLOCK.IMAGE_URL,
-              image_url: { url: encodeDataUri(mimeType, inlineData.data) }
-            }]
-          },
-          null
-        ));
-      }
     }
   }
 

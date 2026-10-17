@@ -68,17 +68,19 @@ describe("provider-scoped primary-evidence core metadata shard", () => {
     expect(core.codex?.["gpt-6.1-sol"]?.billing.kind).toBe("api-reference");
     expect(core["gemini-cli"]?.["gemini-3.5-flash-lite"]?.billing.kind).toBe("api-reference");
     expect(core.claude?.["claude-opus-5-5-20260922"]?.limits.nativeIdVerified).toBe(false);
-    expect(core.gemini?.["gemini-4-argon"]).toBeUndefined();
+    expect(core.gemini?.["gemini-4-argon"]?.capabilities).toMatchObject({ contextWindow: 1048576, maxOutput: 32768 });
+    expect(core["gemini-cli"]?.["gemini-4-argon"]).toBeUndefined();
+    expect(core.claude?.["claude-haiku-5-5"]).toBeUndefined();
     expect(core.xai?.["grok-4.7-fast"]).toBeUndefined();
     expect(core.antigravity).toBeUndefined();
   });
 
-  it("is a standalone finite factual shard with primary sources on every record", () => {
+  it("is a standalone finite factual shard with explicit sources on every record", () => {
     expect(Object.keys(core).sort()).toEqual(["anthropic", "claude", "codex", "gemini", "gemini-cli", "grok-cli", "openai", "xai"]);
     for (const records of Object.values(core)) {
       for (const record of Object.values(records)) {
         expect(record.sources.length).toBeGreaterThan(0);
-        expect(record.sources.some(s => s.includes("models.dev"))).toBe(false);
+        if (record.sources.includes("https://models.dev/api.json")) expect(record.limits.catalogAsOf).toBe("2026-10-17");
         expect(record.billing).toHaveProperty("kind");
         const check = value => {
           if (typeof value === "number") expect(Number.isFinite(value)).toBe(true);

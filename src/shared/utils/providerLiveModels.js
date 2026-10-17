@@ -90,13 +90,15 @@ export async function fetchProviderLiveModels(providerId, apiKey, { useCache = t
         const id = m?.id || m?.name;
         const name = m?.name || m?.id;
         const contextWindow = Number(
-          m?.context_length ?? m?.context_window ?? m?.max_context_tokens ?? m?.per_request_limits?.prompt_tokens
+          m?.context_length ?? m?.context_window ?? m?.contextWindow ?? m?.max_context_tokens ?? m?.top_provider?.context_length
         );
+        const maxInput = Number(m?.max_input_tokens ?? m?.maxInput ?? m?.maxInputTokens ?? m?.per_request_limits?.prompt_tokens);
         const maxOutput = Number(
-          m?.max_completion_tokens ?? m?.max_tokens ?? m?.top_provider?.max_completion_tokens ?? m?.per_request_limits?.completion_tokens
+          m?.max_completion_tokens ?? m?.max_output_tokens ?? m?.maxOutput ?? m?.maxOutputTokens ?? m?.max_tokens ?? m?.top_provider?.max_completion_tokens ?? m?.per_request_limits?.completion_tokens
         );
         const caps = {};
         if (Number.isFinite(contextWindow) && contextWindow > 0) caps.contextWindow = contextWindow;
+        if (Number.isFinite(maxInput) && maxInput > 0) caps.maxInput = maxInput;
         if (Number.isFinite(maxOutput) && maxOutput > 0) caps.maxOutput = maxOutput;
         return normalizeLiveModel(providerId, {
           id,
@@ -104,9 +106,11 @@ export async function fetchProviderLiveModels(providerId, apiKey, { useCache = t
           ...(m?.kind ? { kind: m.kind } : {}),
           ...(m?.type ? { type: m.type } : {}),
           ...(m?.architecture ? { architecture: m.architecture } : {}),
+          ...(m?.input_modalities ? { input_modalities: m.input_modalities } : {}),
           ...(m?.output_modalities ? { output_modalities: m.output_modalities } : {}),
-          ...(Object.keys(caps).length > 0 ? { capabilities: caps } : {}),
+          ...((Object.keys(caps).length || m?.capabilities || m?.caps) ? { capabilities: { ...caps, ...m?.capabilities, ...m?.caps } } : {}),
           ...(Number.isFinite(contextWindow) && contextWindow > 0 ? { context_length: contextWindow } : {}),
+          ...(Number.isFinite(maxInput) && maxInput > 0 ? { max_input_tokens: maxInput } : {}),
           ...(Number.isFinite(maxOutput) && maxOutput > 0 ? { max_completion_tokens: maxOutput } : {}),
         });
       })

@@ -41,12 +41,20 @@ describe.each([FORMATS.GEMINI, FORMATS.GEMINI_CLI])("%s incoming thought history
         { functionResponse: { id: "call_1", name: "lookup", response: { result: "done" } } },
       ] }],
     });
-    expect(output.messages).toEqual([
-      { role: "assistant", reasoning_content: "First.Second.", tool_calls: [
-        { id: "call_1", type: "function", function: { name: "lookup", arguments: '{"key":"value"}' } },
-      ] },
-      { role: "tool", tool_call_id: "call_1", content: '"done"' },
+    const assistant = output.messages.find((message) => message.tool_calls);
+    const tool = output.messages.find((message) => message.role === "tool");
+    expect(assistant.reasoning_content).toBe("First.Second.");
+    expect(assistant.content).toBeUndefined();
+    expect(assistant.tool_calls).toEqual([
+      { id: "call_1", type: "function", function: { name: "lookup", arguments: '{"key":"value"}' } },
     ]);
+    expect(tool.tool_call_id).toBe(assistant.tool_calls[0].id);
+    for (let pass = 0, history = output; pass < 3; pass++) {
+      const roundTrip = translateRequest(FORMATS.OPENAI, FORMATS.GEMINI, "gemini-2.5-flash", history, false);
+      const response = roundTrip.contents.flatMap((turn) => turn.parts).find((part) => part.functionResponse).functionResponse;
+      expect(response).toEqual({ id: "call_1", name: "lookup", response: { result: "done" } });
+      history = translateRequest(FORMATS.GEMINI, FORMATS.OPENAI, "gpt-4o", roundTrip, false);
+    }
   });
 });
 

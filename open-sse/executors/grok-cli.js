@@ -397,7 +397,7 @@ export class GrokCliExecutor extends BaseExecutor {
     return headers;
   }
 
-  parseError(response, bodyText) {
+  parseError(response, bodyText, generic) {
     // 402 personal-team-blocked:spending-limit → surface as payment/quota for fallback
     if (response.status === 402 && bodyText) {
       try {
@@ -413,7 +413,7 @@ export class GrokCliExecutor extends BaseExecutor {
         /* fall through */
       }
     }
-    return super.parseError(response, bodyText);
+    return super.parseError(response, bodyText, generic);
   }
 
   transformRequest(model, body, stream, credentials) {

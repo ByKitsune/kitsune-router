@@ -2,14 +2,9 @@ import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { adjustMaxTokens, requiresMaxCompletionTokens } from "../formats/maxTokens.js";
 import { encodeDataUri } from "../concerns/image.js";
-import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
-
-// Marker prepended to a tool result that the client reported as an error.
-// OpenAI-format tool messages have no error flag, so the signal must live in
-// the text the model reads. Kept short and unambiguous so it cannot be
-// confused with real tool output.
-export const TOOL_ERROR_PREFIX = "[tool_error] ";
+import { splitToolResultContent } from "../concerns/multimodal.js";
 
 function stripAnthropicBillingHeader(text) {
   if (typeof text !== "string") return "";
@@ -44,6 +39,10 @@ export function claudeToOpenAIRequest(model, body, stream) {
   if (body.top_p !== undefined) {
     result.top_p = body.top_p;
   }
+  if (body.top_k !== undefined) result.top_k = body.top_k;
+  if (body.output_config?.format?.type === "json_schema") {
+    result.response_format = { type: "json_schema", json_schema: { name: "response", strict: true, schema: body.output_config.format.schema } };
+  }
   // Anthropic `stop_sequences` (array) ⇄ OpenAI `stop` (string or array).
   if (Array.isArray(body.stop_sequences)) {
     const cleaned = body.stop_sequences.filter((s) => typeof s === "string" && s.length > 0);
@@ -54,8 +53,9 @@ export function claudeToOpenAIRequest(model, body, stream) {
   // Anthropic metadata.user_id is an abuse-tracking/attribution field. OpenAI
   // Chat Completions has `user` for the same purpose, so it is carried over
   // rather than dropped.
-  const userId = body.metadata && typeof body.metadata.user_id === "string" ? body.metadata.user_id.trim() : "";
-  if (userId) result.user = userId;
+  if (typeof body.metadata?.user_id === "string" || body.metadata?.user_id === null) {
+    result.user = body.metadata.user_id;
+  }
 
   // System message
   if (body.system) {
@@ -110,8 +110,8 @@ export function claudeToOpenAIRequest(model, body, stream) {
   // Tool choice & parallel tool calls
   if (body.tool_choice) {
     result.tool_choice = convertToolChoice(body.tool_choice);
-    if (body.tool_choice.disable_parallel_tool_use === true) {
-      result.parallel_tool_calls = false;
+    if (typeof body.tool_choice.disable_parallel_tool_use === "boolean") {
+      result.parallel_tool_calls = !body.tool_choice.disable_parallel_tool_use;
     }
   }
 
@@ -258,45 +258,15 @@ function convertClaudeMessage(msg) {
 
         case CLAUDE_BLOCK.TOOL_RESULT:
         case CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT:
-          let resultContent = "";
-          const toolImages = [];
-          if (typeof block.content === "string") {
-            resultContent = block.content;
-          } else if (Array.isArray(block.content)) {
-            const textParts = [];
-            for (const c of block.content) {
-              if (c.type === CLAUDE_BLOCK.TEXT && c.text) {
-                textParts.push(c.text);
-              } else if (c.type === CLAUDE_BLOCK.IMAGE) {
-                if (c.source?.type === "base64" && c.source.data) {
-                  toolImages.push({
-                    type: OPENAI_BLOCK.IMAGE_URL,
-                    image_url: {
-                      url: encodeDataUri(c.source.media_type, c.source.data)
-                    }
-                  });
-                } else if (c.source?.type === "url" && c.source.url) {
-                  toolImages.push({
-                    type: OPENAI_BLOCK.IMAGE_URL,
-                    image_url: { url: c.source.url }
-                  });
-                }
-              }
-            }
-            resultContent = textParts.join("\n") || (toolImages.length === 0 ? JSON.stringify(block.content) : "");
-          } else if (block.content) {
-            resultContent = JSON.stringify(block.content);
-          }
+          const { text: resultContent, media: toolImages } = splitToolResultContent(block.content);
           
           toolResults.push({
             role: ROLE.TOOL,
             tool_call_id: block.tool_use_id,
-            // OpenAI Chat Completions has no `is_error` field on tool messages:
-            // unknown fields are ignored or rejected by strict upstreams, and the
-            // receiving model then cannot tell that the tool FAILED — it may
-            // conclude the opposite and continue from a false premise. The flag
-            // is therefore carried as an explicit marker in the content instead.
-            content: block.is_error === true ? `${TOOL_ERROR_PREFIX}${resultContent}` : resultContent,
+            // Internal pivots retain error semantics; final Chat lowering removes
+            // the native flag while the visible marker remains for strict APIs.
+            content: block.is_error === true && !resultContent.startsWith(TOOL_ERROR_PREFIX) ? `${TOOL_ERROR_PREFIX}${resultContent}` : resultContent,
+            ...(typeof block.is_error === "boolean" ? { is_error: block.is_error } : {}),
           });
           if (toolImages.length > 0) {
             parts.push(...toolImages);

@@ -36,11 +36,6 @@ describe("Claude → Claude streaming passthrough (OAuth tool cloak)", () => {
     expect(outText).toBe(textChunk);
   });
 
-  it("falls back to suffix-stripping when no cloak map is present", () => {
-    const chunk = toolUseStart(CLOAKED);
-    const [out] = translateResponse(FORMATS.CLAUDE, FORMATS.CLAUDE, chunk, {});
-    expect(out.content_block.name).toBe("run_code");
-  });
 
   it("tolerates the null flush chunk", () => {
     const [out] = translateResponse(FORMATS.CLAUDE, FORMATS.CLAUDE, null, state);

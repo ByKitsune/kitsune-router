@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import * as vm from "node:vm";
 import { platform, arch } from "node:os";
 import { modelKind } from "../open-sse/providers/models/schema.js";
+import { getModelsDevProviderId } from "../open-sse/providers/catalogProviders.js";
 
 const BASELINE_SHA = "4e89e102e339dcaef4511ea43af19cabc2cb9c4a";
 const MODELS_DEV_URL = "https://models.dev/api.json";
@@ -16,47 +17,57 @@ export const DISPOSITIONS = Object.freeze([
   "source-flagged-deprecated", "eligibility-restricted",
   "modelsdev-deprecated-candidate", "metadata-reference-only", "unverified",
 ]);
-const mapping = (id, scope = "direct-api") => ({ id, scope, evidenceUrls: [MODELS_DEV_URL] });
+const mapping = (provider, scope = "direct-api") => ({
+  id: provider === null ? null : getModelsDevProviderId(provider),
+  scope, evidenceUrls: [MODELS_DEV_URL],
+});
 
 // Explicit route mappings only. A missing provider or literal ID stays unknown.
 // A native-vendor catalog must never stand in for a regional or subscription route.
 export const DEFAULT_PROVIDER_MAP = Object.freeze({
   openai: mapping("openai"), anthropic: mapping("anthropic"),
-  gemini: mapping("google"), vertex: mapping("google-vertex", "vertex-api"),
-  "vertex-partner": mapping("google-vertex-anthropic", "vertex-partner-api"),
+  gemini: mapping("gemini"), vertex: mapping("vertex", "vertex-api"),
+  "vertex-partner": mapping("vertex-partner", "vertex-maas-not-anthropic-partner-api"),
   deepseek: mapping("deepseek"), xai: mapping("xai"), mistral: mapping("mistral"),
   cohere: mapping("cohere"), groq: mapping("groq"), cerebras: mapping("cerebras"),
-  nvidia: mapping("nvidia"), together: mapping("togetherai"),
-  fireworks: mapping("fireworks-ai"), hyperbolic: mapping("hyperbolic"),
+  nvidia: mapping("nvidia"), together: mapping("together"),
+  fireworks: mapping("fireworks"), hyperbolic: mapping("hyperbolic"),
   nebius: mapping("nebius"), siliconflow: mapping("siliconflow"),
   chutes: mapping("chutes"), featherless: mapping("featherless"),
   huggingface: mapping("huggingface"), venice: mapping("venice"),
   openrouter: mapping("openrouter", "aggregator-api"),
   perplexity: mapping("perplexity"), minimax: mapping("minimax", "global-api"),
   "minimax-cn": mapping("minimax-cn", "china-api"),
-  glm: mapping("zai-coding-plan", "global-coding-plan"),
-  "glm-cn": mapping("zhipuai-coding-plan", "china-coding-plan"),
-  kimi: mapping("kimi-code-plan-global", "global-coding-plan"),
-  "cloudflare-ai": mapping("cloudflare-workers-ai"),
+  glm: mapping("glm", "global-coding-plan"),
+  "glm-cn": mapping("glm-cn", "china-coding-plan"),
+  kimi: mapping("kimi", "china-kimi-code-plan-not-global-code-or-moonshot-api"),
+  "cloudflare-ai": mapping("cloudflare-ai"),
   byteplus: mapping("byteplus", "global-api"),
-  "volcengine-ark": mapping("volcengine", "china-api"),
+  "volcengine-ark": mapping("volcengine-ark", "china-api"),
   tencent: mapping("tencent", "china-api"), baidu: mapping("baidu", "china-api"),
-  "alicode-intl": mapping("alibaba-coding-plan", "global-coding-plan"),
-  alicode: mapping("alibaba-coding-plan-cn", "china-coding-plan"),
-  "alitp-intl": mapping("alibaba-token-plan", "global-token-plan"),
-  clinepass: mapping("cline-pass", "cline-pass-subscription"),
+  "alicode-intl": mapping("alicode-intl", "global-coding-plan"),
+  alicode: mapping("alicode", "china-coding-plan"),
+  "alitp-intl": mapping("alitp-intl", "global-token-plan"),
+  clinepass: mapping("clinepass", "cline-pass-subscription"),
   "perplexity-agent": mapping("perplexity-agent", "agent-api-not-sonar-api"),
   sambanova: mapping("sambanova"), morph: mapping("morph"), poolside: mapping("poolside"),
   tokenrouter: mapping("tokenrouter", "aggregator-api"),
-  "vercel-ai-gateway": mapping("vercel", "gateway-api"),
-  "xiaomi-mimo": mapping("xiaomi", "direct-api-not-token-plan"),
+  "vercel-ai-gateway": mapping("vercel-ai-gateway", "gateway-api"),
+  "xiaomi-mimo": mapping("xiaomi-mimo", "direct-api-not-token-plan"),
   "xiaomi-tokenplan": { ...mapping(null, "region-selectable-token-plan; account region not inventoried"),
     regions: { sgp: "xiaomi-token-plan-sgp", cn: "xiaomi-token-plan-cn", ams: "xiaomi-token-plan-ams" } },
   "gemini-cli": mapping(null, "code-assist-not-google-api"),
-  claude: mapping(null, "claude-code-not-anthropic-api"),
+  claude: mapping("claude", "claude-code-not-anthropic-api"),
   codex: mapping(null, "chatgpt-codex-not-openai-api"),
-  github: mapping("github-copilot", "copilot-not-github-models-api"),
+  github: mapping("github", "copilot-not-github-models-api"),
   "grok-cli": mapping(null, "grok-build-not-xai-api"),
+  "alims-intl": mapping("alims-intl", "standard-global-api"),
+  iflow: mapping("iflow", "iflow-api"),
+  "kilo-gateway": mapping("kilo-gateway", "gateway-api"),
+  opencode: mapping("opencode", "hosted-free-api-catalog-reference-not-account-entitlement"),
+  "opencode-go": mapping("opencode-go", "hosted-plan-api-catalog-reference-not-account-entitlement"),
+  ollama: mapping("ollama", "cloud-api-native-chat-protocol"),
+  commandcode: mapping("commandcode", "native-alpha-route-not-public-v1-catalog"),
 });
 
 const GOOGLE_ELIGIBILITY_QUOTE = "To ensure reliable performance for everyone, we are limiting access to the 2.5 models to users who have actively used them in the past. These models are not deprecated and will continue to be served until further notice through the API.";
@@ -408,6 +419,7 @@ async function main(args) {
   }
   const report = buildLifecycleInventory({ ...current, baseline, modelsDev, generatedAt: new Date().toISOString(),
     provenance: { ...current.provenance, baselineSha, classifierSha256: sha256(readFileSync(new URL("../open-sse/providers/models/schema.js", import.meta.url))),
+      catalogProviderMapSha256: sha256(readFileSync(new URL("../open-sse/providers/catalogProviders.js", import.meta.url))),
       auditScriptSha256: sha256(readFileSync(fileURLToPath(import.meta.url))), modelsDevSnapshot },
   });
   console.log(JSON.stringify(report, null, 2));

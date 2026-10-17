@@ -1,11 +1,10 @@
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
+import { cloneRequestBody } from "./requestBody.js";
 
 const sessionStartStore = new Map();
 const MAX_SESSION_STARTS = 5000;
 
-function clone(value) {
-  return value == null ? value : JSON.parse(JSON.stringify(value));
-}
+
 
 function sessionKey(connectionId, conversationId) {
   return `${connectionId || ""}:${conversationId || ""}`;
@@ -26,7 +25,7 @@ function ensureHistoryModelIds(history, modelId) {
 }
 
 function prefixUserMessage(message, contentPrefix, modelId) {
-  const out = clone(message) || { userInputMessage: { content: "" } };
+  const out = cloneRequestBody(message) || { userInputMessage: { content: "" } };
   if (!out.userInputMessage) out.userInputMessage = { content: "" };
   ensureUserMessageModelId(out, modelId);
   if (contentPrefix) {
@@ -74,13 +73,13 @@ export function applyKiroSessionReplay({
 } = {}) {
   const key = sessionKey(connectionId, conversationId);
   const existing = conversationId ? sessionStartStore.get(key) : null;
-  const baseHistory = clone(history) || [];
-  const baseCurrent = clone(currentMessage) || { userInputMessage: { content: "" } };
+  const baseHistory = cloneRequestBody(history) || [];
+  const baseCurrent = cloneRequestBody(currentMessage) || { userInputMessage: { content: "" } };
 
   if (existing && existing.modelId === modelId && existing.systemPrompt === systemPrompt) {
     existing.lastUsed = Date.now();
     const firstUserIndex = findFirstUserIndex(baseHistory);
-    const sessionStart = ensureUserMessageModelId(clone(existing.sessionStart), modelId);
+    const sessionStart = ensureUserMessageModelId(cloneRequestBody(existing.sessionStart), modelId);
     if (canReplaceSessionStart(baseHistory, firstUserIndex)) {
       baseHistory[firstUserIndex] = sessionStart;
     } else {
@@ -101,7 +100,7 @@ export function applyKiroSessionReplay({
   let nextCurrent = ensureUserMessageModelId(baseCurrent, modelId);
   if (canReplaceSessionStart(baseHistory, firstUserIndex)) {
     sessionStart = prefixUserMessage(baseHistory[firstUserIndex], contentPrefix, modelId);
-    baseHistory[firstUserIndex] = clone(sessionStart);
+    baseHistory[firstUserIndex] = cloneRequestBody(sessionStart);
     nextCurrent = prefixUserMessage(baseCurrent, currentContentPrefix, modelId);
   } else if (firstUserIndex >= 0) {
     sessionStart = prefixUserMessage(
@@ -109,16 +108,16 @@ export function applyKiroSessionReplay({
       contentPrefix,
       modelId
     );
-    baseHistory.unshift(clone(sessionStart));
+    baseHistory.unshift(cloneRequestBody(sessionStart));
     nextCurrent = prefixUserMessage(baseCurrent, currentContentPrefix, modelId);
   } else {
     sessionStart = prefixUserMessage(baseCurrent, contentPrefix, modelId);
-    nextCurrent = clone(sessionStart);
+    nextCurrent = cloneRequestBody(sessionStart);
   }
 
   if (conversationId) {
     rememberSessionStart(key, {
-      sessionStart: clone(sessionStart),
+      sessionStart: cloneRequestBody(sessionStart),
       modelId,
       systemPrompt,
     });

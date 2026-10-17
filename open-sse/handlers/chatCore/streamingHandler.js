@@ -10,13 +10,14 @@ import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
 
 // Codex returns Responses API SSE → which client format to translate INTO, by request sourceFormat.
-// Gemini-family all map to ANTIGRAVITY decoder; unknown sources fall back to OPENAI.
+// Preserve each client's native envelope; unknown sources fall back to OpenAI.
 const CODEX_SOURCE_TO_TARGET = {
   [FORMATS.OPENAI_RESPONSES]: FORMATS.OPENAI_RESPONSES,
   [FORMATS.CLAUDE]: FORMATS.CLAUDE,
   [FORMATS.ANTIGRAVITY]: FORMATS.ANTIGRAVITY,
-  [FORMATS.GEMINI]: FORMATS.ANTIGRAVITY,
-  [FORMATS.GEMINI_CLI]: FORMATS.ANTIGRAVITY,
+  [FORMATS.GEMINI]: FORMATS.GEMINI,
+  [FORMATS.GEMINI_CLI]: FORMATS.GEMINI_CLI,
+  [FORMATS.VERTEX]: FORMATS.VERTEX,
 };
 
 /**
@@ -37,7 +38,7 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
     return createSSETransformStreamWithLogger(targetFormat, sourceFormat, provider, reqLogger, toolNameMap, model, connectionId, body, onStreamComplete, apiKey, customToolNames, responseModel);
   }
 
-  return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey);
+  return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap, targetFormat);
 }
 
 function withAbortRecording(streamController, record) {
@@ -198,7 +199,8 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     // A client disconnect cannot reach this branch: onStreamAborted() claims
     // persistenceClaimed first and this callback returns early, so an abort is
     // never recorded as an account fault.
-    if (failed && typeof onStreamFailed === "function") {
+    // Request-scoped failures are recorded without altering account health.
+    if (failed && streamMeta?.status !== 400 && typeof onStreamFailed === "function") {
       try {
         onStreamFailed({ error: streamError, status: streamMeta?.status || 502 });
       } catch (err) {
@@ -231,9 +233,12 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       ...latency,
       ttft: Number.isFinite(firstTokenAt) ? firstTokenAt - requestStartTime : null,
     };
-    // Persist stream usage to DB (no console line; the "📊 done" line below is authoritative)
+    // Persist measured usage before the terminal summary.
     saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true });
-    if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
+    if (log?.line) {
+      const summary = formatDoneLine({ usage, latency });
+      log.line(reqTag, failed ? "!" : "📊", failed ? summary.replace(/^DONE/, `FAILED ${streamMeta?.status || 502}`) : summary);
+    }
   };
 
   const onStreamAborted = (snapshot, reason) => {

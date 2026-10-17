@@ -2,157 +2,125 @@
  * Multi-transport providers must keep the request body and selected endpoint on
  * the same wire format. MiniMax-M3 declares a Claude target for compatibility,
  * but an OpenAI client should use MiniMax's matching OpenAI transport without
- * an OpenAI -> Claude translation.
+ * an OpenAI -> Claude translation, and native Claude clients should use MiniMax's
+ * Claude transport on the Claude wire format.
  * Regression: https://github.com/decolua/9router/issues/3418
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import http from "node:http";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  executeMock,
-  translateRequestMock,
-  handleNonStreamingResponseMock,
-} = vi.hoisted(() => ({
-  executeMock: vi.fn(),
-  translateRequestMock: vi.fn((sourceFormat, targetFormat, model, body) => ({
-    ...body,
-    model,
-    _translatedFrom: sourceFormat,
-    _translatedTo: targetFormat,
-  })),
-  handleNonStreamingResponseMock: vi.fn(async () => ({ success: true })),
-}));
-
-vi.mock("../../open-sse/executors/index.js", () => ({
-  getExecutor: vi.fn(() => ({
-    execute: executeMock,
-    refreshCredentials: vi.fn().mockResolvedValue(null),
-  })),
-}));
-
-vi.mock("../../open-sse/translator/index.js", () => ({
-  translateRequest: translateRequestMock,
-}));
-
-vi.mock("../../open-sse/handlers/chatCore/nonStreamingHandler.js", () => ({
-  handleNonStreamingResponse: handleNonStreamingResponseMock,
-}));
-
-vi.mock("../../open-sse/utils/requestLogger.js", () => ({
-  createRequestLogger: vi.fn(async () => ({
-    logClientRawRequest: vi.fn(),
-    logRawRequest: vi.fn(),
-    logTargetRequest: vi.fn(),
-    logError: vi.fn(),
-  })),
-}));
-
-vi.mock("../../open-sse/utils/clientDetector.js", () => ({
-  detectClientTool: vi.fn(() => null),
-  isNativePassthrough: vi.fn(() => false),
-}));
-
-vi.mock("../../open-sse/utils/bypassHandler.js", () => ({
-  handleBypassRequest: vi.fn(() => null),
-}));
-
-vi.mock("../../open-sse/utils/streamHandler.js", () => ({
-  createStreamController: vi.fn(() => ({
-    signal: undefined,
-    handleComplete: vi.fn(),
-    handleError: vi.fn(),
-  })),
-}));
-
-vi.mock("../../open-sse/services/tokenRefresh.js", () => ({
-  refreshWithRetry: vi.fn(),
-}));
-
-vi.mock("../../open-sse/utils/proxyFetch.js", () => ({
-  default: vi.fn(),
-  proxyAwareFetch: vi.fn(),
-}));
-
-vi.mock("../../open-sse/translator/formats/claude.js", () => ({
-  normalizeClaudePassthrough: vi.fn(),
-  anchorClaudeCache: vi.fn(),
-}));
-
-vi.mock("../../open-sse/utils/toolDeduper.js", () => ({
-  dedupeTools: vi.fn((tools) => ({ tools, stripped: [] })),
-}));
-
-vi.mock("../../open-sse/rtk/caveman.js", () => ({ injectCaveman: vi.fn() }));
-vi.mock("../../open-sse/rtk/ponytail.js", () => ({ injectPonytail: vi.fn() }));
-vi.mock("../../open-sse/rtk/index.js", () => ({
-  compressMessages: vi.fn(() => null),
-  formatRtkLog: vi.fn(() => ""),
-}));
-vi.mock("../../open-sse/rtk/headroom.js", () => ({
-  compressWithHeadroom: vi.fn(async () => null),
-  formatHeadroomLog: vi.fn(() => ""),
-  formatHeadroomSizeLog: vi.fn(() => ""),
-  isHeadroomPhantomSavings: vi.fn(() => false),
-}));
-vi.mock("../../open-sse/rtk/pxpipe.js", () => ({
-  compressWithPxpipe: vi.fn(async () => ({ body: null, summary: null })),
-}));
-
-vi.mock("../../open-sse/translator/concerns/prefetch.js", () => ({
-  prefetchRemoteImages: vi.fn(async () => 0),
-}));
-
-vi.mock("../../open-sse/handlers/chatCore/requestDetail.js", () => ({
-  buildRequestDetail: vi.fn((detail) => detail),
-  extractRequestConfig: vi.fn((body, stream) => ({ body, stream })),
-}));
-
-vi.mock("../../open-sse/utils/error.js", () => ({
-  createErrorResult: vi.fn((status, message) => ({ success: false, status, error: message })),
-  formatProviderError: vi.fn((error) => error.message),
-  parseUpstreamError: vi.fn(),
-}));
+const fixture = vi.hoisted(() => ({ base: "", requests: [] }));
 
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(),
-  appendRequestLog: vi.fn(() => Promise.resolve()),
-  saveRequestDetail: vi.fn(() => Promise.resolve()),
+  appendRequestLog: vi.fn(async () => {}),
+  saveRequestDetail: vi.fn(async () => {}),
+  saveRequestUsage: vi.fn(async () => {}),
 }));
 
-function makeOptions(body) {
-  return {
-    body,
-    modelInfo: { provider: "minimax-cn", model: "MiniMax-M3" },
-    credentials: { apiKey: "test-api-key", providerSpecificData: {} },
-    clientRawRequest: {
-      endpoint: "/v1/chat/completions",
-      body,
-      headers: { accept: "application/json" },
-    },
-    connectionId: "test-connection",
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
-}
+vi.mock("../../open-sse/providers/declaredCaps.js", () => ({
+  getDeclaredModelCaps: async () => undefined,
+}));
 
-describe("MiniMax-M3 multi-transport routing", () => {
-  beforeEach(() => {
-    executeMock.mockReset();
-    translateRequestMock.mockClear();
-    handleNonStreamingResponseMock.mockClear();
-    executeMock.mockResolvedValue({
-      response: new Response("{}", {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
-      url: "https://api.minimaxi.com/v1/chat/completions",
-      headers: {},
-      transformedBody: {},
+vi.mock("../../open-sse/utils/requestLogger.js", () => ({
+  createRequestLogger: async () => ({
+    logClientRawRequest() {},
+    logRawRequest() {},
+    logTargetRequest() {},
+    logOpenAIRequest() {},
+    logProviderResponse() {},
+    logConvertedResponse() {},
+    logError() {},
+  }),
+}));
+
+vi.mock("../../open-sse/executors/index.js", async () => {
+  const { DefaultExecutor } = await import("../../open-sse/executors/default.js");
+  return {
+    getExecutor(provider) {
+      const executor = new DefaultExecutor(provider);
+      const originalBuildUrl = executor.buildUrl.bind(executor);
+      executor.buildUrl = function buildUrl(model, stream, urlIndex = 0, credentials = null) {
+        const targetUrl = originalBuildUrl(model, stream, urlIndex, credentials);
+        const parsed = new URL(targetUrl);
+        return `${fixture.base}${parsed.pathname}${parsed.search}`;
+      };
+      return executor;
+    },
+  };
+});
+
+import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
+import { FORMATS } from "../../open-sse/translator/formats.js";
+
+let server;
+
+beforeAll(async () => {
+  server = http.createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) {
+      chunks.push(chunk);
+    }
+    const bodyText = Buffer.concat(chunks).toString("utf8");
+    fixture.requests.push({
+      url: request.url,
+      headers: request.headers,
+      body: bodyText ? JSON.parse(bodyText) : null,
     });
+
+    response.setHeader("content-type", "application/json");
+    if (request.url.includes("/messages")) {
+      response.end(JSON.stringify({
+        id: "msg_minimax_test",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text: "Claude response" }],
+        model: "MiniMax-M3",
+        stop_reason: "end_turn",
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }));
+    } else {
+      response.end(JSON.stringify({
+        id: "chatcmpl-minimax-test",
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1000),
+        model: "MiniMax-M3",
+        choices: [{ index: 0, message: { role: "assistant", content: "OpenAI response" }, finish_reason: "stop" }],
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+      }));
+    }
   });
 
-  it("keeps OpenAI image blocks on the matching OpenAI transport", async () => {
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  fixture.base = `http://127.0.0.1:${server.address().port}`;
+});
+
+afterAll(async () => {
+  server.closeAllConnections();
+  await new Promise((resolve) => server.close(resolve));
+});
+
+beforeEach(() => {
+  fixture.requests = [];
+});
+
+describe("MiniMax-M3 multi-transport routing", () => {
+  it("keeps OpenAI image blocks and tool parameters on the matching OpenAI transport", async () => {
     const imageBlock = {
       type: "image_url",
       image_url: { url: "data:image/png;base64,AAAB" },
+    };
+    const tool = {
+      type: "function",
+      function: {
+        name: "search_db",
+        description: "Search the database",
+        parameters: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          required: ["query"],
+        },
+      },
     };
     const body = {
       model: "minimax-cn/MiniMax-M3",
@@ -161,29 +129,80 @@ describe("MiniMax-M3 multi-transport routing", () => {
         role: "user",
         content: [{ type: "text", text: "Describe this image" }, imageBlock],
       }],
+      tools: [tool],
     };
 
-    const { handleChatCore } = await import("../../open-sse/handlers/chatCore.js");
-    await handleChatCore(makeOptions(body));
+    const result = await handleChatCore({
+      body,
+      modelInfo: { provider: "minimax-cn", model: "MiniMax-M3" },
+      credentials: { apiKey: "test-api-key", providerSpecificData: {} },
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body,
+        headers: { accept: "application/json" },
+      },
+      connectionId: "test-connection-openai",
+      log: { debug() {}, info() {}, warn() {}, error() {} },
+    });
 
-    expect(translateRequestMock).toHaveBeenCalledWith(
-      "openai",
-      "openai",
-      "MiniMax-M3",
-      expect.any(Object),
-      false,
-      expect.any(Object),
-      "minimax-cn",
-      expect.any(Object),
-      expect.anything(),
-      "test-connection",
-      null,
-    );
-    expect(executeMock).toHaveBeenCalledTimes(1);
-    const requestBody = executeMock.mock.calls[0][0].body;
-    expect(requestBody.messages[0].content).toContainEqual(imageBlock);
-    expect(requestBody._translatedTo).toBe("openai");
-    expect(requestBody).not.toHaveProperty("system");
-    expect(executeMock.mock.calls[0][0].credentials.runtimeTransport.format).toBe("openai");
+    expect(result.success).toBe(true);
+    await result.response.text();
+
+    expect(fixture.requests).toHaveLength(1);
+    const wireRequest = fixture.requests[0];
+    expect(wireRequest.url).toBe("/v1/chat/completions");
+    expect(wireRequest.headers.authorization).toBe("Bearer test-api-key");
+    expect(wireRequest.body.messages[0].content).toContainEqual(imageBlock);
+    expect(wireRequest.body.tools).toEqual([tool]);
+    expect(wireRequest.body).not.toHaveProperty("system");
+  });
+
+  it("routes native Claude requests to the Claude wire without translating to OpenAI", async () => {
+    const claudeBody = {
+      model: "minimax-cn/MiniMax-M3",
+      max_tokens: 1024,
+      system: [{ type: "text", text: "You are a helpful assistant." }],
+      messages: [{
+        role: "user",
+        content: [{ type: "text", text: "Hello" }],
+      }],
+      tools: [{
+        name: "get_weather",
+        description: "Get the current weather",
+        input_schema: {
+          type: "object",
+          properties: { location: { type: "string" } },
+          required: ["location"],
+        },
+      }],
+    };
+
+    const result = await handleChatCore({
+      body: claudeBody,
+      modelInfo: { provider: "minimax-cn", model: "MiniMax-M3" },
+      credentials: { apiKey: "test-api-key", providerSpecificData: {} },
+      sourceFormatOverride: FORMATS.CLAUDE,
+      clientRawRequest: {
+        endpoint: "/v1/messages",
+        body: claudeBody,
+        headers: { accept: "application/json" },
+      },
+      connectionId: "test-connection-claude",
+      log: { debug() {}, info() {}, warn() {}, error() {} },
+    });
+
+    expect(result.success).toBe(true);
+    await result.response.text();
+
+    expect(fixture.requests).toHaveLength(1);
+    const wireRequest = fixture.requests[0];
+    expect(wireRequest.url).toBe("/anthropic/v1/messages?beta=true");
+    expect(wireRequest.headers["x-api-key"]).toBe("test-api-key");
+    expect(wireRequest.body.system).toContainEqual(expect.objectContaining({ type: "text", text: "You are a helpful assistant." }));
+    expect(wireRequest.body.max_tokens).toBe(1024);
+    expect(wireRequest.body.messages).toMatchObject([{ role: "user", content: [{ type: "text", text: "Hello" }] }]);
+    expect(wireRequest.body.tools[0].name).toBe("get_weather");
+    expect(wireRequest.body.tools[0].input_schema).toMatchObject({ type: "object", properties: { location: { type: "string" } }, required: ["location"] });
+    expect(wireRequest.body).not.toHaveProperty("stream_options");
   });
 });

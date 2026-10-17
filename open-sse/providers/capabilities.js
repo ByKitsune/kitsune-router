@@ -8,15 +8,12 @@ import { canonicalizeProviderId } from "./identity.js";
 //   3. PATTERN_CAPABILITIES                     — glob match, ordered specific -> generic
 //   4. DEFAULT_CAPABILITIES                     — safe floor (always returned)
 //
-// Two extra layers then refine the result, and neither can override the hand
-// written tables above (steps 1-2 short-circuit before they are consulted):
-//   • the synced catalog — modalities keyed by model, limits keyed by provider
-//     + model, refreshed from models.dev in the background. It reads a file, so
-//     the server installs it via setCatalogSource(); this module stays free of
-//     node:fs because the dashboard bundles it into the browser too.
-//   • visionPatterns.js — name-based vision detection, last resort so a model
-//     nobody has catalogued yet still accepts images.
-// Both only ever turn a capability ON.
+// Exact/provider facts remain authoritative. The synced catalog can fill missing
+// modality facts for the same provider + literal model; explicit false is not
+// absence. Pattern/default results also accept catalog limits and modality flags.
+// The server installs that reader via setCatalogSource(), keeping this module
+// browser-safe. Name-based vision detection remains a last resort only when
+// neither a table nor the route catalog declares the vision flag.
 //
 // ── HOW TO ADD / UPDATE A MODEL ──────────────────────────────────────
 // Authoritative data source: https://models.dev/api.json (145 providers, 4000+
@@ -232,11 +229,11 @@ export const PROVIDER_CAPABILITIES = {
   // NVIDIA NIM is OpenAI-compatible → rejects MiniMax/GLM native `thinking` field.
   // Force openai reasoning_effort format for its reasoning models. #issue
   "nvidia": {
-    "minimaxai/minimax-m2.7": { reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 200000, maxOutput: 131072 },
-    "minimaxai/minimax-m3": { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 512000, maxOutput: 131072 },
-    "z-ai/glm-5.2": { reasoning: true, thinkingFormat: "openai", contextWindow: 200000, maxOutput: 128000 },
-    "deepseek-ai/deepseek-v4-pro": { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 65536 },
-    "deepseek-ai/deepseek-v4-flash": { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 65536 },
+    "minimaxai/minimax-m2.7": { reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false },
+    "minimaxai/minimax-m3": { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false },
+    "z-ai/glm-5.2": { reasoning: true, thinkingFormat: "openai" },
+    "deepseek-ai/deepseek-v4-pro": { reasoning: true, thinkingFormat: "openai" },
+    "deepseek-ai/deepseek-v4-flash": { reasoning: true, thinkingFormat: "openai" },
   },
   // Codex deliberately has NO numeric entry here.
   //
@@ -643,7 +640,8 @@ export function aggregateComboCapabilities(comboModels, comboLookup = null, reso
  * @param {string} model
  * @returns {object} full capabilities object
  */
-const MODALITY_KEYS = ["vision", "pdf", "audioInput", "videoInput"];
+const CATALOG_CAPABILITY_KEYS = ["vision", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "reasoning", "tools", "structuredOutput", "temperature"];
+const CATALOG_LIMIT_KEYS = ["contextWindow", "maxInput", "maxOutput"];
 
 // Presentation-only suffixes that name a variant of the *same* weights. A
 // registry or client may append them to an id the tables know without the
@@ -669,48 +667,47 @@ function stripVariantSuffix(model) {
 // startup hook imported stays invisible to the copy resolving requests. The slot
 // lives on globalThis instead, and every read goes through it: caching it locally
 // would keep a reader alive in other copies after setCatalogSource(null).
-let catalogSource = null;
-
 /**
  * Install the synced catalog reader (server only).
  * @param {{ getModalities: Function, getLimits: Function } | null} source
  */
 export function setCatalogSource(source) {
-  catalogSource = source;
-  if (typeof globalThis !== "undefined") {
-    globalThis.__9rCatalogSource = source;
-    globalThis.__zenCatalogSource = source;
-  }
+  globalThis.__zenCatalogSource = source;
 }
 
 function getCatalogSource() {
-  if (typeof globalThis === "undefined") return catalogSource;
-  return globalThis.__zenCatalogSource || globalThis.__9rCatalogSource || catalogSource || null;
+  return globalThis.__zenCatalogSource ?? null;
 }
 
-// Apply the synced catalog + name heuristic on top of a table-resolved result.
-// Strictly additive: a capability already true stays true, and a false one only
-// flips when an outside source positively declares support.
-function refine(base, provider, model) {
+// Fill missing exact facts; explicit table flags and ceilings remain authoritative.
+// Patterns are fallback guesses; route-scoped catalog facts take precedence.
+function refine(base, provider, model, exact = false) {
   const result = { ...DEFAULT_CAPABILITIES, ...base };
   const source = getCatalogSource();
 
+  let visionDeclared = Object.hasOwn(base || {}, "vision");
   if (source) {
     const modalities = source.getModalities(provider, model);
     if (modalities) {
-      for (const key of MODALITY_KEYS) {
-        if (modalities[key] === true) result[key] = true;
+      for (const key of CATALOG_CAPABILITY_KEYS) {
+        if (typeof modalities[key] === "boolean" && (!exact || !Object.hasOwn(base || {}, key))) {
+          result[key] = modalities[key];
+          if (key === "vision") visionDeclared = true;
+        }
       }
     }
 
     const limits = source.getLimits(provider, model);
     if (limits) {
-      if (limits.contextWindow > 0) result.contextWindow = limits.contextWindow;
-      if (limits.maxOutput > 0) result.maxOutput = limits.maxOutput;
+      for (const key of CATALOG_LIMIT_KEYS) {
+        if (Number.isSafeInteger(limits[key]) && limits[key] > 0 && (!exact || !Object.hasOwn(base || {}, key))) {
+          result[key] = limits[key];
+        }
+      }
     }
   }
 
-  if (!result.vision && looksLikeVisionModel(model)) result.vision = true;
+  if (!exact && !visionDeclared && looksLikeVisionModel(model)) result.vision = true;
 
   return result;
 }
@@ -763,16 +760,16 @@ function resolveBaselineCapabilities(provider, model) {
   if (provider) {
     const providerCaps = PROVIDER_CAPABILITIES[provider];
     for (const id of [model, baseModel, normalizedModel, variantBase, variantNormalized]) {
-      if (id && providerCaps?.[id]) return { ...DEFAULT_CAPABILITIES, ...providerCaps[id] };
+      if (id && providerCaps?.[id]) return refine(providerCaps[id], provider, model, true);
     }
   }
 
   // 2. Canonical exact
-  for (const id of [baseModel, model, normalizedModel, variantBase, variantNormalized]) {
-    if (id && MODEL_CAPABILITIES[id]) return { ...DEFAULT_CAPABILITIES, ...MODEL_CAPABILITIES[id] };
+  for (const id of [model, baseModel, normalizedModel, variantBase, variantNormalized]) {
+    if (id && MODEL_CAPABILITIES[id]) return refine(MODEL_CAPABILITIES[id], provider, model, true);
     const lower = id ? id.toLowerCase() : null;
     if (lower && lower !== id && MODEL_CAPABILITIES[lower]) {
-      return { ...DEFAULT_CAPABILITIES, ...MODEL_CAPABILITIES[lower] };
+      return refine(MODEL_CAPABILITIES[lower], provider, model, true);
     }
   }
 

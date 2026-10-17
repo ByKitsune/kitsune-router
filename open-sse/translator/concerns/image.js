@@ -3,28 +3,34 @@ export function encodeDataUri(mimeType, base64) {
   return `data:${mimeType};base64,${base64}`;
 }
 
-// Parse a base64 data URI → { mimeType, base64 }, or null if not a data URI.
-// [\s\S] tolerates newlines inside the base64 payload.
-const DATA_URI_RE = /^data:([^;]+);base64,([\s\S]+)$/;
+// Parse the header without scanning or copying the base64 payload.
 export function parseDataUri(url) {
-  if (typeof url !== "string") return null;
-  const m = url.match(DATA_URI_RE);
-  return m ? { mimeType: m[1], base64: m[2] } : null;
+  if (typeof url !== "string" || !url.startsWith("data:")) return null;
+  const separator = url.indexOf(";", 5);
+  const dataStart = separator + 8;
+  if (separator <= 5 || !url.startsWith(";base64,", separator) || dataStart >= url.length) return null;
+  return { mimeType: url.slice(5, separator), base64: url.slice(dataStart) };
 }
 
 import { lookup } from "node:dns/promises";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, fetch as undiciFetch } from "undici";
 import { MAX_IMAGE_BYTES, FETCH_TIMEOUT_MS, IMAGE_SIGNATURES, BLOCKED_HOSTS } from "../../config/mediaConfig.js";
 
 // True if an IPv4/IPv6 address is private/reserved (SSRF target).
 function isPrivateIp(ip) {
   if (!ip) return true;
-  // IPv6 loopback / unique-local / link-local
-  if (ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80")) return true;
-  // IPv4-mapped IPv6 (::ffff:a.b.c.d) -> extract tail
-  const v4 = ip.includes(".") ? ip.split(":").pop() : ip;
-  const parts = v4.split(".").map((n) => Number.parseInt(n, 10));
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return ip.includes(":") ? false : true;
+  if (ip.includes(":")) {
+    // Canonicalize expanded/dotted IPv6 before checking unspecified and mapped IPv4.
+    try { ip = new URL(`http://[${ip}]/`).hostname.slice(1, -1); } catch { return true; }
+    if (ip === "::" || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80")) return true;
+    const mapped = /^::ffff:([0-9a-f]+):([0-9a-f]+)$/.exec(ip);
+    if (!mapped) return false;
+    const high = Number.parseInt(mapped[1], 16);
+    const low = Number.parseInt(mapped[2], 16);
+    ip = `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
+  }
+  const parts = ip.split(".").map((n) => Number.parseInt(n, 10));
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
   const [a, b] = parts;
   if (a === 10 || a === 127 || a === 0) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
@@ -36,14 +42,21 @@ function isPrivateIp(ip) {
 
 // Resolve host once and return only public IPs (SSRF guard).
 // Rejects if any resolved record is private/reserved (defeats multi-A tricks).
-async function resolvePinnedIps(hostname) {
-  if (!hostname || BLOCKED_HOSTS.has(hostname.toLowerCase())) return null;
+async function resolvePinnedIps(hostname, signal) {
+  if (!hostname || BLOCKED_HOSTS.has(hostname.toLowerCase()) || signal.aborted) return null;
+  let onAbort;
   try {
-    const records = await lookup(hostname, { all: true });
-    if (!records.length || records.some((r) => isPrivateIp(r.address))) return null;
+    const aborted = new Promise((_, reject) => {
+      onAbort = () => reject(signal.reason);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+    const records = await Promise.race([lookup(hostname, { all: true }), aborted]);
+    if (signal.aborted || !records.length || records.some((r) => isPrivateIp(r.address))) return null;
     return records;
   } catch {
     return null;
+  } finally {
+    signal.removeEventListener("abort", onAbort);
   }
 }
 
@@ -81,22 +94,28 @@ export async function fetchImageAsBase64(imageUrl, options = {}) {
 
   let url;
   try { url = new URL(imageUrl); } catch { return null; }
-  const pinnedIps = await resolvePinnedIps(url.hostname);
-  if (!pinnedIps) return null;
+  if (signal?.aborted) return null;
 
   const controller = new AbortController();
-  const timeout = signal ? null : setTimeout(() => controller.abort(), timeoutMs);
-  const fetchSignal = signal || controller.signal;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const fetchSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
 
-  // Pin connect to the validated IP so no second DNS resolution can rebind (TOCTOU fix).
-  // Adapt Undici 8's dispatcher handlers for Node's built-in fetch.
-  const dispatcher = new Dispatcher1Wrapper(new Agent({
-    connect: { lookup: (_h, _o, cb) => cb(null, [{ address: pinnedIps[0].address, family: pinnedIps[0].family }]) },
-  }));
-
+  let dispatcher;
   try {
+    const pinnedIps = await resolvePinnedIps(url.hostname, fetchSignal);
+    if (!pinnedIps || fetchSignal.aborted) return null;
+
+    // Pin connect to the validated IP so no second DNS resolution can rebind (TOCTOU fix).
+    dispatcher = new Agent({
+      connect: {
+        lookup(_host, options, callback) {
+          if (options.all) callback(null, pinnedIps);
+          else callback(null, pinnedIps[0].address, pinnedIps[0].family);
+        },
+      },
+    });
     // redirect:"manual" prevents a public URL redirecting to a private one (SSRF bypass).
-    const response = await fetch(imageUrl, { signal: fetchSignal, redirect: "manual", dispatcher });
+    const response = await undiciFetch(imageUrl, { signal: fetchSignal, redirect: "manual", dispatcher });
     if (!response.ok || !response.body) return null;
 
     // Stream-read with a hard byte cap to avoid loading huge payloads into memory.
@@ -111,7 +130,7 @@ export async function fetchImageAsBase64(imageUrl, options = {}) {
       chunks.push(value);
     }
 
-    const buf = Buffer.concat(chunks.map((c) => Buffer.from(c)));
+    const buf = Buffer.concat(chunks, total);
     const mimeType = detectImageMime(buf);
     if (!mimeType) return null; // not a recognized image — reject disguised payloads
 
@@ -119,7 +138,7 @@ export async function fetchImageAsBase64(imageUrl, options = {}) {
   } catch {
     return null;
   } finally {
-    if (timeout) clearTimeout(timeout);
-    dispatcher.close().catch(() => {});
+    clearTimeout(timeout);
+    dispatcher?.destroy().catch(() => {});
   }
 }

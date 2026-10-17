@@ -11,7 +11,7 @@ function invalidate() {
   cache = { value: null, expiresAt: 0 };
 }
 
-async function getUserPricing() {
+export async function getSavedPricing() {
   return await pricingKv.getAll();
 }
 
@@ -31,6 +31,21 @@ function resolvePricing(userPricing, provider, model, resolveConst) {
         && defaults?.reasoning != null && defaults.reasoning === defaults.output) {
         merged.reasoning = saved.output;
       }
+      if (saved?.tier || (defaults?.tier && saved?.tier !== null)) {
+        const savedTier = saved?.tier || {};
+        const tier = { ...defaults?.tier, ...savedTier };
+        for (const field of ["input", "output", "cached", "cache_creation", "cache_creation_1h", "reasoning"]) {
+          if (saved?.[field] != null && !Object.hasOwn(savedTier, field)) tier[field] = saved[field];
+        }
+        // A saved output price also owns output-billed reasoning, including a
+        // separately saved tier output. Distinct reasoning tariffs stay intact.
+        if (saved?.output != null && saved.reasoning == null && !Object.hasOwn(savedTier, "reasoning")
+          && defaults?.reasoning === defaults?.output
+          && (defaults?.tier?.reasoning == null || defaults.tier.reasoning === defaults.tier.output)) {
+          tier.reasoning = tier.output;
+        }
+        merged.tier = tier;
+      }
       return merged;
     }
   }
@@ -41,7 +56,7 @@ export async function getPricing() {
   const now = Date.now();
   if (cache.value && cache.expiresAt > now) return cache.value;
 
-  const userPricing = await getUserPricing();
+  const userPricing = await getSavedPricing();
   const { PROVIDER_PRICING, getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
   const providers = new Set([...Object.keys(PROVIDER_PRICING), ...Object.keys(userPricing)]);
   const entries = [];
@@ -63,7 +78,7 @@ export async function getPricing() {
 
 export async function getPricingForModel(provider, model) {
   if (!model) return null;
-  const userPricing = await getUserPricing();
+  const userPricing = await getSavedPricing();
   const { getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
   // A user override on the exact (effort-annotated) id always wins.
   if (hasUserOverride(userPricing, provider, model)) {
@@ -108,11 +123,11 @@ export async function updatePricing(pricingData) {
     }
   });
   invalidate();
-  return await getUserPricing();
+  return await getSavedPricing();
 }
 
 export async function resetPricing(provider, model) {
-  if (!provider) return await getUserPricing();
+  if (!provider) return await getSavedPricing();
   const db = await getAdapter();
   db.transaction(() => {
     if (!model) {
@@ -132,7 +147,7 @@ export async function resetPricing(provider, model) {
     }
   });
   invalidate();
-  return await getUserPricing();
+  return await getSavedPricing();
 }
 
 export async function resetAllPricing() {

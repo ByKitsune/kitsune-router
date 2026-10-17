@@ -33,6 +33,9 @@ export const CLAUDE_BLOCK = {
   CONTAINER_UPLOAD: "container_upload",
 };
 
+// OpenAI tool messages have no error flag; preserve failures in readable content.
+export const TOOL_ERROR_PREFIX = "[tool_error] ";
+
 // OpenAI Responses API item types.
 export const RESPONSES_ITEM = {
   MESSAGE: "message",
@@ -43,10 +46,12 @@ export const RESPONSES_ITEM = {
   ADDITIONAL_TOOLS: "additional_tools",
   REASONING: "reasoning",
   OUTPUT_TEXT: "output_text",
+  REFUSAL: "refusal",
   INPUT_TEXT: "input_text",
   INPUT_IMAGE: "input_image",
   INPUT_FILE: "input_file",
   SUMMARY_TEXT: "summary_text",
+  REASONING_TEXT: "reasoning_text",
 };
 
 // Valid OpenAI block types (used by filterToOpenAIFormat).

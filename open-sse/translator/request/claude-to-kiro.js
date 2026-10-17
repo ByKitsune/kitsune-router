@@ -32,6 +32,8 @@ import {
 } from "../../config/kiroConstants.js";
 import { DEFAULT_IMAGE_MIME } from "../schema/index.js";
 import { ROLE, CLAUDE_BLOCK } from "../schema/index.js";
+import { splitToolResultContent } from "../concerns/multimodal.js";
+import { parseDataUri } from "../concerns/image.js";
 import {
   canonicalizeKiroConversation,
   normalizeKiroToolSpecs,
@@ -96,17 +98,12 @@ function convertClaudeMessagesToKiro(messages, model) {
             const format = mediaType.split("/")[1] || mediaType;
             pendingImages.push({ format, source: { bytes: block.source.data } });
           } else if (block.type === CLAUDE_BLOCK.TOOL_RESULT) {
-            let resultContent = "";
-            if (typeof block.content === "string") {
-              resultContent = block.content;
-            } else if (Array.isArray(block.content)) {
-              resultContent =
-                block.content
-                  .filter((c) => c.type === CLAUDE_BLOCK.TEXT)
-                  .map((c) => c.text)
-                  .join("\n") || JSON.stringify(block.content);
-            } else if (block.content) {
-              resultContent = JSON.stringify(block.content);
+            const { text: resultContent, media } = splitToolResultContent(block.content);
+            for (const part of media) {
+              const parsed = parseDataUri(part.image_url?.url);
+              if (parsed) {
+                pendingImages.push({ format: parsed.mimeType.split("/")[1], source: { bytes: parsed.base64 } });
+              }
             }
             pendingToolResults.push({
               toolUseId: block.tool_use_id,

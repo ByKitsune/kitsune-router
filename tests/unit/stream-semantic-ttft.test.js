@@ -126,7 +126,7 @@ describe("semantic streaming TTFT", () => {
     ["translate", FORMATS.OPENAI],
     ["translate", FORMATS.OPENAI_RESPONSES],
   ].flatMap(([mode, sourceFormat]) => [
-    "response.output_text.delta", "response.reasoning_summary_text.delta", "response.function_call_arguments.delta",
+    "response.output_text.delta", "response.reasoning_summary_text.delta", "response.reasoning_text.delta", "response.function_call_arguments.delta",
   ].map((type) => [mode, sourceFormat, type])))("observes Responses semantic deltas in %s to %s: %s", async (mode, sourceFormat, type) => {
     const fixture = streamFixture({ mode, targetFormat: FORMATS.OPENAI_RESPONSES, sourceFormat });
     await fixture.write(100, ": keepalive\n\n");
@@ -146,7 +146,9 @@ describe("semantic streaming TTFT", () => {
     if (sourceFormat === FORMATS.OPENAI) {
       const deltas = payloads(output).flatMap((value) => value.choices?.map((choice) => choice.delta) || []);
       if (type === "response.output_text.delta") expect(deltas.some((delta) => delta.content === '{"q":"weather"}')).toBe(true);
-      if (type === "response.reasoning_summary_text.delta") expect(deltas.some((delta) => delta.reasoning_content === '{"q":"weather"}')).toBe(true);
+      if (type === "response.reasoning_summary_text.delta" || type === "response.reasoning_text.delta") {
+        expect(deltas.some((delta) => delta.reasoning_content === '{"q":"weather"}')).toBe(true);
+      }
       if (type === "response.function_call_arguments.delta") {
         expect(deltas.flatMap((delta) => delta.tool_calls || []).some((call) => call.function?.arguments === '{"q":"weather"}')).toBe(true);
       }

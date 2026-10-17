@@ -17,8 +17,11 @@ const CHAT_EXTENSION_PARAMS = [
 // Each rule: optional provider, regex match on model, list of params to drop.
 // A param is removed only when it is present (!== undefined).
 const STRIP_RULES = [
-  // All Claude models: temperature deprecated/rejected upstream (Anthropic 400). #1748
-  { match: /claude/i, drop: ["temperature"] },
+  // Legacy Claude models accept sampling controls; newer generations reject
+  // them. Keep the restriction on those models rather than all Claude wires.
+  { match: /claude-(?:(?:opus|sonnet|haiku)-(?:4[.-][7-9]|[5-9])|(?:fable|mythos)-)/i, drop: ["temperature", "top_p", "top_k"] },
+  { provider: "openai", drop: ["top_k"] },
+  { provider: "azure", drop: ["top_k"] },
   // GitHub Copilot GPT-5.4+ and GPT-6.x: temperature unsupported. Originally
   // gpt-5.4 only; the Responses route bypassed the chat-path filter entirely,
   // letting temperature through for gpt-6.1-sol and newer (9router #4706).
@@ -29,8 +32,9 @@ const STRIP_RULES = [
   { provider: "github", match: (m) => /claude/i.test(m) && !/claude.*(opus|sonnet).*(4\.[6-9]|5)/i.test(m), drop: ["thinking", "reasoning_effort"] },
   // Mistral rejects native thinking and replayed reasoning message fields (#4143).
   { provider: "mistral", drop: ["thinking"], dropMessageFields: ["reasoning_content", "reasoning"] },
-  // Non-Anthropic providers: drop context_management (Claude Code sends it, but third-party and non-Anthropic endpoints reject it with 400). #1468
-  { match: () => true, checkProvider: (p) => p !== "claude", drop: ["context_management"] },
+  // Non-Anthropic stateless endpoints reject Claude's context_management;
+  // native Responses has its own supported field of the same name.
+  { match: () => true, checkProvider: (p) => p !== "claude", checkBody: body => !Object.hasOwn(body, "input"), drop: ["context_management"] },
   // Cloudflare Workers AI: content must be plain string, rejects OpenAI content-part array (#1926)
   { provider: "cloudflare-ai", flattenContent: true },
   { provider: "volcengine-ark", match: /glm-5/i, clampToModelMaxOutput: true },
@@ -84,6 +88,7 @@ export function stripUnsupportedParams(provider, model, body) {
   for (const rule of STRIP_RULES) {
     if (rule.provider && rule.provider !== provider) continue;
     if (rule.checkProvider && !rule.checkProvider(provider)) continue;
+    if (rule.checkBody && !rule.checkBody(body)) continue;
     if (!matches(rule, model)) continue;
     for (const key of rule.drop || []) {
       if (body[key] !== undefined) delete body[key];
@@ -95,9 +100,8 @@ export function stripUnsupportedParams(provider, model, body) {
       }
     }
     if (rule.translateMaxTokens && body.max_tokens !== undefined) {
-      if (body.max_completion_tokens == null) {
-        body.max_completion_tokens = body.max_tokens;
-      }
+      const field = Object.hasOwn(body, "input") ? "max_output_tokens" : "max_completion_tokens";
+      if (body[field] == null) body[field] = body.max_tokens;
       delete body.max_tokens;
     }
     // CF Workers AI oneOf root schema only accepts content as plain string (#1926, #4180)

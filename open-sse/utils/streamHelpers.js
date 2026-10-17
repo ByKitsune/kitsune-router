@@ -42,6 +42,7 @@ export function hasValuableContent(chunk, format) {
     const delta = chunk.choices[0].delta;
     return Boolean(
       delta.content && delta.content !== "" ||
+      typeof delta.refusal === "string" && delta.refusal.length > 0 ||
       extractReasoningText(delta) ||
       delta.tool_calls && delta.tool_calls.length > 0 ||
       // Generated images arrive on their own chunk with nothing else in the
@@ -73,6 +74,7 @@ export function hasValuableContent(chunk, format) {
 const RESPONSES_TOKEN_DELTAS = new Set([
   "response.output_text.delta",
   "response.reasoning_summary_text.delta",
+  "response.reasoning_text.delta",
   "response.function_call_arguments.delta",
   "response.custom_tool_call_input.delta",
 ]);

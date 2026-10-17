@@ -158,7 +158,7 @@ describe("request normalization", () => {
     expect(userMessage.content).toBe("hello\nworld");
   });
 
-  it("translateRequest strips unsupported Anthropic output_config for MiniMax Claude-compatible endpoints", () => {
+  it("translateRequest strips unsupported Anthropic effort-only output_config for MiniMax Claude-compatible endpoints", () => {
     const body = {
       model: "MiniMax-M2.7",
       system: [{ type: "text", text: "You are helpful." }],
@@ -171,15 +171,6 @@ describe("request normalization", () => {
       max_tokens: 1024,
       output_config: {
         effort: "medium",
-        format: {
-          type: "json_schema",
-          schema: {
-            type: "object",
-            properties: { title: { type: "string" } },
-            required: ["title"],
-            additionalProperties: false,
-          },
-        },
       },
     };
 

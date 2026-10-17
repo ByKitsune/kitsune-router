@@ -159,7 +159,7 @@ describe("Claude → Kiro (direct route)", () => {
         messages: [{ role: "user", content: "Do not reason" }],
       }, null, "gpt-5.6-sol");
 
-      expect(out.additionalModelRequestFields).toBeUndefined();
+      expect(out.additionalModelRequestFields).toEqual({ reasoning: { effort: "none" } });
       expect(out.conversationState.currentMessage.userInputMessage.content).not.toContain("<thinking_mode>");
       expect(out.conversationState.currentMessage.userInputMessage.content).not.toContain("<max_thinking_length>");
     }

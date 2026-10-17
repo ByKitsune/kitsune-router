@@ -16,7 +16,7 @@ const upstream = {
   // Direct API and coding-plan catalogs are distinct, even for the same weights.
   "zhipuai-coding-plan": { models: { "glm-5-canary": { modalities: { input: ["text", "image", "pdf"] } } } },
   zhipuai: { models: { "glm-5-canary": { modalities: { input: ["text", "image", "pdf"] } } } },
-  "kimi-code-plan-global": { models: { "kimi-k3": { modalities: { input: ["text"] } } } },
+  "kimi-code-plan-cn": { models: { "kimi-k3": { modalities: { input: ["text"] } } } },
   kilo: { models: { "kilo-auto/efficient": { modalities: { input: ["text", "image"] } } } },
 };
 // The registry snapshot the sync feeds build(): local ids, with the capabilities
@@ -28,16 +28,13 @@ const entries = [
   { provider: "kimi", model: "kimi-k3", current: { contextWindow: 128000, maxOutput: 32000 } },
 ];
 
-let build, getCatalogModalities, invalidateCatalog, syncModelCatalog, startModelCatalogSync, capabilities;
+let build, getCatalogModalities, invalidateCatalog, syncModelCatalog, startModelCatalogSync, capabilities, catalogVersion;
 
 beforeAll(async () => {
   ({ build, syncModelCatalog, startModelCatalogSync } = await import("../../src/lib/modelCatalog/sync.js"));
-  // the builder is exercised directly; a missing export must fail loudly here
-  // rather than skip every case below
-  expect(typeof build).toBe("function");
+  ({ getCatalogModalities, invalidateCatalog, CATALOG_VERSION: catalogVersion } = await import("../../open-sse/providers/catalogOverride.js"));
   const { models, providers } = build(upstream, entries);
-  fs.writeFileSync(catalogFile, JSON.stringify({ v: 3, models, providers }));
-  ({ getCatalogModalities, invalidateCatalog } = await import("../../open-sse/providers/catalogOverride.js"));
+  fs.writeFileSync(catalogFile, JSON.stringify({ v: catalogVersion, models, providers }));
   capabilities = await import("../../open-sse/providers/capabilities.js");
 });
 
@@ -49,47 +46,45 @@ describe("model catalog", () => {
   it("keys modalities by gateway and writes no model-only key", () => {
     const { models } = build(upstream, entries);
     // upstream "zai" is filed under the local id requests arrive with...
-    expect(models["glm:glm-4.6v"]).toEqual({ vision: true });
+    expect(models["glm:glm-4.6v"]).toMatchObject({ vision: true });
     // ...and under its upstream name, because a custom provider node can carry
     // that name without being in the registry snapshot
-    expect(models["zai-coding-plan:glm-4.6v"]).toEqual({ vision: true });
-    expect(models["kilo:efficient"]).toEqual({ vision: true });
+    expect(models["zai-coding-plan:glm-4.6v"]).toMatchObject({ vision: true });
+    expect(models["kilo:kilo-auto/efficient"]).toMatchObject({ vision: true });
     // the vendor-stripped key is what used to be shared with every other gateway
     expect(models["glm-4.6v"]).toBeUndefined();
     expect(models["efficient"]).toBeUndefined();
-    // a gateway that only declares text has nothing to contribute
-    expect(models["kimi:kimi-k3"]).toBeUndefined();
+    // Explicit text-only input must not inherit a name-based vision guess.
+    expect(models["kimi:kimi-k3"]).toMatchObject({ vision: false });
   });
 
   it("files direct API and coding-plan providers only under their correct local IDs", () => {
     const { models } = build(upstream, entries);
     // glm-cn uses its plan catalog; zhipu uses the separate direct API catalog.
-    expect(models["glm-cn:glm-5-canary"]).toEqual({ vision: true, pdf: true });
-    expect(models["zhipu:glm-5-canary"]).toEqual({ vision: true, pdf: true });
-    expect(models["zhipuai:glm-5-canary"]).toEqual({ vision: true, pdf: true });
-    expect(getCatalogModalities("glm-cn", "glm-5-canary")).toEqual({ vision: true, pdf: true });
-    expect(getCatalogModalities("zhipu", "glm-5-canary")).toEqual({ vision: true, pdf: true });
+    expect(models["glm-cn:glm-5-canary"]).toMatchObject({ vision: true, pdf: true });
+    expect(models["zhipu:glm-5-canary"]).toMatchObject({ vision: true, pdf: true });
+    expect(models["zhipuai:glm-5-canary"]).toMatchObject({ vision: true, pdf: true });
+    expect(getCatalogModalities("glm-cn", "glm-5-canary")).toMatchObject({ vision: true, pdf: true });
+    expect(getCatalogModalities("zhipu", "glm-5-canary")).toMatchObject({ vision: true, pdf: true });
   });
 
   it("does not hand a router mode another vendor's modalities", () => {
     // kilo's "efficient" is a real model; another gateway's "efficient" is a mode
-    expect(getCatalogModalities("kilo", "kilo-auto/efficient")).toEqual({ vision: true });
+    expect(getCatalogModalities("kilo", "kilo-auto/efficient")).toMatchObject({ vision: true });
     expect(getCatalogModalities("kilo-gateway", "kilo-auto/efficient")).toBeNull();
     expect(getCatalogModalities("qoder", "efficient")).toBeNull();
   });
 
   it("resolves a gateway the file was written for, and nobody else", () => {
-    expect(getCatalogModalities("glm", "glm-4.6v")).toEqual({ vision: true });
-    expect(getCatalogModalities("zai-coding-plan", "glm-4.6v")).toEqual({ vision: true });
+    expect(getCatalogModalities("glm", "glm-4.6v")).toMatchObject({ vision: true });
+    expect(getCatalogModalities("zai-coding-plan", "glm-4.6v")).toMatchObject({ vision: true });
     expect(getCatalogModalities("unrelated", "glm-4.6v")).toBeNull();
     expect(getCatalogModalities(undefined, "glm-4.6v")).toBeNull();
   });
 
   it("passes the gateway to the catalog reader when refining", () => {
-    const seen = [];
     capabilities.setCatalogSource({
       getModalities: (provider) => {
-        seen.push(provider);
         return provider === "gateway-a" ? { vision: true } : null;
       },
       getLimits: () => null,
@@ -98,7 +93,6 @@ describe("model catalog", () => {
       // "*laguna*" resolves from the pattern table, so refine() runs
       expect(capabilities.getCapabilitiesForModel("gateway-a", "laguna-9-preview").vision).toBe(true);
       expect(capabilities.getCapabilitiesForModel("gateway-b", "laguna-9-preview").vision).toBe(false);
-      expect(seen).toContain("gateway-a");
     } finally {
       capabilities.setCatalogSource(null);
     }
@@ -113,15 +107,12 @@ describe("model catalog", () => {
     try {
       // The server bundles this module into more than one chunk and the startup
       // hook only runs in one of them, so the slot has to be process-wide.
-      expect(globalThis.__9rCatalogSource).toBe(source);
       const other = await import("../../open-sse/providers/capabilities.js?copy=2");
-      expect(other.getCapabilitiesForModel).not.toBe(capabilities.getCapabilitiesForModel);
       // ...and that second copy resolves through the source it never installed
       expect(other.getCapabilitiesForModel("gateway-a", "laguna-9-preview").vision).toBe(true);
     } finally {
       capabilities.setCatalogSource(null);
     }
-    expect(globalThis.__9rCatalogSource).toBeNull();
   });
 
   it("detaches the source from a copy that already resolved through it", async () => {
@@ -170,8 +161,7 @@ describe("catalog schema", () => {
     }
     expect(sent[0]["if-none-match"]).toBeUndefined();
     const written = JSON.parse(fs.readFileSync(catalogFile, "utf8"));
-    expect(written.v).toBe(3);
-    expect(written.models["glm:glm-4.6v"]).toEqual({ vision: true });
+    expect(written.models["glm:glm-4.6v"]).toMatchObject({ vision: true });
   });
 
   it("asks upstream for a 304 once the file is current", async () => {

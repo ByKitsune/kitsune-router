@@ -6,6 +6,7 @@ import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { getThinkingLevels } from "../../providers/thinkingLevels.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel } from "./thinking.js";
+import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
 const FORMAT_TO_NATIVE = {
@@ -37,11 +38,30 @@ export function parseSuffix(model) {
   const cleanModel = m[1].trim();
   const raw = m[2].trim().toLowerCase();
   if (raw === "none" || raw === "off") return { cleanModel, override: { mode: "none" } };
-  if (raw === "auto") return { cleanModel, override: { mode: "auto" } };
+  if (raw === "auto" || raw === "thinking" || raw === "on") return { cleanModel, override: { mode: "auto" } };
   if (raw === "ultra") return { cleanModel, override: { mode: "level", level: raw } };
   if (/^\d+$/.test(raw)) return { cleanModel, override: { mode: "budget", budget: Number(raw) } };
   if (LEVEL_TO_BUDGET[raw] !== undefined) return { cleanModel, override: { mode: "level", level: raw } };
   return { cleanModel, override: null };
+}
+
+function stringIntent(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const level = value.trim().toLowerCase();
+  if (level === "none" || level === "off" || level === "disabled") return { mode: "none" };
+  if (level === "auto" || level === "on" || level === "enabled") return { mode: "auto" };
+  return { mode: "level", level };
+}
+
+function budgetIntent(value) {
+  if (value == null || value === "" || typeof value === "boolean") return null;
+  const budget = Number(value);
+  if (!Number.isFinite(budget)) return null;
+  return budget === 0 ? { mode: "none" } : budget < 0 ? { mode: "auto" } : { mode: "budget", budget };
+}
+
+function nativeThinkingConfig(body) {
+  return body.thinkingConfig || body.generationConfig?.thinkingConfig || body.request?.generationConfig?.thinkingConfig;
 }
 
 // Extract unified thinking intent from a request body (post-translation, mixed shapes).
@@ -49,54 +69,50 @@ export function parseSuffix(model) {
 export function extractThinking(body) {
   if (!body || typeof body !== "object") return null;
 
-  // Claude output_config.effort (explicit) — priority over adaptive thinking
-  const oc = body.output_config?.effort;
-  if (typeof oc === "string" && oc) {
-    const e = oc.toLowerCase();
-    if (e === "none" || e === "off") return { mode: "none" };
-    if (e === "auto") return { mode: "auto" };
-    return { mode: "level", level: e };
+  const outputEffort = stringIntent(body.output_config?.effort);
+  if (outputEffort) return outputEffort;
+
+  // Explicit effort takes precedence over a provider's boolean/budget dialect.
+  const effort = stringIntent(body.reasoning_effort) || stringIntent(body.reasoning?.effort);
+  if (effort) return effort;
+  const reasoning = body.reasoning;
+  if (typeof reasoning === "boolean") return { mode: reasoning ? "auto" : "none" };
+  if (reasoning && typeof reasoning === "object") {
+    if (reasoning.enabled === false) return { mode: "none" };
+    const budget = budgetIntent(reasoning.max_tokens);
+    if (budget) return budget;
+    if (reasoning.enabled === true) return { mode: "auto" };
+  } else {
+    const intent = stringIntent(reasoning);
+    if (intent) return intent;
   }
 
-  // OpenAI chat / Responses shape — check effort first (zai sends both thinking object and reasoning.effort)
-  const effort = body.reasoning_effort ?? (typeof body.reasoning === "object" ? body.reasoning?.effort : null);
-  if (typeof effort === "string" && effort) {
-    const e = effort.toLowerCase();
-    if (e === "none" || e === "off") return { mode: "none" };
-    if (e === "auto") return { mode: "auto" };
-    return { mode: "level", level: e };
-  }
-
-  // Claude shape
-  const t = body.thinking;
-  if (t && typeof t === "object") {
-    if (t.type === "disabled") return { mode: "none" };
-    if (t.type === "adaptive" || t.type === "enabled") {
-      const budget = Number(t.budget_tokens);
-      if (Number.isFinite(budget) && budget > 0) return { mode: "budget", budget };
-      return { mode: "auto" };
+  const thinking = body.thinking;
+  if (typeof thinking === "boolean") return { mode: thinking ? "auto" : "none" };
+  if (typeof thinking === "string") return stringIntent(thinking);
+  if (thinking && typeof thinking === "object") {
+    if (thinking.type === "disabled") return { mode: "none" };
+    if (thinking.type === "adaptive" || thinking.type === "enabled") {
+      const budget = Number(thinking.budget_tokens);
+      return Number.isFinite(budget) && budget > 0 ? { mode: "budget", budget } : { mode: "auto" };
     }
   }
 
-  // Gemini shape (top-level, generationConfig, or request envelope)
-  const tc = body.thinkingConfig || body.generationConfig?.thinkingConfig || body.request?.generationConfig?.thinkingConfig;
-  if (tc && typeof tc === "object") {
-    if (typeof tc.thinkingLevel === "string") return { mode: "level", level: tc.thinkingLevel.toLowerCase() };
-    const tb = Number(tc.thinkingBudget);
-    if (Number.isFinite(tb)) {
-      if (tb === 0) return { mode: "none" };
-      if (tb < 0) return { mode: "auto" };
-      return { mode: "budget", budget: tb };
-    }
+  const config = nativeThinkingConfig(body);
+  if (config && typeof config === "object") {
+    const level = stringIntent(config.thinkingLevel);
+    if (level) return level;
+    const budget = budgetIntent(config.thinkingBudget);
+    if (budget) return budget;
   }
 
-  // Qwen shape
   if (body.enable_thinking === false) return { mode: "none" };
   if (body.enable_thinking === true) {
-    const tb = Number(body.thinking_budget);
-    if (Number.isFinite(tb) && tb > 0) return { mode: "budget", budget: tb };
-    return { mode: "auto" };
+    const budget = Number(body.thinking_budget);
+    return Number.isFinite(budget) && budget > 0 ? { mode: "budget", budget } : { mode: "auto" };
   }
+  const budget = budgetIntent(body.budget_tokens);
+  if (budget) return budget;
 
   return null;
 }
@@ -108,10 +124,23 @@ export function extractThinking(body) {
 export function captureThinking(body) {
   const cfg = extractThinking(body);
   if (!cfg) return cfg;
-  const display = cfg.mode === "none" ? undefined : openAIThinkingDisplay(body);
-  const responsesReasoning = body.reasoning && typeof body.reasoning === "object"
+  const config = nativeThinkingConfig(body);
+  const nativeDisplay = typeof body.thinking?.display === "string" ? body.thinking.display : undefined;
+  const includeThoughts = typeof config?.includeThoughts === "boolean" ? config.includeThoughts
+    : typeof body.reasoning?.exclude === "boolean" ? !body.reasoning.exclude
+      : nativeDisplay ? nativeDisplay === "summarized" : undefined;
+  const display = cfg.mode === "none" ? undefined : nativeDisplay
+    || (includeThoughts === undefined ? openAIThinkingDisplay(body) : includeThoughts ? "summarized" : "omitted");
+  const responsesReasoning = body.reasoning && typeof body.reasoning === "object" && !Array.isArray(body.reasoning)
     ? { ...body.reasoning } : undefined;
-  return { ...cfg, ...(display ? { display } : {}), ...(responsesReasoning ? { responsesReasoning } : {}) };
+  const claudeOutputConfig = body.output_config && typeof body.output_config === "object"
+    ? { ...body.output_config } : undefined;
+  return {
+    ...cfg, ...(display ? { display } : {}),
+    ...(includeThoughts === undefined ? {} : { includeThoughts }),
+    ...(responsesReasoning ? { responsesReasoning } : {}),
+    ...(claudeOutputConfig ? { claudeOutputConfig } : {}),
+  };
 }
 
 function openAIThinkingDisplay(body) {
@@ -129,10 +158,12 @@ function openAIThinkingDisplay(body) {
 // Resolve thinking format: provider override > capability > derive(targetFormat).
 const NATIVE_ONLY_FORMATS = new Set(["gemini-level", "gemini-budget", "claude-budget", "claude-adaptive", "kiro"]);
 
-function resolveFormat(targetFormat, model, provider) {
+function resolveFormat(targetFormat, provider, caps) {
   const providerFmt = provider ? PROVIDERS[provider]?.thinkingFormat : null;
+  if (FORMAT_TO_NATIVE[targetFormat] === "gemini-budget") {
+    return (providerFmt || caps.thinkingFormat) === "gemini-level" ? "gemini-level" : "gemini-budget";
+  }
   if (providerFmt) return providerFmt;
-  const caps = getCapabilitiesForModel(provider, model);
   const isOpenAIWire = targetFormat === "openai" || targetFormat === "openai-responses";
   if (caps.thinkingFormat && !(isOpenAIWire && NATIVE_ONLY_FORMATS.has(caps.thinkingFormat))) {
     return caps.thinkingFormat;
@@ -256,13 +287,14 @@ function stripAll(body) {
   delete body.thinkingConfig;
   delete body.enable_thinking;
   delete body.thinking_budget;
+  delete body.budget_tokens;
   delete body.output_config;
   if (body.generationConfig) delete body.generationConfig.thinkingConfig;
   if (body.request?.generationConfig) delete body.request.generationConfig.thinkingConfig;
 }
 
 // Apply unified thinking config to body in the resolved provider-native format.
-function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider) {
+function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider, includeThoughts) {
   const none = cfg.mode === "none";
   const canDisable = caps.thinkingCanDisable !== false;
   // Model cannot disable thinking → clamp "none" to minimal effort instead.
@@ -275,8 +307,18 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider) {
       // low/medium/high, #4031) must never receive it — omit the field so the
       // upstream default applies. Same precedent as the tokenrouter branch.
       if (none) break;
+      if (eff.mode === "auto") break;
       const level = toLevel(eff);
       if (level) body.reasoning_effort = normalizeOpenAILevel(level, supportedLevels);
+      break;
+    }
+    case "openrouter": {
+      const reasoning = none && canDisable ? { enabled: false }
+        : eff.mode === "budget" ? { max_tokens: eff.budget }
+          : eff.mode === "auto" ? { enabled: true }
+            : { effort: eff.level === "ultra" ? "max" : eff.level };
+      if (includeThoughts !== undefined) reasoning.exclude = !includeThoughts;
+      body.reasoning = reasoning;
       break;
     }
     case "claude-adaptive": {
@@ -305,14 +347,14 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider) {
     }
     case "gemini-level": {
       const level = toGeminiThinkingLevel(none ? { mode: "level", level: "minimal" } : eff, supportedLevels);
-      setGeminiThinking(body, { thinkingLevel: level, includeThoughts: level !== "minimal" });
+      setGeminiThinking(body, { thinkingLevel: level, includeThoughts: includeThoughts ?? level !== "minimal" });
       ensureGeminiOutputFloor(body, geminiLevelOutputFloor(level), caps);
       break;
     }
     case "gemini-budget": {
-      if (none && canDisable) { setGeminiThinking(body, { thinkingBudget: 0, includeThoughts: false }); break; }
+      if (none && canDisable) { setGeminiThinking(body, { thinkingBudget: 0, includeThoughts: includeThoughts ?? false }); break; }
       const budget = toBudget(eff, caps.thinkingRange);
-      setGeminiThinking(body, { thinkingBudget: budget ?? -1, includeThoughts: true });
+      setGeminiThinking(body, { thinkingBudget: budget ?? -1, includeThoughts: includeThoughts ?? true });
       ensureGeminiOutputFloor(body, geminiBudgetOutputFloor(budget ?? -1), caps);
       break;
     }
@@ -408,24 +450,41 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider) {
 }
 
 // Public entry: normalize thinking for the resolved target format.
-// Mutates and returns body. No-op when model has no reasoning capability.
+// Mutates and returns body; unsupported reasoning controls are removed.
 // `intent` is a pre-captured config (from captureThinking on the original body);
 // falls back to extracting from the current body when omitted.
-export function applyThinking(targetFormat, model, body, provider = null, intent = undefined) {
+export function applyThinking(targetFormat, model, body, provider = null, intent = undefined, capabilities = null) {
   if (!body || typeof body !== "object") return body;
 
   const { cleanModel, override } = parseSuffix(model);
-  const cfg = override || intent || extractThinking(body);
-  const caps = getCapabilitiesForModel(provider, cleanModel);
+  const captured = intent || captureThinking(body);
+  const cfg = override || captured;
+  const caps = capabilities || getCapabilitiesForModel(provider, cleanModel);
 
   // Model cannot reason → strip any stray thinking fields.
   if (!caps.reasoning) {
+    const outputConfig = targetFormat === "claude" ? body.output_config || captured?.claudeOutputConfig : null;
     stripAll(body);
+    if (outputConfig && typeof outputConfig === "object" && !Array.isArray(outputConfig)) {
+      const nonReasoning = { ...outputConfig };
+      delete nonReasoning.effort;
+      if (Object.keys(nonReasoning).length) body.output_config = nonReasoning;
+    }
     return body;
   }
   if (!cfg) return body;
 
-  const fmt = resolveFormat(targetFormat, cleanModel, provider);
+  const fmt = resolveFormat(targetFormat, provider, caps);
+  // Native API constraints are reference-only when the bridge uses another wire.
+  const foreignGoogleCaps = FORMAT_TO_NATIVE[targetFormat] === "gemini-budget"
+    && caps.thinkingFormat && !caps.thinkingFormat.startsWith("gemini-");
+  const thinkingCaps = foreignGoogleCaps ? {
+    ...caps,
+    thinkingCanDisable: undefined,
+    thinkingOffType: undefined,
+    thinkingRange: targetFormat === "antigravity" && caps.thinkingFormat.startsWith("claude-")
+      ? { min: CLAUDE_MIN_THINKING_BUDGET } : undefined,
+  } : caps;
   // Native reduced-thinking requests carry an independent effort. Do not let
   // effort capture turn disabled/between_tools into unrestricted adaptive
   // thinking, or drop output_config's other fields. Explicit model suffixes
@@ -447,17 +506,32 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
   // Anthropic's `display` (summarized | omitted) decides whether thinking text
   // comes back at all; keep what the client asked for instead of resetting it.
   // An OpenAI-shaped client's ask arrives via the captured intent instead.
-  const display = typeof body.thinking?.display === "string" ? body.thinking.display : intent?.display;
+  const display = typeof body.thinking?.display === "string" ? body.thinking.display : captured?.display;
+  const includeThoughts = captured?.includeThoughts;
+  const claudeOutputConfig = body.output_config || captured?.claudeOutputConfig;
   const isResponses = targetFormat === "openai-responses" || targetFormat === "openai-response";
   const responsesReasoning = isResponses
-    ? { ...body.reasoning, ...intent?.responsesReasoning } : null;
+    ? {
+      ...(body.reasoning && typeof body.reasoning === "object" && !Array.isArray(body.reasoning) ? body.reasoning : {}),
+      ...captured?.responsesReasoning,
+    } : null;
   stripAll(body);
-  applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider);
+  applyFormat(fmt, body, cfg, thinkingCaps, supportedLevels, display, provider, includeThoughts);
+  if (targetFormat === "claude" && claudeOutputConfig) {
+    body.output_config = { ...claudeOutputConfig, ...body.output_config };
+  }
   if (isResponses) {
     const effort = body.reasoning_effort;
     delete body.reasoning_effort;
     delete responsesReasoning.effort;
+    delete responsesReasoning.max_tokens;
+    delete responsesReasoning.enabled;
+    delete responsesReasoning.exclude;
     if (effort !== undefined) responsesReasoning.effort = effort;
+    if (includeThoughts === false) {
+      responsesReasoning.summary = null;
+      delete responsesReasoning.generate_summary;
+    } else if (display === "summarized" && responsesReasoning.summary === undefined) responsesReasoning.summary = "auto";
     if (Object.keys(responsesReasoning).length) body.reasoning = responsesReasoning;
   }
   return body;

@@ -1,9 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 import { CursorExecutor } from "../../open-sse/executors/cursor.js";
 import { encodeField, wrapConnectRPCFrame } from "../../open-sse/utils/cursorProtobuf.js";
 
 const LEN = 2;
+
+beforeEach(() => {
+  for (const key of ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"]) vi.stubEnv(key, "");
+});
+afterEach(() => vi.unstubAllEnvs());
 
 // agent.v1.AgentServerMessage.exec_request (field 2) carrying one ExecServerMessage variant.
 function execRequestFrame(execField) {
@@ -20,7 +25,7 @@ function textFrame(text) {
 
 function stubAgentSession(executor, frames) {
   const written = [];
-  const queue = [...frames];
+  const queue = [...frames, Buffer.from("02000000027b7d", "hex")];
   executor.openAgentHttp2Stream = () => ({
     responseHeaders: Promise.resolve({ ":status": 200 }),
     write: (frame) => written.push(Buffer.from(frame)),

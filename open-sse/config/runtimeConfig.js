@@ -77,6 +77,7 @@ export const GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS = envMs("GEMINI_NATIVE_TTS_FETCH
 export const DEFAULT_MAX_TOKENS = 64000;
 export const DEFAULT_MIN_TOKENS = 32000;
 export const REASONING_MIN_OUTPUT_FLOOR = 65536;
+export const CLAUDE_MIN_THINKING_BUDGET = 1024;
 // CommandCode /alpha/generate rejects max_tokens above this with a 400
 // ("integer above maximum value"). Clients send the advertised model ceiling
 // (384000 for deepseek-v4-pro, 1000000 elsewhere), so every output-cap

@@ -18,7 +18,7 @@ import { REVIEWED_MODEL_METADATA, getReviewedModelMetadata, getReviewedPricing }
 export const FREE_MODEL_NAMESPACES = ["cline-free/", "opencode-free/", "mimo-free/"];
 
 export const ZERO_PRICING = {
-  input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0,
+  input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0, cache_creation_1h: 0,
 };
 
 /** True when the model id sits in a namespace upstream bills at $0. */
@@ -54,25 +54,26 @@ export const MODEL_PRICING = {
   "claude-opus-4-6-thinking":     { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 37.50,  cache_creation: 5.00  },
   "claude-fable-5":               { input: 10.00, output: 50.00, cached: 1.00,  reasoning: 50.00,  cache_creation: 12.50 },
   "claude-fable-5-1":             { input: 10.00, output: 50.00, cached: 0.25,  reasoning: 50.00,  cache_creation: 12.50 },
-  // Current lineup (platform.claude.com/docs/en/models/overview, verified 2026-10-01):
-  // Opus 5.5 = $4/$20 (cache reads 5% = $0.20), Sonnet 5 / 5.5 = $2/$10 ($0.20 cache read / $2.50 write),
-  // Opus 5 = $5/$25, Fable 5.1 = $10/$50 ($0.25 cache read = 0.025x).
+  // Native API references (platform.claude.com/docs/en/about-claude/pricing, 2026-10-17):
+  // Opus 5.5 = $4/$20 with $0.20 cache reads; Sonnet 5 / 5.5 = $2/$10 with $0.20 / $0.10 reads.
+  // Opus 5 = $5/$25; Fable 5.1 = $10/$50 with $0.25 reads. Route-specific quotes take precedence.
   // Exact entries win over the claude-opus-*/claude-sonnet-* patterns below.
   "claude-opus-5":                { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 25.00,  cache_creation: 6.25  },
   "claude-opus-5-5":              { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-opus-5-5-20260922":     { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-sonnet-5":              { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
-  "claude-sonnet-5-5":            { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5":            { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-haiku-5-5":             { input: 0.10, output: 0.50, cached: 0.01, reasoning: 0.50, cache_creation: 0.125, cache_creation_1h: 0.20, tier: { threshold: 100000, input: 0.50, output: 2.50, cached: 0.05, cache_creation: 0.625, cache_creation_1h: 1.00 } },
   // Dot-form aliases (pricing lookup is exact-match; the claude-opus-*/claude-sonnet-* patterns would misprice them)
   "claude-opus-5.5":              { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
-  "claude-sonnet-5.5":            { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5.5":            { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
   // Antigravity2 tier-suffixed ids (9router #4600/#4548) — same model, same rates.
   "claude-opus-5-5-high":         { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-opus-5-5-medium":       { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-opus-5-5-low":          { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
-  "claude-sonnet-5-5-high":       { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
-  "claude-sonnet-5-5-medium":     { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
-  "claude-sonnet-5-5-low":        { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-high":       { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-medium":     { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-low":        { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
 
   // === OpenAI / GPT (developers.openai.com/api/docs/pricing, snapshot 2026-09-23) ===
   // GPT-5+ cache reads = 10% of input; gpt-4.1 family = 25%; o3/o4-mini = 25%.
@@ -137,7 +138,7 @@ export const MODEL_PRICING = {
   "gemini-3.6-flash-low":          { input: 0.75,  output: 3.75,  cached: 0.075, reasoning: 3.75,   cache_creation: 0.9375 },
   "gemini-3.5-flash-lite":         { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.375 },
   "gemini-3.5-flash-high":         { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3-flash-preview":        { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
+  "gemini-3-flash-preview":        { input: 0.50,  output: 3.00,  cached: 0.05,  reasoning: 3.00 },
   "gemini-3-pro-preview":         { input: 2.00,  output: 12.00, cached: 0.20,  reasoning: 12.00,  cache_creation: 2.00  },
   "gemini-3.1-pro-preview":       { input: 2.00,  output: 12.00, cached: 0.20,  reasoning: 12.00,  cache_creation: 2.00, tier: { threshold: 200000, input: 4.00, output: 18.00, cached: 0.40, cache_creation: 4.00 } },
   "gemini-3.1-pro-low":           { input: 2.00,  output: 12.00, cached: 0.20,  reasoning: 12.00,  cache_creation: 2.00, tier: { threshold: 200000, input: 4.00, output: 18.00, cached: 0.40, cache_creation: 4.00 } },
@@ -283,7 +284,7 @@ export const MODEL_PRICING = {
 
 /**
  * Provider-specific pricing overrides.
- * Only include entries where price DIFFERS from MODEL_PRICING.
+ * Complete provider-specific quotes, including deliberate unknown component rates.
  * Keyed by provider alias (cc, cx, gc, gh, ...) or provider id (openai, anthropic, ...).
  */
 export const PROVIDER_PRICING = {
@@ -419,6 +420,183 @@ export const PROVIDER_PRICING = {
     "z-ai/glm-5.1": { input: 1.05, output: 3.5, cached: 0.525, reasoning: 3.5 },
     "z-ai/glm-5.2": { input: 1.4, output: 4.4, cached: 0.26, reasoning: 4.4 },
     "z-ai/glm-5.3-free": { input: 0, output: 0 },
+  },
+  // Exact provider + literal model quotes reconciled 2026-10-17 against models.dev/api.json.
+  // Compatible USD/1M tokens only. Reviewed primary facts below retain precedence;
+  // omissions are unknown, not fabricated zero rates or cache multipliers.
+  // Primary: https://www.cerebras.ai/pricing (embedded developer tariff; cache unspecified).
+  "cerebras": {
+    "gpt-oss-120b": {input: 0.35, output: 0.75, reasoning: 0.75},
+    "qwen-3.8-27b": {input: 0.99, output: 1.49, reasoning: 1.49},
+  },
+  // Literal models.dev chutes tariffs; public PAYG page rounds displayed rates.
+  "chutes": {
+    "moonshotai/Kimi-K3-TEE": {input: 1.85, output: 9.5, cached: 0.18499999999999997, reasoning: 9.5},
+    "moonshotai/Kimi-K2.6-TEE": {input: 0.45, output: 1.95, cached: 0.04499999999999999, reasoning: 1.95},
+    "zai-org/GLM-5.2-TEE": {input: 1.25, output: 3.95, cached: 0.12499999999999997, reasoning: 3.95},
+    "zai-org/GLM-5.1-TEE": {input: 0.98, output: 3.08, cached: 0.09799999999999998, reasoning: 3.08},
+    "deepseek-ai/DeepSeek-V4-Flash-0731-TEE": {input: 0.44, output: 1.32, cached: 0.04399999999999999, reasoning: 1.32},
+    "deepseek-ai/DeepSeek-V3.2-TEE": {input: 1, output: 1, cached: 0.09999999999999998, reasoning: 1},
+    "Qwen/Qwen3.5-397B-A17B-TEE": {input: 0.45, output: 3, cached: 0.04499999999999999, reasoning: 3},
+    "Qwen/Qwen3.8-27B-TEE": {input: 0.039, output: 1.25, cached: 0.003899999999999999, reasoning: 1.25},
+    "Qwen/Qwen3.6-27B-TEE": {input: 0.25, output: 2, cached: 0.024999999999999994, reasoning: 2},
+    "Qwen/Qwen3-32B-TEE": {input: 0.104, output: 0.416, cached: 0.010399999999999998, reasoning: 0.416},
+    "Qwen/Qwen3-235B-A22B-Thinking-2507-TEE": {input: 0.2989, output: 1.1957, cached: 0.029889999999999993, reasoning: 1.1957},
+    "unsloth/Mistral-Nemo-Instruct-2407-TEE": {input: 0.0245, output: 0.0978, cached: 0.0024499999999999995, reasoning: 0.0978},
+  },
+  // Primary: https://developers.cloudflare.com/workers-ai/platform/pricing/; Neurons per million tokens × $0.011/1000. Free daily allocation is not deducted.
+  "cloudflare-ai": {
+    "@cf/meta/llama-3.2-1b-instruct": {input: 0.027027, output: 0.200772, reasoning: 0.200772},
+    "@cf/meta/llama-3.2-3b-instruct": {input: 0.050875, output: 0.335225, reasoning: 0.335225},
+    "@cf/mistralai/mistral-small-3.1-24b-instruct": {input: 0.350636, output: 0.555368, reasoning: 0.555368},
+    "@cf/meta/llama-3.3-70b-instruct-fp8-fast": {input: 0.293348, output: 2.252855, reasoning: 2.252855},
+    "@cf/meta/llama-4-scout-17b-16e-instruct": {input: 0.269995, output: 0.850003, reasoning: 0.850003},
+    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {input: 0.49687, output: 4.881316, reasoning: 4.881316},
+    "@cf/deepseek-ai/deepseek-v4-flash-0731": {input: 0.44, cached: 0.014003, output: 1.32, reasoning: 1.32},
+    "@cf/deepseek-ai/deepseek-v4-pro-0813": {input: 1.32, cached: 0.044, output: 3.96, reasoning: 3.96},
+    "@cf/moonshotai/kimi-k2.6": {input: 0.950004, cached: 0.159995, output: 3.999996, reasoning: 3.999996},
+    "@cf/moonshotai/kimi-k2.7-code": {input: 0.950004, cached: 0.190003, output: 3.999996, reasoning: 3.999996},
+    "@cf/zai-org/glm-4.7-flash": {input: 0.0605, output: 0.4004, reasoning: 0.4004},
+    "@cf/zai-org/glm-5.2": {input: 1.400003, cached: 0.259996, output: 4.4, reasoning: 4.4},
+    "@cf/zai-org/glm-5.3": {input: 1.400003, cached: 0.259996, output: 4.4, reasoning: 4.4},
+    "@cf/zai-org/glm-5.3-flash": {input: 0.149996, cached: 0.029997, output: 0.500005, reasoning: 0.500005},
+    "@cf/openai/gpt-oss-120b": {input: 0.349998, output: 0.750002, reasoning: 0.750002},
+    "@cf/openai/gpt-oss-20b": {input: 0.200002, output: 0.300003, reasoning: 0.300003},
+    "@cf/qwen/qwen3.8-27b": {input: 0.449999, output: 3.199999, reasoning: 3.199999},
+    "@cf/qwen/qwq-32b": {input: 0.66, output: 0.999999, reasoning: 0.999999},
+    "@cf/qwen/qwen2.5-coder-32b-instruct": {input: 0.66, output: 0.999999, reasoning: 0.999999},
+  },
+  // Primary: https://console.groq.com/docs/models and /docs/prompt-caching (50% hit discount on GPT OSS).
+  "groq": {
+    "openai/gpt-oss-120b": {input: 0.15, output: 0.6, cached: 0.075, reasoning: 0.6},
+    "openai/gpt-oss-20b": {input: 0.075, output: 0.3, cached: 0.0375, reasoning: 0.3},
+    "qwen/qwen3.8-27b": {input: 0.8, output: 4, reasoning: 4},
+  },
+  // Literal models.dev mistral embedding input reference, not a generated-output tariff.
+  "mistral": {
+    "mistral-embed": {input: 0.1},
+  },
+  // Literal models.dev nebius references; native API quotes, not vendor leaf prices.
+  "nebius": {
+    "deepseek-ai/DeepSeek-V4-Flash-0731": {input: 0.14, output: 0.28, cached: 0.14, reasoning: 0.28},
+    "MiniMaxAI/MiniMax-M3": {input: 0.3, output: 1.2, reasoning: 1.2},
+    "Qwen/Qwen3-Embedding-8B": {input: 0.01},
+  },
+  // Primary: https://developers.openai.com/api/docs/pricing; standard API only, output includes reasoning. Unpublished cache tariffs stay absent.
+  "openai": {
+    "gpt-5.5-pro": {input: 30, output: 180, reasoning: 180, tier: {threshold: 272000, input: 60, output: 270}},
+    "gpt-5.4-pro": {input: 30, output: 180, reasoning: 180, tier: {threshold: 272000, input: 60, output: 270}},
+    "gpt-5.2": {input: 1.75, output: 14, cached: 0.175, reasoning: 14},
+    "gpt-5.2-pro": {input: 21, output: 168, reasoning: 168},
+    "gpt-5.1": {input: 1.25, output: 10, cached: 0.125, reasoning: 10},
+    "gpt-5": {input: 1.25, output: 10, cached: 0.125, reasoning: 10},
+    "gpt-5-mini": {input: 0.25, output: 2, cached: 0.025, reasoning: 2},
+    "gpt-5-nano": {input: 0.05, output: 0.4, cached: 0.005, reasoning: 0.4},
+    "gpt-5-pro": {input: 15, output: 120, reasoning: 120},
+    "gpt-4o": {input: 2.5, output: 10, cached: 1.25, reasoning: 10},
+    "gpt-4o-mini": {input: 0.15, output: 0.6, cached: 0.075, reasoning: 0.6},
+    "gpt-4-turbo": {input: 10, output: 30, reasoning: 30},
+    "gpt-4.1": {input: 2, output: 8, cached: 0.5, reasoning: 8},
+    "gpt-4.1-mini": {input: 0.4, output: 1.6, cached: 0.1, reasoning: 1.6},
+    "gpt-4.1-nano": {input: 0.1, output: 0.4, cached: 0.025, reasoning: 0.4},
+    "o3": {input: 2, output: 8, cached: 0.5, reasoning: 8},
+    "o3-mini": {input: 1.1, output: 4.4, cached: 0.55, reasoning: 4.4},
+    "o3-pro": {input: 20, output: 80, reasoning: 80},
+    "o4-mini": {input: 1.1, output: 4.4, cached: 0.275, reasoning: 4.4},
+    "o1": {input: 15, output: 60, cached: 7.5, reasoning: 60},
+    "o1-pro": {input: 150, output: 600, reasoning: 600},
+    "text-embedding-3-large": {input: 0.13},
+    "text-embedding-3-small": {input: 0.02},
+    "text-embedding-ada-002": {input: 0.1},
+  },
+  // Literal international SiliconFlow references; https://www.siliconflow.com/pricing corroborates current flagship rates. No inferred cache-write fee.
+  "siliconflow": {
+    "deepseek-ai/DeepSeek-V4-Pro": {input: 1.50162, output: 3.135, cached: 0.135, reasoning: 3.135},
+    "deepseek-ai/DeepSeek-V4-Flash": {input: 0.13, output: 0.28, cached: 0.028, reasoning: 0.28},
+    "deepseek-ai/DeepSeek-V3.2": {input: 0.27, output: 0.42, cached: 0.135, reasoning: 0.42},
+    "deepseek-ai/DeepSeek-V3.2-Exp": {input: 0.27, output: 0.41, reasoning: 0.41},
+    "deepseek-ai/DeepSeek-V3.1": {input: 0.27, output: 1, reasoning: 1},
+    "deepseek-ai/DeepSeek-V3.1-Terminus": {input: 0.27, output: 1, reasoning: 1},
+    "deepseek-ai/DeepSeek-R1": {input: 0.5, output: 2.18, reasoning: 2.18},
+    "Qwen/Qwen3.5-397B-A17B": {input: 0.39, output: 2.34, reasoning: 2.34},
+    "Qwen/Qwen3.5-122B-A10B": {input: 0.26, output: 2.08, reasoning: 2.08},
+    "zai-org/GLM-5.1": {input: 1.19, output: 3.74, cached: 0.6, reasoning: 3.74},
+    "zai-org/GLM-5": {input: 0.95, output: 2.55, cached: 0.2, reasoning: 2.55},
+    "zai-org/GLM-5.3": {input: 1.4, output: 4.4, cached: 0.26, reasoning: 4.4},
+    "zai-org/GLM-5.3-Flash": {input: 0.15, output: 0.5, cached: 0.03, reasoning: 0.5},
+    "moonshotai/Kimi-K3": {input: 2.7, output: 13.5, cached: 0.27, reasoning: 13.5},
+    "moonshotai/Kimi-K2.7-Code": {input: 0.85916, output: 3.8, cached: 0.17993, reasoning: 3.8},
+    "moonshotai/Kimi-K2.6": {input: 0.77, output: 3.4, cached: 0.14, reasoning: 3.4},
+    "moonshotai/Kimi-K2.5": {input: 0.45, output: 2.25, cached: 0.07, reasoning: 2.25},
+    "openai/gpt-oss-120b": {input: 0.05, output: 0.45, reasoning: 0.45},
+    "MiniMaxAI/MiniMax-M2.5": {input: 0.3, output: 1.2, cached: 0.03, reasoning: 1.2},
+    "inclusionAI/Ling-flash-2.0": {input: 0.14, output: 0.57, reasoning: 0.57},
+  },
+  // Primary: https://www.together.ai/pricing; current Qwen3.7-Max quote supersedes models.dev.
+  "together": {
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo": {input: 1.04, output: 1.04, reasoning: 1.04},
+    "deepseek-ai/DeepSeek-V4-Pro-0813": {input: 1.32, output: 3.96, cached: 0.13, reasoning: 3.96},
+    "deepseek-ai/DeepSeek-V4-Flash-0731": {input: 0.14, output: 0.28, cached: 0.03, reasoning: 0.28},
+    "deepseek-ai/DeepSeek-V4.1-Flash": {input: 0.3, output: 1.2, cached: 0.006, reasoning: 1.2},
+    "moonshotai/Kimi-K3": {input: 3, output: 15, cached: 0.3, reasoning: 15},
+    "zai-org/GLM-5.3": {input: 1.4, output: 4.4, cached: 0.26, reasoning: 4.4},
+    "zai-org/GLM-5.3-Flash": {input: 0.15, output: 0.5, cached: 0.03, reasoning: 0.5},
+    "zai-org/GLM-5.2": {input: 1.4, output: 4.4, cached: 0.26, reasoning: 4.4},
+    "openai/gpt-oss-120b": {input: 0.15, output: 0.6, reasoning: 0.6},
+    "Qwen/Qwen3.7-Max": {input: 1.5, output: 4.5, cached: 0.3, reasoning: 4.5},
+    "Qwen/Qwen3.6-Plus": {input: 0.5, output: 3, reasoning: 3},
+    "Qwen/Qwen3.5-9B": {input: 0.17, output: 0.25, reasoning: 0.25},
+    "MiniMaxAI/MiniMax-M3": {input: 0.3, output: 1.2, cached: 0.06, reasoning: 1.2},
+  },
+  // Literal models.dev venice USD token references; not vendor prices or subscription billing.
+  "venice": {
+    "venice-uncensored-1-2": {input: 0.2, output: 0.9, reasoning: 0.9},
+    "zai-org-glm-5": {input: 1, output: 3.2, cached: 0.2, reasoning: 3.2},
+    "z-ai-glm-5-3": {input: 1.75, output: 5.5, cached: 0.325, reasoning: 5.5},
+    "z-ai-glm-5-3-flash": {input: 0.15, output: 0.5, cached: 0.03, reasoning: 0.5},
+    "kimi-k3": {input: 3.75, output: 18.75, cached: 0.375, reasoning: 18.75},
+    "deepseek-v4-flash": {input: 0.138, output: 0.275, cached: 0.028, reasoning: 0.275},
+    "qwen3-235b-a22b-instruct-2507": {input: 0.15, output: 0.75, reasoning: 0.75},
+    "qwen3-coder-480b-a35b-instruct-turbo": {input: 0.35, output: 1.5, cached: 0.04, reasoning: 1.5},
+    "qwen3-vl-235b-a22b": {input: 0.21, output: 1.9, cached: 0.1, reasoning: 1.9},
+    "deepseek-v4-pro": {input: 1.65, output: 3.301, cached: 0.33, reasoning: 3.301},
+    "llama-3.3-70b": {input: 0.7, output: 2.8, reasoning: 2.8},
+    "hermes-3-llama-3.1-405b": {input: 1.1, output: 3, reasoning: 3},
+    "mistral-small-3-2-24b-instruct": {input: 0.09375, output: 0.25, reasoning: 0.25},
+  },
+  // Global Vertex reference rates; regional premiums and promotional credits are separate billing qualifiers. Cache storage is not a token-write fee.
+  "vertex": {
+    "gemini-3.8-flash": {input: 0.75, output: 3.75, cached: 0.075, reasoning: 3.75},
+    "gemini-3.7-flash": {input: 0.75, output: 3.75, cached: 0.075, reasoning: 3.75},
+    "gemini-3.6-flash": {input: 0.75, output: 3.75, cached: 0.075, reasoning: 3.75},
+    "gemini-3.5-flash": {input: 1.5, output: 9, cached: 0.15, reasoning: 9},
+    "gemini-3.5-flash-lite": {input: 0.3, output: 2.5, cached: 0.03, reasoning: 2.5},
+    "gemini-3.1-pro-preview": {input: 2, output: 12, cached: 0.2, reasoning: 12, tier: {threshold: 200000, input: 4, output: 18, cached: 0.4}},
+    "gemini-3.1-flash-lite": {input: 0.25, output: 1.5, cached: 0.025, reasoning: 1.5},
+    "gemini-3-flash-preview": {input: 0.5, output: 3, cached: 0.05, reasoning: 3},
+    "gemini-2.5-pro": {input: 1.25, output: 10, cached: 0.125, reasoning: 10, tier: {threshold: 200000, input: 2.5, output: 15, cached: 0.25}},
+    "gemini-2.5-flash": {input: 0.3, output: 2.5, cached: 0.03, reasoning: 2.5},
+    "gemini-2.5-flash-lite": {input: 0.1, output: 0.4, cached: 0.01, reasoning: 0.4},
+  },
+  // Exact free namespace routes only; auto frontier/balanced choose models dynamically and have no fixed tariff.
+  "kilo-gateway": {
+    "kilo-auto/free": ZERO_PRICING,
+    "nvidia/nemotron-3-super-120b-a12b:free": ZERO_PRICING,
+    "nvidia/nemotron-3-ultra-550b-a55b:free": ZERO_PRICING,
+  },
+  // Literal models.dev sambanova USD token references; authenticated entitlements unverified.
+  "sambanova": {
+    "MiniMax-M3": {input: 0.6, output: 2.4, cached: 0.06, reasoning: 2.4},
+    "DeepSeek-V3.1": {input: 3, output: 4.5, reasoning: 4.5},
+    "DeepSeek-V3.2": {input: 3, output: 4.5, reasoning: 4.5},
+    "Meta-Llama-3.3-70B-Instruct": {input: 0.6, output: 1.2, reasoning: 1.2},
+    "gpt-oss-120b": {input: 0.22, output: 0.59, reasoning: 0.59},
+    "gemma-4-31B-it": {input: 0.38, output: 1.15, reasoning: 1.15},
+  },
+  // Literal models.dev morph USD token references; distinct hosted IDs, not Qwen/MiniMax vendor quotes.
+  "morph": {
+    "morph-v3-large": {input: 0.9, output: 1.9, reasoning: 1.9},
+    "morph-v3-fast": {input: 0.8, output: 1.2, reasoning: 1.2},
   },
 };
 
@@ -652,90 +830,47 @@ export function formatCost(cost) {
   return `$${cost.toFixed(2)}`;
 }
 
-/**
- * Calculate cost from tokens and pricing
- * @param {object} tokens
- * @param {object} pricing
- * @returns {number} cost in dollars
- */
+/** Calculate the total estimate, or null when a used component has no tariff. */
 export function calculateCostFromTokens(tokens, pricing) {
-  if (!tokens || !pricing) return 0;
+  return calculateCostBreakdown(tokens, pricing).totalCost;
+}
 
-  const inputTokens = tokens.prompt_tokens || tokens.input_tokens || 0;
-  const effectivePricing = resolveEffectivePricing(pricing, inputTokens);
-
-  let cost = 0;
-
-  const cachedTokens = tokens.cached_tokens || tokens.cache_read_input_tokens || tokens.prompt_cache_hit_tokens || 0;
-  const cacheCreationTokens = tokens.cache_creation_input_tokens || 0;
-  // prompt_tokens is cache-inclusive (see canonicalizeUsage): cached + cache_creation
-  // are subsets, so subtract both to avoid charging them at the full input rate.
-  const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens);
-
-  cost += nonCachedInput * ((effectivePricing.input ?? 0) / 1000000);
-
-  if (cachedTokens > 0) {
-    cost += cachedTokens * ((effectivePricing.cached !== undefined ? effectivePricing.cached : effectivePricing.input) / 1000000);
-  }
-
-  if (cacheCreationTokens > 0) {
-    cost += cacheCreationTokens * ((effectivePricing.cache_creation !== undefined ? effectivePricing.cache_creation : effectivePricing.input) / 1000000);
-  }
-
-  const outputTokens = tokens.completion_tokens || tokens.output_tokens || 0;
-  const reasoningTokens = tokens.reasoning_tokens || 0;
-
-  // In OpenAI, Claude, Gemini, DeepSeek, completion_tokens / output_tokens already
-  // includes reasoning_tokens. Subtract reasoning from outputTokens to avoid double billing.
-  if (reasoningTokens > 0 && effectivePricing.reasoning !== undefined) {
-    const nonReasoningOutput = Math.max(0, outputTokens - reasoningTokens);
-    cost += nonReasoningOutput * ((effectivePricing.output ?? 0) / 1000000);
-    cost += reasoningTokens * ((effectivePricing.reasoning ?? 0) / 1000000);
-  } else {
-    cost += outputTokens * ((effectivePricing.output ?? 0) / 1000000);
-  }
-
-  return cost;
+function tokenCost(tokens, rate) {
+  if (tokens === 0) return 0;
+  return Number.isFinite(rate) && rate >= 0 ? tokens * rate / 1000000 : null;
 }
 
 /**
- * Calculate per-component cost breakdown from tokens and pricing.
- * Ensures the breakdown uses exact component rates (input, cached, cache_creation, output, reasoning)
- * rather than a blended average token-share.
- *
- * @param {object} tokens
- * @param {object} pricing
- * @returns {{ inputCost: number, cachedCost: number, cacheCreationCost: number, outputCost: number, reasoningCost: number, totalCost: number }}
+ * Calculate component estimates from canonical cache-inclusive token counts.
+ * Missing tariffs affect only used components; unknown is never a free rate.
+ * @returns {{ inputCost: number|null, cachedCost: number|null, cacheCreationCost: number|null, outputCost: number|null, reasoningCost: number|null, totalCost: number|null }}
  */
 export function calculateCostBreakdown(tokens, pricing) {
-  if (!tokens || !pricing) {
-    return { inputCost: 0, cachedCost: 0, cacheCreationCost: 0, outputCost: 0, reasoningCost: 0, totalCost: 0 };
-  }
-
-  const inputTokens = tokens.prompt_tokens || tokens.input_tokens || 0;
+  const inputTokens = tokens?.prompt_tokens || tokens?.input_tokens || 0;
   const effectivePricing = resolveEffectivePricing(pricing, inputTokens);
-
-  const cachedTokens = tokens.cached_tokens || tokens.cache_read_input_tokens || tokens.prompt_cache_hit_tokens || 0;
-  const cacheCreationTokens = tokens.cache_creation_input_tokens || 0;
+  const cachedTokens = tokens?.cached_tokens || tokens?.cache_read_input_tokens || tokens?.prompt_cache_hit_tokens || 0;
+  const cacheCreation1hTokens = tokens?.cache_creation_1h_tokens || 0;
+  const cacheCreationTokens = tokens?.cache_creation_input_tokens ?? tokens?.cache_creation_tokens
+    ?? ((tokens?.cache_creation_5m_tokens || 0) + cacheCreation1hTokens);
+  // Cache reads and writes are subsets of canonical input, not extra input.
   const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens);
+  const inputCost = tokenCost(nonCachedInput, effectivePricing?.input);
+  const cachedCost = tokenCost(cachedTokens, effectivePricing?.cached);
+  // TTL counters are subsets of aggregate creation. Legacy aggregate-only
+  // usage retains the documented five-minute tariff; one-hour writes never do.
+  const cacheCreation5mCost = tokenCost(Math.max(0, cacheCreationTokens - cacheCreation1hTokens), effectivePricing?.cache_creation);
+  const cacheCreation1hCost = tokenCost(cacheCreation1hTokens, effectivePricing?.cache_creation_1h);
+  const cacheCreationCost = cacheCreation5mCost === null || cacheCreation1hCost === null
+    ? null : cacheCreation5mCost + cacheCreation1hCost;
 
-  const inputCost = nonCachedInput * ((effectivePricing.input ?? 0) / 1000000);
-  const cachedCost = cachedTokens * ((effectivePricing.cached !== undefined ? effectivePricing.cached : effectivePricing.input) / 1000000);
-  const cacheCreationCost = cacheCreationTokens * ((effectivePricing.cache_creation !== undefined ? effectivePricing.cache_creation : effectivePricing.input) / 1000000);
-
-  const outputTokens = tokens.completion_tokens || tokens.output_tokens || 0;
-  const reasoningTokens = tokens.reasoning_tokens || 0;
-
-  let outputCost = 0;
-  let reasoningCost = 0;
-  if (reasoningTokens > 0 && effectivePricing.reasoning !== undefined) {
-    const nonReasoningOutput = Math.max(0, outputTokens - reasoningTokens);
-    outputCost = nonReasoningOutput * ((effectivePricing.output ?? 0) / 1000000);
-    reasoningCost = reasoningTokens * ((effectivePricing.reasoning ?? 0) / 1000000);
-  } else {
-    outputCost = outputTokens * ((effectivePricing.output ?? 0) / 1000000);
-  }
-
-  const totalCost = inputCost + cachedCost + cacheCreationCost + outputCost + reasoningCost;
+  // Completion already includes reasoning; a documented output tariff applies
+  // when no distinct reasoning tariff is specified. Explicit null stays unknown.
+  const outputTokens = tokens?.completion_tokens || tokens?.output_tokens || 0;
+  const reasoningTokens = tokens?.reasoning_tokens || 0;
+  const outputCost = tokenCost(Math.max(0, outputTokens - reasoningTokens), effectivePricing?.output);
+  const reasoningRate = effectivePricing?.reasoning !== undefined ? effectivePricing.reasoning : effectivePricing?.output;
+  const reasoningCost = tokenCost(reasoningTokens, reasoningRate);
+  const totalCost = inputCost === null || cachedCost === null || cacheCreationCost === null || outputCost === null || reasoningCost === null
+    ? null : inputCost + cachedCost + cacheCreationCost + outputCost + reasoningCost;
   return { inputCost, cachedCost, cacheCreationCost, outputCost, reasoningCost, totalCost };
 }

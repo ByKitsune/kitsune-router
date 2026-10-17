@@ -634,8 +634,8 @@ export class QoderExecutor extends BaseExecutor {
     return { response: wrapped, url, headers, transformedBody: payload };
   }
 
-  parseError(response, bodyText) {
-    const parsed = super.parseError(response, bodyText);
+  parseError(response, bodyText, generic) {
+    const parsed = super.parseError(response, bodyText, generic);
     if (response.status !== HTTP_STATUS.RATE_LIMITED) return parsed;
     const retryAfterSeconds = Number(response.headers.get("retry-after"));
     if (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds <= 0) return parsed;

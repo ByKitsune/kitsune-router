@@ -133,6 +133,19 @@ Main flow modules:
 - Stream transformations: `open-sse/utils/stream.js`, `open-sse/utils/streamHandler.js`
 - Usage extraction/normalization: `open-sse/utils/usageTracking.js`
 
+### Cursor AgentService input and tool handoff
+
+Cursor chat execution uses the bidirectional HTTP/2 `agent.v1.AgentService/Run` transport, not the retired outgoing ChatService route. The request translator detaches mutable caller-owned containers and retains typed media, tool-call IDs, arguments and results. Native history is rebuilt from the supplied conversation on each API request, so client-side compaction does not depend on an older cached transcript.
+
+- Current user images use `UserMessage.selected_context` → `SelectedContext.selected_images` → `SelectedImage.data` **bytes**, with MIME and UUID. Remote images use the shared hardened image fetch helper before serialization; an unresolved image fails rather than becoming prose or a missing attachment. Inline images require no upload service. The official client does not require dimensions on this path.
+- Prior user/tool images use the distinct `ConversationHistoryImageContent` image variant: its `data` field is a **string** carrying base64, with a separate MIME field. This is native typed image content, not text containing base64. Assistant calls and tool results retain their original IDs and native roles. Calls/results after the last user turn travel in `trailing_conversation_history`.
+- Declared client tools are advertised as native MCP tools. An MCP execution request is handed to the requesting client as Chat `tool_calls`, with `finish_reason: "tool_calls"`; an announced parallel batch is collected before ending the response. The upstream run closes without a fabricated MCP success/error. A subsequent API request supplies the actual client-executed results through typed history. Context and MCP allowlist-precheck replies preserve native execution correlation; prechecks allow only this request's declared tool names for the gateway's MCP provider. The gateway does not execute IDE tools, and unsupported IDE requests remain explicit errors.
+- `tool_choice: "none"` disables native tool declarations, precheck authorization and execution handoff; omitted/`"auto"` retains automatic selection. Required/named choices have no verified native mapping and return `unsupported_parameter` before dialing. The same explicit error applies to output-token caps, sampling/penalty controls, stop sequences, seed and multiple completions listed in `config/cursorConstants.js`. `RequestedModel.parameters` contains provider-defined ID/value strings, not verified OpenAI parameter names. There is no implicit 32,000-token floor, guessed parameter mapping or local output truncation.
+- Ordinary response success requires the final JSON `EndStreamResponse` mandated by the [Connect protocol](https://connectrpc.com/docs/protocol/#error-end-stream). A native `turn_ended` protobuf update alone is not transport success: terminal errors preserve their code/message, and missing terminal envelopes fail as protocol errors. The deliberate client-tool handoff is the exception: it closes the waiting native run without expecting a normal terminal envelope.
+- Native HTTP/2 retains the existing Cursor headers and Node TLS validation. It currently cannot implement the configured proxy/relay transports, so a resolved per-account/environment proxy, relay or `strictProxy` requirement fails **before any direct dial**, without exposing proxy credentials. The shared per-account `noProxy`, environment `NO_PROXY` and loopback exclusions still govern non-strict requests. There is no direct fallback around a required proxy.
+
+Field numbers/types are pinned to the generated descriptors in the [official Cursor CLI `2026.10.16-e3cb207`](https://downloads.cursor.com/lab/2026.10.16-e3cb207/linux/x64/agent-cli-package.tar.gz), archive SHA-256 `3aa3f48cd7a3909a98c9b3f2a4085f0c021088bf826690b22c61f424c843e552`. [Official `@cursor/sdk@1.0.7`](https://registry.npmjs.org/@cursor/sdk/1.0.7) independently corroborates current-image/MCP-image fields, but predates the history fields used here. Offline regressions use an independent wire reader, pinned synthetic server frames and a real loopback HTTP/2 stream. These private-protocol source and loopback contracts do not establish live-provider acceptance, image understanding, model entitlement or a provider SLA.
+
 ## 3) Persistence Layer
 
 Primary state DB — **SQLite** under `src/lib/db/` with an adapter fallback
@@ -152,11 +165,14 @@ schema/migrations in `src/lib/db/migrations/`.
   adapter. Recovery is manual — verify a candidate under
   `${DATA_DIR}/db/backups` with `PRAGMA quick_check`, then restore it.
 
-Usage DB:
+Usage and request logs use the same SQLite layer:
 
-- `src/lib/usageDb.js`
-- files: `~/.zenrouter/usage.json`, `~/.zenrouter/log.txt`
-- note: currently independent from `DATA_DIR`
+- `src/lib/usageDb.js` re-exports the `usageHistory`, `usageDaily`, log and request-detail repositories
+- State follows the absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database
+- Recorded token costs and component costs use `number | null`: an unknown used tariff is `null`, not a zero-dollar charge
+- Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
+- Daily/live groups, minute buckets and charts propagate unknown totals; Prometheus omits an unknown cost sample rather than publishing zero
+- Cache-write totals include five-minute and one-hour subsets once; canonical TTL counters and the distinct hourly rate survive translation, persistence and pricing overrides
 
 ## 4) Auth + Security Surfaces
 
@@ -231,6 +247,14 @@ sequenceDiagram
 
     Stream->>Usage: extract usage + persist history/log
 ```
+
+### Response transport contracts
+
+- Response handling uses the executor's actual response format and the selected per-model transport, not the provider's default format. Same-format streams retain native Messages/Responses/Google envelopes; only Chat and Responses use the OpenAI `[DONE]` sentinel.
+- Tool-name compression/cloaking is reversed for both SSE and JSON, including forced-SSE aggregation. Fragmented Chat names are restored with request-local state keyed by choice/tool identity; native tool starts are emitted once with complete names. Only request-map entries are renamed: literal `_ide` suffixes or `proxy_` prefixes are not evidence of cloaking. Tool argument deltas remain exact strings, without guessing cumulative snapshots from shared prefixes. Responses calls are paired by native item/output identity, including custom freeform input represented as a JSON `input` parameter for function-tool clients.
+- Reasoning/opaque continuity and actual terminal usage remain independent of tool/media conversion. Incomplete or refusal terminals must not become ordinary successful tool completions.
+- Generated image bytes stay in typed response channels: Chat `message.images` / `delta.images` and Gemini `inlineData` / `fileData`. Each Gemini-derived Chat image has a response-local occurrence `index`; its opaque signature stays on that image's [documented `extra_content.google.thought_signature` extension](https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures) and returns to the corresponding Gemini part's `thoughtSignature`, never a later tool. These channels are never manufactured markdown, JSON prose, or base64 text. Native Messages has no generic generated-image response block, and Responses needs a real image-generation tool result; those shapes cannot be invented to claim lossless conversion.
+- DeepSeek native Responses replay preserves representable input and continuity fields without adding fabricated reasoning placeholders. A declared repository transport is not proof of current hosted endpoint availability; provider catalog support must be verified separately.
 
 ## Combo + Account Fallback Flow
 
@@ -531,6 +555,29 @@ Target formats include:
 - Cursor
 
 Translations are selected dynamically based on source payload shape and provider target format.
+
+### Request field contracts
+
+| Intent | Chat Completions | Responses | Claude Messages | Gemini |
+| --- | --- | --- | --- | --- |
+| Sampling | `temperature`, `top_p` | `temperature`, `top_p` | `temperature`, `top_p`, `top_k` on supported legacy models | `temperature`, `topP`, `topK` on supporting models |
+| Stops / seed | `stop`, `seed` | No native equivalent | `stop_sequences`; no seed | `stopSequences`, `seed` |
+| Output limit | `max_completion_tokens` or legacy `max_tokens` | `max_output_tokens` | `max_tokens` | `generationConfig.maxOutputTokens` |
+| Instructions | Ordered system/developer messages | `instructions` plus ordered system/developer input | Top-level `system` | `systemInstruction.parts` |
+| JSON contract | `response_format` | `text.format` | `output_config.format` for native JSON Schema | `responseMimeType` plus `responseJsonSchema` or legacy `responseSchema` |
+| Function choice | none / auto / required / named function | Same choices, flat named function | none / auto / any / tool | NONE / AUTO / ANY, optionally restricted names |
+| Parallel choice | `parallel_tool_calls` | `parallel_tool_calls` | Inverse `disable_parallel_tool_use`, except the none variant | No equivalent disable control |
+
+- Native structured-output schemas are not replaced by prompt instructions when the target supports them. Standard Gemini/Vertex function declarations use `parametersJsonSchema`; Cloud Code envelopes retain their restricted Schema cleaner. Legacy Gemini Schema types and nullable nodes are converted to JSON Schema on reverse requests. Names, descriptions and optional strict flags remain native where supported; Gemini has no per-function strict flag, and VALIDATED calling is not an identical cross-vendor guarantee.
+- Every system/developer instruction survives Chat/Responses conversion, including structured text and later instruction turns. Opaque user attribution maps between Chat/Responses `user` and Claude `metadata.user_id`; arbitrary metadata is not an interchangeable Claude user identifier or Gemini label map.
+- Stateful Responses `previous_response_id`/`conversation` references require a native Responses destination. Stateless destinations reject them with a request-scoped unsupported-parameter error rather than deleting inherited context or fetching unknown private history; null references are unset. Native tool/opaque continuity items stay on their supported native path.
+- Generated assistant attachments remain typed media. Gemini model turns and supported Messages/Responses input retain the assistant role; strict Chat lifts assistant images into a user vision turn after the contiguous tool-result run. No bridge serializes image bytes as JSON prose or manufactured markdown.
+- Google image signatures remain opaque metadata on their corresponding typed image blocks (`extra_content.google.thought_signature`) and replay as the same native image Part's `thoughtSignature`. Signed text Parts retain their separate signatures on native Google pivots; ordinary Chat answer content is not changed into arrays for continuity transport. Vertex replaces only gateway-synthetic defaults, never an original opaque signature. Foreign protocols without native Google continuity do not acquire fabricated signature fields.
+- On Core's owned request containers, recognized legacy media arrays in Gemini function results are normalized once into adjacent native Content media parts, including same-format/passthrough requests. Existing caller-native FunctionResponse.parts stay unchanged; newly created nested multimedia responses are not assumed supported on older models. Legitimate repeated images, parallel IDs, errors and sibling metadata survive; ordinary Structs and literal JSON/base64 prose are not scanned or parsed as images.
+- Unsupported vendor-only controls are not fabricated: Responses has no seed/stop controls, Claude has no seed or general JSON-object switch, and Gemini has no parallel-disable switch. Legacy Claude JSON-object mode remains prompt-only, not a native schema guarantee. Newer Claude models reject sampling controls accepted by older models; Gemini 3.6 Flash and newer ignore top-p/top-k. Preserve provider/model restrictions rather than claiming universal losslessness.
+
+Primary contracts: [OpenAI Chat](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [OpenAI Responses](https://developers.openai.com/api/reference/resources/responses/methods/create), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create), [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Gemini generation](https://ai.google.dev/api/generate-content), [Gemini function controls](https://ai.google.dev/api/caching#FunctionCallingConfig), [Gemini signature replay](https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures.md.txt), and [Vertex v1 discovery](https://aiplatform.googleapis.com/$discovery/rest?version=v1).
+
 
 ### Reasoning preservation and protocol limits
 

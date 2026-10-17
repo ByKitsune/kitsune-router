@@ -2,6 +2,7 @@
 // Driven by getCapabilitiesForModel: vision/audioInput/pdf. Replaces removed
 // media with a short text placeholder so messages never become empty.
 import { FORMATS } from "../formats.js";
+import { CLAUDE_BLOCK, OPENAI_BLOCK, RESPONSES_ITEM } from "../schema/index.js";
 
 // Placeholder text inserted where a media block was removed.
 // Current turn: explain the active model can't read what the user just sent.
@@ -23,6 +24,7 @@ const ph = (cap, isLast) => (isLast ? PLACEHOLDER_CURRENT : PLACEHOLDER_PREV)[ca
 // Map gemini inlineData/fileData mime prefix -> capability it requires.
 function capForMime(mime) {
   if (typeof mime !== "string") return null;
+  mime = mime.toLowerCase();
   if (mime.startsWith("image/")) return "vision";
   if (mime.startsWith("audio/")) return "audioInput";
   if (mime.startsWith("video/")) return "videoInput";
@@ -33,32 +35,30 @@ function capForMime(mime) {
 // OpenAI chat content block -> required capability (null = plain text/other, keep).
 function capForOpenAIBlock(block) {
   const t = block?.type;
-  if (t === "image_url" || t === "image") return "vision";
-  if (t === "input_audio" || t === "audio_url") return "audioInput";
-  if (t === "video_url" || t === "input_video") return "videoInput";
-  if (t === "file") return "pdf";
-  return null;
-}
-
-// Claude content block -> required capability.
-function capForClaudeBlock(block) {
-  const t = block?.type;
-  if (t === "image") return "vision";
-  if (t === "document") return "pdf";
-  if (t === "video") return "videoInput";
+  if (t === OPENAI_BLOCK.IMAGE_URL || t === CLAUDE_BLOCK.IMAGE || t === RESPONSES_ITEM.INPUT_IMAGE) return "vision";
+  if (t === OPENAI_BLOCK.INPUT_AUDIO || t === OPENAI_BLOCK.AUDIO_URL) return "audioInput";
+  if (t === OPENAI_BLOCK.VIDEO_URL || t === OPENAI_BLOCK.INPUT_VIDEO) return "videoInput";
+  if (t === OPENAI_BLOCK.FILE || t === CLAUDE_BLOCK.DOCUMENT || t === RESPONSES_ITEM.INPUT_FILE) {
+    const data = block.file?.file_data || block.file_data;
+    const mime = block.source?.media_type || (typeof data === "string" ? data.match(/^data:([^;,]+)/)?.[1] : null);
+    return capForMime(mime) || "pdf";
+  }
   return null;
 }
 
 // Filter an array of content blocks; drop unsupported, inject one placeholder per kind.
 // isLast = block belongs to the current user turn (picks the explanatory placeholder).
-function filterBlocks(blocks, capOf, caps, removed, isLast) {
+function filterBlocks(blocks, capOf, caps, removed, isLast, textType = OPENAI_BLOCK.TEXT) {
   const out = [];
   for (const block of blocks) {
     const cap = capOf(block);
     if (cap && caps[cap] === false) { removed.add(cap); continue; }
+    if (block?.type === CLAUDE_BLOCK.TOOL_RESULT && Array.isArray(block.content)) {
+      block.content = filterBlocks(block.content, capOf, caps, new Set(), isLast, textType);
+    }
     out.push(block);
   }
-  for (const cap of removed) out.push({ type: "text", text: ph(cap, isLast) });
+  for (const cap of removed) out.push({ type: textType, text: ph(cap, isLast) });
   return out;
 }
 
@@ -71,12 +71,12 @@ function stripOpenAI(body, caps) {
       if (Array.isArray(msg.images)) delete msg.images;
       if (Array.isArray(msg.experimental_attachments)) {
         msg.experimental_attachments = msg.experimental_attachments.filter(
-          (a) => !(a?.contentType?.startsWith("image/") || (typeof a?.url === "string" && a.url.startsWith("data:image/")))
+          (a) => !((a?.contentType || a?.mediaType)?.startsWith("image/") || (typeof a?.url === "string" && a.url.startsWith("data:image/")))
         );
       }
       if (Array.isArray(msg.attachments)) {
         msg.attachments = msg.attachments.filter(
-          (a) => !(a?.contentType?.startsWith("image/") || (typeof a?.url === "string" && a.url.startsWith("data:image/")))
+          (a) => !((a?.contentType || a?.mediaType)?.startsWith("image/") || (typeof a?.url === "string" && a.url.startsWith("data:image/")))
         );
       }
     }
@@ -93,40 +93,54 @@ function stripClaude(body, caps) {
   body.messages.forEach((msg, i) => {
     if (!Array.isArray(msg.content)) return;
     const removed = new Set();
-    msg.content = filterBlocks(msg.content, capForClaudeBlock, caps, removed, i === last);
+    msg.content = filterBlocks(msg.content, capForOpenAIBlock, caps, removed, i === last);
   });
 }
 
-// OpenAI Responses input[].content[] (input_image / input_file).
+// Responses tool outputs carry their typed media in output[], not content[].
 function stripResponses(body, caps) {
   if (!Array.isArray(body.input)) return;
   const last = body.input.length - 1;
-  body.input.forEach((item, i) => {
-    if (!Array.isArray(item.content)) return;
-    const removed = new Set();
-    item.content = item.content.filter((b) => {
-      const cap = b?.type === "input_image" ? "vision" : b?.type === "input_file" ? "pdf" : null;
-      if (cap && caps[cap] === false) { removed.add(cap); return false; }
-      return true;
-    });
-    for (const cap of removed) item.content.push({ type: "input_text", text: ph(cap, i === last) });
-  });
+  for (const [i, item] of body.input.entries()) {
+    if (!item || typeof item !== "object") continue;
+    for (const key of ["content", ...(item.type === RESPONSES_ITEM.FUNCTION_CALL_OUTPUT || item.type === RESPONSES_ITEM.CUSTOM_TOOL_CALL_OUTPUT ? ["output"] : [])]) {
+      if (!Array.isArray(item[key])) continue;
+      const removed = new Set();
+      item[key] = filterBlocks(item[key], capForOpenAIBlock, caps, removed, i === last, RESPONSES_ITEM.INPUT_TEXT);
+    }
+  }
 }
 
-// Gemini / gemini-cli contents[].parts[] (inlineData / fileData by mime).
+function filterGeminiParts(parts, caps, isLast) {
+  const removed = new Set();
+  const out = [];
+  for (const part of parts) {
+    const inline = part?.inlineData || part?.inline_data;
+    const file = part?.fileData || part?.file_data;
+    const cap = capForMime(inline?.mimeType || inline?.mime_type || file?.mimeType || file?.mime_type) || capForOpenAIBlock(part);
+    if (cap && caps[cap] === false) { removed.add(cap); continue; }
+    const result = part?.functionResponse;
+    if (result) {
+      if (Array.isArray(result.parts)) result.parts = filterGeminiParts(result.parts, caps, isLast);
+      if (Array.isArray(result.response)) result.response = filterGeminiParts(result.response, caps, isLast);
+      else if (result.response && typeof result.response === "object") {
+        for (const key of ["parts", "content"]) {
+          if (Array.isArray(result.response[key])) result.response[key] = filterGeminiParts(result.response[key], caps, isLast);
+        }
+      }
+    }
+    out.push(part);
+  }
+  for (const cap of removed) out.push({ text: ph(cap, isLast) });
+  return out;
+}
+
+// Gemini / gemini-cli contents[].parts[], including multimodal tool responses.
 function stripGeminiParts(contents, caps) {
   if (!Array.isArray(contents)) return;
   const last = contents.length - 1;
-  contents.forEach((c, i) => {
-    if (!Array.isArray(c.parts)) return;
-    const removed = new Set();
-    c.parts = c.parts.filter((p) => {
-      const mime = p?.inlineData?.mimeType || p?.fileData?.mimeType;
-      const cap = capForMime(mime);
-      if (cap && caps[cap] === false) { removed.add(cap); return false; }
-      return true;
-    });
-    for (const cap of removed) c.parts.push({ text: ph(cap, i === last) });
+  contents.forEach((content, i) => {
+    if (Array.isArray(content?.parts)) content.parts = filterGeminiParts(content.parts, caps, i === last);
   });
 }
 

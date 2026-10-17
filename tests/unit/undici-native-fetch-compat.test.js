@@ -32,6 +32,9 @@ vi.mock("undici", async (importOriginal) => {
 const nativeFetch = globalThis.fetch;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 let server;
+let privateServer;
+let proxyTargetPort;
+const privateRequests = [];
 let proxy;
 let base;
 let proxyBase;
@@ -45,6 +48,9 @@ beforeAll(async () => {
     if (request.url === "/image.png") {
       response.writeHead(200, { "content-type": "image/png" });
       response.end(png);
+    } else if (request.url === "/slow-image.png") {
+      response.writeHead(200, { "content-type": "image/png" });
+      response.write(png);
     } else if (request.url === "/web-fetch") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify({ title: "Fixture", content: "loopback web content" }));
@@ -54,9 +60,15 @@ beforeAll(async () => {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${server.address().port}`;
+  privateServer = http.createServer((request, response) => {
+    privateRequests.push(request.url);
+    response.writeHead(200, { "content-type": "image/png" });
+    response.end(Buffer.concat([png, Buffer.from("PRIVATE")]));
+  });
+  await new Promise(resolve => privateServer.listen(0, "127.0.0.1", resolve));
   proxy = http.createServer();
   proxy.on("connect", (_request, socket, head) => {
-    const upstream = net.connect(server.address().port, "127.0.0.1", () => {
+    const upstream = net.connect(proxyTargetPort || server.address().port, "127.0.0.1", () => {
       socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
       if (head.length) upstream.write(head);
       upstream.pipe(socket);
@@ -75,13 +87,15 @@ beforeAll(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  proxyTargetPort = null;
 });
 
 afterAll(async () => {
   if (defaultAgent) await defaultAgent.destroy();
   globalThis.fetch = nativeFetch;
   for (const socket of tunnelSockets) socket.destroy();
-  for (const fixture of [proxy, server]) {
+  for (const fixture of [proxy, server, privateServer]) {
     fixture.closeAllConnections();
     await new Promise((resolve) => fixture.close(resolve));
   }
@@ -116,6 +130,33 @@ describe("Undici dispatchers at the Node native fetch boundary", () => {
       expect(result).toEqual({ mimeType: "image/png", url: `data:image/png;base64,${png.toString("base64")}` });
     } finally {
       globalThis.fetch = patchedFetch;
+    }
+  });
+
+  it("does not let an environment proxy re-resolve an already-pinned image into a private backend", async () => {
+    vi.stubEnv("HTTP_PROXY", proxyBase);
+    vi.stubEnv("NO_PROXY", "");
+    proxyTargetPort = privateServer.address().port;
+    privateRequests.length = 0;
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const { fetchImageAsBase64 } = await import("open-sse/translator/concerns/image.js");
+    const result = await fetchImageAsBase64(`http://public-fixture.invalid:${server.address().port}/image.png`);
+    expect(privateRequests).toEqual([]);
+    expect(result).toEqual({ mimeType: "image/png", url: `data:image/png;base64,${png.toString("base64")}` });
+  });
+
+  it("keeps its image-download deadline when the caller supplies a live cancellation signal", async () => {
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const { fetchImageAsBase64 } = await import("open-sse/translator/concerns/image.js");
+    const controller = new AbortController();
+    const guard = setTimeout(() => controller.abort(), 1000);
+    try {
+      expect(await fetchImageAsBase64(`http://public-fixture.invalid:${server.address().port}/slow-image.png`, {
+        signal: controller.signal, timeoutMs: 50,
+      })).toBeNull();
+      expect(controller.signal.aborted).toBe(false);
+    } finally {
+      clearTimeout(guard);
     }
   });
 

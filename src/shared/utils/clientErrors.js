@@ -19,10 +19,13 @@
 // `publicMessage` is the single place that decides what a client may read.
 // Callers keep logging the specific reason themselves.
 //
-// Security note: these helpers never accept credentials, tokens or prompt
-// content, and never echo the caller's raw input. They only map a small set of
-// internal conditions onto fixed strings.
+// Upstream errors are untrusted; public output allowlists diagnostics and hides
+// routing identities. Callers retain the original detail in operator logs.
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
+import { PROVIDER_IDENTITIES } from "open-sse/providers/identity.js";
+
+const INTERNAL_PROVIDER_NAMES = new RegExp(`\\b(?:${[...new Set(Object.values(PROVIDER_IDENTITIES))]
+  .map(id => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i");
 
 // Fixed, neutral client messages keyed by internal condition.
 const CLIENT_MESSAGES = {
@@ -69,6 +72,7 @@ export function leaksInternalDetail(text, providerIds = []) {
   if (typeof text !== "string" || !text) return false;
   if (/provider:\s*[a-z0-9_-]+/i.test(text)) return true;
   if (/\b(?:cx|ag|gcli|do|ort|thbr|kmc)\//.test(text)) return true;
+  if (INTERNAL_PROVIDER_NAMES.test(text)) return true;
   const lower = text.toLowerCase();
   for (const id of providerIds) {
     if (typeof id !== "string" || !id.trim()) continue;
@@ -96,6 +100,20 @@ export function safeClientMessage(upstreamMessage, options = {}) {
   if (typeof upstreamMessage !== "string" || !upstreamMessage.trim()) return fallback;
   if (leaksInternalDetail(upstreamMessage, options.providerIds)) return fallback;
   return upstreamMessage;
+}
+
+export function sanitizeClientError(value, options = {}) {
+  const source = value && typeof value === "object" ? value : { message: value };
+  const clean = (text) => typeof text === "string"
+    ? text.replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]").replace(/[\r\n\0]/g, " ").trim().slice(0, 500)
+    : "";
+  const error = { message: safeClientMessage(clean(source.message), options) };
+  for (const field of ["type", "code", "param"]) {
+    const text = clean(source[field]);
+    if (text) error[field] = text;
+    else if (field === "code" && Number.isFinite(source[field])) error[field] = source[field];
+  }
+  return error;
 }
 
 export const CLIENT_ERROR_STATUS = {

@@ -181,10 +181,10 @@ function importLegacyUsage(adapter, data) {
         e.provider || null, e.model || null, e.connectionId || null, e.apiKey || null, e.endpoint || null,
         t.prompt_tokens || t.input_tokens || 0,
         t.completion_tokens || t.output_tokens || 0,
-        e.cost || 0,
+        e.cost === undefined ? 0 : e.cost,
         e.status || "ok",
         stringifyJson(t),
-        stringifyJson({}),
+        stringifyJson({ inputCost: e.inputCost, cachedCost: e.cachedCost, outputCost: e.outputCost }),
       ]
     );
   }

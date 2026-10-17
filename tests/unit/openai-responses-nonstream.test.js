@@ -148,6 +148,17 @@ describe("forced-SSE JSON path for a Responses-API client behind a chat upstream
 });
 
 describe("failed Responses streams are not completed JSON answers", () => {
+  it("keeps request-error status and diagnostics without triggering server-failure retries", async () => {
+    const raw = 'event: response.failed\ndata: {"type":"response.failed","response":{"status":"failed","error":{"type":"invalid_request_error","code":"unsupported_parameter","param":"max_tokens","message":"Invalid request control"},"usage":{"input_tokens":11,"output_tokens":2,"total_tokens":13}}}\n\n';
+    const result = await handleForcedSSEToJson({
+      providerResponse: new Response(raw, { headers: { "content-type": "text/event-stream" } }),
+      sourceFormat: FORMATS.OPENAI, targetFormat: FORMATS.OPENAI_RESPONSES,
+      provider: "openai", model: "gpt-5-pro", body: { messages: [] }, stream: false,
+      requestStartTime: Date.now(), trackDone: vi.fn(), appendLog: vi.fn(),
+    });
+    expect(result.response.status).toBe(400);
+    expect((await result.response.json()).error).toMatchObject({ code: "unsupported_parameter", param: "max_tokens" });
+  });
   it.each([FORMATS.OPENAI, FORMATS.CLAUDE, FORMATS.OPENAI_RESPONSES, FORMATS.GEMINI, FORMATS.ANTIGRAVITY])(
     "returns the upstream failure to a nonstream %s client", async (sourceFormat) => {
       const raw = [

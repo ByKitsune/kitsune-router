@@ -1,20 +1,6 @@
-// Catalog verification against models.dev (the official model database).
-//
-// Context: the owner requires every model to be verified against
-// https://models.dev, cross-checked with Griphub and 9router. This test locks
-// the corrections that verification produced, so a future edit cannot silently
-// restore a wrong window.
-//
-// Method used to find these (scripts/verify-catalog-against-modelsdev.mjs):
-// compare Zen's published window with the VENDOR'S OWN models.dev entry, after
-// discarding two classes of false positive that a naive comparison produces:
-//   - unit conventions: 256000 vs 262144 (256K decimal vs binary),
-//     1000000 vs 1048576 (1M), 128000 vs 131072;
-//   - route-scoped caps: an IDE/OAuth bridge or coding plan (kr=kiro 272k,
-//     ag=antigravity 250k for Claude, cx=codex, gh, cbcn, if, cu) enforces its
-//     own limit on purpose, so it is not expected to match the model spec.
-// A naive run reported 206 "mismatches"; after those exclusions the real count
-// was 5, all fixed below.
+// Exact provider/model catalog regressions. Native primary endpoint evidence
+// overrides models.dev when the current model page disagrees; route-specific
+// bridge limits must not inherit a vendor API window.
 import { describe, expect, it } from "vitest";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 
@@ -33,9 +19,10 @@ describe("windows corrected against models.dev", () => {
     expect(getCapabilitiesForModel("cohere", "command-a-translate-08-2025").maxOutput).toBe(8000);
   });
 
-  it("gives each Ministral size its own window", () => {
-    // 3B is 131,072 while 8B/14B are 262,144 (models.dev mistral entries).
-    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512").contextWindow).toBe(131072);
+  it("keeps Ministral 3 sizes at their current primary 256K window", () => {
+    // The current 3B API page and official weights specify 256K/262144;
+    // models.dev's 131072 context entry is stale for this native route.
+    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512").contextWindow).toBe(262144);
     expect(getCapabilitiesForModel("mistral", "ministral-8b-2512").contextWindow).toBe(262144);
     expect(getCapabilitiesForModel("mistral", "ministral-14b-2512").contextWindow).toBe(262144);
   });
@@ -53,10 +40,10 @@ describe("specific-before-generic ordering is preserved", () => {
     expect(getCapabilitiesForModel("cohere", "command-r-08-2024").contextWindow).toBe(128000);
   });
 
-  it("does not let the ministral fix change other Mistral models", () => {
-    expect(getCapabilitiesForModel("mistral", "mistral-large-latest").contextWindow).toBe(256000);
-    expect(getCapabilitiesForModel("mistral", "mistral-medium-latest").contextWindow).toBe(256000);
-    expect(getCapabilitiesForModel("mistral", "mistral-small-latest").contextWindow).toBe(256000);
+  it("uses exact native Mistral latest windows independently of the Ministral fix", () => {
+    expect(getCapabilitiesForModel("mistral", "mistral-large-latest").contextWindow).toBe(262144);
+    expect(getCapabilitiesForModel("mistral", "mistral-medium-latest").contextWindow).toBe(262144);
+    expect(getCapabilitiesForModel("mistral", "mistral-small-latest").contextWindow).toBe(262144);
     // Versioned legacy codestral keeps its older 128k entry.
     expect(getCapabilitiesForModel("mistral", "codestral-2405").contextWindow).toBe(128000);
   });

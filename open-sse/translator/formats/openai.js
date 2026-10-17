@@ -1,6 +1,7 @@
 // OpenAI helper functions for translator
-import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, TOOL_ERROR_PREFIX, VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES } from "../schema/index.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
+import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
 
 // Re-export valid-type lists (moved to schema/blocks.js) to keep existing importers working.
 export { VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES };
@@ -15,12 +16,18 @@ export function filterToOpenAIFormat(body, opts = {}) {
   const keepDev = !!opts.preserveDeveloperRole;
 
   function stripBlock(block) {
-    const { signature, cache_control, ...rest } = block;
+    const normalized = normalizeMediaPart(block) || block;
+    const { signature, cache_control: normalizedCache, ...rest } = normalized;
+    const cache_control = block.cache_control || normalizedCache;
+    if (rest.type === OPENAI_BLOCK.IMAGE_URL) {
+      const { mime_type, mimeType, ...imageUrl } = rest.image_url;
+      rest.image_url = imageUrl;
+    }
     return keepCache && cache_control ? { ...rest, cache_control } : rest;
   }
 
-  // Chat tool content is text-only. Delay images until the entire consecutive
-  // tool-result run is complete so parallel calls stay paired with their answers.
+  // Chat assistant/tool content cannot contain images. Keep assistant text/calls
+  // in place and emit media after the consecutive tool-result run.
   const messages = [];
   let toolImages = [];
   const flushToolImages = () => {
@@ -28,6 +35,21 @@ export function filterToOpenAIFormat(body, opts = {}) {
     toolImages = [];
   };
   for (const msg of body.messages) {
+    if (msg.role === ROLE.ASSISTANT && Array.isArray(msg.content)) {
+      const media = [];
+      const content = [];
+      for (const part of msg.content) {
+        const normalized = normalizeMediaPart(part);
+        if (normalized) media.push(stripBlock(normalized));
+        else content.push(part);
+      }
+      if (media.length) {
+        flushToolImages();
+        messages.push({ ...msg, content: content.length ? content : "" });
+        toolImages.push(...media);
+        continue;
+      }
+    }
     if (msg.role !== ROLE.TOOL) {
       flushToolImages();
       messages.push(msg);
@@ -35,13 +57,12 @@ export function filterToOpenAIFormat(body, opts = {}) {
     }
     const { is_error, ...toolMsg } = msg;
     if (Array.isArray(msg.content)) {
-      const text = [];
-      for (const block of msg.content) {
-        if (block.type === OPENAI_BLOCK.TEXT) text.push(block.text ?? "");
-        else if (block.type === OPENAI_BLOCK.IMAGE_URL) toolImages.push(stripBlock(block));
-        else if (block.type === OPENAI_BLOCK.FILE) text.push(JSON.stringify(block));
-      }
-      toolMsg.content = text.join("\n");
+      const { text, media } = splitToolResultContent(msg.content);
+      toolImages.push(...media.map(stripBlock));
+      toolMsg.content = text;
+    }
+    if (is_error === true && typeof toolMsg.content === "string" && !toolMsg.content.startsWith(TOOL_ERROR_PREFIX)) {
+      toolMsg.content = `${TOOL_ERROR_PREFIX}${toolMsg.content}`;
     }
     messages.push(toolMsg);
   }

@@ -21,6 +21,7 @@ import {
 import { parseDataUri } from "../concerns/image.js";
 import { DEFAULT_IMAGE_MIME } from "../schema/index.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
+import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
 import {
   canonicalizeKiroConversation,
   normalizeKiroToolSpecs,
@@ -113,7 +114,8 @@ function convertMessages(messages, model) {
         content = msg.content;
       } else if (Array.isArray(msg.content)) {
         const textParts = [];
-        for (const c of msg.content) {
+        for (const part of msg.content) {
+          const c = normalizeMediaPart(part) || part;
           if (c.type === OPENAI_BLOCK.TEXT || c.text) {
             textParts.push(c.text || "");
           } else if (c.type === OPENAI_BLOCK.IMAGE_URL) {
@@ -142,9 +144,13 @@ function convertMessages(messages, model) {
         const toolResultBlocks = msg.content.filter(c => c.type === CLAUDE_BLOCK.TOOL_RESULT);
         if (toolResultBlocks.length > 0) {
           toolResultBlocks.forEach(block => {
-            const text = Array.isArray(block.content)
-              ? block.content.map(c => c.text || "").join("\n")
-              : (typeof block.content === "string" ? block.content : "");
+            const { text, media } = splitToolResultContent(block.content);
+            for (const part of media) {
+              const parsed = parseDataUri(part.image_url?.url);
+              if (parsed) {
+                pendingImages.push({ format: parsed.mimeType.split("/")[1], source: { bytes: parsed.base64 } });
+              }
+            }
 
             pendingToolResults.push({
               toolUseId: block.tool_use_id,
@@ -157,7 +163,7 @@ function convertMessages(messages, model) {
 
       // Handle tool role (from normalized)
       if (msg.role === ROLE.TOOL) {
-        const toolContent = typeof msg.content === "string" ? msg.content : "";
+        const toolContent = typeof msg.content === "string" ? msg.content : content;
         pendingToolResults.push({
           toolUseId: msg.tool_call_id,
           status: msg.is_error || msg.status === "error" ? "error" : "success",

@@ -1,7 +1,6 @@
 import { saveRequestUsage } from "@/lib/usageDb.js";
 import { COLORS } from "../../utils/stream.js";
-import { canonicalizeUsage } from "../../utils/usageTracking.js";
-import { toOpenAIUsage } from "../../translator/concerns/usage.js";
+import { canonicalizeUsage, extractUsage } from "../../utils/usageTracking.js";
 
 const OPTIONAL_PARAMS = [
   "temperature", "top_p", "top_k",
@@ -24,75 +23,7 @@ export function extractRequestConfig(body, stream) {
 }
 
 export function extractUsageFromResponse(responseBody) {
-  if (!responseBody || typeof responseBody !== "object") return null;
-
-  // ── Claude / Responses shape (input_tokens discriminator) ──────────────
-  // Note: OpenAI Responses API usage ({ input_tokens, input_tokens_details:{cached_tokens},
-  // output_tokens }) ALSO matches this branch because it uses input_tokens, not prompt_tokens.
-  // Its prompt is cache-INCLUSIVE (prompt already contains the cached slice) and its
-  // cache count rides in input_tokens_details.cached_tokens OR top-level cached_tokens
-  // depending on gateway (codex / sse-to-json shim). We must surface it as cached_tokens —
-  // the convention canonicalizeUsage() passes through WITHOUT folding. If we ignored the
-  // nested detail, non-streaming codex traffic would record cached_tokens:0 even though
-  // upstream did 90%+ cache hits. See e7dd72a8d, #3567-related usage gap.
-  //
-  // Fallback chain (most specific first, ?? preserves 0):
-  //   1) usage.cached_tokens — flat top-level (SSE shim that flattens Responses)
-  //   2) usage.input_tokens_details.cached_tokens — native Responses (codex live)
-  //   3) usage.prompt_tokens_details.cached_tokens — gateway that re-uses OpenAI nest
-  //   4) usage.cache_read_input_tokens — native Claude exclusive cache (separate)
-  //   5) usage.prompt_cache_hit_tokens — DeepSeek / compat alias
-  // cache_* fields are preserved verbatim for Claude discriminators; cached_tokens
-  // is unified for cost calc.
-  if (responseBody.usage?.input_tokens !== undefined) {
-    const u = responseBody.usage;
-    const cached = u.cached_tokens
-      ?? u.input_tokens_details?.cached_tokens
-      ?? u.prompt_tokens_details?.cached_tokens
-      ?? u.cache_read_input_tokens
-      ?? u.prompt_cache_hit_tokens;
-    return {
-      prompt_tokens: u.input_tokens || 0,
-      completion_tokens: u.output_tokens || 0,
-      // Unified cache-read for downstream canonicalize + pricing (inclusive prompt path)
-      cached_tokens: cached,
-      // Preserve Claude exclusive fields for canonicalize's exclusive→inclusive fold branch
-      cache_read_input_tokens: u.cache_read_input_tokens ?? u.input_tokens_details?.cache_read_input_tokens,
-      cache_creation_input_tokens: u.cache_creation_input_tokens ?? u.input_tokens_details?.cache_creation_input_tokens,
-      reasoning_tokens: u.output_tokens_details?.reasoning_tokens ?? u.reasoning_tokens ?? u.completion_tokens_details?.reasoning_tokens
-    };
-  }
-
-  // ── OpenAI Chat shape (prompt_tokens discriminator) ───────────────────
-  // Chat completions use prompt_tokens / completion_tokens. Cache may arrive as:
-  //   - prompt_tokens_details.cached_tokens (canonical OpenAI)
-  //   - cached_tokens flat (SSE-to-JSON shim, some gateways)
-  //   - prompt_cache_hit_tokens (DeepSeek compat)
-  //   - cache_read_input_tokens / input_tokens_details.cached_tokens (Responses-shaped leak)
-  // We normalize all into cached_tokens so canonicalize + pricing can rely on one key.
-  if (responseBody.usage?.prompt_tokens !== undefined) {
-    const u = responseBody.usage;
-    return {
-      prompt_tokens: u.prompt_tokens || 0,
-      completion_tokens: u.completion_tokens || 0,
-      cached_tokens: u.cached_tokens
-        ?? u.prompt_tokens_details?.cached_tokens
-        ?? u.input_tokens_details?.cached_tokens
-        ?? u.prompt_cache_hit_tokens
-        ?? u.cache_read_input_tokens,
-      cache_read_input_tokens: u.cache_read_input_tokens ?? u.input_tokens_details?.cache_read_input_tokens,
-      cache_creation_input_tokens: u.cache_creation_input_tokens ?? u.input_tokens_details?.cache_creation_input_tokens,
-      reasoning_tokens: u.completion_tokens_details?.reasoning_tokens ?? u.output_tokens_details?.reasoning_tokens ?? u.reasoning_tokens
-    };
-  }
-
-  // Gemini format. Antigravity / gemini-cli wrap the payload in { response: {...} }.
-  const usageMetadata = responseBody.usageMetadata || responseBody.response?.usageMetadata;
-  if (usageMetadata) {
-    return canonicalizeUsage(toOpenAIUsage(usageMetadata, "gemini"));
-  }
-
-  return null;
+  return canonicalizeUsage(extractUsage(responseBody));
 }
 
 export function buildRequestDetail(base, overrides = {}) {

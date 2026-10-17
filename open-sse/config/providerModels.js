@@ -105,8 +105,7 @@ export function getModelQuotaFamily(aliasOrId, modelId) {
   return modelQuotaFamily(findModel(models, modelId, aliasOrId));
 }
 
-// OAuth short aliases — derived from registry `alias` (single source). everything else: alias = id.
-// vertex/vertex-partner keep alias=id (kept via the `|| id` fallback in consumers).
+// Registry aliases include media-only providers without a chat transport.
 export const OAUTH_ALIASES = Object.fromEntries(
   REGISTRY.filter(r => r.alias && r.alias !== r.id).map(r => [r.id, r.alias])
 );
@@ -117,7 +116,7 @@ export const PROVIDER_ID_TO_ALIAS = Object.fromEntries(
 );
 
 export function getModelsByProviderId(providerId) {
-  const alias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
+  const alias = OAUTH_ALIASES[providerId] || providerId;
   return PROVIDER_MODELS[alias] || [];
 }
 

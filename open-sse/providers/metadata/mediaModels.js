@@ -1,5 +1,5 @@
 /**
- * Reviewed media additions from primary evidence captured 2026-10-06.
+ * Reviewed media facts and kind-aware catalog comparisons as of 2026-10-17.
  * Factual shard only; parent resolver integration is separate. Never interpret an
  * empty pricing object as free. Explicit route capability restrictions describe
  * this gateway's tested text-only/basic JSON adapters, not every native feature.
@@ -7,7 +7,568 @@
  * Billing retains native units and qualifiers; no live inference was performed.
  */
 export default {
+  "nebius": {
+    "Qwen/Qwen3-Embedding-8B": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 40960
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "catalog-reference",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "nebius",
+        "catalogModelId": "Qwen/Qwen3-Embedding-8B",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 40960,
+          "input": 40960,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      },
+      "pricing": {
+        "input": 0.01
+      }
+    }
+  },
+  "xai": {
+    "grok-imagine-image": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false
+      },
+      "description": "Image model for prompt-driven generation, editing, and visual design workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "xai",
+        "catalogModelId": "grok-imagine-image",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 16000,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
+    "grok-imagine-image-quality": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false
+      },
+      "description": "Higher-fidelity Grok Imagine image model for prompt-driven generation, editing, and visual design workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "xai",
+        "catalogModelId": "grok-imagine-image-quality",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 16000,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
+    "grok-imagine-video": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Image model for prompt-driven generation, editing, and visual design workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "video",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "xai",
+        "catalogModelId": "grok-imagine-video",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 1024,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
+    "grok-imagine-video-1.5": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Video model for image-to-video generation, editing, and extension workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "video",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "xai",
+        "catalogModelId": "grok-imagine-video-1.5",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 1024,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
+    "grok-imagine-video-1.5-lite": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "description": "Cost-efficient video model for text-to-video and image-to-video generation",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "video",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "xai",
+        "catalogModelId": "grok-imagine-video-1.5-lite",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 1024,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    }
+  },
+  "groq": {
+    "whisper-large-v3": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": true,
+        "videoInput": false
+      },
+      "description": "Speech transcription model for accurate audio-to-text and captioning workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native transcription duration units are not text-token prices."
+      },
+      "limits": {
+        "kind": "stt",
+        "scope": "exact-route-modelsdev-catalog",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "groq",
+        "catalogModelId": "whisper-large-v3",
+        "catalogAsOf": "2026-10-17"
+      }
+    },
+    "whisper-large-v3-turbo": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": true,
+        "videoInput": false
+      },
+      "description": "Speech transcription model for accurate audio-to-text and captioning workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native transcription duration units are not text-token prices."
+      },
+      "limits": {
+        "kind": "stt",
+        "scope": "exact-route-modelsdev-catalog",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "groq",
+        "catalogModelId": "whisper-large-v3-turbo",
+        "catalogAsOf": "2026-10-17"
+      }
+    }
+  },
   "openai": {
+    "text-embedding-3-large": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 8192
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://developers.openai.com/api/docs/guides/embeddings.md",
+        "https://models.dev/api.json",
+        "https://developers.openai.com/api/docs/pricing.md"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "api",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "openai",
+        "catalogModelId": "text-embedding-3-large",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8191,
+          "output": 3072
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputDimensions": {
+          "default": 3072
+        }
+      },
+      "pricing": {
+        "input": 0.13
+      }
+    },
+    "text-embedding-3-small": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 8192
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://developers.openai.com/api/docs/guides/embeddings.md",
+        "https://models.dev/api.json",
+        "https://developers.openai.com/api/docs/pricing.md"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "api",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "openai",
+        "catalogModelId": "text-embedding-3-small",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8191,
+          "output": 1536
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputDimensions": {
+          "default": 1536
+        }
+      },
+      "pricing": {
+        "input": 0.02
+      }
+    },
+    "text-embedding-ada-002": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 8192
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://developers.openai.com/api/docs/guides/embeddings.md",
+        "https://models.dev/api.json",
+        "https://developers.openai.com/api/docs/pricing.md"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "api",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "openai",
+        "catalogModelId": "text-embedding-ada-002",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8192,
+          "output": 1536
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputDimensions": {
+          "default": 1536
+        }
+      },
+      "pricing": {
+        "input": 0.1
+      }
+    },
+    "gpt-image-1": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false
+      },
+      "description": "OpenAI image model for production generation, edits, and brand-safe visual workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "openai",
+        "catalogModelId": "gpt-image-1",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 0,
+          "input": 0,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
+    "gpt-image-2": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false
+      },
+      "description": "Image model for prompt-driven generation, editing, and visual design workflows",
+      "sources": [
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "kind": "unverified-pricing",
+        "note": "Native billing units and rates require exact route evidence; no generic text-token tariff inferred from media or embedding dimensions."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "catalogProvider": "openai",
+        "catalogModelId": "gpt-image-2",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 0,
+          "input": 0,
+          "output": 0
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      }
+    },
     "gpt-image-2.5-flare": {
       "capabilities": {
         "tools": false,
@@ -118,6 +679,430 @@ export default {
     }
   },
   "gemini": {
+    "gemini-embedding-001": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 2048
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "api",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-embedding-001",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {},
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputDimensions": {
+          "min": 128,
+          "max": 3072,
+          "recommended": [
+            768,
+            1536,
+            3072
+          ]
+        }
+      },
+      "pricing": {
+        "input": 0.15
+      }
+    },
+    "gemini-3.1-flash-image": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false,
+        "maxInput": 131072,
+        "maxOutput": 32768
+      },
+      "description": "Image model for prompt-driven generation, editing, and visual design workflows",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_tokens_by_modality",
+        "kind": "api",
+        "rates": {
+          "text_image_input": 0.5,
+          "text_output": 3,
+          "image_output": 60
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Published Gemini paid standard native modality rates; text/thinking output and image output have different prices, so no single generic output tariff. Cache read/write charges unverified. No account entitlement or inference verified."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-3.1-flash-image",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 131072,
+          "output": 32768
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "routeLimitations": [
+          "Prompt-only image-generation adapter; native edit images, video/PDF inputs, grounding and generation controls are not forwarded."
+        ]
+      },
+      "pricing": {
+        "input": 0.5
+      }
+    },
+    "gemini-3-pro-image": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false,
+        "maxInput": 65536,
+        "maxOutput": 32768
+      },
+      "description": "Nano Banana Pro for higher-fidelity image generation and design-heavy edits",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-3-pro-image",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_tokens_by_modality",
+        "kind": "api",
+        "rates": {
+          "text_image_input": 2,
+          "text_output": 12,
+          "image_output": 120
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Published Gemini paid standard native modality rates; text/thinking output and image output have different prices, so no single generic output tariff. Cache read/write charges unverified. No account entitlement or inference verified."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-3-pro-image",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 65536,
+          "output": 32768
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "routeLimitations": [
+          "Prompt-only image-generation adapter; native edit images, video/PDF inputs, grounding and generation controls are not forwarded."
+        ]
+      },
+      "pricing": {
+        "input": 2
+      }
+    },
+    "gemini-2.5-flash-image": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": true,
+        "audioOutput": false,
+        "maxInput": 32768,
+        "maxOutput": 32768
+      },
+      "description": "Nano Banana image model for fast generation, edits, and character-consistent assets",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_tokens_by_modality",
+        "kind": "api",
+        "rates": {
+          "text_image_input": 0.3,
+          "text_output": 2.5,
+          "image_output": 30
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Published Gemini paid standard native modality rates; text/thinking output and image output have different prices, so no single generic output tariff. Cache read/write charges unverified. No account entitlement or inference verified."
+      },
+      "limits": {
+        "kind": "image",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-2.5-flash-image",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 32768,
+          "output": 32768
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "routeLimitations": [
+          "Prompt-only image-generation adapter; native edit images, video/PDF inputs, grounding and generation controls are not forwarded."
+        ]
+      },
+      "pricing": {
+        "input": 0.3
+      }
+    },
+    "gemini-3.1-flash-tts-preview": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": true,
+        "maxInput": 8192,
+        "maxOutput": 16384
+      },
+      "description": "Low-latency speech generation with steerable prompts and expressive audio tags",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-tts-preview",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_text_input_audio_output_tokens",
+        "kind": "api",
+        "rates": {
+          "text_input": 1,
+          "audio_output": 20,
+          "audio_tokens_per_second": 25
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Native TTS text-input/audio-output token rates; generic chat completion counters must not be inferred from duration or characters. Audio generation charges require native audio counters, so no generic output tariff."
+      },
+      "limits": {
+        "kind": "tts",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-3.1-flash-tts-preview",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8192,
+          "output": 16384
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputUnit": "audio tokens",
+        "lifecycle": {
+          "status": "scheduled-retirement",
+          "retirementDate": "2026-11-17",
+          "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+          "asOf": "2026-10-17"
+        }
+      },
+      "pricing": {
+        "input": 1
+      }
+    },
+    "gemini-2.5-flash-preview-tts": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": true,
+        "maxInput": 8192,
+        "maxOutput": 16384
+      },
+      "description": "Speech generation model for controllable voice, narration, and audio delivery",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-preview-tts",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_text_input_audio_output_tokens",
+        "kind": "api",
+        "rates": {
+          "text_input": 0.5,
+          "audio_output": 10,
+          "audio_tokens_per_second": 25
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Native TTS text-input/audio-output token rates; generic chat completion counters must not be inferred from duration or characters. Audio generation charges require native audio counters, so no generic output tariff."
+      },
+      "limits": {
+        "kind": "tts",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-2.5-flash-preview-tts",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8192,
+          "output": 16384
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputUnit": "audio tokens",
+        "lifecycle": {
+          "status": "scheduled-retirement",
+          "retirementDate": "2026-11-17",
+          "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+          "asOf": "2026-10-17"
+        }
+      },
+      "pricing": {
+        "input": 0.5
+      }
+    },
+    "gemini-2.5-pro-preview-tts": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": true,
+        "maxInput": 8192,
+        "maxOutput": 16384
+      },
+      "description": "Speech generation model for controllable voice, narration, and audio delivery",
+      "sources": [
+        "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro-preview-tts",
+        "https://models.dev/api.json",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "million_text_input_audio_output_tokens",
+        "kind": "api",
+        "rates": {
+          "text_input": 1,
+          "audio_output": 20,
+          "audio_tokens_per_second": 25
+        },
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation"
+        ],
+        "note": "Native TTS text-input/audio-output token rates; generic chat completion counters must not be inferred from duration or characters. Audio generation charges require native audio counters, so no generic output tariff."
+      },
+      "limits": {
+        "kind": "tts",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow"
+        ],
+        "catalogProvider": "google",
+        "catalogModelId": "gemini-2.5-pro-preview-tts",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8192,
+          "output": 16384
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits.",
+        "outputUnit": "audio tokens",
+        "lifecycle": {
+          "status": "scheduled-retirement",
+          "retirementDate": "2026-11-17",
+          "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+          "asOf": "2026-10-17"
+        }
+      },
+      "pricing": {
+        "input": 1
+      }
+    },
     "gemini-embedding-2": {
       "capabilities": {
         "tools": false,
@@ -395,6 +1380,57 @@ export default {
     }
   },
   "mistral": {
+    "mistral-embed": {
+      "capabilities": {
+        "tools": false,
+        "reasoning": false,
+        "search": false,
+        "vision": false,
+        "pdf": false,
+        "audioInput": false,
+        "videoInput": false,
+        "imageOutput": false,
+        "audioOutput": false,
+        "maxInput": 8000
+      },
+      "description": "Embedding model for semantic search, retrieval, clustering, and ranking pipelines",
+      "sources": [
+        "https://docs.mistral.ai/models/mistral-embed-23-12.md",
+        "https://models.dev/api.json"
+      ],
+      "billing": {
+        "currency": "USD",
+        "unit": "1M input tokens",
+        "kind": "catalog-reference",
+        "note": "Input-only embedding quote; vector dimensions and absent output rates are not completion tokens or free chat output.",
+        "unverifiedPriceFields": [
+          "output",
+          "cached",
+          "cache_creation",
+          "cache_creation_1h"
+        ]
+      },
+      "limits": {
+        "kind": "embedding",
+        "scope": "gateway-media-adapter; exact route catalog comparison",
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxOutput"
+        ],
+        "catalogProvider": "mistral",
+        "catalogModelId": "mistral-embed",
+        "catalogAsOf": "2026-10-17",
+        "catalogLimits": {
+          "context": 8000,
+          "output": 3072
+        },
+        "note": "Native modality support is not proof that this gateway adapter accepts reference images or other media. Embedding vector dimensions are not completion-token limits."
+      },
+      "pricing": {
+        "input": 0.1
+      }
+    },
     "codestral-embed-2505": {
       "capabilities": {
         "tools": false,

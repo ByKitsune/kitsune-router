@@ -3,22 +3,17 @@ import { FORMATS } from "../formats.js";
 import { ROLE, CLAUDE_BLOCK, MODEL_FALLBACK } from "../schema/index.js";
 import { fromOpenAIFinish } from "../concerns/finishReason.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
-
-// Legacy "proxy_" prefix used by older request translators. Response strips it
-// defensively so tool names from such turns resolve back (e.g. proxy_Read → Read
-// for arg sanitization). Current request translator emits no prefix ("") — strip
-// is then a no-op. Kept intentionally; do NOT couple to request's empty prefix.
-const CLAUDE_OAUTH_TOOL_PREFIX = "proxy_";
+import { isCompleteToolName } from "../../utils/toolCompressor.js";
 
 // Sanitize tool call arguments to fix bad params from non-Anthropic models
 function sanitizeToolArgs(toolName, argsJson) {
+  if (toolName !== "Read") return argsJson;
   try {
     const args = JSON.parse(argsJson);
-    const name = toolName.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)
-      ? toolName.slice(CLAUDE_OAUTH_TOOL_PREFIX.length)
-      : toolName;
-    if (name === "Read") sanitizeReadArgs(args);
-    return JSON.stringify(args);
+    const before = JSON.stringify(args);
+    sanitizeReadArgs(args);
+    const after = JSON.stringify(args);
+    return before === after ? argsJson : after;
   } catch {
     return argsJson;
   }
@@ -67,13 +62,34 @@ function stopTextBlock(state, results) {
   state.textBlockStarted = false;
 }
 
+function startPendingTools(state, results, finishing = false) {
+  for (const tool of state.toolCalls.values()) {
+    if (tool.started) continue;
+    if (!tool.id || !tool.name || (!finishing && !tool.ready)) break;
+    tool.started = true;
+    tool.name = state.toolNameMap?.get(tool.name) || tool.name;
+    const name = tool.name;
+    results.push({ type: "content_block_start", index: tool.blockIndex,
+      content_block: { type: CLAUDE_BLOCK.TOOL_USE, id: tool.id, name, input: {} } });
+  }
+}
+
+function emitClaudeTerminal(state) {
+  if (!state.claudeFinishPending || state.claudeTerminalEmitted) return null;
+  state.claudeTerminalEmitted = true;
+  const finishReason = state.claudeFinishPending;
+  state.claudeFinishPending = null;
+  return [
+    { type: "message_delta", delta: { stop_reason: convertFinishReason(finishReason) }, usage: state.claudeUsage || { input_tokens: 0, output_tokens: 0 } },
+    { type: "message_stop" },
+  ];
+}
+
 // Convert OpenAI stream chunk to Claude format
 export function openaiToClaudeResponse(chunk, state) {
-  if (!chunk || !chunk.choices?.[0]) return null;
+  if (!chunk) return emitClaudeTerminal(state);
 
   const results = [];
-  const choice = chunk.choices[0];
-  const delta = choice.delta;
 
   // Track usage from OpenAI chunk if available
   if (chunk.usage && typeof chunk.usage === "object") {
@@ -112,7 +128,13 @@ export function openaiToClaudeResponse(chunk, state) {
     if (typeof reasoningTokens === "number" && reasoningTokens > 0) {
       state.usage.reasoning_tokens = reasoningTokens;
     }
+    state.claudeUsage = state.usage;
   }
+  const completeUsage = typeof chunk.usage?.prompt_tokens === "number" && typeof chunk.usage?.completion_tokens === "number";
+  if (!chunk.choices?.[0]) return completeUsage ? emitClaudeTerminal(state) : null;
+  const choice = chunk.choices[0];
+  const delta = choice.delta;
+  if (state.claudeTerminalEmitted) return null;
   // First chunk - ALWAYS send message_start first
   if (!state.messageStartSent) {
     state.messageStartSent = true;
@@ -161,8 +183,10 @@ export function openaiToClaudeResponse(chunk, state) {
     });
   }
 
-  // Handle regular content
-  if (delta?.content) {
+  // Messages has text blocks and a refusal stop reason, not a refusal text block.
+  const textContent = (typeof delta?.content === "string" ? delta.content : "") +
+    (typeof delta?.refusal === "string" ? delta.refusal : "");
+  if (textContent) {
     stopThinkingBlock(state, results);
 
     if (!state.textBlockStarted) {
@@ -179,76 +203,55 @@ export function openaiToClaudeResponse(chunk, state) {
     results.push({
       type: "content_block_delta",
       index: state.textBlockIndex,
-      delta: { type: "text_delta", text: delta.content }
+      delta: { type: "text_delta", text: textContent }
     });
   }
 
-  // Tool calls
+  // Chat names can be fragmented independently of ids/arguments. Reserve block
+  // order on first sight, but publish each immutable native start only once its
+  // name is complete (the first argument, an exact declaration, or terminal).
   if (delta?.tool_calls) {
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
-
-      // GLM/fireworks repeats id+null-name on every arg chunk; open block once per idx
-      if (tc.id && !state.toolCalls.has(idx)) {
+      let tool = state.toolCalls.get(idx);
+      if (!tool) {
         stopThinkingBlock(state, results);
         stopTextBlock(state, results);
-
-        const toolBlockIndex = state.nextBlockIndex++;
-        state.toolCalls.set(idx, { id: tc.id, name: tc.function?.name || "", blockIndex: toolBlockIndex });
-
-        // Strip prefix from tool name for response
-        let toolName = tc.function?.name || "";
-        if (toolName.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)) {
-          toolName = toolName.slice(CLAUDE_OAUTH_TOOL_PREFIX.length);
-        }
-
-        results.push({
-          type: "content_block_start",
-          index: toolBlockIndex,
-          content_block: {
-            type: CLAUDE_BLOCK.TOOL_USE,
-            id: tc.id,
-            name: toolName,
-            input: {}
-          }
-        });
+        tool = { id: tc.id, name: "", blockIndex: state.nextBlockIndex++, started: false, ready: false };
+        state.toolCalls.set(idx, tool);
       }
-
-      if (tc.function?.arguments) {
-        const toolInfo = state.toolCalls.get(idx);
-        if (toolInfo) {
-          // Buffer args instead of streaming — sanitize at finish to fix bad params
-          if (!state.toolArgBuffers) state.toolArgBuffers = new Map();
-          const prev = state.toolArgBuffers.get(idx) || "";
-          const inc = tc.function.arguments;
-          // Some providers stream cumulative args: every chunk restates the full
-          // string so far. Appending would duplicate the JSON and break tool parsing.
-          // Replace when the new chunk already carries the buffer as its prefix.
-          state.toolArgBuffers.set(idx, prev && inc.startsWith(prev) ? inc : prev + inc);
-        }
+      if (!tool.started) {
+        if (tc.id) tool.id = tc.id;
+        if (tc.function?.name) tool.name += tc.function.name;
+        const name = state.toolNameMap?.get(tool.name) || tool.name;
+        if ((state.targetFormat && state.targetFormat !== FORMATS.OPENAI) || isCompleteToolName(name, state.declaredToolNames)) tool.ready = true;
+      }
+      if (typeof tc.function?.arguments === "string" && tc.function.arguments) {
+        state.toolArgBuffers ??= new Map();
+        let parts = state.toolArgBuffers.get(idx);
+        if (!parts) { parts = []; state.toolArgBuffers.set(idx, parts); }
+        parts.push(tc.function.arguments);
+        tool.ready = true;
       }
     }
+    startPendingTools(state, results);
   }
 
   // Finish. Guarded: some providers repeat finish_reason on a trailing usage
   // chunk — re-running this block would emit the buffered args a second time.
-  if (choice.finish_reason) {
-    if (state.claudeTerminalEmitted) return results.length > 0 ? results : null;
-    state.claudeTerminalEmitted = true;
+  if (choice.finish_reason && !state.claudeFinishPending) {
 
     stopThinkingBlock(state, results);
     stopTextBlock(state, results);
+    startPendingTools(state, results, true);
 
     for (const [idx, toolInfo] of state.toolCalls) {
-      // Emit buffered + sanitized args as single delta before stop
-      const buffered = state.toolArgBuffers?.get(idx);
-      if (buffered) {
-        const sanitized = sanitizeToolArgs(toolInfo.name, buffered);
-        results.push({
-          type: "content_block_delta",
-          index: toolInfo.blockIndex,
-          delta: { type: "input_json_delta", partial_json: sanitized }
-        });
+      if (!toolInfo.started) continue;
+      const parts = state.toolArgBuffers?.get(idx);
+      if (parts?.length) {
+        const args = sanitizeToolArgs(toolInfo.name, parts.join(""));
+        results.push({ type: "content_block_delta", index: toolInfo.blockIndex,
+          delta: { type: "input_json_delta", partial_json: args } });
       }
       results.push({
         type: "content_block_stop",
@@ -257,18 +260,15 @@ export function openaiToClaudeResponse(chunk, state) {
     }
     state.toolArgBuffers?.clear();
 
-    // Mark finish for later usage injection in stream.js
     state.finishReason = choice.finish_reason;
-
-    // Use tracked usage (will be estimated in stream.js if not valid)
-    const finalUsage = state.usage || { input_tokens: 0, output_tokens: 0 };
-    results.push({
-      type: "message_delta",
-      delta: { stop_reason: convertFinishReason(choice.finish_reason) },
-      usage: finalUsage
-    });
-    results.push({ type: "message_stop" });
+    state.claudeFinishPending = choice.finish_reason;
+    // Native-provider pivots already attach their final usage. Direct Chat
+    // streams may put it in a choices:[] trailer, before [DONE] or EOF.
+    if (completeUsage || state.targetFormat !== FORMATS.OPENAI) {
+      results.push(...emitClaudeTerminal(state));
+    }
   }
+  if (state.claudeFinishPending && completeUsage) results.push(...emitClaudeTerminal(state));
 
   return results.length > 0 ? results : null;
 }

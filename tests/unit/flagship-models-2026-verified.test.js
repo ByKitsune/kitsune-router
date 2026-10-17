@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getCapabilitiesForModel, setCatalogSource } from "../../open-sse/providers/capabilities.js";
 import { getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { supportsGrokCliReasoningEffort } from "../../open-sse/config/grokCli.js";
 
-setCatalogSource(null);
+beforeEach(() => setCatalogSource(null));
+afterEach(() => setCatalogSource(null));
 
 describe("verified specs for flagship 2026 models", () => {
   it("resolves gpt-6.1-sol capabilities and pricing correctly", () => {
@@ -36,7 +37,7 @@ describe("verified specs for flagship 2026 models", () => {
     });
     const metadata = getReviewedModelMetadata("xai", "grok-4.7");
     expect(metadata.limits).toMatchObject({
-      maxOutputStatus: "No text output limit", unverifiedCapabilityFields: ["maxOutput"],
+      unverifiedCapabilityFields: expect.arrayContaining(["maxOutput"]),
       scope: "public-api-specification", authenticatedRouteVerified: false,
     });
     expect(metadata.sources).toContain("https://docs.x.ai/developers/models/grok-4.7");
@@ -52,8 +53,7 @@ describe("verified specs for flagship 2026 models", () => {
   it("resolves Grok 4.3 with 1M context and explicitly unverified output", () => {
     const metadata = getReviewedModelMetadata("xai", "grok-4.3");
     expect(metadata.limits).toMatchObject({
-      maxOutputStatus: "Not separately established from current exact-model page",
-      unverifiedCapabilityFields: ["maxOutput"], authenticatedRouteVerified: false,
+      unverifiedCapabilityFields: expect.arrayContaining(["maxOutput"]), authenticatedRouteVerified: false,
     });
     expect(metadata.sources).toContain("https://docs.x.ai/developers/models/grok-4.3");
     const caps = getCapabilitiesForModel("xai", "grok-4.3");
@@ -96,32 +96,27 @@ describe("verified specs for flagship 2026 models", () => {
       vision: false, pdf: false, contextWindow: null, maxOutput: null,
     });
     const spark = getReviewedModelMetadata("codex", "gpt-5.3-codex-spark");
-    expect(spark.sources).toEqual(["https://developers.openai.com/codex/models"]);
     expect(spark.limits).toMatchObject({
       scope: "cli-preview", authenticatedRouteVerified: false,
       routeContextWindow: null, routeMaxOutput: null,
       apiContextWindow: 128000, apiMaxInput: 100000, apiMaxOutput: 32000,
-      unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
-    });
-    expect(getCapabilitiesForModel("openai", "gpt-5.4-mini")).toMatchObject({
-      contextWindow: 400000, maxInput: 272000, maxOutput: 128000, vision: true,
+      unverifiedCapabilityFields: expect.arrayContaining(["contextWindow", "maxInput", "maxOutput"]),
     });
   });
 
-  it("does not promote GPT-5.4 API specifications into unverified Codex route limits", () => {
-    expect(getCapabilitiesForModel("codex", "gpt-5.4")).toMatchObject({
+  it.each(["codex", "cx"])("does not promote GPT-5.4 API specifications into unverified %s route limits", (provider) => {
+    expect(getCapabilitiesForModel(provider, "gpt-5.4")).toMatchObject({
       contextWindow: null, maxInput: null, maxOutput: null,
     });
     expect(getCapabilitiesForModel("openai", "gpt-5.4")).toMatchObject({
       contextWindow: 1050000, maxOutput: 128000,
     });
-    const metadata = getReviewedModelMetadata("codex", "gpt-5.4");
+    const metadata = getReviewedModelMetadata(provider, "gpt-5.4");
     expect(metadata.limits).toMatchObject({
       scope: "api-reference-for-client-route", authenticatedRouteVerified: false,
       apiContextWindow: 1050000, apiMaxOutput: 128000,
       routeContextWindow: null, routeMaxOutput: null,
-      unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
+      unverifiedCapabilityFields: expect.arrayContaining(["contextWindow", "maxInput", "maxOutput"]),
     });
-    expect(metadata.sources).toEqual(["https://developers.openai.com/api/docs/models/gpt-5.4.md"]);
   });
 });

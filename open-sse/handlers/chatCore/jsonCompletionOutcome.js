@@ -1,8 +1,11 @@
 import { FORMATS } from "../../translator/formats.js";
-import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
+import { ROLE, GEMINI_ROLE, CLAUDE_BLOCK, RESPONSES_ITEM } from "../../translator/schema/index.js";
 import { extractReasoningText } from "../../translator/concerns/reasoning.js";
+import { fromOpenAIFinish } from "../../translator/concerns/finishReason.js";
+import { toGeminiUsage } from "../../translator/concerns/usage.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
+import { openAIImagesToGeminiParts, openAIToolCallToGeminiPart } from "../../translator/response/openai-to-antigravity.js";
 
 // Reasoning alone is not a usable answer; genuine partial output must survive.
 export function isTruncatedEmptyCompletion(responseBody) {
@@ -19,6 +22,7 @@ export function isTruncatedEmptyCompletion(responseBody) {
     if (typeof msg.content === "string" && msg.content.length > 0) usable = true;
     if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) usable = true;
     if (typeof msg.refusal === "string" && msg.refusal.length > 0) usable = true;
+    if (Array.isArray(msg.images) && msg.images.length > 0) usable = true;
   }
 
   // OpenAI Responses shape
@@ -30,7 +34,7 @@ export function isTruncatedEmptyCompletion(responseBody) {
     for (const item of responseBody.output || []) {
       if (item?.type === "function_call" || item?.type === "custom_tool_call") { usable = true; break; }
       for (const part of item?.content || []) {
-        if ((part?.type === "output_text" && typeof part.text === "string" && part.text.length > 0) || (part?.type === "refusal" && typeof part.refusal === "string" && part.refusal.length > 0)) { usable = true; break; }
+        if ((part?.type === "output_text" && typeof part.text === "string" && part.text.length > 0) || (part?.type === RESPONSES_ITEM.REFUSAL && typeof part.refusal === "string" && part.refusal.length > 0)) { usable = true; break; }
       }
       if (usable) break;
     }
@@ -57,6 +61,97 @@ export function isTruncatedEmptyCompletion(responseBody) {
   return truncated && !usable;
 }
 
+function parseToolArguments(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
+export function openAICompletionToClaudeMessage(responseBody) {
+  if (!responseBody?.choices?.[0]) return responseBody;
+  const choice = responseBody.choices[0];
+  const message = choice.message || {};
+  const content = [];
+
+  const reasoning = extractReasoningText(message);
+  if (reasoning) {
+    content.push({ type: CLAUDE_BLOCK.THINKING, thinking: reasoning });
+  }
+  if (typeof message.content === "string" && message.content.length > 0) {
+    content.push({ type: CLAUDE_BLOCK.TEXT, text: message.content });
+  }
+  if (typeof message.refusal === "string" && message.refusal) content.push({ type: CLAUDE_BLOCK.TEXT, text: message.refusal });
+  for (const toolCall of message.tool_calls || []) {
+    const fn = toolCall.function || {};
+    content.push({
+      type: CLAUDE_BLOCK.TOOL_USE,
+      id: toolCall.id || `toolu_${Date.now()}_${content.length}`,
+      name: fn.name || toolCall.name || "",
+      input: parseToolArguments(fn.arguments || toolCall.arguments),
+    });
+  }
+  if (content.length === 0) content.push({ type: CLAUDE_BLOCK.TEXT, text: "" });
+
+  const usage = responseBody.usage || {};
+  return {
+    id: String(responseBody.id || `msg_${Date.now()}`).replace(/^chatcmpl-/, ""),
+    type: "message",
+    role: ROLE.ASSISTANT,
+    model: responseBody.model || "unknown",
+    content,
+    stop_reason: fromOpenAIFinish(choice.finish_reason, FORMATS.CLAUDE),
+    stop_sequence: null,
+    usage: {
+      input_tokens: usage.prompt_tokens ?? usage.input_tokens ?? 0,
+      output_tokens: usage.completion_tokens ?? usage.output_tokens ?? 0,
+    },
+  };
+}
+
+export function nativeGeminiResponseToClient(responseBody, sourceFormat = FORMATS.GEMINI) {
+  const response = responseBody.response || responseBody;
+  if (sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI_CLI) {
+    return responseBody.response ? responseBody : { response };
+  }
+  return !response.usageMetadata && responseBody.usageMetadata
+    ? { ...response, usageMetadata: responseBody.usageMetadata } : response;
+}
+
+export function openAICompletionToGemini(responseBody, sourceFormat = FORMATS.GEMINI) {
+  const choice = responseBody?.choices?.[0];
+  if (!choice) return responseBody;
+  const message = choice.message || {};
+  const parts = [];
+  const reasoning = extractReasoningText(message);
+  if (reasoning) parts.push({ thought: true, text: reasoning });
+  if (typeof message.content === "string" && message.content) parts.push({ text: message.content });
+  if (typeof message.refusal === "string" && message.refusal) parts.push({ text: message.refusal });
+  parts.push(...openAIImagesToGeminiParts(message.images));
+  for (const toolCall of message.tool_calls || []) parts.push(openAIToolCallToGeminiPart(toolCall));
+  if (parts.length === 0) parts.push({ text: "" });
+  const response = {
+    candidates: [{ content: { role: GEMINI_ROLE.MODEL, parts }, finishReason: fromOpenAIFinish(choice.finish_reason, FORMATS.GEMINI), index: 0 }],
+    modelVersion: responseBody.model || "unknown",
+    responseId: responseBody.id || `resp_${Date.now()}`,
+    ...(responseBody.usage ? { usageMetadata: toGeminiUsage(responseBody.usage) } : {}),
+  };
+  return nativeGeminiResponseToClient(response, sourceFormat);
+}
+
+export function openAICompletionToClient(responseBody, sourceFormat, customToolNames = null) {
+  if (sourceFormat === FORMATS.CLAUDE) return openAICompletionToClaudeMessage(responseBody);
+  if (sourceFormat === FORMATS.OPENAI_RESPONSES) return openAICompletionToResponses(responseBody, customToolNames);
+  if ([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX].includes(sourceFormat)) {
+    return openAICompletionToGemini(responseBody, sourceFormat);
+  }
+  return responseBody;
+}
+
+
 function extractCustomToolInput(argumentsValue) {
   const argumentsText = typeof argumentsValue === "string" ? argumentsValue : JSON.stringify(argumentsValue || {});
   try {
@@ -69,6 +164,7 @@ function extractCustomToolInput(argumentsValue) {
 export function openAICompletionToResponses(responseBody, customToolNames = null) {
   const choice = responseBody?.choices?.[0];
   if (!choice) return responseBody;
+  const customNames = customToolNames instanceof Set ? customToolNames : new Set(customToolNames || []);
 
   const message = choice.message || {};
   const output = [];
@@ -96,13 +192,13 @@ export function openAICompletionToResponses(responseBody, customToolNames = null
 
   if (typeof message.refusal === "string" && message.refusal.length > 0) {
     output.push({ type: RESPONSES_ITEM.MESSAGE, status: "completed", role: ROLE.ASSISTANT,
-      content: [{ type: "refusal", refusal: message.refusal }] });
+      content: [{ type: RESPONSES_ITEM.REFUSAL, refusal: message.refusal }] });
   }
 
   // tool_calls → function_call/custom_tool_call items (Responses-native tool shape).
   for (const tc of message.tool_calls || []) {
     const fn = tc.function || {};
-    const custom = customToolNames?.has(fn.name);
+    const custom = customNames.has(fn.name);
     output.push({
       type: custom ? RESPONSES_ITEM.CUSTOM_TOOL_CALL : RESPONSES_ITEM.FUNCTION_CALL,
       status: "completed",

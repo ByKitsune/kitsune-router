@@ -15,8 +15,9 @@
  * fiction. The suffix is stripped before the request leaves this process.
  */
 
-import { extractThinking, parseSuffix } from "../translator/concerns/thinkingUnified.js";
+import { captureThinking, extractThinking, parseSuffix } from "../translator/concerns/thinkingUnified.js";
 import { effortToBudget } from "../translator/concerns/thinking.js";
+import { getCapabilitiesForModel } from "../providers/capabilities.js";
 
 export const KIRO_AGENTIC_SUFFIX = "-agentic";
 export const KIRO_THINKING_SUFFIX = "-thinking";
@@ -59,6 +60,7 @@ export const KIRO_UNSUPPORTED_THINKING_FIELDS = Object.freeze([
   "thinkingConfig",
   "enable_thinking",
   "thinking_budget",
+  "budget_tokens",
   "output_config",
   "think",
 ]);
@@ -81,17 +83,24 @@ export function applyKiroThinkingOverride(body, override) {
   if (!override) return body;
 
   const next = { ...body };
+  const display = body.thinking?.display ?? captureThinking(body)?.display;
   if (override.mode === "budget") {
     delete next.output_config;
     delete next.reasoning_effort;
     delete next.reasoning;
-    next.thinking = { type: "enabled", budget_tokens: override.budget };
+    next.thinking = override.budget === 0 ? { type: "disabled" } : {
+      type: "enabled", budget_tokens: override.budget, ...(display ? { display } : {}),
+    };
     return next;
   }
 
   next.output_config = {
     ...(body.output_config || {}),
     effort: override.mode === "level" ? override.level : override.mode,
+  };
+  next.thinking = {
+    type: override.mode === "none" ? "disabled" : "adaptive",
+    ...(display ? { display } : {}),
   };
   return next;
 }
@@ -162,10 +171,11 @@ REMEMBER: When in doubt, write LESS per operation. Multiple small operations > o
  * @returns {number|null} budget to inject, or null when thinking is disabled
  */
 export function resolveKiroThinkingBudget(body, headers, model) {
+  // Native reduced-thinking mode is independent of output_config.effort.
+  if (body?.thinking?.type === "disabled" || body?.thinking?.type === "between_tools") return null;
   const cfg = extractThinking(body);
   if (cfg) {
     if (cfg.mode === "none") return null;
-    if (cfg.mode === "level" && cfg.level === "disabled") return null;
     if (cfg.mode === "budget") return cfg.budget;
     if (cfg.mode === "level") return effortToBudget(cfg.level) ?? KIRO_THINKING_BUDGET_DEFAULT;
     return KIRO_THINKING_BUDGET_DEFAULT;
@@ -204,47 +214,47 @@ function kiroModelLacksXhigh(model) {
 }
 
 export function extractKiroEffortLevel(body, model) {
-  const effort =
-    body?.output_config?.effort ??
-    body?.reasoning_effort ??
-    (typeof body?.reasoning === "object" ? body.reasoning?.effort : null);
-  if (typeof effort !== "string") return null;
-  const normalized = effort.toLowerCase();
-  if (normalized === "none" || normalized === "off" || normalized === "disabled") return null;
+  const cfg = extractThinking(body);
+  if (cfg?.mode !== "level") return null;
+  const normalized = cfg.level;
   if (normalized === "xhigh") return kiroModelLacksXhigh(model) ? "high" : "xhigh";
-  if (normalized === "max") return "max";
-  if (["low", "medium", "high"].includes(normalized)) return normalized;
+  if (["low", "medium", "high", "max"].includes(normalized)) return normalized;
   return null;
 }
 
 function extractKiroGptEffortLevel(body) {
-  const effort =
-    body?.output_config?.effort ??
-    body?.reasoning_effort ??
-    (typeof body?.reasoning === "object" ? body.reasoning?.effort : null);
-  if (typeof effort !== "string") return null;
-  const normalized = effort.toLowerCase();
-  if (normalized === "max") return "xhigh";
-  // Kiro CLI does not advertise an explicit GPT "none" wire value; omit it.
-  if (["low", "medium", "high", "xhigh"].includes(normalized)) {
-    return normalized;
+  const cfg = extractThinking(body);
+  if (cfg?.mode === "none") return "none";
+  if (cfg?.mode === "level" && ["low", "medium", "high", "xhigh", "max"].includes(cfg.level)) {
+    return cfg.level;
   }
   return null;
 }
 
 export function buildKiroAdditionalModelRequestFields(body, effortPath = "output_config", model) {
-  const effort = effortPath === "reasoning"
-    ? extractKiroGptEffortLevel(body)
-    : extractKiroEffortLevel(body, model);
-  if (!effort) return undefined;
   if (effortPath === "reasoning") {
-    // Mirrors Kiro CLI/KAS buildEffortRequestFields("reasoning") for GPT.
-    return { reasoning: { effort } };
+    const effort = extractKiroGptEffortLevel(body);
+    return effort ? { reasoning: { effort } } : undefined;
   }
-  // Mirrors Kiro CLI/KAS buildEffortRequestFields("output_config").
+
+  const intent = captureThinking(body);
+  let effort = extractKiroEffortLevel(body, model);
+  let type = body?.thinking?.type;
+  if (type === "disabled" || type === "between_tools" || intent?.mode === "none") {
+    const caps = getCapabilitiesForModel("kiro", model);
+    type = caps.thinkingOffType || (caps.thinkingCanDisable !== false ? "disabled" : undefined);
+    if (type === "between_tools" && (effort === "xhigh" || effort === "max")) effort = "high";
+  } else if (effort || intent?.mode === "auto" || intent?.display || type === "adaptive") {
+    type = "adaptive";
+  } else {
+    return undefined;
+  }
+
+  const display = type === "adaptive" ? body?.thinking?.display ?? intent?.display ?? "summarized" : undefined;
+  if (!type && !effort) return undefined;
   return {
-    thinking: { type: "adaptive", display: "summarized" },
-    output_config: { effort },
+    ...(type ? { thinking: { type, ...(display ? { display } : {}) } } : {}),
+    ...(effort ? { output_config: { effort } } : {}),
   };
 }
 

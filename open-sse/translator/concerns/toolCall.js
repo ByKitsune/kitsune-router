@@ -27,14 +27,30 @@ function sanitizeToolId(id) {
   return sanitized.length > 0 ? sanitized : null;
 }
 
-// Ensure all tool_calls have valid id field and arguments is string (some providers require it)
-export function ensureToolCallIds(body) {
+// Fill missing IDs/arguments; Anthropic's character restriction is target-specific.
+export function ensureToolCallIds(body, { sanitizeIds = true } = {}) {
   if (!body.messages || !Array.isArray(body.messages)) return body;
 
   // Assistant call ids awaiting a result. Missing tool_call_id values must be
   // paired here; otherwise JSON serialization drops the undefined key and
   // strict providers reject the whole request (#4091).
   const pendingToolCallIds = [];
+  let mappedIds;
+  let usedIds;
+  const normalizeId = (id, messageIndex, callIndex, name) => {
+    const hasId = typeof id === "string" && id.length > 0;
+    if (!sanitizeIds) return hasId ? id : generateToolCallId(messageIndex, callIndex, name);
+    if (!mappedIds) { mappedIds = new Map(); usedIds = new Set(); }
+    if (hasId && mappedIds.has(id)) return mappedIds.get(id);
+    const candidate = (hasId && (TOOL_ID_PATTERN.test(id) ? id : sanitizeToolId(id)))
+      || generateToolCallId(messageIndex, callIndex, name);
+    let normalized = candidate;
+    let suffix = 2;
+    while (usedIds.has(normalized)) normalized = `${candidate}_${suffix++}`;
+    usedIds.add(normalized);
+    if (hasId) mappedIds.set(id, normalized);
+    return normalized;
+  };
 
   for (let i = 0; i < body.messages.length; i++) {
     const msg = body.messages[i];
@@ -43,11 +59,7 @@ export function ensureToolCallIds(body) {
       for (let j = 0; j < msg.tool_calls.length; j++) {
         const tc = msg.tool_calls[j];
         if (tc === null || typeof tc !== "object") continue;
-        // Validate or regenerate ID for Anthropic compatibility
-        if (!tc.id || !TOOL_ID_PATTERN.test(tc.id)) {
-          const sanitized = sanitizeToolId(tc.id);
-          tc.id = sanitized || generateToolCallId(i, j, tc.function?.name);
-        }
+        tc.id = normalizeId(tc.id, i, j, tc.function?.name);
         if (!tc.type) {
           tc.type = "function";
         }
@@ -61,13 +73,12 @@ export function ensureToolCallIds(body) {
 
     // Validate tool_call_id in tool messages (role: "tool")
     if (msg.role === "tool") {
-      if (msg.tool_call_id && TOOL_ID_PATTERN.test(msg.tool_call_id)) {
+      if (typeof msg.tool_call_id === "string" && msg.tool_call_id) {
+        msg.tool_call_id = normalizeId(msg.tool_call_id, i, 0);
         const queued = pendingToolCallIds.indexOf(msg.tool_call_id);
         if (queued >= 0) pendingToolCallIds.splice(queued, 1);
       } else {
-        msg.tool_call_id = sanitizeToolId(msg.tool_call_id)
-          || pendingToolCallIds.shift()
-          || generateToolCallId(i, 0);
+        msg.tool_call_id = pendingToolCallIds.shift() || normalizeId(null, i, 0);
       }
     }
 
@@ -76,14 +87,12 @@ export function ensureToolCallIds(body) {
       for (let k = 0; k < msg.content.length; k++) {
         const block = msg.content[k];
         if (block === null || typeof block !== "object") continue;
-        if (block.type === "tool_use" && block.id && !TOOL_ID_PATTERN.test(block.id)) {
-          const sanitized = sanitizeToolId(block.id);
-          block.id = sanitized || generateToolCallId(i, k, block.name);
+        if (sanitizeIds && block.type === "tool_use" && block.id) {
+          block.id = normalizeId(block.id, i, k, block.name);
         }
         // Validate tool_use_id in tool_result blocks
-        if (block.type === "tool_result" && block.tool_use_id && !TOOL_ID_PATTERN.test(block.tool_use_id)) {
-          const sanitized = sanitizeToolId(block.tool_use_id);
-          block.tool_use_id = sanitized || generateToolCallId(i, k);
+        if (sanitizeIds && block.type === "tool_result" && block.tool_use_id) {
+          block.tool_use_id = normalizeId(block.tool_use_id, i, k);
         }
       }
     }

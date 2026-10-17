@@ -13,9 +13,9 @@ export const CATALOG_FILE = path.join(DATA_DIR, "model-catalog.json");
 // Trimmed upstream catalog, read by the add-models skill (not by the router).
 export const CATALOG_RAW_FILE = path.join(DATA_DIR, "model-catalog-raw.json");
 
-// v3 preserves full native model IDs, including namespaces and :free routes.
-// Older files collapsed these identities and must be rebuilt, not reused.
-export const CATALOG_VERSION = 3;
+// v4 keeps explicit negative capabilities and independent exact token ceilings.
+// Older inferred aliases/positive-only facts must be rebuilt, not reused.
+export const CATALOG_VERSION = 4;
 
 const EMPTY = { models: {}, providers: {} };
 let cache = EMPTY;

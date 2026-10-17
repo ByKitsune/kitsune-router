@@ -1,34 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getDefaultPricing } from "open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
+import { getProviderIdentityTokens } from "open-sse/providers/identity.js";
 
 export default function PricingModal({ isOpen, onClose, onSave }) {
   const [pricingData, setPricingData] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const initialPricing = useRef({});
+  const savedPricing = useRef({});
+  const changes = useRef({});
 
   useEffect(() => {
     if (!isOpen) return undefined;
     let cancelled = false;
     (async () => {
-      if (!cancelled) setLoading(true);
+      setLoading(true);
+      setLoadError("");
       try {
-        const response = await fetch("/api/pricing");
+        const [effectiveResponse, savedResponse] = await Promise.all([
+          fetch("/api/pricing"), fetch("/api/pricing?view=overrides"),
+        ]);
+        if (!effectiveResponse.ok || !savedResponse.ok) throw new Error("Pricing could not be loaded");
+        const [data, overrides] = await Promise.all([effectiveResponse.json(), savedResponse.json()]);
         if (cancelled) return;
-        if (response.ok) {
-          const data = await response.json();
-          if (!cancelled) setPricingData(data);
-        } else {
-          // Fallback to defaults
-          const defaults = getDefaultPricing();
-          if (!cancelled) setPricingData(defaults);
-        }
+        initialPricing.current = data;
+        savedPricing.current = overrides;
+        changes.current = {};
+        setPricingData(data);
       } catch (error) {
         console.error("Failed to load pricing:", error);
-        const defaults = getDefaultPricing();
-        if (!cancelled) setPricingData(defaults);
+        if (!cancelled) setLoadError("Failed to load pricing. Close and reopen to retry.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -39,6 +44,10 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
   const handlePricingChange = (provider, model, field, value) => {
     const numValue = value === "" ? undefined : Number(value);
     if (value !== "" && (!Number.isFinite(numValue) || numValue < 0)) return;
+    const modelChanges = { ...changes.current[provider]?.[model] };
+    if (Object.is(numValue, initialPricing.current[provider]?.[model]?.[field])) delete modelChanges[field];
+    else modelChanges[field] = numValue;
+    changes.current = { ...changes.current, [provider]: { ...changes.current[provider], [model]: modelChanges } };
 
     setPricingData(prev => {
       const modelPricing = { ...prev[provider]?.[model] };
@@ -52,12 +61,26 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
   };
 
   const handleSave = async () => {
+    const updates = Object.create(null);
+    for (const [provider, models] of Object.entries(changes.current)) {
+      for (const [model, fields] of Object.entries(models)) {
+        if (Object.keys(fields).length === 0) continue;
+        const token = getProviderIdentityTokens(provider).find(id => Object.hasOwn(savedPricing.current[id] || {}, model));
+        const row = token === undefined ? {} : { ...savedPricing.current[token][model] };
+        for (const [field, value] of Object.entries(fields)) {
+          if (value === undefined) delete row[field];
+          else row[field] = value;
+        }
+        updates[provider] = { ...updates[provider], [model]: row };
+      }
+    }
+    if (Object.keys(updates).length === 0) { onClose(); return; }
     setSaving(true);
     try {
       const response = await fetch("/api/pricing", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pricingData)
+        body: JSON.stringify(updates)
       });
 
       if (response.ok) {
@@ -83,6 +106,10 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
       if (response.ok) {
         const defaults = getDefaultPricing();
         setPricingData(defaults);
+        initialPricing.current = defaults;
+        savedPricing.current = {};
+        changes.current = {};
+        setLoadError("");
       }
     } catch (error) {
       console.error("Failed to reset pricing:", error);
@@ -94,7 +121,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
 
   // Get all unique providers and models for display
   const allProviders = Object.keys(pricingData).sort();
-  const pricingFields = ["input", "output", "cached", "reasoning", "cache_creation"];
+  const pricingFields = ["input", "output", "cached", "reasoning", "cache_creation", "cache_creation_1h"];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -114,6 +141,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="text-center py-8 text-text-muted">Loading pricing data...</div>
+          ) : loadError ? (
+            <div role="alert" className="text-center py-8 text-red-500">{loadError}</div>
           ) : (
             <div className="space-y-6">
               {/* Instructions */}
@@ -123,7 +152,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                   Editable rates are <strong>USD per million tokens</strong> ($/1M tokens)
                   for local cost estimates, not an upstream invoice.
                   Subscriptions and media units are not equivalent to token tariffs; see each model’s billing scope.
-                  Not specified means unknown, not free. Blank fields are omitted from saves, not set to zero.
+                  Not specified means unknown, not free. Clearing a field omits its override; untouched unknown rates stay unknown.
+                  Cache-write rates distinguish the 5m/default TTL from the 1h TTL; saved tier rates and thresholds are preserved.
                 </p>
               </div>
 
@@ -144,7 +174,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                             <th className="px-3 py-2 text-right">Output</th>
                             <th className="px-3 py-2 text-right">Cached</th>
                             <th className="px-3 py-2 text-right">Reasoning</th>
-                            <th className="px-3 py-2 text-right">Cache Creation</th>
+                            <th className="px-3 py-2 text-right">Cache Write (5m/default)</th>
+                            <th className="px-3 py-2 text-right">Cache Write (1h)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -177,7 +208,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                                 {pricingFields.map(field => (
                                   <td key={field} className="px-3 py-2">
                                     <label>
-                                      <span className="sr-only">{provider} {model} {field.replaceAll("_", " ")} (USD per million tokens)</span>
+                                      <span className="sr-only">{provider} {model} {field.replaceAll("_", " ")}{field === "cache_creation" ? " (5m/default)" : ""} (USD per million tokens)</span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -230,7 +261,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
             <button
               onClick={handleSave}
               className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
-              disabled={saving}
+              disabled={saving || loading || Boolean(loadError)}
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>

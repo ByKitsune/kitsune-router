@@ -9,6 +9,7 @@ import { parseDataUri } from "../concerns/image.js";
 import { extractTextContent } from "../formats/gemini.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
+import { normalizeMediaPart } from "../concerns/multimodal.js";
 
 // Empty prefix matches real Claude Code behavior (no tool name prefix).
 // Previously "proxy_" was used but this is a detectable fingerprint difference.
@@ -72,6 +73,7 @@ export function openaiToClaudeRequest(model, body, stream) {
   if (body.top_p !== undefined) {
     result.top_p = body.top_p;
   }
+  if (body.top_k !== undefined) result.top_k = body.top_k;
   // OpenAI `stop` (string or array) ⇄ Anthropic `stop_sequences` (array).
   if (body.stop !== undefined) {
     const stops = Array.isArray(body.stop) ? body.stop : [body.stop];
@@ -81,11 +83,8 @@ export function openaiToClaudeRequest(model, body, stream) {
   // Anthropic has no `seed`; determinism is approximated by temperature/top_p,
   // so it is deliberately not invented here.
   // `user` maps to Anthropic's abuse-tracking field metadata.user_id.
-  const metadataUser = typeof body.user === "string" && body.user.trim()
-    ? body.user.trim()
-    : null;
-  if (metadataUser) {
-    result.metadata = { ...(result.metadata || {}), user_id: metadataUser };
+  if (typeof body.user === "string" || body.user === null) {
+    result.metadata = { user_id: body.user };
   }
   // Anthropic has no presence/frequency penalty. Deliberately NOT invented:
   // dropping them is documented behavior, and fabricating an equivalent would
@@ -98,13 +97,13 @@ export function openaiToClaudeRequest(model, body, stream) {
   if (body.messages && Array.isArray(body.messages)) {
     // Extract system messages
     for (const msg of body.messages) {
-      if (msg.role === ROLE.SYSTEM) {
+      if (msg.role === ROLE.SYSTEM || msg.role === ROLE.DEVELOPER) {
         systemParts.push(typeof msg.content === "string" ? msg.content : extractTextContent(msg.content, "\n"));
       }
     }
 
     // Filter out system messages for separate processing
-    const nonSystemMessages = body.messages.filter(m => m.role !== ROLE.SYSTEM);
+    const nonSystemMessages = body.messages.filter(m => m.role !== ROLE.SYSTEM && m.role !== ROLE.DEVELOPER);
 
     // Process messages with merging logic
     // CRITICAL: tool_result must be in separate message immediately after tool_use
@@ -178,12 +177,7 @@ export function openaiToClaudeRequest(model, body, stream) {
   if (body.response_format) {
     const responseFormat = body.response_format;
     if (responseFormat.type === "json_schema" && responseFormat.json_schema?.schema) {
-      const schemaJson = JSON.stringify(responseFormat.json_schema.schema, null, 2);
-      systemParts.push(`You must respond with valid JSON that strictly follows this JSON schema:
-\`\`\`json
-${schemaJson}
-\`\`\`
-Respond ONLY with the JSON object, no other text.`);
+      result.output_config = { format: { type: "json_schema", schema: responseFormat.json_schema.schema } };
     } else if (responseFormat.type === "json_object") {
       systemParts.push("You must respond with valid JSON. Respond ONLY with a JSON object, no other text.");
     }
@@ -252,8 +246,8 @@ Respond ONLY with the JSON object, no other text.`);
   // Tool choice & parallel tool calls (#4171)
   if (body.tool_choice || body.parallel_tool_calls !== undefined) {
     result.tool_choice = convertOpenAIToolChoice(body.tool_choice);
-    if (body.parallel_tool_calls === false) {
-      result.tool_choice.disable_parallel_tool_use = true;
+    if (typeof body.parallel_tool_calls === "boolean" && result.tool_choice.type !== "none") {
+      result.tool_choice = { ...result.tool_choice, disable_parallel_tool_use: !body.parallel_tool_calls };
     }
   }
 
@@ -279,9 +273,10 @@ function normalizeClaudeToolContent(content, toolNameMap) {
   const blocks = [];
   for (const part of content) {
     if (part.type === OPENAI_BLOCK.IMAGE_URL || part.type === OPENAI_BLOCK.FILE) {
-      const converted = getContentBlocksFromMessage({ role: ROLE.USER, content: [part] }, toolNameMap);
+      const normalized = normalizeMediaPart(part) || part;
+      const converted = getContentBlocksFromMessage({ role: ROLE.USER, content: [normalized] }, toolNameMap);
       if (converted.length) blocks.push(...converted);
-      else blocks.push({ type: CLAUDE_BLOCK.TEXT, text: JSON.stringify(part) });
+      else blocks.push({ type: CLAUDE_BLOCK.TEXT, text: `[${part.type} block unavailable on this route]` });
     } else {
       blocks.push(part);
     }
@@ -360,8 +355,11 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
     }
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
+        const media = normalizeMediaPart(part);
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
           blocks.push({ type: CLAUDE_BLOCK.TEXT, text: part.text });
+        } else if (media) {
+          blocks.push(...getContentBlocksFromMessage({ role: ROLE.USER, content: [media] }, toolNameMap));
         } else if (part.type === CLAUDE_BLOCK.TOOL_USE) {
           // Tool name already has prefix from tool declarations, keep as-is
           blocks.push({ type: CLAUDE_BLOCK.TOOL_USE, id: part.id, name: part.name, input: part.input });

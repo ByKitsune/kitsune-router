@@ -7,7 +7,11 @@ import {
   shouldRefreshCredentials,
 } from "../services/oauthCredentialManager.js";
 import { normalizeResponsesInput } from "../translator/formats/responsesApi.js";
-import { fetchImageAsBase64 } from "../translator/concerns/image.js";
+import { FORMATS } from "../translator/formats.js";
+import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
+import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
+import { normalizeMediaPart } from "../translator/concerns/multimodal.js";
+import { OPENAI_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 import { getModelUpstreamId } from "../config/providerModels.js";
 import { getThinkingLevels } from "../providers/thinkingLevels.js";
 import { CODEX_SSE_PEEK_TIMEOUT_MS, DEFAULT_RETRY_CONFIG, HTTP_STATUS, resolveRetryEntry } from "../config/runtimeConfig.js";
@@ -281,33 +285,35 @@ export class CodexExecutor extends BaseExecutor {
    * Runs before execute() because Codex backend cannot fetch remote images.
    * Mutates body.input in place.
    */
-  async prefetchImages(body) {
-    if (!Array.isArray(body?.input)) return;
+  async prefetchImages(body, options = {}) {
+    if (!Array.isArray(body?.input) || options.signal?.aborted) return;
     for (const item of body.input) {
-      if (!Array.isArray(item.content)) continue;
-      const pending = item.content.map(async (c) => {
-        if (c.type !== "image_url") return c;
-        const url = typeof c.image_url === "string" ? c.image_url : c.image_url?.url;
-        const detail = c.image_url?.detail || "auto";
-        if (!url) return c;
-        if (url.startsWith("data:")) return { type: "input_image", image_url: url, detail };
-        const fetched = await fetchImageAsBase64(url, { timeoutMs: 15000 });
-        return { type: "input_image", image_url: fetched?.url || url, detail };
-      });
-      item.content = await Promise.all(pending);
+      const parts = item?.type === RESPONSES_ITEM.FUNCTION_CALL_OUTPUT || item?.type === RESPONSES_ITEM.CUSTOM_TOOL_CALL_OUTPUT
+        ? item.output : item?.content;
+      if (!Array.isArray(parts)) continue;
+      for (let index = 0; index < parts.length; index++) {
+        const part = parts[index];
+        if (part?.type !== OPENAI_BLOCK.IMAGE_URL && part?.type !== RESPONSES_ITEM.INPUT_IMAGE) continue;
+        const image = normalizeMediaPart(part);
+        if (!image) continue;
+        parts[index] = { ...part, type: RESPONSES_ITEM.INPUT_IMAGE,
+          image_url: image.image_url.url, detail: image.image_url.detail || "auto" };
+      }
     }
+    await prefetchRemoteImages(body, FORMATS.CODEX, FORMATS.CODEX, { timeoutMs: 15000, ...options });
   }
 
   async execute(args) {
+    args.signal?.throwIfAborted();
     const imgCount = Array.isArray(args.body?.input) ? args.body.input.reduce((n, it) => n + (Array.isArray(it.content) ? it.content.filter(c => c.type === "image_url").length : 0), 0) : 0;
     const inputLen = Array.isArray(args.body?.input) ? args.body.input.length : 0;
     dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount} | sessionId=${this._currentSessionId || "pending"}`);
     if (imgCount > 0) {
       const t0 = Date.now();
-      await this.prefetchImages(args.body);
+      await this.prefetchImages(args.body, { signal: args.signal });
       dbg("CODEX", `prefetchImages done | ${Date.now() - t0}ms`);
     } else {
-      await this.prefetchImages(args.body);
+      await this.prefetchImages(args.body, { signal: args.signal });
     }
 
     // Retry loop for SSE-level overloaded errors (200 OK body contains event: error)
@@ -541,7 +547,7 @@ export class CodexExecutor extends BaseExecutor {
   }
 
   // Parse Codex usage_limit_reached to extract precise resetsAtMs; fallback to default otherwise
-  parseError(response, bodyText) {
+  parseError(response, bodyText, generic) {
     if (response.status === 429 && bodyText) {
       try {
         const json = JSON.parse(bodyText);
@@ -562,7 +568,7 @@ export class CodexExecutor extends BaseExecutor {
         }
       } catch { /* fall through to default */ }
     }
-    return super.parseError(response, bodyText);
+    return super.parseError(response, bodyText, generic);
   }
 
   /**
@@ -609,8 +615,7 @@ export class CodexExecutor extends BaseExecutor {
     // Map virtual Codex review models to the upstream Codex model before suffix parsing.
     body.model = getModelUpstreamId("cx", body.model || model);
 
-    // Extract thinking level from model name suffix
-    // e.g., gpt-5.3-codex-high → high, gpt-5.3-codex → medium (default)
+    // Consume legacy effort suffixes such as gpt-5.3-codex-high.
     const effortLevels = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
     let modelEffort = null;
     for (const level of effortLevels) {
@@ -622,14 +627,18 @@ export class CodexExecutor extends BaseExecutor {
       }
     }
 
-    // Priority: explicit reasoning.effort > reasoning_effort param > model suffix > default (medium)
-    if (!body.reasoning) {
-      const effort = normalizeReasoningEffort(body.model, body.reasoning_effort || modelEffort || 'low');
-      body.reasoning = { effort, summary: "auto" };
-    } else {
-      body.reasoning.effort = normalizeReasoningEffort(body.model, body.reasoning.effort);
-      if (!body.reasoning.summary) body.reasoning.summary = "auto";
+    const thinkingIntent = captureThinking(body);
+    if (thinkingIntent) applyThinking(FORMATS.OPENAI_RESPONSES, body.model, body, this.provider, thinkingIntent);
+
+    // Native reasoning options do not imply an effort; resolve it independently.
+    if (!body.reasoning || typeof body.reasoning !== "object" || Array.isArray(body.reasoning)) {
+      body.reasoning = {};
     }
+    if (body.reasoning.effort === undefined) {
+      body.reasoning.effort = body.reasoning_effort || modelEffort || "low";
+    }
+    body.reasoning.effort = normalizeReasoningEffort(body.model, body.reasoning.effort);
+    if (body.reasoning.summary === undefined) body.reasoning.summary = "auto";
     delete body.reasoning_effort;
 
     // Include reasoning encrypted content (required by Codex backend for reasoning models)

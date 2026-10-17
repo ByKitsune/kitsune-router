@@ -74,6 +74,30 @@ All tests use isolated HOME/DATA_DIR, fresh test secrets and live-provider flags
 
 The exact final gate totals and reviewed source hashes are recorded in the external handoff, so later review corrections do not leave a stale count in this document.
 
+## 2026-10-17 reconciliation update
+
+The complete [models.dev snapshot](https://models.dev/api.json) contains 232 providers and 8,987 model records. The captured JSON has SHA-256 `60f5bc3e74aa0d883eea10839f599cb92e0f0dfbd010e182234318999439be99`; no record has a future `last_updated` date relative to this audit.
+
+The active registry audit compares exact catalog products and literal or declared upstream IDs. It does not select the widest vendor leaf or treat decimal/binary token counts as interchangeable. Explicit primary-source overrides, route ceilings and unknown fields remain qualified results, not agreement or serving verification.
+
+Native frontier limits remain endpoint-specific:
+
+| Native route | Total context | Separate input ceiling | Common output ceiling |
+| --- | ---: | ---: | ---: |
+| OpenAI GPT-6.1 Sol | 1,050,000 | 922,000 | 128,000 |
+| Anthropic Opus/Sonnet/Haiku 5.5 | 1,000,000 | Not independently specified here | 128,000 |
+| Gemini 4 Argon, legacy GenerateContent | 1,048,576 unified | Shared window | 32,768 non-streaming |
+
+Argon's legacy streaming route supports 65,536 output tokens. Its current model page describes the newer Interactions API's synchronous allowance; long decode requires continuation handling. Those modes do not turn the existing single-request GenerateContent path into a one-million-token output endpoint.
+
+Catalog schema v4 preserves independent `maxInput`, `contextWindow` and `maxOutput`, including differences below ten percent. Explicit text-only, non-reasoning and no-tool facts override fallback guesses. Operator declarations and exact primary/route facts remain authoritative. Custom/live ingestion accepts `context_window` and `max_output_tokens` without relabelling a prompt-only limit as total context.
+
+Public discovery keeps the established fields `context_length`, `max_input_tokens` and `max_completion_tokens`. Provider-native spellings normalize into those fields; the metadata retains API/client/mode provenance separately.
+
+Usage pricing preserves unknown components as `null`, keeps free zeroes, and distinguishes five-minute from one-hour cache writes. Saved base/tier overrides retain their explicit component values. Native currency, subscription, media and time-dependent reference tariffs do not become guaranteed USD token invoices.
+
+The [test guide](../tests/README.md) lists the reproducible gates. The [lifecycle audit](audit/12-model-lifecycle-audit.md) records retirement, eligibility and unmatched-route distinctions. Published release artifacts remain unchanged.
+
 ## Sources
 
 [1] https://models.dev/api.json — models.dev complete model metadata API

@@ -10,14 +10,14 @@ import {
 import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../services/antigravityQuota.js";
 import { getSettings, isApiKeyRequired } from "@/lib/localDb";
 import { getDisabledByProvider } from "@/lib/disabledModelsDb";
-import { getModelInfo, getComboModels } from "../services/model.js";
+import { getModelInfo, getComboModels, resolveModelCapabilities } from "../services/model.js";
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
 import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
-import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy } from "open-sse/services/capacityAdapter.js";
+import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy, getCapacityAdapterModels } from "open-sse/services/capacityAdapter.js";
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { correlateResponse } from "../utils/requestCorrelation.js";
@@ -174,7 +174,9 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
     const comboStrategy = comboSpecificStrategy || settings.comboStrategy || "fallback";
-    const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, settings);
+    const modelCapabilities = requiredCapabilities.size
+      ? await resolveModelCapabilities([...comboModels, ...getCapacityAdapterModels(settings, requiredCapabilities)]) : null;
+    const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, settings, modelCapabilities);
     const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
 
     if (comboStrategy === "fusion") {
@@ -182,6 +184,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
       return handleFusionChat({
         body,
         models: comboModels,
+        modelCapabilities,
         handleSingleModel: (b, m, isPanel) => {
           let cleanRawReq = clientRawRequest;
           if (isPanel && clientRawRequest) {
@@ -202,9 +205,10 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     return handleComboChat({
       body,
       models: augmentedModels,
+      modelCapabilities,
       handleSingleModel: withCapacityAdapterStripping(
         (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
-        adapterAdded
+        adapterAdded, modelCapabilities
       ),
       log,
       comboName: modelStr,
@@ -215,16 +219,19 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
 
   // Single model request — may still switch to a capacity-adapter model if the
   // target lacks a capability the request needs (e.g. no vision, request has an image).
-  const soloAugmented = augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings);
+  const modelCapabilities = requiredCapabilities.size
+    ? await resolveModelCapabilities([modelStr, ...getCapacityAdapterModels(settings, requiredCapabilities)]) : null;
+  const soloAugmented = augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings, modelCapabilities);
   if (soloAugmented.length > 1) {
     const adapterAdded = soloAugmented.filter((m) => m !== modelStr);
     log.info("CHAT", `Capacity adapter for [${[...requiredCapabilities].join(",")}] on "${modelStr}" → trying ${soloAugmented.join(", ")}`);
     return handleComboChat({
       body,
       models: soloAugmented,
+      modelCapabilities,
       handleSingleModel: withCapacityAdapterStripping(
         (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
-        adapterAdded
+        adapterAdded, modelCapabilities
       ),
       log,
       comboName: modelStr,
@@ -258,7 +265,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
       const comboStrategy = comboSpecificStrategy || chatSettings.comboStrategy || "fallback";
       const requiredCapabilities = detectRequiredCapabilities(body);
-      const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings);
+      const modelCapabilities = requiredCapabilities.size
+        ? await resolveModelCapabilities([...comboModels, ...getCapacityAdapterModels(chatSettings, requiredCapabilities)]) : null;
+      const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings, modelCapabilities);
       const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
 
       if (comboStrategy === "fusion") {
@@ -266,6 +275,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         return handleFusionChat({
           body,
           models: comboModels,
+          modelCapabilities,
           handleSingleModel: (b, m, isPanel) => {
             let cleanRawReq = clientRawRequest;
             if (isPanel && clientRawRequest) {
@@ -286,9 +296,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return handleComboChat({
         body,
         models: augmentedModels,
+        modelCapabilities,
         handleSingleModel: withCapacityAdapterStripping(
           (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
-          adapterAdded
+          adapterAdded, modelCapabilities
         ),
         log,
         comboName: modelStr,

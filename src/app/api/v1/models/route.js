@@ -1,4 +1,4 @@
-import { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS, getModelKind } from "@/shared/constants/models";
+import { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS, getModelKind, getModelsByProviderId } from "@/shared/constants/models";
 import {
   AI_PROVIDERS,
   getProviderAlias,
@@ -162,13 +162,13 @@ function modelMetadata(row) {
   const caps = {};
   const inputs = row.architecture?.input_modalities || row.input_modalities;
   if (Array.isArray(inputs)) {
-    if (inputs.includes("image")) caps.vision = true;
+    caps.vision = inputs.includes("image");
     if (inputs.includes("audio")) caps.audioInput = true;
   }
   for (const [key, value] of Object.entries({
-    contextWindow: row.contextWindow ?? row.contextLength ?? row.context_length,
+    contextWindow: row.contextWindow ?? row.contextLength ?? row.context_length ?? row.context_window,
     maxInput: row.maxInput ?? row.maxInputTokens ?? row.max_input_tokens,
-    maxOutput: row.maxOutput ?? row.maxOutputTokens ?? row.max_completion_tokens,
+    maxOutput: row.maxOutput ?? row.maxOutputTokens ?? row.max_completion_tokens ?? row.max_output_tokens,
   })) {
     if (Number.isFinite(value) && value > 0) caps[key] = value;
   }
@@ -320,7 +320,7 @@ export async function buildModelsList(kindFilter) {
       || (connections.length === 0 ? staticAlias : getProviderAlias(providerId))
       || staticAlias
     ).trim();
-    const providerModels = [...(PROVIDER_MODELS[staticAlias] || [])];
+    const providerModels = [...getModelsByProviderId(providerId)];
     if (AI_PROVIDERS[providerId]?.noAuth) {
       for (const row of AI_PROVIDERS[providerId]?.ttsConfig?.models || []) {
         if (!providerModels.some((m) => m.id === row.id)) providerModels.push({ ...row, kind: "tts" });

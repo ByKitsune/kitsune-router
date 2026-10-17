@@ -2,6 +2,8 @@
 import { getModelAliases, getComboByName, getProviderNodes } from "@/lib/localDb";
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
+import { getCapabilitiesForModel, withDeclaredCapabilities } from "open-sse/providers/capabilities.js";
+import { getDeclaredModelCaps } from "open-sse/providers/declaredCaps.js";
 
 // Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
 const LOCAL_PROVIDER_ALIASES = {
@@ -91,4 +93,15 @@ export async function getComboModels(modelStr) {
     return combo.models;
   }
   return null;
+}
+
+// No upstream discovery here: use the same static/synced/operator facts as chatCore.
+export async function getEffectiveModelCapabilities(modelStr) {
+  const { provider, model } = await getModelInfo(modelStr);
+  return withDeclaredCapabilities(getCapabilitiesForModel(provider, model), await getDeclaredModelCaps(provider, model));
+}
+
+export async function resolveModelCapabilities(modelStrs) {
+  const entries = await Promise.all([...new Set(modelStrs)].map(async (modelStr) => [modelStr, await getEffectiveModelCapabilities(modelStr)]));
+  return new Map(entries);
 }

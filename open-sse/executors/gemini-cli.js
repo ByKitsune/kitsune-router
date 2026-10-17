@@ -2,6 +2,13 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, GEMINI_CLI_API_CLIENT, geminiCLIUserAgent } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { FORMATS } from "../translator/formats.js";
+import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
+
+const GEMINI_CLI_REQUEST_BLACKLIST = [
+  "output_config", "thinking", "reasoning_effort", "reasoning",
+  "enable_thinking", "thinking_budget", "thinkingConfig", "budget_tokens",
+];
 
 export class GeminiCLIExecutor extends BaseExecutor {
   constructor() {
@@ -27,17 +34,33 @@ export class GeminiCLIExecutor extends BaseExecutor {
     // Store model for use in buildHeaders (called by base.execute after transformRequest)
     this._currentModel = model;
     // Cloud Code Assist wraps the Gemini payload: { project, model, request: <body> }
-    if (body && body.request && body.model) return body;
-    return {
-      project: credentials?.projectId || body?.project,
-      model,
-      request: body
-    };
+    const wrapped = !!(body?.request && body.model);
+    const sourceRequest = wrapped ? body.request : body;
+    const compatibilityControls = GEMINI_CLI_REQUEST_BLACKLIST.some(field =>
+      body?.[field] !== undefined || sourceRequest?.[field] !== undefined);
+    if (!compatibilityControls) {
+      return wrapped ? body : { project: credentials?.projectId || body?.project, model, request: body };
+    }
+
+    const thinkingIntent = captureThinking(body) || captureThinking(sourceRequest);
+    const request = { ...sourceRequest, generationConfig: { ...sourceRequest?.generationConfig } };
+    const nativeThinking = request.generationConfig.thinkingConfig;
+    if (thinkingIntent && nativeThinking?.thinkingBudget === undefined && nativeThinking?.thinkingLevel === undefined) {
+      applyThinking(FORMATS.GEMINI_CLI, model, request, this.provider, thinkingIntent);
+    }
+    for (const field of GEMINI_CLI_REQUEST_BLACKLIST) delete request[field];
+
+    if (wrapped) {
+      const transformed = { ...body, request };
+      for (const field of GEMINI_CLI_REQUEST_BLACKLIST) delete transformed[field];
+      return transformed;
+    }
+    return { project: credentials?.projectId || body?.project, model, request };
   }
 
   // Parse RetryInfo.retryDelay from Google API 429 body to surface upstream retry hint
-  parseError(response, bodyText) {
-    const base = super.parseError(response, bodyText);
+  parseError(response, bodyText, generic) {
+    const base = super.parseError(response, bodyText, generic);
     if (response.status !== 429 || !bodyText) return base;
     try {
       const parsed = JSON.parse(bodyText);

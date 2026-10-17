@@ -3,7 +3,8 @@
  */
 
 import { FORMATS } from "../translator/formats.js";
-import { toOpenAIUsage } from "../translator/concerns/usage.js";
+import { getCacheCreationUsage, toOpenAIUsage } from "../translator/concerns/usage.js";
+import { OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 
 // Legacy per-chunk usage console line; off by default (superseded by "📊 done")
 const DEBUG_USAGE = process.env.LOG_USAGE_VERBOSE === "1";
@@ -75,7 +76,7 @@ export function filterUsageForFormat(usage, targetFormat) {
   const formatFields = {
     [FORMATS.CLAUDE]: [
       'input_tokens', 'output_tokens', 
-      'cache_read_input_tokens', 'cache_creation_input_tokens',
+      'cache_read_input_tokens', 'cache_creation_input_tokens', 'cache_creation',
       'estimated'
     ],
     [FORMATS.GEMINI]: [
@@ -114,11 +115,14 @@ export function filterUsageForFormat(usage, targetFormat) {
   // clients receive those counters as details, without replacing their own split.
   if (fields === formatFields.default) {
     const cacheRead = usage.cache_read_input_tokens;
-    const cacheCreation = usage.cache_creation_input_tokens;
-    if (cacheRead > 0 || cacheCreation > 0) {
+    const creation = getCacheCreationUsage(usage);
+    const cacheCreation = creation?.total;
+    if (cacheRead > 0 || creation) {
       const details = { ...(filtered.prompt_tokens_details || {}) };
       if (cacheRead > 0 && details.cached_tokens === undefined) details.cached_tokens = cacheRead;
       if (cacheCreation > 0 && details.cache_creation_tokens === undefined) details.cache_creation_tokens = cacheCreation;
+      if (creation?.fiveMinute !== undefined && details.cache_creation_5m_tokens === undefined) details.cache_creation_5m_tokens = creation.fiveMinute;
+      if (creation?.oneHour !== undefined && details.cache_creation_1h_tokens === undefined) details.cache_creation_1h_tokens = creation.oneHour;
       filtered.prompt_tokens_details = details;
     }
   }
@@ -143,6 +147,12 @@ export function normalizeUsage(usage) {
   assignNumber("total_tokens", usage?.total_tokens);
   assignNumber("cache_read_input_tokens", usage?.cache_read_input_tokens);
   assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens);
+  const creation = getCacheCreationUsage(usage);
+  if (creation) {
+    if (usage.cache_creation !== undefined) assignNumber("cache_creation_input_tokens", creation.total);
+    assignNumber("cache_creation_5m_tokens", creation.fiveMinute);
+    assignNumber("cache_creation_1h_tokens", creation.oneHour);
+  }
   assignNumber("cached_tokens", usage?.cached_tokens ?? usage?.prompt_tokens_details?.cached_tokens ?? usage?.input_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens);
   assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens);
   assignNumber("prompt_cache_hit_tokens", usage?.prompt_cache_hit_tokens);
@@ -151,8 +161,8 @@ export function normalizeUsage(usage) {
   // Preserve nested details objects for OpenAI format forwarding
   if (usage?.prompt_tokens_details && typeof usage.prompt_tokens_details === "object") {
     normalized.prompt_tokens_details = usage.prompt_tokens_details;
-  } else if (usage?.input_tokens_details?.cached_tokens !== undefined) {
-    normalized.prompt_tokens_details = { cached_tokens: Number(usage.input_tokens_details.cached_tokens) || 0 };
+  } else if (usage?.input_tokens_details && typeof usage.input_tokens_details === "object") {
+    normalized.prompt_tokens_details = usage.input_tokens_details;
   }
   if (usage?.completion_tokens_details && typeof usage.completion_tokens_details === "object") {
     normalized.completion_tokens_details = usage.completion_tokens_details;
@@ -194,7 +204,8 @@ export function canonicalizeUsage(usage) {
   // (buildUsage()'s OpenAI-forwarding format) when the top-level field is
   // absent, so callers that pass a buildUsage() object through don't silently
   // drop cache_creation.
-  const cacheCreation = num(usage.cache_creation_input_tokens ?? usage.prompt_tokens_details?.cache_creation_tokens);
+  const creation = getCacheCreationUsage(usage);
+  const cacheCreation = creation?.total || 0;
 
   let prompt = num(usage.prompt_tokens ?? usage.input_tokens);
   let cached;
@@ -208,7 +219,7 @@ export function canonicalizeUsage(usage) {
   // sets that key (even to 0), so re-running canonicalizeUsage on an already-
   // folded result takes the passthrough branch instead of folding again.
   if (usage.cached_tokens === undefined &&
-      (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined)) {
+      (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined || usage.cache_creation !== undefined)) {
     cached = num(usage.cache_read_input_tokens);
     prompt = prompt + cached + cacheCreation;
   } else {
@@ -233,6 +244,8 @@ export function canonicalizeUsage(usage) {
     cached_tokens: cached,
     cache_creation_input_tokens: cacheCreation,
   };
+  if (creation?.fiveMinute !== undefined) result.cache_creation_5m_tokens = creation.fiveMinute;
+  if (creation?.oneHour !== undefined) result.cache_creation_1h_tokens = creation.oneHour;
   if (reasoning > 0) result.reasoning_tokens = reasoning;
   return result;
 }
@@ -272,22 +285,12 @@ export function extractUsage(chunk) {
   // so callers must MERGE (mergeUsage), not overwrite, to keep cache counts.
   if (chunk.type === "message_start" && chunk.message?.usage && typeof chunk.message.usage === "object") {
     const u = chunk.message.usage;
-    return normalizeUsage({
-      prompt_tokens: u.input_tokens || 0,
-      completion_tokens: u.output_tokens || 0,
-      cache_read_input_tokens: u.cache_read_input_tokens,
-      cache_creation_input_tokens: u.cache_creation_input_tokens
-    });
+    return normalizeUsage({ ...u, prompt_tokens: u.input_tokens || 0, completion_tokens: u.output_tokens || 0 });
   }
 
   // Claude format (message_delta event)
   if (chunk.type === "message_delta" && chunk.usage && typeof chunk.usage === "object") {
-    return normalizeUsage({
-      prompt_tokens: chunk.usage.input_tokens,
-      completion_tokens: chunk.usage.output_tokens,
-      cache_read_input_tokens: chunk.usage.cache_read_input_tokens,
-      cache_creation_input_tokens: chunk.usage.cache_creation_input_tokens
-    });
+    return normalizeUsage({ ...chunk.usage, prompt_tokens: chunk.usage.input_tokens, completion_tokens: chunk.usage.output_tokens });
   }
 
   // Usage belongs to the attempt, including incomplete and failed terminals.
@@ -306,6 +309,7 @@ export function extractUsage(chunk) {
       ?? chunk.usage.output_tokens_details?.reasoning_tokens;
 
     return normalizeUsage({
+      ...chunk.usage,
       prompt_tokens: chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0,
       completion_tokens: chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0,
       cached_tokens: cachedTokens,
@@ -351,22 +355,73 @@ export function mergeUsage(prev, next) {
     if (typeof v === "number" && Number.isFinite(v)) {
       merged[k] = Math.max(typeof merged[k] === "number" ? merged[k] : 0, v);
     } else if (v && typeof v === "object") {
-      merged[k] = v; // nested details objects: take latest
+      merged[k] = Array.isArray(v) ? v : mergeUsage(merged[k], v);
     }
   }
   return merged;
 }
 
+const ENCODED_MEDIA_TYPES = new Set([
+  OPENAI_BLOCK.IMAGE_URL, OPENAI_BLOCK.IMAGE, OPENAI_BLOCK.FILE,
+  OPENAI_BLOCK.INPUT_AUDIO, OPENAI_BLOCK.AUDIO_URL, OPENAI_BLOCK.INPUT_VIDEO, OPENAI_BLOCK.VIDEO_URL,
+  CLAUDE_BLOCK.DOCUMENT, RESPONSES_ITEM.INPUT_IMAGE, RESPONSES_ITEM.INPUT_FILE,
+]);
+const LITERAL_JSON_FIELDS = new Set([
+  "tools", "parameters", "input_schema", "args", "arguments", "json", "response",
+  "schema", "responseSchema", "responseJsonSchema",
+]);
+const PAYLOAD_FIELDS = ["data", "bytes", "url", "file_data", "fileUri", "file_uri", "image_url", "image"];
+const MEDIA_CONTAINERS = [
+  "source", "file", "image_url", "audio_url", "video_url", "input_audio", "input_video",
+  "inlineData", "inline_data", "fileData", "file_data",
+];
+
+function withoutEncodedPayload(object) {
+  let result = object;
+  for (const key of PAYLOAD_FIELDS) {
+    if (typeof object[key] !== "string" || object[key].length === 0) continue;
+    if (result === object) result = { ...object };
+    result[key] = "";
+  }
+  return result;
+}
+
+function stringifyTextEstimate(body) {
+  const literal = new WeakSet();
+  return JSON.stringify(body, function (key, value) {
+    if (!value || typeof value !== "object") return value;
+    const toolInput = key === "input" && (this.type === CLAUDE_BLOCK.TOOL_USE ||
+      this.type === CLAUDE_BLOCK.SERVER_TOOL_USE || this.toolUseId !== undefined);
+    if (literal.has(this) || LITERAL_JSON_FIELDS.has(key) || toolInput) {
+      literal.add(value);
+      return value;
+    }
+    if (value.type === CLAUDE_BLOCK.DOCUMENT && value.source?.type === "text") return value;
+    if (!ENCODED_MEDIA_TYPES.has(value.type) && !value.inlineData && !value.inline_data &&
+        !value.fileData && !value.file_data && !(value.format && value.source?.bytes)) return value;
+    let result = withoutEncodedPayload(value);
+    for (const field of MEDIA_CONTAINERS) {
+      const nested = value[field];
+      if (!nested || typeof nested !== "object" || Array.isArray(nested)) continue;
+      const projected = withoutEncodedPayload(nested);
+      if (projected === nested) continue;
+      if (result === value) result = { ...value };
+      result[field] = projected;
+    }
+    return result;
+  });
+}
+
 /**
  * Estimate input tokens from request body
- * Calculate total body size for more accurate estimation
+ * Encoded media transport bytes are not text tokens; visual/audio costs remain unmeasured.
  */
 export function estimateInputTokens(body) {
   if (!body || typeof body !== "object") return 0;
 
   try {
-    // Calculate total body size (includes messages, tools, system, thinking config, etc.)
-    const bodyStr = JSON.stringify(body);
+    // Keep the existing text/structure approximation, not base64 file length.
+    const bodyStr = stringifyTextEstimate(body);
     const totalChars = bodyStr.length;
 
     // Estimate: ~4 chars per token (rough average across all tokenizers)

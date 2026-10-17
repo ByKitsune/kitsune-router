@@ -38,6 +38,7 @@ vi.mock("@/lib/disabledModelsDb", () => ({
 vi.mock("@/sse/services/model.js", () => ({
   getModelInfo: mocks.getModelInfo,
   getComboModels: mocks.getComboModels,
+  resolveModelCapabilities: vi.fn(async () => new Map()),
 }));
 
 vi.mock("open-sse/handlers/chatCore.js", () => ({

@@ -22,7 +22,7 @@ function startToolCall(state) {
 }
 
 describe("openaiToClaudeResponse arg doubling guards (#2869)", () => {
-  it("replaces instead of appending when a provider streams cumulative args", () => {
+  it("preserves argument deltas literally instead of guessing cumulative snapshots from a shared prefix", () => {
     const state = createState();
     startToolCall(state);
 
@@ -45,7 +45,7 @@ describe("openaiToClaudeResponse arg doubling guards (#2869)", () => {
 
     const partials = getInputJsonDeltas(events);
     expect(partials).toHaveLength(1);
-    expect(JSON.parse(partials[0])).toEqual({ file_path: "F:/repo/file.js" });
+    expect(partials[0]).toBe(ARGS.slice(0, 10) + ARGS);
   });
 
   it("emits buffered args only once when finish_reason repeats on a trailing chunk", () => {

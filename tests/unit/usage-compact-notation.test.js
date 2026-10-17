@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmt, fmtCompact } from "@/shared/utils/format.js";
+import { fmt, fmtCompact, fmtCost } from "@/shared/utils/format.js";
 
 describe("compact notation for token counts (#3747)", () => {
   it("formats counts under 100k with standard locale formatting", () => {
@@ -18,5 +18,17 @@ describe("compact notation for token counts (#3747)", () => {
   it("handles null or undefined values gracefully", () => {
     expect(fmtCompact(null)).toBe("0");
     expect(fmtCompact(undefined)).toBe("0");
+  });
+});
+
+describe("usage cost formatting", () => {
+  it("distinguishes an unknown cost from a genuinely free request", () => {
+    expect(fmtCost(null)).toBe("Not specified");
+    expect(fmtCost(0)).toBe("$0.00");
+  });
+
+  it("preserves recorded numeric costs and legacy missing-cost behavior", () => {
+    expect(fmtCost(12.34)).toBe("$12.34");
+    expect(fmtCost(undefined)).toBe("$0.00");
   });
 });

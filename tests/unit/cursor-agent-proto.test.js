@@ -222,7 +222,7 @@ describe("Cursor AgentService executor helpers (cursor.js)", () => {
       })).toBe(true);
     });
 
-    it("rejects non-text (image) content", () => {
+    it("rejects an image block without a source", () => {
       expect(isAgentCapableRequest({ messages: [{ role: "user", content: [{ type: "image_url" }] }] })).toBe(false);
     });
 

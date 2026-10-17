@@ -11,6 +11,7 @@ export function toOpenAIFinish(reason, format) {
         case CLAUDE_STOP.MAX_TOKENS: return OPENAI_FINISH.LENGTH;
         case CLAUDE_STOP.TOOL_USE: return OPENAI_FINISH.TOOL_CALLS;
         case CLAUDE_STOP.STOP_SEQUENCE: return OPENAI_FINISH.STOP;
+        case CLAUDE_STOP.REFUSAL: return OPENAI_FINISH.CONTENT_FILTER;
         default: return OPENAI_FINISH.STOP;
       }
     case "commandcode":
@@ -55,7 +56,14 @@ export function fromOpenAIFinish(reason, format) {
         case OPENAI_FINISH.STOP: return CLAUDE_STOP.END_TURN;
         case OPENAI_FINISH.LENGTH: return CLAUDE_STOP.MAX_TOKENS;
         case OPENAI_FINISH.TOOL_CALLS: return CLAUDE_STOP.TOOL_USE;
+        case OPENAI_FINISH.CONTENT_FILTER: return CLAUDE_STOP.REFUSAL;
         default: return CLAUDE_STOP.END_TURN;
+      }
+    case "gemini":
+      switch (reason) {
+        case OPENAI_FINISH.LENGTH: return GEMINI_FINISH.MAX_TOKENS;
+        case OPENAI_FINISH.CONTENT_FILTER: return GEMINI_FINISH.SAFETY;
+        default: return GEMINI_FINISH.STOP;
       }
     default:
       return reason;

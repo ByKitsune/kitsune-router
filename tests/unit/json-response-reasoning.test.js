@@ -156,3 +156,19 @@ describe("forced Responses JSON reasoning parity with native JSON", () => {
     });
   }
 });
+
+describe("mapped image-tool names at the nonstream JSON boundary", () => {
+  it.each([FORMATS.OPENAI, FORMATS.CLAUDE])("returns the caller's original tool name to %s without failing the completed request", async (sourceFormat) => {
+    const mapped = { id: "png_call", type: "function", function: { name: "short_read_png", arguments: '{"path":"capture.png"}' } };
+    const result = await handleNonStreamingResponse({
+      ...context(sourceFormat, FORMATS.OPENAI, Response.json(completion({
+        role: "assistant", content: "Inspecting PNG.", tool_calls: [mapped],
+      }, "tool"))),
+      toolNameMap: new Map([["short_read_png", "read_png"]]),
+    });
+    expect(result.success).toBe(true);
+    const message = readClientMessage(await result.response.json(), sourceFormat);
+    expect(message.tools).toEqual([{ id: "png_call", type: "function", function: { name: "read_png", arguments: '{"path":"capture.png"}' } }]);
+    expect(message.text).toBe("Inspecting PNG.");
+  });
+});

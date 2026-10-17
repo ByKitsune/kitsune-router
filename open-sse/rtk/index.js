@@ -3,6 +3,7 @@
 import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
+import { TOOL_ERROR_PREFIX } from "../translator/schema/index.js";
 
 // Compress tool_result content in-place. Returns stats or null if disabled/failed.
 export function compressMessages(body, enabled) {
@@ -24,7 +25,7 @@ export function compressMessages(body, enabled) {
   try {
     for (let i = 0; i < items.length; i++) {
       const msg = items[i];
-      if (!msg) continue;
+      if (!msg || msg.is_error === true || msg.status === "error") continue;
 
       // Shape 4: OpenAI Responses — top-level { type:"function_call_output" | "custom_tool_call_output", output: string | [{type:"input_text", text}] }
       if (msg.type === "function_call_output" || msg.type === "custom_tool_call_output") {
@@ -64,7 +65,7 @@ export function compressMessages(body, enabled) {
       for (let j = 0; j < msg.content.length; j++) {
         const block = msg.content[j];
         if (!block || block.type !== "tool_result") continue;
-        if (block.is_error === true) continue; // preserve error traces
+        if (block.is_error === true || block.status === "error") continue; // preserve error traces
 
         if (typeof block.content === "string") {
           // Shape 2: claude string form
@@ -100,7 +101,7 @@ function compressKiroFormat(body, enabled) {
       if (!Array.isArray(toolResults)) continue;
 
       for (const tr of toolResults) {
-        if (tr.status === "error") continue; // preserve error traces
+        if (!tr || tr.is_error === true || tr.status === "error") continue; // preserve error traces
         if (!Array.isArray(tr.content)) continue;
 
         for (const part of tr.content) {
@@ -118,6 +119,7 @@ function compressKiroFormat(body, enabled) {
 }
 
 function compressText(text, stats, shape) {
+  if (text.startsWith(TOOL_ERROR_PREFIX)) return text;
   const bytesIn = text.length;
   stats.bytesBefore += bytesIn;
 

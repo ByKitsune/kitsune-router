@@ -14,6 +14,8 @@ import { readOutputTokenCap } from "../translator/formats/maxTokens.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { cleanJSONSchemaForAntigravity } from "../translator/formats/gemini.js";
+import { FORMATS } from "../translator/formats.js";
+import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
 import { sanitizeAntigravitySystemPrompt } from "../translator/request/openai-to-gemini.js";
 import { DEFAULT_THINKING_AG_SIGNATURE } from "../config/defaultThinkingSignature.js";
 import { isValidBase64 } from "../translator/concerns/thoughtSignature.js";
@@ -57,6 +59,7 @@ const ANTIGRAVITY_REQUEST_BLACKLIST = [
   "enable_thinking",
   "thinking_budget",
   "thinkingConfig",
+  "budget_tokens",
 ];
 
 // Strip blacklisted fields from an object (used for both body.request and top-level body)
@@ -418,6 +421,19 @@ export class AntigravityExecutor extends BaseExecutor {
       generationConfig.maxOutputTokens = Math.min(outputCap, MAX_ANTIGRAVITY_OUTPUT_TOKENS);
     }
 
+    const nativeThinking = generationConfig.thinkingConfig;
+    if (nativeThinking?.thinkingBudget === undefined && nativeThinking?.thinkingLevel === undefined) {
+      const thinkingIntent = captureThinking(body) || captureThinking(body.request);
+      if (thinkingIntent) {
+        const thinkingBody = { generationConfig: { ...generationConfig } };
+        applyThinking(FORMATS.ANTIGRAVITY, cleanModel, thinkingBody, this.provider, thinkingIntent);
+        // Keep this executor's output defaults and final budget/cap reconciliation.
+        if (thinkingBody.generationConfig.thinkingConfig) {
+          generationConfig.thinkingConfig = thinkingBody.generationConfig.thinkingConfig;
+        }
+      }
+    }
+
     // A normalized native config wins over compatibility effort fields. Levels
     // are qualitative; dynamic (-1) and disabled (0) are not positive budgets.
     const thinkingConfig = generationConfig.thinkingConfig;
@@ -461,10 +477,11 @@ export class AntigravityExecutor extends BaseExecutor {
       ...(tools?.length > 0 && { toolConfig: { functionCallingConfig: { mode: "VALIDATED" } } })
     };
 
-    // Strip blacklisted thinking fields from top-level body (set by thinkingUnified.js at root, not body.request)
-    stripBlacklisted(body);
+    // Strip outbound-only fields without erasing intent reused on retries/refresh.
+    const outboundBody = { ...body };
+    stripBlacklisted(outboundBody);
 
-    const cleanedBody = stripHarnessTelemetry(body);
+    const cleanedBody = stripHarnessTelemetry(outboundBody);
     const cleanedRequest = stripHarnessTelemetry(transformedRequest);
 
     this._lastSessionId = cleanedRequest.sessionId; // cached for buildHeaders (base.execute order)
@@ -585,7 +602,7 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 
   // Parse Antigravity 429/409/403 errors to extract precise resetsAtMs for quota-aware routing
-  parseError(response, bodyText) {
+  parseError(response, bodyText, generic) {
     if ((response.status === HTTP_STATUS.RATE_LIMITED || response.status === HTTP_STATUS.CONFLICT || response.status === HTTP_STATUS.FORBIDDEN) && bodyText) {
       try {
         let errorJson = null;
@@ -605,7 +622,7 @@ export class AntigravityExecutor extends BaseExecutor {
         }
       } catch { /* fall through to super */ }
     }
-    return super.parseError(response, bodyText);
+    return super.parseError(response, bodyText, generic);
   }
 
   // Hook called by BaseExecutor.tryRetry: derive delay from Retry-After (header → body),

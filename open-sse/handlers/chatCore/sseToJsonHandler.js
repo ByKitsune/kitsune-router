@@ -1,14 +1,18 @@
-import { outputBudgetError, openAICompletionToResponses } from "./jsonCompletionOutcome.js";
+import { outputBudgetError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 import { FORMATS } from "../../translator/formats.js";
-import { fromOpenAIFinish } from "../../translator/concerns/finishReason.js";
 import { PROVIDERS } from "../../config/providers.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { RESPONSES_ITEM } from "../../translator/schema/index.js";
-import { extractReasoningText } from "../../translator/concerns/reasoning.js";
+import { extractReasoningText, extractResponsesReasoningText } from "../../translator/concerns/reasoning.js";
 import { normalizeTypedContent } from "../../translator/concerns/typedContent.js";
+import { translateResponse, initState } from "../../translator/index.js";
+import { openaiResponsesObjectToCompletion } from "../../translator/response/openai-responses.js";
+import { extractResponseError } from "../../translator/concerns/responseError.js";
+import { decloakOpenAIChunk } from "../../utils/toolCompressor.js";
+import { decloakToolNames } from "../../utils/claudeCloaking.js";
 
 // Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
@@ -39,53 +43,13 @@ function pickAssistantMessageForChatCompletion(output) {
   return { msgItem: last, textContent: textFromResponsesMessageItem(last) };
 }
 
-function textFromResponsesReasoningItem(item) {
-  const parts = [];
-  for (const part of Array.isArray(item?.summary) ? item.summary : []) {
-    if (typeof part?.text === "string") parts.push(part.text);
-  }
-  if (typeof item?.content === "string") parts.push(item.content);
-  return parts.join("");
-}
 
-function openAICompletionToClaudeMessage(responseBody) {
-  const choice = responseBody?.choices?.[0];
-  if (!choice) return responseBody;
-  const message = choice.message || {};
-  const content = [];
-  const reasoning = extractReasoningText(message);
-  if (reasoning) {
-    content.push({ type: "thinking", thinking: reasoning });
-  }
-  if (typeof message.content === "string" && message.content.length > 0) {
-    content.push({ type: "text", text: message.content });
-  }
-  for (const toolCall of message.tool_calls || []) {
-    const fn = toolCall.function || {};
-    let input = {};
-    try { input = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || {}); } catch { /* preserve an empty valid input */ }
-    content.push({ type: "tool_use", id: toolCall.id || `toolu_${Date.now()}_${content.length}`, name: fn.name || "", input });
-  }
-  if (content.length === 0) content.push({ type: "text", text: "" });
-  const usage = responseBody.usage || {};
-  return {
-    id: String(responseBody.id || `msg_${Date.now()}`).replace(/^chatcmpl-/, ""),
-    type: "message",
-    role: "assistant",
-    model: responseBody.model || "unknown",
-    content,
-    stop_reason: fromOpenAIFinish(choice.finish_reason, FORMATS.CLAUDE),
-    stop_sequence: null,
-    usage: { input_tokens: usage.prompt_tokens || usage.input_tokens || 0, output_tokens: usage.completion_tokens || usage.output_tokens || 0 },
-  };
-}
-
-function responsesJsonToClaudeMessage(response) {
+export function responsesJsonToClaudeMessage(response) {
   const output = Array.isArray(response?.output) ? response.output : [];
   const content = [];
   for (const item of output) {
     if (item?.type === "reasoning") {
-      const text = textFromResponsesReasoningItem(item);
+      const text = extractResponsesReasoningText(item);
       if (text) content.push({ type: "thinking", thinking: text });
     } else if (item?.type === "message") {
       const text = textFromResponsesMessageItem(item);
@@ -95,7 +59,7 @@ function responsesJsonToClaudeMessage(response) {
       }
     } else if (item?.type === "function_call" || item?.type === "custom_tool_call") {
       let input = {};
-      try { input = item.arguments ? JSON.parse(item.arguments) : (item.input || {}); } catch { /* preserve an empty valid input */ }
+      try { input = item.type === "custom_tool_call" ? { input: item.input ?? "" } : item.arguments ? JSON.parse(item.arguments) : {}; } catch { /* preserve an empty valid input */ }
       content.push({ type: "tool_use", id: item.call_id || item.id || `toolu_${Date.now()}_${content.length}`, name: item.name || "", input });
     }
   }
@@ -107,18 +71,32 @@ function responsesJsonToClaudeMessage(response) {
     model: response.model || "unknown",
     content,
     stop_reason: response.status === "incomplete" && response.incomplete_details?.reason === "max_output_tokens"
-      ? "max_tokens" : content.some((item) => item.type === "tool_use") ? "tool_use" : "end_turn",
+      ? "max_tokens" : response.status === "incomplete" && response.incomplete_details?.reason === "content_filter"
+        ? "refusal" : content.some((item) => item.type === "tool_use") ? "tool_use" : "end_turn",
     stop_sequence: null,
     usage: { input_tokens: response.usage?.input_tokens || 0, output_tokens: response.usage?.output_tokens || 0 },
   };
 }
 
-/**
- * Parse OpenAI-style SSE text into a single chat completion JSON.
- * Used when provider forces streaming but client wants non-streaming.
- */
-export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
+export function createSSEAggregationState(targetFormat, sourceFormat, model) {
+  const gemini = [FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX];
+  return {
+    ...initState(FORMATS.OPENAI), model, targetFormat, sourceFormat: FORMATS.OPENAI,
+    collectNativeResponse: (targetFormat === FORMATS.CLAUDE && sourceFormat === FORMATS.CLAUDE) ||
+      (gemini.includes(targetFormat) && gemini.includes(sourceFormat)),
+  };
+}
+
+/** Aggregate registered provider response translators into one Chat completion. */
+export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = FORMATS.OPENAI, translationState = null) {
   const chunks = [];
+  const state = translationState || createSSEAggregationState(targetFormat, FORMATS.OPENAI, fallbackModel);
+  const appendChunk = (chunk) => {
+    if (chunk?.error) { streamError = chunk.error; return; }
+    const translated = targetFormat === FORMATS.OPENAI || Array.isArray(chunk?.choices)
+      ? [chunk] : translateResponse(targetFormat, FORMATS.OPENAI, chunk, state);
+    if (translated) chunks.push(...translated);
+  };
   let streamError = null;
 
   for (const line of String(rawSSE || "").split("\n")) {
@@ -126,11 +104,12 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
     if (!trimmed.startsWith("data:")) continue;
     const payload = trimmed.slice(5).trim();
     if (!payload || payload === "[DONE]") continue;
-    try {
-      const chunk = JSON.parse(payload);
-      if (chunk?.error) streamError = chunk.error;
-      else chunks.push(chunk);
-    } catch { /* ignore malformed lines */ }
+    let chunk;
+    try { chunk = JSON.parse(payload); } catch { continue; }
+    appendChunk(chunk);
+  }
+  if (targetFormat !== FORMATS.OPENAI) {
+    chunks.push(...translateResponse(targetFormat, FORMATS.OPENAI, null, state));
   }
 
   if (streamError) return { error: streamError };
@@ -140,6 +119,8 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   const contentParts = [];
   const reasoningParts = [];
   const refusalParts = [];
+  const reasoningDetails = [];
+  const images = [];
   const toolCallMap = new Map(); // index -> { id, type, function: { name, arguments } }
   let finishReason = "stop";
   let usage = null;
@@ -150,8 +131,11 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
     normalizeTypedContent(delta);
     if (typeof delta.content === "string" && delta.content.length > 0) contentParts.push(delta.content);
     if (typeof delta.refusal === "string") refusalParts.push(delta.refusal);
+    if (Array.isArray(delta.images)) images.push(...delta.images);
     const reasoningDelta = extractReasoningText(delta);
     if (typeof reasoningDelta === "string" && reasoningDelta.length > 0) reasoningParts.push(reasoningDelta);
+    const details = delta.reasoning_details ?? delta.provider_specific_fields?.reasoning_details;
+    if (Array.isArray(details)) reasoningDetails.push(...details);
     if (choice?.finish_reason) finishReason = choice.finish_reason;
     if (chunk?.usage && typeof chunk.usage === "object") usage = chunk.usage;
 
@@ -173,6 +157,8 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   const message = { role: "assistant", content: contentParts.join("") || (toolCallMap.size > 0 ? null : "") };
   if (refusalParts.length > 0) message.refusal = refusalParts.join("");
   if (reasoningParts.length > 0) message.reasoning_content = reasoningParts.join("");
+  if (reasoningDetails.length > 0) message.reasoning_details = reasoningDetails;
+  if (images.length > 0) message.images = images;
   if (toolCallMap.size > 0) {
     message.tool_calls = [...toolCallMap.entries()].sort((a, b) => a[0] - b[0]).map(([, tc]) => tc);
   }
@@ -192,12 +178,13 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
  * Handle case: provider forced streaming but client wants JSON.
  * Supports both Codex/Responses API SSE and standard Chat Completions SSE.
  */
-export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, customToolNames, trackDone, appendLog, reqTag, log }) {
+export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, toolNameMap, customToolNames, trackDone, appendLog, reqTag, log }) {
   const contentType = providerResponse.headers.get("content-type") || "";
   const isSSE = contentType.includes("text/event-stream") || (contentType === "" && isResponsesProvider(provider));
   if (!isSSE) return null; // not handled here
 
   trackDone();
+  customToolNames = new Set(Array.from(customToolNames || [], name => toolNameMap?.get(name) || name));
 
   const ctx = {
     provider, model, connectionId,
@@ -212,15 +199,16 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
   const isCodexResponsesApi = isResponsesProvider(provider) || targetFormat === FORMATS.OPENAI_RESPONSES;
   if (isCodexResponsesApi) {
     try {
-      const jsonResponse = await convertResponsesStreamToJson(providerResponse.body);
+      const jsonResponse = decloakOpenAIChunk(await convertResponsesStreamToJson(providerResponse.body), toolNameMap);
       const usage = jsonResponse.usage || {};
       const recordedUsage = extractUsageFromResponse(jsonResponse);
       saveUsageStats({ provider, model, tokens: recordedUsage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
+      const nativeFailure = extractResponseError(jsonResponse);
       const failure = outputBudgetError(jsonResponse, sourceFormat, body)
-        || ((jsonResponse.status === "failed" || jsonResponse.error) ? createErrorResult(
-          HTTP_STATUS.BAD_GATEWAY,
-          jsonResponse.error?.message || "Upstream Responses stream failed",
-          null, jsonResponse.error || {}
+        || (nativeFailure ? createErrorResult(
+          nativeFailure.status,
+          nativeFailure.error.message || "Upstream Responses stream failed",
+          null, nativeFailure.error
         ) : null);
       if (failure) {
         appendLog({ tokens: recordedUsage, status: `FAILED ${failure.response.status}` });
@@ -273,27 +261,11 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         : {};
       let finalResp;
 
-      // Extract tool calls from Responses API output (function_call items)
-      const funcCallItems = (jsonResponse.output || []).filter(item => item.type === "function_call");
-      const toolCalls = funcCallItems.map((item, idx) => ({
-        id: item.call_id || `call_${item.name}_${Date.now()}_${idx}`,
-        type: "function",
-        function: {
-          name: item.name,
-          arguments: typeof item.arguments === "string" ? item.arguments : JSON.stringify(item.arguments || {})
-        }
-      }));
+      const toolCalls = openaiResponsesObjectToCompletion(jsonResponse).choices[0].message.tool_calls || [];
       const hasToolCalls = toolCalls.length > 0;
 
-      if (sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI) {
-        finalResp = {
-          response: {
-            candidates: [{ content: { role: "model", parts: [{ text: textContent || "" }] }, finishReason: "STOP", index: 0 }],
-            usageMetadata: { promptTokenCount: inTokens, candidatesTokenCount: outTokens, totalTokenCount: inTokens + outTokens },
-            modelVersion: model,
-            responseId: jsonResponse.id || `resp_${Date.now()}`
-          }
-        };
+      if ([FORMATS.ANTIGRAVITY, FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX].includes(sourceFormat)) {
+        finalResp = openAICompletionToClient(openaiResponsesObjectToCompletion(jsonResponse), sourceFormat, customToolNames);
       } else {
         const message = { role: "assistant", content: textContent || (hasToolCalls ? null : "") };
         const refusal = (jsonResponse.output || []).flatMap(item => item.content || [])
@@ -303,7 +275,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         const reasoningParts = [];
         for (const item of jsonResponse.output || []) {
           if (item?.type === RESPONSES_ITEM.REASONING) {
-            const text = textFromResponsesReasoningItem(item);
+            const text = extractResponsesReasoningText(item);
             if (text) reasoningParts.push(text);
           }
         }
@@ -311,7 +283,8 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         if (hasToolCalls) message.tool_calls = toolCalls;
         const responseDone = jsonResponse.status === "completed" || jsonResponse.status === "done";
         const finishReason = jsonResponse.status === "incomplete" && jsonResponse.incomplete_details?.reason === "max_output_tokens"
-          ? "length" : hasToolCalls ? "tool_calls" : (responseDone ? "stop" : (jsonResponse.status || "stop"));
+          ? "length" : jsonResponse.status === "incomplete" && jsonResponse.incomplete_details?.reason === "content_filter"
+            ? "content_filter" : hasToolCalls ? "tool_calls" : (responseDone ? "stop" : (jsonResponse.status || "stop"));
         finalResp = {
           id: jsonResponse.id || `chatcmpl-${Date.now()}`,
           object: "chat.completion",
@@ -333,13 +306,13 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
   // Standard Chat Completions SSE path
   try {
     const sseText = await providerResponse.text();
-    const parsed = parseSSEToOpenAIResponse(sseText, model);
+    const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
+    aggregationState.toolNameMap = toolNameMap;
+    const parsed = decloakOpenAIChunk(parseSSEToOpenAIResponse(sseText, model, targetFormat, aggregationState), toolNameMap);
     if (!parsed) return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
-    if (parsed.error) {
-      return createErrorResult(
-        HTTP_STATUS.BAD_GATEWAY,
-        parsed.error.message || "Upstream SSE stream failed"
-      );
+    const failure = extractResponseError(parsed);
+    if (failure) {
+      return createErrorResult(failure.status, failure.error.message || "Upstream SSE stream failed", null, failure.error);
     }
 
     const usage = parsed.usage || {};
@@ -385,11 +358,9 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     // A Responses-format client (e.g. Codex) forced this provider to stream,
     // but wants JSON back. parseSSEToOpenAIResponse yields a Chat Completions
     // body; share the native JSON conversion so terminal semantics agree.
-    const finalBody = sourceFormat === FORMATS.OPENAI_RESPONSES
-      ? openAICompletionToResponses(parsed, customToolNames)
-      : sourceFormat === FORMATS.CLAUDE
-        ? openAICompletionToClaudeMessage(parsed)
-      : parsed;
+    const finalBody = aggregationState.nativeResponse
+      ? sourceFormat === FORMATS.CLAUDE ? decloakToolNames(aggregationState.nativeResponse, toolNameMap) : nativeGeminiResponseToClient(aggregationState.nativeResponse, sourceFormat)
+      : openAICompletionToClient(parsed, sourceFormat, customToolNames);
 
     return { success: true, response: new Response(JSON.stringify(finalBody), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
   } catch (err) {

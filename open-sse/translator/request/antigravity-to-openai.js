@@ -1,10 +1,10 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { adjustMaxTokens, requiresMaxCompletionTokens } from "../formats/maxTokens.js";
-import { encodeDataUri } from "../concerns/image.js";
+import { normalizeMediaPart } from "../concerns/multimodal.js";
+import { convertGeminiFunctionResponseContent, copyGeminiRequestControls, geminiSchemaToJSONSchema, collapseGeminiParts } from "../formats/gemini.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
 import { budgetToEffort } from "../concerns/thinking.js";
-import { collapseTextParts } from "../concerns/message.js";
 
 // Convert Antigravity request to OpenAI format
 // Antigravity body: { project, model, userAgent, requestType, requestId, request: { contents, systemInstruction, tools, toolConfig, generationConfig, sessionId } }
@@ -30,9 +30,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
     if (config.topP !== undefined) {
       result.top_p = config.topP;
     }
-    if (config.topK !== undefined) {
-      result.top_k = config.topK;
-    }
 
     // Thinking config → reasoning_effort
     if (config.thinkingConfig) {
@@ -40,6 +37,7 @@ export function antigravityToOpenAIRequest(model, body, stream) {
       if (effort) result.reasoning_effort = effort;
     }
   }
+  copyGeminiRequestControls(result, req);
 
   // System instruction
   if (req.systemInstruction) {
@@ -74,7 +72,7 @@ export function antigravityToOpenAIRequest(model, body, stream) {
             function: {
               name: func.name,
               description: func.description || "",
-              parameters: normalizeSchemaTypes(func.parameters) || { type: "object", properties: {} }
+              parameters: func.parametersJsonSchema ?? geminiSchemaToJSONSchema(func.parameters) ?? { type: "object", properties: {} }
             }
           });
         }
@@ -85,36 +83,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
   return result;
 }
 
-// Recursively convert Antigravity schema types (OBJECT, STRING, etc.) to lowercase
-// and strip unsupported fields like enumDescriptions
-function normalizeSchemaTypes(schema) {
-  if (!schema || typeof schema !== "object") return schema;
-
-  const result = Array.isArray(schema) ? [...schema] : { ...schema };
-
-
-  if (typeof result.type === "string") {
-    result.type = result.type.toLowerCase();
-  }
-
-  // Strip enumDescriptions — not supported by upstream APIs
-  delete result.enumDescriptions;
-
-
-  if (result.properties) {
-    const normalized = {};
-    for (const [key, val] of Object.entries(result.properties)) {
-      normalized[key] = normalizeSchemaTypes(val);
-    }
-    result.properties = normalized;
-  }
-
-  if (result.items) {
-    result.items = normalizeSchemaTypes(result.items);
-  }
-
-  return result;
-}
 
 // Convert Antigravity content to OpenAI message
 // Handles: text, thought, thoughtSignature, functionCall, functionResponse, inlineData
@@ -138,9 +106,10 @@ function convertContent(content) {
     }
 
     // Text with thoughtSignature = regular text after thinking
-    if (part.thoughtSignature && part.text !== undefined) {
+    const textSignature = part.thoughtSignature ?? part.thought_signature;
+    if (typeof textSignature === "string" && part.text !== undefined) {
       if (part.text) {
-        textParts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
+        textParts.push({ type: OPENAI_BLOCK.TEXT, text: part.text, extra_content: { google: { thought_signature: textSignature } } });
       }
       continue;
     }
@@ -150,14 +119,10 @@ function convertContent(content) {
       textParts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
     }
 
-    // Inline data (images)
-    if (part.inlineData) {
-      textParts.push({
-        type: OPENAI_BLOCK.IMAGE_URL,
-        image_url: {
-          url: encodeDataUri(part.inlineData.mimeType, part.inlineData.data)
-        }
-      });
+    const media = normalizeMediaPart(part);
+    if (media) {
+      const signature = part.thoughtSignature ?? part.thought_signature;
+      textParts.push(typeof signature === "string" ? { ...media, extra_content: { google: { thought_signature: signature } } } : media);
     }
 
     // Function call
@@ -178,18 +143,19 @@ function convertContent(content) {
       toolResults.push({
         role: ROLE.TOOL,
         tool_call_id: part.functionResponse.id || `call_${part.functionResponse.name}`,
-        content: JSON.stringify(part.functionResponse.response?.result || part.functionResponse.response || {})
+        content: convertGeminiFunctionResponseContent(part.functionResponse),
+        ...(Object.hasOwn(part.functionResponse.response || {}, "error") ? { is_error: part.functionResponse.response.error != null && part.functionResponse.response.error !== false } : {})
       });
     }
   }
 
   // Content with functionResponses — return array of tool result messages,
-  // plus an assistant message for any co-located tool calls / text.
+  // plus a source-role message for any co-located tool calls / text.
   if (toolResults.length > 0) {
     if (toolCalls.length > 0 || textParts.length > 0 || reasoningContent) {
-      const assistantMsg = { role: ROLE.ASSISTANT };
+      const assistantMsg = { role: toolCalls.length ? ROLE.ASSISTANT : role };
       if (textParts.length > 0) {
-        assistantMsg.content = collapseTextParts(textParts);
+        assistantMsg.content = collapseGeminiParts(textParts);
       }
       if (reasoningContent) {
         assistantMsg.reasoning_content = reasoningContent;
@@ -206,7 +172,7 @@ function convertContent(content) {
   if (toolCalls.length > 0) {
     const msg = { role: ROLE.ASSISTANT };
     if (textParts.length > 0) {
-      msg.content = collapseTextParts(textParts);
+      msg.content = collapseGeminiParts(textParts);
     }
     if (reasoningContent) {
       msg.reasoning_content = reasoningContent;
@@ -219,7 +185,7 @@ function convertContent(content) {
   if (textParts.length > 0 || reasoningContent) {
     const msg = { role };
     if (textParts.length > 0) {
-      msg.content = collapseTextParts(textParts);
+      msg.content = collapseGeminiParts(textParts);
     }
     if (reasoningContent) {
       msg.reasoning_content = reasoningContent;

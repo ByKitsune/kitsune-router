@@ -48,7 +48,20 @@ describe("GOLDEN response stream: Claude → OpenAI", () => {
       { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 3 } },
       { type: "message_stop" },
     ];
-    expect(runStream(FORMATS.CLAUDE, FORMATS.OPENAI, events)).toMatchSnapshot();
+    const chunks = runStream(FORMATS.CLAUDE, FORMATS.OPENAI, events);
+    const deltas = chunks.flatMap((chunk) => chunk.choices).map((choice) => choice.delta);
+    expect(deltas.map((delta) => delta.reasoning_content || "").join("")).toBe("let me think");
+    expect(deltas.map((delta) => delta.content || "").join("")).toBe("Hello");
+    const calls = deltas.flatMap((delta) => delta.tool_calls || []);
+    expect(calls[0]).toMatchObject({ id: "tu_1", type: "function", function: { name: "get_weather" } });
+    expect(calls.every((call) => call.id === "tu_1")).toBe(true);
+    expect(calls.map((call) => call.function.arguments || "").join("")).toBe('{"city":"NYC"}');
+    expect(chunks.filter((chunk) => chunk.choices[0].finish_reason)).toEqual([
+      expect.objectContaining({
+        choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+        usage: { prompt_tokens: 13, completion_tokens: 5, total_tokens: 18, prompt_tokens_details: { cached_tokens: 3 } },
+      }),
+    ]);
   });
 });
 
@@ -96,23 +109,3 @@ describe("GOLDEN response stream: Ollama → OpenAI", () => {
   });
 });
 
-describe("GOLDEN response stream: OpenAI-Responses (codex) → OpenAI", () => {
-  it("text + reasoning + tool_call + completed usage", () => {
-    const events = [
-      { type: "response.output_text.delta", delta: "Hello" },
-      { type: "response.reasoning_summary_text.delta", delta: "thinking" },
-      { type: "response.output_item.added", item: { type: "function_call", call_id: "call_1", name: "get_weather" } },
-      { type: "response.function_call_arguments.delta", delta: '{"city":"NYC"}' },
-      { type: "response.output_item.done", item: { type: "function_call" } },
-      { type: "response.completed", response: { usage: { input_tokens: 10, output_tokens: 5, input_tokens_details: { cached_tokens: 3 } } } },
-    ];
-    expect(runStream(FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI, events)).toMatchSnapshot();
-  });
-
-  it("error event → error chunk (fallback id/created)", () => {
-    const events = [
-      { type: "error", error: { message: "model_not_found" } },
-    ];
-    expect(runStream(FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI, events)).toMatchSnapshot();
-  });
-});

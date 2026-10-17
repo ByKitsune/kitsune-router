@@ -5,6 +5,7 @@ import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
+import { parseUpstreamErrorBody } from "../utils/error.js";
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -94,8 +95,9 @@ export class BaseExecutor {
     return shouldRefreshCredentials(this.provider, credentials);
   }
 
-  parseError(response, bodyText) {
-    return { status: response.status, message: bodyText || `HTTP ${response.status}` };
+  parseError(response, bodyText, generic = null) {
+    const parsed = generic || parseUpstreamErrorBody(response, bodyText);
+    return { status: response.status, ...parsed, message: parsed.message || `HTTP ${response.status}` };
   }
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
