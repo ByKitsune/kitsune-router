@@ -1,6 +1,6 @@
 import { platform, arch, hostname } from "os";
 import { PROVIDERS, PROVIDER_OAUTH } from "./providers.js";
-import { ANTIGRAVITY_IDE_USER_AGENT } from "../providers/shared.js";
+import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_CLI_USER_AGENT } from "../providers/shared.js";
 import { createRequire } from "module";
 import { GEMINI_AUTH_USER_AGENT, COPILOT_TOKEN_API_VERSION } from "./clientVersions.js";
 
@@ -133,7 +133,7 @@ export const AG_DEFAULT_TOOLS = new Set([
 
 // Antigravity chat/stream headers
 export const ANTIGRAVITY_HEADERS = {
-  "User-Agent": ANTIGRAVITY_IDE_USER_AGENT
+  "User-Agent": ANTIGRAVITY_CLI_USER_AGENT
 };
 
 // Cloud Code Assist API endpoints differ by client ecosystem.
@@ -158,11 +158,11 @@ export const LOAD_CODE_ASSIST_HEADERS = {
   "Client-Metadata": JSON.stringify({ ideType: IDE_TYPE.ANTIGRAVITY, platform: getPlatformEnum(), pluginType: PLUGIN_TYPE.GEMINI }),
 };
 
-// Real Antigravity IDE doesn't send X-Goog-Api-Client/Client-Metadata on loadCodeAssist/onboardUser —
-// Google's backend fingerprints those and silently refuses to provision a cloudaicompanionProject.
+// Native Antigravity calls use the CLI identity without mixing in Gemini CLI's
+// SDK headers. Actual IDE passthrough retains its own identity in the MITM layer.
 export const ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS = {
   "Content-Type": "application/json",
-  "User-Agent": ANTIGRAVITY_IDE_USER_AGENT,
+  "User-Agent": ANTIGRAVITY_CLI_USER_AGENT,
 };
 
 export const LOAD_CODE_ASSIST_METADATA = {

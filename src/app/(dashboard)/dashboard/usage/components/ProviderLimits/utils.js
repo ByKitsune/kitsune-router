@@ -433,13 +433,24 @@ export function parseQuotaData(provider, data) {
       case "antigravity":
         if (data.quotas) {
           Object.entries(data.quotas).forEach(([modelKey, quota]) => {
+            if (!quota || typeof quota !== "object") return;
+            const percentage = quota.remainingPercentage;
+            const hasPercentage = typeof percentage === "number" && Number.isFinite(percentage)
+              && percentage >= 0 && percentage <= 100;
+            const hasUsage = typeof quota.used === "number" && Number.isFinite(quota.used) && quota.used >= 0
+              && typeof quota.total === "number" && Number.isFinite(quota.total) && quota.total > 0;
+            if (!hasPercentage && !hasUsage) return;
+            // The API normalizes fractions to a 1000-point percentage scale;
+            // absent/invalid readings are unknown, never unlimited or exhausted.
+            const total = hasUsage ? quota.total : 1000;
+            const used = hasUsage ? quota.used : total - Math.round(total * percentage / 100);
             normalizedQuotas.push({
               name: quota.displayName || modelKey,
-              modelKey: modelKey, // Keep modelKey for sorting
-              used: quota.used || 0,
-              total: quota.total || 0,
+              modelKey,
+              used,
+              total,
               resetAt: quota.resetAt || null,
-              remainingPercentage: quota.remainingPercentage,
+              remainingPercentage: hasPercentage ? percentage : undefined,
             });
           });
         }

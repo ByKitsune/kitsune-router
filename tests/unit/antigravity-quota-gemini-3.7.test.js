@@ -34,7 +34,7 @@ vi.mock("../../open-sse/utils/proxyFetch.js", () => ({
 }));
 
 describe("Antigravity quota tracker: Gemini 3.7 Flash usage bars", () => {
-  beforeEach(() => proxyAwareFetch.mockClear());
+  beforeEach(() => { proxyAwareFetch.mockClear(); });
 
   it("returns Gemini 3.7 Flash tier quotas so the dashboard can render usage bars", async () => {
     const { getAntigravityUsage } = await import("../../open-sse/services/usage/google.js");

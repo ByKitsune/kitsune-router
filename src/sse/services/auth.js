@@ -5,7 +5,7 @@ import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { setBounded, CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
-import { getAntigravityQuotaCache } from "./antigravityQuota.js";
+import { getAntigravityModelQuota, getAntigravityQuotaCache } from "./antigravityQuota.js";
 import { getClaudeUsage } from "open-sse/services/usage/claude.js";
 import { getCodexUsage } from "open-sse/services/usage/codex.js";
 import {
@@ -145,7 +145,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       if (isModelLockActive(c, model)) return false;
       // Antigravity: skip if live quota exhausted for this model
       if (isAntigravity && model && antigravityQuotaCache) {
-        const quota = antigravityQuotaCache.get(c.id)?.[model];
+        const quota = getAntigravityModelQuota(antigravityQuotaCache.get(c.id), model);
         if (quota && quota.remainingPercentage <= 0 && quota.resetAt && new Date(quota.resetAt).getTime() > Date.now()) {
           const account = c.id?.slice(0, 8) || "unknown";
           log.info("AG_QUOTA", `${account} | CACHE_BLOCK ${model} — skip upstream until ${quota.resetAt}`);
@@ -171,8 +171,8 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       const expiries = lockedConns.map(c => getEarliestModelLockUntil(c)).filter(Boolean);
       if (isAntigravity && model && antigravityQuotaCache) {
         connections.forEach((c) => {
-          const resetAt = antigravityQuotaCache.get(c.id)?.[model]?.resetAt;
-          if (resetAt && new Date(resetAt).getTime() > Date.now()) expiries.push(resetAt);
+          const quota = getAntigravityModelQuota(antigravityQuotaCache.get(c.id), model);
+          if (quota?.remainingPercentage === 0 && quota.resetAt && new Date(quota.resetAt).getTime() > Date.now()) expiries.push(quota.resetAt);
         });
       }
       const earliest = expiries.sort()[0] || null;

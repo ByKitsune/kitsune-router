@@ -32,7 +32,6 @@ describe("October registry metadata reaches effective consumers", () => {
     });
     expect(model).not.toHaveProperty("max_input_tokens");
     expect(PROVIDER_MODELS.gc.some(m => m.id === "gemini-4-argon")).toBe(false);
-    expect(PROVIDER_MODELS.ag.some(m => m.id === "gemini-4-argon")).toBe(false);
   });
 
   it("advertises native Haiku 5.5 with adaptive thinking and independent unknown input", async () => {

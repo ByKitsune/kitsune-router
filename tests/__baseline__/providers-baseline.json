@@ -31,7 +31,7 @@
     ],
     "format": "antigravity",
     "headers": {
-      "User-Agent": "antigravity/ide/2.5.5 linux/x64"
+      "User-Agent": "antigravity/cli/1.4.0"
     },
     "retry": {
       "429": {

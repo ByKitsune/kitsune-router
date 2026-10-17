@@ -46,7 +46,7 @@ export async function GET() {
         ...reviewedBase,
         ...(custom?.contextWindow ? { contextWindow: custom.contextWindow } : {}),
         ...(custom?.maxOutput ? { maxOutput: custom.maxOutput } : {}),
-      }, custom?.caps);
+      }, custom?.caps, providerId, m.model);
       const metadata = getReviewedModelMetadata(providerId, m.model);
       models.push({
         ...m,

@@ -22,7 +22,7 @@ import {
   CODEX_USER_AGENT,
   GEMINI_AUTH_USER_AGENT,
   GEMINI_CLI_API_CLIENT,
-  ANTIGRAVITY_IDE_USER_AGENT,
+  ANTIGRAVITY_CLI_USER_AGENT,
   KIMCHI_USER_AGENT,
   KIRO_CLI_USER_AGENT,
   GROK_CLI_USER_AGENT,
@@ -206,7 +206,7 @@ function parseProviderErrorMessage(bodyText, fallback) {
 
 async function probeCloudCodeAssistAccess(connection, accessToken, effectiveProxy = null) {
   const userAgent = connection.provider === "antigravity"
-    ? ANTIGRAVITY_IDE_USER_AGENT
+    ? ANTIGRAVITY_CLI_USER_AGENT
     : GEMINI_AUTH_USER_AGENT;
 
   const res = await fetchWithConnectionProxy(CLOUD_CODE_ASSIST_TEST_URL, {

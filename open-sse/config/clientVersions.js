@@ -14,9 +14,9 @@
 //   https://registry.npmjs.org/@openai/codex/latest (0.160.0, 2026-10-01)
 //   https://registry.npmjs.org/@google/gemini-cli/latest (0.62.0, 2026-09-29);
 //     v0.62.0/packages/core/package.json pins @google/genai exactly 1.30.0.
-//   https://antigravity.google/docs/changelog.md: IDE 2.5.5 (2026-08-13),
-//     CLI 1.2.14 (2026-09-30), Hub 2.19.1 (2026-09-30). Distinct surfaces:
-//     the previous IDE 2.14.0 incorrectly came from the Hub release line.
+//   https://antigravity.google/docs/changelog.md: native CLI 1.4.0
+//     (2026-10-16; rechecked 2026-10-17), App 2.24.0, IDE 2.5.5.
+//     These are separate surfaces; an App/Hub release is not an IDE version.
 //   https://update.code.visualstudio.com/api/update/win32-x64-user/stable/latest:
 //     VS Code 1.140.0; tagged extensions/copilot/package.json is 0.68.0.
 //   https://kiro.dev/changelog/ide/1-2 (IDE 1.2.4) and /cli/2-27 (CLI 2.27.0).
@@ -117,8 +117,8 @@ export const CURSOR_VERSION = "3.22.12";
 export const CURSOR_CONNECT_ES_VERSION = "1.6.1";
 
 // ─── Antigravity ───────────────────────────────────────────────────────
-// IDE 2.5.5 (2026-08-13), separate from Hub 2.19.1 and CLI 1.2.14.
-// Only the IDE wire profile is used here; do not substitute the Hub/CLI version.
+// Keep the IDE identity separate for optional MITM compatibility overrides.
+// Native gateway calls use the CLI surface; Argon is not offered on the IDE.
 export const ANTIGRAVITY_IDE_VERSION = "2.5.5";
 export const ANTIGRAVITY_IDE_USER_AGENT = (() => {
   // Match the gateway host's platform; this is not a fixed captured macOS UA.
@@ -131,6 +131,10 @@ export const ANTIGRAVITY_IDE_USER_AGENT = (() => {
       : (a === "arm64" ? "linux/arm64" : "linux/x64");
   return `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} ${osToken}`;
 })();
+
+// Minimal CLI identity avoids inventing a captured host/build fingerprint.
+export const ANTIGRAVITY_CLI_VERSION = "1.4.0";
+export const ANTIGRAVITY_CLI_USER_AGENT = `antigravity/cli/${ANTIGRAVITY_CLI_VERSION}`;
 
 // Antigravity MITM override is now opt-in. Default OFF — upstream
 // 2.x rejects the legacy 1.x fingerprint and forcing it breaks

@@ -1,8 +1,6 @@
 // Guards D3: antigravity 429/503 retry merged into base via computeRetryDelay hook.
 import { describe, it, expect } from "vitest";
-import { ANTIGRAVITY_IDE_USER_AGENT } from "../../open-sse/config/clientVersions.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
-import antigravity from "../../open-sse/providers/registry/antigravity.js";
 
 const MAX = 10000;
 function res(status, headers = {}, body = null) {
@@ -68,23 +66,7 @@ describe("antigravity computeRetryDelay hook (D3)", () => {
     expect(out.request.tools[0].functionDeclarations.map(fn => fn.name)).toEqual(["read_file"]);
   });
 
-  it("registry uses the daily IDE cloudcode host and user agent", () => {
-    expect(antigravity.transport.baseUrls[0]).toBe("https://daily-cloudcode-pa.googleapis.com");
-    expect(antigravity.transport.headers["User-Agent"]).toBe(ANTIGRAVITY_IDE_USER_AGENT);
-  });
-
-  it("buildHeaders matches official IDE stream headers", () => {
-    ag._lastSessionId = "sess-123";
-    const h = ag.buildHeaders({ accessToken: "tok" }, true);
-    expect(h["User-Agent"]).toBe(ANTIGRAVITY_IDE_USER_AGENT);
-    expect(h["Content-Type"]).toBe("application/json");
-    expect(h["Authorization"]).toBe("Bearer tok");
-    expect(h).not.toHaveProperty("X-Machine-Session-Id");
-    expect(h).not.toHaveProperty("x-request-source");
-    expect(h).not.toHaveProperty("Accept");
-  });
-
-  it("transforms chat requests with official IDE requestId shape and 64000 token cap", () => {
+  it("caps oversized output while retaining native request correlation", () => {
     const out = ag.transformRequest("claude-opus-4-6-thinking", {
       request: {
         contents: [

@@ -55,6 +55,9 @@ const targets = [
   { name: "Gemini CLI", format: FORMATS.GEMINI_CLI, model: "gemini-2.5-flash" },
   { name: "Antigravity Gemini", format: FORMATS.ANTIGRAVITY, model: "gemini-2.5-flash" },
   { name: "Antigravity Claude", format: FORMATS.ANTIGRAVITY, model: "claude-sonnet-4-6" },
+  { name: "Gemini 4 API", format: FORMATS.GEMINI, model: "gemini-4-argon", functionResponsesLast: true },
+  { name: "Gemini 4 CLI", format: FORMATS.GEMINI_CLI, model: "gemini-4-argon", functionResponsesLast: true },
+  { name: "Antigravity Gemini 4", format: FORMATS.ANTIGRAVITY, model: "gemini-4-argon-high", functionResponsesLast: true },
 ];
 const sources = [
   { name: "Gemini", convert: geminiToOpenAIRequest, wrap: (request) => request },
@@ -171,6 +174,12 @@ describe.each(targets)("$name typed tool-result history", (target) => {
     const before = structuredClone(body);
     const first = wire(target, body);
     expectHistory(first);
+    if (target.functionResponsesLast) {
+      for (const turn of first.contents.filter((content) => content.parts.some((part) => part.functionResponse))) {
+        const firstResponse = turn.parts.findIndex((part) => part.functionResponse);
+        expect(turn.parts.slice(firstResponse).every((part) => part.functionResponse), "responses follow every text/media Part").toBe(true);
+      }
+    }
     expect(JSON.stringify(body) === JSON.stringify(before), "caller-owned history remains unchanged").toBe(true);
     expect(JSON.stringify(wire(target, body).contents) === JSON.stringify(first.contents), "retries serialize identical history").toBe(true);
   });

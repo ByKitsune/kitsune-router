@@ -37,7 +37,9 @@ import { normalizeToolSchemasForProvider } from "../utils/toolSchemaCompatibilit
 import { parseTimeMs } from "../services/oauthCredentialManager.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { cloneRequestBody } from "../utils/requestBody.js";
-import { normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
+import { normalizeGeminiContents, normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
+import { isGemini4Model } from "../config/models.js";
+import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -186,6 +188,14 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Expose raw client headers to translators/executors for session-id resolution
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
 
+  try {
+    validateSupportedParams(provider, upstreamModel, body, targetFormat);
+  } catch (error) {
+    const invalidRequest = requestParameterError(error);
+    if (invalidRequest) return invalidRequest;
+    throw error;
+  }
+
   // Legacy tool arrays must become typed media even on native Google passthrough.
   if (GOOGLE_WIRE_FORMATS.has(sourceFormat)) normalizeGeminiToolResultMedia(body);
 
@@ -194,7 +204,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (!passthrough) {
     const capabilityModel = stripThinkingSuffix(model);
     const declared = await getDeclaredModelCaps(provider, capabilityModel);
-    capabilities = withDeclaredCapabilities(getCapabilitiesForModel(provider, capabilityModel), declared);
+    capabilities = withDeclaredCapabilities(getCapabilitiesForModel(provider, capabilityModel), declared, provider, capabilityModel);
     if (stripUnsupportedModalities(body, sourceFormat, capabilities)) {
       log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
     }
@@ -263,6 +273,15 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     delete translatedBody._customToolNames;
     translatedBody.model = stripThinkingSuffix(upstreamModel);
     stripContinuityFields(translatedBody);
+  }
+
+  // Same-format and native passthrough bypass the request translators. Normalize
+  // their actual outbound Parts too, without inventing a native tool result.
+  if (GOOGLE_WIRE_FORMATS.has(targetFormat) && isGemini4Model(upstreamModel)) {
+    const request = translatedBody.request || translatedBody;
+    if (Array.isArray(request.contents)) {
+      request.contents = normalizeGeminiContents(request.contents, upstreamModel, { ensureUserTurns: false });
+    }
   }
 
   // Tool normalization: MCP-equivalent built-in dedup (Claude clients) + same-name

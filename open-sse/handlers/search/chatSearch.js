@@ -4,7 +4,7 @@
  * minimax, perplexity.
  */
 import { PROVIDER_MEDIA } from "../../providers/index.js";
-import { ANTIGRAVITY_IDE_USER_AGENT } from "../../providers/shared.js";
+import { ANTIGRAVITY_CLI_USER_AGENT } from "../../providers/shared.js";
 import { getModelUpstreamId } from "../../config/providerModels.js";
 import { applyThinking, stripThinkingSuffix } from "../../translator/concerns/thinkingUnified.js";
 import { randomUUID } from "node:crypto";
@@ -132,7 +132,7 @@ const CHAT_SEARCH_CONFIG = {
     buildHeaders: (token) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
-      "User-Agent": ANTIGRAVITY_IDE_USER_AGENT
+      "User-Agent": ANTIGRAVITY_CLI_USER_AGENT
     }),
     extractAnswer: (data) => {
       // Antigravity wraps the Gemini payload in { response: {...} }

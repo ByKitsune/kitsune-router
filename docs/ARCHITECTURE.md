@@ -1,6 +1,6 @@
 # ZenRouter Architecture
 
-_Last updated: 2026-02-06_
+_Last updated: 2026-10-17_
 
 ## Executive Summary
 
@@ -146,6 +146,17 @@ Cursor chat execution uses the bidirectional HTTP/2 `agent.v1.AgentService/Run` 
 
 Field numbers/types are pinned to the generated descriptors in the [official Cursor CLI `2026.10.16-e3cb207`](https://downloads.cursor.com/lab/2026.10.16-e3cb207/linux/x64/agent-cli-package.tar.gz), archive SHA-256 `3aa3f48cd7a3909a98c9b3f2a4085f0c021088bf826690b22c61f424c843e552`. [Official `@cursor/sdk@1.0.7`](https://registry.npmjs.org/@cursor/sdk/1.0.7) independently corroborates current-image/MCP-image fields, but predates the history fields used here. Offline regressions use an independent wire reader, pinned synthetic server frames and a real loopback HTTP/2 stream. These private-protocol source and loopback contracts do not establish live-provider acceptance, image understanding, model entitlement or a provider SLA.
 
+### Antigravity native Argon routing and quota
+
+Native Argon base/high/medium/low definitions and the effective output ceiling live in `open-sse/config/antigravity.js`. The base wire ID deliberately has no thinking preset: an explicit API thinking request must not be replaced by a default medium suffix. Named tiers retain their explicit level.
+
+Reviewed metadata distinguishes the unified 1,048,576-token context from this gateway's 65,536-token output ceiling. Continuation decode is not implemented. The independent input ceiling and per-token Antigravity subscription rates remain unknown; protected operator declarations may supply an input cap or tariff, but cannot raise the gateway's output ceiling.
+
+`getAntigravityUsage` combines per-model quota with real `retrieveUserQuotaSummary` windows. Argon bucket hints take precedence over generic Gemini group labels. Session windows exist only when supplied by upstream; the 1000-point UI normalization represents a percentage, not a token allowance.
+
+The account prefilter and quota-error handler share an exact-model/tier plus family selector. Any applicable future exhaustion wins, using the latest exhausted reset. Partial refresh cannot erase a known future zero-reset deadline; expired or unusable zero readings cannot suppress fresh strike counting. Alias/wire-name success clears only equivalent synthesized blocks and partial strikes, retaining genuine exhaustion and unrelated tiers.
+
+
 ## 3) Persistence Layer
 
 Primary state DB — **SQLite** under `src/lib/db/` with an adapter fallback
@@ -191,6 +202,8 @@ Usage and request logs use the same SQLite layer:
 ### Client release and protocol identities
 
 `open-sse/config/clientVersions.js` records publisher-verified app releases separately from SDK/runtime and signed protocol pins. A published app version does not verify its bundled SDK or wire profile. Retain unverified SDK/runtime pins rather than replacing them with public SDK latest. Antigravity IDE, CLI, and Hub are separate release lines.
+
+Native Antigravity gateway requests use the separate minimal `antigravity/cli/1.4.0` profile for transport, usage, project discovery and probes. The real IDE profile remains independent for opt-in MITM compatibility; actual IDE passthrough is not forcibly relabeled. Client identity does not grant model entitlement. Argon availability remains subject to eligible paid Pro, Ultra or Enterprise access on the supported App/CLI/extension surface.
 
 OpenCode native session and parent-session aliases use one canonical request-local identity. Devin initializes ACP with integer major version `1` and `clientCapabilities`; incompatible peers terminate through the subprocess cleanup path.
 
@@ -575,6 +588,8 @@ Translations are selected dynamically based on source payload shape and provider
 - Google image signatures remain opaque metadata on their corresponding typed image blocks (`extra_content.google.thought_signature`) and replay as the same native image Part's `thoughtSignature`. Signed text Parts retain their separate signatures on native Google pivots; ordinary Chat answer content is not changed into arrays for continuity transport. Vertex replaces only gateway-synthetic defaults, never an original opaque signature. Foreign protocols without native Google continuity do not acquire fabricated signature fields.
 - On Core's owned request containers, recognized legacy media arrays in Gemini function results are normalized once into adjacent native Content media parts, including same-format/passthrough requests. Existing caller-native FunctionResponse.parts stay unchanged; newly created nested multimedia responses are not assumed supported on older models. Legitimate repeated images, parallel IDs, errors and sibling metadata survive; ordinary Structs and literal JSON/base64 prose are not scanned or parsed as images.
 - Unsupported vendor-only controls are not fabricated: Responses has no seed/stop controls, Claude has no seed or general JSON-object switch, and Gemini has no parallel-disable switch. Legacy Claude JSON-object mode remains prompt-only, not a native schema guarantee. Newer Claude models reject sampling controls accepted by older models; Gemini 3.6 Flash and newer ignore top-p/top-k. Preserve provider/model restrictions rather than claiming universal losslessness.
+- Gemini 4 documents `temperature`, `top_p` and `top_k` as ignored. Native Google routes return local HTTP 400 `unsupported_parameter` when the client explicitly supplies them, retaining the source parameter path instead of silently discarding intent. Other generation controls and unverified reseller routes retain their own contracts.
+- Gemini 4 user Content keeps `functionResponse` Parts last after same-role merging, including native and already-merged histories. Stable ordering preserves relative media/text/opaque and parallel-response order. Pending native or translated tool calls do not acquire fabricated success responses; older model compatibility guards remain unchanged.
 
 Primary contracts: [OpenAI Chat](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [OpenAI Responses](https://developers.openai.com/api/reference/resources/responses/methods/create), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create), [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Gemini generation](https://ai.google.dev/api/generate-content), [Gemini function controls](https://ai.google.dev/api/caching#FunctionCallingConfig), [Gemini signature replay](https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures.md.txt), and [Vertex v1 discovery](https://aiplatform.googleapis.com/$discovery/rest?version=v1).
 

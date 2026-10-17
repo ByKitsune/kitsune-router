@@ -1,8 +1,11 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { PROVIDERS } from "../../providers/index.js";
+import { canonicalizeProviderId } from "../../providers/identity.js";
+import { isGemini4Model } from "../../config/models.js";
+import { FORMATS } from "../formats.js";
 
-// Strip request params a given provider/model rejects upstream (e.g. HTTP 400).
-// Config-driven: add a rule instead of scattering `delete body.x` across executors.
+// Model-specific request controls. Legacy strip rules retain their behavior;
+// verified unsupported intent can be rejected explicitly before translation.
 
 // OpenAI Chat Completions extension params that strict OpenAI-compatible endpoints
 // reject as unknown fields — e.g. Groq 400 "property 'prompt_cache_key' is unsupported",
@@ -14,9 +17,20 @@ const CHAT_EXTENSION_PARAMS = [
   { key: "prompt_cache_key", preserveQuirk: "preservePromptCacheKey" },
 ];
 
-// Each rule: optional provider, regex match on model, list of params to drop.
-// A param is removed only when it is present (!== undefined).
+const NATIVE_GOOGLE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
+const GEMINI4_SAMPLING_PATHS = [
+  ["temperature"], ["top_p"], ["top_k"],
+  ["generationConfig", "temperature"], ["generationConfig", "topP"], ["generationConfig", "topK"],
+  ["request", "temperature"], ["request", "top_p"], ["request", "top_k"],
+  ["request", "generationConfig", "temperature"], ["request", "generationConfig", "topP"], ["request", "generationConfig", "topK"],
+];
+
+// Each rule matches a provider/model and declares stripping or rejection.
+// Rejection treats null/undefined as unset; legacy stripping is unchanged.
 const STRIP_RULES = [
+  // https://ai.google.dev/gemini-api/docs/latest-model: Gemini 4 ignores these
+  // controls. Return an error rather than silently discard supplied intent.
+  { match: isGemini4Model, checkProvider: provider => NATIVE_GOOGLE_FORMATS.has(provider), checkFormat: format => NATIVE_GOOGLE_FORMATS.has(format), reject: GEMINI4_SAMPLING_PATHS },
   // Legacy Claude models accept sampling controls; newer generations reject
   // them. Keep the restriction on those models rather than all Claude wires.
   { match: /claude-(?:(?:opus|sonnet|haiku)-(?:4[.-][7-9]|[5-9])|(?:fable|mythos)-)/i, drop: ["temperature", "top_p", "top_k"] },
@@ -60,6 +74,31 @@ function matches(rule, model) {
   return typeof rule.match === "function" ? rule.match(model) : rule.match.test(model);
 }
 
+// Check the source body before translation can rename or lose a control. Keep
+// the client's original parameter path in the existing request-error contract.
+export function validateSupportedParams(provider, model, body, targetFormat = null) {
+  if (!model || !body || typeof body !== "object") return;
+  const nativeProvider = canonicalizeProviderId(provider || targetFormat);
+  const format = targetFormat || PROVIDERS[nativeProvider]?.format;
+  for (const rule of STRIP_RULES) {
+    if (!rule.reject) continue;
+    if (rule.provider && rule.provider !== nativeProvider) continue;
+    if (rule.checkProvider && !rule.checkProvider(nativeProvider)) continue;
+    if (rule.checkFormat && !rule.checkFormat(format)) continue;
+    if (!matches(rule, model)) continue;
+    for (const path of rule.reject) {
+      let value = body;
+      for (const key of path) value = value?.[key];
+      if (value == null) continue;
+      const param = path.join(".");
+      const error = new Error(`This destination does not support ${param}; omit it or select a destination with a verified native mapping.`);
+      error.code = "unsupported_parameter";
+      error.param = param;
+      throw error;
+    }
+  }
+}
+
 function clampNumber(body, key, ceiling) {
   if (typeof body[key] === "number" && Number.isFinite(body[key]) && body[key] > ceiling) {
     body[key] = ceiling;
@@ -85,6 +124,7 @@ export function stripUnsupportedChatExtensions(provider, body) {
 // Remove unsupported params from body in place; returns body.
 export function stripUnsupportedParams(provider, model, body) {
   if (!model || !body || typeof body !== "object") return body;
+  validateSupportedParams(provider, model, body);
   for (const rule of STRIP_RULES) {
     if (rule.provider && rule.provider !== provider) continue;
     if (rule.checkProvider && !rule.checkProvider(provider)) continue;

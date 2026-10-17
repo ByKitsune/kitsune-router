@@ -490,7 +490,7 @@ export async function buildModelsList(kindFilter) {
         ...(customRow?.kind === "imageToText" ? capabilitiesFromServiceKind("imageToText") : {}),
         ...modelMetadata(customRow),
       };
-      const caps = withDeclaredCapabilities(baseCaps, declared);
+      const caps = withDeclaredCapabilities(baseCaps, declared, providerId, modelId);
       if (Number.isFinite(declared.maxInput) && declared.maxInput > 0) caps.maxInput = declared.maxInput;
       if (kindFilter.includes("imageToText") && !kindFilter.includes(LLM_KIND)
         && (kind === LLM_KIND || kind === "imageToText") && !caps?.vision) continue;

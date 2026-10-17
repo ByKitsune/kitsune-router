@@ -7,6 +7,8 @@ import {
   CLAUDE_STAINLESS,
   ANTIGRAVITY_IDE_VERSION,
   ANTIGRAVITY_IDE_USER_AGENT,
+  ANTIGRAVITY_CLI_VERSION,
+  ANTIGRAVITY_CLI_USER_AGENT,
 } from "../config/clientVersions.js";
 
 // === OS/Arch helpers (Stainless fingerprint) ===
@@ -117,10 +119,8 @@ export const KIMI_CODING_BASE_URL = "https://api.kimi.com/coding/v1/messages";
 export const OPENAI_COMPAT_BASE = "https://api.openai.com/v1";
 export const ANTHROPIC_COMPAT_BASE = "https://api.anthropic.com/v1";
 
-// Antigravity IDE version and User-Agent are single-sourced from
-// open-sse/config/clientVersions.js. The platform token follows the gateway
-// host OS/architecture; this is not a fixed captured desktop fingerprint.
-export { ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_IDE_USER_AGENT };
+// Native CLI and IDE profiles are separate, single-sourced identities.
+export { ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_CLI_VERSION, ANTIGRAVITY_CLI_USER_AGENT };
 export const ANTIGRAVITY_IDE_BASE_URL = "https://daily-cloudcode-pa.googleapis.com";
 
 // Antigravity OAuth client credentials (public CLI client — duplicated in usage.js + src/lib/oauth)

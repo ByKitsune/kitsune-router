@@ -349,7 +349,7 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
   const choice = geminiToolChoice(body.tool_choice, name => sanitizeGeminiFunctionName(name, existingToolNames, toolNameMap));
   if (choice) result.toolConfig = { functionCallingConfig: choice };
 
-  result.contents = normalizeGeminiContents(result.contents);
+  result.contents = normalizeGeminiContents(result.contents, model);
 
   // Expose toolNameMap (sanitizedName -> originalName) for response decloaking
   if (toolNameMap.size > 0) {
@@ -560,7 +560,7 @@ function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = nu
     envelope.request.systemInstruction = { role: GEMINI_ROLE.USER, parts: systemParts };
   }
 
-  envelope.request.contents = normalizeGeminiContents(envelope.request.contents);
+  envelope.request.contents = normalizeGeminiContents(envelope.request.contents, model);
 
   if (toolNameMap.size > 0) {
     const reverseMap = new Map();

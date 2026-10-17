@@ -5,6 +5,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Antigravity Argon native CLI integration
+
+- Adapt the Argon transport/quota work from [9Router #4934](https://github.com/decolua/9router/pull/4934) and Gemini 4 request compatibility from [`eb373017`](https://github.com/decolua/9router/commit/eb3730170ce4cd5d999566e7b4873c0f523cf0ea) without replacing ZenRouter's customized codecs or routing.
+- Use the separate `antigravity/cli/1.4.0` identity for native chat, usage, project discovery, search and provider probes. Preserve the real IDE release line and opt-in MITM version override; do not relabel an App/Hub release as an IDE version.
+- Add native Argon base/high/medium/low entries and CLI/MITM model slots. The base wire ID has no forced thinking preset, so explicit API thinking survives; named tiers retain their selected level. Existing free-compatible default model selection is unchanged.
+- Advertise the unified 1,048,576-token context independently from the gateway's 65,536-token output ceiling. Do not advertise continuation decode or invent a separate input allowance. Preserve smaller operator caps and explicit input declarations without allowing an output override to exceed the transport ceiling.
+- Keep Antigravity subscription tariffs explicitly unknown instead of inheriting Flash or public Gemini API prices. Saved operator pricing overrides remain available.
+- Fetch real per-model and summary quotas with the same resolved proxy policy. Keep Argon weekly/session windows independent from ordinary Gemini; emit a session only when upstream supplies one. Missing/invalid fractions stay unknown, explicit zero stays zero, and summary failures preserve known future exhaustion.
+- Resolve quota and strike state across equivalent model aliases and native tier spellings. Respect the latest relevant exhausted reset, ignore stale deadlines for new strikes, and clear only synthesized blocks on success without erasing genuine quota or another tier.
+- Apply Gemini 4 function-response-last ordering to translated, native, already-merged and passthrough histories. Preserve signed typed images, repeated media, errors and parallel tool ownership; never manufacture pending client-tool success for Gemini 4.
+- Return local HTTP 400 `unsupported_parameter` for explicit Gemini 4 sampling controls that the native API documents as ignored. Preserve the original parameter path; do not silently delete intent or impose this restriction on unverified reseller routes.
+- Verify packaged JSON/SSE routing, reasoning, large PNG tool histories, independent quota fallback and dashboard rows with synthetic loopback upstreams. These checks do not establish live-account entitlement, native inference quality or upstream billing.
+
 ## [0.9.11] - 2026-10-17
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.11) · [Technical changelog](docs/CHANGELOG_v0.9.11.md) · [Release notes](releases/RELEASE_NOTES_v0.9.11.md)

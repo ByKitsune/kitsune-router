@@ -344,7 +344,10 @@ export const DECLARED_UPSTREAM_MODEL_IDS = {
     "gemini-3.8-flash": "gemini-3.8-flash-medium(medium)",
     "gemini-3.8-flash-high": "gemini-3.8-flash-high(high)",
     "gemini-3.8-flash-low": "gemini-3.8-flash-low(low)",
-    "gemini-3.8-flash-medium": "gemini-3.8-flash-medium(medium)"
+    "gemini-3.8-flash-medium": "gemini-3.8-flash-medium(medium)",
+    "gemini-4-argon-high": "gemini-4-argon-high(high)",
+    "gemini-4-argon-low": "gemini-4-argon-low(low)",
+    "gemini-4-argon-medium": "gemini-4-argon-medium(medium)"
   },
   "blackbox": {
     "claude-fable-5": "blackboxai/anthropic/claude-fable-5",

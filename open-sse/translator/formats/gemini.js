@@ -2,8 +2,9 @@
 
 import { safeParseJSON } from "../concerns/json.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
-import { OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
+import { GEMINI_ROLE, OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
+import { isGemini4Model } from "../../config/models.js";
 
 // Unsupported JSON Schema constraints that should be removed for Antigravity
 export const UNSUPPORTED_SCHEMA_CONSTRAINTS = [
@@ -638,8 +639,28 @@ export function cleanJSONSchemaForAntigravity(schema) {
   return cleaned;
 }
 
+// Keep opaque/media Parts and parallel responses in their original relative
+// order; Gemini 4 requires every functionResponse to follow the other Parts.
+function orderFunctionResponsesLast(parts) {
+  let responseSeen = false;
+  let needsOrdering = false;
+  for (const part of parts) {
+    if (part.functionResponse) responseSeen = true;
+    else if (responseSeen) {
+      needsOrdering = true;
+      break;
+    }
+  }
+  if (!needsOrdering) return parts;
+  const ordered = parts.filter(part => !part.functionResponse);
+  for (const part of parts) {
+    if (part.functionResponse) ordered.push(part);
+  }
+  return ordered;
+}
+
 // Merge adjacent same-role messages, strip empty parts, ensure initial and terminal user turns
-export function normalizeGeminiContents(contents) {
+export function normalizeGeminiContents(contents, model = null, { ensureUserTurns = true } = {}) {
   const out = [];
   for (const c of contents || []) {
     if (!c?.role || !Array.isArray(c.parts)) continue;
@@ -649,12 +670,21 @@ export function normalizeGeminiContents(contents) {
     if (last?.role === c.role) last.parts.push(...parts);
     else out.push({ ...c, parts: [...parts] });
   }
+  if (isGemini4Model(model)) {
+    for (const turn of out) {
+      if (turn.role === GEMINI_ROLE.USER) turn.parts = orderFunctionResponsesLast(turn.parts);
+    }
+  }
+  // Native callers own their terminal handoff; only translated histories use
+  // the existing synthetic initial/terminal user-turn compatibility guards.
+  if (!ensureUserTurns) return out;
   if (out.length > 0 && out[0].role !== "user") {
     out.unshift({ role: "user", parts: [{ text: "..." }] });
   }
   if (out.length > 0 && out.at(-1).role === "model") {
     const fnCalls = (out.at(-1).parts || []).filter(p => p && p.functionCall);
     if (fnCalls.length > 0) {
+      if (isGemini4Model(model)) return out;
       const responses = fnCalls.map(p => {
         const call = p.functionCall || {};
         const fr = {

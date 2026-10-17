@@ -3,15 +3,23 @@
  */
 
 import { CLIENT_METADATA } from "../../config/appConstants.js";
-import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_OAUTH_CLIENT } from "../../providers/shared.js";
+import { ANTIGRAVITY_CLI_USER_AGENT, ANTIGRAVITY_CLI_VERSION } from "../../providers/shared.js";
+import { PROVIDER_MODELS } from "../../providers/index.js";
+import { normalizeAntigravityQuota, parseAntigravityQuotaSummary } from "./antigravity.js";
 import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from "./shared.js";
 
-// Antigravity API config (from Quotio) — urls from registry, oauth client + dynamic UA kept here
-const ANTIGRAVITY_CONFIG = {
-  ...U("antigravity"),
-  ...ANTIGRAVITY_OAUTH_CLIENT,
-  userAgent: ANTIGRAVITY_IDE_USER_AGENT,
-};
+const ANTIGRAVITY_CONFIG = U("antigravity");
+const antigravityModelIds = new Set((PROVIDER_MODELS.ag || []).map(({ id }) => id));
+
+function antigravityUsageHeaders(accessToken) {
+  return {
+    "Authorization": `Bearer ${accessToken}`,
+    "User-Agent": ANTIGRAVITY_CLI_USER_AGENT,
+    "Content-Type": "application/json",
+    "X-Client-Name": "antigravity",
+    "X-Client-Version": ANTIGRAVITY_CLI_VERSION,
+  };
+}
 
 /**
  * Gemini CLI Usage — fetch per-model quota via Cloud Code Assist API.
@@ -120,17 +128,12 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
   try {
     // Fetch subscription info once — reuse for both projectId and plan
     const subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
-    const projectId = subscriptionInfo?.cloudaicompanionProject || null;
+    const projectId = normalizeCloudCodeProjectId(subscriptionInfo?.cloudaicompanionProject)
+      || normalizeCloudCodeProjectId(providerSpecificData?.projectId);
 
     const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaApiUrl, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
-        "Content-Type": "application/json",
-        "X-Client-Name": "antigravity",
-        "X-Client-Version": ANTIGRAVITY_IDE_VERSION,
-      },
+      headers: antigravityUsageHeaders(accessToken),
       body: JSON.stringify({
         ...(projectId ? { project: projectId } : {})
       }),
@@ -157,68 +160,30 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const data = await response.json();
     const quotas = {};
 
-    // Parse model quotas (inspired by vscode-antigravity-cockpit)
-    if (data.models) {
-      // Filter only recommended/important models (must match PROVIDER_MODELS ag ids)
-      const importantModels = [
-        'gemini-3.8-flash-high',
-        'gemini-3.8-flash-medium',
-        'gemini-3.8-flash-low',
-        'gemini-3.8-flash',
-        'gemini-3.7-flash-high',
-        'gemini-3.7-flash-medium',
-        'gemini-3.7-flash-low',
-        'gemini-3.6-flash-high',
-        'gemini-3.6-flash-medium',
-        'gemini-3.6-flash-low',
-        'gemini-3.5-flash-low',
-        'gemini-3.5-flash-extra-low',
-        'gemini-pro-agent',
-        'gemini-3.1-pro-low',
-        // Antigravity2 Claude 5.5 tiers (9router #4600/#4548)
-        'claude-sonnet-5-5-high',
-        'claude-sonnet-5-5-medium',
-        'claude-sonnet-5-5-low',
-        'claude-sonnet-5-5',
-        'claude-opus-5-5-high',
-        'claude-opus-5-5-medium',
-        'claude-opus-5-5-low',
-        'claude-opus-5-5',
-        'claude-sonnet-4-6',
-        'claude-opus-4-6-thinking',
-        'gpt-oss-120b-medium',
-        // Image generation models
-        'gemini-3.1-flash-image',
-      ];
-
+    if (data.models && typeof data.models === "object") {
       for (const [modelKey, info] of Object.entries(data.models)) {
-        // Skip models without quota info
-        if (!info.quotaInfo) {
-          continue;
+        if (!info?.quotaInfo || info.isInternal || !antigravityModelIds.has(modelKey)) continue;
+        const quota = normalizeAntigravityQuota(info.quotaInfo, info.displayName || modelKey);
+        if (quota) quotas[modelKey] = quota;
+      }
+    }
+
+    // Summary access is optional. A denied or malformed summary must not turn
+    // a valid per-model reading into an error or a fabricated quota window.
+    if (ANTIGRAVITY_CONFIG.quotaSummaryApiUrl) {
+      try {
+        const summaryResponse = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaSummaryApiUrl, {
+          method: "POST",
+          headers: antigravityUsageHeaders(accessToken),
+          body: JSON.stringify(projectId ? { project: projectId } : {}),
+        }, 10000, proxyOptions);
+        if (summaryResponse.ok) {
+          Object.assign(quotas, parseAntigravityQuotaSummary(await summaryResponse.json()));
+        } else {
+          console.warn("[Antigravity Usage] Quota summary unavailable:", summaryResponse.status);
         }
-
-        // Skip internal models and non-important models
-        if (info.isInternal || !importantModels.includes(modelKey)) {
-          continue;
-        }
-
-        const remainingFraction = info.quotaInfo.remainingFraction || 0;
-        const remainingPercentage = remainingFraction * 100;
-
-        // Convert percentage to used/total for UI compatibility
-        const total = 1000; // Normalized base
-        const remaining = Math.round(total * remainingFraction);
-        const used = total - remaining;
-
-        // Use modelKey as key (matches PROVIDER_MODELS id)
-        quotas[modelKey] = {
-          used,
-          total,
-          resetAt: parseResetTime(info.quotaInfo.resetTime),
-          remainingPercentage,
-          unlimited: false,
-          displayName: info.displayName || modelKey,
-        };
+      } catch (error) {
+        console.warn("[Antigravity Usage] Quota summary unavailable:", error.message);
       }
     }
 
@@ -240,12 +205,8 @@ async function getAntigravitySubscriptionInfo(accessToken, proxyOptions = null) 
   try {
     const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.loadProjectApiUrl, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ metadata: CLIENT_METADATA, mode: 1 }),
+      headers: antigravityUsageHeaders(accessToken),
+      body: JSON.stringify({ metadata: { ...CLIENT_METADATA, clientVersion: ANTIGRAVITY_CLI_VERSION }, mode: 1 }),
     }, 10000, proxyOptions);
 
     if (!response.ok) return null;

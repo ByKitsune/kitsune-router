@@ -4,7 +4,7 @@ import { prepareClaudeRequest, ensureTrailingUserTurn } from "./formats/claude.j
 import { cloakClaudeTools, decloakStreamChunk } from "../utils/claudeCloaking.js";
 import { compressToolNames, decloakOpenAIChunk } from "../utils/toolCompressor.js";
 import { filterToOpenAIFormat } from "./formats/openai.js";
-import { stripUnsupportedChatExtensions } from "./concerns/paramSupport.js";
+import { stripUnsupportedChatExtensions, validateSupportedParams } from "./concerns/paramSupport.js";
 import { applyThinking, captureThinking } from "./concerns/thinkingUnified.js";
 import { captureSessionId } from "../utils/sessionManager.js";
 import { AntigravityExecutor } from "../executors/antigravity.js";
@@ -68,6 +68,7 @@ function detectClientLastRole(body) {
 // Translate request: source -> openai -> target
 export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null, capabilities = null) {
   ensureInitialized();
+  validateSupportedParams(provider, model, body, targetFormat);
   const responsesSource = sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX;
   const responsesTarget = targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX;
   if (responsesSource && !responsesTarget) {

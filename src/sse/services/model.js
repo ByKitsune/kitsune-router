@@ -98,7 +98,7 @@ export async function getComboModels(modelStr) {
 // No upstream discovery here: use the same static/synced/operator facts as chatCore.
 export async function getEffectiveModelCapabilities(modelStr) {
   const { provider, model } = await getModelInfo(modelStr);
-  return withDeclaredCapabilities(getCapabilitiesForModel(provider, model), await getDeclaredModelCaps(provider, model));
+  return withDeclaredCapabilities(getCapabilitiesForModel(provider, model), await getDeclaredModelCaps(provider, model), provider, model);
 }
 
 export async function resolveModelCapabilities(modelStrs) {

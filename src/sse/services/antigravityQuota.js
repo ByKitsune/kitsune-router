@@ -6,6 +6,7 @@
 
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { getAntigravityUsage } from "open-sse/services/usage/google.js";
+import { PROVIDER_MODELS } from "open-sse/providers/index.js";
 import * as log from "../utils/logger.js";
 
 // In-memory cache: connectionId → { [modelId]: { remainingPercentage, resetAt } }
@@ -16,6 +17,70 @@ const lastRefreshAt = new Map();
 const inflightRefresh = new Map();
 
 const MIN_REFRESH_INTERVAL_MS = 30_000; // 30s between refreshes per connection
+
+// Registry aliases share quota only when their complete upstream target (tier
+// included) is identical. The native Argon base id intentionally has no preset.
+const quotaModelAliases = new Map();
+const aliasesByTarget = new Map();
+for (const model of PROVIDER_MODELS.ag || []) {
+  const target = model.upstreamModelId || model.id;
+  if (!aliasesByTarget.has(target)) aliasesByTarget.set(target, new Set());
+  aliasesByTarget.get(target).add(model.id);
+}
+for (const [target, aliases] of aliasesByTarget) {
+  const keys = [...aliases];
+  if (!aliases.has(target)) keys.push(target);
+  const upstreamId = target.replace(/\([^()]+\)\s*$/, "").trim();
+  if (!aliases.has(upstreamId) && upstreamId !== target) keys.push(upstreamId);
+  quotaModelAliases.set(target, keys);
+  for (const alias of aliases) quotaModelAliases.set(alias, keys);
+}
+
+const familyQuotaKeys = {
+  argon: ["argon_session", "argon_weekly"],
+  gemini: ["gemini_session", "gemini_weekly"],
+  claude_gpt: ["claude_gpt_session", "claude_gpt_weekly"],
+};
+
+function getQuotaModelKeys(model) {
+  if (typeof model !== "string") return null;
+  const unprefixed = model.slice(model.indexOf("/") + 1).trim();
+  const clean = unprefixed.replace(/\([^()]+\)\s*$/, "").trim();
+  if (!clean) return null;
+  const keys = quotaModelAliases.get(unprefixed) || quotaModelAliases.get(clean) || [clean];
+  return keys.includes(model) ? keys : [...keys, model];
+}
+
+/** Resolve exact model/tier and independent family limits; any exhaustion wins. */
+export function getAntigravityModelQuota(quotas, model) {
+  if (!quotas || typeof quotas !== "object") return null;
+  const modelKeys = getQuotaModelKeys(model);
+  if (!modelKeys) return null;
+  const clean = modelKeys[0];
+  const candidates = modelKeys.map(key => quotas[key]);
+  const family = /argon/i.test(clean) ? "argon"
+    : /^(?:claude|gpt)(?:-|$)/i.test(clean) ? "claude_gpt"
+      : /^gemini(?:-|$)/i.test(clean) && !/image/i.test(clean) ? "gemini" : null;
+  for (const key of familyQuotaKeys[family] || []) candidates.push(quotas[key]);
+
+  const now = Date.now();
+  let constrained = null;
+  let exhausted = null;
+  let latestReset = now;
+  for (const candidate of candidates) {
+    const remaining = candidate?.remainingPercentage;
+    if (typeof remaining !== "number" || !Number.isFinite(remaining) || remaining < 0 || remaining > 100) continue;
+    const reset = remaining === 0 ? Date.parse(candidate.resetAt) : null;
+    // A stale/missing deadline cannot explain a fresh 429 or suppress strikes.
+    if (remaining === 0 && (!Number.isFinite(reset) || reset <= now)) continue;
+    if (!constrained || remaining < constrained.remainingPercentage) constrained = candidate;
+    if (remaining === 0 && reset > latestReset) {
+      exhausted = candidate;
+      latestReset = reset;
+    }
+  }
+  return exhausted || constrained;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Strike-based circuit breaker — WHY and HOW (superset of upstream #3681)
@@ -83,13 +148,11 @@ function applyActiveStrikeBlocks(connectionId, quotas) {
   if (!connectionId || typeof quotas !== "object" || quotas === null) return quotas;
   for (const [key, until] of strikeBlocks) {
     if (!key.startsWith(`${connectionId}|`)) continue;
-    if (until <= now) {
-      strikeBlocks.delete(key);
-      continue;
-    }
     const modelId = key.slice(connectionId.length + 1);
     // Guard: never overwrite a genuine upstream 0% with a later expiry already present;
     // but strike blocks intentionally shadow optimistic >0% — that's the whole point.
+    const existing = quotas[modelId];
+    if (existing?.remainingPercentage === 0 && Date.parse(existing.resetAt) >= until) continue;
     quotas[modelId] = {
       remainingPercentage: 0,
       resetAt: new Date(until).toISOString(),
@@ -105,24 +168,23 @@ function applyActiveStrikeBlocks(connectionId, quotas) {
  * Safe to call even when no strike exists — no-op.
  */
 export function clearAntigravityStrikes(connectionId, model) {
-  if (!connectionId || !model) return;
-  const key = `${connectionId}|${model}`;
-  strikeCounts.delete(key);
-  const until = strikeBlocks.get(key);
-  if (until === undefined) return;
-  strikeBlocks.delete(key);
+  const modelKeys = getQuotaModelKeys(model);
+  if (!connectionId || !modelKeys) return;
   const cached = quotaCache.get(connectionId);
-  // Only remove the entry we synthesized: its resetAt equals our block deadline.
-  // A genuine upstream 0% will have a different resetAt (e.g. daily reset) and
-  // must survive — it represents real exhaustion, not our circuit breaker.
-  if (cached?.[model]?.resetAt === new Date(until).toISOString()) {
-    delete cached[model];
-    // If connection now has zero blocked models, keep Map entry (truthy) but empty;
-    // auth pre-filter treats missing model as not-blocked, so empty is fine.
-    quotaCache.set(connectionId, cached);
-    log.info("AG_QUOTA", `${connectionId.slice(0, 8)} | strike CLEAR ${model} — synthesized block removed, pair selectable again`);
-  } else {
-    log.debug("AG_QUOTA", `${connectionId.slice(0, 8)} | strike CLEAR ${model} — no synthesized entry to remove (real 0% kept)`);
+  for (const modelId of modelKeys) {
+    const key = `${connectionId}|${modelId}`;
+    strikeCounts.delete(key);
+    const until = strikeBlocks.get(key);
+    if (until === undefined) continue;
+    strikeBlocks.delete(key);
+    // Preserve genuine quota readings; only remove our synthesized deadline.
+    if (cached?.[modelId]?.resetAt === new Date(until).toISOString()) {
+      delete cached[modelId];
+      // Keep the existing (possibly empty) cache object for the auth prefilter.
+      log.info("AG_QUOTA", `${connectionId.slice(0, 8)} | strike CLEAR ${modelId} — synthesized block removed, pair selectable again`);
+    } else {
+      log.debug("AG_QUOTA", `${connectionId.slice(0, 8)} | strike CLEAR ${modelId} — no synthesized entry to remove (real 0% kept)`);
+    }
   }
 }
 
@@ -189,9 +251,19 @@ async function _doRefresh(connectionId, accessToken, providerSpecificData, now) 
     // Update in-memory cache. Caller logs CACHE_BLOCK only if requested model is exhausted.
     // Strike blocks are re-asserted after every refresh so an optimistic
     // upstream reading cannot resurrect a pair we just circuit-broke.
-    quotaCache.set(connectionId, applyActiveStrikeBlocks(connectionId, usage.quotas));
+    // Missing windows can mean denied optional summary access or an unknown
+    // fraction. Keep the last known reading; its real reset still bounds blocks.
+    const quotas = { ...quotaCache.get(connectionId) };
+    for (const [modelId, quota] of Object.entries(usage.quotas)) {
+      const known = quotas[modelId];
+      const preserveReset = quota?.remainingPercentage === 0 && !Number.isFinite(Date.parse(quota.resetAt))
+        && known?.remainingPercentage === 0 && Date.parse(known.resetAt) > now;
+      quotas[modelId] = preserveReset ? { ...quota, resetAt: known.resetAt } : quota;
+    }
+    applyActiveStrikeBlocks(connectionId, quotas);
+    quotaCache.set(connectionId, quotas);
 
-    return usage.quotas;
+    return quotas;
   } catch (e) {
     log.warn("AG_QUOTA", `${connectionId.slice(0, 8)} | refresh failed: ${e.message}`);
     return null;
@@ -219,7 +291,8 @@ export async function handleAntigravityQuotaError(connectionId, status, model, a
   // The first 409/429 populates cache; concurrent or repeated errors reuse it.
   // Race: inflightRefresh dedups concurrent bursts, so multiple 429s arriving
   // within the same tick share one upstream call and don't amplify the storm.
-  const quota = (await refreshAntigravityQuota(connectionId, accessToken, providerSpecificData))?.[model];
+  const quotas = await refreshAntigravityQuota(connectionId, accessToken, providerSpecificData);
+  const quota = getAntigravityModelQuota(quotas || quotaCache.get(connectionId), model);
 
   // Strike breaker: count every 429 whose quota reading is either optimistic
   // (remaining > 0) or unavailable (quota API 403/error). 3 within the window

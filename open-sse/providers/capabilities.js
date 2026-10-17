@@ -32,7 +32,7 @@ import { canonicalizeProviderId } from "./identity.js";
 // 2.0+, Grok, Perplexity). Verify with: curl -s https://models.dev/api.json
 
 import { matchPattern } from "./pricing.js";
-import { applyReviewedCapabilities } from "./metadata/reviewed.js";
+import { applyReviewedCapabilities, getReviewedModelMetadata } from "./metadata/reviewed.js";
 import { normalizeModelId } from "./models/schema.js";
 import { looksLikeVisionModel } from "./visionPatterns.js";
 
@@ -799,18 +799,24 @@ function resolveBaselineCapabilities(provider, model) {
  *
  * @param {object|null|undefined} base - capabilities from the static chain
  * @param {object|null|undefined} declared - operator-declared `caps` from kv
- * @returns {object|null} merged capabilities, or `base` unchanged when nothing was declared
+ * @param {string} provider - provider identity when the gateway has a native hard ceiling
+ * @param {string} model - literal model identity for route-specific limits
+ * @returns {object|null} merged capabilities with gateway output ceilings applied
  */
-export function withDeclaredCapabilities(base, declared) {
-  if (!declared || typeof declared !== "object") return base ?? null;
-
-  const overlay = {};
-  for (const key of Object.keys(DEFAULT_CAPABILITIES)) {
-    if (Object.prototype.hasOwnProperty.call(declared, key) && declared[key] !== undefined) {
-      overlay[key] = declared[key];
+export function withDeclaredCapabilities(base, declared, provider, model) {
+  let result = base ?? null;
+  if (declared && typeof declared === "object") {
+    const overlay = {};
+    for (const key of Object.keys(DEFAULT_CAPABILITIES)) {
+      if (Object.prototype.hasOwnProperty.call(declared, key) && declared[key] !== undefined) {
+        overlay[key] = declared[key];
+      }
     }
+    if (Object.keys(overlay).length) result = { ...DEFAULT_CAPABILITIES, ...(base ?? {}), ...overlay };
   }
-  if (Object.keys(overlay).length === 0) return base ?? null;
-
-  return { ...DEFAULT_CAPABILITIES, ...(base ?? {}), ...overlay };
+  const ceiling = getReviewedModelMetadata(provider, model)?.limits?.gatewayMaxOutput;
+  if (Number.isFinite(ceiling) && ceiling > 0 && Number.isFinite(result?.maxOutput) && result.maxOutput > ceiling) {
+    return { ...result, maxOutput: ceiling };
+  }
+  return result;
 }

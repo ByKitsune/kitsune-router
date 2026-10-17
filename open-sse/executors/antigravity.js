@@ -10,10 +10,12 @@ import {
   ANTIGRAVITY_TELEMETRY_KEYS,
 } from "../config/appConstants.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
+import { ANTIGRAVITY_MAX_OUTPUT_TOKENS } from "../config/antigravity.js";
+import { isGemini4Model } from "../config/models.js";
 import { readOutputTokenCap } from "../translator/formats/maxTokens.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
-import { cleanJSONSchemaForAntigravity } from "../translator/formats/gemini.js";
+import { cleanJSONSchemaForAntigravity, normalizeGeminiContents } from "../translator/formats/gemini.js";
 import { FORMATS } from "../translator/formats.js";
 import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
 import { sanitizeAntigravitySystemPrompt } from "../translator/request/openai-to-gemini.js";
@@ -30,7 +32,6 @@ function sanitizeFunctionName(name) {
 
 const MAX_RETRY_AFTER_MS = 10000;
 const ANTIGRAVITY_TRANSIENT_RETRY_MAX_MS = 15000;
-const MAX_ANTIGRAVITY_OUTPUT_TOKENS = 65536;
 const ANTIGRAVITY_IDE_REQUEST_ID_RE = /^agent\/[^/]+\/\d+\/[^/]+\/\d+$/;
 
 const ANTIGRAVITY_TRANSIENT_ERROR_PATTERNS = [
@@ -269,7 +270,7 @@ export class AntigravityExecutor extends BaseExecutor {
           temperature: 1.0,
           topP: 0.95,
           topK: 40,
-          maxOutputTokens: Math.min(readOutputTokenCap(body.request?.generationConfig || body.generationConfig, ["maxOutputTokens"]) ?? 8192, MAX_ANTIGRAVITY_OUTPUT_TOKENS),
+          maxOutputTokens: Math.min(readOutputTokenCap(body.request?.generationConfig || body.generationConfig, ["maxOutputTokens"]) ?? 8192, ANTIGRAVITY_MAX_OUTPUT_TOKENS),
           responseModalities: ["TEXT", "IMAGE"],
           imageConfig,
         },
@@ -312,7 +313,8 @@ export class AntigravityExecutor extends BaseExecutor {
       const validParts = (c.parts || [])
         .filter(p => {
           if (p.thought && !p.functionCall) return false;
-          if (p.thoughtSignature && !p.functionCall && (!p.text || p.text === "")) return false;
+          if (p.thoughtSignature && !p.functionCall && !p.text &&
+              Object.keys(p).every(key => key === "thoughtSignature" || key === "thought" || key === "text")) return false;
           if (p.text === "") return false;
           return true;
         })
@@ -335,21 +337,14 @@ export class AntigravityExecutor extends BaseExecutor {
       }
     }
 
-    const mergedContents = [];
-    for (const turn of cleanedContents) {
-      const last = mergedContents.at(-1);
-      if (last && last.role === turn.role) {
-        last.parts.push(...turn.parts);
-      } else {
-        mergedContents.push({ ...turn, parts: [...turn.parts] });
-      }
-    }
+    const mergedContents = normalizeGeminiContents(cleanedContents, cleanModel, { ensureUserTurns: false });
     if (mergedContents.length === 0) {
       mergedContents.push({ role: "user", parts: [{ text: "..." }] });
     }
 
-    // Gemini API requires requests to end with a user turn.
-    if (mergedContents.length > 0 && mergedContents.at(-1).role === "model") {
+    // Legacy routes keep their terminal-user compatibility guard. Gemini 4
+    // retains the caller's pending tool handoff instead of inventing success.
+    if (!isGemini4Model(cleanModel) && mergedContents.length > 0 && mergedContents.at(-1).role === "model") {
       const fnCalls = (mergedContents.at(-1).parts || []).filter(p => p && p.functionCall);
       if (fnCalls.length > 0) {
         const responses = fnCalls.map(p => {
@@ -418,7 +413,7 @@ export class AntigravityExecutor extends BaseExecutor {
     const generationConfig = { ...(requestWithoutTools.generationConfig || {}) };
     const outputCap = readOutputTokenCap(generationConfig, ["maxOutputTokens"]);
     if (outputCap !== undefined) {
-      generationConfig.maxOutputTokens = Math.min(outputCap, MAX_ANTIGRAVITY_OUTPUT_TOKENS);
+      generationConfig.maxOutputTokens = Math.min(outputCap, ANTIGRAVITY_MAX_OUTPUT_TOKENS);
     }
 
     const nativeThinking = generationConfig.thinkingConfig;
@@ -450,7 +445,7 @@ export class AntigravityExecutor extends BaseExecutor {
       if (thinkingBudget > 0) {
         // Headroom is an omitted-cap default, never permission to raise a cap.
         if (outputCap === undefined) {
-          generationConfig.maxOutputTokens = Math.min(MAX_ANTIGRAVITY_OUTPUT_TOKENS, thinkingBudget + 8192);
+          generationConfig.maxOutputTokens = Math.min(ANTIGRAVITY_MAX_OUTPUT_TOKENS, thinkingBudget + 8192);
         }
         thinkingBudget = Math.min(thinkingBudget, generationConfig.maxOutputTokens - 1);
         const minimumBudget = /(^|\/)claude/.test(cleanModel) ? 1024 : 1;

@@ -11,3 +11,7 @@ export const MODEL_INFO = {};
 export function getModelInfo(modelId) {
   return { ...DEFAULT_MODEL_INFO, ...MODEL_INFO[modelId] };
 }
+
+export function isGemini4Model(model) {
+  return /(?:^|\/)gemini-4(?:$|[-.])/i.test(String(model || ""));
+}
