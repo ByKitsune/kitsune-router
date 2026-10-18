@@ -1,5 +1,15 @@
 # 変更履歴
 
+## 0.9.13: 2026-10-19
+
+- Antigravity Claude のモデルテストで誤った thinking 予算エラーを修正。プロバイダの thinking 既定値を保存し、実際のクライアントが指定した出力上限は変更しません。
+- OpenAI/Codex に Auto・Standard・Fast・Ultrafast の独立した設定を追加。ネイティブ `service_tier` と正しい Responses 経路を使用します。
+- アップロードファイルとツール添付を保持。条件を満たさないアカウントだけを当該リクエストで除外し、正常性ペナルティや速度の引き下げを行いません。
+- 古い非同期応答による設定の上書きや別条件のテスト成功表示を防止。要求・実際の速度と不明な追加料金を区別します。
+- 実装検証：Node 22/24 で各 6,248 件の通常テスト成功、3 件の想定された失敗、100 件の任意スキップ。合成テストは実際の権限・速度・請求を保証せず、高速な設定では費用が増える場合があります。
+
+[リリースノート](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/releases/RELEASE_NOTES_v0.9.13.md) · [技術詳細](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/docs/CHANGELOG_v0.9.13.md)
+
 ## 0.9.12: 2026-10-19
 
 - ネイティブ・変換リクエストでツール画像の型と thinking 設定を保持し、Ollama・CommandCode も対象にしました。

@@ -26,11 +26,11 @@ Designed for developers, agentic frameworks, and multi-account setups, ZenRouter
 
 ---
 
-## Current release: 0.9.12
+## Current release: 0.9.13
 
-Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.12) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.12.md) · [Release notes](releases/RELEASE_NOTES_v0.9.12.md).
+Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.13.md) · [Release notes](releases/RELEASE_NOTES_v0.9.13.md).
 
-This release preserves tool screenshots and thinking controls, refreshes imported authentication/model/quota state, hardens proxy and request boundaries, and removes the vulnerable node-forge dependency chain. It includes native Antigravity Argon integration and dated model/pricing corrections. Catalog metadata does not prove account entitlement or live availability; see the [verification limits](releases/RELEASE_NOTES_v0.9.12.md#verification-and-limits).
+This release fixes false thinking-budget errors in dashboard model tests and makes provider thinking defaults persist. OpenAI and Codex gain independent Standard/Fast/Ultrafast controls, with native request fields, account-scoped eligibility and retained file attachments. Faster tiers can cost more; selection does not prove account entitlement or actual delivery. See [processing speed](docs/PROCESSING-SPEED.md) and the [verification limits](releases/RELEASE_NOTES_v0.9.13.md#verification-and-limits).
 
 Source updates after that release are listed under [Unreleased](CHANGELOG.md#unreleased).
 They are not retroactively included in earlier published artifacts. For the current
@@ -38,16 +38,16 @@ test workflow and its live-provider limits, see [tests/README.md](tests/README.m
 
 ## 🚀 Quick Start
 
-Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.12 and apply after the package/image is published; preparing release documentation does not publish it.
+Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.13 and apply after the package/image is published; preparing release documentation does not publish it.
 
 ### 1. Run with NPX (Zero-Install)
 ```bash
-npx @joyccn/zenrouter@0.9.12
+npx @joyccn/zenrouter@0.9.13
 ```
 
 ### 2. Global NPM Install
 ```bash
-npm install -g @joyccn/zenrouter@0.9.12
+npm install -g @joyccn/zenrouter@0.9.13
 zenrouter
 ```
 
@@ -60,14 +60,14 @@ docker run -d \
   -p 20128:20128 \
   -v zenrouter-data:/app/data \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.12
+  joyccn/zenrouter:0.9.13
 ```
 
 Using `docker-compose.yml`:
 ```yaml
 services:
   zenrouter:
-    image: joyccn/zenrouter:0.9.12
+    image: joyccn/zenrouter:0.9.13
     platform: linux/amd64
     container_name: zenrouter
     restart: unless-stopped

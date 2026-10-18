@@ -1,5 +1,15 @@
 # Nhật ký thay đổi
 
+## 0.9.13: 2026-10-19
+
+- Sửa lỗi ngân sách thinking giả khi thử mô hình Claude của Antigravity; lưu mặc định thinking mà không đổi giới hạn đầu ra do khách đặt rõ ràng.
+- Thêm lựa chọn Auto, Standard, Fast và Ultrafast độc lập cho OpenAI/Codex, dùng `service_tier` gốc và tuyến Responses phù hợp.
+- Giữ tệp tải lên và tệp đính kèm công cụ; chỉ bỏ qua tài khoản không đủ điều kiện trong yêu cầu hiện tại, không phạt trạng thái hay hạ mức tốc độ.
+- Ngăn phản hồi bất đồng bộ cũ ghi đè lựa chọn hoặc xác nhận kết quả thử cho cấu hình mới. Phân biệt mức yêu cầu, mức thực tế và chi phí cao cấp chưa biết.
+- Kiểm chứng: 6.248 ca thông thường đạt trên Node 22/24, thêm 3 lỗi dự kiến và 100 ca tùy chọn bỏ qua. Kiểm thử mô phỏng không xác nhận quyền dùng thật, tốc độ hay hóa đơn; chế độ nhanh có thể tốn hơn.
+
+[Ghi chú phát hành](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/releases/RELEASE_NOTES_v0.9.13.md) · [Chi tiết kỹ thuật](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/docs/CHANGELOG_v0.9.13.md)
+
 ## 0.9.12: 2026-10-19
 
 - Giữ ảnh công cụ đúng kiểu và lựa chọn thinking qua yêu cầu gốc/chuyển đổi, kể cả Ollama và CommandCode.

@@ -5,6 +5,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [0.9.13] - 2026-10-19
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Technical changelog](docs/CHANGELOG_v0.9.13.md) · [Release notes](releases/RELEASE_NOTES_v0.9.13.md)
+
 ### Thinking probes and processing speed
 
 - Fix false HTTP 400 results when the dashboard tests Antigravity Claude models: the internal probe now leaves room for the selected thinking preset within the model/bridge output ceiling. Explicit client caps remain enforced.

@@ -9,22 +9,22 @@ Official CLI package for running, configuring, and managing **ZenRouter** on mac
 
 ---
 
-## Current release: 0.9.12
+## Current release: 0.9.13
 
-Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.12) · [Changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.12.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.12.md).
+Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.13.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.13.md).
 
 ## ⚡ Installation & Usage
 
-Requires **Node.js >=22.19.0**. The package is `@joyccn/zenrouter`; the command remains `zenrouter`. Pinned examples apply after publication, which is separate from documentation preparation. This release removes the node-forge chain; zero advisories in the reviewed lockfiles is not a general security guarantee or proof of live-provider access.
+Requires **Node.js >=22.19.0**. The package is `@joyccn/zenrouter`; the command remains `zenrouter`. Pinned examples apply after publication, which is separate from documentation preparation. This release repairs thinking probes and adds independent OpenAI/Codex processing-speed controls. Fast/Ultrafast can cost more and require supported models/accounts; an expired or invalidated OAuth refresh token still requires reauthorization.
 
 ### Run instantly with NPX:
 ```bash
-npx @joyccn/zenrouter@0.9.12
+npx @joyccn/zenrouter@0.9.13
 ```
 
 ### Install globally:
 ```bash
-npm install -g @joyccn/zenrouter@0.9.12
+npm install -g @joyccn/zenrouter@0.9.13
 zenrouter
 ```
 

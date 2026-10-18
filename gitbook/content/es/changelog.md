@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## 0.9.13: 2026-10-19
+
+- Corrige errores falsos del presupuesto de thinking al probar modelos Claude de Antigravity y guarda los valores predeterminados sin alterar límites de salida explícitos del cliente.
+- Añade controles independientes Auto, Standard, Fast y Ultrafast para OpenAI/Codex, con `service_tier` nativo y la ruta Responses correcta.
+- Conserva archivos y adjuntos de herramientas; omite solo cuentas no elegibles para esa petición, sin penalizaciones de salud ni reducción del nivel elegido.
+- Evita que respuestas asíncronas antiguas sobrescriban una selección o validen otra prueba. Separa niveles solicitados/reales y costes premium desconocidos.
+- Verificación: 6.248 pruebas ordinarias correctas en Node 22/24, más 3 fallos esperados y 100 omisiones opcionales. Las pruebas sintéticas no acreditan permisos reales, velocidad ni facturación; los niveles rápidos pueden costar más.
+
+[Notas de versión](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/releases/RELEASE_NOTES_v0.9.13.md) · [Detalles técnicos](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/docs/CHANGELOG_v0.9.13.md)
+
 ## 0.9.12: 2026-10-19
 
 - Conserva las capturas tipadas y las opciones de thinking en peticiones nativas y traducidas, incluidas Ollama y CommandCode.

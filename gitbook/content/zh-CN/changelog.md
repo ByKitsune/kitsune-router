@@ -1,5 +1,15 @@
 # 更新日志
 
+## 0.9.13: 2026-10-19
+
+- 修复 Antigravity Claude 模型测试中的错误 thinking 预算限制，保存供应商 thinking 默认值，不改变实际客户端的输出上限。
+- 为 OpenAI/Codex 增加独立的 Auto、Standard、Fast、Ultrafast 控件，使用原生 `service_tier` 和正确的 Responses 路由。
+- 保留上传文件和工具附件；仅在当前请求中跳过已知不符合条件的账户，不惩罚账户健康状态，也不降低所选速度等级。
+- 防止过期异步响应覆盖已保存的选择或验证新的测试配置；区分请求等级、实际等级和未知的高级等级费用。
+- 实现验证：Node 22/24 各通过 6,248 项普通测试，另有 3 项预期失败及 100 项可选跳过。合成测试不证明真实权限、吞吐量或账单；更快等级可能更贵。
+
+[发布说明](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/releases/RELEASE_NOTES_v0.9.13.md) · [技术变更](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/docs/CHANGELOG_v0.9.13.md)
+
 ## 0.9.12: 2026-10-19
 
 - 原生及转换请求保留工具截图的媒体类型和 thinking 选择，包括 Ollama、CommandCode。

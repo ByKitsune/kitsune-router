@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.13: 2026-10-19
+
+- Fix false thinking-budget errors in Antigravity Claude model tests; persist provider thinking defaults without changing real clients' output caps.
+- Add independent OpenAI/Codex Auto, Standard, Fast and Ultrafast controls with native `service_tier` requests and correct Responses routing.
+- Preserve uploaded files and tool attachments; skip only known-ineligible accounts without health penalties or lowering the selected tier.
+- Guard saved selections and model-test results against stale asynchronous updates. Keep requested/actual tiers and unknown premium costs distinct.
+- Implementation verification: 6,248 ordinary tests passed on Node 22/24, plus 3 expected failures and 100 optional skips. Synthetic tests do not prove live entitlement, throughput or billing; faster tiers can cost more.
+
+[Release notes](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/releases/RELEASE_NOTES_v0.9.13.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.13/docs/CHANGELOG_v0.9.13.md)
+
 ## 0.9.12: 2026-10-19
 
 - Preserve typed tool screenshots and thinking choices across native and translated requests, including Ollama and CommandCode.
