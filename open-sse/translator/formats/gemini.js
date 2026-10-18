@@ -2,7 +2,7 @@
 
 import { safeParseJSON } from "../concerns/json.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
-import { GEMINI_ROLE, OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
+import { GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
 import { isGemini4Model } from "../../config/models.js";
 
@@ -187,6 +187,42 @@ export function copyGeminiRequestControls(result, request) {
   }
 }
 
+const TOOL_MEDIA_TYPES = new Set([
+  OPENAI_BLOCK.IMAGE_URL, CLAUDE_BLOCK.IMAGE, CLAUDE_BLOCK.DOCUMENT,
+  OPENAI_BLOCK.FILE, RESPONSES_ITEM.INPUT_IMAGE, RESPONSES_ITEM.INPUT_FILE,
+]);
+const NATIVE_MEDIA_PART_KEYS = new Set([
+  "inlineData", "inline_data", "fileData", "file_data", "thought", "thoughtSignature", "thought_signature",
+]);
+
+// Only explicit content blocks in result/output arrays are attachments. A
+// record with an inlineData property, nested examples and JSON strings are data.
+function splitGeminiResponseMedia(response, convertMedia) {
+  let cleaned = response;
+  const media = [];
+  for (const key of ["result", "output"]) {
+    if (!Array.isArray(response?.[key])) continue;
+    const remaining = [];
+    const start = media.length;
+    for (const item of response[key]) {
+      const explicitPart = item && typeof item === "object" && (TOOL_MEDIA_TYPES.has(item.type) ||
+        (!item.type && Object.keys(item).every(key => NATIVE_MEDIA_PART_KEYS.has(key))));
+      const normalized = explicitPart ? normalizeMediaPart(item) : null;
+      const converted = normalized ? convertMedia(normalized) : [];
+      if (converted.length) media.push(...converted);
+      else remaining.push(item);
+    }
+    if (media.length === start) continue;
+    if (cleaned === response) cleaned = { ...response };
+    // Mixed JSON arrays retain their original values and text block metadata.
+    // Only a purely textual remainder uses the legacy string representation.
+    cleaned[key] = remaining.every(item => typeof item === "string" ||
+      (item?.type === OPENAI_BLOCK.TEXT && typeof item.text === "string"))
+      ? splitToolResultContent(remaining).text : remaining;
+  }
+  return { response: cleaned, media };
+}
+
 // Called on Core's private request clone, including native passthrough. Only
 // recognized legacy media arrays are lowered; ordinary Structs stay untouched.
 export function normalizeGeminiToolResultMedia(body) {
@@ -196,18 +232,10 @@ export function normalizeGeminiToolResultMedia(body) {
     if (!Array.isArray(turn.parts)) continue;
     for (let index = 0; index < turn.parts.length; index++) {
       const response = turn.parts[index].functionResponse;
-      if (!Array.isArray(response?.response?.result)) continue;
-      const parts = [];
-      const remaining = [];
-      for (const item of response.response.result) {
-        const normalized = normalizeMediaPart(item);
-        const converted = normalized ? convertOpenAIContentToParts([normalized]) : [];
-        if (converted.length) parts.push(...converted);
-        else remaining.push(item);
-      }
+      if (!response) continue;
+      const { response: cleaned, media: parts } = splitGeminiResponseMedia(response.response, part => convertOpenAIContentToParts([part]));
       if (!parts.length) continue;
-      response.response.result = remaining.every(item => typeof item === "string" || item?.type === OPENAI_BLOCK.TEXT)
-        ? splitToolResultContent(remaining).text : remaining;
+      response.response = cleaned;
       // Adjacent Content parts work on older Gemini models too. Do not append
       // to caller-native FunctionResponse.parts, whose support is model-specific.
       turn.parts.splice(index + 1, 0, ...parts);
@@ -244,15 +272,7 @@ export function convertToolResultToGemini(content, isError = false) {
 // Keep the complete response wrapper so JSON-looking strings, falsy results and
 // sibling metadata survive another OpenAI -> Gemini hop without quote growth.
 export function convertGeminiFunctionResponseContent(functionResponse) {
-  let response = functionResponse.response ?? {};
-  let media = [];
-  if (Array.isArray(response.result)) {
-    const split = splitToolResultContent(response.result);
-    if (split.media.length) {
-      response = { ...response, result: split.text };
-      media = split.media;
-    }
-  }
+  const { response, media } = splitGeminiResponseMedia(functionResponse.response ?? {}, part => [part]);
   for (const part of functionResponse.parts || []) {
     const normalized = normalizeMediaPart(part);
     if (normalized) media.push(normalized);
@@ -701,4 +721,3 @@ export function normalizeGeminiContents(contents, model = null, { ensureUserTurn
   }
   return out;
 }
-

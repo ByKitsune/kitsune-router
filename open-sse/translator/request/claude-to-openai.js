@@ -259,18 +259,16 @@ function convertClaudeMessage(msg) {
         case CLAUDE_BLOCK.TOOL_RESULT:
         case CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT:
           const { text: resultContent, media: toolImages } = splitToolResultContent(block.content);
+          const resultText = block.is_error === true && !resultContent.startsWith(TOOL_ERROR_PREFIX) ? `${TOOL_ERROR_PREFIX}${resultContent}` : resultContent;
           
           toolResults.push({
             role: ROLE.TOOL,
             tool_call_id: block.tool_use_id,
-            // Internal pivots retain error semantics; final Chat lowering removes
-            // the native flag while the visible marker remains for strict APIs.
-            content: block.is_error === true && !resultContent.startsWith(TOOL_ERROR_PREFIX) ? `${TOOL_ERROR_PREFIX}${resultContent}` : resultContent,
+            // Keep media with its result until final wire lowering. Hoisting it
+            // here interrupts parallel replies and fabricates missing results.
+            content: toolImages.length ? [{ type: OPENAI_BLOCK.TEXT, text: resultText }, ...toolImages] : resultText,
             ...(typeof block.is_error === "boolean" ? { is_error: block.is_error } : {}),
           });
-          if (toolImages.length > 0) {
-            parts.push(...toolImages);
-          }
           break;
 
         case CLAUDE_BLOCK.THINKING:

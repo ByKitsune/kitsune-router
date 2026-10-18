@@ -1,7 +1,31 @@
 // Tool call helper functions for translator
 
 import { FORMATS } from "../formats.js";
+import { ROLE, CLAUDE_BLOCK } from "../schema/index.js";
 import { splitToolCallId } from "./thoughtSignature.js";
+
+// Hybrid Chat clients also send Claude tool_result blocks. Keep their content
+// on tool messages until the destination performs its own media lowering.
+export function* expandToolResultMessages(messages) {
+  for (const msg of messages) {
+    if (msg.role !== ROLE.USER || !Array.isArray(msg.content)) {
+      yield msg;
+      continue;
+    }
+    const content = [];
+    let hasResults = false;
+    for (const part of msg.content) {
+      if (part.type === CLAUDE_BLOCK.TOOL_RESULT) {
+        hasResults = true;
+        yield { role: ROLE.TOOL, tool_call_id: part.tool_use_id, content: part.content, is_error: part.is_error === true };
+      } else {
+        content.push(part);
+      }
+    }
+    if (!hasResults) yield msg;
+    else if (content.length) yield { ...msg, content };
+  }
+}
 
 // Anthropic tool_use.id must match: ^[a-zA-Z0-9_-]+$
 const TOOL_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;

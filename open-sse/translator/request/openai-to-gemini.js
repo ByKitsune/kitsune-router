@@ -31,6 +31,7 @@ import {
 import { deriveSessionId, toNumericSessionId } from "../../utils/sessionManager.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { splitToolCallId, isValidBase64 } from "../concerns/thoughtSignature.js";
+import { expandToolResultMessages } from "../concerns/toolCall.js";
 
 // Sanitize function names for Gemini API.
 // Gemini requires: starts with [a-zA-Z_], followed by [a-zA-Z0-9_.:\-], max 64 chars.
@@ -223,13 +224,13 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
     }
   }
 
-  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const messages = Array.isArray(body.messages) ? [...expandToolResultMessages(body.messages)] : [];
   const callsByMessage = normalizeGeminiToolCalls(messages);
 
   // Convert messages
-  if (body.messages && Array.isArray(body.messages)) {
-    for (let i = 0; i < body.messages.length; i++) {
-      const msg = body.messages[i];
+  if (messages.length) {
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
       const role = msg.role;
       const content = msg.content;
 

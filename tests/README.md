@@ -40,6 +40,7 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | Concern | Main regression suites |
 | --- | --- |
 | Multi-turn vision, tool images and compaction | `unit/vision-tool-output-protocols.test.js`, `unit/vision-gemini-history.test.js`, `unit/vision-compression-history.test.js`, `unit/vision-capability-routing.test.js` |
+| Large screenshot wire serialization and hybrid parallel results | `unit/vision-large-tool-wire.test.js`, `translator/translator-media-history.test.js`, `translator/translator-media-gemini-struct.test.js` |
 | Encoded media in estimated usage | `unit/vision-usage-estimates.test.js` |
 | Cross-format request controls and native Google media | `unit/translator-request-contracts.test.js`, `unit/gemini-native-media-contracts.test.js`, `unit/gemini-native-chat-contract.test.js` |
 | SSE, parallel tools, refusals, image occurrences and opaque signatures | `unit/translator-stream-contracts.test.js`, `unit/claude-tool-id-ownership.test.js` |
@@ -127,5 +128,11 @@ reviewed Claude spellings, cache TTLs and inclusive Perplexity Agent price tiers
 Tests do not replace runtime verification. Exercise the changed path through a separately started gateway and inspect its logs and stored usage. Synthetic HTTP/HTTP2 providers can verify framing, field preservation and billing without spending provider tokens.
 
 For Basic Chat changes, verify JSON and SSE image-only replies, typed assistant replay, separate identical image occurrences, snapshots, persisted-history reload and visible stream failures. Confirm that unsupported URL schemes never become links and that hydration logs stay clean.
+
+The large-image wire regression generates a deterministic valid 2172×724 PNG
+and sends it through the real HTTP executor path with a synthetic upstream. It
+checks image occurrences, text/binary separation, estimated usage and the
+explicit output cap. This verifies gateway serialization, not a real model's
+ability to interpret the image or the cause of an unavailable production request.
 
 For pricing changes, verify the hourly fee and tier Save/read-back flow, including explicit unknown rates and disabled inherited tiers. `GET /api/pricing?view=overrides` returns only explicit saved fields. Editing one fee must not materialize inherited rates or change unrelated high-context reasoning charges. Unknown totals must display `Not specified`, while genuine zero tariffs remain zero. Mixed known/unknown groups and chart buckets must not display a complete zero-dollar or partial known total.

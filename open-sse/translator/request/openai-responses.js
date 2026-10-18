@@ -9,6 +9,7 @@ import { FORMATS } from "../formats.js";
 import { convertResponsesApiFormat, normalizeToolParameters } from "../formats/responsesApi.js";
 import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
+import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 
 // Responses API enforces max 64 chars on call_id (#393)
@@ -89,7 +90,7 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
     }
   };
 
-  for (const msg of messages) {
+  for (const msg of expandToolResultMessages(messages)) {
     if (msg.role !== ROLE.TOOL) flushToolMedia();
     if (msg.role === ROLE.SYSTEM || msg.role === ROLE.DEVELOPER) {
       // A leading scalar system prompt can use instructions. Preserve every

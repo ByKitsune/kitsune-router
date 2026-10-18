@@ -112,6 +112,31 @@ The parent verification reran 137 tests across 11 files plus provider/alias/OAut
 baselines and generated identity checks. Raw source snapshots, hashes and
 red/green logs are under `/tmp/opencode/zen-wave-20261019/catalog/`.
 
+### Vision and tool history
+
+Confirmed defects included Claude parallel screenshot results being interrupted
+by early image hoisting, causing synthetic missing-tool replies; hybrid Chat
+tool-result blocks becoming JSON/base64 prose on Responses; and those results
+being dropped on Gemini. Internal tool media now remains with its owner until
+destination serialization. Final Chat normalization expands hybrid tool results.
+Gemini typed `response.result`/`response.output` arrays extract media without
+flattening ordinary JSON records, string examples or native response metadata.
+
+Regressions cover repeated Gemini↔Chat/Claude round trips, exact image occurrence
+counts, error-result ownership, immutable input and retained compacted summaries.
+The parent additionally generated a valid noisy RGB PNG at the reported
+2172×724 dimensions. Its encoded payload exceeds 4 MiB. Real loopback requests
+through Chat, Responses, Claude and Gemini proved that the prior hybrid path
+could put those bytes into prose or omit the image; the corrected path retains
+one typed image, small text estimates and the explicit 4096-token output cap.
+
+The original error's provider/model and request payload remain unknown. These
+results fix demonstrated gateway defects but do not prove which one produced
+that production `input token count exceeds 1048576` response. Actual image token
+usage is provider-specific. No messages are silently trimmed and no provider
+limit is raised to conceal an oversized request. Evidence is under
+`/tmp/opencode/zen-wave-20261019/vision/`.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

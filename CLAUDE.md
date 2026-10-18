@@ -94,6 +94,7 @@ Pre-translate hooks that compress `tool_result` content in-place to cut tokens. 
 - **Security-first on PRs**: Security is the top priority when reviewing or creating PRs. Audit authentication, credential/token storage & leaks, header manipulation (`X-Forwarded-For`), and SSRF risks before functional logic. Always include explicit security warnings/notes when reporting PR reviews or changes to the user.
 - Versioning: root, `cli/`, `tests/` and `gitbook/` manifests and lockfiles must agree before release. `scripts/bump-version.mjs` alone does not update every required file. Commit style is Conventional Commits (`fix(translator): …`, `feat(...)`).
 - Catalog provenance: `docs/audit/data/catalog-review-20261017.json` records the October 17 models.dev commit, capture/reconstruction hashes, comparison coverage and unresolved fields. Use exact provider/product identities and primary-source overrides; do not turn missing catalog rows into retirements or assign 1M output because a model has a 1M context window.
+- Vision regressions: keep tool media attached internally until destination-specific serialization; hoisting images before all parallel tool replies can fabricate missing results. Explicit hybrid `tool_result` blocks require native lowering even on final Chat normalization. Gemini `response.result`/`response.output` arrays can contain typed media, but ordinary JSON records and nested examples must remain data. See `tests/unit/vision-large-tool-wire.test.js` and `tests/translator/translator-media-*.test.js`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -2,6 +2,7 @@
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, TOOL_ERROR_PREFIX, VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES } from "../schema/index.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
+import { expandToolResultMessages } from "../concerns/toolCall.js";
 
 // Re-export valid-type lists (moved to schema/blocks.js) to keep existing importers working.
 export { VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES };
@@ -34,7 +35,7 @@ export function filterToOpenAIFormat(body, opts = {}) {
     if (toolImages.length) messages.push({ role: ROLE.USER, content: toolImages });
     toolImages = [];
   };
-  for (const msg of body.messages) {
+  for (const msg of expandToolResultMessages(body.messages)) {
     if (msg.role === ROLE.ASSISTANT && Array.isArray(msg.content)) {
       const media = [];
       const content = [];
@@ -196,4 +197,3 @@ export function filterToOpenAIFormat(body, opts = {}) {
 
   return body;
 }
-
