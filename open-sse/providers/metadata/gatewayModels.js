@@ -4686,6 +4686,18 @@ export default {
     }
   },
   "opencode": {
+    "glm-5.3-flash-free": {
+      "capabilities": { "thinkingFormat": "openai" },
+      "sources": [
+        "https://github.com/anomalyco/opencode/blob/802f2d8e75098ae0b45ad839ce98a31589ea8102/services/www/src/docs/content/console/models.mdx#L113",
+        "https://github.com/decolua/9router/pull/5003/commits/6e0d65725e7934980f67cfd3a90759281f7c57f8"
+      ],
+      "limits": {
+        "scope": "exact-hosted-thinking-dialect",
+        "authenticatedRouteVerified": false
+      },
+      "description": "Hosted Chat Completions route using OpenAI reasoning effort rather than native z.ai thinking. Accepted effort enums and account availability are not independently verified."
+    },
     "muse-spark-1.2-contributor-free": {
       "sources": [
         "https://models.dev/api.json"
