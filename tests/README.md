@@ -7,8 +7,8 @@ Run the gateway, translator, persistence, discovery, pricing and dashboard contr
 Use Node.js 22.19 or newer. Install both packages because tests import application dependencies:
 
 ```bash
-npm install
-npm --prefix tests install
+npm ci
+npm --prefix tests ci
 npm test
 ```
 
@@ -18,7 +18,8 @@ The root `npm test` command selects `tests/vitest.config.js`. You can also run a
 npm test -- tests/unit/vision-capability-routing.test.js
 ```
 
-Do not use the independent `tests/package.json` test script: it contains an upstream shared-install path. From `tests/`, use `npx vitest run --config vitest.config.js` instead.
+`npm --prefix tests test` also works; both entrypoints use the repository-root
+Vitest configuration. Use the installed runner rather than an unpinned download.
 
 ## Protect local state and credentials
 
@@ -58,18 +59,20 @@ When changing protocol fixtures, preserve the actual wire contract. For example,
 
 ## Full verification gates
 
-Capture Vitest JSON and check both test failures and failed suites. A collection failure can report zero failed test cases:
+Capture Vitest JSON and require a successful, nonempty run with consistent
+counts, zero failed assertions and zero failed suites. A collection failure can
+report zero failed test cases; `verify-no-regression.mjs` now rejects that case:
 
 ```bash
-npm test -- --reporter=json --outputFile=/tmp/zen-vitest.json
-node tests/__baseline__/verify-no-regression.mjs /tmp/zen-vitest.json
+npm test -- --reporter=json --outputFile=/tmp/opencode/zen-vitest.json
+node tests/__baseline__/verify-no-regression.mjs /tmp/opencode/zen-vitest.json
 ```
 
 Run the independent documentation and HTTP/2 compatibility checks:
 
 ```bash
 npm --prefix gitbook test
-node --test tests/unit/custom-server-h2c.test.cjs
+npm run test:compat
 ```
 
 Verify the provider, alias and OAuth baselines without replacing snapshots to hide a mismatch:
@@ -79,11 +82,22 @@ node tests/__baseline__/verify-providers.mjs
 node tests/__baseline__/verify-alias.mjs
 node tests/__baseline__/verify-oauth-urls.mjs
 node scripts/generate-provider-identity.mjs --check
-npm run lint
+npm run lint -- --max-warnings=0
 npm run build
 ```
 
 Use `NEXT_DIST_DIR` under `.next/` for an isolated build so an existing standalone deployment stays untouched. Keep standalone `DATA_DIR` absolute.
+
+Normal CI also runs the CJS compatibility test, identity/baseline checks and the
+strict report gate, with isolated HOME/DATA_DIR and live/background work disabled.
+Its Vitest JSON is uploaded under an artifact named for the exact commit SHA.
+CLI packaging and browser/live-provider behavior require their separate checks.
+
+Existing `it.fails` cases are expected failures, not evidence the underlying
+behavior works. Skipped cases and surveys that tolerate provider failures do not
+prove live compatibility. The default Vitest glob is `tests/**/*.test.js`;
+`test:compat` runs the independent `*.test.cjs` suite. Check file discovery when
+adding a new extension or runner.
 
 ## Audit model metadata against a complete snapshot
 

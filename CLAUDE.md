@@ -44,6 +44,7 @@ npx vitest run unit/capabilities.test.js   # single file (path relative to tests
 > - `unit/embeddings.cloud.test.js.skip` targets the private `cloud/` worker — rename back to `.test.js` only when that checkout exists.
 > - Live-provider suites are opt-in (`RUN_LIVE_TESTS=1`) or self-skip without credentials.
 > - Judge regressions with `tests/__baseline__/verify-no-regression.mjs <vitest-json>`; count suite-level failures too (`numFailedTestSuites`), not just test counts.
+- Run `npm run test:compat` for the CJS HTTP/2-upgrade compatibility tests; they are not included in Vitest's `*.test.js` glob. The report gate rejects unsuccessful/empty/inconsistent reports and collection failures. CI retains SHA-bound JSON evidence; `it.fails` and skipped cases remain separate from verified working behavior.
 - `*.real.test.js` under `tests/translator/real/` make live provider calls — skip unless credentials are set.
 - Regression baselines: `tests/__baseline__/verify-*.mjs` compare against committed snapshots (providers, aliases, OAuth URLs). Run these after touching provider registry / alias logic.
 

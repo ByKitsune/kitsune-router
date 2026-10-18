@@ -8,6 +8,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      RUN_REAL: "0"
+      RUN_E2E: "0"
+      RUN_LIVE_TESTS: "0"
+      AG_CACHE_TEST: "0"
+      MODEL_CATALOG_SYNC: "off"
+      DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
+      ZENROUTER_DISABLE_MITM: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+      JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
+      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -20,16 +31,33 @@ jobs:
       - run: npm ci
       - name: Install tests deps
         run: cd tests && npm ci
+      - name: Isolate application state
+        run: |
+          mkdir -p "$RUNNER_TEMP/zenrouter-home" "$RUNNER_TEMP/zenrouter-data" verification
+          echo "HOME=$RUNNER_TEMP/zenrouter-home" >> "$GITHUB_ENV"
+          echo "DATA_DIR=$RUNNER_TEMP/zenrouter-data" >> "$GITHUB_ENV"
       - run: npm run lint -- --max-warnings=0
-      - run: npm test --if-present
+      - run: npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=verification/vitest.json
         env:
-          JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
-          ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
           NODE_ENV: test
-      - run: npm run build --if-present
+      - run: node tests/__baseline__/verify-no-regression.mjs verification/vitest.json
+      - run: npm run test:compat
+      - name: Provider identity and compatibility baselines
+        run: |
+          node scripts/generate-provider-identity.mjs --check
+          node tests/__baseline__/verify-providers.mjs
+          node tests/__baseline__/verify-alias.mjs
+          node tests/__baseline__/verify-oauth-urls.mjs
+      - run: npm run build
         env:
-          JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
           NEXT_PHASE: phase-production-build
+      - name: Preserve exact-SHA test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-${{ github.sha }}
+          path: verification/vitest.json
+          if-no-files-found: warn
   dependency-security:
     runs-on: ubuntu-latest
     permissions:

@@ -16,6 +16,7 @@
     "cli:pack": "npm --prefix cli run pack:cli",
     "cli:publish": "npm --prefix cli run publish:cli",
     "test": "node tests/node_modules/vitest/vitest.mjs run --config tests/vitest.config.js",
+    "test:compat": "node --test tests/unit/*.test.cjs",
     "lint": "node scripts/lint.mjs",
     "lint:policy": "node tests/node_modules/vitest/vitest.mjs run tests/unit/eslint-policy.test.js tests/unit/next-lint-policy.test.js --config tests/vitest.config.js"
   },
