@@ -3,16 +3,21 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import fs from "fs/promises";
-import path from "path";
 import os from "os";
+import { OpenCodeConfigError, readOpenCodeConfig, updateOpenCodeConfig } from "@/shared/utils/opencodeConfig";
 
 const execAsync = promisify(exec);
 
-const getConfigDir = () => path.join(os.homedir(), ".config", "opencode");
-const getConfigPath = () => path.join(getConfigDir(), "opencode.json");
+const explorerDefaults = {
+  description: "Fast explorer subagent for codebase exploration",
+  mode: "subagent",
+};
 
-// Check if opencode CLI is installed (via which/where or config file exists)
+const errorResponse = (error, fallback) => NextResponse.json({
+  error: error instanceof OpenCodeConfigError ? error.message : fallback,
+}, { status: error instanceof OpenCodeConfigError ? error.status : 500 });
+
+// A readable config also counts as installed; binary detection is the fallback.
 const checkOpenCodeInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
@@ -23,28 +28,7 @@ const checkOpenCodeInstalled = async () => {
     await execAsync(command, { windowsHide: true, env });
     return true;
   } catch {
-    try {
-      await fs.access(getConfigPath());
-      return true;
-    } catch {
-      return false;
-    }
-  }
-};
-
-const readConfig = async () => {
-  try {
-    const content = await fs.readFile(getConfigPath(), "utf-8");
-    // opencode config files may use JSONC format (trailing commas, comments).
-    // Strip trailing commas before parsing to avoid SyntaxError on valid JSONC.
-    const stripped = content.replace(/,(\s*[}\]])/g, "$1");
-    return JSON.parse(stripped);
-  } catch (error) {
-    if (error.code === "ENOENT") return null;
-    // If the config file exists but is unparseable (corrupted, exotic JSONC),
-    // treat it as "no config" rather than throwing a 500 that the UI
-    // misinterprets as "opencode not installed".
-    return null;
+    return false;
   }
 };
 
@@ -56,7 +40,8 @@ const hasZenRouterConfig = (config) => {
 // GET - Check opencode CLI and read current settings
 export async function GET() {
   try {
-    const isInstalled = await checkOpenCodeInstalled();
+    const { config, configPath } = await readOpenCodeConfig();
+    const isInstalled = config !== null || await checkOpenCodeInstalled();
 
     if (!isInstalled) {
       return NextResponse.json({
@@ -66,7 +51,6 @@ export async function GET() {
       });
     }
 
-    const config = await readConfig();
     const providerConfig = config?.provider?.["zenrouter"];
     const modelMap = providerConfig?.models || {};
 
@@ -74,16 +58,16 @@ export async function GET() {
       installed: true,
       config,
       hasZenRouter: hasZenRouterConfig(config),
-      configPath: getConfigPath(),
-        opencode: {
-          models: Object.keys(modelMap),
-          activeModel: config?.model?.startsWith("zenrouter/") ? config.model.replace(/^zenrouter\//, "") : null,
-          baseURL: providerConfig?.options?.baseURL || null,
-        },
+      configPath,
+      opencode: {
+        models: Object.keys(modelMap),
+        activeModel: config?.model?.startsWith("zenrouter/") ? config.model.replace(/^zenrouter\//, "") : null,
+        baseURL: providerConfig?.options?.baseURL || null,
+      },
     });
   } catch (error) {
     console.log("Error checking opencode settings:", error);
-    return NextResponse.json({ error: "Failed to check opencode settings" }, { status: 500 });
+    return errorResponse(error, "Failed to check opencode settings");
   }
 }
 
@@ -99,18 +83,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "baseUrl and at least one model are required" }, { status: 400 });
     }
 
-    const configDir = getConfigDir();
-    const configPath = getConfigPath();
-
-    await fs.mkdir(configDir, { recursive: true });
-
-    // Read existing config or start fresh
-    let config = {};
-    try {
-      const existing = await fs.readFile(configPath, "utf-8");
-      config = JSON.parse(existing);
-    } catch { /* No existing config */ }
-
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     let keyToUse = apiKey;
     if (!keyToUse || keyToUse === "sk_zenrouter" || keyToUse === "sk_9router") {
@@ -125,51 +97,31 @@ export async function POST(request) {
     }
     const effectiveSubagentModel = subagentModel || modelsArray[0];
 
-    // Ensure provider object
-    if (!config.provider) config.provider = {};
-
-    // Preserve any existing zenrouter provider entry and its models
-    const existingProvider = config.provider["zenrouter"] || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
-
-    // Merge options (overwrite baseURL/apiKey)
-    existingProvider.options = {
-      ...existingProvider.options,
-      baseURL: normalizedBaseUrl,
-      apiKey: keyToUse,
-    };
-
-    // Ensure models map exists
-    existingProvider.models = existingProvider.models || {};
-
-    // Add or update entries for all requested models
-    for (const m of modelsArray) {
-      if (!m || typeof m !== "string") continue;
-      existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
-    }
-
-    // Save merged provider back
-    config.provider["zenrouter"] = existingProvider;
-
-    // Set the active model: prefer explicit activeModel, else first of modelsArray
-    // If activeModel is explicitly empty string, clear the model
-    if (activeModel === "") {
-      config.model = "";
-    } else {
-      const finalActive = activeModel || modelsArray[0];
-      if (finalActive) {
-        config.model = `zenrouter/${finalActive}`;
+    const { configPath } = await updateOpenCodeConfig((config) => {
+      if (!config.provider) config.provider = {};
+      const existingProvider = config.provider["zenrouter"] || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
+      existingProvider.options = {
+        ...existingProvider.options,
+        baseURL: normalizedBaseUrl,
+        apiKey: keyToUse,
+      };
+      existingProvider.models = existingProvider.models || {};
+      for (const m of modelsArray) {
+        if (!m || typeof m !== "string") continue;
+        // Existing model metadata belongs to the user.
+        if (!Object.hasOwn(existingProvider.models, m)) {
+          existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
+        }
       }
-    }
-
-    // Add subagent configuration
-    if (!config.agent) config.agent = {};
-    config.agent.explorer = {
-      description: "Fast explorer subagent for codebase exploration",
-      mode: "subagent",
-      model: `zenrouter/${effectiveSubagentModel}`,
-    };
-
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+      config.provider["zenrouter"] = existingProvider;
+      config.model = activeModel === "" ? "" : `zenrouter/${activeModel || modelsArray[0]}`;
+      if (!config.agent) config.agent = {};
+      config.agent.explorer = {
+        ...explorerDefaults,
+        ...config.agent.explorer,
+        model: `zenrouter/${effectiveSubagentModel}`,
+      };
+    }, { create: true });
 
     return NextResponse.json({
       success: true,
@@ -178,7 +130,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.log("Error applying opencode settings:", error);
-    return NextResponse.json({ error: "Failed to apply settings" }, { status: 500 });
+    return errorResponse(error, "Failed to apply settings");
   }
 }
 
@@ -186,27 +138,15 @@ export async function POST(request) {
 export async function PATCH(request) {
   try {
     const { clearActiveModel } = await request.json();
-    const configPath = getConfigPath();
-
-    let config = {};
-    try {
-      const existing = await fs.readFile(configPath, "utf-8");
-      config = JSON.parse(existing);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        return NextResponse.json({ success: true, message: "No config file found" });
-      }
-      throw error;
-    }
-
-    if (clearActiveModel === true) {
+    const { config } = await updateOpenCodeConfig((config) => {
       // Clear active model but keep models in the list
-      if (config.model?.startsWith("zenrouter/")) {
+      if (clearActiveModel === true && config.model?.startsWith("zenrouter/")) {
         config.model = "";
       }
+    });
+    if (!config) {
+      return NextResponse.json({ success: true, message: "No config file found" });
     }
-
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -214,7 +154,7 @@ export async function PATCH(request) {
     });
   } catch (error) {
     console.log("Error patching opencode settings:", error);
-    return NextResponse.json({ error: "Failed to patch settings" }, { status: 500 });
+    return errorResponse(error, "Failed to patch settings");
   }
 }
 
@@ -223,46 +163,35 @@ export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const modelToRemove = searchParams.get("model");
-    const configPath = getConfigPath();
-
-    let config = {};
-    try {
-      const existing = await fs.readFile(configPath, "utf-8");
-      config = JSON.parse(existing);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        return NextResponse.json({ success: true, message: "No config file to reset" });
-      }
-      throw error;
-    }
-
-    // If specific model provided, remove just that model
-    if (modelToRemove && config.provider?.["zenrouter"]?.models) {
-      delete config.provider["zenrouter"].models[modelToRemove];
-      
-      // If no models left, remove the provider
-      if (Object.keys(config.provider["zenrouter"].models).length === 0) {
-        delete config.provider["zenrouter"];
+    const { config } = await updateOpenCodeConfig((config) => {
+      // If specific model provided, remove just that model
+      if (modelToRemove && config.provider?.["zenrouter"]?.models) {
+        delete config.provider["zenrouter"].models[modelToRemove];
+        if (Object.keys(config.provider["zenrouter"].models).length === 0) {
+          delete config.provider["zenrouter"];
+          if (config.model?.startsWith("zenrouter/")) delete config.model;
+        } else if (config.model === `zenrouter/${modelToRemove}`) {
+          const remainingModels = Object.keys(config.provider["zenrouter"].models);
+          config.model = `zenrouter/${remainingModels[0]}`;
+        }
+      } else {
+        if (config.provider) delete config.provider["zenrouter"];
         if (config.model?.startsWith("zenrouter/")) delete config.model;
-      } else if (config.model === `zenrouter/${modelToRemove}`) {
-        // If removed model was active, switch to first remaining model
-        const remainingModels = Object.keys(config.provider["zenrouter"].models);
-        config.model = `zenrouter/${remainingModels[0]}`;
       }
-    } else {
-      // No specific model - remove entire zenrouter provider
-      if (config.provider) delete config.provider["zenrouter"];
-      if (config.model?.startsWith("zenrouter/")) delete config.model;
-    }
 
-    // Remove subagent configuration
-    if (config.agent?.explorer?.model?.startsWith("zenrouter/")) {
-      delete config.agent.explorer;
-      // Clean up empty agent object
-      if (Object.keys(config.agent).length === 0) delete config.agent;
+      const explorer = config.agent?.explorer;
+      if (explorer?.model?.startsWith("zenrouter/") &&
+          (!modelToRemove || !config.provider?.zenrouter || explorer.model === `zenrouter/${modelToRemove}`)) {
+        delete explorer.model;
+        // Remove generated defaults, but retain user-defined agent settings.
+        const onlyDefaults = Object.keys(explorer).every((key) => explorer[key] === explorerDefaults[key]);
+        if (onlyDefaults) delete config.agent.explorer;
+        if (Object.keys(config.agent).length === 0) delete config.agent;
+      }
+    });
+    if (!config) {
+      return NextResponse.json({ success: true, message: "No config file to reset" });
     }
-
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -270,6 +199,6 @@ export async function DELETE(request) {
     });
   } catch (error) {
     console.log("Error resetting opencode settings:", error);
-    return NextResponse.json({ error: "Failed to reset opencode settings" }, { status: 500 });
+    return errorResponse(error, "Failed to reset opencode settings");
   }
 }

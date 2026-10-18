@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Vision, model metadata and audit follow-up
 
+- Preserve OpenCode JSONC configuration, comments and unrelated provider/agent settings across dashboard edits. Resolve `opencode.json` or `opencode.jsonc` under the configured XDG directory, reject malformed/unreadable or ambiguous files, and serialize atomic writes with external-change checks instead of overwriting after a failed parse.
 - Reconcile current architecture, test and agent guidance: SQLite owns active usage data; legacy cloud sync is removed; provider execution and translation coverage are broader and more conditional than older summaries claimed. Correct the provider-key hint to describe local storage without claiming encryption at rest.
 - Make the test-report gate reject collection failures, unsuccessful or empty runs, and inconsistent counts. Normal CI now runs the independent CJS compatibility test plus provider identity/baseline checks, isolates application state, disables live/background work, and retains SHA-bound test JSON.
 - Use only a valid rightmost `X-Forwarded-For` address from a loopback proxy for client attribution. Ignore a lone `X-Real-IP`, remove untrusted forwarding fields, and retain the proxy marker so an unusable address cannot grant local privileges. Regression tests exercise real HTTP requests and login lockout across rotating forged headers.

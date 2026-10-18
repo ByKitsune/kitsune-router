@@ -39,6 +39,29 @@ live/background work, isolates runtime state and uploads the Vitest JSON tagged
 with the exact SHA. Local execution of these checks does not claim a future
 GitHub run has already completed.
 
+### OpenCode configuration preservation
+
+The dashboard's POST path previously swallowed errors while reading existing
+configuration and then replaced the file. Valid comments/trailing commas could
+therefore erase unrelated settings. All read/write operations now share the
+JSONC helper in `src/shared/utils/opencodeConfig.js`, using the existing confbox
+parser and syntax-preserving edits. Model metadata and custom agent fields are
+retained. The current legacy configuration shape remains supported; this fix is
+not a forced OpenCode V2 schema migration.
+
+An absolute `XDG_CONFIG_HOME` is respected; otherwise the default is
+`~/.config/opencode`. Either filename is supported. If both are present, the
+route returns a conflict rather than guessing which to overwrite. Malformed,
+unreadable and dangling-link files fail without replacement. Writes use a
+per-directory queue and atomic staging, retain existing symlinks, and reject
+detected external changes. The final check/rename is not a cross-process lock;
+operators should still avoid simultaneous external writers.
+
+Regression coverage: `tests/unit/opencode-settings-preservation.test.js`, 42
+cases using real disposable files, including concurrent writes, external edits,
+comments, escaped strings, permission failures and failed staging. No actual
+user configuration is used. Official reference: https://opencode.ai/v2/docs/config.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,
