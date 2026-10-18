@@ -219,38 +219,78 @@ export async function updateProviderCredentials(connectionId, newCredentials) {
 
 // ─── Local-specific: proactive token refresh ─────────────────────────────────
 
+const proactiveRefreshTails = new Map();
+
 /**
  * Check whether the provider token (and, for GitHub, the Copilot token) is
  * about to expire and refresh it proactively.
  *
  * @param {string} provider
  * @param {object} credentials
- * @param {{ force?: boolean }} [options]  force=true skips the on-request lead check
+ * @param {{ force?: boolean, proxyOptions?: object }} [options]  force=true skips the on-request lead check
  *   (used by background scheduler which applies a larger lead). Request path omits this.
  * @returns {Promise<object>} updated credentials object
  */
 export async function checkAndRefreshToken(provider, credentials, options = {}) {
-  let creds = { ...credentials };
+  const creds = { ...credentials };
   if (!creds.connectionId && creds.id) {
     creds.connectionId = creds.id;
   }
 
-  // Adopt latest DB tokens: OpenAI rotates the refresh token on every refresh, and
-  // refreshing with a stale snapshot (reuse) revokes the whole session → account logout.
+  if (!creds.connectionId) return checkAndRefreshTokenInternal(provider, creds, options);
+
+  const connectionId = creds.connectionId;
+  const previous = proactiveRefreshTails.get(connectionId);
+  // Queue each caller's own operation, including its DB reread and persistence.
+  // A failed predecessor must not reject the following caller's operation.
+  const pending = (previous ? previous.catch(() => {}) : Promise.resolve())
+    .then(() => checkAndRefreshTokenInternal(provider, creds, options));
+  proactiveRefreshTails.set(connectionId, pending);
+
+  try {
+    return await pending;
+  } finally {
+    if (proactiveRefreshTails.get(connectionId) === pending) {
+      proactiveRefreshTails.delete(connectionId);
+    }
+  }
+}
+
+async function checkAndRefreshTokenInternal(provider, creds, options) {
+
+  // Adopt newer persisted token state even when the refresh token did not rotate.
   if (creds.connectionId) {
     const latest = await getProviderConnectionById(creds.connectionId).catch(() => null);
     const latestRefreshMs = Date.parse(latest?.lastRefreshAt || "");
     const credsRefreshMs = Date.parse(creds.lastRefreshAt || "");
     const dbIsNewer = Number.isFinite(latestRefreshMs)
       && (!Number.isFinite(credsRefreshMs) || latestRefreshMs > credsRefreshMs);
-    if (dbIsNewer && latest.refreshToken && latest.refreshToken !== creds.refreshToken) {
+    if (dbIsNewer) {
       creds = {
         ...creds,
-        refreshToken: latest.refreshToken,
+        refreshToken: latest.refreshToken || creds.refreshToken,
         accessToken: latest.accessToken || creds.accessToken,
         expiresAt: latest.expiresAt || latest.tokenExpiresAt || creds.expiresAt,
         lastRefreshAt: latest.lastRefreshAt || creds.lastRefreshAt,
       };
+    }
+
+    // Copilot service-token freshness is independent of the GitHub OAuth grant.
+    // Adopt only token fields; the caller's proxy and other metadata stay intact.
+    if (provider === "github" && latest?.providerSpecificData?.copilotToken) {
+      const latestSpecific = latest.providerSpecificData;
+      const currentSpecific = creds.providerSpecificData;
+      const latestExpiryMs = parseTimeMs(latestSpecific.copilotTokenExpiresAt);
+      const currentExpiryMs = parseTimeMs(currentSpecific?.copilotTokenExpiresAt);
+      if (latestExpiryMs !== null && (
+        !currentSpecific?.copilotToken || currentExpiryMs === null || latestExpiryMs > currentExpiryMs
+      )) {
+        creds.providerSpecificData = {
+          ...currentSpecific,
+          copilotToken: latestSpecific.copilotToken,
+          copilotTokenExpiresAt: latestSpecific.copilotTokenExpiresAt,
+        };
+      }
     }
   }
 
@@ -279,7 +319,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
         existingProviderSpecificData: creds.providerSpecificData,
       };
 
-      // Persist to DB (non-blocking path continues below)
+      // Keep following proactive callers behind this credential commit.
       await updateProviderCredentials(creds.connectionId, mergedCreds);
 
       creds = {
@@ -301,6 +341,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
   // ── 2. GitHub Copilot token expiry ────────────────────────────────────────
   if (provider === "github") {
     const copilotToken = creds.providerSpecificData?.copilotToken;
+    if (copilotToken) creds.copilotToken = copilotToken;
     const copilotExpiresAt = creds.providerSpecificData?.copilotTokenExpiresAt
       ? creds.providerSpecificData.copilotTokenExpiresAt * 1000
       : 0;
