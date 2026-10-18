@@ -1,6 +1,6 @@
 # ZenRouter Architecture
 
-_Last updated: 2026-10-17_
+_Last updated: 2026-10-18_
 
 ## Executive Summary
 
@@ -156,6 +156,8 @@ Reviewed metadata distinguishes the unified 1,048,576-token context from this ga
 
 The account prefilter and quota-error handler share an exact-model/tier plus family selector. Any applicable future exhaustion wins, using the latest exhausted reset. Partial refresh cannot erase a known future zero-reset deadline; expired or unusable zero readings cannot suppress fresh strike counting. Alias/wire-name success clears only equivalent synthesized blocks and partial strikes, retaining genuine exhaustion and unrelated tiers.
 
+Public Argon documentation verifies published capabilities and eligible surfaces, not the authenticated Cloud Code model catalog. The base/tier wire IDs and raw quota-summary schema still require credential-redacted responses from an entitled account. `authenticatedRouteVerified: false` records that boundary; local fixtures do not change it.
+
 
 ## 3) Persistence Layer
 
@@ -184,6 +186,7 @@ Usage and request logs use the same SQLite layer:
 - Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
 - Daily/live groups, minute buckets and charts propagate unknown totals; Prometheus omits an unknown cost sample rather than publishing zero
 - Cache-write totals include five-minute and one-hour subsets once; canonical TTL counters and the distinct hourly rate survive translation, persistence and pricing overrides
+- Live `today`/`24h` statistics read standard or native input/output counters, then legacy persisted token columns. Native `prompt_cache_hit_tokens` remains consistent with daily summaries; key grouping still uses non-secret IDs or digests.
 
 ## 4) Auth + Security Surfaces
 
@@ -195,8 +198,9 @@ Usage and request logs use the same SQLite layer:
 - SAML callbacks require a one-use, signed request correlation bound to browser state. Use HTTPS for cross-site POST callbacks (`SameSite=None; Secure`). The outstanding-request cache is process-local; route login start and callback to the same process. Restarts invalidate pending logins.
 - OIDC supports public HTTP(S) issuers. Discovery issuer and advertised endpoints are validated; vetted DNS answers are pinned to each outbound socket. Token requests reject redirects. Draft tests reuse a stored secret only for the configured issuer/client pair.
 - CLI status aggregation returns installation/configured booleans, not host credentials. Cowork configuration access requires the existing local-only/CLI-token authorization. If an older deployment exposed a privileged CLI token, rotate it and reapply local MCP configuration.
-- `fetchPublic` uses direct Undici connections rather than environment proxies so a proxy cannot bypass DNS pinning. Local private MCP access blocks metadata at every redirect and socket lookup. If an environment proxy applies, local MCP fails closed; add an explicit `NO_PROXY` exemption for the trusted server.
-- Dependency risk (2026-10-02): root and CLI retain `node-forge` 1.4.0 affected by [GHSA-86w9-cpqp-85rv / CVE-2026-85393](https://github.com/advisories/GHSA-86w9-cpqp-85rv). No patched npm release is available; root/CLI audit remains high severity. Current `src/mitm/cert/rootCA.js` uses certificate/key generation, signing, PEM import/export, and local expiry parsing—not the vulnerable RSA PKCS#1 v1.5 signature-verification trust decision. This is a scoped static non-reachability assessment, not a patched dependency or audit suppression. Reassess before introducing forge signature/certificate-chain verification; update both package trees and rebuilt CLI artifacts when an official fix is published.
+- `fetchPublic` uses direct Undici connections so environment proxies cannot bypass DNS pinning. `fetchTrustedLocal` shares that transport and validates metadata exclusions across the complete DNS snapshot and redirects. Callers must establish socket-derived local trust before selecting private-network access. If an environment proxy applies, local MCP fails closed; use an explicit `NO_PROXY` exemption.
+- GitLab PAT verification requires the existing dashboard authorization. Remote probes accept only public targets; trusted local peers retain private self-hosted access, never metadata. Every redirect is rejected before forwarding `Private-Token`. The eight-second limit covers DNS, connection and body consumption. Unsupported proxy transport fails closed, and upstream bodies/exceptions never reach responses or logs. Explicit HTTP URLs retain their existing behavior; use HTTPS for credential confidentiality.
+- Dependency risk (rechecked 2026-10-18): root and CLI retain `node-forge` 1.4.0 affected by [GHSA-86w9-cpqp-85rv / CVE-2026-85393](https://github.com/advisories/GHSA-86w9-cpqp-85rv). The [npm latest manifest](https://registry.npmjs.org/node-forge/latest) still reports 1.4.0; no patched npm release is available. Current `src/mitm/cert/rootCA.js` generates, signs and serializes certificates without invoking the vulnerable RSA signature-verification trust decision. This scoped non-reachability assessment does not patch the dependency or suppress the advisory. Reassess before introducing forge verification and rebuild both package trees when a fix becomes available.
 - MITM interception trust does not imply upstream trust. Outbound ALPN, HTTP/2, and HTTPS connections validate upstream certificates and hostnames; failures return 502 without insecure retry. For an operator-managed CA, use Node's explicit startup trust contract (`NODE_EXTRA_CA_CERTS`); never disable TLS verification or add the interception root implicitly to upstream trust.
 
 ### Client release and protocol identities
@@ -273,33 +277,33 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[Incoming model string] --> B{Is combo name?}
-    B -- Yes --> C[Load combo models sequence]
-    B -- No --> D[Single model path]
-
+    A[Incoming model string] --> B{Combo name?}
+    B -- Yes --> C[Load ordered combo members]
+    B -- No --> D[Single model]
     C --> E[Try model N]
-    E --> F[Resolve provider/model]
+    E --> F[Resolve provider and model]
     D --> F
-
     F --> G[Select account credentials]
     G --> H{Credentials available?}
-    H -- No --> I[Return provider unavailable]
+    H -- No --> Q{Combo has another model?}
     H -- Yes --> J[Execute request]
-
-    J --> K{Success?}
+    J --> K{Accepted response?}
     K -- Yes --> L[Return response]
-    K -- No --> M{Fallback-eligible error?}
-
-    M -- No --> N[Return error]
-    M -- Yes --> O[Mark account unavailable cooldown]
-    O --> P{Another account for provider?}
+    K -- No --> M{Retry another account?}
+    M -- Yes --> O[Apply cooldown if positive]
+    O --> P{Another account available?}
     P -- Yes --> G
-    P -- No --> Q{In combo with next model?}
+    P -- No --> Q
+    M -- No --> S{Model-dependent incompatibility?}
+    S -- Yes --> Q
+    S -- No --> N[Return request error]
     Q -- Yes --> E
-    Q -- No --> R[Return all unavailable]
+    Q -- No --> R[Return final error]
 ```
 
-Fallback decisions are driven by `open-sse/services/accountFallback.js` using status codes and error-message heuristics.
+`checkFallbackError` uses `FALLBACK_SCOPE.ACCOUNT` by default. The combo boundary passes `FALLBACK_SCOPE.COMBO` and retains structured error codes. Only configured destination-dependent request failures advance a combo without rotating or cooling healthy accounts; generic client failures and cancellation remain terminal.
+
+The nonstream handlers reject zero-output, nonfinal Chat completions as HTTP 502 `empty_response`, including SSE aggregation. Detection reuses parsed objects. Generated content, opaque reasoning, tools, refusals, images/audio, positive incurred usage and valid terminal no-ops prevent empty-response replay. Empty upstream failures retain the existing bounded retry/account policy.
 
 ## OAuth Onboarding and Token Refresh Lifecycle
 
@@ -331,7 +335,11 @@ sequenceDiagram
     Test-->>UI: validation result
 ```
 
-Refresh during live traffic is executed inside `open-sse/handlers/chatCore.js` via executor `refreshCredentials()`.
+Proactive checks in `src/sse/services/tokenRefresh.js` queue by connection through the database reread, upstream refresh and persistence attempt. Each caller retains its own `force`, transport policy and contextual fields. Newer persisted access/expiry state is adopted even when the refresh token does not rotate.
+
+GitHub Copilot service-token freshness uses its own expiry, independently from the OAuth `lastRefreshAt`. Adoption copies only service-token fields and synchronizes top-level/nested carriers. It does not overwrite caller proxy metadata or mark the OAuth grant refreshed. Existing policy-aware single-flight and ten-second result caches remain intact.
+
+This queue is process-local and proactive-only. It does not serialize other processes, reactive refresh writers or usage writers. The reactive path in `open-sse/handlers/chatCore.js` still uses executor `refreshCredentials()`.
 
 ## Cloud Sync Lifecycle (Enable / Sync / Disable)
 

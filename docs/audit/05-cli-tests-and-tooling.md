@@ -163,3 +163,41 @@ catalog endpoints and the `ZENROUTER_URL` / `ZENROUTER_KEY` convention.
   non-reachability assessment. Re-assess before introducing forge signature verification.
 - The suite is large and green by contract; use the baseline scripts rather than eyeballing
   test counts.
+
+## 6. Current verification workflow, 2026-10-18
+
+The root `npm test` now runs the independent Vitest package with `tests/vitest.config.js`. `tests/package.json` no longer requires the historical `/tmp/node_modules` workaround described above. Keep Node at or above the manifests' 22.19.0 floor.
+
+Run checks from a disposable checkout with an absolute temporary `DATA_DIR`, temporary `HOME`, synthetic secrets and no production `.env` or provider credentials. Disable live suites and background token/catalog work. A passing synthetic fixture proves gateway behavior, not provider entitlement.
+
+Run the complete suite and regression checks from the repository root:
+
+```bash
+npm test -- --reporter=json --outputFile=/tmp/zenrouter-vitest.json
+node tests/__baseline__/verify-no-regression.mjs /tmp/zenrouter-vitest.json
+npm run lint -- --max-warnings=0
+npm --prefix gitbook test
+npm --prefix gitbook run build
+node --test tests/unit/custom-server-h2c.test.cjs
+node tests/__baseline__/verify-providers.mjs
+node tests/__baseline__/verify-alias.mjs
+node tests/__baseline__/verify-oauth-urls.mjs
+node scripts/generate-provider-identity.mjs --check
+node scripts/check-release-version.mjs
+```
+
+Inspect both `numFailedTests` and `numFailedTestSuites` in the JSON report. Record skipped live/credential-dependent suites separately; do not report them as exercised providers.
+
+Build and inspect the unpublished artifact without running publication:
+
+```bash
+npm --prefix cli run build
+npm pack ./cli --pack-destination /tmp
+```
+
+The CLI build also compiles the dashboard and MITM runtime. Reject bundled state, credentials, temporary build homes and missing API artifacts. Keep database adapter source files: `src/lib/db/` is executable runtime code, not operator state. Run the extracted package with absolute disposable state and loopback-only synthetic upstreams.
+
+The selective upstream batch adds behavior coverage in `gitlab-pat-ssrf-guard.test.js`, `proactive-token-refresh.test.js` and `github-embeddings-contract.test.js`. Existing combo, response-accounting and usage-overlay tests cover the remaining fixes. Refresh tests retain the real policy-aware lower cache; deferred persistence barriers are synthetic, not evidence that synchronous SQLite writes normally take seconds.
+
+Source and packaged smokes are separate from Vitest. The source run exercised actual HTTP refresh and SQLite persistence; the packaged run exercised the public APIs, authenticated management routes, local MCP and token statistics. The `0.9.11` manifest on an unpublished local tarball does not make it the immutable published `0.9.11` release.
+

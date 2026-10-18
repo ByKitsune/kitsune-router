@@ -151,3 +151,40 @@ re-verified against the actual upstream diffs before porting:
 
 Tier-2/Tier-3 items remain open; the OpenCode free-tier 403 cluster still requires
 re-verifying PRs #4782/#4784/#4786 against upstream HEAD before porting.
+
+## 9. Selective re-audit and implementation, 2026-10-18
+
+This section supersedes the earlier static applicability labels for the candidates below. The reviewed Zen base is `ccfb5cfaafe12579ec731027bda9dee249a17b61`. Upstream master resolves to [`87a74e1`](https://github.com/decolua/9router/commit/87a74e1bda3677193c6f71a7e2100c90311f0689), version 0.5.104. An open PR or author-reported HTTP 200 is a reference, not Zen verification.
+
+| Upstream reference | Pinned revision | Zen adaptation |
+|---|---|---|
+| [PAT SSRF #4953](https://github.com/decolua/9router/pull/4953), [issue #4952](https://github.com/decolua/9router/issues/4952) | `df23e9847a771eacca9ecfd16b88f1417851cf98` | Use Zen's pinned public/private transports, actual peer trust, metadata exclusions, zero redirects and bounded body reads. Keep authenticated self-hosted access and safe errors. |
+| [Proactive refresh #4948](https://github.com/decolua/9router/pull/4948), [issue #4910](https://github.com/decolua/9router/issues/4910) | `4e69193622db5ae38ae4928b1bbb809d0aca2ee6` | Queue each connection through persistence; adopt newer access credentials without requiring rotation. Retain the real ten-second lower cache. Do not claim an immediate destructive refresh herd from a mocked dispatcher. |
+| [Context overflow #4879](https://github.com/decolua/9router/pull/4879), [seat errors #4886](https://github.com/decolua/9router/pull/4886) | `bb303332ad859bfc49bd9d8d1d44f0121847a507`, `51ec6f91b9e54bfe88871ca58b12646596054d7e` | Add a separate combo classifier scope. Recognize configured context and unsupported-parameter failures without changing account health or replaying malformed/cancelled requests. |
+| [Empty completion #4750](https://github.com/decolua/9router/pull/4750) | Published change [`8f4e3800`](https://github.com/decolua/9router/commit/8f4e380073151d2626e5104afbee2d95738eaf26) | Reject genuinely empty, nonfinal Chat JSON and aggregated SSE. Preserve paid usage, generated reasoning/tools/media/refusals and terminal no-ops. Never turn an exhausted chain into HTTP 200. |
+| [Copilot endpoint #4793](https://github.com/decolua/9router/commit/51a1827e2d1e5170eb5e13e421dcca3409245d78), [scalar input #4951](https://github.com/decolua/9router/pull/4951) | `51a1827e2d1e5170eb5e13e421dcca3409245d78`, `91af28faa8a63e3add5a947bd275b1df5c9e6730` | Separate Copilot from the GitHub Models product. Select the service token and IDE profile, normalize scalar input, and preserve batch boundaries. Do not infer global model retirement from this endpoint fix. |
+| [Usage statistics correction](https://github.com/decolua/9router/commit/813a0121b09c4181712a902e47e1ed418a88c473) | `813a0121b09c4181712a902e47e1ed418a88c473` | Read native counters and legacy columns in live windows. Include native cache hits. Keep Zen's non-secret key identities and nullable costs rather than upstream's raw-key buckets. |
+
+The Copilot snapshot follow-up is Zen-specific: service expiry determines adoption independently from OAuth age. Only token/expiry fields change; newer caller credentials and caller proxy configuration remain authoritative.
+
+### Decisions not to import
+
+- [Reset uncapping #4935](https://github.com/decolua/9router/pull/4935), head `1f89a843b83341068024dbfafe123f9f284b8925`: Zen already allows six hours, covering the PR's one-/three-hour examples. Generic retry text also produces reset hints, so removing the cap would trust unauthenticated wording. Longer authoritative resets need provenance, not blanket uncapping.
+- Per-key quotas/model patterns were [reverted upstream](https://github.com/decolua/9router/commit/6ed886857da125f4908a8a3c3e64f7f1d8ff8366). No new access-control schema or raw-key metric grouping is imported.
+- Inactive-member combo metadata remains a separate candidate. This batch does not replace conservative minima with maxima or silently trim history.
+- OpenCode's changing free-tier attestation requires current native evidence. No captured host identity or unrelated proxy bypass is added.
+
+### Argon source and live-acceptance boundary
+
+[Google's model documentation](https://antigravity.google/docs/models.md) distinguishes supported App/CLI/extensions from standalone IDE availability. The [official CLI changelog](https://github.com/google-antigravity/antigravity-cli/blob/86a5bdda81a063d707ac4ab87fb72f7dfe30ab67/CHANGELOG.md) describes base-model selection using server defaults, then medium, then the lowest available tier.
+
+The [CLI updater manifest](https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json) reports 1.4.2 on October 18; the website still displays 1.4.0. A publisher version does not verify a native wire profile, so the gateway's pinned CLI identity is not bumped speculatively.
+
+Public Gemini API IDs do not establish the authenticated Cloud Code IDs or raw quota-summary schema. Native acceptance still requires an entitled account's redacted `fetchAvailableModels`/`retrieveUserQuotaSummary` output and successful generation for the advertised base/tiers. Local fixtures do not establish entitlement, billing or inference quality.
+
+### Exercised verification
+
+Regressions failed before the corresponding fixes, then passed through real handlers, disposable SQLite and calibrated HTTP transports. A source smoke adopted persisted same-refresh-token credentials without OAuth traffic and served 20 concurrent refresh callers through one synthetic HTTP exchange.
+
+The actual locally packed runtime passed 23 HTTP scenarios through 46 fixture requests. Coverage includes Messages/Responses and SSE, account health, concurrent OAuth/Copilot refresh, embedding scalar/batch input, authenticated PAT rejection, redirect/error confidentiality, local MCP and live usage windows. Denied native quota lookups remain recorded by the egress guard; no real provider or production state is used. See [the updated test workflow](05-cli-tests-and-tooling.md#6-current-verification-workflow-2026-10-18) for the complete suite and baseline commands.
+

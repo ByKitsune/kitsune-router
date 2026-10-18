@@ -5,6 +5,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Selective upstream security and gateway fixes
+
+- Guard GitLab PAT verification with DNS-pinned transport, metadata denial and socket-derived local trust ([9Router #4953](https://github.com/decolua/9router/pull/4953)). Reject redirects and unsupported proxy transport. Bound DNS, connection and body reads; never reflect upstream bodies or credential-bearing exceptions. Reuse the guarded private transport for local MCP probes.
+- Serialize proactive credential reads, refresh and persistence per connection ([#4948](https://github.com/decolua/9router/pull/4948)). Adopt newer access credentials without requiring refresh-token rotation. Compare Copilot service-token expiry independently from OAuth age, synchronizing token carriers without replacing caller proxy policy.
+- Advance combos on explicit context overflow or `unsupported_parameter` while preserving request intent ([#4879](https://github.com/decolua/9router/pull/4879), [#4886](https://github.com/decolua/9router/pull/4886)). Keep those failures separate from account faults. Malformed requests and cancellations still stop.
+- Reject zero-output, nonfinal Chat JSON and aggregated SSE with HTTP 502 `empty_response` ([#4750](https://github.com/decolua/9router/pull/4750)). Preserve generated reasoning, tools, refusals, media, positive incurred usage and valid terminal no-ops instead of replaying them.
+- Route GitHub Copilot embeddings through its service endpoint and token ([`51a1827e`](https://github.com/decolua/9router/commit/51a1827e2d1e5170eb5e13e421dcca3409245d78), [#4951](https://github.com/decolua/9router/pull/4951)). Normalize scalar input without nesting existing batches; keep ordinary OpenAI authentication and input unchanged.
+- Count native input/output tokens, legacy persisted columns and native prompt-cache hits in `today`/`24h` statistics ([`813a0121`](https://github.com/decolua/9router/commit/813a0121b09c4181712a902e47e1ed418a88c473)). Retain ZenRouter's non-secret key identities and nullable costs instead of importing upstream's raw-key grouping.
+- Exercise 23 HTTP scenarios against the locally packed runtime with synthetic loopback upstreams. Verify concurrent refresh, account health, JSON/SSE and Messages/Responses fallback, PAT/MCP boundaries, embedding batches and usage APIs. No production state or real provider account is used.
+
 ### Antigravity Argon native CLI integration
 
 - Adapt the Argon transport/quota work from [9Router #4934](https://github.com/decolua/9router/pull/4934) and Gemini 4 request compatibility from [`eb373017`](https://github.com/decolua/9router/commit/eb3730170ce4cd5d999566e7b4873c0f523cf0ea) without replacing ZenRouter's customized codecs or routing.
@@ -16,7 +26,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 - Resolve quota and strike state across equivalent model aliases and native tier spellings. Respect the latest relevant exhausted reset, ignore stale deadlines for new strikes, and clear only synthesized blocks on success without erasing genuine quota or another tier.
 - Apply Gemini 4 function-response-last ordering to translated, native, already-merged and passthrough histories. Preserve signed typed images, repeated media, errors and parallel tool ownership; never manufacture pending client-tool success for Gemini 4.
 - Return local HTTP 400 `unsupported_parameter` for explicit Gemini 4 sampling controls that the native API documents as ignored. Preserve the original parameter path; do not silently delete intent or impose this restriction on unverified reseller routes.
-- Verify packaged JSON/SSE routing, reasoning, large PNG tool histories, independent quota fallback and dashboard rows with synthetic loopback upstreams. These checks do not establish live-account entitlement, native inference quality or upstream billing.
+- Verify packaged JSON/SSE routing, reasoning, large PNG tool histories, independent quota fallback and dashboard rows with synthetic loopback upstreams. These checks do not establish native Cloud Code model-ID acceptance, live-account entitlement, inference quality or upstream billing.
 
 ## [0.9.11] - 2026-10-17
 

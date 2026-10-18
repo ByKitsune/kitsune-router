@@ -24,6 +24,12 @@ Model: premium-coding
 
 ZenRouter automatically tries each model in sequence until one succeeds.
 
+### Request failures and response preservation
+
+An explicit context overflow or unsupported parameter can advance to another combo model without retrying that model's healthy accounts. ZenRouter preserves the complete history and requested parameters. A malformed request or client cancellation still stops the chain.
+
+A zero-output, nonfinal Chat response returns `502 empty_response`, including when an upstream uses SSE for a nonstreaming request. The existing bounded retry/account policy can then continue the combo. Generated reasoning, tool calls, refusals, media, positive incurred usage and valid terminal no-ops are not treated as empty transports.
+
 ---
 
 ## Why Use Combos?
