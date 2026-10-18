@@ -137,6 +137,26 @@ usage is provider-specific. No messages are silently trimmed and no provider
 limit is raised to conceal an oversized request. Evidence is under
 `/tmp/opencode/zen-wave-20261019/vision/`.
 
+### No-auth proxy failover
+
+No-auth virtual connections previously lacked a usable connection ID, ignored
+request exclusions and refused all account fallback. A non-strict failed proxy
+could also fall through to direct egress. The selector now snapshots a bounded
+set of eligible pool IDs per request, revalidates active pools and attaches
+provider/pool-scoped virtual routing IDs. Required proxy transport is fail-closed.
+
+Only classified generic transient transport/server failures permit another
+configured pool. Quota, billing, auth, model restrictions and cancellation remain
+terminal; the normal same-account 5xx retry is bypassed for these virtual proxy
+routes so it cannot rotate before classification. Intentionally direct no-auth
+requests remain direct. Synthetic IDs are never written as account health.
+
+`tests/unit/noauth-proxy-fallback.test.js` uses real SQLite, real relay requests
+and CONNECT fixtures with a separate direct-egress trap. Its initial 21 failures
+and the two chat-loop integration failures became green after the fixes. Parent
+verification passed 77 cases across five discovered files. Evidence is under
+`/tmp/opencode/zen-wave-20261019/noauth/`.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

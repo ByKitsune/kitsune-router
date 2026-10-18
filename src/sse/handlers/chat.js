@@ -505,7 +505,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // succeeds seconds later) must not poison the account for 30s while fast
     // clients burn all retries on the cached lock error. Bounded: once per
     // account per logical request, 5xx only, never after client abort.
-    const retryable5xx = [500, 502, 503, 504].includes(Number(result.status));
+    // A virtual proxy route has no account to retry. Classify its failure before
+    // selecting another pool, especially for quota/abuse denials sent as 5xx.
+    const retryable5xx = [500, 502, 503, 504].includes(Number(result.status))
+      && !(credentials.id === "noauth" && credentials.providerSpecificData?.connectionProxyPoolId);
     if (retryable5xx && !retriedConnectionIds.has(credentials.connectionId) && !request?.signal?.aborted) {
       retriedConnectionIds.add(credentials.connectionId);
       log.warn("RETRY", `transient ${result.status} on ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} — one immediate retry before fallback`);

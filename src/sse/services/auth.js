@@ -1,7 +1,7 @@
 import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil, needsOperatorReauth } from "open-sse/services/accountFallback.js";
-import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
+import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { setBounded, CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
@@ -30,6 +30,16 @@ function setProviderMutex(providerId, promise) {
 }
 
 const quotaSnapshotCacheByTtl = new Map();
+
+// The caller's exclusion Set is the request lifetime. Snapshot eligible pool
+// IDs once so configuration changes cannot extend retries or enable direct
+// egress mid-request. Weak keys retain neither completed requests nor accounts.
+const noAuthProxyPlans = new WeakMap();
+const NO_AUTH_PROXY_PREFIX = "noauth:";
+
+function noAuthProxyConnectionId(providerId, poolId) {
+  return `${NO_AUTH_PROXY_PREFIX}${providerId}:${poolId}`;
+}
 
 function getQuotaCache(ttlMs) {
   const key = String(ttlMs);
@@ -101,18 +111,60 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
     // Inject a virtual connection for no-auth free providers (with optional proxy pool from settings)
     if (FREE_PROVIDERS[providerId]?.noAuth) {
-      const settings = await getSettings();
-      const override = (settings.providerStrategies || {})[providerId] || {};
-      const strategy = override.rotateStrategy || "none";
-      let pickedId = override.proxyPoolId || null;
-      if (strategy !== "none") {
-        const allPools = await getProxyPools({ isActive: true });
-        const poolIds = allPools.filter(p => p.proxyUrl).map(p => p.id);
-        pickedId = pickProxyPoolId(poolIds, strategy, providerId);
+      let plans = noAuthProxyPlans.get(excludeSet);
+      if (!plans) {
+        plans = new Map();
+        noAuthProxyPlans.set(excludeSet, plans);
       }
-      const resolvedProxy = await resolveConnectionProxyConfig({ proxyPoolId: pickedId || "" });
+      let plan = plans.get(providerId);
+      let activePools;
+      if (!plan) {
+        const settings = await getSettings();
+        const override = (settings.providerStrategies || {})[providerId] || {};
+        const strategy = override.rotateStrategy || "none";
+        if (!["none", "round-robin", "random"].includes(strategy)) return null;
+        const poolId = String(override.proxyPoolId || "").trim();
+        const proxyRequired = strategy !== "none" || (!!poolId && poolId !== "__none__");
+        activePools = proxyRequired ? await getProxyPools({ isActive: true }) : [];
+        plan = {
+          strategy,
+          proxyRequired,
+          poolIds: strategy === "none" ? (proxyRequired ? [poolId] : []) : activePools
+            .filter(p => p.isActive === true && typeof p.proxyUrl === "string" && p.proxyUrl.trim())
+            .map(p => p.id),
+        };
+        plans.set(providerId, plan);
+      }
+
+      let resolvedProxy;
+      let connectionId = "noauth";
+      if (plan.proxyRequired) {
+        activePools ??= await getProxyPools({ isActive: true });
+        const activeIds = new Set(activePools
+          .filter(p => p.isActive === true && typeof p.proxyUrl === "string" && p.proxyUrl.trim())
+          .map(p => p.id));
+        const poolIds = plan.poolIds.filter(id => activeIds.has(id) && !excludeSet.has(noAuthProxyConnectionId(providerId, id)));
+        while (poolIds.length > 0) {
+          const pickedId = pickProxyPoolId(poolIds, plan.strategy, providerId);
+          // A failed pool must reach fallback, never the transport's implicit
+          // direct retry. Direct egress requires an explicit no-pool plan.
+          const proxy = await resolveConnectionProxyConfig({ proxyPoolId: pickedId, strictProxy: true });
+          if ((proxy.connectionProxyEnabled && proxy.connectionProxyUrl) || proxy.vercelRelayUrl) {
+            resolvedProxy = proxy;
+            connectionId = noAuthProxyConnectionId(providerId, pickedId);
+            break;
+          }
+          // A pool may be removed/disabled between listing and resolution.
+          poolIds.splice(poolIds.indexOf(pickedId), 1);
+        }
+        if (!resolvedProxy) return null;
+      } else {
+        if (excludeSet.has(connectionId)) return null;
+        resolvedProxy = await resolveConnectionProxyConfig({});
+      }
       return {
         id: "noauth",
+        connectionId,
         connectionName: "Public",
         isActive: true,
         accessToken: "public",
@@ -384,6 +436,23 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
  */
 export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
+  if (connectionId.startsWith(NO_AUTH_PROXY_PREFIX)) {
+    // Virtual routes have no account health to persist. Only generic transient
+    // server/transport failures may try another configured pool. Never rotate
+    // around auth, quota, billing, model restrictions or client cancellation.
+    const providerId = resolveProviderId(provider);
+    if (!FREE_PROVIDERS[providerId]?.noAuth || !connectionId.startsWith(`${NO_AUTH_PROXY_PREFIX}${providerId}:`)
+      || ![500, 502, 503, 504].includes(Number(status)) || resetsAtMs
+      || errorText?.name === "AbortError" || errorText?.code === "ABORT_ERR") {
+      return { shouldFallback: false, cooldownMs: 0 };
+    }
+    const decision = checkFallbackError(Number(status), errorText instanceof Error ? errorText.message : errorText);
+    return {
+      shouldFallback: decision.shouldFallback && decision.cooldownMs === TRANSIENT_COOLDOWN_MS
+        && !decision.terminal && !decision.newBackoffLevel && !decision.resetsAtMs,
+      cooldownMs: 0,
+    };
+  }
   const connections = await getProviderConnections({ provider });
   const conn = connections.find(c => c.id === connectionId);
   const backoffLevel = conn?.backoffLevel || 0;
@@ -454,7 +523,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
  * @param {string|null} model - model that succeeded
  */
 export async function clearAccountError(connectionId, currentConnection, model = null) {
-  if (!connectionId || connectionId === "noauth") return;
+  if (!connectionId || connectionId === "noauth" || connectionId.startsWith(NO_AUTH_PROXY_PREFIX)) return;
   const conn = currentConnection._connection || currentConnection;
   const now = Date.now();
   const allLockKeys = Object.keys(conn).filter(k => k.startsWith("modelLock_"));
