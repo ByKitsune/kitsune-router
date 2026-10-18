@@ -1,5 +1,15 @@
 # Nhật ký thay đổi
 
+## 0.9.12: 2026-10-19
+
+- Giữ ảnh công cụ đúng kiểu và lựa chọn thinking qua yêu cầu gốc/chuyển đổi, kể cả Ollama và CommandCode.
+- Bảo toàn cấu hình OpenCode JSONC; làm mới bộ nhớ đệm xác thực, mô hình và hạn mức sau khi nhập cơ sở dữ liệu.
+- Loại bỏ chuỗi phụ thuộc node-forge, siết chặt proxy/DNS và dừng thử lại khi khách hủy yêu cầu.
+- Bổ sung CLI/hạn mức Antigravity Argon và sửa giá, vòng đời mô hình có nguồn đối chiếu; không tự nâng giới hạn ngữ cảnh hay đầu ra.
+- Kiểm chứng mã: 6.052 ca đạt trên Node 22/24, bỏ qua 100 ca tùy chọn, không có lỗi; bốn lockfile không có cảnh báo. Kết quả không xác nhận quyền truy cập nhà cung cấp thật hoặc bảo đảm an toàn tuyệt đối.
+
+[Ghi chú phát hành](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/releases/RELEASE_NOTES_v0.9.12.md) · [Chi tiết kỹ thuật](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/docs/CHANGELOG_v0.9.12.md)
+
 ## 0.9.11: 2026-10-17
 
 Bản này sửa xử lý ảnh nhiều lượt, tham số suy luận, lỗi giao thức gốc và ước tính chi phí trong ZenRouter đã tùy chỉnh.

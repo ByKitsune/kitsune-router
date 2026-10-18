@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.12: 2026-10-19
+
+- Preserve typed tool screenshots and thinking choices across native and translated requests, including Ollama and CommandCode.
+- Keep OpenCode JSONC settings intact; refresh authentication, model and quota caches after database imports.
+- Remove the node-forge dependency chain, harden proxy/DNS boundaries, and stop retries on cancellation.
+- Include Antigravity Argon CLI/quota support and reviewed model pricing/lifecycle corrections without inventing context or output limits.
+- Implementation verification: 6,052 passing tests on Node 22/24, 100 optional cases skipped, zero failures; four lockfile audits report zero advisories. This does not prove live-provider access or guarantee security.
+
+[Release notes](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/releases/RELEASE_NOTES_v0.9.12.md) · [Technical changelog](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/docs/CHANGELOG_v0.9.12.md)
+
 ## 0.9.11: 2026-10-17
 
 This release repairs multi-turn vision, reasoning controls, native failures and cache-aware cost estimates in the customized ZenRouter gateway.

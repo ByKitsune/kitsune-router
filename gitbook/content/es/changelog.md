@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## 0.9.12: 2026-10-19
+
+- Conserva las capturas tipadas y las opciones de thinking en peticiones nativas y traducidas, incluidas Ollama y CommandCode.
+- Preserva OpenCode JSONC; invalida cachés de autenticación, modelos y cuotas después de importar la base de datos.
+- Elimina la cadena node-forge, refuerza los límites proxy/DNS y detiene los reintentos al cancelar.
+- Incluye CLI/cuotas de Antigravity Argon y correcciones documentadas de precios y ciclos de vida, sin inventar límites de contexto o salida.
+- Verificación: 6.052 pruebas correctas en Node 22/24, 100 opcionales omitidas y cero fallos; cuatro auditorías de lockfiles sin avisos. No acredita acceso real a proveedores ni garantiza seguridad.
+
+[Notas de versión](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/releases/RELEASE_NOTES_v0.9.12.md) · [Detalles técnicos](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/docs/CHANGELOG_v0.9.12.md)
+
 ## 0.9.11: 2026-10-17
 
 Esta versión corrige la visión multiturno, los controles de razonamiento, los fallos nativos y las estimaciones de coste del ZenRouter personalizado.

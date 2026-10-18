@@ -1,5 +1,15 @@
 # 変更履歴
 
+## 0.9.12: 2026-10-19
+
+- ネイティブ・変換リクエストでツール画像の型と thinking 設定を保持し、Ollama・CommandCode も対象にしました。
+- OpenCode JSONC を保持し、DB インポート後に認証・モデル・クォータのキャッシュを更新します。
+- node-forge 依存チェーンを削除し、プロキシ/DNS の境界を強化。キャンセル時は再試行を停止します。
+- Antigravity Argon CLI/クォータ対応と根拠のある料金・ライフサイクル修正を追加。コンテキストや出力上限を推測で拡大しません。
+- 実装検証：Node 22/24 で各 6,052 件成功、任意の 100 件をスキップ、失敗ゼロ。4 lockfile の監査で警告ゼロですが、実プロバイダへのアクセスや安全性の保証ではありません。
+
+[リリースノート](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/releases/RELEASE_NOTES_v0.9.12.md) · [技術詳細](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/docs/CHANGELOG_v0.9.12.md)
+
 ## 0.9.11: 2026-10-17
 
 本版は、カスタマイズされた ZenRouter の複数ターン画像処理、推論設定、ネイティブエラー、キャッシュ料金の推定を修正します。

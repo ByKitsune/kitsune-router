@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [0.9.12] - 2026-10-19
+
+[GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.12) · [Technical changelog](docs/CHANGELOG_v0.9.12.md) · [Release notes](releases/RELEASE_NOTES_v0.9.12.md)
+
+This release collects the complete post-0.9.11 security, native Argon, vision,
+thinking, catalog and import-consistency fixes below. Earlier published artifacts
+remain unchanged. Publication is tracked separately from local verification.
+
 ### Vision, model metadata and audit follow-up
 
 - Extend retained tool-image lowering to Ollama and CommandCode, preserving text, real tool replies and image-only screenshots rather than silently dropping the image on secondary translation routes.

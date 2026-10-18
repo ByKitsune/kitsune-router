@@ -1,5 +1,15 @@
 # 更新日志
 
+## 0.9.12: 2026-10-19
+
+- 原生及转换请求保留工具截图的媒体类型和 thinking 选择，包括 Ollama、CommandCode。
+- 保留 OpenCode JSONC 配置；数据库导入后刷新认证、模型与配额缓存。
+- 移除 node-forge 依赖链，加强代理/DNS 边界，取消请求后立即停止重试。
+- 加入 Antigravity Argon CLI/配额支持，依据来源修正模型价格与生命周期，不虚增上下文或输出上限。
+- 实现验证：Node 22/24 各通过 6,052 项测试，跳过 100 项可选测试，零失败；四个 lockfile 审计零告警。这不证明真实供应商访问权限，也不是安全保证。
+
+[发布说明](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/releases/RELEASE_NOTES_v0.9.12.md) · [技术变更](https://github.com/ZenRouter/ZenRouter/blob/v0.9.12/docs/CHANGELOG_v0.9.12.md)
+
 ## 0.9.11: 2026-10-17
 
 本版修复定制 ZenRouter 网关的多轮视觉、推理参数、原生协议错误和缓存计费估算。

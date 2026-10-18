@@ -219,6 +219,16 @@ database storage without claiming encryption at rest.
 
 ## Publication
 
-These are source changes and local verification, not a new published 0.9.11
-artifact. The task's commits stay local pending final verification and a later
-push instruction.
+The implementation at `6ef3fce3bde25aeb17e9060e582135c68be439a3` passed
+6,052 tests on each of Node 22.23.3 and 24.22.0, with 100 optional tests skipped
+and zero failed cases/suites. Lint, compatibility, identity/baselines, four
+dependency audits, documentation/app builds, CLI packaging and isolated
+standalone/packaged vision requests passed. Evidence is under the external
+`/tmp/opencode/zen-wave-20261019/final/` directory.
+
+The user subsequently authorized merge, push and publication as 0.9.12. The
+implementation was fast-forwarded to GitHub master before the separate release
+bump. See [0.9.12 release notes](../../releases/RELEASE_NOTES_v0.9.12.md).
+GitHub CI, npm/GitHub Release and Docker publication are checked against the
+release commit separately; earlier 0.9.11 artifacts are not rewritten. Production
+deployment is outside this release task.

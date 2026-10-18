@@ -26,28 +26,28 @@ Designed for developers, agentic frameworks, and multi-account setups, ZenRouter
 
 ---
 
-## Current release: 0.9.11
+## Current release: 0.9.12
 
-Dated **2026-10-17**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.11) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.11.md) · [Release notes](releases/RELEASE_NOTES_v0.9.11.md).
+Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.12) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.12.md) · [Release notes](releases/RELEASE_NOTES_v0.9.12.md).
 
-This release fixes multi-turn vision, reasoning translation, native failure handling, model metadata and cache-aware cost estimates. Catalog metadata does not prove account entitlement or live availability. See the [security limits](releases/RELEASE_NOTES_v0.9.11.md#security-and-verification-limits) for the unresolved node-forge advisory.
+This release preserves tool screenshots and thinking controls, refreshes imported authentication/model/quota state, hardens proxy and request boundaries, and removes the vulnerable node-forge dependency chain. It includes native Antigravity Argon integration and dated model/pricing corrections. Catalog metadata does not prove account entitlement or live availability; see the [verification limits](releases/RELEASE_NOTES_v0.9.12.md#verification-and-limits).
 
 Source updates after that release are listed under [Unreleased](CHANGELOG.md#unreleased).
-They are not retroactively included in published 0.9.11 artifacts. For the current
+They are not retroactively included in earlier published artifacts. For the current
 test workflow and its live-provider limits, see [tests/README.md](tests/README.md).
 
 ## 🚀 Quick Start
 
-Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.11 and apply after the package/image is published; preparing release documentation does not publish it.
+Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.12 and apply after the package/image is published; preparing release documentation does not publish it.
 
 ### 1. Run with NPX (Zero-Install)
 ```bash
-npx @joyccn/zenrouter@0.9.11
+npx @joyccn/zenrouter@0.9.12
 ```
 
 ### 2. Global NPM Install
 ```bash
-npm install -g @joyccn/zenrouter@0.9.11
+npm install -g @joyccn/zenrouter@0.9.12
 zenrouter
 ```
 
@@ -60,14 +60,14 @@ docker run -d \
   -p 20128:20128 \
   -v zenrouter-data:/app/data \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.11
+  joyccn/zenrouter:0.9.12
 ```
 
 Using `docker-compose.yml`:
 ```yaml
 services:
   zenrouter:
-    image: joyccn/zenrouter:0.9.11
+    image: joyccn/zenrouter:0.9.12
     platform: linux/amd64
     container_name: zenrouter
     restart: unless-stopped
