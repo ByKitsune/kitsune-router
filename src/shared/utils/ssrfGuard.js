@@ -266,25 +266,42 @@ export function assertPublicUrl(rawUrl) {
 
 // Resolve one immutable address snapshot. The transport must use this snapshot,
 // not perform another DNS lookup after validation (DNS rebinding / TOCTOU).
-async function resolvePublicUrl(rawUrl) {
-  assertPublicUrl(rawUrl);
+async function resolveUrl(rawUrl, allowPrivate = false, signal) {
+  if (allowPrivate) assertNotCloudMetadata(rawUrl);
+  else assertPublicUrl(rawUrl);
   const parsed = new URL(rawUrl);
   const host = normalizeHost(parsed.hostname).replace(/^\[|\]$/g, "");
   const family = isIP(host);
   if (family) return [{ address: host, family }];
 
   let addresses;
+  let onAbort;
   try {
-    addresses = await dns.promises.lookup(host, { all: true, verbatim: true });
+    const resolution = dns.promises.lookup(host, { all: true, verbatim: true });
+    addresses = signal ? await Promise.race([
+      resolution,
+      new Promise((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }),
+    ]) : await resolution;
   } catch {
+    signal?.throwIfAborted();
     throw new Error("Blocked URL: DNS resolution failed");
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort);
   }
   if (!Array.isArray(addresses) || !addresses.length) throw new Error("Blocked URL: DNS returned no addresses");
   for (const { address, family: addressFamily } of addresses) {
     if (!isIP(address) || isIP(address) !== addressFamily) {
       throw new Error("Blocked URL: invalid DNS address");
     }
-    assertPublicIp(address);
+    if (allowPrivate) {
+      assertNotCloudMetadata(`http://${addressFamily === 6 ? `[${address}]` : address}/`);
+    } else {
+      assertPublicIp(address);
+    }
   }
   return addresses;
 }
@@ -292,7 +309,7 @@ async function resolvePublicUrl(rawUrl) {
 // Validation-only API: keep its historical void return value. A later fetch
 // needs its own pinned snapshot; validation alone does not secure a transport.
 export async function assertPublicUrlResolved(rawUrl) {
-  await resolvePublicUrl(rawUrl);
+  await resolveUrl(rawUrl);
 }
 
 // Backward-compat alias for callers still importing assertPublicUrlAsync
@@ -300,10 +317,12 @@ export function assertPublicUrlAsync(rawUrl) {
   return assertPublicUrlResolved(rawUrl);
 }
 
-/**
- * Guard against Cloud Metadata Service (IMDS) and Link-Local probing (169.254.0.0/16, fe80::/10),
- * even when local loopback access is permitted.
- */
+function isMetadataIpv4Int(ip) {
+  // Link-local metadata and Alibaba's metadata endpoint in shared address space.
+  return (ip >>> 16) === 0xa9fe || ip === 0x646464c8;
+}
+
+// Trusted-local access still excludes metadata, including IPv4 embedded in IPv6.
 export function assertNotCloudMetadata(rawUrl) {
   const parsed = new URL(rawUrl);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -321,21 +340,23 @@ export function assertNotCloudMetadata(rawUrl) {
 
   const bracketless = host.replace(/^\[|\]$/g, "");
   const ip4 = ipv4ToInt(bracketless) ?? parseAlternativeIpv4(bracketless);
-  if (ip4 !== null) {
-    const metadataBase = ipv4ToInt("169.254.0.0");
-    const mask = (0xffffffff << 16) >>> 0;
-    if ((ip4 & mask) === (metadataBase & mask)) {
-      throw new Error("Blocked URL: cloud metadata IP");
-    }
+  if (ip4 !== null && isMetadataIpv4Int(ip4)) {
+    throw new Error("Blocked URL: cloud metadata IP");
   }
 
   if (bracketless.includes(":")) {
     const groups = parseIPv6ToGroups(bracketless);
     if (groups) {
-      if (groups[0] === 0 && groups[1] === 0 && groups[2] === 0 && groups[3] === 0 && groups[4] === 0 && groups[5] === 0xffff) {
-        if (groups[6] === 0xa9fe) {
-          throw new Error("Blocked URL: cloud metadata IP");
-        }
+      const mapped = groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff;
+      const compatible = groups.slice(0, 6).every((group) => group === 0);
+      const nat64 = groups[0] === 0x64 && groups[1] === 0xff9b && groups.slice(2, 6).every((group) => group === 0);
+      const low32 = ((groups[6] << 16) | groups[7]) >>> 0;
+      if ((mapped || compatible || nat64) && isMetadataIpv4Int(low32)) {
+        throw new Error("Blocked URL: cloud metadata IP");
+      }
+      if (groups[0] === 0xfd00 && groups[1] === 0xec2 &&
+          groups.slice(2, 7).every((group) => group === 0) && groups[7] === 0x254) {
+        throw new Error("Blocked URL: cloud metadata IP");
       }
       if ((groups[0] & 0xffc0) === 0xfe80) {
         throw new Error("Blocked URL: link-local IPv6");
@@ -416,11 +437,30 @@ function ownResponse(response, agent, signal) {
 
 // Use Undici directly: global fetch may have been replaced by a proxy wrapper
 // which ignores dispatchers. Each redirect gets a new validated, pinned Agent.
-export async function fetchPublic(url, init = {}, { maxRedirects = 5 } = {}) {
+export async function fetchPublic(url, init = {}, options = {}) {
+  return fetchGuarded(url, init, options);
+}
+
+// Callers must establish peer trust before selecting this private-network policy.
+export async function fetchTrustedLocal(url, init = {}, options = {}) {
+  return fetchGuarded(url, init, options, true);
+}
+
+async function fetchGuarded(url, init, { maxRedirects = 5 } = {}, allowPrivate = false) {
+  const getProxyUrl = allowPrivate ? (await import("open-sse/utils/proxyFetch.js")).getEnvProxyUrl : null;
   let currentUrl = new URL(url);
   let currentInit = { ...init, headers: new Headers(init.headers) };
   for (let hop = 0; ; hop++) {
-    const addresses = await resolvePublicUrl(currentUrl);
+    currentInit.signal?.throwIfAborted();
+    if (allowPrivate) {
+      assertNotCloudMetadata(currentUrl);
+      // A proxy resolves targets itself, bypassing this pinned DNS boundary.
+      if (getProxyUrl(currentUrl)) {
+        throw new Error("Blocked URL: configured proxy cannot validate metadata targets; configure NO_PROXY for this trusted server");
+      }
+    }
+    const addresses = await resolveUrl(currentUrl, allowPrivate, currentInit.signal);
+    currentInit.signal?.throwIfAborted();
     const agent = createPinnedAgent(addresses);
     let response;
     try {
