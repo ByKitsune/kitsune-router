@@ -39,36 +39,27 @@ const certCache = new Map();
 let rootCAPem;
 
 function sniCallback(servername, cb) {
-  try {
-    if (certCache.has(servername)) return cb(null, certCache.get(servername));
-    const certData = getCertForDomain(servername);
-    if (!certData) return cb(new Error(`Failed to generate cert for ${servername}`));
-    const ctx = require("tls").createSecureContext({
-      key: certData.key,
-      cert: `${certData.cert}\n${rootCAPem}`
+  let context = certCache.get(servername);
+  if (!context) {
+    context = Promise.resolve().then(async () => {
+      const certData = await getCertForDomain(servername);
+      if (!certData) throw new Error(`Failed to generate cert for ${servername}`);
+      return tls.createSecureContext({
+        key: certData.key,
+        cert: `${certData.cert}\n${rootCAPem}`,
+      });
+    }).catch((error) => {
+      certCache.delete(servername);
+      throw error;
     });
-    certCache.set(servername, ctx);
-    cb(null, ctx);
-  } catch (e) {
-    err(`SNI error for ${servername}: ${e.message}`);
-    cb(e);
+    certCache.set(servername, context);
   }
-}
-
-let sslOptions;
-try {
-  if (!fs.existsSync(path.join(MITM_DIR, "rootCA.key")) || !fs.existsSync(path.join(MITM_DIR, "rootCA.crt"))) {
-    log("Root CA missing, generating...");
-    generateCert();
-  }
-
-  const rootKey = fs.readFileSync(path.join(MITM_DIR, "rootCA.key"));
-  const rootCert = fs.readFileSync(path.join(MITM_DIR, "rootCA.crt"));
-  rootCAPem = rootCert.toString("utf8");
-  sslOptions = { key: rootKey, cert: rootCert, SNICallback: sniCallback };
-} catch (e) {
-  err(`Root CA not found: ${e.message}`);
-  process.exit(1);
+  // Separate success/error handlers must not turn a thrown callback into a
+  // second callback invocation. Concurrent handshakes share the same promise.
+  context.then((ctx) => cb(null, ctx), (error) => {
+    err(`SNI error for ${servername}: ${error.message}`);
+    cb(error);
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -296,7 +287,7 @@ async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onRes
 
 // ── Request handler ───────────────────────────────────────────
 
-const server = https.createServer(sslOptions, async (req, res) => {
+async function handleRequest(req, res) {
   try {
     if (req.url === "/_mitm_health") {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -344,7 +335,7 @@ const server = https.createServer(sslOptions, async (req, res) => {
     if (!res.headersSent) res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: { message: e.message, type: "mitm_error" } }));
   }
-});
+}
 
 // Kill only processes LISTENING on LOCAL_PORT (not outbound connections)
 function killPort(port) {
@@ -388,22 +379,41 @@ process.on("exit", () => {
   try { removeAllDNSEntriesSync(); } catch { /* ignore */ }
 });
 
-try {
-  killPort(LOCAL_PORT);
-} catch (e) {
-  err(`Cannot kill process on port ${LOCAL_PORT}: ${e.message}`);
-  process.exit(1);
+let server;
+
+async function startServer() {
+  try {
+    const rootKeyPath = path.join(MITM_DIR, "rootCA.key");
+    const rootCertPath = path.join(MITM_DIR, "rootCA.crt");
+    if (!fs.existsSync(rootKeyPath) || !fs.existsSync(rootCertPath)) {
+      log("Root CA missing, generating...");
+      await generateCert();
+    }
+    if (isShuttingDown) return;
+    if (!IS_WIN) fs.chmodSync(rootKeyPath, 0o600);
+    const rootKey = fs.readFileSync(rootKeyPath);
+    const rootCert = fs.readFileSync(rootCertPath);
+    rootCAPem = rootCert.toString("utf8");
+    server = https.createServer({ key: rootKey, cert: rootCert, SNICallback: sniCallback }, handleRequest);
+
+    try {
+      killPort(LOCAL_PORT);
+    } catch (error) {
+      throw new Error(`Cannot kill process on port ${LOCAL_PORT}: ${error.message}`);
+    }
+    server.on("error", (error) => {
+      try { removeAllDNSEntriesSync(); } catch { /* ignore */ }
+      if (error.code === "EADDRINUSE") err(`Port ${LOCAL_PORT} already in use`);
+      else if (error.code === "EACCES") err(`Permission denied for port ${LOCAL_PORT}`);
+      else err(error.message);
+      process.exit(1);
+    });
+    server.listen(LOCAL_PORT, () => log(`🚀 Server ready on :${LOCAL_PORT}`));
+  } catch (error) {
+    err(`MITM startup failed: ${error.message}`);
+    process.exit(1);
+  }
 }
-
-server.listen(LOCAL_PORT, () => log(`🚀 Server ready on :${LOCAL_PORT}`));
-
-server.on("error", (e) => {
-  try { removeAllDNSEntriesSync(); } catch { /* ignore */ }
-  if (e.code === "EADDRINUSE") err(`Port ${LOCAL_PORT} already in use`);
-  else if (e.code === "EACCES") err(`Permission denied for port ${LOCAL_PORT}`);
-  else err(e.message);
-  process.exit(1);
-});
 
 let isShuttingDown = false;
 const shutdown = () => {
@@ -411,9 +421,12 @@ const shutdown = () => {
   isShuttingDown = true;
   // Strip tool hosts from /etc/hosts so other apps aren't broken after exit
   removeAllDNSEntriesSync();
+  if (!server) { process.exit(0); return; }
   const forceExit = setTimeout(() => process.exit(0), 1500);
   server.close(() => { clearTimeout(forceExit); process.exit(0); });
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 if (process.platform === "win32") process.on("SIGBREAK", shutdown);
+
+startServer();

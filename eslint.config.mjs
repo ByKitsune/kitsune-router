@@ -1,23 +1,61 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import { fixupConfigRules, fixupPluginRules } from "@eslint/compat";
-import nextVitals from "eslint-config-next/core-web-vitals";
+import { fixupPluginRules } from "@eslint/compat";
+import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import importPlugin from "eslint-plugin-import";
+import jsxA11y from "eslint-plugin-jsx-a11y";
+import globals from "globals";
 import * as espree from "espree";
+import noLocationAssignRelativeDestination from "./scripts/eslint/no-location-assign-relative-destination.mjs";
+
 const eslintConfig = defineConfig([
-  // Preserve Next/React/accessibility policy while adapting legacy rule APIs
-  // removed in ESLint 10. Peer overrides in package.json cover only these
-  // shimmed plugins; installation must not use force or legacy-peer-deps.
-  ...fixupConfigRules(nextVitals),
+  {
+    // These plugins still use legacy rule APIs removed in ESLint 10.
+    // Keep their actual implementations, adapting only that ESLint API boundary.
+    plugins: {
+      react: fixupPluginRules(react),
+      "react-hooks": fixupPluginRules(reactHooks),
+      import: fixupPluginRules(importPlugin),
+      "jsx-a11y": fixupPluginRules(jsxA11y),
+      zenrouter: {
+        rules: { "no-location-assign-relative-destination": noLocationAssignRelativeDestination },
+      },
+    },
+  },
   {
     files: ["**/*.{js,jsx,mjs,cjs}"],
     languageOptions: {
-      // This repo is plain JS/JSX. Next's bundled Babel scope manager still
-      // targets ESLint 9; Espree supplies the compatible ESLint 10 scope tree.
       parser: espree,
       parserOptions: {
         ecmaVersion: "latest",
         ecmaFeatures: { jsx: true, globalReturn: false },
       },
+    },
+  },
+  {
+    files: ["**/*.{js,jsx,mjs}"],
+    languageOptions: {
+      sourceType: "module",
+      globals: { ...globals.browser, ...globals.node },
+    },
+    settings: { react: { version: "detect" } },
+    // Oxlint owns the other 21 Next policies. Keep the existing React,
+    // hooks, import, accessibility, and project navigation policy in ESLint.
+    rules: {
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      "react/no-unknown-property": "off",
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "react/jsx-no-target-blank": "off",
+      "import/no-anonymous-default-export": "warn",
+      "jsx-a11y/alt-text": ["warn", { elements: ["img"], img: ["Image"] }],
+      "jsx-a11y/aria-props": "warn",
+      "jsx-a11y/aria-proptypes": "warn",
+      "jsx-a11y/aria-unsupported-elements": "warn",
+      "jsx-a11y/role-has-required-aria-props": "warn",
+      "jsx-a11y/role-supports-aria-props": "warn",
+      "zenrouter/no-location-assign-relative-destination": "warn",
     },
   },
   {
@@ -29,12 +67,8 @@ const eslintConfig = defineConfig([
       parserOptions: { sourceType: "script", ecmaFeatures: { globalReturn: true } },
     },
   },
-  // Override default ignores of eslint-config-next.
-  // Patterns are `**/`-prefixed so nested Next.js workspaces (e.g. gitbook/)
-  // have their build output ignored too — a bare `.next/**` only matches the
-  // repo root, which let generated turbopack chunks fail the lint run.
+  // Match nested workspaces too; generated output is not source policy input.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     "**/.next/**",
     "**/.next-cli-build/**",
     "**/out/**",
@@ -51,11 +85,8 @@ const eslintConfig = defineConfig([
     rules: { "import/no-anonymous-default-export": "off" },
   },
   {
-    // eslint-config-next does not enable core `no-undef`, so a referenced-but-
-    // undefined identifier ships as a runtime ReferenceError past a clean lint
-    // run (e.g. `testingModelId`, `aggregateComboCapabilities`). Enable it for
-    // app and engine sources, both of which are plain ESM/JSX with explicit
-    // imports. Node globals are declared so config/script files stay valid.
+    // Runtime identifier checks apply only to the app and engine, not every
+    // script in the repository. Preserve the existing explicit readonly globals.
     files: ["src/**/*.{js,jsx}", "open-sse/**/*.js"],
     languageOptions: {
       globals: {
@@ -86,9 +117,6 @@ const eslintConfig = defineConfig([
     rules: { "no-undef": "error" },
   },
   {
-    plugins: {
-      "react-hooks": fixupPluginRules(reactHooks),
-    },
     rules: {
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",

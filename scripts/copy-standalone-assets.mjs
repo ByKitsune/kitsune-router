@@ -37,6 +37,14 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     cpSync(serverWrapperSource, serverWrapperDestination, { force: true });
     console.log(`[standalone-assets] Copied custom-server.js to ${serverWrapperDestination}`);
   }
+
+  // The MITM child is spawned directly, outside Next's module graph.
+  const mitmSource = resolve(projectRoot, "src", "mitm");
+  const mitmDestination = resolve(standaloneDir, "src", "mitm");
+  if (existsSync(mitmSource)) {
+    cpSync(mitmSource, mitmDestination, { recursive: true, force: true });
+    console.log(`[standalone-assets] Copied MITM sources to ${mitmDestination}`);
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(dirname(fileURLToPath(import.meta.url)), "copy-standalone-assets.mjs")) {

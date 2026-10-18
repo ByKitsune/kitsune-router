@@ -14,7 +14,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "nodemon -I --watch cli.js --watch src --watch hooks --ext js,json cli.js",
+    "dev": "node --watch cli.js",
     "build": "node scripts/build-cli.js",
     "pack:cli": "npm run build && npm pack --pack-destination ..",
     "publish:cli": "npm run build && npm publish",
@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "enquirer": "^2.4.1",
-    "node-forge": "^1.4.0",
     "node-machine-id": "^1.1.12",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -44,8 +43,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "esbuild": "^0.28.2",
-    "nodemon": "^3.1.14"
+    "esbuild": "^0.28.2"
   },
   "repository": {
     "type": "git",

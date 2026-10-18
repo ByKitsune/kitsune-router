@@ -36,6 +36,9 @@ async function run(directory, protocol, scenario) {
   await new Promise((resolve) => upstream.listen(0, "127.0.0.1", resolve));
   const upstreamPort = upstream.address().port;
   let server;
+  let resolveReady;
+  let rejectReady;
+  const ready = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
   let destinationConnections = 0;
   const remap = (options) => {
     destinationConnections++;
@@ -45,11 +48,11 @@ async function run(directory, protocol, scenario) {
   const nativeRequire = createRequire(sourcePath);
   const logs = [];
   const processStub = new EventEmitter();
-  Object.assign(processStub, { platform: process.platform, pid: process.pid, exit: (code) => { throw new Error(`Unexpected server exit ${code}`); } });
+  Object.assign(processStub, { platform: process.platform, pid: process.pid, exit: (code) => { rejectReady(new Error(`Unexpected server exit ${code}`)); } });
   const isolatedRequire = (name) => {
     if (name === "./logger") return { log: (value) => logs.push(value), err: (value) => logs.push(value), clearDumpDir() {} };
     if (name === "./paths") return { DATA_DIR: directory, MITM_DIR: directory };
-    if (name === "./cert/generate") return { generateCert() { throw new Error("Unexpected certificate generation"); }, getCertForDomain() { return { key, cert }; } };
+    if (name === "./cert/generate") return { async generateCert() { throw new Error("Unexpected certificate generation"); }, async getCertForDomain() { return { key, cert }; } };
     if (name === "./dbReader") return { getMitmAlias() { return null; } };
     // This optional IDE-only hook is outside the unknown-host passthrough seam.
     if (name === "./antigravityIdeVersion") return { applyAntigravityIdeVersionOverride() { throw new Error("Unexpected IDE override"); } };
@@ -64,6 +67,8 @@ async function run(directory, protocol, scenario) {
       request: (options, callback) => https.request(remap(options), callback),
       createServer(options, listener) {
         server = https.createServer(options, listener);
+        server.once("listening", resolveReady);
+        server.once("error", rejectReady);
         const listen = server.listen.bind(server);
         server.listen = (_port, callback) => listen(0, "127.0.0.1", callback);
         return server;
@@ -71,11 +76,19 @@ async function run(directory, protocol, scenario) {
     };
     return nativeRequire(name);
   };
-  vm.runInNewContext(fs.readFileSync(sourcePath, "utf8"), {
-    require: isolatedRequire, process: processStub, console,
-    Buffer, setTimeout, clearTimeout,
-  }, { filename: sourcePath });
-  if (!server.listening) await new Promise((resolve) => server.once("listening", resolve));
+  try {
+    const startup = vm.runInNewContext(fs.readFileSync(sourcePath, "utf8"), {
+      require: isolatedRequire, process: processStub, console,
+      Buffer, setTimeout, clearTimeout,
+    }, { filename: sourcePath });
+    Promise.resolve(startup).catch(rejectReady);
+    await ready;
+  } catch (error) {
+    for (const socket of sockets) socket.destroy();
+    if (server?.listening) await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => upstream.close(resolve));
+    throw error;
+  }
   const host = scenario === "hostname-mismatch" ? "wrong.test" : "upstream.test";
   const post = () => new Promise((resolve, reject) => {
     const request = https.request({

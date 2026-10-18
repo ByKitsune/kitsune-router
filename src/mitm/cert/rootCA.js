@@ -1,166 +1,139 @@
 const path = require("path");
 const fs = require("fs");
-const forge = require("node-forge");
+const { createPrivateKey, webcrypto, X509Certificate } = require("node:crypto");
+require("reflect-metadata");
+const x509 = require("@peculiar/x509");
 const { MITM_DIR } = require("../paths");
 
 const ROOT_CA_KEY_PATH = path.join(MITM_DIR, "rootCA.key");
 const ROOT_CA_CERT_PATH = path.join(MITM_DIR, "rootCA.crt");
+const SIGNING_ALGORITHM = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
+const KEY_ALGORITHM = {
+  ...SIGNING_ALGORITHM,
+  modulusLength: 2048,
+  publicExponent: new Uint8Array([1, 0, 1]),
+};
 
 /**
- * Check if cert file is expired or expiring within 30 days
+ * Check if cert file is expired or expiring within 30 days.
+ * Keep this synchronous for the manager's renewal decision.
  */
 function isCertExpired(certPath) {
   try {
-    const cert = forge.pki.certificateFromPem(fs.readFileSync(certPath, "utf8"));
-    const expiryThreshold = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    return cert.validity.notAfter < expiryThreshold;
+    const cert = new X509Certificate(fs.readFileSync(certPath));
+    return new Date(cert.validTo).getTime() < Date.now() + 30 * 24 * 60 * 60 * 1000;
   } catch {
-    return true; // treat unreadable cert as expired
+    return true;
   }
 }
 
+async function privateKeyPem(key) {
+  const encoded = await webcrypto.subtle.exportKey("pkcs8", key);
+  return createPrivateKey({ key: Buffer.from(encoded), format: "der", type: "pkcs8" })
+    .export({ format: "pem", type: "pkcs8" });
+}
+
+function createSerialNumber() {
+  const serial = webcrypto.getRandomValues(new Uint8Array(16));
+  serial[0] |= 1; // Keep a nonzero 16-byte value; X509 handles positive DER encoding.
+  return Buffer.from(serial.buffer).toString("hex");
+}
+
 /**
- * Generate Root CA certificate (only once, auto-regenerate if expired)
- * This Root CA will sign all dynamic leaf certificates
+ * Generate the root only when missing or expiring; library upgrades must not
+ * rotate an existing trusted certificate or rewrite its private-key bytes.
  */
-function generateRootCA() {
+async function generateRootCA() {
   const exists = fs.existsSync(ROOT_CA_KEY_PATH) && fs.existsSync(ROOT_CA_CERT_PATH);
   if (exists && !isCertExpired(ROOT_CA_CERT_PATH)) {
+    if (process.platform !== "win32") fs.chmodSync(ROOT_CA_KEY_PATH, 0o600);
     console.log("✅ Root CA already exists");
     return { key: ROOT_CA_KEY_PATH, cert: ROOT_CA_CERT_PATH };
   }
-  if (exists) {
-    console.log("🔐 Root CA expired or expiring soon — regenerating...");
-    try { fs.unlinkSync(ROOT_CA_KEY_PATH); } catch { /* ignore */ }
-    try { fs.unlinkSync(ROOT_CA_CERT_PATH); } catch { /* ignore */ }
-  }
-
-  if (!fs.existsSync(MITM_DIR)) {
-    fs.mkdirSync(MITM_DIR, { recursive: true });
-  }
-
+  if (exists) console.log("🔐 Root CA expired or expiring soon — regenerating...");
+  fs.mkdirSync(MITM_DIR, { recursive: true, mode: 0o700 });
   console.log("🔐 Generating Root CA certificate...");
 
-  // Generate RSA key pair
-  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const keys = await webcrypto.subtle.generateKey(KEY_ALGORITHM, true, ["sign", "verify"]);
+  const notBefore = new Date();
+  const notAfter = new Date(notBefore);
+  notAfter.setFullYear(notBefore.getFullYear() + 10);
+  const cert = await x509.X509CertificateGenerator.createSelfSigned({
+    name: [
+      { CN: ["ZenRouter MITM Root CA"] },
+      { O: ["ZenRouter"] },
+      { C: ["US"] },
+    ],
+    keys,
+    serialNumber: createSerialNumber(),
+    signingAlgorithm: SIGNING_ALGORITHM,
+    notBefore,
+    notAfter,
+    extensions: [
+      new x509.BasicConstraintsExtension(true, undefined, true),
+      new x509.KeyUsagesExtension(x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign, true),
+      await x509.SubjectKeyIdentifierExtension.create(keys.publicKey, false, webcrypto),
+    ],
+  }, webcrypto);
+  const keyPem = await privateKeyPem(keys.privateKey);
 
-  // Create Root CA certificate
-  const cert = forge.pki.createCertificate();
-  cert.publicKey = keys.publicKey;
-  cert.serialNumber = "01";
-  cert.validity.notBefore = new Date();
-  cert.validity.notAfter = new Date();
-  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 10);
-
-  const attrs = [
-    { name: "commonName", value: "ZenRouter MITM Root CA" },
-    { name: "organizationName", value: "ZenRouter" },
-    { name: "countryName", value: "US" }
-  ];
-
-  cert.setSubject(attrs);
-  cert.setIssuer(attrs); // Self-signed
-
-  cert.setExtensions([
-    {
-      name: "basicConstraints",
-      cA: true,
-      critical: true
-    },
-    {
-      name: "keyUsage",
-      keyCertSign: true,
-      cRLSign: true,
-      critical: true
-    },
-    {
-      name: "subjectKeyIdentifier"
-    }
-  ]);
-
-  // Self-sign the certificate
-  cert.sign(keys.privateKey, forge.md.sha256.create());
-
-  // Save to disk
-  const privateKeyPem = forge.pki.privateKeyToPem(keys.privateKey);
-  const certPem = forge.pki.certificateToPem(cert);
-
-  fs.writeFileSync(ROOT_CA_KEY_PATH, privateKeyPem);
-  fs.writeFileSync(ROOT_CA_CERT_PATH, certPem);
-
+  // mode only applies when creating a file; protect an existing key before
+  // overwriting it as part of the normal expiry-based renewal as well.
+  if (process.platform !== "win32" && fs.existsSync(ROOT_CA_KEY_PATH)) fs.chmodSync(ROOT_CA_KEY_PATH, 0o600);
+  fs.writeFileSync(ROOT_CA_KEY_PATH, keyPem, { mode: 0o600 });
+  fs.writeFileSync(ROOT_CA_CERT_PATH, cert.toString("pem"));
   console.log("✅ Root CA generated successfully");
   return { key: ROOT_CA_KEY_PATH, cert: ROOT_CA_CERT_PATH };
 }
 
 /**
- * Load Root CA from disk
+ * Load PKCS#1 or PKCS#8 persisted keys through standard WebCrypto import.
  */
-function loadRootCA() {
+async function loadRootCA() {
   if (!fs.existsSync(ROOT_CA_KEY_PATH) || !fs.existsSync(ROOT_CA_CERT_PATH)) {
     throw new Error("Root CA not found. Generate it first.");
   }
-
-  const keyPem = fs.readFileSync(ROOT_CA_KEY_PATH, "utf8");
-  const certPem = fs.readFileSync(ROOT_CA_CERT_PATH, "utf8");
-
-  return {
-    key: forge.pki.privateKeyFromPem(keyPem),
-    cert: forge.pki.certificateFromPem(certPem)
-  };
+  if (process.platform !== "win32") fs.chmodSync(ROOT_CA_KEY_PATH, 0o600);
+  const key = createPrivateKey(fs.readFileSync(ROOT_CA_KEY_PATH));
+  const cert = new x509.X509Certificate(fs.readFileSync(ROOT_CA_CERT_PATH, "utf8"));
+  const signingKey = await webcrypto.subtle.importKey(
+    "pkcs8",
+    key.export({ format: "der", type: "pkcs8" }),
+    SIGNING_ALGORITHM,
+    false,
+    ["sign"]
+  );
+  return { key: signingKey, cert };
 }
 
 /**
- * Generate leaf certificate for a specific domain, signed by Root CA
+ * Generate a domain and wildcard leaf, preserving the persisted issuer's DER.
  */
-function generateLeafCert(domain, rootCA) {
-  // Generate key pair for leaf cert
-  const keys = forge.pki.rsa.generateKeyPair(2048);
-
-  // Create leaf certificate
-  const cert = forge.pki.createCertificate();
-  cert.publicKey = keys.publicKey;
-  cert.serialNumber = Math.floor(Math.random() * 1000000).toString();
-  cert.validity.notBefore = new Date();
-  cert.validity.notAfter = new Date();
-  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
-
-  cert.setSubject([
-    { name: "commonName", value: domain }
-  ]);
-
-  cert.setIssuer(rootCA.cert.subject.attributes);
-
-  cert.setExtensions([
-    {
-      name: "basicConstraints",
-      cA: false
-    },
-    {
-      name: "keyUsage",
-      digitalSignature: true,
-      keyEncipherment: true
-    },
-    {
-      name: "extKeyUsage",
-      serverAuth: true,
-      clientAuth: true
-    },
-    {
-      name: "subjectAltName",
-      altNames: [
-        { type: 2, value: domain }, // DNS
-        { type: 2, value: `*.${domain}` } // Wildcard
-      ]
-    }
-  ]);
-
-  // Sign with Root CA
-  cert.sign(rootCA.key, forge.md.sha256.create());
-
-  return {
-    key: forge.pki.privateKeyToPem(keys.privateKey),
-    cert: forge.pki.certificateToPem(cert)
-  };
+async function generateLeafCert(domain, rootCA) {
+  const keys = await webcrypto.subtle.generateKey(KEY_ALGORITHM, true, ["sign", "verify"]);
+  const notBefore = new Date();
+  const notAfter = new Date(notBefore);
+  notAfter.setFullYear(notBefore.getFullYear() + 1);
+  const cert = await x509.X509CertificateGenerator.create({
+    subject: [{ CN: [domain] }],
+    issuer: rootCA.cert.subjectName,
+    publicKey: keys.publicKey,
+    signingKey: rootCA.key,
+    serialNumber: createSerialNumber(),
+    signingAlgorithm: SIGNING_ALGORITHM,
+    notBefore,
+    notAfter,
+    extensions: [
+      new x509.BasicConstraintsExtension(false),
+      new x509.KeyUsagesExtension(x509.KeyUsageFlags.digitalSignature | x509.KeyUsageFlags.keyEncipherment),
+      new x509.ExtendedKeyUsageExtension([x509.ExtendedKeyUsage.serverAuth, x509.ExtendedKeyUsage.clientAuth]),
+      new x509.SubjectAlternativeNameExtension([
+        { type: "dns", value: domain },
+        { type: "dns", value: `*.${domain}` },
+      ]),
+    ],
+  }, webcrypto);
+  return { key: await privateKeyPem(keys.privateKey), cert: cert.toString("pem") };
 }
 
 module.exports = {
@@ -169,5 +142,5 @@ module.exports = {
   generateLeafCert,
   isCertExpired,
   ROOT_CA_CERT_PATH,
-  ROOT_CA_KEY_PATH
+  ROOT_CA_KEY_PATH,
 };

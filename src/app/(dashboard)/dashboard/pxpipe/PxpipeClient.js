@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   AreaChart,
   Area,
@@ -111,9 +112,9 @@ export default function PxpipeClient() {
           PXPIPE Dashboard
         </h2>
         <div className="flex items-center gap-2">
-          <a href="/dashboard/token-saver" className="text-xs text-primary underline hover:opacity-80">
+          <Link href="/dashboard/token-saver" className="text-xs text-primary underline hover:opacity-80">
             Token Saver settings
-          </a>
+          </Link>
           <Button size="sm" variant="ghost" onClick={refresh} disabled={loading}>
             {loading ? "Refreshing…" : "Refresh"}
           </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import Card from "@/shared/components/Card";
 import Button from "@/shared/components/Button";
 import Drawer from "@/shared/components/Drawer";
@@ -307,7 +308,7 @@ export default function RequestDetailsTab() {
                     {observabilityEnabled === false ? (
                       <div className="flex flex-col items-center gap-2">
                         <span>Observability is disabled — request details are not recorded.</span>
-                        <span className="text-xs">Enable it in <a href="/dashboard/profile" className="underline text-primary">Profile → Observability</a> or set <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">OBSERVABILITY_ENABLED=true</code></span>
+                        <span className="text-xs">Enable it in <Link href="/dashboard/profile" className="underline text-primary">Profile → Observability</Link> or set <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">OBSERVABILITY_ENABLED=true</code></span>
                       </div>
                     ) : (
                       "No request details found"

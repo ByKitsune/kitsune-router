@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { Card, Button, Input, Modal, Toggle, ConfirmModal } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { getCurrentLocale, onLocaleChange } from "@/i18n/runtime";
@@ -779,12 +780,12 @@ export default function TokenSaverClient() {
               >
                 {pxpipeStatus.installed ? "Manage" : "Setup"}
               </button>
-              <a
+              <Link
                 href="/dashboard/pxpipe"
                 className="text-xs text-primary underline hover:opacity-80"
               >
                 Dashboard
-              </a>
+              </Link>
             </div>
             <p className="text-sm text-text-muted mt-1">
               Transforms large textual context into optimized images before
@@ -978,12 +979,12 @@ export default function TokenSaverClient() {
               <Button onClick={() => pxpipeAction("install")} variant="ghost" disabled={pxpipeActionLoading}>
                 Repair
               </Button>
-              <a
+              <Link
                 href="/dashboard/pxpipe#logs"
                 className="col-span-2 rounded border border-border px-4 py-2 text-center text-sm hover:bg-surface-2"
               >
                 Open Logs
-              </a>
+              </Link>
             </div>
           )}
           <div className="flex flex-col gap-1">

@@ -1,7 +1,6 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { generateKeyPairSync } from "node:crypto";
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
@@ -9,49 +8,26 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const forge = require("node-forge");
+const { authority, keyPair, leaf } = require("../helpers/mitm-certificates.cjs");
 const execute = promisify(execFile);
 const runner = fileURLToPath(new URL("../helpers/mitm-upstream-tls.cjs", import.meta.url));
 let directory;
 
-beforeAll(() => {
+beforeAll(async () => {
   directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-upstream-tls-"));
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-    privateKeyEncoding: { type: "pkcs8", format: "pem" },
-    publicKeyEncoding: { type: "spki", format: "pem" },
-  });
-  const signingKey = forge.pki.privateKeyFromPem(privateKey);
-  const issuer = [{ name: "commonName", value: "Synthetic upstream test CA" }];
-  function certificate(host, ca, serial) {
-    const cert = forge.pki.createCertificate();
-    cert.publicKey = forge.pki.publicKeyFromPem(publicKey);
-    cert.serialNumber = serial;
-    cert.validity.notBefore = new Date("2020-01-01T00:00:00Z");
-    cert.validity.notAfter = new Date("2040-01-01T00:00:00Z");
-    cert.setSubject(ca ? issuer : [{ name: "commonName", value: host }]);
-    cert.setIssuer(issuer);
-    cert.setExtensions(ca ? [
-      { name: "basicConstraints", cA: true, critical: true },
-      { name: "keyUsage", keyCertSign: true, cRLSign: true, critical: true },
-    ] : [
-      { name: "basicConstraints", cA: false },
-      { name: "keyUsage", digitalSignature: true, keyEncipherment: true },
-      { name: "extKeyUsage", serverAuth: true },
-      { name: "subjectAltName", altNames: [{ type: 2, value: host }] },
-    ]);
-    cert.sign(signingKey, forge.md.sha256.create());
-    return forge.pki.certificateToPem(cert);
-  }
-  const ca = certificate(null, true, "01");
-  fs.writeFileSync(path.join(directory, "ca.crt"), ca);
-  fs.writeFileSync(path.join(directory, "leaf.key"), privateKey);
-  fs.writeFileSync(path.join(directory, "leaf.crt"), certificate("upstream.test", false, "02"));
-  fs.writeFileSync(path.join(directory, "wrong.crt"), certificate("other.test", false, "03"));
-  // The inbound interception trust deliberately matches the synthetic upstream
-  // CA. Merely loading it as the server's CA must NOT trust outbound traffic.
-  fs.writeFileSync(path.join(directory, "rootCA.key"), privateKey);
-  fs.writeFileSync(path.join(directory, "rootCA.crt"), ca);
+  const ca = await authority();
+  const pair = await keyPair();
+  const certificate = await leaf(ca, "upstream.test", { pair, serialNumber: "02" });
+  // setSecureContext below swaps only the certificate, so the wrong-host
+  // certificate must have the same public/private key as the original leaf.
+  const wrong = await leaf(ca, "other.test", { pair, serialNumber: "03" });
+  fs.writeFileSync(path.join(directory, "ca.crt"), ca.cert);
+  fs.writeFileSync(path.join(directory, "leaf.key"), certificate.key, { mode: 0o600 });
+  fs.writeFileSync(path.join(directory, "leaf.crt"), certificate.cert);
+  fs.writeFileSync(path.join(directory, "wrong.crt"), wrong.cert);
+  // Loading this interception CA must not add it to outbound TLS trust.
+  fs.writeFileSync(path.join(directory, "rootCA.key"), ca.privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 0o600 });
+  fs.writeFileSync(path.join(directory, "rootCA.crt"), ca.cert);
 });
 
 afterAll(() => fs.rmSync(directory, { recursive: true, force: true }));

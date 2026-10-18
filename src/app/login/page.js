@@ -45,7 +45,7 @@ export default function LoginPage() {
           if (data.authenticated === true || data.requireLogin === false) {
             // Full reload on purpose: the session cookie changed, so the
             // client-side RSC cache must be dropped rather than soft-navigated.
-            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
             window.location.assign("/dashboard");
             return;
           }
@@ -91,7 +91,7 @@ export default function LoginPage() {
           return;
         }
         // Full reload on purpose: a fresh session cookie was just issued.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       } else {
         const data = await res.json();
@@ -119,7 +119,7 @@ export default function LoginPage() {
       });
       if (res.ok) {
         // Full reload on purpose: credentials rotated, session cookie reissued.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       } else {
         const data = await res.json();
@@ -135,13 +135,13 @@ export default function LoginPage() {
   const handleOidcLogin = () => {
     // Route handler that answers with a 302 to the external IdP — a client-side
     // soft navigation cannot follow it, so a document-level load is required.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
     window.location.href = "/api/auth/oidc/start";
   };
 
   const handleSamlLogin = () => {
     // Route handler that answers with a 302 to the external IdP (see above).
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
     window.location.href = "/api/auth/saml/start";
   };
 

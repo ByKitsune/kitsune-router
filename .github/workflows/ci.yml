@@ -20,6 +20,7 @@ jobs:
       - run: npm ci
       - name: Install tests deps
         run: cd tests && npm ci
+      - run: npm run lint -- --max-warnings=0
       - run: npm test --if-present
         env:
           JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
@@ -29,3 +30,34 @@ jobs:
         env:
           JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
           NEXT_PHASE: phase-production-build
+  dependency-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Audit application dependencies
+        run: npm audit --audit-level=low
+      - name: Audit CLI dependencies
+        run: npm --prefix cli audit --audit-level=low
+      - name: Audit test dependencies
+        run: npm --prefix tests audit --audit-level=low
+      - name: Audit documentation dependencies
+        run: npm --prefix gitbook audit --audit-level=low
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gitbook/package-lock.json
+      - run: npm --prefix gitbook ci
+      - run: npm --prefix gitbook test
+      - run: npm --prefix gitbook run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"

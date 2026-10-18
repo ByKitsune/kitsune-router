@@ -20,11 +20,16 @@ const nextConfig = {
   // letter). That throw happens at module scope, so every consumer of `open` dies on
   // import — including xAI/Grok token refresh, which loads the OAuth service that imports
   // it. Keeping it external preserves the real `import.meta.url` at runtime.
-  serverExternalPackages: ["better-sqlite3", "sql.js", "node:sqlite", "bun:sqlite", "open"],
+  // Native resolution lets standalone tracing retain the full PKI dependency
+  // closure for the raw MITM child, not just Next's bundled certificate code.
+  serverExternalPackages: ["better-sqlite3", "sql.js", "node:sqlite", "bun:sqlite", "open", "@peculiar/x509", "reflect-metadata"],
   turbopack: {
     root: tracingRoot
   },
   outputFileTracingRoot: tracingRoot,
+  outputFileTracingIncludes: {
+    "/*": ["./src/mitm/**/*"]
+  },
   outputFileTracingExcludes: {
     "*": ["./gitbook/**/*"]
   },

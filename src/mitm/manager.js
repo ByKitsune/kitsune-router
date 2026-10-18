@@ -77,10 +77,11 @@ function ensureRuntimeServer(bundledPath) {
     const runtimeDir = path.join(DATA_DIR, "runtime", "mitm");
     const runtimeServer = path.join(runtimeDir, "server.js");
 
-    // Skip copy if sizes match (bundle unchanged since last run)
+    // Equal sizes do not establish freshness: security fixes can be same-size.
     if (fs.existsSync(runtimeServer)) {
       try {
-        if (fs.statSync(bundledPath).size === fs.statSync(runtimeServer).size) return runtimeServer;
+        if (fs.statSync(bundledPath).size === fs.statSync(runtimeServer).size &&
+            fs.readFileSync(bundledPath).equals(fs.readFileSync(runtimeServer))) return runtimeServer;
       } catch { /* recopy */ }
     }
 

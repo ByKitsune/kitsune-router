@@ -1,13 +1,19 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mkdtempSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { copyStandaloneAssets } from "../../scripts/copy-standalone-assets.mjs";
 
+const fixtures = [];
+
+afterEach(() => {
+  for (const directory of fixtures.splice(0)) rmSync(directory, { recursive: true, force: true });
+});
 function createBuildFixture(distDir) {
   const projectRoot = mkdtempSync(join(tmpdir(), "zenrouter-standalone-assets-"));
   const buildRoot = join(projectRoot, distDir);
+  fixtures.push(projectRoot);
   mkdirSync(join(buildRoot, "standalone"), { recursive: true });
   mkdirSync(join(buildRoot, "static", "chunks"), { recursive: true });
   mkdirSync(join(projectRoot, "public"), { recursive: true });
@@ -46,6 +52,22 @@ describe("standalone build assets", () => {
 
     expect(readFileSync(join(projectRoot, ".next", "standalone", "custom-server.js"), "utf8"))
       .toBe("wrapper");
+  });
+
+  it("preserves the raw MITM child's relative certificate and handler modules in standalone output", () => {
+    const projectRoot = createBuildFixture(".next");
+    mkdirSync(join(projectRoot, "src", "mitm", "cert"), { recursive: true });
+    mkdirSync(join(projectRoot, "src", "mitm", "handlers"), { recursive: true });
+    writeFileSync(join(projectRoot, "src", "mitm", "server.js"), "raw child entry");
+    writeFileSync(join(projectRoot, "src", "mitm", "cert", "rootCA.js"), "certificate signer");
+    writeFileSync(join(projectRoot, "src", "mitm", "handlers", "cursor.js"), "child handler");
+
+    copyStandaloneAssets({ projectRoot, distDir: ".next" });
+
+    const mitm = join(projectRoot, ".next", "standalone", "src", "mitm");
+    expect(readFileSync(join(mitm, "server.js"), "utf8")).toBe("raw child entry");
+    expect(readFileSync(join(mitm, "cert", "rootCA.js"), "utf8")).toBe("certificate signer");
+    expect(readFileSync(join(mitm, "handlers", "cursor.js"), "utf8")).toBe("child handler");
   });
 
   it("does not modify workspace-traced CLI builds", () => {

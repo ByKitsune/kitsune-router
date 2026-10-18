@@ -763,7 +763,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
         // Full reload on purpose: session cookie cleared, drop the RSC cache.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
         window.location.assign("/login");
       }
     } catch (err) {

@@ -219,7 +219,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
       if (res.ok) {
         // Full reload on purpose: the session cookie was cleared, so every
         // cached RSC payload for the authenticated tree must be discarded.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
         window.location.assign("/login");
       }
     } catch (err) {
