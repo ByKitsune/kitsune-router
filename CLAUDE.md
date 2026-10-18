@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ZenRouter (`zenrouter-app`) — a local AI routing gateway + Next.js dashboard. It exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh, quota/usage tracking, and optional cloud sync.
+ZenRouter (`zenrouter-app`) — a local AI routing gateway + Next.js dashboard. It exposes compatible endpoints under `/v1/*` and routes traffic across upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh and quota/usage tracking. Legacy cloud-sync fields remain, but the sync implementation was removed.
 
 Two published artifacts live in this one repo:
 - The **dashboard + gateway** (root `package.json`, `zenrouter-app`) — the Next.js server that does the actual routing.
-- The **CLI launcher** (`cli/`, published to npm as `zenrouter`) — a separate package that installs/starts the server and manages the tray. It has its own `package.json`, version, and build.
+- The **CLI launcher** (`cli/`, published as `@joyccn/zenrouter`, binary `zenrouter`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
 
 The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the provider-agnostic routing/translation engine), `cli/` (the launcher package), and `tests/`.
 
@@ -51,7 +51,7 @@ npx vitest run unit/capabilities.test.js   # single file (path relative to tests
 ## Architecture
 
 Two authoritative docs already exist — read them before working in these areas rather than re-deriving:
-- `docs/ARCHITECTURE.md` — full system: request lifecycle, combo/account fallback, OAuth + token refresh, cloud sync, data model.
+- `docs/ARCHITECTURE.md` — request lifecycle, combo/account fallback, OAuth + token refresh, data model and legacy boundaries.
 - `open-sse/AGENTS.md` — the routing/translation engine's own conventions and "how to add a provider/executor/translator". **Read this before editing anything under `open-sse/`.**
 
 ### Request flow (the thing to understand first)
@@ -62,7 +62,7 @@ Two authoritative docs already exist — read them before working in these areas
 → `open-sse/translator/*` (client format ↔ provider format)
 → SSE back to client.
 
-`src/sse/` is the app-side entry glue; `open-sse/` is the provider-agnostic engine (also usable standalone). Cross that boundary consciously.
+`src/sse/` is the app-side entry glue; `open-sse/` is the provider-agnostic engine. Some engine modules import app persistence/logging through `@/`; it is not an independently installable library. Cross that boundary consciously.
 
 ### Translator engine (`open-sse/translator/`)
 - Pivots through **OpenAI as the intermediate format**. A translator registered on an exact `source:target` pair (e.g. `claude:kiro`) runs as a **direct route**, skipping the lossy double-hop. Prefer a direct route for fragile pairs (thinking blocks, tool ids, non-base64 images, `is_error`).
@@ -91,7 +91,7 @@ Pre-translate hooks that compress `tool_result` content in-place to cut tokens. 
 - The MITM certificate API is asynchronous and uses WebCrypto plus `@peculiar/x509`, not `node-forge`. Await root loading and leaf generation. Existing PKCS#1/PKCS#8 keys and unexpired trusted roots must remain usable without trust-store changes; test only with temporary certificate directories.
 - Binary/protobuf upstreams (kiro EventStream, cursor protobuf, commandcode NDJSON) don't round-trip through OpenAI — they're handled inside their own executor, not the translator.
 - **Security-first on PRs**: Security is the top priority when reviewing or creating PRs. Audit authentication, credential/token storage & leaks, header manipulation (`X-Forwarded-For`), and SSRF risks before functional logic. Always include explicit security warnings/notes when reporting PR reviews or changes to the user.
-- Versioning: root and `cli/` are versioned independently. Commit style is Conventional Commits (`fix(translator): …`, `feat(...)`).
+- Versioning: root, `cli/`, `tests/` and `gitbook/` manifests and lockfiles must agree before release. `scripts/bump-version.mjs` alone does not update every required file. Commit style is Conventional Commits (`fix(translator): …`, `feat(...)`).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -1,6 +1,6 @@
 # ZenRouter Architecture
 
-_Last updated: 2026-10-18_
+_Last reviewed: 2026-10-19_
 
 ## Executive Summary
 
@@ -16,7 +16,7 @@ Core capabilities:
 - OAuth + API-key provider connection management
 - Local persistence for providers, keys, aliases, combos, settings, pricing
 - Usage/cost tracking and request logging
-- Optional cloud sync for multi-device/state sync
+- Optional tunnels for access to the same local gateway instance
 
 Primary runtime model:
 
@@ -32,11 +32,11 @@ Primary runtime model:
 - Provider authentication and token refresh
 - Request translation and SSE streaming
 - Local state + usage persistence
-- Optional cloud sync orchestration
+- CLI packaging and optional tunnel lifecycle
 
 ### Out of Scope
 
-- Cloud service implementation behind `NEXT_PUBLIC_CLOUD_URL`
+- Legacy cloud-sync implementation (removed; residual URL/settings fields are not a scheduler)
 - Provider SLA/control plane outside local process
 - External CLI binaries themselves (Claude CLI, Codex CLI, etc.)
 
@@ -66,10 +66,6 @@ flowchart LR
         P3[Compatible Nodes\nOpenAI-compatible / Anthropic-compatible]
     end
 
-    subgraph Cloud[Optional Cloud Sync]
-        CLOUD[Cloud Sync Endpoint\nNEXT_PUBLIC_CLOUD_URL]
-    end
-
     C1 --> API
     C2 --> API
     C3 --> API
@@ -85,7 +81,6 @@ flowchart LR
     CORE --> P2
     CORE --> P3
 
-    DASH --> CLOUD
 ```
 
 ## Core Runtime Components
@@ -116,7 +111,6 @@ Management domains:
 - OAuth: `src/app/api/oauth/*`
 - Keys/aliases/combos/pricing: `src/app/api/keys*`, `src/app/api/models/alias`, `src/app/api/combos*`, `src/app/api/pricing`
 - Usage: `src/app/api/usage/*`
-- Sync/cloud: `src/app/api/sync/*`, `src/app/api/cloud/*`
 - CLI tooling helpers: `src/app/api/cli-tools/*`
 
 ## 2) SSE + Translation Core
@@ -214,11 +208,12 @@ Native Antigravity gateway requests use the separate minimal `antigravity/cli/1.
 OpenCode native session and parent-session aliases use one canonical request-local identity. Devin initializes ACP with integer major version `1` and `clientCapabilities`; incompatible peers terminate through the subprocess cleanup path.
 
 
-## 5) Cloud Sync
+## 5) Legacy Cloud Sync
 
-- Scheduler init: `src/lib/initCloudSync.js`, `src/shared/services/initializeCloudSync.js`
-- Periodic task: `src/shared/services/cloudSyncScheduler.js`
-- Control route: `src/app/api/sync/cloud/route.js`
+The cloud-sync implementation was removed in commit `3cca2252`. There is no
+current sync scheduler or `/api/sync/cloud` route. Legacy settings and UI URL
+fields remain for compatibility; they do not provide state synchronization.
+`BASE_URL` / `NEXT_PUBLIC_BASE_URL` still participate in SSO callback construction.
 
 ## Request Lifecycle (`/v1/chat/completions`)
 
@@ -524,7 +519,6 @@ node scripts/worker-mesh.mjs stop
 - `src/app/api/combos*`: fallback combo management
 - `src/app/api/pricing`: pricing overrides for cost calculation
 - `src/app/api/usage/*`: usage and logs APIs
-- `src/app/api/sync/*` + `src/app/api/cloud/*`: cloud sync and cloud-facing helpers
 - `src/app/api/cli-tools/*`: local CLI config writers/checkers
 
 ### Routing and Execution Core
@@ -547,18 +541,12 @@ node scripts/worker-mesh.mjs stop
 
 ## Provider Executor Coverage
 
-Specialized executors:
-
-- `antigravity`
-- `gemini-cli`
-- `github`
-- `kiro`
-- `codex`
-- `cursor`
-
-Default executor path:
-
-- all other providers (including compatible node providers) use `open-sse/executors/default.js`
+The executable registry in `open-sse/executors/index.js` is authoritative.
+Specialized adapters include Antigravity, Gemini CLI, GitHub, Kiro, Codex, Cursor,
+Vertex, Qoder, CodeBuddy, OpenCode, Devin, Grok and other nonstandard transports.
+Providers absent from that registry (including ordinary compatible nodes) use
+`open-sse/executors/default.js`. Engine modules share app logging/persistence
+imports; this directory is a responsibility boundary, not a standalone package.
 
 ## Format Translation Coverage
 
@@ -649,23 +637,23 @@ The 2026-09-27–2026-10-02 upstream audit adapted [#4143](https://github.com/de
 - Codex and Qoder inspect complete SSE events before committing response headers, bounded by 1000 ms and 256 KiB. Deadline handoff preserves consumed bytes and the outstanding read; cancellation closes the upstream reader/socket.
 - Qoder queue code `10605` returns HTTP 429 with available retry timing; quota codes `110`/`112` remain 403. Errors after output terminate in-band as structured SSE errors, never fabricated assistant text or a replayed request.
 
-## 4) Cloud Sync Degradation
+## 4) Legacy Services
 
-- sync errors are surfaced but local runtime continues
-- scheduler has retry-capable logic, but periodic execution currently calls single-attempt sync by default
+Cloud-sync retries are not part of the current runtime; see the removal note
+above. Tunnel availability does not imply database replication.
 
 ## 5) Data Integrity
 
-- DB shape migration/repair for missing keys
-- corrupt JSON reset safeguards for localDb and usageDb
+- Versioned SQLite schema migrations and legacy-file import
+- Corruption must stop startup instead of silently selecting a new empty database
+- Configuration, usage and request details share the resolved absolute `DATA_DIR`
 
 ## Observability and Operational Signals
 
 Runtime visibility sources:
 
 - console logs from `src/sse/utils/logger.js`
-- per-request usage aggregates in `usage.json`
-- textual request status log in `log.txt`
+- per-request usage aggregates and recent status logs through the SQLite repositories
 - optional deep request/translation logs under `logs/` when `ENABLE_REQUEST_LOGS=true`
 - dashboard usage endpoints (`/api/usage/*`) for UI consumption
 
@@ -675,7 +663,8 @@ Runtime visibility sources:
 - Initial password fallback (`INITIAL_PASSWORD`, default `12345678`) must be overridden in real deployments
 - API key HMAC secret (`API_KEY_SECRET`) secures generated local API key format
 - Provider secrets (API keys/tokens) are persisted in local DB and should be protected at filesystem level
-- Cloud sync endpoints rely on API key auth + machine id semantics
+- CLI authorization incorporates a persisted random secret; a machine identifier alone is not authorization
+- Loopback proxies must append the actual peer to XFF. Only a valid rightmost IP is trusted; a lone `X-Real-IP` does not control login rate-limit attribution
 
 ## Environment and Runtime Matrix
 
@@ -685,16 +674,16 @@ Environment variables actively used by code:
 - Storage: `DATA_DIR`
 - Security hashing: `API_KEY_SECRET`, `MACHINE_ID_SALT`
 - Logging: `ENABLE_REQUEST_LOGS`
-- Sync/cloud URLing: `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_CLOUD_URL`
+- SSO callback base URL: `BASE_URL`, `NEXT_PUBLIC_BASE_URL`; legacy cloud UI fields may still read `NEXT_PUBLIC_CLOUD_URL`
 - Outbound proxy: `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` and lowercase variants
 - Platform/runtime helpers (not app-specific config): `APPDATA`, `NODE_ENV`, `PORT`, `HOSTNAME`
 
 ## Known Architectural Notes
 
-1. `usageDb` currently stores under `~/.zenrouter` and does not follow `DATA_DIR`.
+1. `usageDb` re-exports the SQLite repositories and follows the same absolute `DATA_DIR` as configuration.
 2. `/api/v1/route.js` returns a static model list and is not the main models source used by `/v1/models`.
 3. Request logger writes full headers/body when enabled; treat log directory as sensitive.
-4. Cloud behavior depends on correct `NEXT_PUBLIC_BASE_URL` and cloud endpoint reachability.
+4. Legacy cloud settings are not proof of an active sync implementation. Current verification and model/media limits are documented in `tests/README.md` and `docs/audit/14-vision-catalog-follow-up-2026-10.md`.
 
 ## Operational Verification Checklist
 

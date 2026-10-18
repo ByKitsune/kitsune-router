@@ -39,6 +39,16 @@ live/background work, isolates runtime state and uploads the Vitest JSON tagged
 with the exact SHA. Local execution of these checks does not claim a future
 GitHub run has already completed.
 
+## Documentation reconciliation
+
+Current guidance now distinguishes the published release from newer source,
+SQLite state from legacy JSON imports, and native protocol preservation from
+universal losslessness. The removed cloud-sync implementation is no longer
+described as an active scheduler. Translator guidance identifies the limited
+image-strip matrix and remaining expected-failure cases instead of claiming
+every catalog model has end-to-end coverage. The API-key form describes local
+database storage without claiming encryption at rest.
+
 ## Publication
 
 These are source changes and local verification, not a new published 0.9.11

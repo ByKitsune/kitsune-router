@@ -19,8 +19,8 @@
 Designed for developers, agentic frameworks, and multi-account setups, ZenRouter delivers:
 - 🚀 **Zero-Downtime Smart Fallback**: Dynamic circuit breaker, quota reset tracking, and instant failover across model combos and pooled accounts.
 - ✂️ **Real-Time Token Compression (RTK / Headroom)**: In-place prompt and tool execution compression saving up to 40% input tokens.
-- 🎭 **Universal Format Translation**: Lossless bi-directional transformation between OpenAI Chat, Anthropic Claude Messages, OpenAI Responses API, Google Gemini, and Ollama.
-- 📊 **Local-First & Multi-Driver SQLite**: Lightning-fast query performance with automatic driver fallback (`better-sqlite3` ➔ `node:sqlite` ➔ `bun:sqlite` ➔ `sql.js`).
+- 🎭 **Protocol-Aware Format Translation**: Bi-directional translation between OpenAI Chat, Anthropic Claude Messages, OpenAI Responses API, Google Gemini, and Ollama, with native media/tool preservation and explicit limits where protocols differ.
+- 📊 **Local-First & Multi-Driver SQLite**: Shared configuration and usage storage. Bun prefers `bun:sqlite`; Node tries `better-sqlite3` then `node:sqlite`, with `sql.js` as the portable fallback.
 - 🌐 **Web Search Grounding**: Integrated Google Search, Xquik (X platform search), and Ollama search providers.
 - 💻 **One-Click CLI Tool Presets**: Instant configuration for Claude Code CLI, OpenAI Codex CLI, Cursor, Cline, OpenClaw, Hermes Agent, and Droid.
 
@@ -31,6 +31,10 @@ Designed for developers, agentic frameworks, and multi-account setups, ZenRouter
 Dated **2026-10-17**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.11) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.11.md) · [Release notes](releases/RELEASE_NOTES_v0.9.11.md).
 
 This release fixes multi-turn vision, reasoning translation, native failure handling, model metadata and cache-aware cost estimates. Catalog metadata does not prove account entitlement or live availability. See the [security limits](releases/RELEASE_NOTES_v0.9.11.md#security-and-verification-limits) for the unresolved node-forge advisory.
+
+Source updates after that release are listed under [Unreleased](CHANGELOG.md#unreleased).
+They are not retroactively included in published 0.9.11 artifacts. For the current
+test workflow and its live-provider limits, see [tests/README.md](tests/README.md).
 
 ## 🚀 Quick Start
 

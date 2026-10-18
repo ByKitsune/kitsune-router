@@ -15,6 +15,8 @@ for the upstream port backlog.
 These are historical snapshots, not a claim that every finding remains open.
 See [13-security-wave-2026-10-18.md](13-security-wave-2026-10-18.md) for the
 dependency/PKI, lint, stream-identity and DNS-pinned network follow-up.
+The subsequent [vision/catalog follow-up](14-vision-catalog-follow-up-2026-10.md)
+records newly verified fixes and the limits of their evidence.
 
 ## Read in this order
 

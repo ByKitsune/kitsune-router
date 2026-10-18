@@ -160,7 +160,7 @@ export default function NewProviderPage() {
               value={formData.apiKey}
               onChange={(e) => handleChange("apiKey", e.target.value)}
               error={errors.apiKey}
-              hint="Your API key will be encrypted and stored securely."
+              hint="Your API key is stored in this ZenRouter instance's local database."
               required
             />
           )}
@@ -217,4 +217,3 @@ export default function NewProviderPage() {
     </div>
   );
 }
-

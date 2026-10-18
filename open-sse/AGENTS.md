@@ -1,6 +1,6 @@
 # open-sse
 
-Provider-agnostic SSE engine: one OpenAI-style request → any provider (LLM chat, image, embedding, tts, stt, search), streamed back in the client's format.
+Provider-agnostic SSE engine: a supported client request → provider execution (LLM chat, image, embedding, tts, stt, search), returned in the client's format. Some modules depend on the app's persistence/logging aliases; this is not an independently installable package.
 
 ## Request lifecycle (chat)
 
@@ -27,6 +27,8 @@ Provider-agnostic SSE engine: one OpenAI-style request → any provider (LLM cha
 - Perf: accumulate streamed text in chunk arrays + `join("")` once (never `+=` per chunk); per-provider mutexes (never a global lock); L1 repo caches with explicit `invalidate*Cache()` on every mutation; `/v1/models` 30s TTL with `Cache-Control: public, max-age=30, stale-while-revalidate=60`. Zen diverges from upstream #3629 on purpose: settings uses a 2s TTL raw cache and usage uses object-identity dedup (no field-equality scan, no extra index).
 - Stream tool identity is request-local. Emit each Chat tool ID once, buffer incomplete names until the opener is usable, and retain native Messages/Responses event framing when restoring names. Do not change native terminal events into Chat `[DONE]` markers.
 - Remote image retrieval uses direct Undici, one DNS snapshot pinned to the socket, a shared DNS/HTTP deadline, and a bounded magic-byte-validated body. Maintain the numerical public-address policy in `config/mediaConfig.js`, including IPv6/mapped-address checks and literal-IP handling; never use a later unpinned global fetch.
+- Model facts are provider/endpoint-specific. Keep context window, maximum input and maximum output separate; preserve explicit unknowns, negative capabilities and real zero prices. Pin models.dev snapshot dates/hashes and retain source provenance for overrides. Never assign a blanket 1M limit or infer retirement/availability from a missing catalog entry.
+- Validate vision on actual outbound payloads, including tool results and compacted multi-turn history. Base64 belongs in typed media fields, not generated prose or JSON text; text token estimates must not count encoded image bytes. Do not silently trim messages to hide an upstream input-limit error.
 
 ## How to add
 

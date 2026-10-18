@@ -1,13 +1,14 @@
 # Translation Layer Tests
 
-Tests for `open-sse/translator/`. Goals: (1) data-driven coverage of every provider/model, (2) expose bugs caused by using OpenAI as the intermediate format.
+Tests for `open-sse/translator/`. Goals: data-driven protocol coverage and regression tests for information lost at format boundaries. Do not equate a catalog matrix entry with verified live-provider behavior.
 
 ## 1. Translation layer structure (`open-sse/translator/`)
 
 Pipeline uses **OpenAI as the intermediate format**:
 - Request: `source → openai → target` (`translateRequest`)
 - Response (SSE chunk): `target → openai → source` (`translateResponse`)
-- If `source === target` → translation is skipped (passthrough).
+- A registered direct request route bypasses the intermediate format.
+- If `source === target`, conversion is skipped, but shared request preparation, capability policy and thinking normalization can still run.
 
 Components:
 - `index.js` — `translateRequest` / `translateResponse` / `register(from, to, requestFn, responseFn)` / registry.
@@ -25,8 +26,8 @@ Components:
 | File | Role |
 |---|---|
 | `matrix.js` | Reads `PROVIDER_MODELS` → builds matrix (alias, model, targetFormat, strip, upstreamId). DRY core. |
-| `registerAll.js` | Imports every translator to run `register()` side-effects. **Required** (see §5). |
-| `coverage-all-models.test.js` | Tier 1: every model translates without throwing; strip applied correctly. |
+| `registerAll.js` | Explicit registration helper retained by existing tests; production also uses static imports (see §5). |
+| `coverage-all-models.test.js` | Covers registry entries explicitly declaring image stripping, not every model. |
 | `format-roundtrip.test.js` | Tier 2: tool id/system/parallel survive the bridge. |
 | `bugs-openai-bridge.test.js` | Exposes concrete bugs (with source file:line). |
 
@@ -36,93 +37,57 @@ Always pass `--config tests/vitest.config.js` (the alias config lives there; wit
 
 ```bash
 # no-cred (default, offline): translator-only files
-cd app && npx vitest run --config tests/vitest.config.js "tests/translator/"
-cd app && npx vitest run --config tests/vitest.config.js "tests/translator/bugs-openai-bridge.test.js"
+npm test -- tests/translator/
+npm test -- tests/translator/bugs-openai-bridge.test.js
 
 # real (calls live providers using credentials from the local DB)
-cd app && RUN_REAL=1 npx vitest run --config tests/vitest.config.js "tests/translator/real/"
+RUN_REAL=1 npm test -- tests/translator/real/
 ```
-No-cred tests make NO network calls and need NO creds. Real tests (`real/`, gated by `RUN_REAL=1`) read active connections from `~/.zenrouter/db/data.sqlite`, send a tiny prompt per provider through `handleChatCore`, and assert valid SSE. Account/quota errors (401/402/403/429) are treated as credential issues and skipped, not failures.
+Run from the repository root with isolated HOME/DATA_DIR and no production `.env`.
+Default tests need no live credentials, but can use loopback sockets, subprocesses
+and temporary files. Live suites read configured accounts and can incur usage.
+Some surveys accept unavailable models or account errors without failing; inspect
+their logs and do not report these outcomes as working vision or live acceptance.
+See `tests/README.md` for complete gates and opt-in flags.
 
-## 4. Adding a new provider → tests cover it AUTOMATICALLY
+## 4. Adding a new provider
 
-Add a provider by adding a key to `open-sse/config/providerModels.js` `PROVIDER_MODELS` (e.g. `newprov: [{ id, targetFormat?, strip?, upstreamModelId? }]`) plus its config in `open-sse/config/providers.js`.
+Follow `open-sse/AGENTS.md` and the provider registry's current structure. The
+matrix reads `PROVIDER_MODELS`, but its consumers select subsets. Add a behavioral
+case for each new transport contract; a no-throw assertion is not proof that the
+image, tool result, reasoning control or output cap reached the correct wire field.
 
-→ `coverage-all-models.test.js` **automatically** runs for the new models with **no test edits**. `matrix.js` reads config directly.
+## 5. Translator registration
 
-Only add a dedicated test when a provider has a special format that does not round-trip cleanly (see §7).
-
-## 5. `registerAll.js` — why it is required
-
-`translator/index.js` uses `require(...)` (bundler-only) to lazy-load translators. Under vitest/ESM, `require` **silently no-ops** → empty registry → `translateRequest` skips the translation step → **false pass** (data is lost but the test goes green by mistake).
-
-→ Every test calling `translateRequest`/`translateResponse` MUST `import "./registerAll.js"` at the top of the file.
+`translator/index.js` uses static imports and translators register as module side
+effects. Existing tests may keep `import "./registerAll.js"`. New translators must
+also be imported by production; assertions must inspect the destination shape so
+a missing registration cannot masquerade as successful passthrough.
 
 ## 6. Bug-exposure convention — `it.fails`
 
-- A bug confirmed in the app but NOT yet fixed → use `it.fails(...)`.
+- Existing `it.fails(...)` cases record confirmed limitations that are not yet fixed.
 - `it.fails` **passes while the app still has the bug**, **turns red once the bug is fixed** → a reminder to update the test (switch `it.fails` → `it` and confirm correct behavior).
-- Pattern for a new bug-exposure test: real input → assert the "should-be-kept" behavior → wrap in `it.fails` + a comment with the source `file:line`.
+- New fixes start with ordinary failing regressions, then make them pass. Do not use `it.fails`, skip flags or weakened assertions to hide a regression in a change being delivered.
 
 ## 7. Special formats to watch
 
 - `kiro` (binary AWS EventStream), `cursor` (protobuf ConnectRPC), `commandcode` (NDJSON) → responses do NOT round-trip cleanly through openai; test via their executors, not just the translator.
 - Single-provider-two-formats (most fragile): `opencode-go` (minimax models → claude, others openai), `github` (escalates `/chat/completions` → `/responses` at runtime), `xiaomi-tokenplan` (claude alias).
-- `gemini`/`gemini-cli`: only the LAST system message is kept → earlier system messages are lost.
+- `gemini`/`gemini-cli`: inspect all system instructions and typed history, not just the final user message. Include tool images and compaction-shaped inputs.
 
 ## 8. Current known bugs (currently `it.fails`)
 
-Grouped per CLI/provider test file. Each row is an `it.fails` case.
+Check the executable tests rather than historical line-number lists. At the
+`14524027` audit baseline, three expected failures remained:
 
-**Claude (`bugs-openai-bridge.test.js`, `bugs-claudeCode-context.test.js`)**
-| Bug | Source |
+| Limitation | Test file |
 |---|---|
-| Claude image `source.type="url"` dropped (only base64) | `request/claude-to-openai.js:133-141` |
-| `tool_result` image block → raw JSON | `request/claude-to-openai.js:155-173` |
-| `thinking`/`redacted_thinking` dropped via bridge | `request/claude-to-openai.js:128` |
+| Claude Code system prompt injected for compatible providers | `bugs-toClaude-context.test.js` |
+| `input_audio` preservation on the Claude route | `bugs-toClaude-context.test.js` |
+| Remote image URL preserved as typed image on the Kiro translator path | `bugs-kiro.test.js` |
 
-**Fixed (kept out of the `it.fails` list on purpose):**
-
-| Fix | Where |
-|---|---|
-| `tool_result.is_error` carried as a `[tool_error]` content marker (OpenAI has no such field, so a non-standard field would be ignored or rejected and the model could conclude the tool succeeded) | `request/claude-to-openai.js` (`TOOL_ERROR_PREFIX`) |
-| Sampling/stop/attribution parameters preserved: `stop` ⇄ `stop_sequences`, `top_p`, `user` ⇄ `metadata.user_id`, Gemini `stopSequences`/`seed` | `request/openai-to-claude.js`, `request/claude-to-openai.js`, `request/openai-to-gemini.js` |
-
-**OpenAI → Claude (`bugs-toClaude-context.test.js`)**
-| Bug | Source |
-|---|---|
-| Always injects "You are Claude Code" system prompt | `request/openai-to-claude.js:124-134` |
-| `reasoning_content` not mapped to a thinking block | `request/openai-to-claude.js:268-273` |
-| `tool_choice:"none"` → `auto` | `request/openai-to-claude.js:298` |
-| `input_audio` dropped | `request/openai-to-claude.js` (no audio branch) |
-
-**Codex Responses (`bugs-codexCli-responses.test.js`)**
-| Bug | Source |
-|---|---|
-| Empty-name function_call can leave `tool_calls: []` | `request/openai-responses.js:103` |
-| `arguments` not coerced to string | `request/openai-responses.js:109-110` |
-| `input_image` uses `file_id` as raw url | `request/openai-responses.js:75-77` |
-
-**Antigravity (`bugs-antigravity.test.js`)**
-| Bug | Source |
-|---|---|
-| functionResponse + functionCall in same content → tool calls dropped | `request/antigravity-to-openai.js:177-189` |
-| functionCall without id → random unstable id | `request/antigravity-to-openai.js:167` |
-
-**Kiro (`bugs-kiro.test.js`)**
-| Bug | Source |
-|---|---|
-| `JSON.parse(arguments)` throws on bad JSON (no try/catch) | `request/openai-to-kiro.js:214-216` |
-| `max_tokens` hardcoded to 32000 | `request/openai-to-kiro.js:309` |
-| Remote image → `[Image: url]` text | `request/openai-to-kiro.js:132-134` |
-
-**Gemini / Cursor / CommandCode (`bugs-gemini-cursor-commandcode.test.js`)**
-| Bug | Source |
-|---|---|
-| Only the last system message kept | `request/openai-to-gemini.js:92-96` |
-| Cursor drops image content | `request/openai-to-cursor.js:12-24` |
-| Cursor `max_tokens` hardcoded to 32000 | `request/openai-to-cursor.js:179` |
-| CommandCode bad JSON args → `{}` silently | `request/openai-to-commandcode.js:53-57` |
-| CommandCode image → `[image omitted]` | `request/openai-to-commandcode.js:41-42` |
-
-Fixing a bug → rerun; the matching `it.fails` test turns RED → switch it to a regular `it` and verify correct behavior.
+When fixing one, change the expected-failure test to an ordinary assertion and
+exercise the real public translation/execution route. Preserve bytes, ordering,
+tool ownership and native semantics; a fabricated unsupported destination field
+does not satisfy the contract.
