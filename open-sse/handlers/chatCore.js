@@ -128,7 +128,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     else delete credentials.runtimeTransport; // Reused credentials must not retain a prior request's endpoint.
   }
   const stripList = getModelStrip(alias, model);
-  const upstreamModel = getModelUpstreamId(alias, model);
 
   // Inject provider-level thinking config override (only if client hasn't set)
   // on/off → extended type (body.thinking), none/low/medium/high → effort type (body.reasoning_effort)
@@ -143,6 +142,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       body = { ...body, reasoning_effort: mode };
     }
   }
+
+  const upstreamModel = getModelUpstreamId(alias, model, extractThinking(body));
 
   const clientWantsStream = clientRequestedStreaming(body, sourceFormat);
   const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;

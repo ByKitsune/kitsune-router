@@ -79,14 +79,24 @@ export function getModelType(aliasOrId, modelId) {
   return found?.kind || found?.type || null;
 }
 
-export function getModelUpstreamId(aliasOrId, modelId) {
+// thinkingIntent is normalized by extractThinking after provider defaults; this
+// config layer does not parse request bodies or import the translator pipeline.
+export function getModelUpstreamId(aliasOrId, modelId, thinkingIntent = null) {
   // Split off thinking suffix "(level)" so lookup hits the base id; re-append it to
   // the result so downstream applyThinking still sees the suffix (body.model is stripped separately).
-  const sufMatch = typeof modelId === "string" ? modelId.match(/\([^()]+\)\s*$/) : null;
+  const sufMatch = typeof modelId === "string" ? modelId.match(/\(([^()]+)\)\s*$/) : null;
   const suffix = sufMatch ? sufMatch[0] : "";
   const baseId = suffix ? modelId.slice(0, sufMatch.index).trim() : modelId;
   const models = PROVIDER_MODELS[aliasOrId];
-  const found = findModel(models, baseId, aliasOrId);
+  let found = findModel(models, baseId, aliasOrId);
+  if (found?.resolveThinkingTier) {
+    const tier = sufMatch ? sufMatch[1].trim().toLowerCase()
+      : thinkingIntent?.mode === "level" ? thinkingIntent.level : null;
+    if (tier) {
+      // Only an existing exact registry entry can select another wire tier.
+      found = models.find(entry => entry.id === `${found.id}-${tier}`) || found;
+    }
+  }
   const resolvedId = found?.upstreamModelId || found?.id;
   if (resolvedId) {
     const presetMatch = resolvedId.match(/\([^()]+\)\s*$/);
