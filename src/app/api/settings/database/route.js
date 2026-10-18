@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { exportDb, getSettings, importDb, validateApiKey } from "@/lib/localDb";
+import { exportDb, getProviderConnections, getSettings, importDb, validateApiKey } from "@/lib/localDb";
 import { applyOutboundProxyEnv } from "@/lib/network/outboundProxy";
 import { verifyDashboardPassword } from "@/lib/auth/dashboardSession";
 import { hasValidCliToken, hasValidToken } from "@/dashboardGuard";
+import { releaseConnection } from "@/sse/services/tokenRefresh";
+import { setCachedPassword } from "@/mitm/manager";
 
 const CLI_TOKEN_HEADER = "x-zen-cli-token";
 const PASSWORD_HEADER = "x-zen-password";
@@ -53,7 +55,18 @@ export async function POST(request) {
     if (!(await checkAuth(request, password))) {
       return NextResponse.json({ error: "Unauthorized: valid auth and password required" }, { status: 401 });
     }
-    await importDb(payload);
+    const previousConnections = await getProviderConnections();
+    try {
+      await importDb(payload);
+    } catch (error) {
+      if (error.code === "DB_IMPORT_SYNC_FAILED") {
+        setCachedPassword(null);
+        for (const connection of previousConnections) releaseConnection(connection.id);
+      }
+      throw error;
+    }
+    setCachedPassword(null);
+    for (const connection of previousConnections) releaseConnection(connection.id);
 
     // Ensure proxy settings take effect immediately after a DB import.
     try {
@@ -68,7 +81,7 @@ export async function POST(request) {
     console.log("Error importing database:", error);
     return NextResponse.json(
       { error: error?.message || "Failed to import database" },
-      { status: 400 }
+      { status: error?.code === "DB_IMPORT_SYNC_FAILED" ? 500 : 400 }
     );
   }
 }

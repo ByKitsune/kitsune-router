@@ -53,6 +53,7 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | Pricing API and hourly editor contracts | `unit/pricing-api-validation.test.js`, `unit/pricing-modal-reviewed-billing.test.js` |
 | Pinned image transport, DNS deadlines and cancellation | `unit/undici-native-fetch-compat.test.js`, `unit/image-fetch-hardening.test.js`, `unit/ssrf-pinned-fetch.test.js`, `unit/image-prefetch-lifecycle.test.js` |
 | No-auth proxy pool exhaustion, denials and egress | `unit/noauth-proxy-fallback.test.js` (real SQLite, relay/CONNECT and direct-egress trap fixtures) |
+| Full database imports and stale in-flight caches | `unit/db-import-cache.test.js`, `unit/db-import-cache-public.test.js`, `unit/db-import-cache-quota.test.js` |
 | Native cancellation and public error boundaries | `unit/cursor-cancellation.test.js`, `unit/public-protocol-errors.test.js` |
 
 The reasoning suites cover API aliases, suffix/request/provider precedence, native executor controls, streaming/non-streaming reasoning and measured usage. Run the complete suite to include their fallback, accounting and semantic-TTFT consumers.

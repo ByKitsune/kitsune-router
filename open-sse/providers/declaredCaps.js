@@ -11,6 +11,7 @@
 // on different gateways (or chat/STT rows) must not share operator overrides.
 
 import { getCustomModels } from "../../src/lib/db/repos/aliasRepo.js";
+import { getDbImportGeneration } from "../../src/lib/db/helpers/importGeneration.js";
 import { canonicalizeProviderId } from "./identity.js";
 import { capabilitiesFromServiceKind } from "./capabilities.js";
 
@@ -21,13 +22,16 @@ const TTL_MS = 30_000;
 let cache = new Map();
 let cacheAt = 0;
 let inflight = null;
+let generation = 0;
+let importGeneration = getDbImportGeneration();
 
 function keyFor(provider, model) {
   return JSON.stringify([canonicalizeProviderId(provider), model]);
 }
 
-async function load() {
+async function load(version, importedVersion) {
   const models = await getCustomModels();
+  if (version !== generation || importedVersion !== getDbImportGeneration()) return;
   const next = new Map();
   const imageModels = new Map();
   for (const record of models) {
@@ -48,6 +52,9 @@ async function load() {
 export function invalidateDeclaredModelCaps() {
   cache = new Map();
   cacheAt = 0;
+  inflight = null;
+  generation++;
+  importGeneration = getDbImportGeneration();
 }
 
 /**
@@ -59,17 +66,28 @@ export function invalidateDeclaredModelCaps() {
  */
 export async function getDeclaredModelCaps(provider, model) {
   if (!provider || typeof model !== "string" || !model) return undefined;
+  if (importGeneration !== getDbImportGeneration()) invalidateDeclaredModelCaps();
 
   const fresh = Date.now() - cacheAt < TTL_MS;
   if (!fresh) {
+    const version = generation;
+    const importedVersion = importGeneration;
     // Collapse concurrent misses into one query.
-    inflight ||= load().finally(() => { inflight = null; });
+    if (!inflight) {
+      const pending = load(version, importedVersion).finally(() => {
+        if (inflight === pending) inflight = null;
+      });
+      inflight = pending;
+    }
     try {
       await inflight;
     } catch {
       // A read failure must not break the request: fall through to the
       // static-table guess rather than surfacing an error here.
       return undefined;
+    }
+    if (version !== generation || importedVersion !== getDbImportGeneration()) {
+      return getDeclaredModelCaps(provider, model);
     }
   }
 

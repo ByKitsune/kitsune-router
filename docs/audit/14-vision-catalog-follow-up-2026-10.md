@@ -169,6 +169,32 @@ preserving the caller's reason. Its own connect timeout remains retryable.
 wire checks passed 61 cases. Evidence: `cancellation/red.json` and `green.json`
 under the wave's external verification directory.
 
+### Database imports and cache consistency
+
+Import wrote directly to SQLite, bypassing repository invalidation. A removed
+key could stay accepted by the positive-key cache; model capabilities, prices,
+account names and quota exhaustion could also describe the pre-import database.
+The fix invalidates affected repository caches after transaction commit, advances
+a shared process-local generation and makes dependent asynchronous readers
+discard old results. A failed transaction does not invalidate valid old state.
+
+Public-route regressions cover warmed model listings, aliases, declared vision,
+live catalogs, same-ID replaced credentials and pending older reads. Quota caches
+and Antigravity strikes/refresh throttles follow the generation, avoiding the
+reproduced 45-second stale exhaustion window. Imported MITM aliases are written
+before success; replica failure returns an explicit post-commit error. The API
+releases previous project lookups and clears cached sudo credentials.
+
+This is not cross-process cache invalidation and does not imply safe concurrent
+multi-worker operation over a shared sql.js database. Operators running several
+processes must coordinate their reload/invalidation after import.
+
+Tests: `db-import-cache.test.js`, `db-import-cache-public.test.js`,
+`db-import-cache-quota.test.js`. The agent passed 227 cases across 21 focused
+files; parent verification passed 157 cases across 11 files including no-auth
+and quota regressions. Red/green evidence is under the external `db-import/`
+verification directory. No production database was imported or modified.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

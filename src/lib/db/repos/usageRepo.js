@@ -143,11 +143,19 @@ function pushToRing(entry) {
   }
 }
 
+export function invalidateUsageConnectionCache() {
+  connCache.map = {};
+  connCache.ts = 0;
+}
+
 async function getConnectionMapCached() {
   if (Date.now() - connCache.ts < CONN_CACHE_TTL_MS) return connCache.map;
+  const pendingMap = connCache.map;
   try {
     const { getProviderConnections } = await import("./connectionsRepo.js");
     const all = await getProviderConnections();
+    // An import may have replaced the connections while the read was pending.
+    if (connCache.map !== pendingMap) return getConnectionMapCached();
     const map = {};
     for (const c of all) map[c.id] = c.name || c.email || c.id;
     connCache.map = map;

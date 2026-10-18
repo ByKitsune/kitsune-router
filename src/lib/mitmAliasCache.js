@@ -4,6 +4,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { getDbImportGeneration } from "./db/helpers/importGeneration.js";
 
 const DATA_DIR = process.env.DATA_DIR
   || (process.platform === "win32"
@@ -21,12 +22,19 @@ function writeAtomic(data) {
 }
 
 // Sync entire mitmAlias map from DB → JSON file
-export async function syncToJson() {
+export async function syncToJson({ strict = false } = {}) {
   try {
     const { getMitmAlias } = await import("@/lib/db/repos/aliasRepo.js");
-    const all = await getMitmAlias();
-    writeAtomic(all || {});
+    for (;;) {
+      const generation = getDbImportGeneration();
+      const all = await getMitmAlias();
+      // An older startup/UI sync must not overwrite the imported replica.
+      if (generation !== getDbImportGeneration()) continue;
+      writeAtomic(all || {});
+      return;
+    }
   } catch (e) {
+    if (strict) throw e;
     console.log("[mitmAliasCache] sync failed:", e.message);
   }
 }

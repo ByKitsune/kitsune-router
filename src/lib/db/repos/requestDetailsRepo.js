@@ -9,6 +9,13 @@ const CONFIG_CACHE_TTL_MS = 5000;
 
 let cachedConfig = null;
 let cachedConfigTs = 0;
+let configGeneration = 0;
+
+export function invalidateObservabilityConfigCache() {
+  cachedConfig = null;
+  cachedConfigTs = 0;
+  configGeneration++;
+}
 
 function explicitEnvFlag(env, name) {
   const raw = env[name];
@@ -28,10 +35,12 @@ export function resolveObservabilityEnabled(settings, env = process.env) {
 
 async function getObservabilityConfig() {
   if (cachedConfig && (Date.now() - cachedConfigTs) < CONFIG_CACHE_TTL_MS) return cachedConfig;
+  const generation = configGeneration;
+  let config;
   try {
     const { getSettings } = await import("./settingsRepo.js");
     const settings = await getSettings();
-    cachedConfig = {
+    config = {
       enabled: resolveObservabilityEnabled(settings),
       maxRecords: settings.observabilityMaxRecords || parseInt(process.env.OBSERVABILITY_MAX_RECORDS || String(DEFAULT_MAX_RECORDS), 10),
       batchSize: settings.observabilityBatchSize || parseInt(process.env.OBSERVABILITY_BATCH_SIZE || String(DEFAULT_BATCH_SIZE), 10),
@@ -39,7 +48,7 @@ async function getObservabilityConfig() {
       maxJsonSize: (settings.observabilityMaxJsonSize || parseInt(process.env.OBSERVABILITY_MAX_JSON_SIZE || "5", 10)) * 1024,
     };
   } catch {
-    cachedConfig = {
+    config = {
       enabled: false,
       maxRecords: DEFAULT_MAX_RECORDS,
       batchSize: DEFAULT_BATCH_SIZE,
@@ -47,6 +56,9 @@ async function getObservabilityConfig() {
       maxJsonSize: DEFAULT_MAX_JSON_SIZE,
     };
   }
+  // Do not publish settings read before a committed import.
+  if (generation !== configGeneration) return getObservabilityConfig();
+  cachedConfig = config;
   cachedConfigTs = Date.now();
   return cachedConfig;
 }

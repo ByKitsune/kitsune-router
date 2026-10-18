@@ -1,6 +1,13 @@
 // Public API barrel — all DB functions
 import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
+import { advanceDbImportGeneration } from "./helpers/importGeneration.js";
+import { invalidateApiKeyCache } from "./repos/apiKeysRepo.js";
+import { invalidateConnectionCache } from "./repos/connectionsRepo.js";
+import { invalidatePricingCache } from "./repos/pricingRepo.js";
+import { invalidateSettingsCache } from "./repos/settingsRepo.js";
+import { invalidateObservabilityConfigCache } from "./repos/requestDetailsRepo.js";
+import { invalidateUsageConnectionCache } from "./repos/usageRepo.js";
 
 // Settings
 export {
@@ -161,6 +168,26 @@ export async function importDb(payload) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
   });
+
+  // Direct SQL bypasses repo mutations. Invalidate only after commit, before
+  // yielding or exporting settings; a rolled-back import must keep its caches.
+  advanceDbImportGeneration();
+  invalidateApiKeyCache();
+  invalidateConnectionCache();
+  invalidatePricingCache();
+  invalidateSettingsCache();
+  invalidateObservabilityConfigCache();
+  invalidateUsageConnectionCache();
+
+  // The standalone MITM process reads this replica rather than SQLite.
+  try {
+    const { syncToJson } = await import("../mitmAliasCache.js");
+    await syncToJson({ strict: true });
+  } catch (cause) {
+    const error = new Error("Database imported, but MITM alias synchronization failed", { cause });
+    error.code = "DB_IMPORT_SYNC_FAILED";
+    throw error;
+  }
 
   return await exportDb();
 }

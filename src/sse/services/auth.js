@@ -1,4 +1,5 @@
 import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
+import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil, needsOperatorReauth } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
@@ -44,7 +45,7 @@ function noAuthProxyConnectionId(providerId, poolId) {
 function getQuotaCache(ttlMs) {
   const key = String(ttlMs);
   if (!quotaSnapshotCacheByTtl.has(key)) {
-    quotaSnapshotCacheByTtl.set(key, createQuotaSnapshotCache({ ttlMs }));
+    quotaSnapshotCacheByTtl.set(key, createQuotaSnapshotCache({ ttlMs, getGeneration: getDbImportGeneration }));
   }
   return quotaSnapshotCacheByTtl.get(key);
 }

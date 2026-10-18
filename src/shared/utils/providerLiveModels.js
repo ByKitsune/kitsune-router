@@ -11,6 +11,8 @@
 import REGISTRY from "open-sse/providers/registry/index.js";
 import { inferModelKind, modelKind } from "open-sse/providers/models/schema.js";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
+import { createHash } from "node:crypto";
+import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 
 export function normalizeLiveModel(providerId, model) {
   const entry = REGISTRY.find((r) => r.id === providerId);
@@ -24,7 +26,9 @@ const TIMEOUT_MS = 5000;
 
 const KNOWN_URL_SUFFIXES = ["/chat/completions", "/completions", "/messages"];
 
-const cache = new Map(); // providerId -> { models, expiresAt }
+const cache = new Map(); // one credential-scoped catalog per provider
+let generation = 0;
+let importGeneration = getDbImportGeneration();
 
 /**
  * Derive the /models URL for a provider from its registry entry, or null when
@@ -56,12 +60,16 @@ export function deriveModelsUrl(providerId) {
  */
 export async function fetchProviderLiveModels(providerId, apiKey, { useCache = true, proxyOptions = null } = {}) {
   if (!apiKey) return null;
+  if (importGeneration !== getDbImportGeneration()) clearProviderLiveModelsCache();
+  const version = generation;
+  const importedVersion = importGeneration;
+  const credential = createHash("sha256").update(String(apiKey)).digest("hex");
 
   // Configured account egress must not reuse another account's cached catalog.
   const cacheAllowed = !proxyOptions?.strictProxy && !proxyOptions?.connectionProxyEnabled && !proxyOptions?.vercelRelayUrl;
   if (useCache && cacheAllowed) {
     const cached = cache.get(providerId);
-    if (cached && Date.now() < cached.expiresAt) return cached.models;
+    if (cached?.credential === credential && Date.now() < cached.expiresAt) return cached.models;
   }
 
   const url = deriveModelsUrl(providerId);
@@ -117,7 +125,9 @@ export async function fetchProviderLiveModels(providerId, apiKey, { useCache = t
       .filter((m) => typeof m.id === "string" && m.id.trim() !== "");
 
     if (!models.length) return null;
-    if (cacheAllowed) cache.set(providerId, { models, expiresAt: Date.now() + CACHE_TTL_MS });
+    // Do not publish a catalog requested with pre-import credentials or policy.
+    if (version !== generation || importedVersion !== getDbImportGeneration()) return null;
+    if (cacheAllowed) cache.set(providerId, { credential, models, expiresAt: Date.now() + CACHE_TTL_MS });
     return models;
   } catch (error) {
     if (proxyOptions?.strictProxy === true) throw error;
@@ -129,4 +139,6 @@ export async function fetchProviderLiveModels(providerId, apiKey, { useCache = t
 
 export function clearProviderLiveModelsCache() {
   cache.clear();
+  generation++;
+  importGeneration = getDbImportGeneration();
 }

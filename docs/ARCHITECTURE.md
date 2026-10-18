@@ -176,6 +176,7 @@ Usage and request logs use the same SQLite layer:
 
 - `src/lib/usageDb.js` re-exports the `usageHistory`, `usageDaily`, log and request-detail repositories
 - State follows the absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database
+- Full database import commits atomically before invalidating repository caches and advancing the process-local import generation. Declared capabilities, model responses, live catalogs and quota readers discard stale in-flight snapshots. The API also releases prior connection/project state and cached sudo credentials. MITM alias replica failure is reported explicitly as post-commit synchronization failure; it is not a database rollback. Multi-process deployments still require coordinating cache invalidation/restarts across workers.
 - Recorded token costs and component costs use `number | null`: an unknown used tariff is `null`, not a zero-dollar charge
 - Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
 - Daily/live groups, minute buckets and charts propagate unknown totals; Prometheus omits an unknown cost sample rather than publishing zero

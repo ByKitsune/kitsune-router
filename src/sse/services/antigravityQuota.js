@@ -5,6 +5,7 @@
  */
 
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
+import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { getAntigravityUsage } from "open-sse/services/usage/google.js";
 import { PROVIDER_MODELS } from "open-sse/providers/index.js";
 import * as log from "../utils/logger.js";
@@ -125,6 +126,23 @@ const STRIKE_THRESHOLD = 3;
 const STRIKE_BLOCK_MS = 15 * 60_000;
 const strikeCounts = new Map(); // "connectionId|model" → { count, windowStart (anchored at first strike) }
 const strikeBlocks = new Map(); // "connectionId|model" → blockedUntil ms (TTL)
+let generation = 0;
+let importGeneration = getDbImportGeneration();
+
+export function invalidateAntigravityQuotaCache() {
+  quotaCache.clear();
+  lastRefreshAt.clear();
+  inflightRefresh.clear();
+  strikeCounts.clear();
+  strikeBlocks.clear();
+  generation++;
+  importGeneration = getDbImportGeneration();
+}
+
+function getQuotaGeneration() {
+  if (importGeneration !== getDbImportGeneration()) invalidateAntigravityQuotaCache();
+  return generation;
+}
 
 /** Prune expired blocks + stale windows. Cheap O(n) where n = blocked pairs (usually <10). */
 function pruneExpiredStrikeBlocks(now = Date.now()) {
@@ -168,6 +186,7 @@ function applyActiveStrikeBlocks(connectionId, quotas) {
  * Safe to call even when no strike exists — no-op.
  */
 export function clearAntigravityStrikes(connectionId, model) {
+  getQuotaGeneration();
   const modelKeys = getQuotaModelKeys(model);
   if (!connectionId || !modelKeys) return;
   const cached = quotaCache.get(connectionId);
@@ -190,6 +209,7 @@ export function clearAntigravityStrikes(connectionId, model) {
 
 /** Introspection for diagnostics / tests — returns shallow copy, not live Map. */
 export function getAntigravityStrikeInfo() {
+  getQuotaGeneration();
   pruneExpiredStrikeBlocks();
   return {
     counts: new Map(strikeCounts),
@@ -201,6 +221,7 @@ export function getAntigravityStrikeInfo() {
  * Get the quota cache (read-only reference for auth.js pre-filter).
  */
 export function getAntigravityQuotaCache() {
+  getQuotaGeneration();
   return quotaCache;
 }
 
@@ -210,6 +231,7 @@ export function getAntigravityQuotaCache() {
  * @returns {object|null} quotas map or null on failure
  */
 export async function refreshAntigravityQuota(connectionId, accessToken, providerSpecificData) {
+  const version = getQuotaGeneration();
   const now = Date.now();
   // Coalesce concurrent refreshes before applying the interval gate.
   const inflight = inflightRefresh.get(connectionId);
@@ -223,18 +245,19 @@ export async function refreshAntigravityQuota(connectionId, accessToken, provide
 
   // Record every attempt so failed quota calls cannot amplify an upstream 429 burst.
   lastRefreshAt.set(connectionId, now);
-  const promise = _doRefresh(connectionId, accessToken, providerSpecificData, now);
+  const promise = _doRefresh(connectionId, accessToken, providerSpecificData, now, version);
   inflightRefresh.set(connectionId, promise);
   try {
     return await promise;
   } finally {
-    inflightRefresh.delete(connectionId);
+    if (inflightRefresh.get(connectionId) === promise) inflightRefresh.delete(connectionId);
   }
 }
 
-async function _doRefresh(connectionId, accessToken, providerSpecificData, now) {
+async function _doRefresh(connectionId, accessToken, providerSpecificData, now, version) {
   try {
     const proxyCfg = await resolveConnectionProxyConfig(providerSpecificData || {});
+    if (version !== getQuotaGeneration()) return null;
     const proxyOptions = {
       connectionProxyEnabled: proxyCfg.connectionProxyEnabled === true,
       connectionProxyUrl: proxyCfg.connectionProxyUrl || "",
@@ -244,6 +267,7 @@ async function _doRefresh(connectionId, accessToken, providerSpecificData, now) 
     };
 
     const usage = await getAntigravityUsage(accessToken, providerSpecificData, proxyOptions);
+    if (version !== getQuotaGeneration()) return null;
     // 401/403 usage responses can contain an empty quotas object plus message.
     // Preserve known cache instead of replacing it with an upstream error response.
     if (!usage?.quotas || usage.message) return null;
@@ -281,6 +305,7 @@ async function _doRefresh(connectionId, accessToken, providerSpecificData, now) 
  * @returns {number|null} resetAt timestamp ms (for resetsAtMs passthrough) or null (retry next account)
  */
 export async function handleAntigravityQuotaError(connectionId, status, model, accessToken, providerSpecificData) {
+  const version = getQuotaGeneration();
   if (!connectionId || !model) {
     log.warn("AG_QUOTA", `${String(connectionId).slice(0, 8)} | ${status} on ${model} — missing id/model, skipping quota handling`);
     return null;
@@ -292,6 +317,8 @@ export async function handleAntigravityQuotaError(connectionId, status, model, a
   // Race: inflightRefresh dedups concurrent bursts, so multiple 429s arriving
   // within the same tick share one upstream call and don't amplify the storm.
   const quotas = await refreshAntigravityQuota(connectionId, accessToken, providerSpecificData);
+  // An old request must not count strikes against a newly imported account.
+  if (version !== getQuotaGeneration()) return null;
   const quota = getAntigravityModelQuota(quotas || quotaCache.get(connectionId), model);
 
   // Strike breaker: count every 429 whose quota reading is either optimistic

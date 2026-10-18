@@ -7,7 +7,7 @@ const CACHE_TTL_MS = 5000;
 
 let cache = { value: null, expiresAt: 0 };
 
-function invalidate() {
+export function invalidatePricingCache() {
   cache = { value: null, expiresAt: 0 };
 }
 
@@ -56,8 +56,11 @@ export async function getPricing() {
   const now = Date.now();
   if (cache.value && cache.expiresAt > now) return cache.value;
 
+  const pendingCache = cache;
   const userPricing = await getSavedPricing();
   const { PROVIDER_PRICING, getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
+  // An import or pricing write may have committed while this snapshot loaded.
+  if (cache !== pendingCache) return getPricing();
   const providers = new Set([...Object.keys(PROVIDER_PRICING), ...Object.keys(userPricing)]);
   const entries = [];
   for (const provider of providers) {
@@ -122,7 +125,7 @@ export async function updatePricing(pricingData) {
       );
     }
   });
-  invalidate();
+  invalidatePricingCache();
   return await getSavedPricing();
 }
 
@@ -146,12 +149,12 @@ export async function resetPricing(provider, model) {
       );
     }
   });
-  invalidate();
+  invalidatePricingCache();
   return await getSavedPricing();
 }
 
 export async function resetAllPricing() {
   await pricingKv.clear();
-  invalidate();
+  invalidatePricingCache();
   return {};
 }

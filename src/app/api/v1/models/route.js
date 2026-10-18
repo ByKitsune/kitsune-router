@@ -24,6 +24,7 @@ import { applyReviewedCapabilities, getReviewedModelMetadata } from "open-sse/pr
 import { inferModelKind } from "open-sse/providers/models/schema.js";
 import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 import { getComboTokenLimits } from "./comboLimits.js";
+import { getCachedModelsResponse } from "@/lib/modelsResponseCache.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -581,23 +582,9 @@ export async function OPTIONS() {
  * GET /v1/models - OpenAI compatible models list (LLM/chat models only by default).
  * For other capabilities use /v1/models/{kind} (image, tts, stt, embedding, image-to-text, web).
  */
-const modelsCache = new Map();
-const MODELS_CACHE_TTL_MS = 30_000;
-
 export async function GET() {
   try {
-    const cacheKey = "all";
-    const cached = modelsCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
-      return Response.json({ object: "list", data: cached.data }, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
-        },
-      });
-    }
-    const data = await buildModelsList([LLM_KIND]);
-    modelsCache.set(cacheKey, { data, expiresAt: Date.now() + MODELS_CACHE_TTL_MS });
+    const data = await getCachedModelsResponse(() => buildModelsList([LLM_KIND]));
     return Response.json({ object: "list", data }, {
       headers: {
         "Access-Control-Allow-Origin": "*",

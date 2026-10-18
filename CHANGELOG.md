@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Vision, model metadata and audit follow-up
 
+- Invalidate authentication, settings, pricing, model catalogs, observability and quota caches after committed database imports. Reject stale in-flight results for replaced credentials, synchronize MITM aliases before reporting success, and retain caches on rollback. Imported keys and model limits now take effect without waiting for old cache TTLs.
 - Make caller cancellation terminal before dialing, after transport errors, and during retry backoff. Ordinary `Error` abort reasons no longer trigger repeated network retries or delayed URL fallback.
 - Add bounded, request-local failover between explicitly configured no-auth provider proxy pools. Revalidate pool availability, keep proxy-only egress, and never persist synthetic accounts. Quota, billing, authentication, client and cancellation failures do not rotate proxy identity; intentionally direct routes keep their existing behavior.
 - Preserve screenshots in parallel/nested tool results across Chat, Responses, Claude and Gemini. Keep binary data in typed media fields instead of JSON prose, prevent synthetic duplicate tool replies, and retain ordinary JSON records inside mixed Gemini results. Repeated normalization preserves image counts, retained history and explicit output caps; a real-socket regression uses a valid 2172×724 PNG.

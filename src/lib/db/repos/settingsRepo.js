@@ -160,7 +160,7 @@ async function readRaw() {
   return raw;
 }
 
-function invalidateSettingsCache() {
+export function invalidateSettingsCache() {
   cachedRaw = null;
   cachedRawTs = 0;
 }

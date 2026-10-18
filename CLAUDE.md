@@ -78,6 +78,7 @@ State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a
 - `src/lib/localDb.js` is a **backward-compat shim** re-exporting `src/lib/db/index.js`. New code should import from `@/lib/db/index.js`; per-entity logic lives in `src/lib/db/repos/*`. Schema/migrations in `src/lib/db/migrations/`.
 - DB file location resolves via `src/lib/db/paths.js` (`DATA_DIR`, else `~/.zenrouter/`).
 - Usage/request logs use the same SQLite repository layer and absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database.
+- Full database import bypasses ordinary repository mutations. `src/lib/db/helpers/importGeneration.js` advances only after commit; dependent in-flight/cache readers must reject old generations. Preserve rollback state, refresh MITM aliases and connection/project/quota state, and do not claim success if post-commit alias synchronization failed. This generation is process-local, not cluster-wide invalidation.
 
 ### RTK token saver (`open-sse/rtk/`)
 Pre-translate hooks that compress `tool_result` content in-place to cut tokens. **Fail-open**: any error returns null and leaves the body untouched — never throw out of them. Skips `is_error`/`status:"error"` results to preserve traces.

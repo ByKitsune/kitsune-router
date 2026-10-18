@@ -109,32 +109,53 @@ export function createQuotaSnapshotCache({
   ttlMs = DEFAULT_QUOTA_CACHE_TTL_MS,
   staleOkMs = DEFAULT_STALE_OK_MS,
   now = () => Date.now(),
+  getGeneration = () => 0,
 } = {}) {
   const values = new Map();
   const inflight = new Map();
+  let generation = getGeneration();
+
+  function syncGeneration() {
+    const current = getGeneration();
+    if (generation !== current) {
+      generation = current;
+      values.clear();
+      inflight.clear();
+    }
+    return generation;
+  }
 
   function get(connectionId) {
+    syncGeneration();
     return values.get(connectionId) || null;
   }
 
   function set(connectionId, snap) {
+    syncGeneration();
     values.set(connectionId, snap);
   }
 
   async function getOrFetch(connectionId, fetcher) {
+    const version = syncGeneration();
     const t = now();
     const cached = values.get(connectionId);
     if (cached && t - (cached.fetchedAt || 0) < ttlMs) return cached;
 
-    if (inflight.has(connectionId)) return inflight.get(connectionId);
+    if (inflight.has(connectionId)) return inflight.get(connectionId).promise;
 
-    const p = (async () => {
+    const pending = {};
+    inflight.set(connectionId, pending);
+    pending.promise = (async () => {
       try {
         const snap = await fetcher();
+        // The fetcher closes over credentials that an import may have replaced.
+        // Discard it instead of publishing or retrying with those credentials.
+        if (version !== syncGeneration()) return null;
         const stored = { ...snap, fetchedAt: snap.fetchedAt || now(), stale: false };
         values.set(connectionId, stored);
         return stored;
       } catch (err) {
+        if (version !== syncGeneration()) return null;
         if (cached && t - (cached.fetchedAt || 0) < staleOkMs) {
           return { ...cached, stale: true };
         }
@@ -147,12 +168,11 @@ export function createQuotaSnapshotCache({
           error: String(err?.message || err),
         };
       } finally {
-        inflight.delete(connectionId);
+        if (inflight.get(connectionId) === pending) inflight.delete(connectionId);
       }
     })();
 
-    inflight.set(connectionId, p);
-    return p;
+    return pending.promise;
   }
 
   return { get, set, getOrFetch };
