@@ -2,6 +2,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { isIP } = require("node:net");
 const { pathToFileURL } = require("url");
 
 const origCreate = http.createServer.bind(http);
@@ -219,28 +220,22 @@ http.createServer = (...args) => {
     const xRealIp = req.headers["x-real-ip"];
     const viaProxy = !!(xff || xRealIp);
     const isLoopbackProxy = socketIp === "127.0.0.1" || socketIp === "::1" || socketIp === "::ffff:127.0.0.1";
-  // Trust forwarding headers only when the TCP peer is a local reverse proxy.
-  // Direct/public sockets remain keyed by the unspoofable peer address.
-  // Use the RIGHTMOST XFF hop: it is appended by the trusted loopback proxy
-  // itself, while leftmost entries (and a bare X-Real-IP with no XFF chain)
-  // are client-controlled — a tunnel client could otherwise rotate its
-  // rate-limit bucket at will and brute-force the login (9router #4286).
-  const xffHops = xff ? String(xff).split(",").map((h) => h.trim()).filter(Boolean) : [];
-  const proxyIp = xffHops.length > 0 ? xffHops[xffHops.length - 1] : (xRealIp || "");
+    // Only a valid rightmost XFF address appended by the loopback proxy is
+    // trusted. A lone X-Real-IP must not create attacker-controlled rate-limit
+    // buckets. Keep viaProxy even when the address is unusable: the proxy's
+    // loopback socket does not grant the remote caller local privileges.
+    const xffHops = xff ? String(xff).split(",") : [];
+    const lastHop = xffHops.at(-1)?.trim() || "";
+    const proxyIp = isIP(lastHop) ? lastHop : "";
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
     delete req.headers["x-zen-real-ip"];
-    delete req.headers["x-zen-real-ip"];
     delete req.headers["x-forwarded-for"];
-    delete req.headers["x-zen-via-proxy"];
+    delete req.headers["x-real-ip"];
     delete req.headers["x-zen-via-proxy"];
     delete req.headers["x-zen-peer-token"];
-    delete req.headers["x-zen-peer-token"];
     req.headers["x-zen-real-ip"] = ip;
-    req.headers["x-zen-real-ip"] = ip;
-    req.headers["x-zen-peer-token"] = PEER_TOKEN;
     req.headers["x-zen-peer-token"] = PEER_TOKEN;
     if (viaProxy) {
-      req.headers["x-zen-via-proxy"] = "1";
       req.headers["x-zen-via-proxy"] = "1";
     }
 

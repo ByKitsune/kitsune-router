@@ -5,6 +5,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Vision, model metadata and audit follow-up
+
+- Use only a valid rightmost `X-Forwarded-For` address from a loopback proxy for client attribution. Ignore a lone `X-Real-IP`, remove untrusted forwarding fields, and retain the proxy marker so an unusable address cannot grant local privileges. Regression tests exercise real HTTP requests and login lockout across rotating forged headers.
+
 ### Security dependency cleanup and gateway follow-up
 
 - Remove the vulnerable `node-forge` dependency chain from the application and CLI. MITM certificate generation now uses WebCrypto and `@peculiar/x509`; existing unexpired roots and PKCS#1/PKCS#8 keys are retained. Leaf generation and SNI startup await the asynchronous certificate API. No system trust-store migration is performed by this change.

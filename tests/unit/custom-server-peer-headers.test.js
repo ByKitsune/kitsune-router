@@ -4,6 +4,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createRequire } from "node:module";
 import http from "node:http";
 import { __test__ as requestDetails } from "@/lib/db/repos/requestDetailsRepo.js";
+import { checkLock, getClientIp, recordFail, recordSuccess } from "@/lib/auth/loginLimiter.js";
+import { isLocalRequest } from "@/dashboardGuard.js";
 
 const require = createRequire(import.meta.url);
 
@@ -70,6 +72,46 @@ describe("custom-server peer header sanitizing", () => {
     // (a tunnel client could otherwise rotate its bucket at will).
     expect(headers["x-zen-real-ip"]).toBe("10.0.0.1");
     expect(headers["x-forwarded-for"]).toBeUndefined();
+  });
+
+  it("does not trust a lone X-Real-IP or grant a proxy request local privileges", async () => {
+    const headers = await get({ "x-real-ip": "203.0.113.42" });
+    expect(headers["x-zen-real-ip"]).toMatch(/^(::ffff:)?127\.0\.0\.1$/);
+    expect(headers["x-real-ip"]).toBeUndefined();
+    expect(headers["x-zen-via-proxy"]).toBe("1");
+    expect(isLocalRequest(new Request(baseUrl, { headers }))).toBe(false);
+  });
+
+  it("keeps login lockout in the same bucket when lone X-Real-IP values rotate", async () => {
+    const first = getClientIp(new Request(baseUrl, {
+      headers: await get({ "x-real-ip": "203.0.113.50" }),
+    }));
+    const second = getClientIp(new Request(baseUrl, {
+      headers: await get({ "x-real-ip": "203.0.113.51" }),
+    }));
+    recordSuccess(first);
+    recordSuccess(second);
+    try {
+      for (let attempt = 0; attempt < 5; attempt++) recordFail(first);
+      expect(checkLock(second).locked).toBe(true);
+    } finally {
+      recordSuccess(first);
+      recordSuccess(second);
+    }
+  });
+
+  it("rejects an invalid rightmost forwarded address instead of trusting another field", async () => {
+    const headers = await get({
+      "x-forwarded-for": "203.0.113.70, not-an-ip",
+      "x-real-ip": "203.0.113.71",
+    });
+    expect(headers["x-zen-real-ip"]).toMatch(/^(::ffff:)?127\.0\.0\.1$/);
+    expect(headers["x-zen-via-proxy"]).toBe("1");
+  });
+
+  it("preserves an IPv6 address appended by the loopback proxy", async () => {
+    const headers = await get({ "x-forwarded-for": "203.0.113.80, 2001:db8::80" });
+    expect(headers["x-zen-real-ip"]).toBe("2001:db8::80");
   });
 
   // chat.js snapshots every client header into the request detail. Anything that grants
