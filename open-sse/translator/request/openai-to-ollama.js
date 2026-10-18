@@ -3,7 +3,9 @@ import { FORMATS } from "../formats.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 import { parseDataUri } from "../concerns/image.js";
 import { safeParseJSON } from "../concerns/json.js";
-import { ROLE, OPENAI_BLOCK } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
+import { expandToolResultMessages } from "../concerns/toolCall.js";
+import { splitToolResultContent } from "../concerns/multimodal.js";
 
 /**
  * Convert OpenAI request to Ollama format
@@ -69,6 +71,11 @@ function normalizeMessages(messages) {
 
   const result = [];
   const toolCallMap = new Map(); // Map tool_call_id -> tool_name
+  let toolImages = [];
+  const flushToolImages = () => {
+    if (toolImages.length) result.push({ role: ROLE.USER, content: "", images: toolImages });
+    toolImages = [];
+  };
 
   // First pass: build tool_call_id -> tool_name map from assistant messages
   for (const msg of messages) {
@@ -82,11 +89,16 @@ function normalizeMessages(messages) {
   }
 
   // Second pass: convert messages
-  for (const msg of messages) {
+  for (const msg of expandToolResultMessages(messages)) {
+    if (msg.role !== ROLE.TOOL) flushToolImages();
     // Handle tool result messages (OpenAI format -> Ollama format)
     if (msg.role === ROLE.TOOL) {
-      const toolResult = normalizeContent(msg.content);
-      if (!toolResult) continue;
+      const split = splitToolResultContent(msg.content);
+      const images = extractImagesFromContent(split.media);
+      const toolResult = msg.is_error && !split.text.startsWith(TOOL_ERROR_PREFIX)
+        ? TOOL_ERROR_PREFIX + split.text : split.text;
+      if (!toolResult && !images.length) continue;
+      toolImages.push(...images);
 
       // Get tool_name from map or use msg.name as fallback
       const toolName = toolCallMap.get(msg.tool_call_id) || msg.name || "unknown_tool";
@@ -129,7 +141,7 @@ function normalizeMessages(messages) {
     const images = extractImagesFromContent(msg.content);
 
     // Skip empty messages (except assistant)
-    if (!content && role !== ROLE.ASSISTANT) continue;
+    if (!content && !images.length && role !== ROLE.ASSISTANT) continue;
 
     const out = {
       role: role,
@@ -143,6 +155,7 @@ function normalizeMessages(messages) {
     result.push(out);
   }
 
+  flushToolImages();
   return result;
 }
 

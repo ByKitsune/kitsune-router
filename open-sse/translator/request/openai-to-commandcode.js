@@ -13,9 +13,11 @@ import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 import { randomUUID } from "crypto";
-import { ROLE, OPENAI_BLOCK } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { DEFAULT_MAX_TOKENS, COMMANDCODE_MAX_OUTPUT_TOKENS } from "../../config/runtimeConfig.js";
 import { parseDataUri } from "../concerns/image.js";
+import { expandToolResultMessages } from "../concerns/toolCall.js";
+import { splitToolResultContent } from "../concerns/multimodal.js";
 
 function flattenText(content) {
   if (content == null) return "";
@@ -93,10 +95,16 @@ function safeParseJson(s) {
 function convertMessages(messages = []) {
   const out = [];
   const systemTexts = [];
+  let toolMedia = [];
+  const flushToolMedia = () => {
+    if (toolMedia.length) out.push({ role: ROLE.USER, content: toContentBlocks(toolMedia) });
+    toolMedia = [];
+  };
 
-  for (const m of messages) {
+  for (const m of expandToolResultMessages(messages)) {
     if (!m) continue;
     const role = m.role;
+    if (role !== ROLE.TOOL) flushToolMedia();
 
     if (role === ROLE.SYSTEM) {
       const t = flattenText(m.content);
@@ -105,7 +113,10 @@ function convertMessages(messages = []) {
     }
 
     if (role === ROLE.TOOL) {
-      const value = typeof m.content === "string" ? m.content : flattenText(m.content);
+      const split = splitToolResultContent(m.content);
+      const value = m.is_error && !split.text.startsWith(TOOL_ERROR_PREFIX)
+        ? TOOL_ERROR_PREFIX + split.text : split.text;
+      toolMedia.push(...split.media);
       out.push({
         role: ROLE.TOOL,
         content: [{
@@ -144,6 +155,7 @@ function convertMessages(messages = []) {
     out.push({ role: ROLE.USER, content: toContentBlocks(m.content) });
   }
 
+  flushToolMedia();
   return { messages: out, system: systemTexts.join("\n\n") };
 }
 

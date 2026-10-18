@@ -41,6 +41,7 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | --- | --- |
 | Multi-turn vision, tool images and compaction | `unit/vision-tool-output-protocols.test.js`, `unit/vision-gemini-history.test.js`, `unit/vision-compression-history.test.js`, `unit/vision-capability-routing.test.js` |
 | Large screenshot wire serialization and hybrid parallel results | `unit/vision-large-tool-wire.test.js`, `translator/translator-media-history.test.js`, `translator/translator-media-gemini-struct.test.js` |
+| Retained tool images on Ollama and CommandCode | `translator/translator-media-secondary-targets.test.js` |
 | Encoded media in estimated usage | `unit/vision-usage-estimates.test.js` |
 | Cross-format request controls and native Google media | `unit/translator-request-contracts.test.js`, `unit/gemini-native-media-contracts.test.js`, `unit/gemini-native-chat-contract.test.js` |
 | SSE, parallel tools, refusals, image occurrences and opaque signatures | `unit/translator-stream-contracts.test.js`, `unit/claude-tool-id-ownership.test.js` |

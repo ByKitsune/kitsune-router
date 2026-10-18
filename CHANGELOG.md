@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Vision, model metadata and audit follow-up
 
+- Extend retained tool-image lowering to Ollama and CommandCode, preserving text, real tool replies and image-only screenshots rather than silently dropping the image on secondary translation routes.
 - Reject inherited object-property names as thinking suffixes, preventing values such as `(constructor)` or `(__proto__)` from becoming native effort enums.
 - Invalidate authentication, settings, pricing, model catalogs, observability and quota caches after committed database imports. Reject stale in-flight results for replaced credentials, synchronize MITM aliases before reporting success, and retain caches on rollback. Imported keys and model limits now take effect without waiting for old cache TTLs.
 - Make caller cancellation terminal before dialing, after transport errors, and during retry backoff. Ordinary `Error` abort reasons no longer trigger repeated network retries or delayed URL fallback.

@@ -141,6 +141,14 @@ usage is provider-specific. No messages are silently trimmed and no provider
 limit is raised to conceal an oversized request. Evidence is under
 `/tmp/opencode/zen-wave-20261019/vision/`.
 
+A secondary-route review found that Ollama and CommandCode still expected the
+older image-hoisted intermediate shape. Their serializers now lower retained
+tool media after contiguous tool replies, preserving image-only results and
+the correct tool identity. Ollama emits raw base64 in user `images[]`;
+CommandCode emits typed image blocks. Eight failing cross-format cases became
+green, with an additional image-only Ollama regression. Review evidence is in
+the wave's `review/` directory.
+
 ### No-auth proxy failover
 
 No-auth virtual connections previously lacked a usable connection ID, ignored
