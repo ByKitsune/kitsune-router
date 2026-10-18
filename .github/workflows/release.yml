@@ -39,7 +39,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           node --input-type=module - <<'NODE'
-          import { execFileSync } from "node:child_process";
-          const result = JSON.parse(execFileSync("npm", ["access", "list", "packages", "joyccn", "--json", "--loglevel=error"], { encoding: "utf8" }));
-          console.log(JSON.stringify({ package: "@joyccn/zenrouter", permission: result["@joyccn/zenrouter"] ?? null }));
+          const headers = { Authorization: `Bearer ${process.env.NODE_AUTH_TOKEN}` };
+          const identity = await fetch("https://registry.npmjs.org/-/whoami", { headers });
+          if (!identity.ok) throw Error(`Identity status: ${identity.status}`);
+          const { username } = await identity.json();
+          const permissions = await fetch(`https://registry.npmjs.org/-/user/${encodeURIComponent(username)}/package`, { headers });
+          const packages = permissions.ok ? await permissions.json() : {};
+          const visibility = await fetch("https://registry.npmjs.org/-/package/@joyccn%2fzenrouter/visibility", { headers });
+          const info = visibility.ok ? await visibility.json() : {};
+          console.log(JSON.stringify({ username, package: "@joyccn/zenrouter", permissionStatus: permissions.status, permission: packages["@joyccn/zenrouter"] ?? null, visibilityStatus: visibility.status, public: info.public, publishRequiresTfa: info.publish_requires_tfa }));
           NODE
