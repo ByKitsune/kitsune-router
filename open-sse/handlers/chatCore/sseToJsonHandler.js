@@ -13,6 +13,7 @@ import { openaiResponsesObjectToCompletion } from "../../translator/response/ope
 import { extractResponseError } from "../../translator/concerns/responseError.js";
 import { decloakOpenAIChunk } from "../../utils/toolCompressor.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
+import { getResponseServiceTier, getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 // Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
@@ -124,8 +125,10 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = F
   const toolCallMap = new Map(); // index -> { id, type, function: { name, arguments } }
   let finishReason = "stop";
   let usage = null;
+  let actualServiceTier = null;
 
   for (const chunk of chunks) {
+    actualServiceTier = getResponseServiceTier(chunk) ?? actualServiceTier;
     const choice = chunk?.choices?.[0];
     const delta = choice?.delta || {};
     normalizeTypedContent(delta);
@@ -171,6 +174,7 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = F
     choices: [{ index: 0, message, finish_reason: finishReason }]
   };
   if (usage) result.usage = usage;
+  if (actualServiceTier) result.service_tier = actualServiceTier;
   return result;
 }
 
@@ -178,7 +182,7 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = F
  * Handle case: provider forced streaming but client wants JSON.
  * Supports both Codex/Responses API SSE and standard Chat Completions SSE.
  */
-export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, toolNameMap, customToolNames, trackDone, appendLog, reqTag, log }) {
+export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, toolNameMap, customToolNames, trackDone, appendLog, reqTag, log, serviceTier }) {
   const contentType = providerResponse.headers.get("content-type") || "";
   const isSSE = contentType.includes("text/event-stream") || (contentType === "" && isResponsesProvider(provider));
   if (!isSSE) return null; // not handled here
@@ -187,7 +191,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
   customToolNames = new Set(Array.from(customToolNames || [], name => toolNameMap?.get(name) || name));
 
   const ctx = {
-    provider, model, connectionId,
+    provider, model, connectionId, serviceTier,
     request: extractRequestConfig(body, stream),
     providerRequest: finalBody || translatedBody || null
   };
@@ -202,7 +206,8 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
       const jsonResponse = decloakOpenAIChunk(await convertResponsesStreamToJson(providerResponse.body), toolNameMap);
       const usage = jsonResponse.usage || {};
       const recordedUsage = extractUsageFromResponse(jsonResponse);
-      saveUsageStats({ provider, model, tokens: recordedUsage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
+      ctx.serviceTier = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, jsonResponse);
+      saveUsageStats({ provider, model, tokens: recordedUsage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: ctx.serviceTier });
       const nativeFailure = extractResponseError(jsonResponse);
       const failure = outputBudgetError(jsonResponse, sourceFormat, body)
         || (nativeFailure ? createErrorResult(
@@ -290,6 +295,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
           object: "chat.completion",
           created: jsonResponse.created_at || Math.floor(Date.now() / 1000),
           model: jsonResponse.model || model,
+          ...(getResponseServiceTier(jsonResponse) ? { service_tier: jsonResponse.service_tier } : {}),
           choices: [{ index: 0, message, finish_reason: finishReason }],
           usage: { prompt_tokens: inTokens, completion_tokens: outTokens, total_tokens: inTokens + outTokens, ...cacheDetails,
             ...(usage.output_tokens_details ? { completion_tokens_details: usage.output_tokens_details } : {}) }
@@ -316,7 +322,8 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     }
 
     const usage = parsed.usage || {};
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
+    ctx.serviceTier = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, parsed);
+    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: ctx.serviceTier });
     const budgetError = outputBudgetError(parsed, sourceFormat, body);
     if (budgetError) {
       appendLog({ tokens: usage, status: `FAILED ${HTTP_STATUS.BAD_REQUEST}` });

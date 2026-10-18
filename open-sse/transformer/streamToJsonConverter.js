@@ -3,6 +3,7 @@
  * Converts Responses API SSE stream to single JSON response
  * Used when client requests non-streaming but provider forces streaming (e.g., Codex)
  */
+import { getResponseServiceTier } from "../providers/serviceTiers.js";
 
 /**
  * Process a single SSE message and update state accordingly.
@@ -21,6 +22,7 @@ function processSSEMessage(msg, state) {
   let parsed;
   try { parsed = JSON.parse(dataStr); }
   catch { return; }
+  state.serviceTier = getResponseServiceTier(parsed) ?? state.serviceTier;
   eventType ||= parsed.type;
   if (["response.completed", "response.done", "response.incomplete", "response.failed"].includes(eventType)) {
     const response = parsed.response || {};
@@ -107,6 +109,7 @@ export async function convertResponsesStreamToJson(stream) {
     status: state.status || "completed",
     ...(state.error ? { error: state.error } : {}),
     ...(state.model !== undefined ? { model: state.model } : {}),
+    ...(state.serviceTier ? { service_tier: state.serviceTier } : {}),
     ...(state.incomplete_details ? { incomplete_details: state.incomplete_details } : {}),
     output,
     usage: state.usage

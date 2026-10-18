@@ -20,6 +20,7 @@ import { normalizeTypedContent } from "../../translator/concerns/typedContent.js
 import { normalizeMediaPart } from "../../translator/concerns/multimodal.js";
 import { toOpenAIFinish } from "../../translator/concerns/finishReason.js";
 import { extractResponseError } from "../../translator/concerns/responseError.js";
+import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 const DEFAULT_THOUGHT_SIGNATURE = "";
 
@@ -192,7 +193,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   return responseBody;
 }
 
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log }) {  trackDone();
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, serviceTier }) {  trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
 
@@ -228,7 +229,8 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   reqLogger.logProviderResponse(providerResponse.status, providerResponse.statusText, providerResponse.headers, responseBody);
   // Record incurred tokens before any terminal classification or fallback.
   const usage = extractUsageFromResponse(responseBody);
-  saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
+  const tierAccounting = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, responseBody);
+  saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: tierAccounting });
   const failure = extractResponseError(responseBody);
   if (failure) {
     appendLog({ tokens: usage, status: `FAILED ${failure.status}` });
@@ -254,7 +256,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     appendLog({ tokens: usage, status: `FAILED ${HTTP_STATUS.BAD_REQUEST}` });
     const totalLatency = Date.now() - requestStartTime;
     saveRequestDetail(buildRequestDetail({
-      provider, model, connectionId,
+      provider, model, connectionId, serviceTier: tierAccounting,
       latency: { ttft: totalLatency, total: totalLatency },
       tokens: usage,
       request: extractRequestConfig(body, stream),
@@ -334,7 +336,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
 
   const totalLatency = Date.now() - requestStartTime;
   saveRequestDetail(buildRequestDetail({
-    provider, model, connectionId,
+    provider, model, connectionId, serviceTier: tierAccounting,
     latency: { ttft: totalLatency, total: totalLatency },
     tokens: usage || { prompt_tokens: 0, completion_tokens: 0 },
     request: extractRequestConfig(body, stream),

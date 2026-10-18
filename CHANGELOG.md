@@ -5,10 +5,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
-### Thinking probes and provider defaults
+### Thinking probes and processing speed
 
 - Fix false HTTP 400 results when the dashboard tests Antigravity Claude models: the internal probe now leaves room for the selected thinking preset within the model/bridge output ceiling. Explicit client caps remain enforced.
 - Persist provider thinking defaults through both HTTP and SQLite allowlists, rejecting malformed mode maps without weakening protected settings.
+- Add separate OpenAI/Codex processing-speed controls and native `service_tier` requests. Fast and Ultrafast are not reasoning levels or invented model suffixes; preserve explicit Standard/Auto choices and account/model restrictions. See [processing-speed guidance](docs/PROCESSING-SPEED.md).
+- Retain requested and delivered speed in usage/request details. Until tier-specific tariffs are implemented, mark premium or unconfirmed cost estimates unknown instead of applying Standard prices.
 
 ## [0.9.12] - 2026-10-19
 

@@ -854,6 +854,9 @@ function tokenCost(tokens, rate) {
  */
 export function calculateCostBreakdown(tokens, pricing) {
   const inputTokens = tokens?.prompt_tokens || tokens?.input_tokens || 0;
+  // Until operator tariffs can be keyed by delivered service tier, a Standard
+  // model price is not a valid price for premium or unconfirmed delivery.
+  if (tokens?.serviceTierCostStatus === "unpriced" || tokens?.serviceTierCostStatus === "unconfirmed") pricing = null;
   const effectivePricing = resolveEffectivePricing(pricing, inputTokens);
   const cachedTokens = tokens?.cached_tokens || tokens?.cache_read_input_tokens || tokens?.prompt_cache_hit_tokens || 0;
   const cacheCreation1hTokens = tokens?.cache_creation_1h_tokens || 0;

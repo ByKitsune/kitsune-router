@@ -40,6 +40,7 @@ import { cloneRequestBody } from "../utils/requestBody.js";
 import { normalizeGeminiContents, normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
 import { isGemini4Model } from "../config/models.js";
 import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
+import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -71,13 +72,13 @@ export function stripContinuityFields(body) {
 }
 
 function requestParameterError(error) {
-  if (error?.code !== "invalid_thinking_budget" && error?.code !== "invalid_output_budget" && error?.code !== "unsupported_parameter") return null;
+  if (!["invalid_thinking_budget", "invalid_output_budget", "unsupported_parameter", "invalid_service_tier", "unsupported_service_tier"].includes(error?.code)) return null;
   return createErrorResult(HTTP_STATUS.BAD_REQUEST, error.message, undefined, {
     type: "invalid_request_error", code: error.code, param: error.param,
   });
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, clientSignal }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerServiceTier, clientSignal }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -99,6 +100,23 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Each account/model attempt owns its mutations; retries keep the source history.
   body = cloneRequestBody(body);
 
+  let serviceTier;
+  try {
+    serviceTier = prepareServiceTierRequest(provider, model, body, providerServiceTier, credentials);
+    if (serviceTier?.selection !== undefined) body.service_tier = serviceTier.selection;
+  } catch (error) {
+    const invalidRequest = requestParameterError(error);
+    if (invalidRequest) {
+      // Trusted pre-dispatch metadata only. Never infer this marker from a
+      // provider's HTTP status or error text: those keep normal error handling.
+      if (error.code === "unsupported_service_tier" && error.scope === "account") {
+        invalidRequest.accountServiceTierDenied = true;
+      }
+      return invalidRequest;
+    }
+    throw error;
+  }
+
   const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
   const isMuseOnOpenCode = (provider === "opencode" || alias === "oc") && /muse/i.test(model);
   const modelTargetFormat = isMuseOnOpenCode ? FORMATS.OPENAI_RESPONSES : getModelTargetFormat(alias, model);
@@ -113,7 +131,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // sourceFormat-matched transport if that format is declared (opencode-go models
   // differ — kimi/glm only do /chat/completions). Undeclared models keep the
   // upstream default (use the transport), preserving behavior for glm/deepseek/...
-  const useTransport = (!modelSupportedFormats || modelSupportedFormats.includes(sourceFormat)) ? runtimeTransport : null;
+  const useTransport = serviceTier?.requiresResponses ? resolveTransport(provider, FORMATS.OPENAI_RESPONSES)
+    : (!modelSupportedFormats || modelSupportedFormats.includes(sourceFormat)) ? runtimeTransport : null;
   // A source-format-matched endpoint keeps the request lossless. Prefer it
   // over a model-level targetFormat, which is only the fallback for clients
   // whose wire format has no supported transport (for example MiniMax-M3:
@@ -268,6 +287,10 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     translatedBody.model = stripThinkingSuffix(upstreamModel);
     stripContinuityFields(translatedBody);
   }
+
+  // Speed is orthogonal to the source format. Claude and other translators
+  // need not know OpenAI-only extension fields; retain the selected intent here.
+  if (serviceTier?.selection !== undefined) translatedBody.service_tier = serviceTier.selection;
 
   // Same-format and native passthrough bypass the request translators. Normalize
   // their actual outbound Parts too, without inventing a native tool result.
@@ -570,7 +593,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs, diagnostics);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, serviceTier, pxpipe: pxpipeSummary, reqTag, log };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 

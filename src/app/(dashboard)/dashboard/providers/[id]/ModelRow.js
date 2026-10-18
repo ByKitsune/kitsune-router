@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { CapacityBadges } from "@/shared/components";
 
-export default function ModelRow({ model, fullModel, alias, copied, onCopy, testStatus, isCustom, isFree, onDeleteAlias, onTest, isTesting, onDisable, caps, thinkingSuffix, onEditCaps }) {
+export default function ModelRow({ model, fullModel, alias, copied, onCopy, testStatus, isCustom, isFree, onDeleteAlias, onTest, isTesting, onDisable, caps, thinkingSuffix, onEditCaps, serviceTierWarning, testDisabledReason }) {
   const displayModel = thinkingSuffix ? `${fullModel}(${thinkingSuffix})` : fullModel;
   const borderColor = testStatus === "ok"
     ? "border-green-500/40"
@@ -49,8 +49,10 @@ export default function ModelRow({ model, fullModel, alias, copied, onCopy, test
           <div className="relative shrink-0 group/btn">
             <button
               onClick={onTest}
-              disabled={isTesting}
-              className={`rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary ${isTesting ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"}`}
+              aria-label={`Test ${displayModel}`}
+              title={testDisabledReason || "Test model with the selected settings"}
+              disabled={isTesting || !!testDisabledReason}
+              className={`rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary disabled:cursor-not-allowed ${isTesting || testDisabledReason ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"}`}
             >
               <span className="material-symbols-outlined text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined}>
                 {isTesting ? "progress_activity" : "science"}
@@ -64,6 +66,7 @@ export default function ModelRow({ model, fullModel, alias, copied, onCopy, test
         <div className="relative shrink-0 group/btn">
           <button
             onClick={() => onCopy(displayModel, `model-${model.id}`)}
+            aria-label={`Copy ${displayModel}`}
             className="rounded p-0.5 text-text-muted hover:bg-sidebar hover:text-primary"
           >
             <span className="material-symbols-outlined text-sm">
@@ -92,6 +95,7 @@ export default function ModelRow({ model, fullModel, alias, copied, onCopy, test
           </button>
         ) : null}
       </div>
+      {serviceTierWarning && <p className="mt-1 max-w-sm text-[10px] leading-relaxed text-amber-700 dark:text-amber-400">{serviceTierWarning}</p>}
     </div>
   );
 }
@@ -114,4 +118,6 @@ ModelRow.propTypes = {
   caps: PropTypes.object,
   thinkingSuffix: PropTypes.string,
   onEditCaps: PropTypes.func,
+  serviceTierWarning: PropTypes.string,
+  testDisabledReason: PropTypes.string,
 };

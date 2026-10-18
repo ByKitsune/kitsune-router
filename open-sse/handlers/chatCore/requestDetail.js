@@ -1,6 +1,7 @@
 import { saveRequestUsage } from "@/lib/usageDb.js";
 import { COLORS } from "../../utils/stream.js";
 import { canonicalizeUsage, extractUsage } from "../../utils/usageTracking.js";
+import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 const OPTIONAL_PARAMS = [
   "temperature", "top_p", "top_k",
@@ -11,7 +12,7 @@ const OPTIONAL_PARAMS = [
   "seed", "stop", "tools", "tool_choice",
   "response_format", "prediction", "store", "metadata",
   "n", "logprobs", "top_logprobs", "logit_bias",
-  "user", "parallel_tool_calls"
+  "user", "parallel_tool_calls", "service_tier"
 ];
 
 export function extractRequestConfig(body, stream) {
@@ -27,18 +28,23 @@ export function extractUsageFromResponse(responseBody) {
 }
 
 export function buildRequestDetail(base, overrides = {}) {
+  const serviceTier = getServiceTierAccounting(base.provider, base.serviceTier || { requestedServiceTier: base.request?.service_tier }, base.providerResponse);
+  const tokens = base.tokens || { prompt_tokens: 0, completion_tokens: 0 };
   return {
     provider: base.provider || "unknown",
     model: base.model || "unknown",
     connectionId: base.connectionId || undefined,
     timestamp: new Date().toISOString(),
     latency: base.latency || { ttft: 0, total: 0 },
-    tokens: base.tokens || { prompt_tokens: 0, completion_tokens: 0 },
+    // requestDetails intentionally drops unallowlisted top-level metadata and
+    // redacts request/response bodies. Its token JSON retains tier provenance.
+    tokens: serviceTier ? { ...tokens, ...serviceTier } : tokens,
     request: base.request,
     providerRequest: base.providerRequest || null,
     providerResponse: base.providerResponse || null,
     response: base.response || {},
     pxpipe: base.pxpipe || undefined,
+    ...serviceTier,
     status: base.status || "success",
     ...overrides
   };
@@ -62,7 +68,7 @@ export function formatDoneLine({ usage, latency }) {
   return `DONE ${latency?.total ?? 0}ms${ttftStr} · ${inStr} · OUT ${outTok}`;
 }
 
-export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, latency = null, label = "USAGE", silent = false }) {
+export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, latency = null, label = "USAGE", silent = false, serviceTier = null }) {
   if (!tokens || typeof tokens !== "object") return;
 
   const inTokens = tokens.input_tokens ?? tokens.prompt_tokens ?? 0;
@@ -82,6 +88,9 @@ export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, 
     prompt_tokens: tokens.prompt_tokens ?? tokens.input_tokens ?? 0,
     completion_tokens: tokens.completion_tokens ?? tokens.output_tokens ?? 0
   };
+  // usageHistory persists tokens as JSON, unlike arbitrary top-level fields.
+  // Keep the tier provenance there so billing never loses it at the DB boundary.
+  Object.assign(normalized, getServiceTierAccounting(provider, serviceTier));
 
   saveRequestUsage({
     provider: provider || "unknown",

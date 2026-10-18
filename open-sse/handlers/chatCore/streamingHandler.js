@@ -8,6 +8,7 @@ import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamH
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
+import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 // Codex returns Responses API SSE → which client format to translate INTO, by request sourceFormat.
 // Preserve each client's native envelope; unknown sources fall back to OpenAI.
@@ -170,7 +171,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
 /**
  * Build onStreamComplete callback for streaming usage tracking.
  */
-export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, onStreamFailed }) {
+export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, onStreamFailed, serviceTier }) {
   const streamDetailId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   // Terminal accounting may precede transport EOF; completion and abort share one claim.
   let persistenceClaimed = false;
@@ -184,6 +185,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     };
     const safeContent = contentObj?.content || "[Empty streaming response]";
     const safeThinking = contentObj?.thinking || null;
+    const tierAccounting = getServiceTierAccounting(provider, { ...(serviceTier || { requestedServiceTier: body?.service_tier }), actualServiceTier: streamMeta?.actualServiceTier });
     // In-stream upstream failure (e.g. Responses response.failed on an
     // HTTP-200 stream) must not be logged as success (#4104).
     const failed = streamMeta?.failed === true;
@@ -214,7 +216,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     }
 
     saveRequestDetail(buildRequestDetail({
-      provider, model, connectionId,
+      provider, model, connectionId, serviceTier: tierAccounting,
       latency,
       tokens: usage || { prompt_tokens: 0, completion_tokens: 0 },
       request: extractRequestConfig(body, stream),
@@ -238,7 +240,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       ttft: Number.isFinite(firstTokenAt) ? firstTokenAt - requestStartTime : null,
     };
     // Persist measured usage before the terminal summary.
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true });
+    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true, serviceTier: tierAccounting });
     if (log?.line) {
       const summary = formatDoneLine({ usage, latency });
       log.line(reqTag, failed ? "!" : "📊", failed ? summary.replace(/^DONE/, `FAILED ${streamMeta?.status || 502}`) : summary);
@@ -254,9 +256,10 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     };
     const usage = snapshot?.usage || null;
     const safeContent = snapshot?.content || "[No content before disconnect]";
+    const tierAccounting = getServiceTierAccounting(provider, { ...(serviceTier || { requestedServiceTier: body?.service_tier }), actualServiceTier: snapshot?.actualServiceTier });
 
     saveRequestDetail(buildRequestDetail({
-      provider, model, connectionId,
+      provider, model, connectionId, serviceTier: tierAccounting,
       latency,
       tokens: usage || { prompt_tokens: 0, completion_tokens: 0 },
       request: extractRequestConfig(body, stream),
@@ -274,7 +277,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       console.error("[RequestDetail] Failed to update aborted stream:", err.message);
     });
 
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, label: "STREAM USAGE (aborted)", silent: true });
+    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, label: "STREAM USAGE (aborted)", silent: true, serviceTier: tierAccounting });
     if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
   };
 

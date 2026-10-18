@@ -10,6 +10,8 @@ import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { KIRO_CLI_USER_AGENT } from "../config/clientVersions.js";
 import { allowsClaudeManualInterleaving, reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
 import { setBounded, CACHE_LIMITS } from "../utils/boundedCache.js";
+import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
+import { FORMATS } from "../translator/formats.js";
 
 // Per-connection set of `anthropic-beta` flags the upstream rejected for that
 // account. Process-local by design: getProviderCredentials() rebuilds
@@ -104,6 +106,12 @@ export class DefaultExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream = false, credentials = null) {
+    if (this.provider === "openai") {
+      const tier = prepareServiceTierRequest(this.provider, model, body, null, credentials);
+      if (tier.requiresResponses && credentials?.runtimeTransport?.format !== FORMATS.OPENAI_RESPONSES) {
+        throw Object.assign(new Error("Ultrafast requires the Responses API transport, not Chat Completions."), { code: "unsupported_service_tier", param: "service_tier" });
+      }
+    }
     // Final thinking reconciliation is request-local; retries/accounts reuse body.
     const requestBody = /^claude-/.test(model || "") && body?.thinking?.type === "enabled" ? { ...body } : body;
     const transformed = this.applyJsonSchemaFallback(requestBody);

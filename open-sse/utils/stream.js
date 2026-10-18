@@ -12,6 +12,7 @@ import { decloakStreamChunk } from "./claudeCloaking.js";
 import { restoreOpenAIToolNameDeltas } from "./toolCompressor.js";
 import { sanitizeClientError } from "@/shared/utils/clientErrors.js";
 import { extractResponseError, responseErrorToClient } from "../translator/concerns/responseError.js";
+import { getResponseServiceTier } from "../providers/serviceTiers.js";
 
 import { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER } from "./sseConstants.js";
 
@@ -121,10 +122,12 @@ export function createSSEStream(options = {}) {
 
   let buffer = "";
   let usage = null;
+  let actualServiceTier = null;
   // Keep raw accounting separate from translator state (which may be normalized
   // for a client). Complete provider snapshots replace older counters, even zero;
   // Anthropic's split/cumulative events still merge field by field.
   const captureUsage = (chunk) => {
+    actualServiceTier = getResponseServiceTier(chunk) ?? actualServiceTier;
     const extracted = extractUsage(chunk);
     if (!extracted) return;
     const raw = chunk?.response?.usage || chunk?.usage;
@@ -330,7 +333,7 @@ export function createSSEStream(options = {}) {
         content: contentChunks.join(""),
         thinking: thinkingChunks.join(""),
         toolCalls: [...toolCallStore.values()].filter((call) => call.name || call.arguments)
-      }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage, ...(streamFailed ? { status: streamErrorStatus } : {}) }, firstTokenAt);
+      }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage, ...(actualServiceTier ? { actualServiceTier } : {}), ...(streamFailed ? { status: streamErrorStatus } : {}) }, firstTokenAt);
     }
   };
 
@@ -360,6 +363,7 @@ export function createSSEStream(options = {}) {
       content: contentChunks.join(""),
       thinking: thinkingChunks.join(""),
       usage: resolvedUsage,
+      ...(actualServiceTier ? { actualServiceTier } : {}),
       ttftAt,
     };
   };

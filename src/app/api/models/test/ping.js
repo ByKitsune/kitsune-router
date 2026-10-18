@@ -67,7 +67,7 @@ async function getInternalHeaders() {
   return headers;
 }
 
-export async function pingModelByKind(model, kind, baseUrl = `http://127.0.0.1:${process.env.PORT || UPDATER_CONFIG.appPort}`) {
+export async function pingModelByKind(model, kind, baseUrl = `http://127.0.0.1:${process.env.PORT || UPDATER_CONFIG.appPort}`, controls = {}) {
   const headers = await getInternalHeaders();
   const start = Date.now();
 
@@ -152,6 +152,7 @@ export async function pingModelByKind(model, kind, baseUrl = `http://127.0.0.1:$
     headers,
     body: JSON.stringify({
       model,
+      ...(Object.hasOwn(controls, "service_tier") ? { service_tier: controls.service_tier } : {}),
       // Keep the usual short probe, except where the native thinking budget
       // requires a larger shared output allowance. See issue #3010.
       max_tokens: chatProbeOutputCap(model),

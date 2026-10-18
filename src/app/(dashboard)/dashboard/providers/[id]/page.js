@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +9,7 @@ import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthW
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
+import { getServiceTierOptions, isServiceTierMode } from "open-sse/providers/serviceTiers.js";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { translate } from "@/i18n/runtime";
@@ -39,6 +40,8 @@ export default function ProviderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const providerId = params.id;
+  const providerScope = useMemo(() => ({ providerId }), [providerId]);
+  const providerRequestsRef = useRef(null);
   const { getCaps } = useModelCaps();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +61,8 @@ export default function ProviderDetailPage() {
   const [customModels, setCustomModels] = useState([]);
   const [headerImgError, setHeaderImgError] = useState(false);
   const [modelTestResults, setModelTestResults] = useState({});
-  const [modelsTestError, setModelsTestError] = useState("");
-  const [testingModelIds, setTestingModelIds] = useState(() => new Set());
+  const [modelTestError, setModelTestError] = useState(null);
+  const [testingModelRequests, setTestingModelRequests] = useState({});
   const [showAddCustomModel, setShowAddCustomModel] = useState(false);
   const [editingModelCaps, setEditingModelCaps] = useState(null);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState([]);
@@ -68,9 +71,11 @@ export default function ProviderDetailPage() {
   const [providerStrategy, setProviderStrategy] = useState(null);
   const [providerStickyLimit, setProviderStickyLimit] = useState("");
   const [thinkingMode, setThinkingMode] = useState("auto");
+  const [serviceTierConfig, setServiceTierConfig] = useState({ providerId: null, mode: "auto", loaded: false, saving: false, error: "" });
   const [autoPing, setAutoPing] = useState({ enabled: false, connections: {} });
   const [suggestedModels, setSuggestedModels] = useState([]);
   const [liveModels, setLiveModels] = useState([]);
+  const [liveModelsSource, setLiveModelsSource] = useState(null);
   const [kiloFreeModels, setKiloFreeModels] = useState([]);
   const [modelSearch, setModelSearch] = useState("");
   const [modelFilter, setModelFilter] = useState("all"); // all | enabled | disabled
@@ -86,6 +91,33 @@ export default function ProviderDetailPage() {
   const stopOneByOneRef = useRef(false);
   const [importingQoderModels, setImportingQoderModels] = useState(false);
   const { copied, copy } = useCopyToClipboard();
+
+  useEffect(() => {
+    const requests = {
+      scope: providerScope,
+      settingsRead: 0,
+      settingsMutation: 0,
+      pendingSettingsMutations: 0,
+      speedSave: null,
+      thinkingMode: "auto",
+      serviceTierMode: "auto",
+      testGeneration: 0,
+      modelTests: new Map(),
+    };
+    providerRequestsRef.current = requests;
+    return () => {
+      if (providerRequestsRef.current === requests) providerRequestsRef.current = null;
+    };
+  }, [providerScope]);
+
+  const invalidateModelTests = useCallback((requests) => {
+    if (providerRequestsRef.current !== requests) return;
+    requests.testGeneration += 1;
+    requests.modelTests.clear();
+    setModelTestResults({});
+    setTestingModelRequests({});
+    setModelTestError(null);
+  }, []);
 
   const AG_RISK_STORAGE_KEY = "ag_risk_confirmed";
 
@@ -175,7 +207,43 @@ export default function ProviderDetailPage() {
     const levels = getThinkingLevels(providerId, modelId);
     return levels && levels.includes(thinkingMode) ? thinkingMode : null;
   };
+  const serviceTierOptions = (providerId === "openai" || providerId === "codex")
+    ? (getServiceTierOptions(providerId) || [])
+    : [];
+  const hasServiceTiers = serviceTierOptions.length > 0;
+  const currentServiceTier = serviceTierConfig.scope === providerScope ? serviceTierConfig : null;
+  const serviceTierMode = currentServiceTier?.mode || "auto";
+  const serviceTierUnavailable = hasServiceTiers && (!currentServiceTier?.loaded || currentServiceTier.saving);
+  const serviceTierLabel = serviceTierOptions.find((option) => option.value === serviceTierMode)?.label || serviceTierMode;
+  const activeConnections = connections.filter((connection) => connection.isActive !== false);
+  const hasCurrentLiveModels = activeConnections.length === 1
+    && liveModelsSource?.providerId === providerId
+    && liveModelsSource.connectionId === activeConnections[0].id;
+  const getServiceTierWarning = (modelId) => {
+    if (!hasServiceTiers) return null;
+    // One account's catalog cannot establish eligibility for a multi-account route.
+    const model = (hasCurrentLiveModels && liveModels.find((entry) => entry.id === modelId)) || modelId;
+    const options = getServiceTierOptions(providerId, model) || [];
+    return options.some((option) => option.value === serviceTierMode)
+      ? null
+      : `${serviceTierLabel} is not supported for this model. Choose another processing speed; no fallback is applied.`;
+  };
   const providerStorageAlias = isCompatible ? providerId : providerAlias;
+  const modelTestContext = JSON.stringify([providerId, providerStorageAlias, thinkingMode, serviceTierMode]);
+  const getModelTestStatus = (modelId) => {
+    const result = modelTestResults[modelId];
+    return result?.scope === providerScope && result.context === modelTestContext ? result.status : undefined;
+  };
+  const isModelTesting = (modelId) => {
+    const request = testingModelRequests[modelId];
+    return request?.scope === providerScope && request.context === modelTestContext;
+  };
+  const modelsTestError = modelTestError?.scope === providerScope && modelTestError.context === modelTestContext
+    ? modelTestError.message
+    : "";
+  const setModelsTestError = (message) => setModelTestError(message
+    ? { scope: providerScope, context: modelTestContext, message }
+    : null);
   // Union of levels across this provider's reasoning models — drives the level picker options.
   // Include custom models too (e.g. manually added gpt-5.6-sol → max).
   const providerThinkingLevels = (() => {
@@ -297,6 +365,31 @@ export default function ProviderDetailPage() {
   }, [providerId]);
 
   const fetchConnections = useCallback(async () => {
+    const requests = providerRequestsRef.current;
+    if (requests?.scope !== providerScope) return;
+    const read = ++requests.settingsRead;
+    const mutation = requests.settingsMutation;
+    const startedDuringMutation = requests.pendingSettingsMutations > 0;
+    const isCurrent = () => providerRequestsRef.current === requests && requests.settingsRead === read;
+    const canHydrateSettings = () => isCurrent() && !startedDuringMutation
+      && requests.pendingSettingsMutations === 0 && requests.settingsMutation === mutation;
+    const reportSettingsError = () => {
+      if (!canHydrateSettings()) return;
+      setServiceTierConfig((previous) => {
+        const current = previous.scope === providerScope ? previous : null;
+        return {
+          ...current,
+          scope: providerScope,
+          providerId,
+          mode: current?.mode || "auto",
+          loaded: current?.loaded === true,
+          saving: false,
+          error: current?.loaded
+            ? "Could not refresh processing speed settings. Previous setting retained."
+            : "Could not load processing speed settings. Reload to retry.",
+        };
+      });
+    };
     try {
       const [connectionsRes, nodesRes, proxyPoolsRes, settingsRes] = await Promise.all([
         fetch("/api/providers", { cache: "no-store" }),
@@ -308,6 +401,7 @@ export default function ProviderDetailPage() {
       const nodesData = await nodesRes.json();
       const proxyPoolsData = await proxyPoolsRes.json();
       const settingsData = settingsRes.ok ? await settingsRes.json() : {};
+      if (!isCurrent()) return;
       if (connectionsRes.ok) {
         const filtered = (connectionsData.connections || []).filter(c => c.provider === providerId);
         setConnections(filtered);
@@ -319,9 +413,20 @@ export default function ProviderDetailPage() {
       const override = (settingsData.providerStrategies || {})[providerId] || {};
       setProviderStrategy(override.fallbackStrategy || null);
       setProviderStickyLimit(override.stickyRoundRobinLimit != null ? String(override.stickyRoundRobinLimit) : "1");
-      // Load per-provider thinking config
-      const thinkingCfg = (settingsData.providerThinking || {})[providerId] || {};
-      setThinkingMode(thinkingCfg.mode || "auto");
+      // Reads begun before/during a mutation cannot replace the saved selection.
+      if (canHydrateSettings() && settingsRes.ok) {
+        const nextThinking = settingsData.providerThinking?.[providerId]?.mode || "auto";
+        const nextSpeed = settingsData.providerServiceTier?.[providerId]?.mode || "auto";
+        if (requests.thinkingMode !== nextThinking || requests.serviceTierMode !== nextSpeed) {
+          invalidateModelTests(requests);
+        }
+        requests.thinkingMode = nextThinking;
+        requests.serviceTierMode = nextSpeed;
+        setThinkingMode(nextThinking);
+        setServiceTierConfig({ scope: providerScope, providerId, mode: nextSpeed, loaded: true, saving: false, error: "" });
+      } else if (!settingsRes.ok) {
+        reportSettingsError();
+      }
       const autoPingSettingsKey = AUTO_PING_SETTINGS_KEYS[providerId];
       const apCfg = autoPingSettingsKey ? settingsData[autoPingSettingsKey] || {} : {};
       setAutoPing({ enabled: apCfg.enabled === true, connections: apCfg.connections || {} });
@@ -341,14 +446,15 @@ export default function ProviderDetailPage() {
           }
         }
 
-        setProviderNode(node);
+        if (isCurrent()) setProviderNode(node);
       }
     } catch (error) {
       console.log("Error fetching connections:", error);
+      reportSettingsError();
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [providerId, isCompatible]);
+  }, [providerId, providerScope, isCompatible, invalidateModelTests]);
 
   const handleUpdateNode = async (formData) => {
     try {
@@ -432,9 +538,69 @@ export default function ProviderDetailPage() {
     }
   };
 
-  const handleThinkingModeChange = (mode) => {
+  const handleThinkingModeChange = async (mode) => {
+    const requests = providerRequestsRef.current;
+    if (requests?.scope !== providerScope) return;
+    requests.settingsMutation += 1;
+    requests.pendingSettingsMutations += 1;
+    requests.thinkingMode = mode;
+    invalidateModelTests(requests);
     setThinkingMode(mode);
-    saveThinkingConfig(mode);
+    try {
+      await saveThinkingConfig(mode);
+    } finally {
+      requests.pendingSettingsMutations -= 1;
+      requests.settingsMutation += 1;
+    }
+  };
+
+  const saveServiceTierConfig = async (mode) => {
+    if (!hasServiceTiers || serviceTierUnavailable || !isServiceTierMode(mode)) return;
+    const requests = providerRequestsRef.current;
+    if (requests?.scope !== providerScope || requests.speedSave) return;
+    const save = {};
+    requests.speedSave = save;
+    requests.settingsMutation += 1;
+    requests.pendingSettingsMutations += 1;
+    invalidateModelTests(requests);
+    setServiceTierConfig((previous) => previous.scope === providerScope
+      ? { ...previous, saving: true, error: "" }
+      : previous);
+    try {
+      // Read the current map before updating only this provider's override.
+      const settingsRes = await fetch("/api/settings", { cache: "no-store" });
+      if (!settingsRes.ok) throw new Error("Could not read current settings.");
+      const settingsData = await settingsRes.json();
+      const updated = { ...(settingsData.providerServiceTier || {}) };
+      if (mode === "auto") {
+        delete updated[providerId];
+      } else {
+        updated[providerId] = { mode };
+      }
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerServiceTier: updated }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "The server rejected the setting.");
+      }
+      if (providerRequestsRef.current !== requests) return;
+      requests.serviceTierMode = mode;
+      setServiceTierConfig((previous) => previous.scope === providerScope
+        ? { ...previous, mode, saving: false, error: "" }
+        : previous);
+    } catch (error) {
+      if (providerRequestsRef.current !== requests) return;
+      setServiceTierConfig((previous) => previous.scope === providerScope
+        ? { ...previous, saving: false, error: `Processing speed was not saved. Previous setting retained. ${error.message || "Network error."}` }
+        : previous);
+    } finally {
+      if (requests.speedSave === save) requests.speedSave = null;
+      requests.pendingSettingsMutations -= 1;
+      requests.settingsMutation += 1;
+    }
   };
 
   const saveAutoPing = async (next) => {
@@ -496,11 +662,13 @@ export default function ProviderDetailPage() {
       .then(({ ok, data }) => {
         if (!cancelled && ok && Array.isArray(data.models) && data.models.length > 0) {
           setLiveModels(data.models);
+          setLiveModelsSource({ providerId, connectionId: connection.id });
         } else if (!cancelled) {
           setLiveModels([]);
+          setLiveModelsSource(null);
         }
       })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setLiveModelsSource(null); });
 
     return () => { cancelled = true; };
   }, [providerId, connections, isCompatible]);
@@ -1091,22 +1259,49 @@ export default function ProviderDetailPage() {
   );
 
   const handleTestModel = async (modelId) => {
-    if (testingModelIds.has(modelId)) return;
-    setTestingModelIds((prev) => new Set(prev).add(modelId));
+    const requests = providerRequestsRef.current;
+    if (requests?.scope !== providerScope || requests.modelTests.has(modelId)) return;
+    if (requests.thinkingMode !== thinkingMode || requests.serviceTierMode !== serviceTierMode) return;
+    const speedWarning = getServiceTierWarning(modelId);
+    if (serviceTierUnavailable || requests.speedSave || speedWarning) {
+      setModelsTestError(speedWarning || "Wait for processing speed settings to finish loading or saving.");
+      return;
+    }
+    const request = { scope: providerScope, context: modelTestContext, generation: requests.testGeneration };
+    const isCurrent = () => providerRequestsRef.current === requests
+      && requests.testGeneration === request.generation && requests.modelTests.get(modelId) === request;
+    requests.modelTests.set(modelId, request);
+    setTestingModelRequests((previous) => ({ ...previous, [modelId]: request }));
+    const thinkingSuffix = resolveThinkingSuffix(modelId);
     try {
       const res = await fetch("/api/models/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: `${providerStorageAlias}/${modelId}` }),
+        body: JSON.stringify({
+          model: `${providerStorageAlias}/${modelId}${thinkingSuffix ? `(${thinkingSuffix})` : ""}`,
+          kind: "llm",
+          ...(hasServiceTiers ? { service_tier: serviceTierMode } : {}),
+        }),
       });
       const data = await res.json();
-      setModelTestResults((prev) => ({ ...prev, [modelId]: data.ok ? "ok" : "error" }));
-      setModelsTestError(data.ok ? "" : (data.error || "Model not reachable"));
+      if (!isCurrent()) return;
+      const ok = res.ok && data.ok;
+      setModelTestResults((previous) => ({ ...previous, [modelId]: { ...request, status: ok ? "ok" : "error" } }));
+      setModelsTestError(ok ? "" : (data.error || "Model not reachable"));
     } catch {
-      setModelTestResults((prev) => ({ ...prev, [modelId]: "error" }));
+      if (!isCurrent()) return;
+      setModelTestResults((previous) => ({ ...previous, [modelId]: { ...request, status: "error" } }));
       setModelsTestError("Network error");
     } finally {
-      setTestingModelIds((prev) => { const n = new Set(prev); n.delete(modelId); return n; });
+      if (isCurrent()) {
+        requests.modelTests.delete(modelId);
+        setTestingModelRequests((previous) => {
+          if (previous[modelId] !== request) return previous;
+          const updated = { ...previous };
+          delete updated[modelId];
+          return updated;
+        });
+      }
     }
   };
 
@@ -1122,13 +1317,16 @@ export default function ProviderDetailPage() {
       const data = await res.json();
       if (res.ok && Array.isArray(data.models) && data.models.length > 0) {
         setLiveModels(data.models);
+        setLiveModelsSource({ providerId, connectionId: connection.id });
         setModelsTestError("");
       } else {
         setLiveModels([]);
+        setLiveModelsSource(null);
         setModelsTestError(data?.error ? `${translate("Failed to fetch models")}: ${data.error}` : translate("Failed to fetch models, please check the API key"));
       }
     } catch {
       setLiveModels([]);
+      setLiveModelsSource(null);
       setModelsTestError(translate("Failed to fetch models: network error"));
     } finally {
       setLiveFetching(false);
@@ -1240,13 +1438,15 @@ export default function ProviderDetailPage() {
                 handleDeleteAlias(model.alias);
               }
             }}
-            testStatus={modelTestResults[model.id]}
+            testStatus={getModelTestStatus(model.id)}
             onTest={connections.length > 0 || isFreeNoAuth ? () => handleTestModel(model.id) : undefined}
-            isTesting={testingModelIds.has(model.id)}
+            isTesting={isModelTesting(model.id)}
             isCustom
             isFree={false}
             caps={getCaps(`${providerId}/${model.id}`)}
             thinkingSuffix={resolveThinkingSuffix(model.id)}
+            serviceTierWarning={getServiceTierWarning(model.id)}
+            testDisabledReason={serviceTierUnavailable ? "Processing speed settings are loading or saving" : getServiceTierWarning(model.id)}
             onEditCaps={() => handleEditCaps(model.id, getCaps(`${providerId}/${model.id}`))}
           />
         ))}
@@ -1267,13 +1467,15 @@ export default function ProviderDetailPage() {
               onCopy={copy}
               onSetAlias={(alias) => handleSetAlias(model.id, alias, providerStorageAlias)}
               onDeleteAlias={() => handleDeleteAlias(existingAlias)}
-              testStatus={modelTestResults[model.id]}
+              testStatus={getModelTestStatus(model.id)}
               onTest={connections.length > 0 || isFreeNoAuth ? () => handleTestModel(model.id) : undefined}
-              isTesting={testingModelIds.has(model.id)}
+              isTesting={isModelTesting(model.id)}
               isFree={model.isFree}
               onDisable={() => handleDisableModel(model.id)}
               caps={getCaps(`${providerId}/${model.id}`)}
               thinkingSuffix={resolveThinkingSuffix(model.id)}
+              serviceTierWarning={getServiceTierWarning(model.id)}
+              testDisabledReason={serviceTierUnavailable ? "Processing speed settings are loading or saving" : getServiceTierWarning(model.id)}
               onEditCaps={() => handleEditCaps(model.id, getCaps(`${providerId}/${model.id}`))}
             />
           );
@@ -1773,21 +1975,45 @@ export default function ProviderDetailPage() {
       {/* Models */}
       <Card>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">
               {"Available Models"}
             </h2>
             {providerThinkingLevels && (
               <select
+                aria-label="Thinking (provider default)"
                 value={thinkingMode}
                 onChange={(e) => handleThinkingModeChange(e.target.value)}
-                title="Appends (level) suffix to copied model names"
+                title="Sets the provider's default thinking level; copied model names and tests include the selected (level) suffix"
                 className="rounded-md border border-border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none"
               >
                 {providerThinkingLevels.map((opt) => (
                   <option key={opt} value={opt}>{`Thinking: ${opt.charAt(0).toUpperCase() + opt.slice(1)}`}</option>
                 ))}
               </select>
+            )}
+            {hasServiceTiers && (
+              <label className="flex items-center gap-2 text-xs text-text-muted">
+                Processing speed
+                <select
+                  aria-label="Processing speed"
+                  aria-describedby={`processing-speed-help${currentServiceTier?.error ? " processing-speed-error" : ""}`}
+                  value={serviceTierMode}
+                  onChange={(e) => saveServiceTierConfig(e.target.value)}
+                  disabled={serviceTierUnavailable}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs text-text-main focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {!serviceTierOptions.some((option) => option.value === serviceTierMode) && (
+                    <option value={serviceTierMode} disabled>{serviceTierMode} (unsupported)</option>
+                  )}
+                  {serviceTierOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                      {providerId === "codex" && (option.value === "fast" || option.value === "ultrafast") ? " (unverified)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
           </div>
           {!isCompatible && (() => {
@@ -1812,8 +2038,20 @@ export default function ProviderDetailPage() {
             );
           })()}
         </div>
+        {hasServiceTiers && (
+          <div className="mb-3 space-y-1 text-xs leading-relaxed text-text-muted">
+            <p id="processing-speed-help">
+              Speed is separate from thinking. Auto inherits upstream defaults; Standard explicitly opts out of faster tiers.
+              {" "}Fast/Ultrafast may use more quota or cost more. Model, endpoint and account permissions apply; the server rejects incompatible requests rather than downgrading them.
+              {" "}Selecting a tier requests it, but does not guarantee delivery.
+              {providerId === "codex" && " Codex speed entitlement is unverified; a plan name alone does not confirm access."}
+            </p>
+            {currentServiceTier?.saving && <p role="status">Saving processing speed…</p>}
+            {currentServiceTier?.error && <p id="processing-speed-error" role="alert" className="text-red-500">{currentServiceTier.error}</p>}
+          </div>
+        )}
         {!!modelsTestError && (
-          <p className="text-xs text-red-500 mb-3 break-words">{modelsTestError}</p>
+          <p role="alert" className="text-xs text-red-500 mb-3 break-words">{modelsTestError}</p>
         )}
         {renderModelsSection()}
       </Card>

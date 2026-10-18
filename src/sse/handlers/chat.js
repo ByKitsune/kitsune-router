@@ -351,6 +351,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   // body is Zen-authored (type/code/param), so it is safe to forward; the raw
   // upstream text lives in lastError and is never sent to a client.
   let lastResponse = null;
+  let lastServiceTierDenial = null;
   let consecutiveSameErrors = 0;
   const MAX_CONSECUTIVE_SAME_ERRORS = 3;
 
@@ -361,9 +362,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { sessionKey, preferredConnectionId });
+    if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
+      // Locally known tier ineligibility is not quota exhaustion. If no
+      // eligible account was attempted, retain the actionable tier error.
+      if (lastServiceTierDenial && !lastResponse) return withRateLimitHeaders(lastServiceTierDenial, rateLimit);
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
         // Always return 503 for allRateLimited to avoid echoing stale 500 error code from DB (#3712)
@@ -423,6 +428,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // Use shared chatCore
     const chatSettings = await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
+    const providerServiceTier = (chatSettings.providerServiceTier || {})[provider]?.mode || null;
     const result = await handleChatCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
@@ -449,6 +455,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
       providerThinking,
+      providerServiceTier,
       clientSignal: request?.signal || null,
       // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
@@ -499,6 +506,16 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     if (isClientAborted) {
       log.warn("CHAT", "Client aborted before upstream completion");
       return withRateLimitHeaders(result.response || errorResponse(499, "Client Closed Request"), rateLimit);
+    }
+    if (result.accountServiceTierDenied === true) {
+      // Skip only this account for this request, keeping the selected tier.
+      // No health writes/cooldowns and no generic-error circuit breaker: every
+      // selected account can be checked once, including a soft-pinned account.
+      lastServiceTierDenial = result.response;
+      if (excludeConnectionIds.has(credentials.connectionId)) return withRateLimitHeaders(lastServiceTierDenial, rateLimit);
+      excludeConnectionIds.add(credentials.connectionId);
+      log.info("SERVICE_TIER", "Selected account does not advertise or permit the requested tier; trying the next account");
+      continue;
     }
     // Sporadic upstream 5xx (9router #4277): grant one immediate same-account
     // retry BEFORE locking/fallback. A single flaky 500 (identical request

@@ -5,6 +5,7 @@ import { resetComboRotation } from "open-sse/services/combo.js";
 import { resolveObservabilityEnabled } from "@/lib/db/repos/requestDetailsRepo.js";
 import bcrypt from "bcryptjs";
 import { EFFORT_LEVELS } from "open-sse/translator/concerns/thinking.js";
+import { SERVICE_TIER_OPTIONS } from "open-sse/providers/serviceTiers.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,6 +27,7 @@ const ALLOWED_SETTING_KEYS = new Set([
   "stickyRoundRobinLimit",
   "providerStrategies",
   "providerThinking",
+  "providerServiceTier",
   "quotaAwareSelection",
   "quotaCacheTtlMs",
   "quotaAwareProviders",
@@ -87,6 +89,7 @@ const PROTECTED_SETTING_KEYS = [
 ];
 
 const THINKING_MODES = new Set(["auto", "on", "off", "none", "thinking", "ultra", ...EFFORT_LEVELS]);
+const SERVICE_TIER_MODES = new Set(SERVICE_TIER_OPTIONS.map(option => option.value));
 const UNSAFE_PROVIDER_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
 function validProviderModes(value, modes) {
@@ -138,6 +141,9 @@ export async function PATCH(request) {
 
     if (Object.hasOwn(body, "providerThinking") && !validProviderModes(body.providerThinking, THINKING_MODES)) {
       return NextResponse.json({ error: "Invalid provider thinking settings" }, { status: 400 });
+    }
+    if (Object.hasOwn(body, "providerServiceTier") && !validProviderModes(body.providerServiceTier, SERVICE_TIER_MODES)) {
+      return NextResponse.json({ error: "Invalid provider processing speed settings" }, { status: 400 });
     }
 
     // If updating password, hash it (handled outside whitelist)

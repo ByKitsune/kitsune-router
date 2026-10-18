@@ -246,6 +246,7 @@ export function openAICompletionToResponses(responseBody, customToolNames = null
     created_at: responseBody.created || Math.floor(Date.now() / 1000),
     model: responseBody.model || "unknown",
     status,
+    ...(typeof responseBody.service_tier === "string" ? { service_tier: responseBody.service_tier } : {}),
     ...(truncated ? { incomplete_details: { reason: "max_output_tokens" } } : {}),
     background: false,
     error: null,

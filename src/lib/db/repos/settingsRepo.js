@@ -19,6 +19,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   "stickyRoundRobinLimit",
   "providerStrategies",
   "providerThinking",
+  "providerServiceTier",
   "quotaAwareSelection",
   "quotaCacheTtlMs",
   "quotaAwareProviders",

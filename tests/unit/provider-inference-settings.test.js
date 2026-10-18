@@ -75,3 +75,24 @@ describe("provider thinking settings reach persistence", () => {
     expect(stored().providerThinking).toEqual({ codex: { mode: "high" } });
   });
 });
+
+describe("provider speed settings remain independent from reasoning", () => {
+  it.each(["auto", "default", "fast", "ultrafast"])("persists processing mode %s without changing thinking", async mode => {
+    await db.updateSettings({ providerThinking: { codex: { mode: "high" } } });
+    const providerServiceTier = { codex: { mode }, openai: { mode: "default" } };
+    const response = await route.PATCH(request({ providerServiceTier }));
+    expect(response.status).toBe(200);
+    expect(stored().providerServiceTier).toEqual(providerServiceTier);
+    expect(stored().providerThinking).toEqual({ codex: { mode: "high" } });
+    expect((await (await route.GET()).json()).providerServiceTier).toEqual(providerServiceTier);
+  });
+
+  it.each([null, [], "fast", { codex: { mode: "turbo" } }, { codex: { mode: "high" } },
+    JSON.parse('{"constructor":{"mode":"fast"}}')].map(value => [value]))("rejects malformed processing modes without changing data: %j", async value => {
+    await db.updateSettings({ providerServiceTier: { codex: { mode: "default" } } });
+    const before = stored();
+    const response = await route.PATCH(request({ providerServiceTier: value }));
+    expect(response.status).toBe(400);
+    expect(stored()).toEqual(before);
+  });
+});

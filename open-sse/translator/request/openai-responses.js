@@ -137,6 +137,8 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
               if (fileData) {
                 return { type: RESPONSES_ITEM.INPUT_FILE, file_data: fileData, ...(c.file?.filename || c.filename ? { filename: c.file?.filename || c.filename } : {}) };
               }
+              const fileId = c.file?.file_id || c.file_id;
+              if (fileId) return { type: RESPONSES_ITEM.INPUT_FILE, file_id: fileId };
             }
             const text = c.text || c.content || JSON.stringify(c);
             return { type: contentType, text: typeof text === "string" ? text : JSON.stringify(text) };
@@ -174,7 +176,7 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
       for (const part of media) {
         if (part.type === OPENAI_BLOCK.IMAGE_URL) {
           pendingToolMedia.push({ type: RESPONSES_ITEM.INPUT_IMAGE, image_url: part.image_url.url, detail: part.image_url.detail || "auto" });
-        } else if (part.file?.file_data) {
+        } else if (part.file?.file_data || part.file?.file_id) {
           pendingToolMedia.push({ type: RESPONSES_ITEM.INPUT_FILE, ...part.file });
         }
       }

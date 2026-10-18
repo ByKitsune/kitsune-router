@@ -11,6 +11,7 @@ import { reasoningDelta, extractReasoningText, extractResponsesReasoningText, ca
 import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, OPENAI_FINISH, MODEL_FALLBACK } from "../schema/index.js";
 import { isCompleteToolName } from "../../utils/toolCompressor.js";
 import { extractResponseError, responseErrorToClient } from "../concerns/responseError.js";
+import { getResponseServiceTier } from "../../providers/serviceTiers.js";
 
 /**
  * Translate OpenAI chunk to Responses API events
@@ -59,6 +60,7 @@ export function openaiToOpenAIResponsesResponse(chunk, state = {}) {
   if (!chunk) {
     return flushEvents(state);
   }
+  state.serviceTier = getResponseServiceTier(chunk) ?? state.serviceTier;
 
   // Capture usage before the choices guard: OpenAI may send it in a trailer
   // whose choices array is empty.
@@ -510,6 +512,7 @@ function sendCompleted(state, emit) {
         background: false,
         error: null,
         output: collectCompletedOutputItems(state),
+        ...(state.serviceTier ? { service_tier: state.serviceTier } : {}),
         ...(state.responsesUsage ? { usage: state.responsesUsage } : {})
       }
     });
@@ -614,6 +617,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     if (state.usage && typeof state.usage === "object") {
       finalChunk.usage = state.usage;
     }
+    if (state.serviceTier) finalChunk.service_tier = state.serviceTier;
 
     return finalChunk;
   }
@@ -621,6 +625,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
   // Handle different event types from Responses API
   const eventType = chunk.type || chunk.event;
   const data = chunk.data || chunk;
+  state.serviceTier = getResponseServiceTier(data) ?? state.serviceTier;
 
   // Initialize state
   if (!state.started) {
@@ -718,6 +723,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
       if (state.usage && typeof state.usage === "object") {
         finalChunk.usage = state.usage;
       }
+      if (state.serviceTier) finalChunk.service_tier = state.serviceTier;
       
       const results = [...pendingTools];
       if (reasoningChunk) results.push(reasoningChunk);
@@ -793,6 +799,7 @@ export function openaiResponsesObjectToCompletion(body) {
     object: "chat.completion",
     created: Math.floor(Date.now() / 1000),
     model: body.model,
+    ...(getResponseServiceTier(body) ? { service_tier: body.service_tier } : {}),
     choices: [{
       index: 0,
       message,

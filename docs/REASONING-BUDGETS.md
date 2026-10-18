@@ -43,7 +43,8 @@ the selected reasoning preset. Other probes keep their short cap. This does
 not relax validation for a real client explicitly requesting an impossible cap.
 
 Provider thinking choices must survive both settings allowlists (HTTP and
-SQLite).
+SQLite). They are independent of [processing speed](PROCESSING-SPEED.md), whose
+native request field is `service_tier`, not a reasoning effort.
 
 ## Response and accounting policy
 

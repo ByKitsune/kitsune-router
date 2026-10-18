@@ -19,6 +19,7 @@ import { dbg } from "../utils/debugLog.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { stripCodexUnsupportedPatterns } from "../utils/codexToolSchema.js";
 import { getOpenAIResponsesEventName } from "../utils/responsesStreamHelpers.js";
+import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
 
 // SSE error patterns inside 200-OK bodies. Some retry same account first; capacity rotates accounts.
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
@@ -665,14 +666,20 @@ export class CodexExecutor extends BaseExecutor {
     delete body.safety_identifier; // Droid CLI sends this but Codex doesn't support it
     delete body.previous_response_id; // store=false → backend can't resolve previous resp; avoid 404
 
-    if (body.service_tier === "fast") body.service_tier = "priority";
-    if (body.service_tier && body.service_tier !== "priority") delete body.service_tier;
+    const serviceTier = prepareServiceTierRequest(this.provider, body.model, body, null, credentials);
 
     // Final allowlist filter — strip any unknown field that could trigger upstream "routing_unsupported"
     for (const k of Object.keys(body)) {
       if (!RESPONSES_API_ALLOWLIST.has(k)) delete body[k];
     }
 
-    return body;
+    // Keep the historical in-place tool/schema normalization contract, but do
+    // not erase a Standard/Auto selection on the reusable attempt body. Only
+    // the wire copy lowers the sentinel/alias or inserts a catalog default.
+    const wireTier = serviceTier.wireServiceTier ?? undefined;
+    const wireBody = wireTier === body.service_tier ? body : { ...body };
+    if (wireTier === undefined) delete wireBody.service_tier;
+    else wireBody.service_tier = wireTier;
+    return wireBody;
   }
 }
