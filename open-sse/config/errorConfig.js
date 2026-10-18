@@ -28,6 +28,9 @@ export const DEFAULT_ERROR_MESSAGES = {
   504: "Gateway timeout"
 };
 
+export const FALLBACK_SCOPE = { ACCOUNT: "account", COMBO: "combo" };
+export const NONFINAL_CHAT_FINISH_REASONS = new Set([null, undefined, "in_progress", "incomplete"]);
+
 // Exponential backoff config for rate limits
 export const BACKOFF_CONFIG = {
   base: 2000,
@@ -62,10 +65,12 @@ export const REVOKED_TOKEN_COOLDOWN_MS = COOLDOWN.revoked;
 /**
  * Unified error classification rules.
  * Checked top-to-bottom: text rules first (by order), then status rules.
- * Each rule: { text?, status?, cooldownMs?, backoff? }
+ * Each rule: { text?, status?, cooldownMs?, backoff?, accountFault?, comboFallback? }
  *   - text: substring match (case-insensitive) on error message
  *   - status: HTTP status code match
  *   - cooldownMs: fixed cooldown duration
+ *   - accountFault: false prevents request-only failures from locking credentials
+ *   - comboFallback: true allows a different model to serve that request
  *   - backoff: true = use exponential backoff (rate limit)
  */
 export const ERROR_RULES = [
@@ -121,23 +126,16 @@ export const ERROR_RULES = [
   },
   { text: "function_declarations",      cooldownMs: 0 },
   { text: "unsupported schema",         cooldownMs: 0 },
-  // Context-window overflow is a CLIENT error. It deliberately does NOT get a
-  // rule here: the generic request-scoped 4xx handling already returns
-  // { shouldFallback: false, cooldownMs: 0 } for a 400, which is the correct
-  // contract (a prompt that is too long fails identically on every account, so
-  // falling through just multiplies the latency of an unavoidable error — see
-  // #20a43f5a2 and the "request-scoped vs account-scoped" test).
-  //
-  // What WAS wrong is the status the client received. The Codex executor used to
-  // turn an in-stream context overflow into 503/502, which is both a lie (the
-  // body says invalid_request_error) and harmful (clients retry 5xx). That is
-  // fixed at the source in executors/codex.js, which now surfaces 400. These
-  // rules only ensure the ACCOUNT is never locked if such text ever arrives
-  // alongside a 5xx — the prompt is the problem, not the credential.
-  { text: "context_length_exceeded",    cooldownMs: 0, accountFault: false },
-  { text: "exceeds the context window", cooldownMs: 0, accountFault: false },
-  { text: "maximum context length",     cooldownMs: 0, accountFault: false },
-  { text: "context length exceeded",    cooldownMs: 0, accountFault: false },
+  // A larger-context combo member may serve the same prompt. Another account
+  // for the rejected model cannot; its credentials must remain healthy.
+  { text: "context_length_exceeded",    cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "context_window_exceeded",    cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "exceeds the context window", cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "maximum context length",     cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "context length exceeded",    cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "input token count exceeds", cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "unsupported_parameter",     cooldownMs: 0, accountFault: false, comboFallback: true },
+  { text: "empty nonterminal completion", cooldownMs: 0, accountFault: false },
   // Request-scoped reasoning exhaustion: a different combo model may fit the
   // budget, but the upstream account is healthy and must never be locked.
   { text: "output budget exhausted before any text or tool calls", cooldownMs: 0 },

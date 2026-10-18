@@ -1,4 +1,4 @@
-import { outputBudgetError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
+import { outputBudgetError, emptyNonfinalCompletionError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
 export { isTruncatedEmptyCompletion } from "./jsonCompletionOutcome.js";
 import { FORMATS } from "../../translator/formats.js";
 import { needsTranslation } from "../../translator/index.js";
@@ -264,6 +264,12 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
       pxpipe, status: "failed"
     }, { endpoint: clientRawRequest?.endpoint || null })).catch(() => {});
     return budgetError;
+  }
+
+  const emptyError = emptyNonfinalCompletionError(responseBody, usage);
+  if (emptyError) {
+    appendLog({ tokens: usage, status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+    return emptyError;
   }
 
   if (onRequestSuccess) {

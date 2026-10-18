@@ -5,6 +5,7 @@ import { fromOpenAIFinish } from "../../translator/concerns/finishReason.js";
 import { toGeminiUsage } from "../../translator/concerns/usage.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
+import { NONFINAL_CHAT_FINISH_REASONS } from "../../config/errorConfig.js";
 import { openAIImagesToGeminiParts, openAIToolCallToGeminiPart } from "../../translator/response/openai-to-antigravity.js";
 
 // Reasoning alone is not a usable answer; genuine partial output must survive.
@@ -59,6 +60,30 @@ export function isTruncatedEmptyCompletion(responseBody) {
     }
   }
   return truncated && !usable;
+}
+
+// Never replay generated content or known incurred usage as an empty transport.
+export function emptyNonfinalCompletionError(responseBody, usage) {
+  const choices = responseBody?.choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  for (const key in usage) {
+    if (typeof usage[key] === "number" && usage[key] > 0) return null;
+  }
+  for (const choice of choices) {
+    if (!NONFINAL_CHAT_FINISH_REASONS.has(choice?.finish_reason)) return null;
+    const message = choice?.message || {};
+    if ((typeof message.content === "string" && message.content.length > 0)
+        || (Array.isArray(message.content) && message.content.length > 0)
+        || extractReasoningText(message)
+        || message.thinking?.length
+        || message.reasoning_details?.length
+        || message.provider_specific_fields?.reasoning_details?.length
+        || message.tool_calls?.length || message.function_call
+        || message.refusal || message.images?.length
+        || message.audio?.id || message.audio?.data || message.audio?.transcript) return null;
+  }
+  return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Empty nonterminal completion from upstream",
+    undefined, { code: "empty_response" });
 }
 
 function parseToolArguments(value) {

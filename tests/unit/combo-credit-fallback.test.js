@@ -35,3 +35,59 @@ describe("combo credit fallback (#4715)", () => {
     );
   });
 });
+
+describe("model-dependent request failures in a combo", () => {
+  it.each([
+    { message: "maximum context length exceeded" },
+    { message: "The input token count exceeds the maximum number of tokens allowed 1048576." },
+    { message: "Input cannot fit this destination", code: "context_length_exceeded" },
+    { message: "This destination cannot accept temperature", code: "unsupported_parameter", param: "temperature" },
+  ])("advances without rewriting the request for $message", async (error) => {
+    const attempted = [];
+    const body = { messages: [{ role: "user", content: "Keep the complete history" }], temperature: 0.7 };
+    const response = await handleComboChat({
+      body,
+      models: ["first/small", "second/capable"],
+      comboName: "request-scope-fixture",
+      comboStrategy: "fallback",
+      autoSwitch: false,
+      log: { info() {}, warn() {}, debug() {} },
+      handleSingleModel: async (request, model) => {
+        attempted.push({ model, temperature: request.temperature, messages: request.messages });
+        return model === "first/small"
+          ? Response.json({ error }, { status: 400 })
+          : Response.json({ choices: [{ message: { role: "assistant", content: "Served by the capable destination" }, finish_reason: "stop" }] });
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).choices[0].message.content).toBe("Served by the capable destination");
+    expect(attempted).toEqual([
+      { model: "first/small", temperature: 0.7, messages: [{ role: "user", content: "Keep the complete history" }] },
+      { model: "second/capable", temperature: 0.7, messages: [{ role: "user", content: "Keep the complete history" }] },
+    ]);
+  });
+
+  it.each([
+    { status: 400, error: { message: "messages must be an array", code: "invalid_request_error" } },
+    { status: 413, error: { message: "Payload too large" } },
+    { status: 499, error: { message: "Client disconnected", code: "unsupported_parameter", param: "temperature" } },
+    { status: 400, error: { message: "client_aborted: maximum context length exceeded", code: "context_length_exceeded" } },
+  ])("stops on a genuine client failure or cancellation: $status $error.message", async ({ status, error }) => {
+    const attempted = [];
+    const response = await handleComboChat({
+      body: { messages: [] },
+      models: ["first/small", "second/capable"],
+      comboName: "client-error-fixture",
+      autoSwitch: false,
+      log: { info() {}, warn() {}, debug() {} },
+      handleSingleModel: async (_body, model) => {
+        attempted.push(model);
+        return Response.json({ error }, { status });
+      },
+    });
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual({ error });
+    expect(attempted).toEqual(["first/small"]);
+  });
+});

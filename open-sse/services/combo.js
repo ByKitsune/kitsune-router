@@ -3,6 +3,7 @@
  */
 
 import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
+import { FALLBACK_SCOPE } from "../config/errorConfig.js";
 import { unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
@@ -610,10 +611,13 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
 
       // Extract error info from response
       let errorText = result.statusText || "";
+      let errorCode = null;
       let retryAfter = null;
       try {
         const errorBody = await result.clone().json();
         errorText = errorBody?.error?.message || errorBody?.error || errorBody?.message || errorText;
+        const code = errorBody?.error?.code ?? errorBody?.code;
+        if (typeof code === "string") errorCode = code;
         // Validate before use: provider payloads carry values like "soon",
         // "1 minute", "" or "30". A non-parseable value used to flow into the
         // `Retry-After` response header as the literal string "NaN".
@@ -633,11 +637,10 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
         try { errorText = JSON.stringify(errorText); } catch { errorText = String(errorText); }
       }
 
-      // Check if should fallback to next model. The Response is passed so
-      // checkFallbackError() can honour a provider-sent Retry-After instead of
-      // guessing an exponential backoff (the parameter existed but no caller
-      // ever supplied it, leaving that whole branch dead).
-      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorText, 0, result);
+      // Preserve structured diagnostics for model-dependent request failures,
+      // without reclassifying them as account faults or changing the response.
+      const classificationText = errorCode ? `${errorCode}: ${errorText}` : errorText;
+      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, classificationText, 0, result, FALLBACK_SCOPE.COMBO);
 
       if (!shouldFallback) {
         log.warn("COMBO", `Model ${modelStr} failed (no fallback)`, { status: result.status });

@@ -1,4 +1,4 @@
-import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS } from "../config/errorConfig.js";
+import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE } from "../config/errorConfig.js";
 
 /**
  * Calculate exponential backoff cooldown for rate limits (429)
@@ -158,9 +158,10 @@ export function needsOperatorReauth(status, errorText) {
  * @param {string} errorText - Error message text
  * @param {number} backoffLevel - Current backoff level for exponential backoff
  * @param {Response|null} [response] - Optional fetch Response for Retry-After header parsing (PR #3612)
+ * @param {"account"|"combo"} [scope] - Retry accounts or advance across different models
  * @returns {{ shouldFallback: boolean, cooldownMs: number, newBackoffLevel?: number, resetsAtMs?: number }}
  */
-export function checkFallbackError(status, errorText, backoffLevel = 0, response = null) {
+export function checkFallbackError(status, errorText, backoffLevel = 0, response = null, scope = FALLBACK_SCOPE.ACCOUNT) {
   const lowerError = errorText
     ? (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase()
     : "";
@@ -182,13 +183,10 @@ export function checkFallbackError(status, errorText, backoffLevel = 0, response
   for (const rule of ERROR_RULES) {
     // Text-based rule: match substring in error message
     if (rule.text && lowerError && lowerError.includes(rule.text)) {
-      // Request-scoped text rule: the wording identifies a problem with the
-      // request, so the credential must never be locked regardless of which
-      // status the upstream attached to it. `shouldFallback` stays false on
-      // 4xx (fail fast, per #20a43f5a2) but a 5xx carrying the same text still
-      // routes onward without a cooldown.
+      // Request-only errors never lock a healthy account. Only explicitly
+      // model-dependent failures can advance a combo on a client status.
       if (rule.accountFault === false) {
-        return { shouldFallback: status >= 500, cooldownMs: 0 };
+        return { shouldFallback: status >= 500 || (scope === FALLBACK_SCOPE.COMBO && rule.comboFallback === true), cooldownMs: 0 };
       }
       if (rule.terminal) {
         return { shouldFallback: true, cooldownMs: rule.cooldownMs, terminal: true };

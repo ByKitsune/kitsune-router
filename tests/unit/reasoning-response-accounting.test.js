@@ -173,3 +173,107 @@ it.each([F.OPENAI, F.CLAUDE])('forced Responses refusal remains usable for %s cl
  if (sourceFormat === F.OPENAI) expect(json.choices[0].message.refusal).toBe('Cannot comply');
  else expect(json.content).toContainEqual({ type: 'text', text: 'Cannot comply' });
 });
+
+function pendingCompletion(message = { role: 'assistant', content: '' }, tokens = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }) {
+ return { object: 'chat.completion', choices: [{ index: 0, message, finish_reason: 'in_progress' }], usage: tokens };
+}
+
+it('advances a combo after a real nonstream handler receives zero-output nonfinal JSON', async () => {
+ const attempted = [];
+ const response = await handleComboChat({
+  body: { messages: [], stream: false }, models: ['first/empty', 'second/answer'], comboName: 'empty-json-fixture', autoSwitch: false, log,
+  handleSingleModel: async (_body, model) => {
+   attempted.push(model);
+   const payload = model === 'first/empty' ? pendingCompletion() : chat('Answer from the next model', 'stop');
+   return (await native(ctx(Response.json(payload)))).response;
+  },
+ });
+ expect(response.status).toBe(200);
+ expect((await response.json()).choices[0].message.content).toBe('Answer from the next model');
+ expect(attempted).toEqual(['first/empty', 'second/answer']);
+});
+
+it('does not return HTTP 200 when every combo member produces nonfinal empty JSON', async () => {
+ const attempted = [];
+ const response = await handleComboChat({
+  body: { messages: [], stream: false }, models: ['first/empty', 'second/empty'], comboName: 'all-empty-json-fixture', autoSwitch: false, log,
+  handleSingleModel: async (_body, model) => {
+   attempted.push(model);
+   const payload = pendingCompletion();
+   payload.choices[0].finish_reason = 'incomplete';
+   return (await native(ctx(Response.json(payload)))).response;
+  },
+ });
+ expect(response.status).toBe(502);
+ expect(await response.json()).toMatchObject({ error: { code: 'empty_response' } });
+ expect(attempted).toEqual(['first/empty', 'second/empty']);
+});
+
+it.each([
+ ['reasoning alias', { role: 'assistant', content: '', reasoning: 'Actual generated reasoning' }],
+ ['thinking blocks', { role: 'assistant', content: '', thinking: [{ type: 'thinking', thinking: 'Actual generated reasoning' }] }],
+ ['tool calls', { role: 'assistant', content: '', tool_calls: [{ id: 'call_fixture', type: 'function', function: { name: 'read_file', arguments: '{}' } }] }],
+ ['legacy function call', { role: 'assistant', content: '', function_call: { name: 'read_file', arguments: '{}' } }],
+ ['refusal', { role: 'assistant', content: '', refusal: 'Cannot comply' }],
+ ['image output', { role: 'assistant', content: '', images: [{ type: 'image_url', image_url: { url: 'https://example.invalid/generated.png' } }] }],
+ ['audio output', { role: 'assistant', content: '', audio: { id: 'audio_fixture', data: 'AQ==', transcript: 'Generated speech' } }],
+])('preserves nonfinal JSON with %s rather than generating another paid answer', async (_name, message) => {
+ const attempted = [];
+ const response = await handleComboChat({
+  body: { messages: [], stream: false }, models: ['first/output', 'second/unused'], comboName: 'preserve-output-fixture', autoSwitch: false, log,
+  handleSingleModel: async (_body, model) => {
+   attempted.push(model);
+   return (await native(ctx(Response.json(pendingCompletion(message))))).response;
+  },
+ });
+ expect(response.status).toBe(200);
+ const json = await response.json();
+ expect(json.choices[0].message).toMatchObject(message);
+ expect(attempted).toEqual(['first/output']);
+});
+
+it('preserves positive incurred usage even when nonfinal JSON has no visible output', async () => {
+ const attempted = [];
+ const response = await handleComboChat({
+  body: { messages: [], stream: false }, models: ['first/paid', 'second/unused'], comboName: 'preserve-paid-fixture', autoSwitch: false, log,
+  handleSingleModel: async (_body, model) => {
+   attempted.push(model);
+   return (await native(ctx(Response.json(pendingCompletion(undefined, { prompt_tokens: 12, completion_tokens: 0, total_tokens: 12 }))))).response;
+  },
+ });
+ expect(response.status).toBe(200);
+ expect((await response.json()).usage.prompt_tokens).toBe(12);
+ expect(attempted).toEqual(['first/paid']);
+});
+
+it('keeps output from a later choice when the first choice is nonfinal and empty', async () => {
+ const payload = pendingCompletion();
+ payload.choices.push({ index: 1, message: { role: 'assistant', content: 'Second candidate answer' }, finish_reason: 'stop' });
+ const result = await native(ctx(Response.json(payload)));
+ expect(result.response.status).toBe(200);
+ expect((await result.response.json()).choices[1].message.content).toBe('Second candidate answer');
+});
+
+it.each(['native', 'forced'])('%s rejects zero-output nonfinal SSE after aggregation', async (transport) => {
+ const payload = { choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: 'in_progress' }], usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
+ const upstream = new Response(`data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+ const result = await (transport === 'native' ? native(ctx(upstream)) : forced(ctx(upstream)));
+ expect(result.response.status).toBe(502);
+ expect(await result.response.json()).toMatchObject({ error: { code: 'empty_response' } });
+});
+
+it('retains a terminal no-op completion instead of replaying it through another model', async () => {
+ const attempted = [];
+ const payload = pendingCompletion();
+ payload.choices[0].finish_reason = 'stop';
+ const response = await handleComboChat({
+  body: { messages: [], stream: false }, models: ['first/done', 'second/unused'], comboName: 'terminal-noop-fixture', autoSwitch: false, log,
+  handleSingleModel: async (_body, model) => {
+   attempted.push(model);
+   return (await native(ctx(Response.json(payload)))).response;
+  },
+ });
+ expect(response.status).toBe(200);
+ expect((await response.json()).choices[0]).toMatchObject({ message: { content: '' }, finish_reason: 'stop' });
+ expect(attempted).toEqual(['first/done']);
+});

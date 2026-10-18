@@ -1,4 +1,4 @@
-import { outputBudgetError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
+import { outputBudgetError, emptyNonfinalCompletionError, openAICompletionToClient, nativeGeminiResponseToClient } from "./jsonCompletionOutcome.js";
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
@@ -328,6 +328,11 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         status: "failed"
       }, { endpoint: clientRawRequest?.endpoint || null })).catch(() => {});
       return budgetError;
+    }
+    const emptyError = emptyNonfinalCompletionError(parsed, usage);
+    if (emptyError) {
+      appendLog({ tokens: usage, status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+      return emptyError;
     }
     if (onRequestSuccess) await onRequestSuccess();
     appendLog({ tokens: usage, status: "200 OK" });
