@@ -13,37 +13,49 @@ export function parseDataUri(url) {
 }
 
 import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { Agent, fetch as undiciFetch } from "undici";
-import { MAX_IMAGE_BYTES, FETCH_TIMEOUT_MS, IMAGE_SIGNATURES, BLOCKED_HOSTS } from "../../config/mediaConfig.js";
+import { MAX_IMAGE_BYTES, FETCH_TIMEOUT_MS, IMAGE_SIGNATURES, BLOCKED_HOSTS, BLOCKED_IMAGE_IPV4_RANGES, BLOCKED_IMAGE_IPV6_RANGES, IMAGE_EMBEDDED_IPV4_PREFIXES } from "../../config/mediaConfig.js";
+
+const ipv4Number = (ip) => ip.split(".").reduce((value, octet) => (value << 8n) | BigInt(octet), 0n);
+function ipv6Number(ip) {
+  // URL canonicalization converts an embedded dotted IPv4 tail to hextets.
+  const canonical = new URL(`http://[${ip}]/`).hostname.slice(1, -1);
+  const [left, right] = canonical.split("::");
+  const head = left ? left.split(":") : [];
+  const tail = right ? right.split(":") : [];
+  const groups = right === undefined ? head : [...head, ...Array(8 - head.length - tail.length).fill("0"), ...tail];
+  return groups.reduce((value, group) => (value << 16n) | BigInt(`0x${group}`), 0n);
+}
+function ranges(cidrs, width, parse) {
+  return cidrs.map((cidr) => {
+    const [ip, bits] = cidr.split("/");
+    const shift = BigInt(width - Number(bits));
+    return { prefix: parse(ip) >> shift, shift };
+  });
+}
+const blockedV4 = ranges(BLOCKED_IMAGE_IPV4_RANGES, 32, ipv4Number);
+const blockedV6 = ranges(BLOCKED_IMAGE_IPV6_RANGES, 128, ipv6Number);
+const embeddedV4 = IMAGE_EMBEDDED_IPV4_PREFIXES.map((ip) => ipv6Number(ip) >> 32n);
+const inRanges = (ip, prefixes) => prefixes.some(({ prefix, shift }) => (ip >> shift) === prefix);
 
 // True if an IPv4/IPv6 address is private/reserved (SSRF target).
 function isPrivateIp(ip) {
-  if (!ip) return true;
-  if (ip.includes(":")) {
-    // Canonicalize expanded/dotted IPv6 before checking unspecified and mapped IPv4.
-    try { ip = new URL(`http://[${ip}]/`).hostname.slice(1, -1); } catch { return true; }
-    if (ip === "::" || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80")) return true;
-    const mapped = /^::ffff:([0-9a-f]+):([0-9a-f]+)$/.exec(ip);
-    if (!mapped) return false;
-    const high = Number.parseInt(mapped[1], 16);
-    const low = Number.parseInt(mapped[2], 16);
-    ip = `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
-  }
-  const parts = ip.split(".").map((n) => Number.parseInt(n, 10));
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
-  const [a, b] = parts;
-  if (a === 10 || a === 127 || a === 0) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 169 && b === 254) return true; // link-local + cloud metadata
-  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-  return false;
+  const family = isIP(ip);
+  if (family === 4) return inRanges(ipv4Number(ip), blockedV4);
+  if (family !== 6 || ip.includes("%")) return true;
+  const value = ipv6Number(ip);
+  if (embeddedV4.includes(value >> 32n)) return inRanges(value & 0xffffffffn, blockedV4);
+  return inRanges(value, blockedV6);
 }
 
 // Resolve host once and return only public IPs (SSRF guard).
 // Rejects if any resolved record is private/reserved (defeats multi-A tricks).
 async function resolvePinnedIps(hostname, signal) {
-  if (!hostname || BLOCKED_HOSTS.has(hostname.toLowerCase()) || signal.aborted) return null;
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+  if (!host || BLOCKED_HOSTS.has(host) || signal.aborted) return null;
+  const family = isIP(host);
+  if (family) return isPrivateIp(host) ? null : [{ address: host, family }];
   let onAbort;
   try {
     const aborted = new Promise((_, reject) => {
@@ -51,7 +63,8 @@ async function resolvePinnedIps(hostname, signal) {
       signal.addEventListener("abort", onAbort, { once: true });
     });
     const records = await Promise.race([lookup(hostname, { all: true }), aborted]);
-    if (signal.aborted || !records.length || records.some((r) => isPrivateIp(r.address))) return null;
+    if (signal.aborted || !Array.isArray(records) || !records.length ||
+        records.some((r) => isIP(r.address) !== r.family || isPrivateIp(r.address))) return null;
     return records;
   } catch {
     return null;

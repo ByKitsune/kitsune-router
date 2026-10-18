@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
-import { assertPublicUrl, assertNotCloudMetadata } from "@/shared/utils/ssrfGuard.js";
+import { assertPublicUrl, assertNotCloudMetadata, fetchPublic, fetchTrustedLocal } from "@/shared/utils/ssrfGuard.js";
+import { readJsonResponse } from "@/shared/utils/readJsonResponse.js";
 import { isLocalRequest } from "@/dashboardGuard";
 
-// Fetch with timeout wrapper
-const fetchWithTimeout = (url, options, timeout = 10000) => {
-  return Promise.race([
-    fetch(url, options),
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Request timeout")), timeout)
-    )
-  ]);
-};
+const TIMEOUT_MS = 10000;
+const MAX_EMBEDDING_RESPONSE_BYTES = 1024 * 1024;
 
 // Validate URL format
 const isValidUrl = (url) => {
@@ -53,11 +47,12 @@ const getChatErrorMessage = (status) => {
 
 // POST /api/provider-nodes/validate - Validate API key against base URL
 export async function POST(request) {
+  let timer;
   try {
     const body = await request.json();
     const { baseUrl, apiKey, type, modelId } = body;
 
-    if (!baseUrl || !apiKey) {
+    if (typeof baseUrl !== "string" || !baseUrl || typeof apiKey !== "string" || !apiKey) {
       return NextResponse.json({ error: "Base URL and API key required" }, { status: 400 });
     }
 
@@ -69,7 +64,8 @@ export async function POST(request) {
     // SSRF guard: remote callers are restricted to public URLs.
     // Local callers can target loopback (e.g. self-hosted nodes on localhost),
     // but MUST NEVER target cloud metadata (169.254.169.254) or link-local addresses.
-    if (!isLocalRequest(request)) {
+    const local = isLocalRequest(request);
+    if (!local) {
       try {
         assertPublicUrl(baseUrl);
       } catch {
@@ -83,13 +79,18 @@ export async function POST(request) {
       }
     }
 
+    const controller = new AbortController();
+    timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const signal = AbortSignal.any([request.signal, controller.signal]);
+    const fetchNode = (url, init) => (local ? fetchTrustedLocal : fetchPublic)(url, { ...init, signal });
+
     // Custom Embedding Validation - test POST /embeddings directly
     if (type === "custom-embedding") {
       const normalizedBase = baseUrl.trim().replace(/\/$/, "");
       if (!modelId?.trim()) {
         return NextResponse.json({ valid: false, error: "Model ID required for embedding validation" });
       }
-      const embedRes = await fetchWithTimeout(`${normalizedBase}/embeddings`, {
+      const embedRes = await fetchNode(`${normalizedBase}/embeddings`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -98,17 +99,18 @@ export async function POST(request) {
         body: JSON.stringify({ model: modelId.trim(), input: "ping" })
       });
       if (embedRes.ok) {
-        const data = await embedRes.json().catch(() => null);
+        const data = await readJsonResponse(embedRes, MAX_EMBEDDING_RESPONSE_BYTES);
         const dims = Array.isArray(data?.data?.[0]?.embedding) ? data.data[0].embedding.length : null;
         return NextResponse.json({ valid: true, method: "embeddings", dimensions: dims });
       }
       if (embedRes.status === 401 || embedRes.status === 403) {
+        await embedRes.body?.cancel();
         return NextResponse.json({ valid: false, error: "API key unauthorized" });
       }
-      const errBody = await embedRes.text().catch(() => "");
+      await embedRes.body?.cancel();
       return NextResponse.json({
         valid: false,
-        error: `Embeddings request failed (${embedRes.status})${errBody ? `: ${errBody.slice(0, 200)}` : ""}`,
+        error: `Embeddings request failed (${embedRes.status})`,
         method: "embeddings"
       });
     }
@@ -121,7 +123,7 @@ export async function POST(request) {
       }
 
       const modelsUrl = `${normalizedBase}/models`;
-      const res = await fetchWithTimeout(modelsUrl, {
+      const res = await fetchNode(modelsUrl, {
         method: "GET",
         headers: {
           "x-api-key": apiKey,
@@ -130,6 +132,7 @@ export async function POST(request) {
         }
       });
 
+      await res.body?.cancel();
       if (res.ok) return NextResponse.json({ valid: true });
 
       // Auth errors - no point trying chat fallback
@@ -139,7 +142,7 @@ export async function POST(request) {
 
       // Fallback: try chat/completions if modelId provided
       if (modelId) {
-        const chatRes = await fetchWithTimeout(`${normalizedBase}/chat/completions`, {
+        const chatRes = await fetchNode(`${normalizedBase}/chat/completions`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${apiKey}`,
@@ -153,6 +156,7 @@ export async function POST(request) {
             max_tokens: 1
           })
         });
+        await chatRes.body?.cancel();
         if (chatRes.ok) {
           return NextResponse.json({ valid: true, method: "chat" });
         }
@@ -168,10 +172,11 @@ export async function POST(request) {
 
     // OpenAI Compatible Validation (Default)
     const modelsUrl = `${baseUrl.replace(/\/$/, "")}/models`;
-    const res = await fetchWithTimeout(modelsUrl, {
+    const res = await fetchNode(modelsUrl, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
 
+    await res.body?.cancel();
     if (res.ok) return NextResponse.json({ valid: true });
 
     // Auth errors - no point trying chat fallback
@@ -181,7 +186,7 @@ export async function POST(request) {
 
     // Fallback: try chat/completions if modelId provided
     if (modelId) {
-      const chatRes = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+      const chatRes = await fetchNode(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -193,6 +198,7 @@ export async function POST(request) {
           max_tokens: 1
         })
       });
+      await chatRes.body?.cancel();
       if (chatRes.ok) {
         return NextResponse.json({ valid: true, method: "chat" });
       }
@@ -205,10 +211,12 @@ export async function POST(request) {
 
     return NextResponse.json({ valid: false, error: getModelsErrorMessage(res.status) });
   } catch (error) {
+    if (error.message?.startsWith("Blocked URL:")) {
+      return NextResponse.json({ error: "URL not allowed" }, { status: 400 });
+    }
     const errorMessage = getErrorMessage(error);
     console.error("Error validating provider node:", {
-      message: error.message,
-      cause: error.cause,
+      name: error.name,
       code: error.cause?.code,
       userMessage: errorMessage
     });
@@ -216,5 +224,7 @@ export async function POST(request) {
       valid: false,
       error: errorMessage 
     }, { status: 500 });
+  } finally {
+    clearTimeout(timer);
   }
 }
