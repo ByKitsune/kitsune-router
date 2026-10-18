@@ -4,6 +4,7 @@ import { applyOutboundProxyEnv } from "@/lib/network/outboundProxy";
 import { resetComboRotation } from "open-sse/services/combo.js";
 import { resolveObservabilityEnabled } from "@/lib/db/repos/requestDetailsRepo.js";
 import bcrypt from "bcryptjs";
+import { EFFORT_LEVELS } from "open-sse/translator/concerns/thinking.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,6 +25,7 @@ const ALLOWED_SETTING_KEYS = new Set([
   "tailscaleUrl",
   "stickyRoundRobinLimit",
   "providerStrategies",
+  "providerThinking",
   "quotaAwareSelection",
   "quotaCacheTtlMs",
   "quotaAwareProviders",
@@ -84,6 +86,16 @@ const PROTECTED_SETTING_KEYS = [
   "outboundNoProxy",
 ];
 
+const THINKING_MODES = new Set(["auto", "on", "off", "none", "thinking", "ultra", ...EFFORT_LEVELS]);
+const UNSAFE_PROVIDER_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+
+function validProviderModes(value, modes) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.entries(value).every(([provider, config]) =>
+    provider && !UNSAFE_PROVIDER_KEYS.has(provider) && config && typeof config === "object" &&
+    !Array.isArray(config) && modes.has(config.mode));
+}
+
 export async function GET() {
   try {
     const settings = await getSettings();
@@ -123,6 +135,10 @@ export async function PATCH(request) {
     // Defense in depth: explicitly strip any protected key that might have
     // slipped through if ALLOWED and PROTECTED ever overlap.
     for (const key of PROTECTED_SETTING_KEYS) delete body[key];
+
+    if (Object.hasOwn(body, "providerThinking") && !validProviderModes(body.providerThinking, THINKING_MODES)) {
+      return NextResponse.json({ error: "Invalid provider thinking settings" }, { status: 400 });
+    }
 
     // If updating password, hash it (handled outside whitelist)
     if (rawBody.newPassword) {

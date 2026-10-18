@@ -1,8 +1,25 @@
 import { getApiKeys } from "@/lib/localDb";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
+import { parseModel } from "open-sse/services/model.js";
+import { getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
+import { stripThinkingSuffix } from "open-sse/translator/concerns/thinkingUnified.js";
+import { ANTIGRAVITY_MAX_OUTPUT_TOKENS } from "open-sse/config/antigravity.js";
 
 const CLI_TOKEN_SALT = "zen-cli-auth";
+
+function chatProbeOutputCap(model) {
+  const parsed = parseModel(model);
+  const nativeModel = stripThinkingSuffix(parsed.model);
+  if (parsed.provider !== "antigravity" || !/(^|\/)claude[-.]/i.test(nativeModel || "")) return 1024;
+
+  // Claude thinking shares the bridge's output allowance and alone needs at
+  // least 1024 tokens. This internal probe must leave room for the selected
+  // thinking preset, not force every model into an impossible 1024-token total.
+  // Ordinary client requests still retain their explicit output-cap validation.
+  const maxOutput = getCapabilitiesForModel(parsed.provider, nativeModel).maxOutput;
+  return Math.min(maxOutput || ANTIGRAVITY_MAX_OUTPUT_TOKENS, ANTIGRAVITY_MAX_OUTPUT_TOKENS);
+}
 
 function createSilentWavFile() {
   const sampleRate = 16000;
@@ -135,11 +152,9 @@ export async function pingModelByKind(model, kind, baseUrl = `http://127.0.0.1:$
     headers,
     body: JSON.stringify({
       model,
-      // 1024 tokens: reasoning models (ClinePass/kimi-k3, deepseek-v4-pro, etc.) spend
-      // their budget on chain-of-thought before emitting an answer. A tiny probe like
-      // max_tokens:16 starves the answer and yields a false "no choices" failure.
-      // See issue #3010.
-      max_tokens: 1024,
+      // Keep the usual short probe, except where the native thinking budget
+      // requires a larger shared output allowance. See issue #3010.
+      max_tokens: chatProbeOutputCap(model),
       stream: false,
       messages: [{ role: "user", content: "hi" }],
     }),

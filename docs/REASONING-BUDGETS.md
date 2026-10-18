@@ -33,6 +33,18 @@ Codex OAuth, OpenCode Muse and Cursor retain their existing unsupported-cap beha
 
 Native passthrough validation is not universal: some historical paths still delegate negative/oversized values to upstream validation. Unknown model limits remain unknown. A token cap is not an aggregate monetary budget, particularly across tool loops or configured fallback attempts.
 
+## Dashboard model probes
+
+The model Test button is a gateway-generated request, not a caller's output
+budget. A fixed 1,024-token test cap cannot contain Antigravity's Claude minimum
+thinking budget plus a visible response, and caused false HTTP 400 results.
+Those probes now use the model/bridge's bounded output ceiling while retaining
+the selected reasoning preset. Other probes keep their short cap. This does
+not relax validation for a real client explicitly requesting an impossible cap.
+
+Provider thinking choices must survive both settings allowlists (HTTP and
+SQLite).
+
 ## Response and accounting policy
 
 - Record actual usage for each paid attempt before classifying a budget-exhausted response. An empty final answer is not evidence of zero reasoning usage.

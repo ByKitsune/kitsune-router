@@ -18,6 +18,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   "tailscaleUrl",
   "stickyRoundRobinLimit",
   "providerStrategies",
+  "providerThinking",
   "quotaAwareSelection",
   "quotaCacheTtlMs",
   "quotaAwareProviders",

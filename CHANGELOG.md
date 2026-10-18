@@ -5,6 +5,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Thinking probes and provider defaults
+
+- Fix false HTTP 400 results when the dashboard tests Antigravity Claude models: the internal probe now leaves room for the selected thinking preset within the model/bridge output ceiling. Explicit client caps remain enforced.
+- Persist provider thinking defaults through both HTTP and SQLite allowlists, rejecting malformed mode maps without weakening protected settings.
+
 ## [0.9.12] - 2026-10-19
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.12) · [Technical changelog](docs/CHANGELOG_v0.9.12.md) · [Release notes](releases/RELEASE_NOTES_v0.9.12.md)

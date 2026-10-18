@@ -56,6 +56,7 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | No-auth proxy pool exhaustion, denials and egress | `unit/noauth-proxy-fallback.test.js` (real SQLite, relay/CONNECT and direct-egress trap fixtures) |
 | Full database imports and stale in-flight caches | `unit/db-import-cache.test.js`, `unit/db-import-cache-public.test.js`, `unit/db-import-cache-quota.test.js` |
 | Native cancellation and public error boundaries | `unit/cursor-cancellation.test.js`, `unit/public-protocol-errors.test.js` |
+| Model probes and persisted thinking defaults | `unit/model-test-thinking-budget.test.js`, `unit/provider-inference-settings.test.js` |
 
 The reasoning suites cover API aliases, suffix/request/provider precedence, native executor controls, streaming/non-streaming reasoning and measured usage. Run the complete suite to include their fallback, accounting and semantic-TTFT consumers.
 `unit/thinking-consistency-mapping.test.js` and
