@@ -5,6 +5,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Release tooling
+
+- Retry npm registry/version and `latest` readback with bounded backoff after an accepted write. Verify the original tarball only once metadata is visible; retain immutable-artifact checks, fail closed on authentication/network errors, and never repeat publication or overwrite a newer `latest` during verification.
+
 ## [0.9.13] - 2026-10-19
 
 [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Technical changelog](docs/CHANGELOG_v0.9.13.md) · [Release notes](releases/RELEASE_NOTES_v0.9.13.md)

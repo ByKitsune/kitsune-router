@@ -108,6 +108,16 @@ prove live compatibility. The default Vitest glob is `tests/**/*.test.js`;
 `test:compat` runs the independent `*.test.cjs` suite. Check file discovery when
 adding a new extension or runner.
 
+### Release publication checks
+
+`unit/release-registry-readback.test.js` executes the real release helper CLI
+against disposable fake npm/gh binaries. It reproduces delayed version and
+`latest` visibility without registry writes, and checks bounded retries, one
+publish/tag write, immutable bytes, explicit timeouts and authentication errors.
+The other `unit/release-publication-*.test.js` suites verify tag/SHA binding,
+artifact recovery and monotonic promotion. A passing local test is not proof of
+registry publication; verify the real workflow, digest and provenance separately.
+
 ## Audit model metadata against a complete snapshot
 
 Supply the full provider-keyed [models.dev API](https://models.dev/api.json) JSON, not a clipped reader preview:

@@ -15,27 +15,27 @@ describe("monotonic latest publication", () => {
   it("older npm retry does not mutate latest", async () => {
     const calls = [];
     const run = (cmd, args) => { calls.push([cmd, ...args]); return '{"latest":"0.9.8"}'; };
-    expect((await policy()).promoteNpm("0.9.7", run)).toBe(false);
+    expect(await (await policy()).promoteNpm("0.9.7", run)).toBe(false);
     expect(calls.some(c => c.includes("add"))).toBe(false);
   });
   it("new npm publication promotes only after querying latest and verifies readback", async () => {
     const calls = [];
     const run = (cmd, args) => { calls.push([cmd, ...args]); return JSON.stringify({ latest: calls.some(c => c.includes("add")) ? "0.9.7" : "0.9.6" }); };
-    expect((await policy()).promoteNpm("0.9.7", run)).toBe(true);
+    expect(await (await policy()).promoteNpm("0.9.7", run)).toBe(true);
     expect(calls[1]).toEqual(["npm", "dist-tag", "add", "@joyccn/zenrouter@0.9.7", "latest"]);
     expect(calls).toHaveLength(3);
   });
   it("uses npm view JSON because dist-tag ls ignores --json", async () => {
     const { promoteNpm } = await policy();
     const run = (cmd, args) => {
-      expect(args).toEqual(["view", "@joyccn/zenrouter", "dist-tags", "--json"]);
+      expect(args).toEqual(["view", "@joyccn/zenrouter", "dist-tags", "--json", "--prefer-online"]);
       return '{"latest":"0.9.8"}';
     };
-    expect(promoteNpm("0.9.7", run)).toBe(false);
+    expect(await promoteNpm("0.9.7", run)).toBe(false);
   });
   it("npm auth/network errors never assume an empty latest", async () => {
     const { promoteNpm } = await policy();
-    expect(() => promoteNpm("0.9.7", () => { throw Error("E401"); })).toThrow("E401");
+    await expect(promoteNpm("0.9.7", () => { throw Error("E401"); })).rejects.toThrow("E401");
   });
   it("older GitHub release is not marked latest", async () => {
     expect((await policy()).githubLatest("0.9.7", "ZenRouter/ZenRouter", () => '{"tag_name":"v0.9.8"}')).toBe(false);

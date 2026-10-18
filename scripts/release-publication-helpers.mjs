@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const PACKAGE = "@joyccn/zenrouter";
 export const command = (cmd, args, options = {}) => execFileSync(cmd, args, { encoding: "utf8", maxBuffer: 512 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], ...options });
@@ -11,7 +12,7 @@ const stable = version => assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.te
 export function npmArtifact(version, run = command) {
   stable(version);
   try {
-    const value = JSON.parse(run("npm", ["view", `${PACKAGE}@${version}`, "version", "dist.integrity", "--json"]));
+    const value = JSON.parse(run("npm", ["view", `${PACKAGE}@${version}`, "version", "dist.integrity", "--json", "--prefer-online"]));
     assert.equal(value.version, version, "Registry version mismatch");
     assert(/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(value["dist.integrity"]), "Missing registry integrity");
     return value;
@@ -24,6 +25,7 @@ export function npmArtifact(version, run = command) {
   }
 }
 export function verifyIntegrity(path, published) {
+  assert(published && typeof published === "object", "npm registry has not confirmed the published version; cannot verify its integrity yet");
   const actual = "sha512-" + createHash("sha512").update(readFileSync(path)).digest("base64");
   assert.equal(actual, published["dist.integrity"], "Immutable npm tarball integrity mismatch");
 }
@@ -68,16 +70,39 @@ export function canPromote(version, current) {
   for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
   return true;
 }
-export function promoteNpm(version, run = command) {
+async function waitForNpmReadback(read, confirmed, { attempts = 12, wait = sleep } = {}) {
+  assert(Number.isInteger(attempts) && attempts > 0, "Invalid npm readback attempt limit");
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const value = read(); // Auth, network and malformed-response errors remain terminal.
+    if (confirmed(value)) return value;
+    if (attempt + 1 < attempts) await wait(Math.min(1000 * 2 ** attempt, 30000));
+  }
+  throw new Error(`npm registry readback was not confirmed after ${attempts} attempts; retain the original CI tarball and retry verification without rebuilding it`);
+}
+
+export async function publishNpm(version, file, { command: run = command, ...readback } = {}) {
+  const published = npmArtifact(version, run);
+  if (published) {
+    verifyIntegrity(file, published);
+    return published;
+  }
+  // An accepted publish is never repeated just because registry reads lag.
+  run("npm", ["publish", file, "--ignore-scripts", "--access", "public", "--provenance", "--tag", `release-${version}`]);
+  const confirmed = await waitForNpmReadback(() => npmArtifact(version, run), value => value !== null, readback);
+  verifyIntegrity(file, confirmed);
+  return confirmed;
+}
+
+export async function promoteNpm(version, run = command, readback = {}) {
   const latest = () => {
-    const tags = JSON.parse(run("npm", ["view", PACKAGE, "dist-tags", "--json"]));
+    const tags = JSON.parse(run("npm", ["view", PACKAGE, "dist-tags", "--json", "--prefer-online"]));
     assert(tags && typeof tags === "object" && !Array.isArray(tags), "Invalid npm dist-tags");
     return Object.hasOwn(tags, "latest") ? tags.latest : null;
   };
   if (!canPromote(version, latest())) return false;
   run("npm", ["dist-tag", "add", `${PACKAGE}@${version}`, "latest"]);
-  assert.equal(latest(), version, "npm latest readback mismatch");
-  return true;
+  const observed = await waitForNpmReadback(latest, current => current === version || !canPromote(version, current), readback);
+  return observed === version;
 }
 export function githubLatest(version, repo, run = command) {
   let current;
@@ -122,12 +147,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     for (const [key, value] of Object.entries(result)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
   } else if (mode === "publish") {
     const file = process.argv[4];
-    const published = npmArtifact(version);
-    if (published) verifyIntegrity(file, published);
-    else command("npm", ["publish", file, "--ignore-scripts", "--access", "public", "--provenance", "--tag", `release-${version}`]);
-    verifyIntegrity(file, npmArtifact(version));
+    await publishNpm(version, file);
   } else if (mode === "latest") {
-    promoteNpm(version);
+    await promoteNpm(version);
     appendFileSync(process.env.GITHUB_OUTPUT, `github=${githubLatest(version, process.env.GITHUB_REPOSITORY)}\n`);
   } else if (mode === "docker-latest") {
     const versions = process.argv.slice(4).map(image => dockerLatest(image, process.env.GITHUB_REPOSITORY));
