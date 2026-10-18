@@ -157,6 +157,18 @@ and the two chat-loop integration failures became green after the fixes. Parent
 verification passed 77 cases across five discovered files. Evidence is under
 `/tmp/opencode/zen-wave-20261019/noauth/`.
 
+### Cancellation during retry
+
+The base executor only recognized errors named `AbortError`; a caller abort
+with `Error("client_aborted")` could enter several network retries and wait
+through uninterruptible backoff. Three regressions reproduced pre-aborted calls,
+ordinary Error reasons and cancellation during a retry delay. The executor now
+checks the caller signal before dialing/at failure and uses abortable backoff,
+preserving the caller's reason. Its own connect timeout remains retryable.
+`tests/unit/base-executor-cancellation.test.js` and complementary proxy/vision
+wire checks passed 61 cases. Evidence: `cancellation/red.json` and `green.json`
+under the wave's external verification directory.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

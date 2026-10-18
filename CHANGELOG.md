@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Vision, model metadata and audit follow-up
 
+- Make caller cancellation terminal before dialing, after transport errors, and during retry backoff. Ordinary `Error` abort reasons no longer trigger repeated network retries or delayed URL fallback.
 - Add bounded, request-local failover between explicitly configured no-auth provider proxy pools. Revalidate pool availability, keep proxy-only egress, and never persist synthetic accounts. Quota, billing, authentication, client and cancellation failures do not rotate proxy identity; intentionally direct routes keep their existing behavior.
 - Preserve screenshots in parallel/nested tool results across Chat, Responses, Claude and Gemini. Keep binary data in typed media fields instead of JSON prose, prevent synthetic duplicate tool replies, and retain ordinary JSON records inside mixed Gemini results. Repeated normalization preserves image counts, retained history and explicit output caps; a real-socket regression uses a valid 2172×724 PNG.
 - Audit all 120 provider definitions and 1,165 explicit registry rows against a pinned models.dev October 17 snapshot and separate current captures. Fix reviewed Claude version-spelling pricing and Perplexity Agent's inclusive 200K Grok pricing tier; annotate dated promotions and scheduled retirements without deleting unverified/active routes. Preserve endpoint-specific 1M-class context windows separately from input and output limits.

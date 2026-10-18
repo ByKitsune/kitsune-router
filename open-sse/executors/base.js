@@ -6,6 +6,7 @@ import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
 import { parseUpstreamErrorBody } from "../utils/error.js";
+import { setTimeout as delay } from "node:timers/promises";
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -112,6 +113,7 @@ export class BaseExecutor {
     // Schedule retry via retryConfig[statusKey]. Returns true when caller should `urlIndex--; continue`
     // response (optional) lets a subclass hook compute a dynamic delay (e.g. antigravity Retry-After).
     const tryRetry = async (urlIndex, statusKey, reason, response = null) => {
+      signal?.throwIfAborted();
       const { attempts, delayMs } = resolveRetryEntry(retryConfig[statusKey]);
       if (attempts <= 0 || retryAttemptsByUrl[urlIndex] >= attempts) return false;
       // Hook: subclass may derive delay from the response (headers/body). null → skip retry, use fallback.
@@ -123,11 +125,17 @@ export class BaseExecutor {
       }
       retryAttemptsByUrl[urlIndex]++;
       log?.debug?.("RETRY", `${reason} retry ${retryAttemptsByUrl[urlIndex]}/${attempts} after ${waitMs / 1000}s`);
-      await new Promise(resolve => setTimeout(resolve, waitMs));
+      try {
+        await delay(waitMs, undefined, { signal });
+      } catch (error) {
+        signal?.throwIfAborted();
+        throw error;
+      }
       return true;
     };
 
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
+      signal?.throwIfAborted();
       const url = this.buildUrl(model, stream, urlIndex, credentials);
       const transformedBody = this.transformRequest(model, body, stream, credentials);
       // Config-driven strip of params this provider/model rejects upstream.
@@ -171,6 +179,9 @@ export class BaseExecutor {
         return { response, url, headers, transformedBody };
       } catch (error) {
         clearTimeout(connectTimer);
+        // AbortSignal.reason may be an ordinary Error, not an AbortError.
+        // Caller cancellation must never enter network retry or URL fallback.
+        signal?.throwIfAborted();
         lastError = error;
         const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
