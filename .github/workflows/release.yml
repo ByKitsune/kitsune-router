@@ -1,143 +1,45 @@
-name: Release & Publish
+name: Read-only npm release diagnostics
 
+# Temporary diagnostic branch only: no publication, tag mutation or rebuild.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Stable release tag (must match all package versions)"
+        description: "Existing release tag to inspect"
         required: true
         default: "v0.9.12"
 
 permissions:
-  contents: write
-  id-token: write
-  actions: read
-
-concurrency:
-  group: npm-release
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  release:
+  inspect:
     runs-on: ubuntu-latest
-    env:
-      RELEASE_TAG: ${{ inputs.tag }}
-      RUN_REAL: "0"
-      RUN_E2E: "0"
-      RUN_LIVE_TESTS: "0"
-      MODEL_CATALOG_SYNC: "off"
-      ZENROUTER_DISABLE_MITM: "1"
-      NEXT_TELEMETRY_DISABLED: "1"
-      JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
-      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
     steps:
-      - name: Set isolated release data directory
-        run: printf 'DATA_DIR=%s/zenrouter-release-data\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-
-      - name: Checkout exact release tag
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ inputs.tag }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            tests/package-lock.json
-            cli/package-lock.json
-            gitbook/package-lock.json
-
-      - name: Validate release source and required credentials
+      - name: Verify source without publishing
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          test -n "$NPM_TOKEN" || { printf '%s\n' 'NPM_TOKEN is required; refusing a release without npm publication.'; exit 1; }
           node scripts/check-release-version.mjs "$RELEASE_TAG"
-          test -f "releases/RELEASE_NOTES_${RELEASE_TAG}.md"
-          test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
-          test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
-          git show-ref --verify "refs/tags/$RELEASE_TAG"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
-
-      - name: Install locked dependencies
-        run: |
-          npm ci
-          npm --prefix tests ci
-          npm --prefix cli ci
-          npm --prefix gitbook ci
-
-      - name: Run tests and lint
-        run: |
-          npm test -- --maxWorkers=2
-          npm run lint -- --max-warnings=0
-          npm --prefix gitbook test
-        env:
-          NODE_ENV: test
-
-      - name: Build documentation export
-        run: npm --prefix gitbook run build
-
-      - name: Recover original tarball or plan a fresh build
-        id: tarball
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: node scripts/release-publication-helpers.mjs prepare "${RELEASE_TAG#v}"
-
-      - name: Build and pack CLI package
-        if: steps.tarball.outputs.build == 'true'
-        env:
-          TARBALL_FILE: ${{ steps.tarball.outputs.file }}
-          NEXT_PHASE: phase-production-build
-          DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
-          NODE_ENV: production
-        run: |
-          npm run cli:pack
-          node scripts/check-release-version.mjs "$RELEASE_TAG"
-          mv "joyccn-zenrouter-${RELEASE_TAG#v}.tgz" "$TARBALL_FILE"
-
-      - name: Persist original tarball before immutable npm publication
-        if: steps.tarball.outputs.build == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.tarball.outputs.name }}
-          path: ${{ steps.tarball.outputs.file }}
-          if-no-files-found: error
-          retention-days: 90
-          archive: true
-          overwrite: false
-
-      - name: Publish exact CLI tarball to npm
+          git rev-parse HEAD
+          npm config get registry
+      - name: Authenticate without exposing token
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          TARBALL_FILE: ${{ steps.tarball.outputs.file }}
-        run: node scripts/release-publication-helpers.mjs publish "${RELEASE_TAG#v}" "$TARBALL_FILE"
-
-      - name: Advance latest without rolling back a newer release
-        id: latest
+        run: npm whoami --registry=https://registry.npmjs.org --loglevel=error
+      - name: Inspect target package permission only
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: node scripts/release-publication-helpers.mjs latest "${RELEASE_TAG#v}"
-
-      - name: Create GitHub Release and upload assets
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ inputs.tag }}
-          name: "🌿 ZenRouter ${{ inputs.tag }}"
-          draft: false
-          prerelease: false
-          make_latest: ${{ steps.latest.outputs.github }}
-          fail_on_unmatched_files: true
-          body_path: releases/RELEASE_NOTES_${{ inputs.tag }}.md
-          files: |
-            joyccn-zenrouter-*.tgz
-            install.sh
-            docker-compose.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node --input-type=module - <<'NODE'
+          import { execFileSync } from "node:child_process";
+          const result = JSON.parse(execFileSync("npm", ["access", "list", "packages", "joyccn", "--json", "--loglevel=error"], { encoding: "utf8" }));
+          console.log(JSON.stringify({ package: "@joyccn/zenrouter", permission: result["@joyccn/zenrouter"] ?? null }));
+          NODE
