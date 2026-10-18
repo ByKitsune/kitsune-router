@@ -78,4 +78,58 @@ describe("getUsageStats overlay aggregation", () => {
     expect(stats.byAccount[accountKey]).toBeDefined();
     expect(stats.byAccount[accountKey].lastUsed).toBe(ts2);
   });
+
+  it("counts native input/output tokens consistently in live and daily views", async () => {
+    await saveRequestUsage({
+      timestamp: new Date().toISOString(),
+      provider: "native-stats-fixture",
+      model: "native-model",
+      connectionId: "synthetic-native-connection",
+      apiKey: "sk-synthetic-native-stats-key",
+      endpoint: "/v1/responses",
+      tokens: { input_tokens: 407, output_tokens: 33, cache_read_input_tokens: 19 },
+    });
+
+    for (const period of ["today", "24h", "all"]) {
+      const stats = await getUsageStats(period);
+      expect(stats, period).toMatchObject({
+        totalRequests: 1, totalPromptTokens: 407, totalCompletionTokens: 33, totalCachedTokens: 19,
+      });
+      for (const axis of ["byProvider", "byModel", "byAccount", "byApiKey", "byEndpoint"]) {
+        expect(Object.values(stats[axis]), `${period}/${axis}`).toEqual([
+          expect.objectContaining({ requests: 1, promptTokens: 407, completionTokens: 33, cachedTokens: 19 }),
+        ]);
+      }
+    }
+  });
+
+  it("uses persisted token columns for legacy live-history rows without token JSON", async () => {
+    await saveRequestUsage({
+      timestamp: new Date().toISOString(),
+      provider: "legacy-stats-fixture",
+      model: "legacy-model",
+      tokens: { prompt_tokens: 83, completion_tokens: 17 },
+    });
+    const { getAdapter } = await import("../../src/lib/db/driver.js");
+    const db = await getAdapter();
+    db.run("UPDATE usageHistory SET tokens = ?", ["{}"]);
+
+    const stats = await getUsageStats("24h");
+    expect(stats).toMatchObject({ totalRequests: 1, totalPromptTokens: 83, totalCompletionTokens: 17 });
+    expect(stats.byProvider["legacy-stats-fixture"]).toMatchObject({ promptTokens: 83, completionTokens: 17 });
+  });
+
+  it("retains native prompt-cache hits when switching between live and daily statistics", async () => {
+    await saveRequestUsage({
+      timestamp: new Date().toISOString(),
+      provider: "native-cache-fixture",
+      model: "cache-model",
+      tokens: { prompt_tokens: 100, completion_tokens: 10, prompt_cache_hit_tokens: 60 },
+    });
+    for (const period of ["today", "24h", "all"]) {
+      const stats = await getUsageStats(period);
+      expect(stats, period).toMatchObject({ totalPromptTokens: 100, totalCompletionTokens: 10, totalCachedTokens: 60 });
+      expect(stats.byProvider["native-cache-fixture"], period).toMatchObject({ promptTokens: 100, completionTokens: 10, cachedTokens: 60 });
+    }
+  });
 });
