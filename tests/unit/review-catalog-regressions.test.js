@@ -146,6 +146,9 @@ describe("review P2: nonchat declaration overlays", () => {
 describe("review P2: combo unknown limits", () => {
   const members = ["grok-cli/grok-build", "openai/gpt-6-astra"];
   it("omits inferred limits if any member's limits are unknown", async () => {
+    // Both providers must be selectable: unconfigured providers are excluded
+    // from the combo envelope rather than contributing an unknown limit.
+    mocks.getProviderConnections.mockResolvedValue([{ provider: "openai" }, { provider: "grok-cli" }]);
     mocks.getCombos.mockResolvedValue([{ name: "review-mixed", models: members }]);
     const row = (await buildModelsList(["llm"])).find(m => m.id === "review-mixed");
     expect(row).not.toHaveProperty("context_length");

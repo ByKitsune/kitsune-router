@@ -5,7 +5,7 @@ import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
-import { getProviderConnections, getCombos, getCustomModels, getModelAliases } from "@/lib/localDb";
+import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getProviderNodes } from "@/lib/localDb";
 import { getDisabledModels } from "@/lib/disabledModelsDb";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
 import { resolveKimchiModels } from "open-sse/services/kimchiModels.js";
@@ -19,10 +19,11 @@ import { fetchProviderLiveModels } from "@/shared/utils/providerLiveModels";
 import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel, withDeclaredCapabilities } from "open-sse/providers/capabilities.js";
-import { canonicalizeProviderId as resolveProviderAlias } from "open-sse/providers/identity.js";
+import { canonicalizeProviderId as resolveProviderAlias, PROVIDER_IDENTITIES } from "open-sse/providers/identity.js";
 import { applyReviewedCapabilities, getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
 import { inferModelKind } from "open-sse/providers/models/schema.js";
 import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
+import { getComboTokenLimits } from "./comboLimits.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -194,8 +195,10 @@ function indexModelRows(rows, staticRows = new Map()) {
  */
 export async function buildModelsList(kindFilter) {
   let connections = [];
+  let hasConfiguredConnections = false;
   try {
     connections = await getProviderConnections();
+    hasConfiguredConnections = connections.length > 0;
     connections = connections.filter(c => c.isActive !== false);
   } catch (e) {
     console.log("Could not fetch providers, returning all models");
@@ -232,12 +235,32 @@ export async function buildModelsList(kindFilter) {
 
   const activeConnectionByProvider = new Map();
   for (const conn of connections) {
-    if (!activeConnectionByProvider.has(conn.provider)) {
-      activeConnectionByProvider.set(conn.provider, conn);
-    }
+    const providerId = resolveProviderAlias(conn.provider);
+    if (!activeConnectionByProvider.has(providerId)) activeConnectionByProvider.set(providerId, conn);
   }
 
+  let providerNodes = [];
+  if (connections.some((conn) => isOpenAICompatibleProvider(conn.provider) || isAnthropicCompatibleProvider(conn.provider))) {
+    try {
+      providerNodes = await getProviderNodes();
+    } catch {
+      console.log("Could not fetch provider prefixes, using connection metadata");
+    }
+  }
+  const nodesByProvider = new Map(providerNodes.map((node) => [node.id, node]));
+  const providerByPrefix = new Map();
+  for (const conn of connections) {
+    const prefix = nodesByProvider.get(conn.provider)?.prefix || conn.providerSpecificData?.prefix;
+    if (typeof prefix === "string" && prefix && !Object.hasOwn(PROVIDER_IDENTITIES, prefix)) {
+      providerByPrefix.set(prefix, resolveProviderAlias(conn.provider));
+    }
+  }
+  const resolveComboProvider = (prefix) => Object.hasOwn(PROVIDER_IDENTITIES, prefix)
+    ? resolveProviderAlias(prefix) : providerByPrefix.get(prefix) || resolveProviderAlias(prefix);
+
   const models = [];
+  const catalogModels = new Map();
+  const llmCombos = [];
 
   // Combos first (filtered by kind). Web combos expose `kind` so AI knows search vs fetch.
   for (const combo of combos) {
@@ -250,56 +273,12 @@ export async function buildModelsList(kindFilter) {
     if (combo.kind === "webSearch" || combo.kind === "webFetch") {
       entry.kind = combo.kind;
     }
-    // Aggregate token limits for LLM combos so compatible clients can size
-    // context correctly instead of falling back to their own model catalog.
-    // Both limits use the pool minimum, and require every member to be known.
-    if (!combo.kind || combo.kind === LLM_KIND) {
-      let minContext = Infinity;
-      let minMaxOutput = Infinity;
-      let hasContext = false;
-      let hasMaxOutput = false;
-      let unknownContext = false;
-      let unknownMaxOutput = false;
-
-      for (const rawModel of combo.models || []) {
-        const memberId = typeof rawModel === "string" ? rawModel.trim() : String(rawModel?.model || rawModel?.id || "").trim();
-        if (!memberId) continue;
-        const slashIndex = memberId.indexOf("/");
-        const provider = slashIndex >= 0 ? memberId.slice(0, slashIndex) : "";
-        const modelId = slashIndex >= 0 ? memberId.slice(slashIndex + 1) : memberId;
-        if (!modelId) continue;
-
-        const caps = getCapabilitiesForModel(provider, modelId);
-        if (Number.isFinite(caps?.contextWindow) && caps.contextWindow > 0) {
-          minContext = Math.min(minContext, caps.contextWindow);
-          hasContext = true;
-        } else {
-          unknownContext = true;
-        }
-        if (Number.isFinite(caps?.maxOutput) && caps.maxOutput > 0) {
-          minMaxOutput = Math.min(minMaxOutput, caps.maxOutput);
-          hasMaxOutput = true;
-        } else {
-          unknownMaxOutput = true;
-        }
-      }
-
-      if (Number.isFinite(Number(combo.contextWindow || combo.context_length))) {
-        entry.context_length = Number(combo.contextWindow || combo.context_length);
-      } else if (hasContext && !unknownContext) {
-        entry.context_length = minContext;
-      }
-      if (Number.isFinite(Number(combo.maxOutput || combo.max_completion_tokens))) {
-        entry.max_completion_tokens = Number(combo.maxOutput || combo.max_completion_tokens);
-      } else if (hasMaxOutput && !unknownMaxOutput) {
-        entry.max_completion_tokens = minMaxOutput;
-      }
-    }
+    if (!combo.kind || combo.kind === LLM_KIND) llmCombos.push({ combo, entry });
     models.push(entry);
   }
 
   // Static fallback and credential-free providers share the same overlays and filters.
-  if (connections.length === 0) {
+  if (!hasConfiguredConnections) {
     for (const alias of Object.keys(PROVIDER_MODELS)) {
       const providerId = resolveProviderAlias(alias);
       activeConnectionByProvider.set(providerId, null);
@@ -317,7 +296,7 @@ export async function buildModelsList(kindFilter) {
     const staticAlias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
     const outputAlias = (
       conn?.providerSpecificData?.prefix
-      || (connections.length === 0 ? staticAlias : getProviderAlias(providerId))
+      || (!hasConfiguredConnections ? staticAlias : getProviderAlias(providerId))
       || staticAlias
     ).trim();
     const providerModels = [...getModelsByProviderId(providerId)];
@@ -517,6 +496,7 @@ export async function buildModelsList(kindFilter) {
         if (Number.isFinite(caps?.maxInput) && caps.maxInput > 0) model.max_input_tokens = caps.maxInput;
         if (Number.isFinite(maxOutput)) model.max_completion_tokens = maxOutput;
       }
+      if (kind === LLM_KIND || allowAsLlm) catalogModels.set(`${providerId}/${modelId}`, model);
       models.push(model);
     }
 
@@ -539,6 +519,38 @@ export async function buildModelsList(kindFilter) {
       });
     }
 
+  }
+
+  const declaredModels = new Map();
+  for (const row of customModels) {
+    if (!row?.providerAlias || typeof row.id !== "string") continue;
+    const kind = getModelKind(row) || LLM_KIND;
+    if (kind !== LLM_KIND && kind !== "imageToText") continue;
+    const key = `${resolveComboProvider(row.providerAlias)}/${row.id.trim()}`;
+    if (kind === LLM_KIND || !declaredModels.has(key)) declaredModels.set(key, row);
+  }
+  const comboContext = {
+    combosByName: new Map(combos.map((combo) => [combo.name, combo])),
+    modelAliases,
+    resolveModel(memberId) {
+      const slash = memberId.indexOf("/");
+      const providerId = resolveComboProvider(memberId.slice(0, slash));
+      const modelId = memberId.slice(slash + 1);
+      if (!modelId || (hasConfiguredConnections && !activeConnectionByProvider.has(providerId) && !AI_PROVIDERS[providerId]?.noAuth)) return null;
+      const key = `${providerId}/${modelId}`;
+      const listed = catalogModels.get(key);
+      if (listed) return { contextWindow: listed.context_length, maxOutput: listed.max_completion_tokens };
+      return withDeclaredCapabilities(
+        getCapabilitiesForModel(providerId, modelId),
+        modelMetadata(declaredModels.get(key)),
+        providerId, modelId,
+      );
+    },
+  };
+  for (const { combo, entry } of llmCombos) {
+    const limits = getComboTokenLimits(combo, comboContext);
+    if (Number.isFinite(limits.contextWindow)) entry.context_length = limits.contextWindow;
+    if (Number.isFinite(limits.maxOutput)) entry.max_completion_tokens = limits.maxOutput;
   }
 
   const dedupedModels = [];
