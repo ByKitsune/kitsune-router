@@ -25,6 +25,8 @@ Provider-agnostic SSE engine: one OpenAI-style request → any provider (LLM cha
 - Translator pipeline pivots through OpenAI as the intermediate format. A translator registered on the exact `source:target` pair (e.g. `claude:kiro`) runs as a **direct route**, skipping the lossy double-hop.
 - Translators self-register via `register(from, to, reqFn, resFn)` as an import side-effect — new files MUST be imported in `translator/index.js`.
 - Perf: accumulate streamed text in chunk arrays + `join("")` once (never `+=` per chunk); per-provider mutexes (never a global lock); L1 repo caches with explicit `invalidate*Cache()` on every mutation; `/v1/models` 30s TTL with `Cache-Control: public, max-age=30, stale-while-revalidate=60`. Zen diverges from upstream #3629 on purpose: settings uses a 2s TTL raw cache and usage uses object-identity dedup (no field-equality scan, no extra index).
+- Stream tool identity is request-local. Emit each Chat tool ID once, buffer incomplete names until the opener is usable, and retain native Messages/Responses event framing when restoring names. Do not change native terminal events into Chat `[DONE]` markers.
+- Remote image retrieval uses direct Undici, one DNS snapshot pinned to the socket, a shared DNS/HTTP deadline, and a bounded magic-byte-validated body. Maintain the numerical public-address policy in `config/mediaConfig.js`, including IPv6/mapped-address checks and literal-IP handling; never use a later unpinned global fetch.
 
 ## How to add
 

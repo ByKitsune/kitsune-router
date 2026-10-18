@@ -12,6 +12,10 @@ picking the codebase up cold.
 if you only have ten minutes, or [07-upstream-sync-2026-10.md](07-upstream-sync-2026-10.md)
 for the upstream port backlog.
 
+These are historical snapshots, not a claim that every finding remains open.
+See [13-security-wave-2026-10-18.md](13-security-wave-2026-10-18.md) for the
+dependency/PKI, lint, stream-identity and DNS-pinned network follow-up.
+
 ## Read in this order
 
 | # | Document | Covers |

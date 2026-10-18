@@ -5,6 +5,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Security dependency cleanup and gateway follow-up
+
+- Remove the vulnerable `node-forge` dependency chain from the application and CLI. MITM certificate generation now uses WebCrypto and `@peculiar/x509`; existing unexpired roots and PKCS#1/PKCS#8 keys are retained. Leaf generation and SNI startup await the asynchronous certificate API. No system trust-store migration is performed by this change.
+- Preserve Next.js lint policies using Oxlint alongside ESLint without the vulnerable legacy plugin dependency chain. Both engines run through `npm run lint`; CI audits the application, CLI, tests and documentation dependencies without dismissing advisories. Internal dashboard links use Next.js navigation rather than disabling their lint rule.
+- Preserve complete native Claude SSE event frames when restoring compressed or cloaked tool names, and emit Chat tool-call IDs only once. Fragmented/parallel tool calls retain their original identity, argument bytes and per-request alias ownership.
+- Resolve only declared Antigravity reasoning tiers for the base Gemini 3.8 alias; explicit model presets retain precedence. Keep the hosted OpenCode free-GLM dialect override scoped to its actual provider/model endpoint.
+- Calculate combo limits conservatively across selectable members, nested combos, aliases and custom declarations. Unknown limits are not promoted to invented maxima, and inactive configured providers do not trigger bootstrap-catalog fallback.
+- Pin DNS for provider-node validation and suggested-model catalogs, including redirect targets and trusted-local metadata checks. Bound response bodies and the request deadline, and never reflect credential-bearing upstream error bodies. Public providers and authorized loopback/self-hosted providers retain their supported paths.
+- Complete remote-image private/reserved IPv4 and IPv6 checks, including mapped/NAT64 addresses and URL literals. Reject malformed or mixed public/private DNS records before HTTP, while preserving valid public-address downloads.
+
 ### Selective upstream security and gateway fixes
 
 - Guard GitLab PAT verification with DNS-pinned transport, metadata denial and socket-derived local trust ([9Router #4953](https://github.com/decolua/9router/pull/4953)). Reject redirects and unsupported proxy transport. Bound DNS, connection and body reads; never reflect upstream bodies or credential-bearing exceptions. Reuse the guarded private transport for local MCP probes.
