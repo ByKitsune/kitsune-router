@@ -5,7 +5,7 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { getThinkingLevels } from "../../providers/thinkingLevels.js";
 import { PROVIDERS } from "../../providers/index.js";
-import { LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel } from "./thinking.js";
+import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel } from "./thinking.js";
 import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
@@ -40,7 +40,7 @@ export function parseSuffix(model) {
   if (raw === "none" || raw === "off") return { cleanModel, override: { mode: "none" } };
   if (raw === "auto" || raw === "thinking" || raw === "on") return { cleanModel, override: { mode: "auto" } };
   if (raw === "ultra") return { cleanModel, override: { mode: "level", level: raw } };
-  if (/^\d+$/.test(raw)) return { cleanModel, override: { mode: "budget", budget: Number(raw) } };
+  if (/^\d+$/.test(raw)) return { cleanModel, override: budgetIntent(raw) };
   if (LEVEL_TO_BUDGET[raw] !== undefined) return { cleanModel, override: { mode: "level", level: raw } };
   return { cleanModel, override: null };
 }
@@ -122,7 +122,11 @@ export function extractThinking(body) {
 // text itself: Claude returns it only with thinking.display "summarized", a field
 // OpenAI has no equivalent for, so the intent cannot survive translation on its own.
 export function captureThinking(body) {
-  const cfg = extractThinking(body);
+  // Claude effort also controls visible output with thinking disabled. Preserve
+  // its off switch across formats; transports with independent controls (Kiro)
+  // still use extractThinking to read the separate effort.
+  const cfg = body?.thinking?.type === "disabled" && stringIntent(body.output_config?.effort)
+    ? { mode: "none" } : extractThinking(body);
   if (!cfg) return cfg;
   const config = nativeThinkingConfig(body);
   const nativeDisplay = typeof body.thinking?.display === "string" ? body.thinking.display : undefined;
@@ -194,11 +198,14 @@ function toLevel(cfg) {
 }
 
 function normalizeOpenAILevel(level, supportedLevels) {
-  if (supportedLevels && !supportedLevels.includes(level)) {
-    if (level === "xhigh" || level === "max" || level === "ultra") {
-      if (supportedLevels.includes("max")) return "max";
-      if (supportedLevels.includes("xhigh")) return "xhigh";
-      if (supportedLevels.includes("high")) return "high";
+  const ordered = ["none", ...EFFORT_LEVELS, "ultra"];
+  // Binary picker choices ("thinking") are not a declaration of effort enums,
+  // particularly when a reseller overrides the model's native wire format.
+  if (supportedLevels?.every(value => ordered.includes(value)) && !supportedLevels.includes(level)) {
+    const rank = ordered.indexOf(level);
+    if (rank >= 0) {
+      const allowed = ordered.filter(value => supportedLevels.includes(value));
+      return allowed.find(value => ordered.indexOf(value) >= rank) || allowed.at(-1) || level;
     }
   }
   if (level !== "max" && level !== "ultra") return level;
@@ -336,6 +343,7 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider, i
       // an always-on model must send "low" instead of an invalid level (#4600).
       body.output_config = { effort: level === "auto" ? "high"
         : level === "minimal" ? "low"
+        : level === "ultra" ? (supportedLevels?.includes("max") ? "max" : "high")
         : level === "xhigh" && !supportedLevels?.includes("xhigh") ? "high" : level };
       break;
     }

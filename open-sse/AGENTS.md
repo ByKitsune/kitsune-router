@@ -29,6 +29,7 @@ Provider-agnostic SSE engine: a supported client request → provider execution 
 - Remote image retrieval uses direct Undici, one DNS snapshot pinned to the socket, a shared DNS/HTTP deadline, and a bounded magic-byte-validated body. Maintain the numerical public-address policy in `config/mediaConfig.js`, including IPv6/mapped-address checks and literal-IP handling; never use a later unpinned global fetch.
 - Model facts are provider/endpoint-specific. Keep context window, maximum input and maximum output separate; preserve explicit unknowns, negative capabilities and real zero prices. Pin models.dev snapshot dates/hashes and retain source provenance for overrides. Never assign a blanket 1M limit or infer retirement/availability from a missing catalog entry.
 - Validate vision on actual outbound payloads, including tool results and compacted multi-turn history. Base64 belongs in typed media fields, not generated prose or JSON text; text token estimates must not count encoded image bytes. Do not silently trim messages to hide an upstream input-limit error.
+- Thinking suffixes and provider defaults must also reach native passthrough in that endpoint's wire format. `(0)` disables budgeted thinking. Keep Claude's disabled-thinking switch independent from its effort control, and map ordinal effort levels only against the resolved model/provider's declared set. Preserve explicit output caps and include/display controls.
 
 ## How to add
 

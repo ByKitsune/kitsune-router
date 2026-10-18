@@ -62,6 +62,25 @@ cases using real disposable files, including concurrent writes, external edits,
 comments, escaped strings, permission failures and failed staging. No actual
 user configuration is used. Official reference: https://opencode.ai/v2/docs/config.
 
+### Thinking request consistency
+
+Reproductions showed `(0)` could enable reasoning, unsupported effort labels
+could reach provider payloads, Claude disabled thinking could be re-enabled,
+and native passthrough could drop suffix/provider-default intent. The shared
+normalizer now keeps zero disabled, maps only to the resolved endpoint's
+declared effort set, and applies explicit overrides on native passthrough.
+Claude effort remains independent where the native transport supports that
+distinction. Explicit output caps and display/summary choices are preserved.
+
+New tests are `thinking-consistency-mapping.test.js` and
+`thinking-native-passthrough-transport.test.js`; the agent's 16-file focused run
+passed 344 cases, followed by a separate parent verification. This does not
+claim live-provider acceptance. Source snapshots and red/green evidence are
+under `/tmp/opencode/zen-wave-20261019/thinking/`; references include the official
+OpenAI GPT-6.1 Sol model page, Claude effort documentation, Google thinking guide
+and pinned Codex `rust-v0.160.0` model manifest. Public API and subscription/IDE
+routes retain different supported effort sets.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

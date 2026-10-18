@@ -54,6 +54,10 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | Native cancellation and public error boundaries | `unit/cursor-cancellation.test.js`, `unit/public-protocol-errors.test.js` |
 
 The reasoning suites cover API aliases, suffix/request/provider precedence, native executor controls, streaming/non-streaming reasoning and measured usage. Run the complete suite to include their fallback, accounting and semantic-TTFT consumers.
+`unit/thinking-consistency-mapping.test.js` and
+`unit/thinking-native-passthrough-transport.test.js` cover zero-budget suffixes,
+endpoint-specific effort sets, disabled native thinking and the final executor
+payload on routes that bypass ordinary format translation.
 
 When changing protocol fixtures, preserve the actual wire contract. For example, a valid Cursor Connect stream requires an `EndStreamResponse`; an intentional MCP handoff closes the waiting run instead. Do not preserve expected failures after the corresponding behavior has been implemented.
 

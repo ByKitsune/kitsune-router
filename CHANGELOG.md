@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Vision, model metadata and audit follow-up
 
+- Normalize explicit thinking choices through native passthrough as well as translated requests. Zero-budget suffixes stay off, unsupported ordinal effort tiers map only to the resolved endpoint's supported set, and Claude disabled thinking remains independent of native effort. Preserve output caps, visibility controls and explicit model-tier precedence.
 - Preserve OpenCode JSONC configuration, comments and unrelated provider/agent settings across dashboard edits. Resolve `opencode.json` or `opencode.jsonc` under the configured XDG directory, reject malformed/unreadable or ambiguous files, and serialize atomic writes with external-change checks instead of overwriting after a failed parse.
 - Reconcile current architecture, test and agent guidance: SQLite owns active usage data; legacy cloud sync is removed; provider execution and translation coverage are broader and more conditional than older summaries claimed. Correct the provider-key hint to describe local storage without claiming encryption at rest.
 - Make the test-report gate reject collection failures, unsuccessful or empty runs, and inconsistent counts. Normal CI now runs the independent CJS compatibility test plus provider identity/baseline checks, isolates application state, disables live/background work, and retains SHA-bound test JSON.
