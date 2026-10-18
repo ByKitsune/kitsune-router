@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import "../translator/registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
+import { applyThinking, parseSuffix } from "../../open-sse/translator/concerns/thinkingUnified.js";
 
 const formats = ["openai", "openai-responses", "claude", "gemini"];
 const targets = [
@@ -46,6 +47,14 @@ describe.each(formats)("zero-budget suffix from %s", source => {
 });
 
 describe("declared effort sets at the actual translation boundary", () => {
+  it.each(["constructor", "__proto__"])("does not treat inherited %s properties as a thinking level", suffix => {
+    const model = `claude-opus-4.7(${suffix})`;
+    expect(parseSuffix(model).override).toBeNull();
+    const body = request("claude", "high");
+    applyThinking("claude", model, body, "claude");
+    expect(body.output_config.effort).toBe("high");
+  });
+
   // The public API explicitly excludes minimal; Codex/reseller contracts are separate.
   // https://developers.openai.com/api/docs/models/gpt-6.1-sol.md
   it.each(formats)("maps normalized %s minimal intent to the lowest supported public OpenAI effort", source => {

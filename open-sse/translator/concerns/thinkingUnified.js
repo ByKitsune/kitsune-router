@@ -41,7 +41,7 @@ export function parseSuffix(model) {
   if (raw === "auto" || raw === "thinking" || raw === "on") return { cleanModel, override: { mode: "auto" } };
   if (raw === "ultra") return { cleanModel, override: { mode: "level", level: raw } };
   if (/^\d+$/.test(raw)) return { cleanModel, override: budgetIntent(raw) };
-  if (LEVEL_TO_BUDGET[raw] !== undefined) return { cleanModel, override: { mode: "level", level: raw } };
+  if (Object.hasOwn(LEVEL_TO_BUDGET, raw)) return { cleanModel, override: { mode: "level", level: raw } };
   return { cleanModel, override: null };
 }
 

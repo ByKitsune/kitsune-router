@@ -81,6 +81,10 @@ OpenAI GPT-6.1 Sol model page, Claude effort documentation, Google thinking guid
 and pinned Codex `rust-v0.160.0` model manifest. Public API and subscription/IDE
 routes retain different supported effort sets.
 
+Review also caught inherited object keys being recognized as suffix levels.
+Suffix lookup now requires an own property. Regressions for `(constructor)` and
+`(__proto__)` verify that neither overrides a valid native effort control.
+
 ### Dated model and pricing review
 
 Full manifest: [catalog-review-20261017.json](data/catalog-review-20261017.json).
