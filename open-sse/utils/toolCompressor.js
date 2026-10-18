@@ -221,39 +221,100 @@ export function isCompleteToolName(name, declarations) {
   return true;
 }
 
-// Names in Chat are deltas; a compressed alias can span several chunks. State is
-// owned by one stream and keyed by both choice and tool index, never by provider.
-export function restoreOpenAIToolNameDeltas(chunk, toolNameMap, names) {
-  if (!toolNameMap?.size || !Array.isArray(chunk?.choices)) return decloakOpenAIChunk(chunk, toolNameMap);
-  let changed = false;
-  const choices = chunk.choices.map((choice) => {
-    if (!Array.isArray(choice?.delta?.tool_calls)) return choice;
-    let callsChanged = false;
-    const tool_calls = choice.delta.tool_calls.map((call) => {
-      const fragment = call?.function?.name;
-      if (typeof fragment !== "string" || !fragment) return call;
-      const key = `${choice.index ?? 0}:${call.index ?? 0}`;
-      let entry = names.get(key);
-      if (!entry) { entry = { pending: "", resolved: false }; names.set(key, entry); }
-      if (entry.resolved) return call;
-      entry.pending += fragment;
-      let name = toolNameMap.get(entry.pending);
-      if (name) entry.resolved = true;
-      else {
-        let prefix = false;
-        for (const alias of toolNameMap.keys()) if (alias.startsWith(entry.pending)) { prefix = true; break; }
-        if (!prefix) { name = entry.pending; entry.resolved = true; }
-      }
-      if (name === fragment) return call;
-      callsChanged = true;
+// Keep whole provider frames until their tool names are resolved. Replaying the
+// original opener, rather than moving its name to a continuation, preserves both
+// strict SDK initialization and opaque provider metadata.
+function drainToolNameFrames(state) {
+  const ready = [];
+  const pending = [];
+  const blocked = new Set();
+  for (const frame of state.frames) {
+    if (frame.owners.some(entry => !entry.resolved || blocked.has(entry))) {
+      pending.push(frame);
+      for (const entry of frame.owners) blocked.add(entry);
+      continue;
+    }
+    let choices = frame.chunk.choices;
+    for (const { choiceIndex, callIndex, entry, opener, fragment } of frame.calls) {
+      const choice = choices[choiceIndex];
+      const call = choice.delta.tool_calls[callIndex];
+      const name = opener ? entry.name : undefined;
+      if (opener ? !name || call.function?.name === name : !fragment) continue;
       const fn = { ...call.function };
-      if (name) fn.name = name;
+      if (opener) fn.name = name;
       else delete fn.name;
-      return { ...call, function: fn };
-    });
-    if (!callsChanged) return choice;
-    changed = true;
-    return { ...choice, delta: { ...choice.delta, tool_calls } };
-  });
-  return changed ? { ...chunk, choices } : chunk;
+      if (choices === frame.chunk.choices) choices = [...choices];
+      const tool_calls = [...choice.delta.tool_calls];
+      tool_calls[callIndex] = { ...call, function: fn };
+      choices[choiceIndex] = { ...choice, delta: { ...choice.delta, tool_calls } };
+    }
+    ready.push(choices === frame.chunk.choices ? frame.chunk : { ...frame.chunk, choices });
+  }
+  state.frames = pending;
+  return ready;
+}
+
+function resolveToolName(entry, toolNameMap) {
+  const name = entry.fragments.join("");
+  entry.name = toolNameMap.get(name) || name;
+  entry.fragments = [];
+  entry.resolved = true;
+}
+
+// State belongs to one stream. An absent tool index never acquires ownership of
+// another call; the malformed upstream frame remains the client's to reject.
+// A null chunk finishes pending names at [DONE]/EOF, not on errors or cancellation.
+export function restoreOpenAIToolNameDeltas(chunk, toolNameMap, state, wireToolNames) {
+  if (!toolNameMap?.size) return chunk ? [decloakOpenAIChunk(chunk, toolNameMap)] : [];
+  if (!chunk) {
+    for (const entry of state.names.values()) if (!entry.resolved) resolveToolName(entry, toolNameMap);
+    return drainToolNameFrames(state);
+  }
+  if (!Array.isArray(chunk.choices)) return [decloakOpenAIChunk(chunk, toolNameMap)];
+
+  const frame = { chunk, calls: [], owners: [] };
+  for (let choiceIndex = 0; choiceIndex < chunk.choices.length; choiceIndex++) {
+    const choice = chunk.choices[choiceIndex];
+    if (!choice || typeof choice !== "object") continue;
+    const choiceId = choice.index ?? 0;
+    const calls = choice.delta?.tool_calls;
+    if (Array.isArray(calls)) for (let callIndex = 0; callIndex < calls.length; callIndex++) {
+      const call = calls[callIndex];
+      if (!Number.isInteger(call?.index) || call.index < 0) continue;
+      const key = `${choiceId}:${call.index}`;
+      let entry = state.names.get(key);
+      if (entry) frame.owners.push(entry);
+      if (entry?.resolved) continue;
+      const fragment = call.function?.name;
+      if (!entry) {
+        if (typeof fragment !== "string") continue;
+        entry = { choiceId, fragments: [], resolved: false, name: "" };
+        state.names.set(key, entry);
+        frame.owners.push(entry);
+        frame.calls.push({ choiceIndex, callIndex, entry, opener: true, fragment });
+      } else {
+        frame.calls.push({ choiceIndex, callIndex, entry, opener: false, fragment });
+      }
+      if (typeof fragment === "string" && fragment) entry.fragments.push(fragment);
+      const name = entry.fragments.join("");
+      if (!name) continue;
+      let hasLongerName = false;
+      for (const candidate of wireToolNames || toolNameMap.keys()) {
+        if (candidate.length > name.length && candidate.startsWith(name)) {
+          hasLongerName = true;
+          break;
+        }
+      }
+      if (!hasLongerName) resolveToolName(entry, toolNameMap);
+    }
+    if (choice.finish_reason) {
+      for (const entry of state.names.values()) {
+        if (entry.choiceId !== choiceId) continue;
+        frame.owners.push(entry);
+        if (!entry.resolved) resolveToolName(entry, toolNameMap);
+      }
+    }
+  }
+  state.frames.push(frame);
+  return drainToolNameFrames(state);
 }

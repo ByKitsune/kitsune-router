@@ -54,7 +54,7 @@ describe("GOLDEN response stream: Claude → OpenAI", () => {
     expect(deltas.map((delta) => delta.content || "").join("")).toBe("Hello");
     const calls = deltas.flatMap((delta) => delta.tool_calls || []);
     expect(calls[0]).toMatchObject({ id: "tu_1", type: "function", function: { name: "get_weather" } });
-    expect(calls.every((call) => call.id === "tu_1")).toBe(true);
+    expect(calls.filter((call) => call.id !== undefined).map((call) => call.id)).toEqual(["tu_1"]);
     expect(calls.map((call) => call.function.arguments || "").join("")).toBe('{"city":"NYC"}');
     expect(chunks.filter((chunk) => chunk.choices[0].finish_reason)).toEqual([
       expect.objectContaining({
@@ -108,4 +108,3 @@ describe("GOLDEN response stream: Ollama → OpenAI", () => {
     expect(runStream(FORMATS.OLLAMA, FORMATS.OPENAI, events)).toMatchSnapshot();
   });
 });
-

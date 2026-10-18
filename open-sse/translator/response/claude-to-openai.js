@@ -53,7 +53,7 @@ function flushToolInputSnapshot(state, toolCall, results) {
   if (!toolCall?.inputSnapshot || toolCall.hasInputDeltas || toolCall.snapshotEmitted) return;
   toolCall.snapshotEmitted = true;
   results.push(createChunk(state, { tool_calls: [{
-    index: toolCall.index, id: toolCall.id, function: { arguments: toolCall.inputSnapshot },
+    index: toolCall.index, function: { arguments: toolCall.inputSnapshot },
   }] }));
 }
 
@@ -176,7 +176,7 @@ export function claudeToOpenAIResponse(chunk, state) {
           }
         };
         state.toolCalls.set(chunk.index, {
-          index: toolCallIndex, id: block.id,
+          index: toolCallIndex,
           inputSnapshot: block.input && Object.keys(block.input).length > 0 ? JSON.stringify(block.input) : null,
           hasInputDeltas: false, snapshotEmitted: false,
         });
@@ -201,7 +201,6 @@ export function claudeToOpenAIResponse(chunk, state) {
           results.push(createChunk(state, {
             tool_calls: [{
               index: toolCall.index,
-              id: toolCall.id,
               function: { arguments: delta.partial_json }
             }]
           }));

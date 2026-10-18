@@ -599,7 +599,10 @@ describe("Claude initial tool input fallback", () => {
       const calls = result.events.flatMap((event) => event.choices?.[0]?.delta?.tool_calls || []);
       expect(calls[0]).toEqual({ ...tool, index: 0, function: { name: "lookup", arguments: "" } });
       expect(calls.map((call) => call.function?.arguments || "").join("")).toBe(wantedArguments);
-      expect(calls.every((call) => call.id === tool.id)).toBe(true);
+      // Chat clients concatenate identity fragments. Continuations keep their
+      // owner index but must not repeat the opener's ID.
+      expect(calls.every((call) => call.index === 0)).toBe(true);
+      expect(calls.filter((call) => call.id !== undefined).map((call) => call.id)).toEqual([tool.id]);
       expect(result.events.filter((event) => event.choices?.[0]?.finish_reason)).toHaveLength(1);
     }
   });
@@ -613,7 +616,7 @@ describe("Claude initial tool input fallback", () => {
     const result = await consumeStream(events.map(eventFrame).join(""), FORMATS.CLAUDE, FORMATS.OPENAI);
     const calls = result.events.flatMap((event) => event.choices?.[0]?.delta?.tool_calls || []);
     expect(calls[0]).toEqual({ ...tool, index: 0, function: { name: "lookup", arguments: "" } });
-    expect(calls.slice(1)).toEqual([{ index: 0, id: tool.id, function: { arguments: '{"key":"snapshot"}' } }]);
+    expect(calls.slice(1)).toEqual([{ index: 0, function: { arguments: '{"key":"snapshot"}' } }]);
     expect(result.events.filter((event) => event.choices?.[0]?.finish_reason).map((event) => event.choices[0].finish_reason))
       .toEqual([boundary === "terminal" ? "tool_calls" : "network_error"]);
     expect(result.text.match(/data: \[DONE\]/g)).toHaveLength(1);

@@ -33,6 +33,8 @@ vi.mock("../../open-sse/executors/index.js", async () => {
 
 import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
 import { createSSETransformStreamWithLogger } from "../../open-sse/utils/stream.js";
+import { handleStreamingResponse } from "../../open-sse/handlers/chatCore/streamingHandler.js";
+import { createStreamController } from "../../open-sse/utils/streamHandler.js";
 import { initState, translateResponse } from "../../open-sse/translator/index.js";
 import { FORMATS as F } from "../../open-sse/translator/formats.js";
 
@@ -166,12 +168,35 @@ function collectChatCalls(wire) {
   for (const { data } of frames(wire)) for (const choice of data.choices || []) for (const call of choice.delta?.tool_calls || []) {
     const key = `${choice.index ?? 0}:${call.index ?? 0}`;
     const entry = calls.get(key) || { id: "", name: "", arguments: "" };
-    if (call.id) entry.id = call.id;
+    entry.id += call.id || "";
     entry.name += call.function?.name || "";
     entry.arguments += call.function?.arguments || "";
     calls.set(key, entry);
   }
   return [...calls.values()];
+}
+
+// AI SDK opens a call on its first delta; later strings (including IDs) are
+// concatenated as in the OpenAI SDK rather than replacing earlier identity.
+function collectStrictChatCalls(wire) {
+  const calls = new Map();
+  for (const { data } of frames(wire)) for (const choice of data.choices || []) for (const call of choice.delta?.tool_calls || []) {
+    expect(Number.isInteger(call.index), "tool continuations need an explicit owner").toBe(true);
+    const key = `${choice.index ?? 0}:${call.index}`;
+    if (!calls.has(key)) {
+      expect(typeof call.id, `first ${key} tool frame needs its original ID`).toBe("string");
+      expect(call.id.length).toBeGreaterThan(0);
+      expect(call.type, `first ${key} tool frame needs its type`).toBe("function");
+      expect(typeof call.function?.name, `first ${key} tool frame needs a name`).toBe("string");
+      expect(call.function.name.length).toBeGreaterThan(0);
+      calls.set(key, { id: "", name: "", arguments: "" });
+    }
+    const entry = calls.get(key);
+    entry.id += call.id || "";
+    entry.name += call.function?.name || "";
+    entry.arguments += call.function?.arguments || "";
+  }
+  return calls;
 }
 function assertChat(wire, expected = CALLS, finish = "tool_calls") {
   expect(collectChatCalls(wire)).toEqual(expected.map(call => ({ id: call.id, name: call.name, arguments: call.arguments })));
@@ -252,6 +277,7 @@ describe("real same-format stream consumer wiring", () => {
     expect(result.success).toBe(true);
     const wire = await result.response.text();
     assertChat(wire, expected);
+    expect([...collectStrictChatCalls(wire).values()]).toEqual(expected.map(call => ({ id: call.id, name: call.name, arguments: call.arguments })));
     expect(socket.requests[0].path).toBe("/openai/v1/chat/completions");
     expect(socket.requests[0].body.tools.map(tool => tool.function.name)).toEqual([SHORT_A, SHORT_B]);
   });
@@ -320,6 +346,226 @@ describe("real same-format stream consumer wiring", () => {
     }
     expect(socket.requests[0].path).toBe("/opencode-go/zen/go/v1/responses");
     expect(socket.requests[0].body.previous_response_id).toBe("resp_previous_contract");
+  });
+});
+
+describe("strict Chat stream tool identity", () => {
+  it.each(["deltas", "snapshot"].flatMap(input => ["block_stop", "message_delta", "message_stop", "eof"].map(end => [input, end])))(
+    "emits Claude identity once with %s input flushed at %s", async (input, end) => {
+      const expected = input === "deltas" ? CALLS : [
+        { ...CALLS[0], arguments: '{"city":"Paris"}' },
+        { ...CALLS[1], arguments: '{"node":{"node":1}}' },
+      ];
+      const events = [
+        { type: "message_start", message: { id: "msg_dense_tools", model: "claude-sonnet-4-6", usage: { input_tokens: 11, output_tokens: 0 } } },
+        { type: "content_block_start", index: 0, content_block: { type: "text", text: "Before tools." } },
+        { type: "content_block_stop", index: 0 },
+        { type: "content_block_start", index: 2, content_block: { type: "tool_use", id: CALLS[0].id, name: "lookup", input: input === "snapshot" ? { city: "Paris" } : {} } },
+        { type: "content_block_start", index: 5, content_block: { type: "tool_use", id: CALLS[1].id, name: "lookup_many", input: input === "snapshot" ? { node: { node: 1 } } : {} } },
+      ];
+      if (input === "deltas") {
+        for (let part = 0; part < 2; part++) for (const [block, call] of [[5, CALLS[1]], [2, CALLS[0]]]) events.push({
+          type: "content_block_delta", index: block,
+          delta: { type: "input_json_delta", partial_json: part === 0 ? call.arguments.slice(0, 13) : call.arguments.slice(13) },
+        });
+      }
+      if (end === "block_stop") events.push({ type: "content_block_stop", index: 5 }, { type: "content_block_stop", index: 2 });
+      if (end === "block_stop" || end === "message_delta") events.push({ type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { output_tokens: 7 } });
+      if (end !== "eof") events.push({ type: "message_stop" });
+      socket.reply = { sse: true, body: events.map(eventFrame).join("") };
+      const result = await dispatch("claude", "claude-sonnet-4-6", F.OPENAI);
+      expect(result.success).toBe(true);
+      const wire = await result.response.text();
+      expect(Object.fromEntries(collectStrictChatCalls(wire))).toEqual({
+        "0:0": { id: CALLS[0].id, name: "lookup", arguments: expected[0].arguments },
+        "0:1": { id: CALLS[1].id, name: "lookup_many", arguments: expected[1].arguments },
+      });
+      const toolDeltas = frames(wire).flatMap(frame => frame.data.choices || []).flatMap(choice => choice.delta?.tool_calls || []);
+      for (const index of [0, 1]) {
+        const calls = toolDeltas.filter(call => call.index === index);
+        expect(calls.filter(call => call.id !== undefined)).toHaveLength(1);
+        for (const continuation of calls.slice(1)) {
+          expect(continuation).not.toHaveProperty("id");
+          expect(continuation).not.toHaveProperty("type");
+          expect(continuation.function).not.toHaveProperty("name");
+        }
+      }
+      expect(wire.match(/data: \[DONE\]/g)).toHaveLength(1);
+    }
+  );
+
+  it("retains native Claude signed thinking and opaque tool metadata without Chat rewriting", async () => {
+    const events = [
+      { type: "message_start", message: { id: "msg_native_opaque", type: "message", role: "assistant", model: "claude-sonnet-4-6", content: [], usage: { input_tokens: 11, output_tokens: 0 } } },
+      { type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "Native reasoning", signature: "native-start-signature==" } },
+      { type: "content_block_delta", index: 0, delta: { type: "signature_delta", signature: "native-signature-continuation==" } },
+      { type: "content_block_stop", index: 0 },
+      { type: "content_block_start", index: 1, content_block: { type: "redacted_thinking", data: "opaque-redacted-data==" } },
+      { type: "content_block_stop", index: 1 },
+      { type: "content_block_start", index: 2, content_block: { type: "tool_use", id: CALLS[0].id, name: "lookup", input: {}, caller: { type: "direct" }, provider_metadata: { opaque: "tool-signature==" } } },
+      { type: "content_block_delta", index: 2, delta: { type: "input_json_delta", partial_json: ARGS_A } },
+      { type: "content_block_stop", index: 2 },
+      { type: "message_delta", delta: { stop_reason: "tool_use", stop_sequence: null }, usage: { output_tokens: 7 } },
+      { type: "message_stop" },
+    ];
+    socket.reply = { sse: true, body: events.map(eventFrame).join("") };
+    const result = await dispatch("claude", "claude-sonnet-4-6", F.CLAUDE);
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    expect(frames(wire)).toEqual(events.map(data => ({ event: data.type, data })));
+    expect(wire).not.toContain("[DONE]");
+  });
+});
+
+describe("strict Chat alias opener restoration", () => {
+  const longRead = "read_cloudflare_observability_plugin__search_logs_by_filter_and_timestamp_range_query_v1";
+  const wireRead = "read_cloudflare_observability_plugin__search_logs_by_fi_ce3c3e65";
+  const opaque = { google: { thought_signature: "opaque-google-signature==" }, vendor: { token: "opaque-token==" } };
+
+  it("keeps a declared short name that prefixes a compressed alias and buffers both complete openers", async () => {
+    const shortOpener = { ...chatChunk({ tool_calls: [{
+      index: 0, id: "call_read_TSIG_b3BhcXVl", type: "function", extra_content: opaque,
+      function: { name: "read", arguments: ARGS_B, provider_metadata: { signature: "short-function==" } },
+    }] }), upstream_frame: "short-opener", system_fingerprint: "fingerprint-short" };
+    const longOpener = { ...chatChunk({ tool_calls: [{
+      index: 1, id: CALLS[0].id, type: "function", extra_content: opaque,
+      function: { name: "read", arguments: ARGS_A.slice(0, 13), provider_metadata: { signature: "long-function==" } },
+    }], provider_metadata: { opaque: "delta-metadata==" } }), upstream_frame: "long-opener", system_fingerprint: "fingerprint-long" };
+    longOpener.choices[0].provider_metadata = { opaque: "choice-metadata==" };
+    const nonTool = { ...chatChunk({ content: "While tool names are pending.", reasoning_details: [{ type: "reasoning.encrypted", data: "opaque-reasoning==" }] }), upstream_frame: "non-tool" };
+    const continuation = { ...chatChunk({ tool_calls: [{ index: 1, function: { name: wireRead.slice(4), arguments: ARGS_A.slice(13) }, provider_metadata: { opaque: "continuation==" } }] }), upstream_frame: "long-continuation" };
+    socket.reply = { sse: true, body: [shortOpener, longOpener, nonTool, continuation, { ...chatChunk({}, "tool_calls"), usage: CHAT_USAGE }].map(dataFrame).join("") + "data: [DONE]\n\n" };
+    const result = await dispatch("openai", "gpt-5.5", F.OPENAI, clientBody(F.OPENAI, ["read", longRead]));
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    expect(Object.fromEntries(collectStrictChatCalls(wire))).toEqual({
+      "0:0": { id: "call_read_TSIG_b3BhcXVl", name: "read", arguments: ARGS_B },
+      "0:1": { id: CALLS[0].id, name: longRead, arguments: ARGS_A },
+    });
+    const data = frames(wire).map(frame => frame.data);
+    expect(data.filter(chunk => chunk.upstream_frame === "short-opener")).toEqual([shortOpener]);
+    const expectedLong = structuredClone(longOpener);
+    expectedLong.choices[0].delta.tool_calls[0].function.name = longRead;
+    expect(data.filter(chunk => chunk.upstream_frame === "long-opener")).toEqual([expectedLong]);
+    expect(data.find(chunk => chunk.upstream_frame === "non-tool")).toEqual(nonTool);
+    expect(data.flatMap(chunk => chunk.choices || []).flatMap(choice => choice.delta?.tool_calls || []).find(call => call.provider_metadata?.opaque === "continuation=="))
+      .toMatchObject({ index: 1, provider_metadata: { opaque: "continuation==" }, function: { arguments: ARGS_A.slice(13) } });
+    expect(socket.requests[0].body.tools.map(tool => tool.function.name)).toEqual(["read", wireRead]);
+  });
+
+  it("keeps pending aliases owned by choice and tool index during parallel interleaving", async () => {
+    const choice = (index, tool_calls, finish_reason = null) => ({ index, delta: { tool_calls }, finish_reason });
+    const opener = (index, id, name, arguments_) => ({ index, id, type: "function", function: { name, arguments: arguments_ }, extra_content: opaque });
+    const chunks = [
+      { ...chatChunk({}), choices: [choice(1, [opener(0, "call_choice_one", SHORT_B.slice(0, 4), ARGS_B.slice(0, 8))]), choice(0, [opener(0, CALLS[0].id, SHORT_A.slice(0, 4), ARGS_A.slice(0, 13))])] },
+      { ...chatChunk({}), choices: [choice(0, [opener(1, "call_choice_zero_short", "read", "{}")])] },
+      { ...chatChunk({}), choices: [choice(0, [{ index: 0, function: { name: SHORT_A.slice(4), arguments: ARGS_A.slice(13) } }]), choice(1, [{ index: 0, function: { name: SHORT_B.slice(4), arguments: ARGS_B.slice(8) } }])] },
+      { ...chatChunk({}), choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }, { index: 1, delta: {}, finish_reason: "tool_calls" }], usage: CHAT_USAGE },
+    ];
+    socket.reply = { sse: true, body: chunks.map(dataFrame).join("") + "data: [DONE]\n\n" };
+    const result = await dispatch("openai", "gpt-5.5", F.OPENAI, clientBody(F.OPENAI, [LONG_A, LONG_B, "read"]));
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    expect(Object.fromEntries(collectStrictChatCalls(wire))).toEqual({
+      "1:0": { id: "call_choice_one", name: LONG_B, arguments: ARGS_B },
+      "0:0": { id: CALLS[0].id, name: LONG_A, arguments: ARGS_A },
+      "0:1": { id: "call_choice_zero_short", name: "read", arguments: "{}" },
+    });
+    const starts = frames(wire).flatMap(frame => frame.data.choices || []).flatMap(value => value.delta?.tool_calls || []).filter(call => call.id);
+    expect(starts).toHaveLength(3);
+    expect(starts.every(call => JSON.stringify(call.extra_content) === JSON.stringify(opaque))).toBe(true);
+  });
+
+  it.each(["finish_reason", "done", "eof"].flatMap(end => ["", ARGS_A].map(args => [end, args])))("flushes a complete pending short name before the %s terminal with arguments %j", async (end, args) => {
+    const opener = { ...chatChunk({ tool_calls: [{ index: 0, id: "call_short_terminal", type: "function", function: { name: "read", arguments: "" }, extra_content: opaque }] }), upstream_frame: "pending-terminal" };
+    const chunks = [opener];
+    if (args) chunks.push(chatChunk({ tool_calls: [{ index: 0, function: { arguments: args } }] }));
+    if (end === "finish_reason") chunks.push({ ...chatChunk({}, "tool_calls"), usage: CHAT_USAGE });
+    socket.reply = { sse: true, body: chunks.map(dataFrame).join("") + (end === "eof" ? "" : "data: [DONE]\n\n") };
+    const result = await dispatch("openai", "gpt-5.5", F.OPENAI, clientBody(F.OPENAI, ["read", longRead]));
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    expect(Object.fromEntries(collectStrictChatCalls(wire))).toEqual({ "0:0": { id: "call_short_terminal", name: "read", arguments: args } });
+    const output = frames(wire).map(frame => frame.data);
+    expect(output.filter(chunk => chunk.upstream_frame === "pending-terminal")).toEqual([opener]);
+    expect(wire.indexOf("call_short_terminal")).toBeLessThan(wire.indexOf("data: [DONE]"));
+    const terminalIndex = output.findIndex(chunk => chunk.choices?.some(value => value.finish_reason));
+    expect(output.findIndex(chunk => chunk.upstream_frame === "pending-terminal")).toBeLessThan(terminalIndex);
+    expect(wire.match(/data: \[DONE\]/g)).toHaveLength(1);
+  });
+
+  it("does not attach an index-less alias fragment to the last parallel tool or fabricate a missing ID", async () => {
+    const malformed = { function: { name: SHORT_B.slice(4), arguments: "opaque-indexless-bytes" }, extra_content: opaque };
+    const chunks = [
+      chatChunk({ tool_calls: [{ index: 0, id: "call_owned", type: "function", function: { name: SHORT_A.slice(0, 4), arguments: "" } }] }),
+      chatChunk({ tool_calls: [malformed] }),
+      chatChunk({ tool_calls: [{ index: 0, function: { name: SHORT_A.slice(4), arguments: ARGS_A } }] }),
+      chatChunk({ tool_calls: [{ index: 1, type: "function", function: { name: SHORT_B, arguments: ARGS_B }, extra_content: opaque }] }),
+      { ...chatChunk({}, "tool_calls"), usage: CHAT_USAGE },
+    ];
+    socket.reply = { sse: true, body: chunks.map(dataFrame).join("") + "data: [DONE]\n\n" };
+    const result = await dispatch("openai", "gpt-5.5", F.OPENAI, clientBody(F.OPENAI, [LONG_A, LONG_B]));
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    const calls = frames(wire).flatMap(frame => frame.data.choices || []).flatMap(choice => choice.delta?.tool_calls || []);
+    expect(calls.find(call => call.index === undefined)).toEqual(malformed);
+    expect(calls.filter(call => call.index === 0).map(call => call.function?.name || "").join("")).toBe(LONG_A);
+    expect(calls.filter(call => call.index === 0).map(call => call.id || "").join("")).toBe("call_owned");
+    expect(calls.find(call => call.index === 1)).not.toHaveProperty("id");
+  });
+
+  it("preserves a structured upstream error instead of flushing an unresolved alias as a successful tool", async () => {
+    socket.reply = { sse: true, body: [
+      chatChunk({ tool_calls: [{ index: 0, id: "call_failed_prefix", type: "function", function: { name: "read", arguments: "" } }] }),
+      { error: { type: "server_error", code: "upstream_error", message: "upstream generation failed" } },
+      chatChunk({ tool_calls: [{ index: 0, function: { name: wireRead.slice(4), arguments: "{}" } }] }),
+      chatChunk({}, "tool_calls"),
+    ].map(dataFrame).join("") + "data: [DONE]\n\n" };
+    const result = await dispatch("openai", "gpt-5.5", F.OPENAI, clientBody(F.OPENAI, [longRead]));
+    expect(result.success).toBe(true);
+    const wire = await result.response.text();
+    const output = frames(wire).map(frame => frame.data);
+    expect(output.filter(chunk => chunk.error)).toEqual([{ error: { type: "server_error", code: "upstream_error", message: "upstream generation failed" } }]);
+    expect(output.flatMap(chunk => chunk.choices || []).flatMap(choice => choice.delta?.tool_calls || [])).toEqual([]);
+    expect(wire).not.toContain('"finish_reason":"tool_calls"');
+    expect(wire.match(/data: \[DONE\]/g)).toHaveLength(1);
+  });
+
+  it("cancels upstream without leaking a pending opener or fabricating a successful completion", async () => {
+    let cancelled;
+    const upstreamCancelled = new Promise(resolve => { cancelled = resolve; });
+    const upstream = new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode([
+          chatChunk({ tool_calls: [{ index: 0, id: "call_cancelled_prefix", type: "function", function: { name: "read", arguments: "" }, extra_content: opaque }] }),
+          chatChunk({ content: "Non-tool content must not wait for an alias." }),
+        ].map(dataFrame).join("")));
+      },
+      cancel(reason) { cancelled(reason); },
+    }), { headers: { "content-type": "text/event-stream" } });
+    const streamController = createStreamController({ provider: "openai", model: "gpt-5.5", log });
+    const result = await handleStreamingResponse({
+      providerResponse: upstream, provider: "openai", model: "gpt-5.5", sourceFormat: F.OPENAI, targetFormat: F.OPENAI,
+      body: clientBody(F.OPENAI, [longRead]), translatedBody: clientBody(F.OPENAI, [wireRead]), stream: true,
+      requestStartTime: Date.now(), toolNameMap: new Map([[wireRead, longRead]]), streamController,
+    });
+    const reader = result.response.body.getReader();
+    const decoder = new TextDecoder();
+    let seen = "";
+    try {
+      while (!seen.includes("Non-tool content")) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        seen += decoder.decode(value, { stream: true });
+      }
+      expect(seen).toContain("Non-tool content must not wait for an alias.");
+      expect(seen).not.toContain("call_cancelled_prefix");
+      expect(seen).not.toContain("[DONE]");
+    } finally {
+      await reader.cancel("strict-tool-consumer-cancel");
+      await upstreamCancelled;
+    }
+    expect(streamController.signal.aborted).toBe(true);
   });
 });
 
