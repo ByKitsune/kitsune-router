@@ -4561,7 +4561,14 @@ export default {
       "pricing": {
         "input": 2.0,
         "output": 6.0,
-        "cached": 0.5
+        "cached": 0.5,
+        "tier": {
+          "threshold": 200000,
+          "inclusive": true,
+          "input": 4.0,
+          "output": 12.0,
+          "cached": 1.0
+        }
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
@@ -4571,7 +4578,7 @@ export default {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "payg",
-        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. No Agent-route context/output/modality claims inferred from vendor-global specs. High tier starts at >=200k input: input 4.0, output 12.0, cached 1.0; boundary cannot be encoded losslessly by the existing >threshold tier shape. Numeric fields shown are <200k only. Official quickstart explicitly accepts /v1/responses as an alias of /v1/agent; existing transport is retained. No authenticated inference probe performed."
+        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. High tier starts at >=200000 cache-inclusive input tokens and applies to the whole request. Output includes reasoning. Official quickstart accepts /v1/responses as an alias of /v1/agent. No authenticated inference or account entitlement verified."
       }
     },
     "xai/grok-4.6": {
@@ -4597,7 +4604,14 @@ export default {
       "pricing": {
         "input": 2.0,
         "output": 6.0,
-        "cached": 0.5
+        "cached": 0.5,
+        "tier": {
+          "threshold": 200000,
+          "inclusive": true,
+          "input": 4.0,
+          "output": 12.0,
+          "cached": 1.0
+        }
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
@@ -4608,14 +4622,21 @@ export default {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "payg",
-        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. No Agent-route context/output/modality claims inferred from vendor-global specs. High tier starts at >=200k input: input 4.0, output 12.0, cached 1.0; boundary cannot be encoded losslessly by the existing >threshold tier shape. Numeric fields shown are <200k only. Official quickstart explicitly accepts /v1/responses as an alias of /v1/agent; existing transport is retained. No authenticated inference probe performed."
+        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. High tier starts at >=200000 cache-inclusive input tokens and applies to the whole request. Output includes reasoning. Official quickstart accepts /v1/responses as an alias of /v1/agent. No authenticated inference or account entitlement verified."
       }
     },
     "xai/grok-4.5": {
       "pricing": {
         "input": 2.0,
         "output": 6.0,
-        "cached": 0.3
+        "cached": 0.3,
+        "tier": {
+          "threshold": 200000,
+          "inclusive": true,
+          "input": 4.0,
+          "output": 12.0,
+          "cached": 0.6
+        }
       },
       "sources": [
         "https://docs.perplexity.ai/docs/agent-api/models.md",
@@ -4625,7 +4646,7 @@ export default {
         "currency": "USD",
         "unit": "per_1000000_tokens",
         "kind": "payg",
-        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. No Agent-route context/output/modality claims inferred from vendor-global specs. High tier starts at >=200k input: input 4.0, output 12.0, cached 0.6; boundary cannot be encoded losslessly by the existing >threshold tier shape. Numeric fields shown are <200k only. Official quickstart explicitly accepts /v1/responses as an alias of /v1/agent; existing transport is retained. No authenticated inference probe performed."
+        "note": "Agent API default-processing USD token prices only; tools and other per-invocation charges are separate. High tier starts at >=200000 cache-inclusive input tokens and applies to the whole request. Output includes reasoning. Official quickstart accepts /v1/responses as an alias of /v1/agent. No authenticated inference or account entitlement verified."
       }
     },
     "xai/grok-4.3": {

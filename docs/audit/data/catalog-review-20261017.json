@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-17",
+  "requestedSessionDate": "2026-10-19",
+  "evidenceGeneratedAt": "2026-10-18T17:26:13.946673+00:00",
+  "evidenceRoot": "/tmp/opencode/zen-wave-20261019/catalog",
+  "baseline": {
+    "assignedCommit": "145240272931c14435e400aa7772ef743570d2ab",
+    "workingHead": "c47924bc150db2c9d74b20749afa05a1d83fc2f4",
+    "modifiedProductionFilesEqualAssignedBaseBeforeReview": true,
+    "commitsCreated": 0
+  },
+  "methodology": {
+    "identity": "Literal provider/product and model ID, or an explicitly declared upstreamModelId. No vendor-leaf joins across regional, subscription or hosted routes.",
+    "coverage": "Complete registry, complete reviewed metadata inventory, complete captured models.dev catalogs, and active/auxiliary/voice lifecycle inventory. Exact-match coverage is distinct from verification.",
+    "limits": "Context, independent maximum input and maximum output are separate quantities. No rounding to 1M, subtraction to invent input limits, or transfer of SDK/batch/continuation limits to direct REST.",
+    "pricing": "Compare published input, output, cache-read, cache-write and context-tier fields. Classify currencies, subscription references, media units, promotions and primary-source overrides before interpreting numeric differences.",
+    "lifecycle": "Absence is not retirement. Scheduled retirement, earliest possible shutdown, account eligibility and compatibility aliases remain distinct.",
+    "timestampQualification": "The environment and HTTP Date headers reported October 18 although the requested session date was October 19. Actual timestamps are preserved. Vendor pages fetched after the cutoff are corroboration, not historical HTTP captures; dated announcements support historical attribution where available.",
+    "inferenceRequests": 0
+  },
+  "modelsDev": {
+    "repositoryDiscovery": "https://models.dev/ links to https://github.com/sst/models.dev, redirected to anomalyco/models.dev; raw homepage and GitHub response are retained.",
+    "currentDefault": {
+      "url": "https://models.dev/api.json",
+      "file": "raw/models.dev-current-api.json",
+      "fetchedAt": "2026-10-18T17:19:54.058620+00:00",
+      "providers": 232,
+      "models": 9049,
+      "bytes": 5803655,
+      "sha256": "c1724e6c87e41a273e437ca0be00682dda2dc5d49bcaa47dac0555c9aecb8aad"
+    },
+    "currentAllTypes": {
+      "url": "https://models.dev/api.json?type=all",
+      "file": "raw/models.dev-current-api-all.json",
+      "fetchedAt": "2026-10-18T17:20:21.386177+00:00",
+      "providers": 232,
+      "models": 9100,
+      "bytes": 5831191,
+      "sha256": "655c7bf9f2d1b8c5e7cb49f848bfa24c51c13e0bfc2abc6214f4b519ff75358c"
+    },
+    "historical": {
+      "repository": "https://github.com/anomalyco/models.dev",
+      "commit": "22dc88b304dd15ab1c1692794ead3696bc97994d",
+      "committedAt": "2026-10-17T23:21:55Z",
+      "tree": "3d4c77af1c3e88ff24a4004160076ce434ac1926",
+      "selection": "GitHub commits endpoint with until=2026-10-17T23:59:59Z and per_page=1",
+      "commitResponseSha256": "d597df09ed63b75dfdeffd02ffacdad245ad58ee29b7bcaad94571a7bacc298c",
+      "archive": "raw/models.dev-22dc88b304dd15ab1c1692794ead3696bc97994d.tar.gz",
+      "archiveSha256": "59d57062a7f3c0bdfd955cec929f5aa1f20981f08719345e97eaab600aaa958c",
+      "derivedDefault": {
+        "file": "models.dev-asof-2026-10-17.json",
+        "providers": 232,
+        "models": 9042,
+        "sha256": "83ce1d1a61e82c504d153b455c5ee509211ec35f46e29281926699ad56c0c16d"
+      },
+      "derivedAllTypes": {
+        "file": "models.dev-asof-2026-10-17-all.json",
+        "providers": 232,
+        "models": 9092,
+        "sha256": "7b5ddaa072fa1af0c08a84d915df4d08970f3f33d9ed7765017bd1aa8fd64d97"
+      },
+      "derivation": "Offline Python port of pinned generate.ts/filter.ts, including base-model merges, omissions and context tiers. Bun was unavailable; the official generator was not executed. Derived JSON is not a captured historical API response.",
+      "unresolvedUpstreamSymlinks": 33,
+      "unresolvedScope": "providers/siliconflow-cn/models; missing upstream targets were recorded and omitted, not reconstructed from guesses. Complete original archive retained.",
+      "limitationsFile": "snapshot-reconstruction-limitations.json"
+    },
+    "defaultCatalogDrift": {
+      "currentOnlyModels": 14,
+      "historicalOnlyModels": 7,
+      "changedRawRecords": 89,
+      "note": "Raw comparison includes source/schema differences; it is not a count of changed endpoint behavior or retirements.",
+      "file": "catalog-drift.json"
+    }
+  },
+  "coverage": {
+    "registryProviders": 120,
+    "registryRows": 1165,
+    "registryProvidersWithoutExplicitModelRows": 28,
+    "reviewedMetadataProviders": 53,
+    "reviewedMetadataRecords": 565,
+    "registryRowsResolvingReviewedMetadata": 559,
+    "capabilitiesBothSnapshots": {
+      "exactChatMatches": 365,
+      "unmatchedChatRows": 683,
+      "nonChatRows": 117,
+      "agreeingFields": 3158,
+      "primaryOverrideFields": 9,
+      "explicitRouteOverrideFields": 0,
+      "unknownFields": 42,
+      "actionableFields": 0
+    },
+    "additionalOutputModalityComparison": {
+      "exactMatchedRowsIncludingMedia": 388,
+      "imageAndAudioOutputFieldsChecked": 776,
+      "agreeingFields": 776
+    },
+    "lifecycle": {
+      "activeProviders": 120,
+      "providersWithoutGeneratedActiveRows": 25,
+      "generatedActiveRows": 1237,
+      "auxiliaryRowsIncludingVoices": 329,
+      "voiceRows": 277,
+      "metadataReferenceRows": 9,
+      "totalRows": 1575,
+      "diskDefinitions": 123,
+      "unimportedDefinitions": 3,
+      "note": "Generated active rows include additional model tables, so they differ from the 1165 explicit registry rows. Voices are not independent model retirements."
+    }
+  },
+  "changes": [
+    {
+      "file": "open-sse/providers/pricing.js",
+      "type": "proven-pricing-resolution-fix",
+      "models": ["anthropic/claude-haiku-5.5", "anthropic/claude-opus-5.5"],
+      "change": "Resolve supported reviewed version spellings before generic native leaf/family prices, preserving provider namespace, complete tiers and cache TTLs. Literal provider/full-ID tariffs and declared-alias precedence remain covered by regression checks.",
+      "observedBefore": "Haiku sample cost 0.087 instead of 0.0087; Opus 1000 one-hour cache-write tokens returned unknown instead of USD 0.008.",
+      "evidence": ["raw/anthropic-pricing.md", "raw/opus-5-5.md", "pricing-red.log"]
+    },
+    {
+      "file": "open-sse/providers/metadata/vendorModels.js",
+      "type": "proven-pricing-tier-fix",
+      "provider": "perplexity-agent",
+      "models": ["xai/grok-4.7", "xai/grok-4.6", "xai/grok-4.5"],
+      "change": "Encode the documented inclusive 200000-input-token tier. Rates rise from 2/6 to 4/12 USD per million input/output tokens; cache read rises from 0.5 to 1 for 4.7/4.6 and from 0.3 to 0.6 for 4.5.",
+      "observedBefore": "At the boundary, mixed cached/reasoning samples cost 0.256 instead of 0.512 for 4.7/4.6 and 0.236 instead of 0.472 for 4.5.",
+      "evidence": ["raw/perplexity-agent-models.md", "agent-tier-red.log"]
+    },
+    {
+      "file": "open-sse/providers/metadata/coreModels.js",
+      "type": "dated-promotion-annotation",
+      "model": "gemini/gemini-4-argon",
+      "currentRatesUsdPerMillion": {"input": 2, "output": 10, "cached": 0.1},
+      "validThrough": "2026-11-30",
+      "nextRates": {"from": "2026-12-01", "input": 4, "output": 20, "reasoning": 20, "cached": 0.2},
+      "evidence": ["raw/gemini-pricing.html"]
+    },
+    {
+      "file": "open-sse/providers/metadata/coreModels.js",
+      "type": "description-correction",
+      "model": "openai/gpt-4-turbo",
+      "change": "Replace the compact/low-latency description with the vendor's older high-intelligence, text-and-image model positioning; add the primary model-page URL.",
+      "evidence": ["raw/gpt-4-turbo.md"]
+    },
+    {
+      "file": "open-sse/providers/metadata/mediaModels.js",
+      "type": "lifecycle-date-semantics",
+      "provider": "gemini",
+      "models": ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"],
+      "change": "Qualify the existing November 17 date as earliest-possible-shutdown, matching the source's date semantics.",
+      "evidence": ["raw/gemini-deprecations.html"]
+    },
+    {
+      "file": "open-sse/providers/registry/openai.js",
+      "type": "native-api-scheduled-retirement-annotations",
+      "rows": 15,
+      "newlyHiddenModels": 0,
+      "announcements": [
+        {"announcedOn": "2026-04-22", "shutdownDate": "2026-10-23", "models": ["gpt-4-turbo", "gpt-4.1-nano", "gpt-image-1", "o1", "o1-pro", "o3-mini", "o4-mini"]},
+        {"announcedOn": "2026-10-01", "shutdownDate": "2027-04-01", "models": ["gpt-5.3-codex", "gpt-5.4-nano", "gpt-5.1"]},
+        {"announcedOn": "2026-10-01", "shutdownDate": "2027-01-06", "models": ["tts-1", "tts-1-hd"]},
+        {"announcedOn": "2026-08-26", "shutdownDate": "2027-02-26", "models": ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]}
+      ],
+      "evidence": ["raw/openai-deprecations.md"]
+    }
+  ],
+  "retainedEndpointFacts": [
+    {"model": "gemini/gemini-4-argon", "contextWindow": 1048576, "maxInput": null, "directNonStreamingMaxOutput": 32768, "streamingMaxOutput": 65536, "continuationImplemented": false, "evidence": "raw/argon-generate-long-decode.html"},
+    {"model": "anthropic/claude-opus-5-5", "contextWindow": 1000000, "maxInput": null, "synchronousMaxOutput": 128000, "evidence": "raw/opus-5-5.md"},
+    {"model": "openai/gpt-5-pro", "contextWindow": 400000, "maxOutput": 272000, "evidence": "raw/gpt-5-pro.md"}
+  ],
+  "pricingDispositions": {
+    "exactMatchedRowsIncludingMedia": 388,
+    "unmatchedRowsIncludingMedia": 777,
+    "historical": {"baseRateDifferenceRows": 131, "baseRateDifferenceFields": 328, "baseRateAgreeingFields": 800, "tierDifferenceRows": 7, "tierDifferenceFields": 23, "catalogOmittedRateFields": 424},
+    "current": {"baseRateDifferenceRows": 132, "baseRateDifferenceFields": 329, "baseRateAgreeingFields": 800, "tierDifferenceRows": 7, "tierDifferenceFields": 23, "catalogOmittedRateFields": 423},
+    "currentBaseDifferenceRowsByDisposition": {
+      "subscription-or-plan-reference": 50,
+      "primary-neuron-quote": 18,
+      "non-chat-unit": 15,
+      "free-or-metered-route-unverified": 23,
+      "route-tariff-unverified": 8,
+      "currency-and-product-scope": 5,
+      "primary-cache-unverified": 4,
+      "cache-write-unverified": 3,
+      "enterprise-quote-unknown": 2,
+      "promotion-scope-unverified": 2,
+      "primary-provider-quote": 1,
+      "primary-cache-unspecified": 1
+    },
+    "meaning": "Differences are inventoried dispositions, not 132 proven bugs or 132 verified tariffs. Reference estimates and unknown fields remain explicitly unverified. Exact numeric agreement alone does not establish correct billing units or account charges.",
+    "remainingTierDifferences": [
+      "clinepass/cline-pass/qwen3.7-plus: subscription reference",
+      "github/gpt-5.6-luna: subscription reference; catalog 200K versus generic 272K threshold",
+      "minimax-cn/MiniMax-M3: CNY PAYG/subscription versus USD catalog reference",
+      "opencode-go/minimax-m3: subscription reference",
+      "opencode-go/qwen3.7-plus: subscription reference",
+      "alims-intl/qwen3.7-plus: high-tier cache prices unverified",
+      "alims-intl/qwen3.6-plus: high-tier cache prices unverified"
+    ],
+    "retainedPrimaryOverrides": [
+      "Cloudflare exact neurons multiplied by USD 0.011/1000, rather than rounded catalog token quotes; Qwen cache price unspecified.",
+      "Together Qwen3.7-Max USD 1.50 input / 4.50 output / 0.30 cache-read, corroborated by vendor pricing.",
+      "Groq Llama 3.1/3.3 Contact Sales: do not backfill stale public prices.",
+      "Cerebras Qwen 3.8 cache tariff unspecified in the primary quote."
+    ],
+    "completeRows": "pricing-review.json"
+  },
+  "lifecycleReviewDispositions": {
+    "unverified": 1212,
+    "primary-listed-active": 10,
+    "inherited-source-flag-needs-primary-corroboration": 13,
+    "inherited-compatibility-alias": 2,
+    "primary-eligibility-restricted-not-retired": 6,
+    "primary-earliest-shutdown-date-not-confirmed-retirement": 6,
+    "catalog-candidate-not-proof-of-retirement": 18,
+    "primary-scheduled-retirement-still-advertised": 17,
+    "primary-scheduled-compatibility-transition": 2,
+    "inherited-schedule-needs-route-corroboration": 3,
+    "voice-not-a-model-lifecycle": 277,
+    "metadata-reference-only": 9
+  },
+  "verification": {
+    "focusedTestFiles": 11,
+    "focusedTestsPassed": 137,
+    "focusedTestsFailed": 0,
+    "newRegressionCases": 40,
+    "maxWorkers": 1,
+    "dataDir": "/tmp/opencode/zen-wave-20261019/catalog/state",
+    "tmpDir": "/tmp/opencode/zen-wave-20261019/catalog/state",
+    "command": "npm --prefix tests test -- --run tests/unit/catalog-review-20261017-pricing.test.js tests/unit/model-catalog-exact-facts.test.js tests/unit/model-catalog-scope.test.js tests/unit/metadata-pricing-resolution.test.js tests/unit/pricing-modelsdev-billing.test.js tests/unit/pricing-tier-boundaries.test.js tests/unit/pricing-gemini-current.test.js tests/unit/pricing-openai-current.test.js tests/unit/pricing-claude-current.test.js tests/unit/pricing-ckm-current.test.js tests/unit/pricing-hosts-current.test.js --maxWorkers=1",
+    "redEvidence": [
+      {"file": "pricing-red.log", "failed": 2, "passed": 32, "reason": "Reviewed Claude spelling resolution"},
+      {"file": "agent-tier-red.log", "failed": 3, "passed": 37, "reason": "Perplexity Agent inclusive tier omitted"}
+    ],
+    "additionalChecks": {
+      "tests/__baseline__/verify-providers.mjs": "passed: 82 providers byte-for-byte equal",
+      "tests/__baseline__/verify-alias.mjs": "passed: 117 tokens byte-for-byte equal",
+      "tests/__baseline__/verify-oauth-urls.mjs": "passed: byte-for-byte equal",
+      "scripts/generate-provider-identity.mjs --check": "passed",
+      "capture-after.mjs": "passed: 15 lifecycle-only registry changes; effective pricing changes limited to three reviewed Agent Grok models; no effective capability changes",
+      "scripts/verify-catalog-against-modelsdev.mjs": "passed against both complete default catalogs: zero actionable fields",
+      "git diff --check": "passed"
+    },
+    "fullSuiteRun": false,
+    "buildRun": false
+  },
+  "remainingLimitations": [
+    "683 chat rows have no equivalent literal catalog match; 42 compared capability fields remain unknown. No claim of fully verified route limits.",
+    "Historical generation has 33 unresolved upstream symlinks and was ported offline without Bun. The original archive, per-file hashes and omission report are authoritative.",
+    "Current default/all-types API captures are separate requests at their recorded times, not an atomic snapshot.",
+    "Vendor corroboration was fetched after the cutoff. OpenAI lifecycle facts use explicit earlier announcement dates; Perplexity tier facts corroborate notes already present at the assigned base.",
+    "Subscription/API-reference estimates, free promotions, CNY conversion, media-specific units and account/deployment prices remain distinct from verified per-token debit charges.",
+    "Perplexity Agent Grok 4.3 and 4.20 legacy variants lack current primary corroboration. Their inherited estimates were not treated as newly verified or retired.",
+    "18 catalog lifecycle candidates and 13 inherited source flags still need route-specific primary corroboration. No retirement was inferred from missing catalog entries.",
+    "No authenticated availability, entitlement, throughput or inference verification was performed."
+  ],
+  "artifacts": [
+    {"file": "evidence-manifest.json", "records": 43, "sha256": "ecc43eff85ede72b9de28f268e8190185e5b3c062dd09f6ec31294a421995802", "description": "Every raw HTTP response URL, final URL, actual fetch timestamp, status, size, SHA256 and provenance-sidecar path; all 43 raw hashes verified."},
+    {"file": "full-before.json", "sha256": "82a570ad4bcea8181cf9b534cc18a588b962972e56c823fb39d7c8be57f5e412"},
+    {"file": "full-after.json", "sha256": "bfd415601f6590f846bcf60fe82c20440fe5280a9ebb93ce8968a1f6f1683cad"},
+    {"file": "coverage-by-provider.json", "records": 120, "sha256": "d296c11f7b668f6ee7766fa5034ddda773aa6f8cc618e81592a442aceacb0d4b"},
+    {"file": "metadata-inventory.json", "records": 565, "sha256": "4aec75c5d805933fa967a798fa58278d8ae793a9ab6655eeaa3144e510f073a1"},
+    {"file": "pricing-review.json", "records": 1165, "sha256": "07f55f90aedb806f1c2f935b9e319682b46493a75a590ddf5ee579fc267d1ee8"},
+    {"file": "lifecycle-review.json", "records": 1575, "sha256": "112e6e26c7f5cbed09a747a2ebbac8a6a107df302afe07167a9b8d90eb637693"},
+    {"file": "historical-after.json", "sha256": "5ee6145d1c5296a815e09e5ac2c9c906f0aba1a82c16beed98b2005ee23fe11a"},
+    {"file": "current-after.json", "sha256": "651bf6e2d7649d45fc9c0c9cde8eb5ea1ede07bedae6b93314829f5deb9c1220"},
+    {"file": "lifecycle-historical-after.json", "sha256": "86207874f00046cc41f1415f030765160832db717715cfacc75963af288c3692"},
+    {"file": "lifecycle-current-after.json", "sha256": "46790dc340a364e66628bd5e8e2f1a17cf2ecd967564927a2929dead0a154fb1"},
+    {"file": "catalog-drift.json", "sha256": "22ad733c90e07e89fa3ab0cb38643665787355edddc49bbe971bdbbbbcf63495"},
+    {"file": "snapshot-file-hashes.json", "sha256": "5a0252f723765e3af6814f80e800af0b5e1eea61c59e84c7ea05b250744d78bc"},
+    {"file": "snapshot-reconstruction-limitations.json", "sha256": "70de738695d59548421c14a02b28bd239fed264ea59d24e91d1a02127b92f24f"},
+    {"file": "changes.json", "sha256": "0c1a3fd1e0bd474d8486702b062fd6a18ec89c87a1e86d8ce24e048bd9856b6f"},
+    {"file": "focused-tests.log", "sha256": "1b0d1e14d2d7512814b5416c89fd0b7853326e9d01a18d9cfceff7fd829cf13d"},
+    {"file": "pricing-red.log", "sha256": "800f36cc8f71fe0f840e547a2119d591755f8e4f4b764ac01da930126532f41e"},
+    {"file": "agent-tier-red.log", "sha256": "204fc8b85cd0b6251160e818187395b38320d719231bc40801f70dd8c5a684ae"}
+  ],
+  "changedCodeSha256": {
+    "open-sse/providers/pricing.js": "f260aa78dfcdb270bc418971fccf4bb77f64b67f90faaa6fd8085e42d2948920",
+    "open-sse/providers/metadata/coreModels.js": "b8ec81e93ccfb9b80ab316f0c8b1695b959b42602013eb790fac7e1d4b4c71e0",
+    "open-sse/providers/metadata/mediaModels.js": "0b75b68fad83e3b033f397128ffce64d60f62a17efb7646ae9016171fac51c67",
+    "open-sse/providers/metadata/vendorModels.js": "89907992cc119a3e9e21625ae8e11f4de3ff4b01cfde8804cc8d8a3b83260a04",
+    "open-sse/providers/registry/openai.js": "2a9cf2748f984e5221bae44587b2da0920dd4c0096e2c039a4306ff0b6b69817",
+    "tests/unit/catalog-review-20261017-pricing.test.js": "5280dbcdd1c221017c8364466f988820e29e1c040c6b2402cde2f212d9d606c2"
+  }
+}

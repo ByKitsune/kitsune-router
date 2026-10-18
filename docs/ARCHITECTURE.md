@@ -541,6 +541,30 @@ node scripts/worker-mesh.mjs stop
 
 ## Provider Executor Coverage
 
+### Model fact provenance
+
+The complete October 17, 2026 catalog review is recorded in
+`docs/audit/data/catalog-review-20261017.json`. It covers 120 providers, 1,165
+explicit registry rows and 565 reviewed metadata records; 683 chat rows lack an
+equivalent literal models.dev match and 42 compared fields remain unknown.
+Zero actionable compared capability mismatches does not mean all routes were
+verified. The historical snapshot is reconstructed from commit
+`22dc88b304dd15ab1c1692794ead3696bc97994d`, separately from current API captures.
+
+Gemini 4 Argon's context is 1,048,576; its direct non-streaming output ceiling is
+32,768 and streaming ceiling 65,536. Claude Opus 5.5's context is 1,000,000 with
+128,000 synchronous output. Neither implies an independently published maximum
+input or a 1M output allowance. Keep route-specific limits and account eligibility
+separate. Native long-decode continuation is not implemented by this gateway.
+
+Reviewed pricing fixes preserve literal provider tariffs, cache-write TTLs and
+full model namespaces. Perplexity Agent's Grok tier begins inclusively at 200,000
+cache-inclusive input tokens. Native OpenAI scheduled shutdown annotations do
+not retire the same model on another provider. Future promotional rates are
+dated metadata, not a background rewrite of historical request costs.
+
+### Executor selection
+
 The executable registry in `open-sse/executors/index.js` is authoritative.
 Specialized adapters include Antigravity, Gemini CLI, GitHub, Kiro, Codex, Cursor,
 Vertex, Qoder, CodeBuddy, OpenCode, Devin, Grok and other nonstandard transports.

@@ -969,6 +969,7 @@ export default {
         "lifecycle": {
           "status": "scheduled-retirement",
           "retirementDate": "2026-11-17",
+          "dateMeaning": "earliest-possible-shutdown",
           "source": "https://ai.google.dev/gemini-api/docs/deprecations",
           "asOf": "2026-10-17"
         }
@@ -1032,6 +1033,7 @@ export default {
         "lifecycle": {
           "status": "scheduled-retirement",
           "retirementDate": "2026-11-17",
+          "dateMeaning": "earliest-possible-shutdown",
           "source": "https://ai.google.dev/gemini-api/docs/deprecations",
           "asOf": "2026-10-17"
         }
@@ -1095,6 +1097,7 @@ export default {
         "lifecycle": {
           "status": "scheduled-retirement",
           "retirementDate": "2026-11-17",
+          "dateMeaning": "earliest-possible-shutdown",
           "source": "https://ai.google.dev/gemini-api/docs/deprecations",
           "asOf": "2026-10-17"
         }

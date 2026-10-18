@@ -353,7 +353,8 @@ const openai = {
   },
   "gpt-4-turbo": {
     "sources": [
-      "https://models.dev/api.json"
+      "https://models.dev/api.json",
+      "https://developers.openai.com/api/docs/models/gpt-4-turbo.md"
     ],
     "billing": {
       "kind": "catalog-metadata-only",
@@ -379,7 +380,7 @@ const openai = {
       "imageOutput": false,
       "audioOutput": false
     },
-    "description": "Compact GPT model for low-latency assistance and high-volume workloads"
+    "description": "Older high-intelligence GPT-4 model with text and image input for general-purpose chat and analysis"
   },
   "gpt-4.1": {
     "sources": [
@@ -2179,6 +2180,14 @@ const gemini = {
       "unit": "1M tokens",
       "kind": "api",
       "note": "Published introductory standard paid rates; implicit caching only. Native long decode requires continuation hops not implemented by this gateway. No account entitlement or inference verified.",
+      "validThrough": "2026-11-30",
+      "nextRates": {
+        "from": "2026-12-01",
+        "input": 4,
+        "output": 20,
+        "reasoning": 20,
+        "cached": 0.2
+      },
       "unverifiedPriceFields": [
         "cache_creation"
       ]

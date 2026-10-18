@@ -116,6 +116,12 @@ node scripts/audit-model-lifecycle.mjs \
 
 The comparison preserves provider products, native namespaces and declared upstream aliases. It compares context, input, output and capability facts independently. Primary-source overrides, route ceilings, missing references and unknown fields remain explicit; they are not fabricated agreement. A lifecycle candidate is not proof of shutdown.
 
+The dated review manifest is `docs/audit/data/catalog-review-20261017.json`.
+Historical JSON was reconstructed from the pinned upstream commit, not captured
+from the API on October 17; unresolved source symlinks are listed as limitations.
+`unit/catalog-review-20261017-pricing.test.js` covers cost-consumer behavior for
+reviewed Claude spellings, cache TTLs and inclusive Perplexity Agent price tiers.
+
 ## Runtime and browser proof
 
 Tests do not replace runtime verification. Exercise the changed path through a separately started gateway and inspect its logs and stored usage. Synthetic HTTP/HTTP2 providers can verify framing, field preservation and billing without spending provider tokens.

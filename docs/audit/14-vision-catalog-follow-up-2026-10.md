@@ -81,6 +81,37 @@ OpenAI GPT-6.1 Sol model page, Claude effort documentation, Google thinking guid
 and pinned Codex `rust-v0.160.0` model manifest. Public API and subscription/IDE
 routes retain different supported effort sets.
 
+### Dated model and pricing review
+
+Full manifest: [catalog-review-20261017.json](data/catalog-review-20261017.json).
+The models.dev historical commit is
+`22dc88b304dd15ab1c1692794ead3696bc97994d` (October 17, 23:21:55 UTC).
+Historical JSON was reconstructed offline from its source tree; 33 broken
+upstream symlinks were omitted and recorded, never filled by guesses. Separate
+current API captures retain their actual October 18 timestamps and SHA-256.
+
+Coverage includes 120 providers, 1,165 registry rows, 565 reviewed metadata
+records and 1,575 lifecycle rows including voices. Exact chat comparisons found
+no actionable capability mismatch; 683 unmatched rows and 42 unknown fields
+remain explicit. This is not a claim of verified inference or billing on all
+providers.
+
+Two pricing defects were reproduced and fixed: Claude's reviewed dotted-version
+spellings lost their correct tier/cache quote, and Perplexity Agent's Grok
+4.5–4.7 inclusive 200K tier was not charged at the boundary. Regression tests
+verify actual calculated costs. Dated Argon promotional rates, 15 OpenAI
+scheduled shutdown notices, TTS earliest-shutdown semantics and GPT-4 Turbo's
+description were reconciled with primary sources. No model was newly hidden or
+deleted merely because models.dev omitted it.
+
+Argon and Opus 5.5 retain their supported 1M-class contexts. Maximum output stays
+endpoint-specific; a larger context is not permission for 1M generated tokens.
+No prompt trimming or guessed input capacity was introduced to mask overflow.
+
+The parent verification reran 137 tests across 11 files plus provider/alias/OAuth
+baselines and generated identity checks. Raw source snapshots, hashes and
+red/green logs are under `/tmp/opencode/zen-wave-20261019/catalog/`.
+
 ## Documentation reconciliation
 
 Current guidance now distinguishes the published release from newer source,

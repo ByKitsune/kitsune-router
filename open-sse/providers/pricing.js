@@ -753,6 +753,11 @@ export function getPricingForModel(provider, model) {
       const price = exactPrice(table, id);
       if (price) return price;
     }
+    const upstream = getDeclaredUpstreamModelId(provider, id);
+    const reviewedPrice = getReviewedPricing(provider, id);
+    // Provider-reviewed native spellings beat generic leaf tariffs. Full-ID
+    // tariffs and registry-declared aliases retain their literal precedence.
+    if (!id.includes("/") && upstream === id && reviewedPrice) return reviewedPrice;
     const literal = exactPrice(MODEL_PRICING, id);
     if (literal) return literal;
     if (isFreeModel(id)) return ZERO_PRICING;
@@ -768,11 +773,13 @@ export function getPricingForModel(provider, model) {
     if (full) return full;
 
     // Only registry-declared aliases: no guessed review/thinking/date stripping.
-    const upstream = getDeclaredUpstreamModelId(provider, id);
     if (upstream !== id) {
       const price = resolve(upstream);
       if (price) return price;
     }
+    // Reviewed version spellings keep provider/namespace scope and the complete
+    // quote (tiers and cache TTLs) before falling back to model-family estimates.
+    if (reviewedPrice) return reviewedPrice;
     const base = id.includes("/") ? id.split("/").pop() : id;
     const canonical = exactPrice(MODEL_PRICING, base, true);
     if (canonical) return canonical;
