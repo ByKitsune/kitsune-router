@@ -13,7 +13,8 @@ const sources = [
 ];
 
 export default {
-  antigravity: Object.fromEntries(ANTIGRAVITY_ARGON_MODELS.map(({ id }) => [id, {
+  antigravity: {
+    ...Object.fromEntries(ANTIGRAVITY_ARGON_MODELS.map(({ id }) => [id, {
     description: "Gemini 4 Argon through the Antigravity native CLI surface. Requires an eligible paid Google AI Pro, Ultra or Enterprise account.",
     capabilities: {
       contextWindow: ANTIGRAVITY_ARGON_CONTEXT_WINDOW,
@@ -46,5 +47,22 @@ export default {
       unverifiedCapabilityFields: ["maxInput"],
       note: "App, CLI and IDE extensions are separate from Antigravity IDE. Client identity does not establish model entitlement; native tier availability remains account-specific.",
     },
-  }])),
+    }])),
+    // Announced removal is metadata, not evidence that these routes are gone now.
+    ...Object.fromEntries([
+      "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium",
+    ].map(id => [id, {
+      sources: ["https://antigravity.google/docs/models.md"],
+      limits: {
+        scope: "antigravity-native-cli-gateway",
+        lifecycle: {
+          status: "scheduled-retirement",
+          retirementDate: "2026-11-02",
+          dateMeaning: "scheduled-shutdown",
+          source: "https://antigravity.google/docs/models.md",
+          asOf: "2026-10-20",
+        },
+      },
+    }])),
+  },
 };

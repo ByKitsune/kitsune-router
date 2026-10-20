@@ -5,6 +5,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Antigravity lifecycle and selected upstream fixes
+
+- Stop advertising four confirmed retired Gemini 3.5/agent aliases while retaining saved alias resolution. Reject their public chat requests before account selection with HTTP 410 `model_retired`; do not rotate accounts, fabricate usage or scan generated prose. Keep the working `gemini-3-flash` route and attach the documented 2026-11-02 removal schedule to Claude 4.6/GPT-OSS as metadata, not an early shutdown.
+- Strip inherited native chat `requestType` from the outbound copy without changing caller input, image generation or dedicated search ([9Router `5798b308`](https://github.com/decolua/9router/commit/5798b308419d3798a706b2756e39d59dda9d8a29)).
+- Adapt empty tool enum/const sanitization and homogeneous tuple `items` from [#4973](https://github.com/decolua/9router/pull/4973) and [#4798](https://github.com/decolua/9router/pull/4798). Reject heterogeneous tuples locally with HTTP 400 `unsupported_parameter` instead of silently selecting a variant; preserve Zen's schema walker and document its non-strict legacy semantics.
+- Record pinned history/issue coverage, selective dispositions and unverified native/timeout boundaries in the [Antigravity follow-up](docs/audit/16-antigravity-upstream-2026-10.md). No identity bump, entitlement workaround, quota/reset change or production deployment is included.
+
 ### Release tooling
 
 - Retry npm registry/version and `latest` readback with bounded backoff after an accepted write. Verify the original tarball only once metadata is visible; retain immutable-artifact checks, fail closed on authentication/network errors, and never repeat publication or overwrite a newer `latest` during verification.

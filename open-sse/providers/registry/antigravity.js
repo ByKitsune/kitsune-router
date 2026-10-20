@@ -1,6 +1,10 @@
 import { ANTIGRAVITY_IDE_BASE_URL, ANTIGRAVITY_CLI_USER_AGENT, ANTIGRAVITY_OAUTH_CLIENT } from "../shared.js";
 import { ANTIGRAVITY_ARGON_MODELS } from "../../config/antigravity.js";
 
+// These compatibility IDs return a provider retirement notice, not inference.
+// Keep resolution for stored configurations without advertising them as active.
+const RETIRED_FLASH_NOTICE = "Antigravity reports Gemini 3.5 Flash is no longer available. Retained for existing configurations; select an available model for your account.";
+
 export default {
   id: "antigravity",
   priority: 20,
@@ -62,10 +66,10 @@ export default {
     { id: "gemini-3.6-flash-high", name: "Gemini 3.6 Flash (High)", upstreamModelId: "gemini-3.6-flash-tiered(high)" },
     { id: "gemini-3.6-flash-medium", name: "Gemini 3.6 Flash (Medium)", upstreamModelId: "gemini-3.6-flash-tiered(medium)" },
     { id: "gemini-3.6-flash-low", name: "Gemini 3.6 Flash (Low)", upstreamModelId: "gemini-3.6-flash-tiered(low)" },
-    { id: "gemini-3.5-flash-high", name: "Gemini 3.5 Flash (High)", upstreamModelId: "gemini-3-flash-agent" },
-    { id: "gemini-3-flash-agent", name: "Gemini 3.5 Flash (High)" },
-    { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium)" },
-    { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)" },
+    { id: "gemini-3.5-flash-high", name: "Gemini 3.5 Flash (High)", upstreamModelId: "gemini-3-flash-agent", deprecated: true, deprecationNotice: RETIRED_FLASH_NOTICE },
+    { id: "gemini-3-flash-agent", name: "Gemini 3.5 Flash (High)", deprecated: true, deprecationNotice: RETIRED_FLASH_NOTICE },
+    { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium)", deprecated: true, deprecationNotice: RETIRED_FLASH_NOTICE },
+    { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)", deprecated: true, deprecationNotice: RETIRED_FLASH_NOTICE },
     { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High)" },
     { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)" },
     // Claude 5.5 on the Antigravity2 catalog (9router #4600/#4548/#4555). The

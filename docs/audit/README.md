@@ -19,6 +19,8 @@ The subsequent [vision/catalog follow-up](14-vision-catalog-follow-up-2026-10.md
 records newly verified fixes and the limits of their evidence.
 The [thinking/speed follow-up](15-thinking-speed-2026-10.md) covers dashboard
 probe budgets, persisted defaults and independent OpenAI/Codex service tiers.
+The [Antigravity follow-up](16-antigravity-upstream-2026-10.md) records confirmed
+runtime retirements and selective request/schema ports from pinned 9router history.
 
 ## Read in this order
 

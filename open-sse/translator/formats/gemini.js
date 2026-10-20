@@ -375,16 +375,23 @@ function convertConstToEnum(obj) {
   forEachChildSchema(obj, convertConstToEnum);
 }
 
-// Convert enum values to strings (Gemini requires string enum values + explicit type:"string")
+// Google's legacy tool Schema only carries nonempty string enum members.
+// This compatibility path is already lossy: numeric/boolean literals become
+// strings and explicit types are retained. Omit null/undefined/empty members
+// rather than inventing literals ("null", "undefined"); never trim valid values.
+// Filtering narrows a mixed enum; omitting an exhausted/invalid enum broadens it
+// (including const:""/null after conversion). This is NOT strict JSON Schema
+// enforcement; callers needing exact enum/const semantics need another backend.
 function convertEnumValuesToStrings(obj) {
   if (!obj || typeof obj !== "object") return;
 
-  if (obj.enum && Array.isArray(obj.enum)) {
-    obj.enum = obj.enum.map(v => String(v));
-    // Gemini API requires type:"string" when enum is present — without it returns 400
-    if (!obj.type) {
-      obj.type = "string";
-    }
+  if (obj.enum !== undefined) {
+    const values = Array.isArray(obj.enum)
+      ? obj.enum.filter(v => v !== null && v !== undefined).map(v => String(v)).filter(v => v.length > 0)
+      : [];
+    if (values.length > 0) obj.enum = values;
+    else delete obj.enum;
+    if (!obj.type) obj.type = "string";
   }
 
   forEachChildSchema(obj, convertEnumValuesToStrings);
@@ -504,6 +511,73 @@ function ensureObjectType(obj) {
   forEachChildSchema(obj, ensureObjectType);
 }
 
+// Compare the original tuple schemas, ignoring object-key order but NOT
+// constraints that later sanitizer passes may discard or approximate.
+function sameTupleSchema(left, right) {
+  if (left === right) return true;
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) !== Array.isArray(right)) return false;
+  if (Array.isArray(left) && left.length !== right.length) return false;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length &&
+    keys.every(key => Object.hasOwn(right, key) && sameTupleSchema(left[key], right[key]));
+}
+
+// Google's positional tuple keywords cannot reach its single-Schema items
+// field. Validate both drafts before prefixItems can fall through selectBest.
+// Only structurally identical explicit tails are accepted (after lossless
+// string shorthand expansion); no schema-equivalence/boolean compiler is used.
+// Omitted tails still use the legacy homogeneous approximation, which narrows
+// the default unconstrained tail. This is NOT strict JSON Schema tuple support.
+// Empty legacy items keep the bare-array fallback only without an explicit tail.
+function normalizeTupleItems(obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+  // Check prefix tails before an items array can be rewritten as a legacy tuple.
+  for (const keyword of ["prefixItems", "items"]) {
+    if (!Array.isArray(obj[keyword])) continue;
+    // Expand only the lossless string shorthand here, not lossy schema passes.
+    const tuple = obj[keyword].map(item => typeof item === "string" ? { type: item } : item);
+    // No prefix positions: leave the ordinary items schema to the existing passes.
+    if (keyword === "prefixItems" && tuple.length === 0) continue;
+    const tailKeyword = keyword === "items" ? "additionalItems" : "items";
+    const tail = typeof obj[tailKeyword] === "string" ? { type: obj[tailKeyword] } : obj[tailKeyword];
+    const incompatibleTail = Object.hasOwn(obj, tailKeyword) &&
+      !sameTupleSchema(tuple[0], tail);
+    if (incompatibleTail || (tuple.length > 0 && !tuple.every(item => item && typeof item === "object" &&
+      !Array.isArray(item) && sameTupleSchema(item, tuple[0])))) {
+      throw Object.assign(new Error("unsupported_schema: Antigravity cannot represent heterogeneous tuple items or explicit tails"), {
+        // Reuse Core's typed local 400 contract; unsupported_schema is the
+        // diagnostic reason, not a new unrecognized lifecycle error code.
+        code: "unsupported_parameter", type: "invalid_request_error", status: 400, param: "tools",
+      });
+    }
+    // An empty tuple has no positional schema; retain the bare-array fallback.
+    if (keyword === "items") {
+      obj.items = tuple[0] || { type: "string" };
+      // The matching tail is now covered by items; Gemini has no additionalItems.
+      delete obj.additionalItems;
+    } else obj.prefixItems = tuple;
+  }
+  // Validate actual subschemas only, not annotation/literal or extension data.
+  // Keep the compatibility passes' general-purpose traversal unchanged.
+  for (const [key, value] of Object.entries(obj)) {
+    if (!value || typeof value !== "object") continue;
+    if (SCHEMA_MAPS.includes(key) || key === "dependencies") {
+      if (!Array.isArray(value)) {
+        for (const sub of Object.values(value)) {
+          // Legacy property-dependency arrays are names, not schemas.
+          if (sub && typeof sub === "object" && !Array.isArray(sub)) normalizeTupleItems(sub);
+        }
+      }
+    } else if (["allOf", "anyOf", "oneOf", "prefixItems"].includes(key) && Array.isArray(value)) {
+      for (const sub of value) normalizeTupleItems(sub);
+    } else if ((SCHEMA_SLOTS.includes(key) || key === "additionalProperties" || key === "unevaluatedProperties") &&
+      !Array.isArray(value)) {
+      normalizeTupleItems(value);
+    }
+  }
+}
+
 // Convert prefixItems (tuple validation) to items — Gemini cannot express tuples,
 // and a type:"array" schema without items is rejected with "missing field"
 function convertPrefixItems(obj) {
@@ -578,6 +652,9 @@ export function cleanJSONSchemaForAntigravity(schema) {
 
   // Mutate directly (schema is only used once per request)
   let cleaned = schema;
+
+  // Compare tuples before lossy enum/constraint/composition conversions.
+  normalizeTupleItems(cleaned);
 
   // Phase 0: Expand shorthand string subschemas — must run before any pass that
   // recurses on `typeof x === "object"`, which would otherwise skip them entirely.

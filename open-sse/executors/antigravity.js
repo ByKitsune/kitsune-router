@@ -474,6 +474,8 @@ export class AntigravityExecutor extends BaseExecutor {
 
     // Strip outbound-only fields without erasing intent reused on retries/refresh.
     const outboundBody = { ...body };
+    // Native chat envelopes may carry a legacy bucket; image/search use separate paths.
+    delete outboundBody.requestType;
     stripBlacklisted(outboundBody);
 
     const cleanedBody = stripHarnessTelemetry(outboundBody);

@@ -21,7 +21,9 @@ import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActi
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { correlateResponse } from "../utils/requestCorrelation.js";
-import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
+import { detectFormatByEndpoint, FORMATS } from "open-sse/translator/formats.js";
+import { ANTIGRAVITY_RETIRED_FLASH_IDS, ANTIGRAVITY_RETIRED_MODEL_ERROR } from "open-sse/config/antigravity.js";
+import { stripThinkingSuffix } from "open-sse/translator/concerns/thinkingUnified.js";
 import { resolveSessionId } from "open-sse/utils/sessionManager.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
@@ -325,6 +327,17 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
   } catch {
     // Fail-open: a disabled-list read failure must not block routing.
+  }
+
+  // Reject only proven runtime retirements, after alias resolution but before
+  // credentials/refresh/project lookup. A model-scoped 410 lets an explicitly
+  // configured combo advance without account rotation, health writes or usage.
+  // Never infer retirement by scanning generated prose or from deprecated flags.
+  if (provider === FORMATS.ANTIGRAVITY && ANTIGRAVITY_RETIRED_FLASH_IDS.has(stripThinkingSuffix(model))) {
+    if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
+    const { status, error } = ANTIGRAVITY_RETIRED_MODEL_ERROR;
+    log.warn("CHAT", `Retired model requested: ${provider}/${model}`);
+    return withRateLimitHeaders(errorResponse(status, error.message, error), rateLimit);
   }
 
   // Routing shown in the unified "▶" line (client model → provider/model)

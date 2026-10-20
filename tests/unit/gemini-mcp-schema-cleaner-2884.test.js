@@ -32,7 +32,7 @@ describe("cleanJSONSchemaForAntigravity (#2884, #3743)", () => {
     expect(schema.properties.properties.additionalProperties).toBeUndefined();
   });
 
-  it("converts prefixItems to items when items is omitted (#3743)", () => {
+  it("converts homogeneous prefixItems to items when items is omitted (#3743)", () => {
     const schema = {
       type: "object",
       properties: {
@@ -42,7 +42,7 @@ describe("cleanJSONSchemaForAntigravity (#2884, #3743)", () => {
         },
         multi_tuple: {
           type: "array",
-          prefixItems: [{ type: "string" }, { type: "number" }],
+          prefixItems: [{ type: "string" }, { type: "string" }],
         },
         bare_array: {
           type: "array",
