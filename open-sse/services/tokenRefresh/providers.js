@@ -6,15 +6,17 @@ import { dedupRefresh } from "./dedup.js";
 import { KIRO_CLI_USER_AGENT, TRAE_USER_AGENT } from "../../config/clientVersions.js";
 
 let _xaiServiceSingleton = null;
-export async function refreshXaiToken(refreshToken, log, proxyOptions = null) {
+export async function refreshXaiToken(refreshToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh("xai", refreshToken, async () => {
+  return dedupRefresh("xai", refreshToken, async (refreshSignal) => {
     try {
       if (!_xaiServiceSingleton) {
         const mod = await import("../../../src/lib/oauth/services/xai.js");
         _xaiServiceSingleton = new mod.XaiService();
       }
-      const tokens = await _xaiServiceSingleton.refreshAccessToken(refreshToken, proxyOptions);
+      refreshSignal.throwIfAborted();
+      const tokens = await _xaiServiceSingleton.refreshAccessToken(refreshToken, proxyOptions, refreshSignal);
       return {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token || refreshToken,
@@ -22,6 +24,7 @@ export async function refreshXaiToken(refreshToken, log, proxyOptions = null) {
         idToken: tokens.id_token,
       };
     } catch (e) {
+      refreshSignal.throwIfAborted();
       log?.warn?.("TOKEN_REFRESH", `xai refresh failed: ${e?.message || e}`);
       const msg = String(e?.message || "");
       if (!msg.includes("[ProxyFetch]") && (msg.includes("invalid_grant") || msg.includes("invalid_request"))) {
@@ -29,7 +32,7 @@ export async function refreshXaiToken(refreshToken, log, proxyOptions = null) {
       }
       return null;
     }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // Per-provider refresh variants for the generic path. Keys not listed fall back
@@ -83,7 +86,8 @@ function buildRefreshBody(profile, config, refreshToken) {
   return { format: "form", body: new URLSearchParams(payload) };
 }
 
-export async function refreshAccessToken(provider, refreshToken, credentials, log, proxyOptions = null) {
+export async function refreshAccessToken(provider, refreshToken, credentials, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   const config = PROVIDERS[provider];
   const profile = REFRESH_PROFILES[provider] || {};
   const url = resolveRefreshUrl(provider, config, profile);
@@ -100,7 +104,7 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
 
   const dedupKey = profile.dedupKey || provider;
 
-  return dedupRefresh(dedupKey, refreshToken, async () => {
+  return dedupRefresh(dedupKey, refreshToken, async (refreshSignal) => {
   try {
     const { format: bodyFormat, body } = buildRefreshBody(profile, config, refreshToken);
     const headers = {
@@ -108,7 +112,8 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
       Accept: "application/json",
       ...(profile.extraHeaders ? (profile.extraHeaders(credentials, config) || {}) : {}),
     };
-    const response = await proxyAwareFetch(url, { method: "POST", headers, body }, proxyOptions);
+    refreshSignal.throwIfAborted();
+    const response = await proxyAwareFetch(url, { method: "POST", headers, body, signal: refreshSignal }, proxyOptions);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -134,26 +139,29 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
       ...(profile.parse ? (profile.parse(tokens) || {}) : {}),
     };
   } catch (error) {
+    refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", `Error refreshing token for ${provider}`, {
       error: error.message,
     });
     return null;
   }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // CLIProxyAPI DeviceFlowClient.RefreshToken: form body (no client_secret) + X-Msh-* headers
 // Delegate to refreshAccessToken("kimi", ...) — profile carries the X-Msh headers.
-export async function refreshKimiToken(refreshToken, credentials, log, proxyOptions = null) {
-  return refreshAccessToken("kimi", refreshToken, credentials, log, proxyOptions);
+export async function refreshKimiToken(refreshToken, credentials, log, proxyOptions = null, signal = null) {
+  return refreshAccessToken("kimi", refreshToken, credentials, log, proxyOptions, signal);
 }
 
-export async function refreshClineToken(refreshToken, log, proxyOptions = null) {
+export async function refreshClineToken(refreshToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
 
-  return dedupRefresh("cline", refreshToken, async () => {
+  return dedupRefresh("cline", refreshToken, async (refreshSignal) => {
     try {
       const response = await proxyAwareFetch(PROVIDERS.cline?.refreshUrl, {
+        signal: refreshSignal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,22 +197,25 @@ export async function refreshClineToken(refreshToken, log, proxyOptions = null) 
         expiresIn,
       };
     } catch (error) {
+      refreshSignal.throwIfAborted();
       log?.error?.("TOKEN_REFRESH", `Error refreshing Cline token: ${error.message}`);
       return null;
     }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // Claude OAuth: JSON body, client_id only. Delegate to refreshAccessToken("claude", ...).
-export async function refreshClaudeOAuthToken(refreshToken, log, proxyOptions = null) {
-  return refreshAccessToken("claude", refreshToken, {}, log, proxyOptions);
+export async function refreshClaudeOAuthToken(refreshToken, log, proxyOptions = null, signal = null) {
+  return refreshAccessToken("claude", refreshToken, {}, log, proxyOptions, signal);
 }
 
-export async function refreshGoogleToken(refreshToken, clientId, clientSecret, log, proxyOptions = null) {
+export async function refreshGoogleToken(refreshToken, clientId, clientSecret, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh(`google:${clientId}`, refreshToken, async () => {
+  return dedupRefresh(`google:${clientId}`, refreshToken, async (refreshSignal) => {
   try {
     const response = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
+      signal: refreshSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -228,10 +239,11 @@ export async function refreshGoogleToken(refreshToken, clientId, clientSecret, l
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Google token", { hasNewAccessToken: !!tokens.access_token, expiresIn: tokens.expires_in });
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
   } catch (error) {
+    refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", `Network error refreshing Google token: ${error.message}`);
     return null;
   }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 export function classifyOAuthRefreshError(errorText = "", status = 0) {
@@ -255,11 +267,13 @@ export function classifyOAuthRefreshError(errorText = "", status = 0) {
   return { status, code, description, permanent };
 }
 
-export async function refreshCodexToken(refreshToken, log, proxyOptions = null) {
+export async function refreshCodexToken(refreshToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh("codex", refreshToken, async () => {
+  return dedupRefresh("codex", refreshToken, async (refreshSignal) => {
     try {
       const response = await proxyAwareFetch(OAUTH_ENDPOINTS.openai.token, {
+        signal: refreshSignal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -308,25 +322,35 @@ export async function refreshCodexToken(refreshToken, log, proxyOptions = null) 
         expiresIn: tokens.expires_in,
       };
     } catch (error) {
+      refreshSignal.throwIfAborted();
       log?.error?.("TOKEN_REFRESH", `Network error refreshing Codex token: ${error.message}`);
       return null;
     }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
-async function resolveKiroProfileArnPatch(providerSpecificData, accessToken, refreshedArn, proxyOptions = null) {
+async function resolveKiroProfileArnPatch(providerSpecificData, accessToken, refreshedArn, proxyOptions = null, signal = null) {
+  // This enrichment follows an already-acquired rotating grant. Cancellation
+  // must stop profile I/O, not discard tokens that still need to be committed.
+  if (signal?.aborted) return {};
   if (providerSpecificData?.profileArn) return {};
   let profileArn = refreshedArn?.trim?.() || null;
   if (!profileArn) {
     const { fetchKiroProfileArn } = await import("../../../src/lib/oauth/providers.js");
-    profileArn = await fetchKiroProfileArn(accessToken, proxyOptions);
+    if (signal?.aborted) return {};
+    try { profileArn = await fetchKiroProfileArn(accessToken, proxyOptions, signal); }
+    catch (error) {
+      if (signal?.aborted) return {};
+      throw error;
+    }
   }
   return profileArn ? { providerSpecificData: { profileArn } } : {};
 }
 
-export async function refreshKiroToken(refreshToken, providerSpecificData, log, proxyOptions = null) {
+export async function refreshKiroToken(refreshToken, providerSpecificData, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh("kiro", refreshToken, async () => {
+  return dedupRefresh("kiro", refreshToken, async (refreshSignal) => {
   const authMethod = providerSpecificData?.authMethod;
   const clientId = providerSpecificData?.clientId;
   const clientSecret = providerSpecificData?.clientSecret;
@@ -345,7 +369,9 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
       return null;
     }
 
+    refreshSignal.throwIfAborted();
     const response = await proxyAwareFetch(refreshRequest.tokenEndpoint, {
+      signal: refreshSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -386,6 +412,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
       : "https://oidc.us-east-1.amazonaws.com/token";
 
     const response = await proxyAwareFetch(endpoint, {
+      signal: refreshSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -419,11 +446,12 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken || refreshToken,
       expiresIn: tokens.expiresIn,
-      ...(await resolveKiroProfileArnPatch(providerSpecificData, tokens.accessToken, tokens.profileArn, proxyOptions)),
+      ...(await resolveKiroProfileArnPatch(providerSpecificData, tokens.accessToken, tokens.profileArn, proxyOptions, refreshSignal)),
     };
   }
 
   const response = await proxyAwareFetch(PROVIDERS.kiro.tokenUrl, {
+    signal: refreshSignal,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -455,26 +483,28 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken || refreshToken,
     expiresIn: tokens.expiresIn,
-    ...(await resolveKiroProfileArnPatch(providerSpecificData, tokens.accessToken, tokens.profileArn, proxyOptions)),
+    ...(await resolveKiroProfileArnPatch(providerSpecificData, tokens.accessToken, tokens.profileArn, proxyOptions, refreshSignal)),
   };
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // iFlow: Basic Auth + client_id+client_secret in body. Delegate to refreshAccessToken("iflow", ...).
-export async function refreshIflowToken(refreshToken, log, proxyOptions = null) {
-  return refreshAccessToken("iflow", refreshToken, {}, log, proxyOptions);
+export async function refreshIflowToken(refreshToken, log, proxyOptions = null, signal = null) {
+  return refreshAccessToken("iflow", refreshToken, {}, log, proxyOptions, signal);
 }
 
 // GitHub: optional client_secret. Delegate to refreshAccessToken("github", ...).
-export async function refreshGitHubToken(refreshToken, log, proxyOptions = null) {
-  return refreshAccessToken("github", refreshToken, {}, log, proxyOptions);
+export async function refreshGitHubToken(refreshToken, log, proxyOptions = null, signal = null) {
+  return refreshAccessToken("github", refreshToken, {}, log, proxyOptions, signal);
 }
 
-export async function refreshCopilotToken(githubAccessToken, log, proxyOptions = null) {
+export async function refreshCopilotToken(githubAccessToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!githubAccessToken) return null;
-  return dedupRefresh("copilot", githubAccessToken, async () => {
+  return dedupRefresh("copilot", githubAccessToken, async (refreshSignal) => {
   try {
     const response = await proxyAwareFetch(PROVIDER_OAUTH["github"]?.copilotTokenUrl, {
+      signal: refreshSignal,
       headers: {
         "Authorization": `token ${githubAccessToken}`,
         "User-Agent": GITHUB_COPILOT.USER_AGENT,
@@ -506,22 +536,25 @@ export async function refreshCopilotToken(githubAccessToken, log, proxyOptions =
       expiresAt: data.expires_at
     };
   } catch (error) {
+    refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", "Error refreshing Copilot token", {
       error: error.message
     });
     return null;
   }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // CodeBuddy (Tencent) refresh — POST /v2/plugin/auth/token/refresh with the
 // refresh token carried in the X-Refresh-Token header (not a form body),
 // matching the official CodeBuddy CLI. Response: { code: 0, data: <token> }.
-export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = null) {
+export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh("codebuddy-cn", refreshToken, async () => {
+  return dedupRefresh("codebuddy-cn", refreshToken, async (refreshSignal) => {
     const oauth = PROVIDER_OAUTH["codebuddy-cn"] || {};
     const response = await proxyAwareFetch(oauth.refreshUrl, {
+      signal: refreshSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -565,14 +598,16 @@ export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = nu
       refreshToken: data.data.refreshToken || refreshToken,
       expiresIn: data.data.expiresIn,
     };
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
-export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions = null) {
+export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
-  return dedupRefresh("codebuddy-intl", refreshToken, async () => {
+  return dedupRefresh("codebuddy-intl", refreshToken, async (refreshSignal) => {
     const oauth = PROVIDER_OAUTH["codebuddy-intl"] || {};
     const response = await proxyAwareFetch(oauth.refreshUrl, {
+      signal: refreshSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -616,12 +651,13 @@ export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions 
       refreshToken: data.data.refreshToken || refreshToken,
       expiresIn: data.data.expiresIn,
     };
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // Trae refresh — POST ExchangeToken with JSON body {ClientID, RefreshToken, ClientSecret, UserID}.
 // Response: {Result: {AccessToken, RefreshToken, TokenType, ExpiresAt}}.
-export async function refreshTraeToken(refreshToken, credentials, log, proxyOptions = null) {
+export async function refreshTraeToken(refreshToken, credentials, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!refreshToken) return null;
   const oauth = PROVIDER_OAUTH.trae || {};
   const url = oauth.exchangeTokenUrl || oauth.tokenUrl;
@@ -630,9 +666,10 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
     return null;
   }
 
-  return dedupRefresh("trae", refreshToken, async () => {
+  return dedupRefresh("trae", refreshToken, async (refreshSignal) => {
     try {
       const response = await proxyAwareFetch(url, {
+        signal: refreshSignal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -685,16 +722,18 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
         expiresIn,
       };
     } catch (error) {
+      refreshSignal.throwIfAborted();
       log?.error?.("TOKEN_REFRESH", `Error refreshing Trae token: ${error.message}`);
       return null;
     }
-  }, log, proxyOptions);
+  }, log, proxyOptions, signal);
 }
 
 // Zed access_token is long-lived; auth flow returns no refresh_token.
 // No refresh possible — re-login required when token expires/revoked.
 // Mirrors cursor/kilocode null-refresh pattern.
-export function refreshZedToken() {
+export function refreshZedToken(signal = null) {
+  signal?.throwIfAborted();
   return null;
 }
 
@@ -702,7 +741,8 @@ export function refreshZedToken() {
 // grant yields a fresh apiKey). Refresh handled out-of-band by the caller.
 // TODO(firebase): if short-lived Firebase JWT credentials must be refreshed,
 // re-run RegisterUser with the refreshed Firebase JWT (separate code path).
-export async function refreshWindsurfToken(credentials, log) {
+export async function refreshWindsurfToken(credentials, log, signal = null) {
+  signal?.throwIfAborted();
   log?.info?.(
     "TOKEN_REFRESH",
     "windsurf: apiKey is long-lived (no refresh_token flow) — skipping"

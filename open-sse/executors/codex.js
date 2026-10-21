@@ -20,6 +20,7 @@ import { resolveSessionId } from "../utils/sessionManager.js";
 import { stripCodexUnsupportedPatterns } from "../utils/codexToolSchema.js";
 import { getOpenAIResponsesEventName } from "../utils/responsesStreamHelpers.js";
 import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
+import { cloneRequestBody } from "../utils/requestBody.js";
 
 // SSE error patterns inside 200-OK bodies. Some retry same account first; capacity rotates accounts.
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
@@ -267,14 +268,17 @@ export class CodexExecutor extends BaseExecutor {
     return headers;
   }
 
-  buildUrl(model, stream, urlIndex = 0, credentials = null) {
+  buildUrl(model, stream, urlIndex = 0, credentials = null, requestContext = null) {
     const base = super.buildUrl(model, stream, urlIndex, credentials);
-    return this._isCompact ? `${base}/compact` : base;
+    return requestContext?.compact === true ? `${base}/compact` : base;
   }
 
-  async refreshCredentials(credentials, log) {
+  async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     if (!credentials?.refreshToken) return null;
-    return refreshProviderCredentials("codex", credentials, log);
+    const refreshed = await refreshProviderCredentials("codex", credentials, log, proxyOptions, signal);
+    signal?.throwIfAborted();
+    return refreshed;
   }
 
   needsRefresh(credentials) {
@@ -306,6 +310,10 @@ export class CodexExecutor extends BaseExecutor {
 
   async execute(args) {
     args.signal?.throwIfAborted();
+    // URL selection happens before transformation in BaseExecutor. Never use
+    // a shared executor flag or consume the app's marker for a later auth retry.
+    args = { ...args, body: cloneRequestBody(args.body),
+      requestContext: { ...args.requestContext, compact: args.body?._compact === true } };
     const imgCount = Array.isArray(args.body?.input) ? args.body.input.reduce((n, it) => n + (Array.isArray(it.content) ? it.content.filter(c => c.type === "image_url").length : 0), 0) : 0;
     const inputLen = Array.isArray(args.body?.input) ? args.body.input.length : 0;
     dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount} | sessionId=${this._currentSessionId || "pending"}`);
@@ -577,7 +585,6 @@ export class CodexExecutor extends BaseExecutor {
    * Image fetching is handled separately in prefetchImages() so this stays sync.
    */
   transformRequest(model, body, stream, credentials) {
-    this._isCompact = !!body._compact;
     delete body._compact;
     // Resolve conversation-stable session_id (priority: body → assistant-text → workspace → machine)
     this._currentSessionId = resolveCacheSessionId(body, credentials);

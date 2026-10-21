@@ -1,5 +1,7 @@
 import { getProviderIdentityTokens, getDeclaredUpstreamModelId } from "./identity.js";
 import { REVIEWED_MODEL_METADATA, getReviewedModelMetadata, getReviewedPricing } from "./metadata/reviewed.js";
+import { OPENAI_NATIVE_CACHE_WRITE_PRICING, OPENAI_PROCESSING_SPEED_PRICING } from "../config/processingSpeedPricing.js";
+import { LITERAL_ONLY_PRICING_PROVIDERS } from "../config/pricingConfig.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
 //
@@ -19,6 +21,7 @@ export const FREE_MODEL_NAMESPACES = ["cline-free/", "opencode-free/", "mimo-fre
 
 export const ZERO_PRICING = {
   input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0, cache_creation_1h: 0,
+  cache_write_30m: 0, cache_write_12h: 0,
 };
 
 /** True when the model id sits in a namespace upstream bills at $0. */
@@ -288,6 +291,13 @@ export const MODEL_PRICING = {
  * Keyed by provider alias (cc, cx, gc, gh, ...) or provider id (openai, anthropic, ...).
  */
 export const PROVIDER_PRICING = {
+  // https://tokenharbor.ai/models/{literal-id}, reviewed 2026-10-21:
+  // "Free-tier only; uses the free allowance and is never billed."
+  // Whole-route zero is not an inferred cache capability or a global :free rule.
+  tokenharbor: {
+    "mimo-v2.6-flash:free": ZERO_PRICING,
+    "deepseek-v4.1-flash:free": ZERO_PRICING,
+  },
   // Alibaba Coding Plan (China CNY domestic rates converted to USD base)
   alicode: {
     "qwen3-coder-plus":  { input: 0.574, output: 2.294, cached: 0.057, reasoning: 2.294, cache_creation: 0.574 },
@@ -727,6 +737,16 @@ for (const [provider, models] of Object.entries(REVIEWED_MODEL_METADATA)) {
   }
 }
 
+// Keep delivered-speed quotes provider-scoped; MODEL_PRICING is also used for
+// subscription/reseller reference estimates that have no matching API invoice.
+for (const [model, service_tiers] of Object.entries(OPENAI_PROCESSING_SPEED_PRICING)) {
+  const writes = OPENAI_NATIVE_CACHE_WRITE_PRICING[model];
+  PROVIDER_PRICING.openai[model] = {
+    ...PROVIDER_PRICING.openai[model], ...writes,
+    tier: { ...PROVIDER_PRICING.openai[model]?.tier, ...writes.tier }, service_tiers,
+  };
+}
+
 // Literal keys always win. Case folding is metadata fallback only; never choose
 // between multiple spellings, and never inherit Object.prototype entries.
 function exactPrice(table, model, allowCaseFold = false) {
@@ -742,14 +762,14 @@ export function getPricingForModel(provider, model) {
   if (!model) return null;
   const providerTables = getProviderIdentityTokens(provider)
     .filter(token => Object.hasOwn(PROVIDER_PRICING, token))
-    .map(token => PROVIDER_PRICING[token]);
+    .map(token => ({ table: PROVIDER_PRICING[token], literalOnly: LITERAL_ONLY_PRICING_PROVIDERS.includes(token) }));
   const seen = new Set();
 
   function resolve(id) {
     if (seen.has(id)) return null;
     seen.add(id);
     // Explicit provider and full-ID tariffs beat free namespaces and aliases.
-    for (const table of providerTables) {
+    for (const { table } of providerTables) {
       const price = exactPrice(table, id);
       if (price) return price;
     }
@@ -765,7 +785,8 @@ export function getPricingForModel(provider, model) {
     if (reviewed?.billing?.unverifiedPriceFields?.includes("input") &&
         reviewed.billing.unverifiedPriceFields.includes("output")) return null;
 
-    for (const table of providerTables) {
+    for (const { table, literalOnly } of providerTables) {
+      if (literalOnly) continue;
       const price = exactPrice(table, id, true);
       if (price) return price;
     }
@@ -842,6 +863,22 @@ export function calculateCostFromTokens(tokens, pricing) {
   return calculateCostBreakdown(tokens, pricing).totalCost;
 }
 
+function resolveDeliveredTierPricing(tokens, pricing) {
+  const actual = tokens?.actualServiceTier;
+  if (actual === "default") return pricing;
+  if (actual != null) {
+    // Auto describes selection policy, not delivered service. Do not infer a
+    // Standard invoice from an echoed request or a future upstream tier value.
+    if (!["fast", "priority", "ultrafast", "flex", "scale"].includes(actual)) return null;
+    const tiers = pricing?.service_tiers;
+    if (!tiers || typeof tiers !== "object") return null;
+    if (Object.hasOwn(tiers, actual)) return tiers[actual];
+    const alias = actual === "priority" ? "fast" : actual === "fast" ? "priority" : null;
+    return alias && Object.hasOwn(tiers, alias) ? tiers[alias] : null;
+  }
+  return tokens?.serviceTierCostStatus === "unpriced" || tokens?.serviceTierCostStatus === "unconfirmed" ? null : pricing;
+}
+
 function tokenCost(tokens, rate) {
   if (tokens === 0) return 0;
   return Number.isFinite(rate) && rate >= 0 ? tokens * rate / 1000000 : null;
@@ -854,24 +891,40 @@ function tokenCost(tokens, rate) {
  */
 export function calculateCostBreakdown(tokens, pricing) {
   const inputTokens = tokens?.prompt_tokens || tokens?.input_tokens || 0;
-  // Until operator tariffs can be keyed by delivered service tier, a Standard
-  // model price is not a valid price for premium or unconfirmed delivery.
-  if (tokens?.serviceTierCostStatus === "unpriced" || tokens?.serviceTierCostStatus === "unconfirmed") pricing = null;
+  // A premium quote is complete and independent of Standard. Missing premium
+  // cache/output rates remain unknown; actual delivery always beats the request.
+  pricing = resolveDeliveredTierPricing(tokens, pricing);
   const effectivePricing = resolveEffectivePricing(pricing, inputTokens);
   const cachedTokens = tokens?.cached_tokens || tokens?.cache_read_input_tokens || tokens?.prompt_cache_hit_tokens || 0;
   const cacheCreation1hTokens = tokens?.cache_creation_1h_tokens || 0;
   const cacheCreationTokens = tokens?.cache_creation_input_tokens ?? tokens?.cache_creation_tokens
     ?? ((tokens?.cache_creation_5m_tokens || 0) + cacheCreation1hTokens);
+  const validLegacyWrites = [cacheCreationTokens, tokens?.cache_creation_5m_tokens ?? 0, cacheCreation1hTokens]
+    .every(value => Number.isSafeInteger(value) && value >= 0)
+    && (tokens?.cache_creation_5m_tokens ?? 0) + cacheCreation1hTokens <= cacheCreationTokens;
+  const nativeWrite30m = tokens?.cache_write_30m_tokens ?? 0;
+  const nativeWrite12h = tokens?.cache_write_12h_tokens ?? 0;
+  const nativeWrites = tokens?.cache_write_tokens ?? nativeWrite30m + nativeWrite12h;
+  const hasNativeWriteUsage = tokens && ["cache_write_tokens", "cache_write_30m_tokens", "cache_write_12h_tokens", "cache_write_invalid"]
+    .some(field => Object.hasOwn(tokens, field));
+  const validNativeWrites = !hasNativeWriteUsage || tokens?.cache_write_invalid !== true
+    && [nativeWrites, nativeWrite30m, nativeWrite12h].every(value => Number.isSafeInteger(value) && value >= 0)
+    && nativeWrite30m + nativeWrite12h === nativeWrites
+    && nativeWrites + cacheCreationTokens + cachedTokens <= inputTokens;
   // Cache reads and writes are subsets of canonical input, not extra input.
-  const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens);
+  const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens - (Number.isFinite(nativeWrites) ? nativeWrites : 0));
   const inputCost = tokenCost(nonCachedInput, effectivePricing?.input);
   const cachedCost = tokenCost(cachedTokens, effectivePricing?.cached);
   // TTL counters are subsets of aggregate creation. Legacy aggregate-only
   // usage retains the documented five-minute tariff; one-hour writes never do.
   const cacheCreation5mCost = tokenCost(Math.max(0, cacheCreationTokens - cacheCreation1hTokens), effectivePricing?.cache_creation);
   const cacheCreation1hCost = tokenCost(cacheCreation1hTokens, effectivePricing?.cache_creation_1h);
-  const cacheCreationCost = cacheCreation5mCost === null || cacheCreation1hCost === null
-    ? null : cacheCreation5mCost + cacheCreation1hCost;
+  const nativeWrite30mCost = tokenCost(nativeWrite30m, effectivePricing?.cache_write_30m);
+  const nativeWrite12hCost = tokenCost(nativeWrite12h, effectivePricing?.cache_write_12h);
+  const nativeWriteCost = !validNativeWrites || nativeWrite30mCost === null || nativeWrite12hCost === null
+    ? null : nativeWrite30mCost + nativeWrite12hCost;
+  const cacheCreationCost = !validLegacyWrites || cacheCreation5mCost === null || cacheCreation1hCost === null || nativeWriteCost === null
+    ? null : cacheCreation5mCost + cacheCreation1hCost + nativeWriteCost;
 
   // Completion already includes reasoning; a documented output tariff applies
   // when no distinct reasoning tariff is specified. Explicit null stays unknown.

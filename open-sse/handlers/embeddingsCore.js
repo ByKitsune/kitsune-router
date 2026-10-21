@@ -3,6 +3,7 @@ import { HTTP_STATUS, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.j
 import { getExecutor } from "../executors/index.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { getEmbeddingAdapter } from "./embeddingProviders/index.js";
+import { proxyAwareFetch } from "../utils/proxyFetch.js";
 
 /**
  * Core embeddings handler — orchestrator only. Provider-specific URL/headers/body/normalize
@@ -17,8 +18,11 @@ export async function handleEmbeddingsCore({
   log,
   onCredentialsRefreshed,
   onRequestSuccess,
+  clientSignal,
 }) {
   const { provider, model } = modelInfo;
+  const cancelled = () => createErrorResult(499, "Client closed request");
+  if (clientSignal?.aborted) return cancelled();
 
   // Validate input
   const input = body.input;
@@ -59,21 +63,39 @@ export async function handleEmbeddingsCore({
 
   log?.debug?.("EMBEDDINGS", `${provider.toUpperCase()} | ${model} | input_type=${Array.isArray(input) ? `array[${input.length}]` : "string"}`);
 
-  let providerResponse;
-  try {
-    providerResponse = await fetch(url, {
+  const proxyOptions = {
+    connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,
+    connectionProxyUrl: credentials?.providerSpecificData?.connectionProxyUrl || "",
+    connectionNoProxy: credentials?.providerSpecificData?.connectionNoProxy || "",
+    vercelRelayUrl: credentials?.providerSpecificData?.vercelRelayUrl || "",
+    strictProxy: credentials?.providerSpecificData?.strictProxy === true,
+  };
+  // Preserve the existing response deadline on every attempt, including the
+  // post-refresh retry. Caller cancellation also covers body consumption.
+  const fetchAttempt = async (target, requestHeaders) => {
+    clientSignal?.throwIfAborted();
+    const deadline = AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS);
+    const signal = clientSignal ? AbortSignal.any([clientSignal, deadline]) : deadline;
+    return proxyAwareFetch(target, {
       method: "POST",
-      headers,
+      headers: requestHeaders,
       body: JSON.stringify(requestBody),
-      ...(typeof AbortSignal?.timeout === "function"
-        ? { signal: AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS) }
-        : {}),
-    });
-  } catch (error) {
+      signal,
+    }, proxyOptions);
+  };
+  const fetchError = (error) => {
+    if (clientSignal?.aborted) return cancelled();
     const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
     log?.debug?.("EMBEDDINGS", `Fetch error: ${errMsg}`);
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
+  };
+  let providerResponse;
+  try {
+    providerResponse = await fetchAttempt(url, headers);
+  } catch (error) {
+    return fetchError(error);
   }
+  if (clientSignal?.aborted) return cancelled();
 
   // Handle 401/403 — try token refresh (skip for noAuth providers)
   const executor = getExecutor(provider);
@@ -82,35 +104,41 @@ export async function handleEmbeddingsCore({
     (providerResponse.status === HTTP_STATUS.UNAUTHORIZED ||
       providerResponse.status === HTTP_STATUS.FORBIDDEN)
   ) {
-    const newCredentials = await refreshWithRetry(
-      () => executor.refreshCredentials(credentials, log),
-      3,
-      log
-    );
+    let newCredentials;
+    try {
+      newCredentials = await refreshWithRetry(
+        () => executor.refreshCredentials(credentials, log, proxyOptions, clientSignal),
+        3,
+        log,
+        clientSignal,
+      );
+    } catch (error) {
+      return fetchError(error);
+    }
 
     if (newCredentials?.accessToken || newCredentials?.apiKey) {
       log?.info?.("TOKEN", `${provider.toUpperCase()} | refreshed for embeddings`);
       Object.assign(credentials, newCredentials);
       if (onCredentialsRefreshed) await onCredentialsRefreshed(newCredentials);
+      if (clientSignal?.aborted) return cancelled();
 
       try {
         const retryHeaders = adapter.buildHeaders(credentials, ctx);
         const retryUrl = adapter.buildUrl(model, credentials, ctx);
-        providerResponse = await fetch(retryUrl, {
-          method: "POST",
-          headers: retryHeaders,
-          body: JSON.stringify(requestBody),
-        });
-      } catch {
-        log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`);
+        void providerResponse.body?.cancel().catch(() => {});
+        providerResponse = await fetchAttempt(retryUrl, retryHeaders);
+      } catch (error) {
+        return fetchError(error);
       }
     } else {
       log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
     }
   }
+  if (clientSignal?.aborted) return cancelled();
 
   if (!providerResponse.ok) {
     const { statusCode, message } = await parseUpstreamError(providerResponse);
+    if (clientSignal?.aborted) return cancelled();
     const errMsg = formatProviderError(new Error(message), provider, model, statusCode);
     log?.debug?.("EMBEDDINGS", `Provider error: ${errMsg}`);
     return createErrorResult(statusCode, errMsg);
@@ -120,8 +148,10 @@ export async function handleEmbeddingsCore({
   try {
     responseBody = await providerResponse.json();
   } catch {
+    if (clientSignal?.aborted) return cancelled();
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Invalid JSON response from ${provider}`);
   }
+  if (clientSignal?.aborted) return cancelled();
 
   if (onRequestSuccess) await onRequestSuccess();
 

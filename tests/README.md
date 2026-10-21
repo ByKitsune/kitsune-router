@@ -23,7 +23,7 @@ Vitest configuration. Use the installed runner rather than an unpinned download.
 
 ## Protect local state and credentials
 
-The Vitest config loads the root `.env` when present. Run automated verification in a checkout without production credentials. An isolated process environment does not prevent that file from loading.
+The Vitest config does not load repository `.env` files, including `.env.local` and mode-specific variants (`envDir: false`). Supply synthetic secrets, state paths and deliberate live-test opt-ins explicitly through the process environment. Inherited process credentials are still available to tests, so run automated verification with an isolated environment rather than production credentials.
 
 For local runtime checks, use a fresh absolute `DATA_DIR`, a separate `HOME`, synthetic secrets and a spare loopback port. Disable these background/live paths:
 
@@ -102,11 +102,35 @@ strict report gate, with isolated HOME/DATA_DIR and live/background work disable
 Its Vitest JSON is uploaded under an artifact named for the exact commit SHA.
 CLI packaging and browser/live-provider behavior require their separate checks.
 
+CI, npm publication and Docker publication share the executable `verify-source`
+gate in `scripts/release-publication-helpers.mjs`; it binds the report hash to the
+exact checkout SHA/ref after lint, full tests, compatibility, identity/baselines
+and application build. Publisher isolation runs before dependency lifecycle
+scripts. This does not make publication a live-provider or container-runtime
+test, and existing immutable artifacts are not rebuilt by a source fix.
+
 Existing `it.fails` cases are expected failures, not evidence the underlying
 behavior works. Skipped cases and surveys that tolerate provider failures do not
 prove live compatibility. The default Vitest glob is `tests/**/*.test.js`;
 `test:compat` runs the independent `*.test.cjs` suite. Check file discovery when
 adding a new extension or runner.
+
+The former three translator expected-failure markers are now ordinary
+regressions or explicit unsupported contracts. Do not preserve an expected-fail
+marker after a fix, and do not count rejected Claude audio or unverified native
+structured-output controls as supported features.
+
+### October reconciliation regressions
+
+`unit/reconciliation-*.test.js` and `translator/reconciliation-*.test.js` cover
+the newer public boundaries: host-scoped free pricing, delivered-tier tariffs,
+native cache lifetimes, known-subtotal rendering, credential response redaction,
+private file/backup writes, MITM random keys, logical inference limits, bounded
+zstd/compact decoding, proxy intent, cancellation, native usage, CLI EOF and
+Vertex project routing. The strict report validator is not an inventory checker:
+always inspect discovery/file counts and the full command, not a green focused
+report alone. Follow the [dated audit](../docs/audit/17-october-reconciliation-2026-10.md)
+for source pins and native/operational limits.
 
 ### Release publication checks
 

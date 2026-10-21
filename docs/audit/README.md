@@ -22,6 +22,11 @@ probe budgets, persisted defaults and independent OpenAI/Codex service tiers.
 The [Antigravity follow-up](16-antigravity-upstream-2026-10.md) records confirmed
 runtime retirements and selective request/schema ports from pinned 9router history.
 
+The [October reconciliation](17-october-reconciliation-2026-10.md) tracks the
+subsequent pricing, security, protocol, tooling and verification changes. Its
+dated evidence and remaining native/operational limits supersede historical
+open-finding labels; published release artifacts remain immutable.
+
 ## Read in this order
 
 | # | Document | Covers |
@@ -48,7 +53,7 @@ ZenRouter is **one repo shipping two artifacts**:
    It serves the dashboard at `/dashboard` and the compatibility API at `/v1/*`.
 2. **CLI launcher** — `cli/`, published to npm as `@joyccn/zenrouter` with binary
    `zenrouter`. It installs/starts the server and manages a system tray. Separate
-   `package.json`, separate version line, separate publish flow.
+   `package.json` and publish flow; release guards require all four package/lock versions to agree.
 
 A third, non-published package sits in `tests/` (an independent ESM package with its own
 `node_modules` and vitest config).
@@ -64,7 +69,7 @@ src/app/api/v1/.../route.js
 src/sse/handlers/chat.js         ← combo expansion + account-selection loop
    ▼
 open-sse/handlers/chatCore.js    ← detect source format → translate → dispatch → retry/refresh
-   ├── open-sse/rtk/             ← fail-open pre-translate body compression
+    ├── open-sse/rtk/             ← fail-open final-provider-body compression
    ├── open-sse/translator/      ← client format ↔ provider format (OpenAI-pivoted, or direct route)
    └── open-sse/executors/*      ← per-provider upstream call (default.js = generic OpenAI-compatible)
    ▼

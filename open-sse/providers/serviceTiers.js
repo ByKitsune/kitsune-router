@@ -142,10 +142,11 @@ export function getServiceTierAccounting(provider, selection = null, response = 
   const requestedServiceTier = selection?.requestedServiceTier ?? null;
   const actualServiceTier = getResponseServiceTier(response) ?? selection?.actualServiceTier ?? null;
   const wire = selection?.wireServiceTier ?? requestedServiceTier;
-  // No tier-aware operator tariffs exist yet. Do not apply the Standard tariff
-  // to a premium/unknown delivery. Historical omitted/explicit Standard requests
-  // retain their baseline estimate; missing actual tier remains explicitly null.
+  // The pricing layer requires an explicit tariff for confirmed premium tiers.
+  // Auto is a policy echo, not proof of Standard or paid-tier delivery.
+  // Historical omitted/explicit Standard requests retain their baseline estimate.
   const serviceTierCostStatus = actualServiceTier === "default" ? "standard"
+    : actualServiceTier === "auto" ? "unconfirmed"
     : actualServiceTier != null ? "unpriced"
       : selection?.selection === null || selection?.serviceTierCostStatus === "unconfirmed" || (wire != null && wire !== "default") ? "unconfirmed" : "standard-estimate";
   return { requestedServiceTier, actualServiceTier, serviceTierCostStatus };

@@ -25,14 +25,8 @@ export async function OPTIONS() {
 export async function POST(request) {
   await ensureInitialized();
   
-  const clonedReq = request.clone();
-  let modelName = "llama3.2";
-  try {
-    const body = await clonedReq.json();
-    modelName = body.model || "llama3.2";
-  } catch {}
-
+  // Authentication, limits and bounded body parsing belong to handleChat.
+  // The adapter obtains the resolved model from its mapped JSON/SSE output.
   const response = await handleChat(request);
-  return transformToOllama(response, modelName);
+  return transformToOllama(response);
 }
-

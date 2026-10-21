@@ -1,7 +1,8 @@
 import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, REFRESH_LEAD_MS } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
-import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { dedupRefresh, getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   refreshXaiToken,
   refreshAccessToken,
@@ -78,7 +79,8 @@ export function parseVertexSaJson(apiKey) {
 // Cache Vertex tokens by service account email and transport policy { token, expiresAt }
 const vertexTokenCache = new Map();
 
-export async function refreshVertexToken(saJson, log, proxyOptions = null) {
+export async function refreshVertexToken(saJson, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   const cacheKey = JSON.stringify([saJson.client_email, getRefreshProxyKey(proxyOptions)]);
   const cached = vertexTokenCache.get(cacheKey);
 
@@ -86,6 +88,7 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null) {
     return { accessToken: cached.token, expiresAt: cached.expiresAt };
   }
 
+  return dedupRefresh("vertex", cacheKey, async refreshSignal => {
   try {
     const { SignJWT, importPKCS8 } = await import("jose");
     log?.debug?.("TOKEN_REFRESH", `Vertex minting token for ${saJson.client_email}`);
@@ -101,6 +104,7 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null) {
       .sign(privateKey);
 
     const res = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
+      signal: refreshSignal,
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -123,66 +127,71 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null) {
 
     return { accessToken: access_token, expiresAt };
   } catch (error) {
+    refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", `Vertex token error: ${error.message}`);
     return null;
   }
+  }, log, proxyOptions, signal);
 }
 
-function vertexRefreshHandler(c, log, proxyOptions = null) {
+function vertexRefreshHandler(c, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   const saJson = parseVertexSaJson(c.apiKey);
   if (!saJson) return null;
-  return refreshVertexToken(saJson, log, proxyOptions);
+  return refreshVertexToken(saJson, log, proxyOptions, signal);
 }
 
 const REFRESH_HANDLERS = {
-  "gemini-cli": (c, log, proxyOptions) => refreshGoogleToken(c.refreshToken, PROVIDERS["gemini-cli"].clientId, PROVIDERS["gemini-cli"].clientSecret, log, proxyOptions),
-  antigravity: (c, log, proxyOptions) => refreshGoogleToken(c.refreshToken, PROVIDERS.antigravity.clientId, PROVIDERS.antigravity.clientSecret, log, proxyOptions),
-  claude: (c, log, proxyOptions) => refreshClaudeOAuthToken(c.refreshToken, log, proxyOptions),
-  codex: (c, log, proxyOptions) => refreshCodexToken(c.refreshToken, log, proxyOptions),
-  iflow: (c, log, proxyOptions) => refreshIflowToken(c.refreshToken, log, proxyOptions),
-  github: (c, log, proxyOptions) => refreshGitHubToken(c.refreshToken, log, proxyOptions),
-  kiro: (c, log, proxyOptions) => refreshKiroToken(c.refreshToken, c.providerSpecificData, log, proxyOptions),
-  xai: (c, log, proxyOptions) => refreshXaiToken(c.refreshToken, log, proxyOptions),
+  "gemini-cli": (c, log, proxyOptions, signal) => refreshGoogleToken(c.refreshToken, PROVIDERS["gemini-cli"].clientId, PROVIDERS["gemini-cli"].clientSecret, log, proxyOptions, signal),
+  antigravity: (c, log, proxyOptions, signal) => refreshGoogleToken(c.refreshToken, PROVIDERS.antigravity.clientId, PROVIDERS.antigravity.clientSecret, log, proxyOptions, signal),
+  claude: (c, log, proxyOptions, signal) => refreshClaudeOAuthToken(c.refreshToken, log, proxyOptions, signal),
+  codex: (c, log, proxyOptions, signal) => refreshCodexToken(c.refreshToken, log, proxyOptions, signal),
+  iflow: (c, log, proxyOptions, signal) => refreshIflowToken(c.refreshToken, log, proxyOptions, signal),
+  github: (c, log, proxyOptions, signal) => refreshGitHubToken(c.refreshToken, log, proxyOptions, signal),
+  kiro: (c, log, proxyOptions, signal) => refreshKiroToken(c.refreshToken, c.providerSpecificData, log, proxyOptions, signal),
+  xai: (c, log, proxyOptions, signal) => refreshXaiToken(c.refreshToken, log, proxyOptions, signal),
   // Grok CLI shares xAI OAuth client + token endpoint (device-code tokens refresh the same way)
-  "grok-cli": (c, log, proxyOptions) => refreshXaiToken(c.refreshToken, log, proxyOptions),
-  gcli: (c, log, proxyOptions) => refreshXaiToken(c.refreshToken, log, proxyOptions),
-  "codebuddy-cn": (c, log, proxyOptions) => refreshCodebuddyToken(c.refreshToken, log, proxyOptions),
-  "codebuddy-intl": (c, log, proxyOptions) => refreshCodebuddyIntlToken(c.refreshToken, log, proxyOptions),
-  trae: (c, log, proxyOptions) => refreshTraeToken(c.refreshToken, c, log, proxyOptions),
-  cline: (c, log, proxyOptions) => refreshClineToken(c.refreshToken, log, proxyOptions),
-  zed: () => refreshZedToken(),
-  windsurf: (c, log) => refreshWindsurfToken(c, log),
+  "grok-cli": (c, log, proxyOptions, signal) => refreshXaiToken(c.refreshToken, log, proxyOptions, signal),
+  gcli: (c, log, proxyOptions, signal) => refreshXaiToken(c.refreshToken, log, proxyOptions, signal),
+  "codebuddy-cn": (c, log, proxyOptions, signal) => refreshCodebuddyToken(c.refreshToken, log, proxyOptions, signal),
+  "codebuddy-intl": (c, log, proxyOptions, signal) => refreshCodebuddyIntlToken(c.refreshToken, log, proxyOptions, signal),
+  trae: (c, log, proxyOptions, signal) => refreshTraeToken(c.refreshToken, c, log, proxyOptions, signal),
+  cline: (c, log, proxyOptions, signal) => refreshClineToken(c.refreshToken, log, proxyOptions, signal),
+  zed: (c, log, proxyOptions, signal) => refreshZedToken(signal),
+  windsurf: (c, log, proxyOptions, signal) => refreshWindsurfToken(c, log, signal),
   // Kimi Code OAuth (merged into id `kimi`); legacy id still routes here
-  kimi: (c, log, proxyOptions) => refreshKimiToken(c.refreshToken, c, log, proxyOptions),
-  "kimi-coding": (c, log, proxyOptions) => refreshKimiToken(c.refreshToken, c, log, proxyOptions),
+  kimi: (c, log, proxyOptions, signal) => refreshKimiToken(c.refreshToken, c, log, proxyOptions, signal),
+  "kimi-coding": (c, log, proxyOptions, signal) => refreshKimiToken(c.refreshToken, c, log, proxyOptions, signal),
   vertex: vertexRefreshHandler,
   "vertex-partner": vertexRefreshHandler
 };
 
-export async function getAccessToken(provider, credentials, log, proxyOptions = null) {
+export async function getAccessToken(provider, credentials, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!credentials || !credentials.refreshToken || typeof credentials.refreshToken !== "string") {
     log?.warn?.("TOKEN_REFRESH", `No valid refresh token available for provider: ${provider}`);
     return null;
   }
-  return _getAccessTokenInternal(provider, credentials, log, proxyOptions);
+  return _getAccessTokenInternal(provider, credentials, log, proxyOptions, signal);
 }
 
-async function _getAccessTokenInternal(provider, credentials, log, proxyOptions = null) {
+async function _getAccessTokenInternal(provider, credentials, log, proxyOptions = null, signal = null) {
   if (provider === "gemini") {
-    return refreshGoogleToken(credentials.refreshToken, PROVIDERS.gemini.clientId, PROVIDERS.gemini.clientSecret, log, proxyOptions);
+    return refreshGoogleToken(credentials.refreshToken, PROVIDERS.gemini.clientId, PROVIDERS.gemini.clientSecret, log, proxyOptions, signal);
   }
   const handler = REFRESH_HANDLERS[provider];
   if (!handler) {
     log?.warn?.("TOKEN_REFRESH", `Unsupported provider for token refresh: ${provider}`);
     return null;
   }
-  return handler(credentials, log, proxyOptions);
+  return handler(credentials, log, proxyOptions, signal);
 }
 
-export async function refreshTokenByProvider(provider, credentials, log, proxyOptions = null) {
+export async function refreshTokenByProvider(provider, credentials, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!credentials.refreshToken) return null;
   const handler = REFRESH_HANDLERS[provider];
-  return handler ? handler(credentials, log, proxyOptions) : refreshAccessToken(provider, credentials.refreshToken, credentials, log, proxyOptions);
+  return handler ? handler(credentials, log, proxyOptions, signal) : refreshAccessToken(provider, credentials.refreshToken, credentials, log, proxyOptions, signal);
 }
 
 export function formatProviderCredentials(provider, credentials, log) {
@@ -234,7 +243,8 @@ export function formatProviderCredentials(provider, credentials, log) {
   }
 }
 
-export async function getAllAccessTokens(userInfo, log) {
+export async function getAllAccessTokens(userInfo, log, signal = null) {
+  signal?.throwIfAborted();
   const results = {};
 
   if (userInfo.connections && Array.isArray(userInfo.connections)) {
@@ -242,7 +252,7 @@ export async function getAllAccessTokens(userInfo, log) {
       if (connection.isActive && connection.provider) {
         const token = await getAccessToken(connection.provider, {
           refreshToken: connection.refreshToken
-        }, log);
+        }, log, null, signal);
 
         if (token) {
           results[connection.provider] = token;
@@ -254,18 +264,26 @@ export async function getAllAccessTokens(userInfo, log) {
   return results;
 }
 
-export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null) {
+export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null, signal = null) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    signal?.throwIfAborted();
     if (attempt > 0) {
-      const delay = attempt * 1000;
-      log?.debug?.("TOKEN_REFRESH", `Retry ${attempt}/${maxRetries} after ${delay}ms`);
-      await new Promise(r => setTimeout(r, delay));
+      const delayMs = attempt * 1000;
+      log?.debug?.("TOKEN_REFRESH", `Retry ${attempt}/${maxRetries} after ${delayMs}ms`);
+      try {
+        await delay(delayMs, undefined, { signal: signal || undefined });
+      } catch (error) {
+        signal?.throwIfAborted();
+        throw error;
+      }
     }
 
     try {
       const result = await refreshFn();
+      signal?.throwIfAborted();
       if (result) return result;
     } catch (error) {
+      signal?.throwIfAborted();
       log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed: ${error.message}`);
     }
   }

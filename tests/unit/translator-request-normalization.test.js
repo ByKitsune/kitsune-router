@@ -48,14 +48,14 @@ describe("request normalization", () => {
   });
 
   it.each([
-    [{ reasoning: "First.Second." }],
-    [{ reasoning_details: [{ text: "First." }, { content: "Second." }] }],
-  ])("retains readable reasoning-only assistant aliases: %j", (reasoning) => {
+    [{ reasoning: "First.Second." }, { reasoning_content: "First.Second." }],
+    [{ reasoning_details: [{ text: "First." }, { content: "Second." }] }, { reasoning_details: [{ text: "First." }, { content: "Second." }] }],
+  ])("retains readable reasoning-only assistant history without colliding Chat aliases: %j", (reasoning, wireReasoning) => {
     const result = translateRequest(FORMATS.OPENAI, FORMATS.OPENAI, "gpt-4o", {
       messages: [{ role: "assistant", content: "", ...reasoning }, { role: "user", content: "Next" }],
     });
     expect(result.messages).toEqual([
-      { role: "assistant", content: "", ...reasoning }, { role: "user", content: "Next" },
+      { role: "assistant", content: "", ...wireReasoning }, { role: "user", content: "Next" },
     ]);
   });
 

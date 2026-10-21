@@ -68,11 +68,27 @@ itself prove that the upstream delivered the requested speed tier.
   must not be presented as confirmed premium delivery or used to invent an
   invoice. Operator pricing overrides remain separate from upstream charges.
 
-**Estimator limitation:** Zen records requested and actual tiers, but its
-pricing repository does not yet offer tier-specific tariffs. Nonstandard or
-unconfirmed delivery therefore has an **unknown (`null`) estimated cost**, not
-zero and not the Standard price. Existing Standard/default estimates remain
-estimates, not authoritative invoices; use the upstream billing dashboard.
+**Estimator policy (unreleased source, reviewed 2026-10-21):** Zen records
+requested and actual tiers separately. Pricing supports independent complete
+`service_tiers` quotes (`fast`, `ultrafast`, `flex`, `scale`) and retains saved
+operator zero/unknown overrides. Published native OpenAI API quotes are included
+for the reviewed Astra, Sol 6.1 and Luna pairs; Luna Ultrafast and contract Scale
+remain unpriced. `priority` uses the Fast quote. Context tiers and native
+30-minute/12-hour cache-write tariffs belong to that delivered tier; missing
+components never inherit Standard rates.
+
+Actual `auto` is a selection-policy echo, not confirmed delivery. Missing or
+unconfirmed premium delivery therefore remains **unknown (`null`)**, never zero
+or assumed Standard. A group's known recorded subtotal can be shown separately
+with its unpriced count, without claiming a complete total or repricing old
+requests. Native OpenAI cache writes remain distinct from Anthropic's 5m/1h
+writes; an unexplained lifetime split is unknown.
+
+Public API premium prices are **not** automatically applied to Codex subscription
+or arbitrary reseller routes. An operator can supply a local tier-specific
+estimate; subscription credit/usage multipliers do not become USD invoices.
+Existing Standard/default estimates remain estimates; use the upstream billing
+dashboard for actual charges. See the [October reconciliation](audit/17-october-reconciliation-2026-10.md).
 
 ## OpenCode V2
 

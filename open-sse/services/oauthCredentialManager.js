@@ -4,7 +4,7 @@ import {
   refreshTokenByProvider,
 } from "./tokenRefresh.js";
 import { PROVIDER_OAUTH } from "../providers/index.js";
-import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "./tokenRefresh/dedup.js";
 
 // Single source: codex.oauth.maxRefreshAgeMs (8 days) — proactive refresh window
 export const CODEX_MAX_REFRESH_AGE_MS = PROVIDER_OAUTH["codex"]?.maxRefreshAgeMs;
@@ -151,26 +151,28 @@ function getRefreshLockKey(provider, credentials) {
   return `${provider}:${stableId}`;
 }
 
-export async function withCredentialRefreshLock(provider, credentials, refreshFn, proxyOptions = null) {
+export async function withCredentialRefreshLock(provider, credentials, refreshFn, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   const key = JSON.stringify([getRefreshLockKey(provider, credentials), getRefreshProxyKey(proxyOptions)]);
   const existing = refreshLocks.get(key);
-  if (existing) return existing;
+  if (existing && !existing.controller.signal.aborted) return waitForRefresh(existing, signal);
 
-  const pending = Promise.resolve()
-    .then(refreshFn)
-    .finally(() => {
-      refreshLocks.delete(key);
-    });
+  const operation = createRefreshOperation(refreshFn);
+  const cleanup = () => {
+    if (refreshLocks.get(key) === operation) refreshLocks.delete(key);
+  };
+  operation.promise.then(cleanup, cleanup);
 
-  refreshLocks.set(key, pending);
-  return pending;
+  refreshLocks.set(key, operation);
+  return waitForRefresh(operation, signal);
 }
 
-export async function refreshProviderCredentials(provider, credentials, log, proxyOptions = null) {
+export async function refreshProviderCredentials(provider, credentials, log, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!credentials) return null;
 
-  return withCredentialRefreshLock(provider, credentials, async () => {
-    const refreshed = await refreshTokenByProvider(provider, credentials, log, proxyOptions);
+  return withCredentialRefreshLock(provider, credentials, async refreshSignal => {
+    const refreshed = await refreshTokenByProvider(provider, credentials, log, proxyOptions, refreshSignal);
     return mergeRefreshedCredentials(provider, credentials, refreshed);
-  }, proxyOptions);
+  }, proxyOptions, signal);
 }

@@ -160,6 +160,11 @@ function normalizeString(value) {
   return String(value).trim();
 }
 
+function throwIfCancelled(signal, error) {
+  if (signal?.aborted) throw signal.reason ?? error ?? new DOMException("Aborted", "AbortError");
+  if (error?.name === "AbortError" || error?.message === "aborted" || error?.code === "ABORT_ERR") throw error;
+}
+
 /**
  * Resolve real IP using Google DNS (bypass system DNS)
  */
@@ -176,8 +181,8 @@ async function resolveRealIP(hostname) {
     const addresses = await resolve4(hostname);
     DNS_CACHE.set(hostname, { ip: addresses[0], expiry: Date.now() + MEMORY_CONFIG.dnsCacheTtlMs });
     return addresses[0];
-  } catch (error) {
-    console.warn(`[ProxyFetch] DNS resolve failed for ${hostname}:`, error.message);
+  } catch {
+    console.warn(`[ProxyFetch] DNS resolve failed for ${hostname}`);
     return null;
   }
 }
@@ -188,7 +193,7 @@ async function resolveRealIP(hostname) {
 function shouldBypassMitmDns(url) {
   try {
     const hostname = new URL(url).hostname;
-    return MITM_BYPASS_HOSTS.some(host => hostname.includes(host));
+    return MITM_BYPASS_HOSTS.includes(hostname);
   } catch { return false; }
 }
 
@@ -224,7 +229,8 @@ function shouldBypassByNoProxy(targetUrl, noProxyValue) {
 }
 
 /**
- * Get proxy URL from environment
+ * Get an applicable proxy URL from the environment. An unset proxy or explicit
+ * exclusion permits direct transport; a selected proxy's failure does not.
  */
 export function getEnvProxyUrl(targetUrl) {
   if (isLoopbackTarget(targetUrl)) return null;
@@ -461,53 +467,81 @@ async function createBypassRequest(parsedUrl, realIP, options) {
 export const __testing = { createBypassRequest };
 
 export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
+  throwIfCancelled(options.signal);
   const targetUrl = typeof url === "string" ? url : url.toString();
-  const isMockedFetch = (globalThis.fetch !== patchedFetch);
-  if (isMockedFetch) {
-    return globalThis.fetch(url, options);
+  const fetchImpl = globalThis.fetch !== patchedFetch ? globalThis.fetch : originalFetch;
+  const connectionProxyEnabled = proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true;
+  const poolId = normalizeString(proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId);
+  const hasPool = !!poolId && poolId !== "__none__";
+  const configuredRelayUrl = normalizeString(proxyOptions?.vercelRelayUrl);
+  const hasConfiguredProxy = connectionProxyEnabled || hasPool || !!configuredRelayUrl;
+  const noProxy = proxyOptions?.noProxy ?? proxyOptions?.connectionNoProxy;
+  // Relays have always supported explicit loopback targets; only ordinary
+  // connection/environment proxies carry the automatic loopback exclusion.
+  const excluded = (!configuredRelayUrl && isLoopbackTarget(targetUrl)) ||
+    (hasConfiguredProxy && shouldBypassByNoProxy(targetUrl, noProxy));
+  const vercelRelayUrl = excluded ? "" : configuredRelayUrl;
+  const connectionProxyUrl = excluded ? null : resolveConnectionProxyUrl(targetUrl, proxyOptions);
+  // Account exclusions are intentional direct routes, not a request to try an
+  // environment proxy instead. An unusable selected account proxy is not an
+  // unconfigured route either, even when strictProxy is false.
+  const envProxyUrl = hasConfiguredProxy || excluded ? null : normalizeProxyUrl(getEnvProxyUrl(targetUrl));
+  const proxyUrl = connectionProxyUrl || envProxyUrl;
+
+  if (proxyOptions?.strictProxy === true && !proxyUrl && !vercelRelayUrl) {
+    throw new Error("[ProxyFetch] Proxy required but no proxy URL configured (strictProxy=true)");
+  }
+  if (hasConfiguredProxy && !excluded && !proxyUrl && !vercelRelayUrl) {
+    throw new Error("[ProxyFetch] Configured proxy unavailable; direct egress is disabled");
   }
 
   // Vercel relay: forward request via relay headers
-  const vercelRelayUrl = normalizeString(proxyOptions?.vercelRelayUrl);
   if (vercelRelayUrl) {
-    const parsed = new URL(targetUrl);
-    const relayHeaders = {
-      ...options.headers,
-      "x-relay-target": `${parsed.protocol}//${parsed.host}`,
-      "x-relay-path": `${parsed.pathname}${parsed.search}`,
-    };
-    return originalFetch(vercelRelayUrl, { ...options, headers: relayHeaders });
+    try {
+      const parsed = new URL(targetUrl);
+      const relayHeaders = {
+        ...options.headers,
+        "x-relay-target": `${parsed.protocol}//${parsed.host}`,
+        "x-relay-path": `${parsed.pathname}${parsed.search}`,
+      };
+      // A relay Location must not move credentials/body onto an unselected
+      // direct connection. Override caller redirect policy on this path only.
+      return await fetchImpl(vercelRelayUrl, { ...options, headers: relayHeaders, redirect: "error" });
+    } catch (error) {
+      throwIfCancelled(options.signal, error);
+      throw new Error(`[ProxyFetch] Relay required but failed${proxyOptions?.strictProxy === true ? " (strictProxy=true)" : ""}; direct egress is disabled`);
+    }
   }
 
-  const connectionProxyUrl = resolveConnectionProxyUrl(targetUrl, proxyOptions);
-  const envProxyUrl = connectionProxyUrl ? null : normalizeProxyUrl(getEnvProxyUrl(targetUrl));
-  const proxyUrl = connectionProxyUrl || envProxyUrl;
+  // Proxy DNS is external to local MITM redirects. Keep this path ahead of
+  // every direct transport, with no direct-IP or native-fetch retry on failure.
+  if (proxyUrl) {
+    try {
+      const dispatcher = await getDispatcher(proxyUrl);
+      throwIfCancelled(options.signal);
+      return await fetchImpl(url, { ...options, dispatcher });
+    } catch (error) {
+      throwIfCancelled(options.signal, error);
+      // Transport exceptions can contain proxy userinfo or credential headers.
+      // Do not attach the raw exception as a cause or send it to the logger.
+      throw new Error(`[ProxyFetch] Proxy required but failed${proxyOptions?.strictProxy === true ? " (strictProxy=true)" : ""}; direct egress is disabled`);
+    }
+  }
 
-  // Strict Proxy: fail immediately if strictProxy is set but no proxy is resolved (#4007)
-  if (proxyOptions?.strictProxy === true && !proxyUrl && !vercelRelayUrl) {
-    throw new Error(`[ProxyFetch] Proxy required but no proxy URL configured for ${targetUrl} (strictProxy=true)`);
+  // Preserve the direct-fetch test/instrumentation seam, but only after route
+  // selection, cancellation and required-proxy guards have been applied.
+  if (globalThis.fetch !== patchedFetch) {
+    return fetchImpl(url, options);
   }
 
   // MITM DNS bypass: for known MITM-intercepted hosts, resolve real IP to avoid DNS spoof
   if (shouldBypassMitmDns(targetUrl) && !isMitmBypassOnCooldown(targetUrl)) {
-    if (proxyUrl) {
-      // Proxy resolves DNS externally (not affected by /etc/hosts) — use proxy directly
-      try {
-        const dispatcher = await getDispatcher(proxyUrl);
-        return await originalFetch(url, { ...options, dispatcher });
-      } catch (proxyError) {
-        if (proxyOptions?.strictProxy === true) {
-          throw new Error(`[ProxyFetch] Proxy required but failed (strictProxy=true): ${proxyError.message}`);
-        }
-        // Fix #3744: fallback to direct is expected (e.g., cf-relay 400, proxy pool down) — use debug to avoid journal spam
-        console.debug(`[ProxyFetch] Proxy failed, falling back to direct bypass: ${proxyError.message}`);
-      }
-    }
     // No proxy — manually resolve real IP to bypass DNS spoof
     const bypassHost = new URL(targetUrl).hostname;
     try {
       const parsedUrl = new URL(targetUrl);
       const realIP = await resolveRealIP(parsedUrl.hostname);
+      throwIfCancelled(options.signal);
       if (realIP) {
         const res = await createBypassRequest(parsedUrl, realIP, options);
         mitmBypassCooldown.delete(bypassHost); // success — re-enable immediately next time
@@ -516,32 +550,15 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
       // DNS itself failed → nothing to pin, cool down too
       markMitmBypassCooldown(bypassHost);
     } catch (error) {
-      if (options?.signal?.aborted || error?.name === "AbortError" || error?.message === "aborted" || error?.code === "ABORT_ERR") {
-        throw error;
-      }
+      throwIfCancelled(options.signal, error);
       markMitmBypassCooldown(bypassHost);
-      console.warn(`[ProxyFetch] MITM bypass failed (${error.message}) — skipping direct-IP attempts for ${Math.round(MITM_BYPASS_COOLDOWN_MS / 60000)}m on ${bypassHost}`);
-    }
-  }
-
-  if (proxyUrl) {
-    try {
-      const dispatcher = await getDispatcher(proxyUrl);
-      return await originalFetch(url, { ...options, dispatcher });
-    } catch (proxyError) {
-      // If strictProxy is enabled, fail hard instead of falling back to direct
-      if (proxyOptions?.strictProxy === true) {
-        throw new Error(`[ProxyFetch] Proxy required but failed (strictProxy=true): ${proxyError.message}`);
-      }
-      // Fix #3744: downgrade to debug — direct fallback succeeds, no need for WARN spam
-      console.debug(`[ProxyFetch] Proxy failed, falling back to direct: ${proxyError.message}`);
-      const fallbackDispatcher = options.dispatcher || await getDefaultAgent();
-      return originalFetch(url, fallbackDispatcher ? { ...options, dispatcher: fallbackDispatcher } : options);
+      console.warn(`[ProxyFetch] MITM bypass failed — skipping direct-IP attempts for ${Math.round(MITM_BYPASS_COOLDOWN_MS / 60000)}m on ${bypassHost}`);
     }
   }
 
   // Attach default keep-alive Agent for direct upstream connections if no dispatcher provided
   const agent = options.dispatcher || await getDefaultAgent();
+  throwIfCancelled(options.signal);
   return originalFetch(url, agent ? { ...options, dispatcher: agent } : options);
 }
 

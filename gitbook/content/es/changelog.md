@@ -1,5 +1,14 @@
 # Registro de cambios
 
+## Sin publicar — conciliación de octubre
+
+- Corrige las rutas gratuitas exactas de TokenHarbor y las tarifas por velocidad realmente entregada; distingue las duraciones de escritura de caché, los costes desconocidos y los valores explícitos del operador.
+- Muestra subtotales conocidos y solicitudes sin precio sin presentarlos como un total completo ni recalcular el historial.
+- Concilia autorización, almacenamiento privado, cancelación/proxy, límites de inferencia, métricas y correcciones verificadas del protocolo y CLI de octubre.
+- Unifica la verificación y las protecciones de publicación. No modifica retroactivamente los artefactos inmutables 0.9.13 ni demuestra disponibilidad o facturación real.
+
+[Alcance, fuentes y límites](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/17-october-reconciliation-2026-10.md)
+
 ## 0.9.13: 2026-10-19
 
 - Corrige errores falsos del presupuesto de thinking al probar modelos Claude de Antigravity y guarda los valores predeterminados sin alterar límites de salida explícitos del cliente.

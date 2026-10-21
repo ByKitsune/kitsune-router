@@ -54,16 +54,14 @@ describe("OpenAI → Kiro", () => {
     expect(out.inferenceConfig?.maxTokens, "client max_tokens ignored").toBe(100);
   });
 
-  // openai-to-kiro.js:132-134 — remote http image becomes "[Image: url]" text (lost)
-  // KNOWN BUG
-  it.fails("remote image url is preserved as an image, not text", () => {
-    const out = O2K({
+  // Synchronous codecs cannot fetch URLs. Core prefetches them securely first;
+  // unresolved URLs must fail locally rather than masquerade as typed media.
+  it("rejects a remote image that has not been fetched instead of flattening it to text", () => {
+    expect(() => O2K({
       messages: [{ role: "user", content: [
         { type: "text", text: "see" },
         { type: "image_url", image_url: { url: "https://x.com/p.png" } },
       ] }],
-    });
-    const content = out.conversationState?.currentMessage?.userInputMessage?.content || "";
-    expect(content, "remote image flattened to text").not.toContain("[Image:");
+    })).toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "messages.0.content.1.image_url" }));
   });
 });

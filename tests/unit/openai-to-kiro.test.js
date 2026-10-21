@@ -127,7 +127,7 @@ describe("openaiToKiroRequest", () => {
       expect(currentMsg.userInputMessage.images).toHaveLength(1);
     });
 
-    it("should treat http image URLs as text fallback (Kiro only supports base64)", () => {
+    it("rejects unfetched http image URLs rather than sending a text fallback", () => {
       const body = {
         messages: [
           {
@@ -140,12 +140,13 @@ describe("openaiToKiroRequest", () => {
         ]
       };
 
-      const result = openaiToKiroRequest("claude-sonnet-4.6", body, true, {});
-
-      const currentMsg = result.conversationState.currentMessage;
-      // HTTP URLs are not supported by Kiro — converted to text placeholder
-      expect(currentMsg.userInputMessage.images).toBeUndefined();
-      expect(currentMsg.userInputMessage.content).toContain("[Image: https://example.com/photo.jpg]");
+      const before = structuredClone(body);
+      // Public dispatch securely fetches/lower URLs before this synchronous
+      // codec. See reconciliation-protocol-kiro.test.js for actual wire bytes.
+      expect(() => openaiToKiroRequest("claude-sonnet-4.6", body, true, {})).toThrow(expect.objectContaining({
+        code: "unsupported_parameter", param: "messages.0.content.1.image_url",
+      }));
+      expect(body).toEqual(before);
     });
   });
 

@@ -25,6 +25,17 @@ const sharedEncoder = new TextEncoder();
 // A truthy finish_reason tells an OpenAI client the turn is over.
 const hasOpenAITerminal = (chunk) => !!chunk?.choices?.[0]?.finish_reason;
 
+function normalizeEmptyFinishReasons(chunk) {
+  if (!Array.isArray(chunk?.choices)) return false;
+  let changed = false;
+  for (const choice of chunk.choices) {
+    if (choice?.finish_reason !== "") continue;
+    choice.finish_reason = null;
+    changed = true;
+  }
+  return changed;
+}
+
 // Terminal chunk for a stream whose upstream ended without one (#4079, #4080).
 // "network_error" maps to a deliberate client-side error instead of presenting a truncated reply.
 function buildAbortedOpenAITerminal(model) {
@@ -376,6 +387,7 @@ export function createSSEStream(options = {}) {
     }
     const sanitized = publicChunk(parsed);
     if (sanitized !== parsed) { parsed = sanitized; fieldsInjected = true; }
+    if (sourceFormat === FORMATS.OPENAI && normalizeEmptyFinishReasons(parsed)) fieldsInjected = true;
     const idFixed = sourceFormat === FORMATS.OPENAI && fixInvalidId(parsed);
 
     // Queued frames retain the normal compatibility handling when released.
@@ -459,6 +471,7 @@ export function createSSEStream(options = {}) {
     }
     for (const item of translated || []) {
       if (item === null || item === undefined || !hasValuableContent(item, sourceFormat)) continue;
+      if (sourceFormat === FORMATS.OPENAI) normalizeEmptyFinishReasons(item);
       if (sourceFormat === FORMATS.OPENAI && hasOpenAITerminal(item)) clientTerminalSeen = true;
       // Responses consumers close at the terminal event, not transport EOF.
       if (sourceFormat === FORMATS.OPENAI_RESPONSES && isOpenAIResponsesTerminalEvent(item.event, item.data || item)) finalizeStream();

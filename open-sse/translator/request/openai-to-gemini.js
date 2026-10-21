@@ -32,6 +32,7 @@ import { deriveSessionId, toNumericSessionId } from "../../utils/sessionManager.
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { splitToolCallId, isValidBase64 } from "../concerns/thoughtSignature.js";
 import { expandToolResultMessages } from "../concerns/toolCall.js";
+import { antigravityOutputConfig } from "../concerns/structuredOutput.js";
 
 // Sanitize function names for Gemini API.
 // Gemini requires: starts with [a-zA-Z_], followed by [a-zA-Z0-9_.:\-], max 64 chars.
@@ -582,6 +583,7 @@ function isClaudeModel(model) {
 
 // OpenAI -> Antigravity (Sandbox Cloud Code with wrapper)
 export function openaiToAntigravityRequest(model, body, stream, credentials = null) {
+  const outputConfig = antigravityOutputConfig(body, model);
   if (isClaudeModel(model)) {
     // Validate before the Claude bridge can coerce an invalid cap or replace zero.
     readOutputTokenCap(body);
@@ -591,6 +593,7 @@ export function openaiToAntigravityRequest(model, body, stream, credentials = nu
   }
 
   const geminiCLI = openaiToGeminiCLIRequest(model, body, stream);
+  if (outputConfig) Object.assign(geminiCLI.generationConfig, outputConfig);
   return wrapInCloudCodeEnvelope(model, geminiCLI, credentials, true);
 }
 

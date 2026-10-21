@@ -96,7 +96,13 @@ function ensureRuntimeServer(bundledPath) {
 
 const SERVER_PATH = ensureRuntimeServer(resolveBundledServerPath());
 const ENCRYPT_ALGO = "aes-256-gcm";
+// Legacy, read-only derivation. New passwords must never use a machine ID or a
+// fixed salt as their encryption key.
 const ENCRYPT_SALT = "zenrouter-mitm-pwd";
+// Do not follow paths.js's historical HOME fallback if configured DATA_DIR is
+// inaccessible: silently relocating an installation key would lose passwords.
+const PASSWORD_AUTH_DIR = path.join(process.env.DATA_DIR || DATA_DIR, "auth");
+const PASSWORD_KEY_FILE = path.join(PASSWORD_AUTH_DIR, "mitm-password.key");
 
 function getProcessUsingPort443() {
   try {
@@ -152,33 +158,136 @@ function killProcess(pid, force = false, sudoPassword = null) {
   }
 }
 
-function deriveKey() {
-  try {
-    const { machineIdSync } = require("node-machine-id");
-    const raw = machineIdSync();
-    return crypto.createHash("sha256").update(raw + ENCRYPT_SALT).digest();
-  } catch {
-    return crypto.createHash("sha256").update(ENCRYPT_SALT).digest();
+function checkPasswordKeyOwner(stat) {
+  if (!IS_WIN && typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+    throw new Error("MITM password key must belong to the current user");
   }
 }
 
-function encryptPassword(plaintext) {
-  const key = deriveKey();
+function ensurePasswordAuthDir(create = false) {
+  if (create) fs.mkdirSync(PASSWORD_AUTH_DIR, { recursive: true, mode: 0o700 });
+  const stat = fs.lstatSync(PASSWORD_AUTH_DIR);
+  if (!stat.isDirectory()) throw new Error("Invalid MITM password key directory");
+  checkPasswordKeyOwner(stat);
+  if (!IS_WIN) {
+    if ((stat.mode & 0o700) !== 0o700) throw new Error("MITM password key directory is inaccessible");
+    if ((stat.mode & 0o7777) !== 0o700) fs.chmodSync(PASSWORD_AUTH_DIR, 0o700);
+  }
+}
+
+function readPasswordKey() {
+  ensurePasswordAuthDir();
+  if (!fs.lstatSync(PASSWORD_KEY_FILE).isFile()) throw new Error("Invalid MITM password key file");
+  const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0);
+  const fd = fs.openSync(PASSWORD_KEY_FILE, flags);
+  try {
+    const stat = fs.fstatSync(fd);
+    if (!stat.isFile() || stat.size !== 32) throw new Error("Invalid MITM password key file");
+    checkPasswordKeyOwner(stat);
+    if (!IS_WIN) {
+      // Even a privileged runtime must not treat an unreadable key as missing
+      // or silently repair owner access after an operator has revoked it.
+      if (!(stat.mode & 0o400)) throw new Error("MITM password key is unreadable");
+      if ((stat.mode & 0o7777) !== 0o600) fs.fchmodSync(fd, 0o600);
+    }
+    const key = fs.readFileSync(fd);
+    if (key.length !== 32 || key.every(byte => byte === 0)) throw new Error("Invalid MITM password key file");
+    return key;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function getPasswordKey(allowCreate = false) {
+  try {
+    return readPasswordKey();
+  } catch (e) {
+    // Permission, corruption and I/O errors are never absence. In particular,
+    // v2 reads/writes cannot replace a lost key with a newly generated one.
+    if (!allowCreate || e.code !== "ENOENT") throw e;
+  }
+
+  ensurePasswordAuthDir(true);
+  const temporary = path.join(PASSWORD_AUTH_DIR, `.mitm-password-key-${crypto.randomBytes(16).toString("hex")}.tmp`);
+  let fd;
+  let created = false;
+  try {
+    fd = fs.openSync(temporary, "wx", 0o600);
+    created = true;
+    fs.writeFileSync(fd, crypto.randomBytes(32));
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = undefined;
+    try {
+      // Unlike rename/writeFile, linking publishes complete bytes atomically
+      // without replacing a concurrent creator's key (EEXIST selects winner).
+      fs.linkSync(temporary, PASSWORD_KEY_FILE);
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+    }
+    if (!IS_WIN) {
+      const directoryFd = fs.openSync(PASSWORD_AUTH_DIR, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+      try { fs.fsyncSync(directoryFd); } finally { fs.closeSync(directoryFd); }
+    }
+    return readPasswordKey();
+  } finally {
+    try {
+      if (fd !== undefined) fs.closeSync(fd);
+    } finally {
+      // Only remove the temporary file we exclusively created, never a key or
+      // another process's temporary file, including after failed persistence.
+      if (created) fs.unlinkSync(temporary);
+    }
+  }
+}
+
+function parsePasswordCiphertext(stored) {
+  if (typeof stored !== "string") return null;
+  const parts = stored.split(":");
+  const v2 = parts.length === 4 && parts[0] === "v2";
+  if (v2) parts.shift();
+  if (parts.length !== 3) return null;
+  const [ivHex, tagHex, dataHex] = parts;
+  if (!/^[a-f0-9]{24}$/i.test(ivHex) || !/^[a-f0-9]{32}$/i.test(tagHex) ||
+      !/^(?:[a-f0-9]{2})+$/i.test(dataHex)) return null;
+  return { v2, iv: Buffer.from(ivHex, "hex"), tag: Buffer.from(tagHex, "hex"), data: Buffer.from(dataHex, "hex") };
+}
+
+function decryptWithPasswordKey(envelope, key) {
+  const decipher = crypto.createDecipheriv(ENCRYPT_ALGO, key, envelope.iv);
+  decipher.setAuthTag(envelope.tag);
+  return Buffer.concat([decipher.update(envelope.data), decipher.final()]).toString("utf8");
+}
+
+function encryptPassword(plaintext, previousStored) {
+  const previous = previousStored ? parsePasswordCiphertext(previousStored) : null;
+  if (previousStored && !previous) throw new Error("Invalid stored MITM password");
+  const key = getPasswordKey(!previous?.v2);
+  // Detect same-size key corruption or an imported ciphertext/key mismatch
+  // before overwriting the existing DB value. Recovery requires an explicit
+  // password clear or restoration of the matching installation key.
+  if (previous?.v2) decryptWithPasswordKey(previous, key);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ENCRYPT_ALGO, key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
+  return `v2:${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
 function decryptPassword(stored) {
   try {
-    const [ivHex, tagHex, dataHex] = stored.split(":");
-    if (!ivHex || !tagHex || !dataHex) return null;
-    const key = deriveKey();
-    const decipher = crypto.createDecipheriv(ENCRYPT_ALGO, key, Buffer.from(ivHex, "hex"));
-    decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-    return decipher.update(Buffer.from(dataHex, "hex")) + decipher.final("utf8");
+    const envelope = parsePasswordCiphertext(stored);
+    if (!envelope) return null;
+    if (envelope.v2) return decryptWithPasswordKey(envelope, getPasswordKey());
+
+    // Only a well-formed, unversioned legacy value may try historical keys.
+    // A working machine ID may have become available since a fallback write.
+    try {
+      const { machineIdSync } = require("node-machine-id");
+      const key = crypto.createHash("sha256").update(machineIdSync() + ENCRYPT_SALT).digest();
+      return decryptWithPasswordKey(envelope, key);
+    } catch { /* Try the historical fixed-salt key for this legacy read only. */ }
+    return decryptWithPasswordKey(envelope, crypto.createHash("sha256").update(ENCRYPT_SALT).digest());
   } catch {
     return null;
   }
@@ -196,10 +305,18 @@ async function saveMitmSettings(enabled, password) {
   if (!_updateSettings) return;
   try {
     const updates = { mitmEnabled: enabled };
-    if (password) updates.mitmSudoEncrypted = encryptPassword(password);
+    if (password) {
+      // Establish whether v2 state already exists before allowing first-key
+      // creation. Missing/unreadable DB hooks must not mean a fresh install.
+      if (!_getSettings) throw new Error("MITM settings reader unavailable");
+      const settings = await _getSettings();
+      if (!settings || typeof settings !== "object") throw new Error("MITM settings unavailable");
+      updates.mitmSudoEncrypted = encryptPassword(password, settings.mitmSudoEncrypted);
+    }
     await _updateSettings(updates);
-  } catch (e) {
-    err(`Failed to save settings: ${e.message}`);
+  } catch {
+    // Storage/DB errors can contain secret values. Never log their messages.
+    err("Failed to save MITM settings: password key or persistence unavailable");
   }
 }
 
@@ -207,8 +324,8 @@ async function clearEncryptedPassword() {
   if (!_updateSettings) return;
   try {
     await _updateSettings({ mitmSudoEncrypted: null });
-  } catch (e) {
-    err(`Failed to clear encrypted password: ${e.message}`);
+  } catch {
+    err("Failed to clear encrypted password: persistence unavailable");
   }
 }
 

@@ -22,6 +22,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
+      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
 
     steps:
       - uses: actions/checkout@v7
@@ -39,10 +42,23 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           node scripts/check-release-version.mjs "$RELEASE_TAG"
+          test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
+          test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
           git show-ref --verify "refs/tags/$RELEASE_TAG"
           test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
           printf 'version=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
           printf 'revision=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Isolate application state before dependency lifecycle scripts
+        run: node scripts/release-publication-helpers.mjs isolate
+
+      - name: Install locked test and application dependencies
+        run: |
+          npm ci
+          npm --prefix tests ci
+
+      - name: Verify exact source with shared CI gates
+        run: node scripts/release-publication-helpers.mjs verify-source
 
       - uses: docker/setup-buildx-action@v4
 
@@ -58,6 +74,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Reconcile immutable version digests before any build
+        id: immutable
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/release-publication-helpers.mjs docker-prepare "$RELEASE_VERSION" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
 
       - name: Check current registry latest versions before promotion
         id: latest
@@ -79,19 +101,41 @@ jobs:
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ steps.version.outputs.revision }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
       - name: Build and push verified release source
+        if: steps.immutable.outputs.build == 'true'
+        id: build
         uses: docker/build-push-action@v7
         with:
-          context: .
+          # Fetch the exact verified commit, not files mutated by installs/tests.
+          context: ${{ steps.immutable.outputs.context }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          # Never build onto latest or overwrite a version found by preflight.
+          tags: |
+            ${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/zenrouter/zenrouter:buildcache
           cache-to: type=registry,ref=ghcr.io/zenrouter/zenrouter:buildcache,mode=max
           platforms: linux/amd64
-          provenance: false
-          sbom: false
+          # Minimal provenance excludes build arguments/environment; no build secrets.
+          provenance: mode=min
+          sbom: true
+
+      - name: Verify new immutable digest and attached provenance and SBOM
+        if: steps.immutable.outputs.build == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: node scripts/release-publication-helpers.mjs docker-verify "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
+
+      - name: Promote latest from the original verified digest without rebuilding
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
+        run: node scripts/release-publication-helpers.mjs docker-promote "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
 
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v5
@@ -101,3 +145,11 @@ jobs:
           repository: joyccn/zenrouter
           readme-filepath: ./DOCKER_README.md
           short-description: "🌿 ZenRouter: Serene AI Gateway & Intelligent Multi-Provider Routing Engine"
+
+      - name: Preserve exact-SHA source verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-${{ github.sha }}
+          path: verification/${{ github.sha }}/
+          if-no-files-found: warn

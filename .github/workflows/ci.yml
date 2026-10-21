@@ -28,35 +28,20 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             tests/package-lock.json
-      - run: npm ci
-      - name: Install tests deps
-        run: cd tests && npm ci
       - name: Isolate application state
+        run: node scripts/release-publication-helpers.mjs isolate
+      - name: Install locked test and application dependencies
         run: |
-          mkdir -p "$RUNNER_TEMP/zenrouter-home" "$RUNNER_TEMP/zenrouter-data" verification
-          echo "HOME=$RUNNER_TEMP/zenrouter-home" >> "$GITHUB_ENV"
-          echo "DATA_DIR=$RUNNER_TEMP/zenrouter-data" >> "$GITHUB_ENV"
-      - run: npm run lint -- --max-warnings=0
-      - run: npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=verification/vitest.json
-        env:
-          NODE_ENV: test
-      - run: node tests/__baseline__/verify-no-regression.mjs verification/vitest.json
-      - run: npm run test:compat
-      - name: Provider identity and compatibility baselines
-        run: |
-          node scripts/generate-provider-identity.mjs --check
-          node tests/__baseline__/verify-providers.mjs
-          node tests/__baseline__/verify-alias.mjs
-          node tests/__baseline__/verify-oauth-urls.mjs
-      - run: npm run build
-        env:
-          NEXT_PHASE: phase-production-build
+          npm ci
+          npm --prefix tests ci
+      - name: Verify exact source with shared release gates
+        run: node scripts/release-publication-helpers.mjs verify-source
       - name: Preserve exact-SHA test evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: verification-${{ github.sha }}
-          path: verification/vitest.json
+          path: verification/${{ github.sha }}/
           if-no-files-found: warn
   dependency-security:
     runs-on: ubuntu-latest
@@ -84,6 +69,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: gitbook/package-lock.json
+      - name: Isolate application state before dependency lifecycle scripts
+        run: node scripts/release-publication-helpers.mjs isolate
       - run: npm --prefix gitbook ci
       - run: npm --prefix gitbook test
       - run: npm --prefix gitbook run build

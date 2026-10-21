@@ -11,6 +11,7 @@ import { AntigravityExecutor } from "../executors/antigravity.js";
 import { PROVIDERS } from "../providers/index.js";
 import { ROLE, GEMINI_ROLE } from "./schema/roles.js";
 import { extractResponseError, responseErrorToClient } from "./concerns/responseError.js";
+import { lowerKimiDeferredTools } from "./concerns/deferredTools.js";
 
 // Registry for translators. Lazy-init guards against circular-import order:
 // translator modules call register() (side-effect) before this module's body runs.
@@ -98,7 +99,8 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
       throw error;
     }
   }
-  let result = body;
+  let result = provider === "kimi" && targetFormat === FORMATS.CLAUDE
+    ? lowerKimiDeferredTools(body) : body;
   // Role the client actually ended on, before any translator drops an emptied turn.
   const clientLastRole = detectClientLastRole(body);
 
@@ -137,13 +139,13 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     // pairs like claude:kiro (avoids the claude->openai->kiro double-hop).
     const directFn = requestRegistry.get(`${sourceFormat}:${targetFormat}`);
     if (directFn) {
-      result = directFn(model, result, stream, credentials);
+      result = directFn(model, result, stream, credentials, provider);
     } else {
       // Step 1: source -> openai (if source is not openai)
       if (sourceFormat !== FORMATS.OPENAI) {
         const toOpenAI = requestRegistry.get(`${sourceFormat}:${FORMATS.OPENAI}`);
         if (toOpenAI) {
-          result = toOpenAI(model, result, stream, credentials);
+          result = toOpenAI(model, result, stream, credentials, provider);
           // Log OpenAI intermediate format
           reqLogger?.logOpenAIRequest?.(result);
         }
@@ -169,7 +171,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
       if (targetFormat !== FORMATS.OPENAI) {
         const fromOpenAI = requestRegistry.get(`${FORMATS.OPENAI}:${targetFormat}`);
         if (fromOpenAI) {
-          result = fromOpenAI(model, result, stream, credentials);
+          result = fromOpenAI(model, result, stream, credentials, provider);
         }
       }
     }

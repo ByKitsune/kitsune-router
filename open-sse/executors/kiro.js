@@ -1183,7 +1183,8 @@ export class KiroExecutor extends BaseExecutor {
     });
   }
 
-  async refreshCredentials(credentials, log, proxyOptions = null) {
+  async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     if (!credentials.refreshToken) return null;
 
     try {
@@ -1192,11 +1193,13 @@ export class KiroExecutor extends BaseExecutor {
         credentials.refreshToken,
         credentials.providerSpecificData,
         log,
-        proxyOptions
+        proxyOptions,
+        signal,
       );
 
       return result;
     } catch (error) {
+      signal?.throwIfAborted();
       log?.error?.("TOKEN", `Kiro refresh error: ${error.message}`);
       return null;
     }

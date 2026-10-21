@@ -44,6 +44,17 @@ export const TRANSIENT_COOLDOWN_MS = 30 * 1000;
 // Hard cap for provider-reported rate limit cooldown (e.g. codex resets_at can be 5-6h)
 export const MAX_RATE_LIMIT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
+// New Google structured reset hints remain untrusted/bounded. This does not
+// change separately authenticated quota windows or provider-specific resets.
+export const GOOGLE_QUOTA_RESET_HINTS = {
+  statuses: new Set([403, 409, 429]),
+  errorInfoType: "type.googleapis.com/google.rpc.ErrorInfo",
+  retryInfoType: "type.googleapis.com/google.rpc.RetryInfo",
+  domains: new Set(["cloudcode-pa.googleapis.com", "googleapis.com"]),
+  reasons: new Set(["QUOTA_EXHAUSTED", "QUOTA_EXCEEDED", "RATE_LIMIT_EXCEEDED"]),
+  maxDetails: 32,
+};
+
 // Cooldown durations (ms)
 const COOLDOWN = {
   extended: 15 * 60 * 1000, // 15m for zero balance / quota exhausted across accounts

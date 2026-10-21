@@ -77,11 +77,13 @@ export class GeminiCLIExecutor extends BaseExecutor {
     return base;
   }
 
-  async refreshCredentials(credentials, log, proxyOptions = null) {
+  async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     if (!credentials.refreshToken) return null;
 
     try {
       const response = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
+        signal,
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
         body: new URLSearchParams({
@@ -104,6 +106,7 @@ export class GeminiCLIExecutor extends BaseExecutor {
         projectId: credentials.projectId
       };
     } catch (error) {
+      signal?.throwIfAborted();
       log?.error?.("TOKEN", `Gemini CLI refresh error: ${error.message}`);
       return null;
     }

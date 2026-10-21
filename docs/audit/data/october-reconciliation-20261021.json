@@ -1,0 +1,62 @@
+{
+  "schema": "zenrouter-october-reconciliation-v1",
+  "reviewedAt": "2026-10-21",
+  "zenStartingSource": "e5d816b4224e64ae4ecdf2fd16b5dc1b2b454754",
+  "upstream": {
+    "repository": "https://github.com/decolua/9router",
+    "head": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+    "version": "0.5.104",
+    "headChangedSincePriorAudit": false,
+    "octoberCommitsEnumerated": 84,
+    "recentUniqueIssuesAndPullRequestsEnumerated": 788,
+    "limitation": "Selected discussions and immutable diffs expanded; enumeration is not exhaustive behavioral or native-provider verification."
+  },
+  "ports": [
+    { "id": "G01", "topic": "Anthropic API-key beta identity", "pullRequest": 4752, "source": "8e93b98f87e3922b60b903895315b2c3ccdaee00" },
+    { "id": "G02", "topic": "Readable reasoning alias ownership", "pullRequests": [4870, 4881], "sources": ["6a9775e6097fc81c7a9a1986a2c055ee6d0573b5", "8b0ab9a5a3eb68e8797d8b9d404704ceb54c9e13"] },
+    { "id": "G03", "topic": "Kimi deferred tools", "pullRequest": 4612, "source": "d41355f573372e9814451e51685252c80b023def" },
+    { "id": "G04", "topic": "Vertex API-key project and location", "source": "9c1419100c2c3db083e850f9572968d942fac7f9", "committedUpstream": true },
+    { "id": "G05", "topic": "CLI prototype-safe model grouping", "pullRequest": 4869, "source": "23c50f5a3e61a75b2f9d9c90c48e2e1b9088ca54" },
+    { "id": "G06", "topic": "CLI incomplete response settlement", "pullRequest": 4871, "source": "68f48f4b557287103fe17672a95023ce0a4521f4" },
+    { "id": "G07", "topic": "Bounded zstd request decoding", "pullRequest": 5019, "source": "860081386ed8eb92f37241aca05f1d810ec5c10c" }
+  ],
+  "rejected": [
+    { "pullRequest": 4988, "reason": "Configured-proxy denial must not authorize direct replay." },
+    { "pullRequest": 4938, "reason": "Generic schema traversal corrupts literal/property data; retain Zen's schema-aware walker." },
+    { "pullRequest": 5048, "reason": "Do not import ID synthesis that conflates choices or repeats IDs; existing tool-name restoration remains." }
+  ],
+  "pricing": {
+    "basis": "Provider-scoped local token-cost estimates, not subscription invoices or account entitlement.",
+    "openai": {
+      "source": "https://developers.openai.com/api/docs/pricing.md",
+      "sha256": "129d6019819379a6f30edc0811d4631ddb085dcd4b3b1d0012a945cd1af1bfbf",
+      "unit": "USD per million tokens",
+      "contextThreshold": 272000,
+      "longContextExclusive": true,
+      "nativeWriteLifetimes": ["30m", "12h"],
+      "notDeliveredTariffIdentities": ["auto"],
+      "subscriptionMultipliersAreNotDollarTariffs": true
+    },
+    "tokenharbor": {
+      "origin": "https://tokenharbor.ai",
+      "literalOnly": true,
+      "wholeRouteStatement": "Free-tier only; uses the free allowance and is never billed.",
+      "models": [
+        { "id": "mimo-v2.6-flash:free", "source": "https://tokenharbor.ai/models/mimo-v2.6-flash:free", "sha256": "95d6b3889c758e5eac0ce94f98e6da6891e0e912d7260ae7013d4ca8955842ea" },
+        { "id": "deepseek-v4.1-flash:free", "source": "https://tokenharbor.ai/models/deepseek-v4.1-flash:free", "sha256": "c654acd3424d1c3baa1bdcbb8be3f6255ec3ee25d52b7b5d44854d45072400cd" }
+      ],
+      "limitation": "Never-billed route semantics establish zero estimates, not cache-feature support or continuing promotional availability. Exact saved operator null/zero overrides retain precedence."
+    },
+    "historicalPolicy": "Do not automatically reprice recorded usage. Known subtotals remain supplemental to nullable complete totals; legacy unknown summaries cannot fabricate exact coverage."
+  },
+  "security": {
+    "testOnlyPatchedVite": "8.3.3",
+    "advisories": ["GHSA-587h-7wmj-h5pm", "GHSA-r825-w8mm-5pxw", "GHSA-698v-4r3x-3vcv"],
+    "notes": [
+      "Filesystem permissions and response redaction are not encryption at rest.",
+      "Local cancellation does not prove that upstream billing stopped.",
+      "Logged failure counters count routed-attempt events, not every HTTP request.",
+      "Local source verification, remote CI, immutable publication and production deployment are separate gates."
+    ]
+  }
+}

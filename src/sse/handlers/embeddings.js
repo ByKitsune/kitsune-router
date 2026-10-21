@@ -15,6 +15,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { saveRequestUsage } from "@/lib/usageDb.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -32,10 +33,13 @@ function exactEmbeddingUsage(raw) {
  * @param {Request} request
  */
 export async function handleEmbeddings(request) {
+  const cancelled = () => errorResponse(499, "Client closed request");
+  if (request.signal?.aborted) return cancelled();
   let body;
   try {
     body = await request.json();
   } catch {
+    if (request.signal?.aborted) return cancelled();
     log.warn("EMBEDDINGS", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
@@ -67,6 +71,13 @@ export async function handleEmbeddings(request) {
     }
   }
 
+  return withInferenceLimit(request, apiKey, () => handleAdmittedEmbeddings(request, body, apiKey));
+}
+
+async function handleAdmittedEmbeddings(request, body, apiKey) {
+  const cancelled = () => errorResponse(499, "Client closed request");
+  const url = new URL(request.url);
+  const modelStr = body.model;
   if (!modelStr) {
     log.warn("EMBEDDINGS", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
@@ -97,7 +108,9 @@ export async function handleEmbeddings(request) {
   let lastStatus = null;
 
   while (true) {
+    if (request.signal?.aborted) return cancelled();
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
+    if (request.signal?.aborted) return cancelled();
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
@@ -117,12 +130,20 @@ export async function handleEmbeddings(request) {
 
     log.info("AUTH", `\x1b[32mUsing ${provider} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    let refreshedCredentials;
+    try {
+      refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: request.signal });
+    } catch (error) {
+      if (request.signal?.aborted) return cancelled();
+      throw error;
+    }
+    if (request.signal?.aborted) return cancelled();
 
     const result = await handleEmbeddingsCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
+      clientSignal: request.signal,
       log,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
@@ -135,6 +156,7 @@ export async function handleEmbeddings(request) {
         await clearAccountError(credentials.connectionId, credentials, model);
       }
     });
+    if (request.signal?.aborted || result.status === 499) return cancelled();
 
     if (result.success) {
       const usage = exactEmbeddingUsage(result.usage);

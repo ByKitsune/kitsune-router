@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — October reconciliation
+
+- Correct exact TokenHarbor free-route estimates and provider-scoped delivered-speed tariffs; preserve separate native cache-write lifetimes, unknown charges and explicit operator overrides.
+- Show known subtotals and unpriced request counts without replacing unknown totals or repricing recorded history.
+- Reconcile authorization, private persistence, cancellation/proxy policy, inference limits and truthful failure metrics; selectively adapt verified October upstream protocol and CLI fixes.
+- Align source-verification and publication guards. These changes are not included retroactively in immutable 0.9.13 artifacts and do not establish live-provider availability or invoice parity.
+
+[Scope, sources and verification limits](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/17-october-reconciliation-2026-10.md)
+
 ## 0.9.13: 2026-10-19
 
 - Fix false thinking-budget errors in Antigravity Claude model tests; persist provider thinking defaults without changing real clients' output caps.

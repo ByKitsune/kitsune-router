@@ -2,6 +2,7 @@
 import * as log from "../utils/logger.js";
 import { getProviderConnectionById, updateProviderConnection } from "../../lib/localDb.js";
 import { resolveConnectionProxyConfig } from "../../lib/network/connectionProxy.js";
+import { createRefreshOperation, getAcquiredRefreshResult, waitForRefresh } from "open-sse/services/tokenRefresh/dedup.js";
 import {
   getProjectIdForConnection,
   invalidateProjectId,
@@ -24,6 +25,7 @@ import {
 } from "open-sse/services/tokenRefresh.js";
 import {
   parseTimeMs,
+  mergeRefreshedCredentials,
   refreshProviderCredentials as _refreshProviderCredentials,
   shouldRefreshCredentials as _shouldRefreshCredentials,
 } from "open-sse/services/oauthCredentialManager.js";
@@ -32,48 +34,56 @@ export const TOKEN_EXPIRY_BUFFER_MS = BUFFER_MS;
 
 // ─── Re-exports wrapped with local logger ─────────────────────────────────────
 
-export const refreshAccessToken = async (provider, refreshToken, credentials, proxyOptions = null) =>
+async function refreshProxyOptions(providerSpecificData, proxyOptions, signal) {
+  signal?.throwIfAborted();
+  const resolved = proxyOptions ?? await resolveConnectionProxyConfig(providerSpecificData || {});
+  signal?.throwIfAborted();
+  return resolved;
+}
+
+export const refreshAccessToken = async (provider, refreshToken, credentials, proxyOptions = null, signal = null) =>
   _refreshAccessToken(provider, refreshToken, credentials, log,
-    proxyOptions ?? await resolveConnectionProxyConfig(credentials?.providerSpecificData || {}));
+    await refreshProxyOptions(credentials?.providerSpecificData, proxyOptions, signal), signal);
 
-export const refreshClaudeOAuthToken = (refreshToken, proxyOptions = null) =>
-  _refreshClaudeOAuthToken(refreshToken, log, proxyOptions);
+export const refreshClaudeOAuthToken = (refreshToken, proxyOptions = null, signal = null) =>
+  _refreshClaudeOAuthToken(refreshToken, log, proxyOptions, signal);
 
-export const refreshGoogleToken = (refreshToken, clientId, clientSecret, proxyOptions = null) =>
-  _refreshGoogleToken(refreshToken, clientId, clientSecret, log, proxyOptions);
+export const refreshGoogleToken = (refreshToken, clientId, clientSecret, proxyOptions = null, signal = null) =>
+  _refreshGoogleToken(refreshToken, clientId, clientSecret, log, proxyOptions, signal);
 
-export const refreshCodexToken = (refreshToken, proxyOptions = null) =>
-  _refreshCodexToken(refreshToken, log, proxyOptions);
+export const refreshCodexToken = (refreshToken, proxyOptions = null, signal = null) =>
+  _refreshCodexToken(refreshToken, log, proxyOptions, signal);
 
-export const refreshIflowToken = (refreshToken, proxyOptions = null) =>
-  _refreshIflowToken(refreshToken, log, proxyOptions);
+export const refreshIflowToken = (refreshToken, proxyOptions = null, signal = null) =>
+  _refreshIflowToken(refreshToken, log, proxyOptions, signal);
 
-export const refreshGitHubToken = (refreshToken, proxyOptions = null) =>
-  _refreshGitHubToken(refreshToken, log, proxyOptions);
+export const refreshGitHubToken = (refreshToken, proxyOptions = null, signal = null) =>
+  _refreshGitHubToken(refreshToken, log, proxyOptions, signal);
 
-export const refreshCopilotToken = (githubAccessToken, proxyOptions = null) =>
-  _refreshCopilotToken(githubAccessToken, log, proxyOptions);
+export const refreshCopilotToken = (githubAccessToken, proxyOptions = null, signal = null) =>
+  _refreshCopilotToken(githubAccessToken, log, proxyOptions, signal);
 
-export const refreshKiroToken = async (refreshToken, providerSpecificData, proxyOptions = null) =>
+export const refreshKiroToken = async (refreshToken, providerSpecificData, proxyOptions = null, signal = null) =>
   _refreshKiroToken(refreshToken, providerSpecificData, log,
-    proxyOptions ?? await resolveConnectionProxyConfig(providerSpecificData || {}));
+    await refreshProxyOptions(providerSpecificData, proxyOptions, signal), signal);
 
-export const getAccessToken = async (provider, credentials, proxyOptions = null) =>
+export const getAccessToken = async (provider, credentials, proxyOptions = null, signal = null) =>
   _getAccessToken(provider, credentials, log,
-    proxyOptions ?? await resolveConnectionProxyConfig(credentials?.providerSpecificData || {}));
+    await refreshProxyOptions(credentials?.providerSpecificData, proxyOptions, signal), signal);
 
-export const refreshTokenByProvider = async (provider, credentials, proxyOptions = null) =>
+export const refreshTokenByProvider = async (provider, credentials, proxyOptions = null, signal = null) =>
   _refreshTokenByProvider(provider, credentials, log,
-    proxyOptions ?? await resolveConnectionProxyConfig(credentials?.providerSpecificData || {}));
+    await refreshProxyOptions(credentials?.providerSpecificData, proxyOptions, signal), signal);
 
 export const formatProviderCredentials = (provider, credentials) =>
   _formatProviderCredentials(provider, credentials, log);
 
-export const getAllAccessTokens = async (userInfo) => {
+export const getAllAccessTokens = async (userInfo, signal = null) => {
+  signal?.throwIfAborted();
   const results = {};
   for (const connection of userInfo.connections || []) {
     if (!connection.isActive || !connection.provider) continue;
-    const token = await getAccessToken(connection.provider, connection);
+    const token = await getAccessToken(connection.provider, connection, null, signal);
     if (token) results[connection.provider] = token;
   }
   return results;
@@ -133,15 +143,15 @@ function needsProjectId(provider) {
  * @param {string} accessToken
  * @param {object|null} proxyOptions
  */
-function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = null) {
-  if (!needsProjectId(provider) || !connectionId || !accessToken) return;
+function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = null, signal = null) {
+  if (signal?.aborted || !needsProjectId(provider) || !connectionId || !accessToken) return;
 
   // Evict the stale cached entry so getProjectIdForConnection does a real fetch
   invalidateProjectId(connectionId);
 
-  getProjectIdForConnection(connectionId, accessToken, provider, proxyOptions)
+  getProjectIdForConnection(connectionId, accessToken, provider, proxyOptions, signal)
     .then((projectId) => {
-      if (!projectId) return;
+      if (!projectId || signal?.aborted) return;
       updateProviderCredentials(connectionId, { projectId }).catch((err) => {
         log.debug("TOKEN_REFRESH", "Failed to persist refreshed projectId", {
           connectionId,
@@ -150,6 +160,7 @@ function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = n
       });
     })
     .catch((err) => {
+      if (signal?.aborted) return;
       log.debug("TOKEN_REFRESH", "Failed to fetch projectId after token refresh", {
         connectionId,
         error: err?.message ?? err,
@@ -227,40 +238,66 @@ const proactiveRefreshTails = new Map();
  *
  * @param {string} provider
  * @param {object} credentials
- * @param {{ force?: boolean, proxyOptions?: object }} [options]  force=true skips the on-request lead check
+ * @param {{ force?: boolean, proxyOptions?: object, signal?: AbortSignal }} [options]  force=true skips the on-request lead check
  *   (used by background scheduler which applies a larger lead). Request path omits this.
  * @returns {Promise<object>} updated credentials object
  */
 export async function checkAndRefreshToken(provider, credentials, options = {}) {
+  options.signal?.throwIfAborted();
   const creds = { ...credentials };
   if (!creds.connectionId && creds.id) {
     creds.connectionId = creds.id;
   }
 
-  if (!creds.connectionId) return checkAndRefreshTokenInternal(provider, creds, options);
+  if (!creds.connectionId) {
+    return waitForRefresh(createRefreshOperation(signal => checkAndRefreshTokenInternal(provider, creds, { ...options, signal, projectSignal: options.signal })), options.signal);
+  }
 
   const connectionId = creds.connectionId;
   const previous = proactiveRefreshTails.get(connectionId);
   // Queue each caller's own operation, including its DB reread and persistence.
   // A failed predecessor must not reject the following caller's operation.
-  const pending = (previous ? previous.catch(() => {}) : Promise.resolve())
-    .then(() => checkAndRefreshTokenInternal(provider, creds, options));
-  proactiveRefreshTails.set(connectionId, pending);
-
-  try {
-    return await pending;
-  } finally {
-    if (proactiveRefreshTails.get(connectionId) === pending) {
+  // A queued caller also subscribes to its predecessor. Cancelling the first
+  // HTTP request therefore cannot abort a refresh still needed by a follower.
+  // Retain the tail until actual settlement, including acquired token commits.
+  let predecessor;
+  const operation = createRefreshOperation(async signal => {
+    if (previous) {
+      try { await predecessor; }
+      catch { /* Cancellation releases a caller, not an acquired-token commit. */ }
+      await previous.barrier;
+    }
+    signal.throwIfAborted();
+    return checkAndRefreshTokenInternal(provider, creds, { ...options, signal, projectSignal: options.signal });
+  });
+  if (previous) {
+    // Subscribe synchronously, before this queued caller can cancel its parent.
+    predecessor = waitForRefresh(previous, operation.controller.signal);
+    predecessor.catch(() => {});
+  }
+  // A cancelled tail may settle before a predecessor's persistence finishes.
+  // Carry that barrier forward separately so no later request can reread stale
+  // rotating credentials, even after the lower ten-second result cache expires.
+  operation.barrier = (previous?.barrier || Promise.resolve())
+    .then(() => operation.promise).catch(() => {});
+  proactiveRefreshTails.set(connectionId, operation);
+  const cleanup = () => {
+    if (proactiveRefreshTails.get(connectionId) === operation) {
       proactiveRefreshTails.delete(connectionId);
     }
-  }
+  };
+  operation.barrier.then(cleanup, cleanup);
+  return waitForRefresh(operation, options.signal);
 }
 
 async function checkAndRefreshTokenInternal(provider, creds, options) {
+  const signal = options.signal;
+  signal?.throwIfAborted();
 
   // Adopt newer persisted token state even when the refresh token did not rotate.
   if (creds.connectionId) {
     const latest = await getProviderConnectionById(creds.connectionId).catch(() => null);
+    signal?.throwIfAborted();
     const latestRefreshMs = Date.parse(latest?.lastRefreshAt || "");
     const credsRefreshMs = Date.parse(creds.lastRefreshAt || "");
     const dbIsNewer = Number.isFinite(latestRefreshMs)
@@ -294,8 +331,7 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
     }
   }
 
-  const proxyOptions = options.proxyOptions
-    ?? await resolveConnectionProxyConfig(creds.providerSpecificData || {});
+  const proxyOptions = await refreshProxyOptions(creds.providerSpecificData, options.proxyOptions, signal);
 
   const force = options?.force === true;
 
@@ -312,7 +348,18 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
       lastRefreshAt: creds.lastRefreshAt || null,
     });
 
-    const newCreds = await _refreshProviderCredentials(provider, creds, log, proxyOptions);
+    let newCreds;
+    try {
+      newCreds = await _refreshProviderCredentials(provider, creds, log, proxyOptions, signal);
+    } catch (error) {
+      if (provider !== "kiro" || !signal?.aborted) throw error;
+      // Kiro can acquire a rotating grant before optional profile discovery.
+      // Finish committing any such result; never initiate another refresh after
+      // cancellation, and retain the existing per-connection commit barrier.
+      const acquired = await getAcquiredRefreshResult("kiro", creds.refreshToken, proxyOptions);
+      if (!acquired) throw error;
+      newCreds = mergeRefreshedCredentials(provider, creds, acquired);
+    }
     if (newCreds?.accessToken || newCreds?.apiKey || newCreds?.copilotToken) {
       const mergedCreds = {
         ...newCreds,
@@ -334,9 +381,10 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
       };
 
       // Non-blocking: refresh projectId with the new access token
-      _refreshProjectId(provider, creds.connectionId, creds.accessToken, proxyOptions);
+      if (!signal?.aborted) _refreshProjectId(provider, creds.connectionId, creds.accessToken, proxyOptions, options.projectSignal || signal);
     }
   }
+  signal?.throwIfAborted();
 
   // ── 2. GitHub Copilot token expiry ────────────────────────────────────────
   if (provider === "github") {
@@ -354,7 +402,7 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
         expiresIn: copilotToken ? Math.round(remaining / 1000) : "missing",
       });
 
-      const copilotTokenResult = await refreshCopilotToken(creds.accessToken, proxyOptions);
+      const copilotTokenResult = await refreshCopilotToken(creds.accessToken, proxyOptions, signal);
       if (copilotTokenResult) {
         const updatedSpecific = {
           ...creds.providerSpecificData,
@@ -384,12 +432,12 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
  * @param {object} credentials  – must contain `refreshToken`
  * @returns {Promise<object|null>} merged credentials or the raw GitHub credentials on Copilot failure
  */
-export async function refreshGitHubAndCopilotTokens(credentials, proxyOptions = null) {
-  proxyOptions ??= await resolveConnectionProxyConfig(credentials.providerSpecificData || {});
-  const newGitHubCreds = await refreshGitHubToken(credentials.refreshToken, proxyOptions);
+export async function refreshGitHubAndCopilotTokens(credentials, proxyOptions = null, signal = null) {
+  proxyOptions = await refreshProxyOptions(credentials.providerSpecificData, proxyOptions, signal);
+  const newGitHubCreds = await refreshGitHubToken(credentials.refreshToken, proxyOptions, signal);
   if (!newGitHubCreds?.accessToken) return newGitHubCreds;
 
-  const copilotToken = await refreshCopilotToken(newGitHubCreds.accessToken, proxyOptions);
+  const copilotToken = await refreshCopilotToken(newGitHubCreds.accessToken, proxyOptions, signal);
   if (!copilotToken) return newGitHubCreds;
 
   return {

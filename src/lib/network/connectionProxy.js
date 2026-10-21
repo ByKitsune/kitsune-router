@@ -62,11 +62,15 @@ function normalizeLegacyProxy(providerSpecificData = {}) {
  * 1. Proxy Pool
  * 2. Legacy Proxy
  * 3. No Proxy
+ *
+ * An unusable explicit selection stays enabled with an empty URL, so transport
+ * can fail closed without changing the operator's strictProxy setting.
  */
 export async function resolveConnectionProxyConfig(
   providerSpecificData = {}
 ) {
   let strictProxy = providerSpecificData?.strictProxy === true;
+  let proxyRequired = providerSpecificData?.connectionProxyEnabled === true;
   try {
     const proxyPoolIdRaw = normalizeString(
       providerSpecificData?.proxyPoolId
@@ -84,6 +88,7 @@ export async function resolveConnectionProxyConfig(
      * -----------------------------
      */
     if (proxyPoolId) {
+      proxyRequired = true;
       const proxyPool = await getProxyPoolById(proxyPoolId);
       // Policy survives unusable pools; fallback must never permit direct egress.
       strictProxy = strictProxy || proxyPool?.strictProxy === true;
@@ -168,12 +173,18 @@ export async function resolveConnectionProxyConfig(
       proxyPool: null,
 
       ...legacy,
+      // Keep unusable selections distinct from intentionally direct routes.
+      // Callers project the existing enabled/URL fields, so this must survive
+      // without requiring them to copy a new marker or changing strictProxy.
+      // Never reactivate a disabled legacy URL or its stale exclusions.
+      connectionProxyEnabled: proxyRequired,
+      connectionProxyUrl: proxyRequired ? "" : legacy.connectionProxyUrl,
+      connectionNoProxy: proxyRequired && !legacy.connectionProxyEnabled ? "" : legacy.connectionNoProxy,
       strictProxy,
     };
-  } catch (error) {
+  } catch {
     console.error(
-      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
-      error
+      "[resolveConnectionProxyConfig] Failed to resolve proxy config; direct egress is disabled"
     );
 
     return {
@@ -182,7 +193,7 @@ export async function resolveConnectionProxyConfig(
       proxyPoolId: null,
       proxyPool: null,
 
-      connectionProxyEnabled: false,
+      connectionProxyEnabled: proxyRequired,
       connectionProxyUrl: "",
       connectionNoProxy: "",
 

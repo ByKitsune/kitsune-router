@@ -18,7 +18,8 @@ export default {
     format: "claude",
     headers: {
       "anthropic-version": "2023-06-01",
-      "Anthropic-Beta": "claude-code-20250219,interleaved-thinking-2025-05-14",
+      // Native API-key traffic is not the Claude Code OAuth product.
+      "Anthropic-Beta": "interleaved-thinking-2025-05-14",
     },
   },
   models: [

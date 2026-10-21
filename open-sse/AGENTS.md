@@ -4,7 +4,7 @@ Provider-agnostic SSE engine: a supported client request → provider execution 
 
 ## Request lifecycle (chat)
 
-`handlers/chatCore.js` → `services/model.js` `parseModel` (resolve `provider/model`) → **pre-translate hooks** (`rtk/` tool_result compress, `rtk/headroom.js` proxy compress, `rtk/caveman.js` system inject — all fail-open) → `executors/index.js` `getExecutor(provider)` → `translator/index.js` `translateRequest` (client format → provider format) → `executor.execute()` (streams upstream) → `translateResponse` (provider chunks → client format) → SSE out.
+The app first resolves aliases/combos and selects an account in `src/sse/`. `handlers/chatCore.js` → `executors/index.js` `getExecutor(provider)` → native preparation or `translator/index.js` `translateRequest` (client format → provider format) → **final-provider-body hooks** (`rtk/` tool_result compress, `rtk/headroom.js` proxy compress, `rtk/caveman.js` system inject — all fail-open) → `executor.execute()` (streams upstream) → native response handling or `translateResponse` (provider chunks → client format) → SSE/JSON out. `services/model.js` supplies shared model parsing; it is not a second app-level account-selection loop.
 
 ## Directory map
 

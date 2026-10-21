@@ -1,14 +1,65 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const PACKAGE = "@joyccn/zenrouter";
-export const command = (cmd, args, options = {}) => execFileSync(cmd, args, { encoding: "utf8", maxBuffer: 512 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], ...options });
+export function command(cmd, args, options = {}) {
+  const timeout = options.timeout ?? Number(process.env.RELEASE_COMMAND_TIMEOUT_MS ?? 120000);
+  assert(Number.isSafeInteger(timeout) && timeout > 0 && timeout <= 1800000, "Invalid release command timeout (1–1800000 ms required)");
+  // SIGKILL bounds even a subprocess that traps/ignores SIGTERM. A timed-out
+  // registry write is ambiguous and must be reconciled by readback on a rerun.
+  return execFileSync(cmd, args, { encoding: "utf8", maxBuffer: 512 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], ...options, timeout, killSignal: "SIGKILL" });
+}
 const stable = version => assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version), "Invalid stable version");
+
+export function isolateVerification(env = process.env) {
+  assert(env.RUNNER_TEMP && resolve(env.RUNNER_TEMP) === env.RUNNER_TEMP, "Absolute RUNNER_TEMP required for state isolation");
+  const home = resolve(env.RUNNER_TEMP, "zenrouter-home");
+  const isolated = {
+    HOME: home, DATA_DIR: resolve(env.RUNNER_TEMP, "zenrouter-data"),
+    XDG_CONFIG_HOME: resolve(home, ".config"), XDG_DATA_HOME: resolve(home, ".local/share"),
+    XDG_CACHE_HOME: resolve(home, ".cache"), XDG_STATE_HOME: resolve(home, ".local/state"),
+    RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0", MODEL_CATALOG_SYNC: "off",
+    DISABLE_BACKGROUND_TOKEN_REFRESH: "1", ZENROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
+  };
+  for (const path of [home, isolated.DATA_DIR, isolated.XDG_CONFIG_HOME, isolated.XDG_DATA_HOME, isolated.XDG_CACHE_HOME, isolated.XDG_STATE_HOME]) mkdirSync(path, { recursive: true });
+  for (const [key, value] of Object.entries(isolated)) {
+    assert(!/[\r\n]/.test(value), "Unsafe isolated environment path");
+    appendFileSync(env.GITHUB_ENV, `${key}=${value}\n`);
+  }
+}
+
+export function verifySource({ cwd = process.cwd(), env = process.env, command: run = command } = {}) {
+  assert(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA), "Invalid verification source SHA");
+  assert(typeof env.GITHUB_REF === "string" && env.GITHUB_REF.startsWith("refs/"), "Missing verification source ref");
+  const directory = resolve(cwd, "verification", env.GITHUB_SHA);
+  mkdirSync(directory, { recursive: true });
+  const report = resolve(directory, "vitest.json");
+  const evidence = resolve(directory, "source.json");
+  rmSync(evidence, { force: true });
+  rmSync(report, { force: true });
+  const execute = (cmd, args, extra = {}) => run(cmd, args, { cwd, env: { ...env, NODE_ENV: "test" }, timeout: 1800000, stdio: "inherit", ...extra });
+  assert.equal(run("git", ["rev-parse", "HEAD"], { cwd, env }).trim(), env.GITHUB_SHA, "Verification checkout SHA mismatch");
+  execute("npm", ["run", "lint", "--", "--max-warnings=0"]);
+  execute("npm", ["test", "--", "--maxWorkers=2", "--reporter=default", "--reporter=json", `--outputFile=${report}`]);
+  execute("node", ["tests/__baseline__/verify-no-regression.mjs", report]);
+  const reportSha256 = createHash("sha256").update(readFileSync(report)).digest("hex");
+  execute("npm", ["run", "test:compat"]);
+  for (const args of [
+    ["scripts/generate-provider-identity.mjs", "--check"],
+    ["tests/__baseline__/verify-providers.mjs"],
+    ["tests/__baseline__/verify-alias.mjs"],
+    ["tests/__baseline__/verify-oauth-urls.mjs"],
+  ]) execute("node", args);
+  execute("npm", ["run", "build"], { env: { ...env, NODE_ENV: "production", NEXT_PHASE: "phase-production-build" } });
+  assert.equal(createHash("sha256").update(readFileSync(report)).digest("hex"), reportSha256, "Verified report changed during source verification");
+  writeFileSync(evidence, JSON.stringify({ sha: env.GITHUB_SHA, ref: env.GITHUB_REF, reportSha256 }) + "\n");
+  return directory;
+}
 export function npmArtifact(version, run = command) {
   stable(version);
   try {
@@ -18,6 +69,7 @@ export function npmArtifact(version, run = command) {
     return value;
   } catch (error) {
     // Only an explicit registry E404 means unpublished. Auth/network/parse errors abort.
+    if (error.code === "ETIMEDOUT" || error.signal) throw error;
     for (const text of [error.stdout, error.stderr]) {
       try { if (JSON.parse(String(text)).error?.code === "E404") return null; } catch { /* not a registry JSON error */ }
     }
@@ -108,6 +160,7 @@ export function githubLatest(version, repo, run = command) {
   let current;
   try { current = JSON.parse(run("gh", ["api", `repos/${repo}/releases/latest`])).tag_name; }
   catch (error) {
+    if (error.code === "ETIMEDOUT" || error.signal) throw error;
     if (!String(error.stderr).includes("HTTP 404")) throw error;
     // Confirm repository access and absence of stable releases; a private-repo 404 is not absence.
     const releases = JSON.parse(run("gh", ["api", "--paginate", "--slurp", `repos/${repo}/releases?per_page=100`])).flat();
@@ -122,27 +175,122 @@ export function dockerLatest(image, repo, run = command) {
   try { config = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", `${image}:latest`, "--format", "{{json .Image}}"])); }
   catch (error) {
     // Only a registry's explicit missing manifest permits an initial latest tag.
-    if (/manifest unknown/i.test(String(error.stderr)) && !/unauthorized|denied|401|403/i.test(String(error.stderr))) return null;
+    if (missingManifest(error)) return null;
     throw error;
   }
-  const labels = config.config?.Labels;
-  assert(labels, "Missing Docker latest labels");
-  let version = labels["org.opencontainers.image.version"];
-  if (version === "latest") {
-    const revision = labels["org.opencontainers.image.revision"];
-    assert.equal(labels["org.opencontainers.image.source"], `https://github.com/${repo}`, "Untrusted legacy image source");
-    assert(/^[a-f0-9]{40}$/.test(revision), "Invalid legacy image source revision");
-    const source = JSON.parse(run("gh", ["api", `repos/${repo}/contents/package.json?ref=${revision}`]));
-    assert.equal(source.encoding, "base64", "Invalid source package encoding");
-    version = JSON.parse(Buffer.from(source.content, "base64").toString("utf8")).version;
-  }
+  const versions = dockerConfigs(config).map(value => {
+    const labels = value.config?.Labels;
+    assert(labels, "Missing Docker latest labels");
+    let version = labels["org.opencontainers.image.version"];
+    if (version === "latest") {
+      const revision = labels["org.opencontainers.image.revision"];
+      assert.equal(labels["org.opencontainers.image.source"], `https://github.com/${repo}`, "Untrusted legacy image source");
+      assert(/^[a-f0-9]{40}$/.test(revision), "Invalid legacy image source revision");
+      const source = JSON.parse(run("gh", ["api", `repos/${repo}/contents/package.json?ref=${revision}`]));
+      assert.equal(source.encoding, "base64", "Invalid source package encoding");
+      version = JSON.parse(Buffer.from(source.content, "base64").toString("utf8")).version;
+    }
+    stable(version);
+    return version;
+  });
+  assert(versions.every(version => version === versions[0]), "Inconsistent Docker latest platform versions");
+  return versions[0];
+}
+
+function dockerConfigs(value) {
+  assert(value && typeof value === "object", "Missing Docker image configuration");
+  const configs = value.config ? [value] : Object.values(value);
+  assert(configs.length && configs.every(config => config?.config), "Invalid Docker platform configuration");
+  return configs;
+}
+const validDigest = digest => assert(typeof digest === "string" && /^sha256:[a-f0-9]{64}$/.test(digest), "Invalid Docker immutable digest");
+const missingManifest = error => error.code !== "ETIMEDOUT" && !error.signal && /manifest unknown/i.test(String(error.stderr)) && !/unauthorized|denied|401|403/i.test(String(error.stderr));
+function dockerManifest(ref, run) {
+  const value = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", ref, "--format", "{{json .Manifest}}"]));
+  validDigest(value.digest);
+  return value;
+}
+function dockerSource(version, images, env) {
   stable(version);
-  return version;
+  assert(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA), "Invalid Docker source SHA");
+  assert.equal(env.GITHUB_REF, `refs/tags/v${version}`, "Wrong Docker release ref");
+  assert(/^[\w.-]+\/[\w.-]+$/.test(env.GITHUB_REPOSITORY), "Invalid Docker source repository");
+  assert(images.length && new Set(images).size === images.length && images.every(image => /^[a-z0-9][a-z0-9./_-]*$/.test(image)), "Invalid Docker image repositories");
+}
+function verifyDockerConfig(image, digest, version, env, run) {
+  const config = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", `${image}@${digest}`, "--format", "{{json .Image}}"]));
+  for (const value of dockerConfigs(config)) {
+    const labels = value.config.Labels;
+    assert.equal(labels?.["org.opencontainers.image.version"], version, "Immutable Docker version mismatch");
+    assert.equal(labels?.["org.opencontainers.image.revision"], env.GITHUB_SHA, "Immutable Docker source SHA mismatch");
+    assert.equal(labels?.["org.opencontainers.image.source"], `https://github.com/${env.GITHUB_REPOSITORY}`, "Immutable Docker source repository mismatch");
+  }
+}
+
+export function prepareDocker(version, images, { env = process.env, command: run = command } = {}) {
+  dockerSource(version, images, env);
+  const digests = images.map(image => {
+    let manifest;
+    try { manifest = dockerManifest(`${image}:${version}`, run); }
+    catch (error) { if (missingManifest(error)) return null; throw error; }
+    verifyDockerConfig(image, manifest.digest, version, env, run);
+    return manifest.digest;
+  });
+  if (digests.every(digest => digest === null)) return { build: true, context: `https://github.com/${env.GITHUB_REPOSITORY}.git#${env.GITHUB_SHA}` };
+  // Cross-registry copying can rewrite indexes or omit referrers. Partial
+  // publication requires deliberate recovery of the original digest, not a rebuild.
+  assert(digests.every(digest => digest !== null), "Partial immutable Docker publication; recover the original digest to the missing registry without rebuilding");
+  assert(digests.every(digest => digest === digests[0]), "Conflicting immutable Docker version digests; refusing overwrite or rebuild");
+  return { build: false, digest: digests[0] };
+}
+
+export function verifyDocker(version, digest, images, { env = process.env, command: run = command } = {}) {
+  validDigest(digest);
+  const existing = prepareDocker(version, images, { env, command: run });
+  assert(!existing.build && existing.digest === digest, "Published Docker digest does not match the verified immutable build");
+  for (const image of images) {
+    for (const [field, predicate] of [["Provenance", "SLSA"], ["SBOM", "SPDX"]]) {
+      const value = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", `${image}@${digest}`, "--format", `{{json .${field}}}`]));
+      const predicates = value?.[predicate] ? [value] : Object.values(value || {});
+      assert(predicates.length && predicates.every(value => value?.[predicate] && Object.keys(value[predicate]).length), `Missing Docker ${field} evidence`);
+    }
+  }
+}
+
+export function promoteDocker(version, digest, images, { env = process.env, command: run = command } = {}) {
+  // Reruns must not bypass evidence verification just because the version now
+  // exists: the first attempt may have stopped at a failed attestation check.
+  verifyDocker(version, digest, images, { env, command: run });
+  const canTag = image => {
+    const current = dockerLatest(image, env.GITHUB_REPOSITORY, run);
+    if (current === version) assert.equal(dockerManifest(`${image}:latest`, run).digest, digest, "Conflicting latest Docker version digest; refusing overwrite");
+    return canPromote(version, current);
+  };
+  if (!images.every(canTag)) return false;
+  for (const image of images) {
+    // Recheck after the build, immediately before each mutable latest write.
+    if (!canTag(image)) return false;
+    run("docker", ["buildx", "imagetools", "create", "--prefer-index=false", "--tag", `${image}:latest`, `${image}@${digest}`]);
+    assert.equal(dockerManifest(`${image}:latest`, run).digest, digest, "Docker latest digest readback mismatch; retry promotion without rebuilding");
+  }
+  return true;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const [mode, version] = process.argv.slice(2);
-  if (mode === "prepare") {
+  if (mode === "isolate") {
+    isolateVerification();
+  } else if (mode === "verify-source") {
+    verifySource();
+  } else if (mode === "docker-prepare") {
+    const result = prepareDocker(version, process.argv.slice(4));
+    for (const [key, value] of Object.entries(result)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
+  } else if (mode === "docker-verify") {
+    verifyDocker(version, process.argv[4], process.argv.slice(5));
+  } else if (mode === "docker-promote") {
+    const promote = promoteDocker(version, process.argv[4], process.argv.slice(5));
+    appendFileSync(process.env.GITHUB_OUTPUT, `promote=${promote}\n`);
+  } else if (mode === "prepare") {
     const result = await prepareTarball(version);
     for (const [key, value] of Object.entries(result)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
   } else if (mode === "publish") {

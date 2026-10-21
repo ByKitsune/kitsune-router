@@ -15,13 +15,15 @@
 //    per-model labels are only emitted for models that already appear in the
 //    client-visible catalog. No emails, no tokens, no API keys, no prompts.
 import { NextResponse } from "next/server";
-import { getUsageStats, getRecentLogs } from "@/lib/usageDb";
+import { getUsageStats, getRequestFailureCounts } from "@/lib/db/repos/usageRepo.js";
 import { hasValidCliToken, isAuthenticated } from "@/dashboardGuard";
 import { APP_CONFIG } from "@/shared/constants/config.js";
+import { PROVIDER_MODELS } from "open-sse/config/providerModels.js";
 
 export const dynamic = "force-dynamic";
 
 const startedAt = Date.now();
+const publicModels = new Set(Object.values(PROVIDER_MODELS).flatMap((models) => models.map((model) => model.id)));
 
 async function requireAuth(request) {
   return (await hasValidCliToken(request)) || (await isAuthenticated(request));
@@ -78,24 +80,34 @@ export async function GET(request) {
     // `getUsageStats` ALSO returns byAccount/byApiKey rows, and those carry
     // account emails and key names — none of that may leave the process here.
     // Only the scalar totals and the per-model request counts are read.
-    lines.push(line("zenrouter_requests_total", stats.totalRequests || 0, null, "Requests in the window", "counter"));
-    lines.push(line("zenrouter_prompt_tokens_total", stats.totalPromptTokens || 0, null, "Prompt tokens in the window", "counter"));
-    lines.push(line("zenrouter_completion_tokens_total", stats.totalCompletionTokens || 0, null, "Completion tokens in the window", "counter"));
-    lines.push(line("zenrouter_cached_tokens_total", stats.totalCachedTokens || 0, null, "Cached prompt tokens in the window", "counter"));
+    // Preserve existing sample names for dashboards. Despite their legacy
+    // `_total` suffix these are rolling 24h gauges, not monotonic counters:
+    // retention, window expiry and DB imports can reduce them. Do not rate().
+    lines.push(line("zenrouter_requests_total", stats.totalRequests || 0, null, "Usage records in the rolling 24h window (legacy gauge name)", "gauge"));
+    lines.push(line("zenrouter_prompt_tokens_total", stats.totalPromptTokens || 0, null, "Prompt tokens in the rolling 24h window", "gauge"));
+    lines.push(line("zenrouter_completion_tokens_total", stats.totalCompletionTokens || 0, null, "Completion tokens in the rolling 24h window", "gauge"));
+    lines.push(line("zenrouter_cached_tokens_total", stats.totalCachedTokens || 0, null, "Cached prompt tokens in the rolling 24h window", "gauge"));
     if (stats.totalCost !== null) {
-      lines.push(line("zenrouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the window", "counter"));
+      lines.push(line("zenrouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the rolling 24h window", "gauge"));
     }
 
     // Per-model request counts. The model id is already published in the
     // client-visible catalog, so it is not internal detail — but the provider
     // column is deliberately omitted.
     const byModel = stats.byModel && typeof stats.byModel === "object" ? Object.entries(stats.byModel) : [];
-    if (byModel.length) {
-      lines.push("# HELP zenrouter_model_requests_total Requests in the window, by model");
-      lines.push("# TYPE zenrouter_model_requests_total counter");
-      for (const [key, row] of byModel.slice(0, 200)) {
-        const model = row?.rawModel || String(key).split(" (")[0];
-        lines.push(`zenrouter_model_requests_total{model="${escapeLabel(model)}"} ${Number(row?.requests) || 0}`);
+    const modelCounts = new Map();
+    for (const [key, row] of byModel) {
+      const model = row?.rawModel || String(key).split(" (")[0];
+      // Custom/request-supplied model strings are not trusted public labels.
+      if (!publicModels.has(model)) continue;
+      // Provider is omitted, so combine providers to avoid duplicate series.
+      modelCounts.set(model, (modelCounts.get(model) || 0) + (Number(row?.requests) || 0));
+    }
+    if (modelCounts.size) {
+      lines.push("# HELP zenrouter_model_requests_total Usage records in the rolling 24h window, by public catalog model");
+      lines.push("# TYPE zenrouter_model_requests_total gauge");
+      for (const [model, count] of [...modelCounts].slice(0, 200)) {
+        lines.push(`zenrouter_model_requests_total{model="${escapeLabel(model)}"} ${count}`);
       }
     }
 
@@ -104,14 +116,14 @@ export async function GET(request) {
     // never records a misleading 0 for "no measurements yet".
     if (stats.latency?.samples > 0) {
       const l = stats.latency;
-      lines.push("# HELP zenrouter_ttft_ms Time to first token, over recorded samples");
+      lines.push("# HELP zenrouter_ttft_ms Time to first token, over recorded samples in the rolling 24h window");
       lines.push("# TYPE zenrouter_ttft_ms gauge");
       if (Number.isFinite(l.ttftMedianMs)) lines.push(`zenrouter_ttft_ms{quantile="0.5"} ${l.ttftMedianMs}`);
       if (Number.isFinite(l.ttftP90Ms)) lines.push(`zenrouter_ttft_ms{quantile="0.9"} ${l.ttftP90Ms}`);
       if (Number.isFinite(l.ttftMinMs)) lines.push(`zenrouter_ttft_ms{quantile="0"} ${l.ttftMinMs}`);
       if (Number.isFinite(l.ttftMaxMs)) lines.push(`zenrouter_ttft_ms{quantile="1"} ${l.ttftMaxMs}`);
       if (Number.isFinite(l.ttftMeanMs)) lines.push(`zenrouter_ttft_ms{quantile="mean"} ${l.ttftMeanMs}`);
-      lines.push(`zenrouter_ttft_samples_total ${l.samples}`);
+      lines.push(line("zenrouter_ttft_samples_total", l.samples, null, "Measured TTFT samples in the rolling 24h window", "gauge"));
     }
 
     // In-flight work: lets an operator see a stuck queue without the dashboard.
@@ -121,25 +133,16 @@ export async function GET(request) {
     }
   }
 
-  // Failure breakdown by HTTP status, parsed from the recorded log status
-  // ("FAILED 429"), so "is it 401 or 429?" is answerable without grepping
-  // journald by hand.
-  try {
-    const logs = await getRecentLogs(500);
-    const counts = new Map();
-    for (const entry of logs) {
-      const match = /FAILED\s+(\d{3})/.exec(entry?.status || "");
-      if (match) counts.set(match[1], (counts.get(match[1]) || 0) + 1);
+  // True process-lifetime counters from terminal FAILED events, including
+  // zero-token failures. Independent of UI string logs, DB availability and
+  // retention. Not durable across restarts; never backfilled from usage rows.
+  const failures = getRequestFailureCounts();
+  if (Object.keys(failures).length) {
+    lines.push("# HELP zenrouter_failures_total Terminal FAILED request-log events since process start (not persisted), by HTTP status");
+    lines.push("# TYPE zenrouter_failures_total counter");
+    for (const status of Object.keys(failures).sort()) {
+      lines.push(`zenrouter_failures_total{status="${status}"} ${failures[status]}`);
     }
-    if (counts.size) {
-      lines.push("# HELP zenrouter_failures_total Recorded failures, by HTTP status");
-      lines.push("# TYPE zenrouter_failures_total counter");
-      for (const status of [...counts.keys()].sort()) {
-        lines.push(`zenrouter_failures_total{status="${status}"} ${counts.get(status)}`);
-      }
-    }
-  } catch {
-    // Failure counts are best-effort.
   }
 
   return new NextResponse(`${lines.join("\n")}\n`, {

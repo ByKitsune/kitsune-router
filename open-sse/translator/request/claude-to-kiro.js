@@ -34,6 +34,7 @@ import { DEFAULT_IMAGE_MIME } from "../schema/index.js";
 import { ROLE, CLAUDE_BLOCK } from "../schema/index.js";
 import { splitToolResultContent } from "../concerns/multimodal.js";
 import { parseDataUri } from "../concerns/image.js";
+import { rejectUnresolvedKiroImages } from "../concerns/requestMedia.js";
 import {
   canonicalizeKiroConversation,
   normalizeKiroToolSpecs,
@@ -217,6 +218,7 @@ function extractClaudeSystemText(system) {
  * Build a Kiro payload directly from a Claude Messages API request body.
  */
 export function claudeToKiroRequest(model, body, stream, credentials) {
+  rejectUnresolvedKiroImages(body);
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const tools = Array.isArray(body.tools) ? body.tools : [];
   const maxTokens = readOutputTokenCap(body, ["max_tokens"], { sourceFormat: "claude" }) ?? 32000;

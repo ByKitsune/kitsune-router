@@ -23,7 +23,7 @@ import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../translator/schema/index.js"
 import { normalizeMediaPart } from "../translator/concerns/multimodal.js";
 import { fetchImageAsBase64, parseDataUri } from "../translator/concerns/image.js";
 import { cloneRequestBody } from "../utils/requestBody.js";
-import { getEnvProxyUrl, resolveConnectionProxyUrl } from "../utils/proxyFetch.js";
+import { getEnvProxyUrl, isLoopbackTarget } from "../utils/proxyFetch.js";
 import zlib from "zlib";
 import crypto from "crypto";
 
@@ -54,6 +54,32 @@ const COMPRESS_FLAG = {
 const AGENT_RUN_PATH = "/agent.v1.AgentService/Run";
 const PROTOBUF_LEN = 2;
 const PROTOBUF_VARINT = 0;
+
+function requiresNativeProxy(url, proxyOptions) {
+  const relay = String(proxyOptions?.vercelRelayUrl ?? "").trim();
+  const poolId = String(proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId ?? "").trim();
+  const configured = proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true ||
+    (!!poolId && poolId !== "__none__") || !!relay;
+  if (proxyOptions?.strictProxy === true) return true;
+
+  // Match proxyAwareFetch's explicit exclusions, not just its resolved URL:
+  // an enabled-but-empty proxy still forbids direct transport. Relays do not
+  // have the automatic loopback exemption that connection/env proxies have.
+  if (configured) {
+    if (!relay && isLoopbackTarget(url)) return false;
+    const hostname = new URL(url).hostname.toLowerCase();
+    const noProxy = String(proxyOptions?.noProxy ?? proxyOptions?.connectionNoProxy ?? "").trim();
+    const excluded = noProxy.split(",").map(pattern => pattern.trim().toLowerCase()).filter(Boolean).some(pattern => {
+      if (pattern === "*") return true;
+      if (pattern.startsWith(".")) return hostname.endsWith(pattern) || hostname === pattern.slice(1);
+      return hostname === pattern || hostname.endsWith(`.${pattern}`);
+    });
+    // Account exclusions authorize direct transport; do not substitute an env
+    // proxy after them. Disabled/stale account fields do not imply a selection.
+    return !excluded;
+  }
+  return !!String(getEnvProxyUrl(url) ?? "").trim();
+}
 
 function concatBuffers(...parts) {
   const length = parts.reduce((total, part) => total + part.length, 0);
@@ -476,8 +502,7 @@ export class CursorExecutor extends BaseExecutor {
     validateAgentRequestControls(body);
     const tools = body.tool_choice === "none" ? [] : body.tools || [];
     const url = this.buildUrl();
-    const relay = typeof proxyOptions?.vercelRelayUrl === "string" && proxyOptions.vercelRelayUrl.trim();
-    if (relay || resolveConnectionProxyUrl(url, proxyOptions) || getEnvProxyUrl(url) || proxyOptions?.strictProxy === true) {
+    if (requiresNativeProxy(url, proxyOptions)) {
       throw new Error("Cursor native HTTP/2 cannot honor the required proxy or relay policy; no direct connection was opened");
     }
     const headers = this.buildHeaders(credentials);

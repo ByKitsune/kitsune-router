@@ -3,7 +3,7 @@
  */
 
 import { FORMATS } from "../translator/formats.js";
-import { getCacheCreationUsage, toOpenAIUsage } from "../translator/concerns/usage.js";
+import { getCacheCreationUsage, getOpenAICacheWriteUsage, toOpenAIUsage } from "../translator/concerns/usage.js";
 import { OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 
 // Legacy per-chunk usage console line; off by default (superseded by "📊 done")
@@ -87,14 +87,14 @@ export function filterUsageForFormat(usage, targetFormat) {
     [FORMATS.OPENAI_RESPONSES]: [
       'input_tokens', 'output_tokens', 'total_tokens',
       'input_tokens_details', 'output_tokens_details',
-      'estimated'
+      'cache_write_invalid', 'estimated'
     ],
     // OpenAI format (default for OPENAI, CODEX, KIRO, etc.)
     default: [
       'prompt_tokens', 'completion_tokens', 'total_tokens',
       'cached_tokens', 'reasoning_tokens',
       'prompt_tokens_details', 'completion_tokens_details',
-      'estimated'
+      'cache_write_invalid', 'estimated'
     ]
   };
 
@@ -126,7 +126,33 @@ export function filterUsageForFormat(usage, targetFormat) {
       filtered.prompt_tokens_details = details;
     }
   }
+  if (fields === formatFields.default || fields === formatFields[FORMATS.OPENAI_RESPONSES]) {
+    const writes = getOpenAICacheWriteUsage(usage);
+    if (writes) {
+      const key = fields === formatFields.default ? "prompt_tokens_details" : "input_tokens_details";
+      const details = { ...(filtered[key] || {}) };
+      details.cache_write_tokens = writes.total;
+      if (writes.thirtyMinute !== undefined || writes.twelveHour !== undefined) {
+        details.cache_write_tokens_details = {
+          ...(writes.thirtyMinute === undefined ? {} : { ttl_30m_tokens: writes.thirtyMinute }),
+          ...(writes.twelveHour === undefined ? {} : { ttl_12h_tokens: writes.twelveHour }),
+        };
+      }
+      filtered[key] = details;
+      if (writes.invalid) filtered.cache_write_invalid = true;
+    }
+  }
   return filtered;
+}
+
+function preserveOpenAICacheWrites(result, raw) {
+  const writes = getOpenAICacheWriteUsage(raw);
+  if (!writes) return null;
+  result.cache_write_tokens = writes.total;
+  if (writes.thirtyMinute !== undefined) result.cache_write_30m_tokens = writes.thirtyMinute;
+  if (writes.twelveHour !== undefined) result.cache_write_12h_tokens = writes.twelveHour;
+  if (writes.invalid) result.cache_write_invalid = true;
+  return writes;
 }
 
 /**
@@ -157,6 +183,7 @@ export function normalizeUsage(usage) {
   assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens);
   assignNumber("prompt_cache_hit_tokens", usage?.prompt_cache_hit_tokens);
   assignNumber("prompt_cache_miss_tokens", usage?.prompt_cache_miss_tokens);
+  preserveOpenAICacheWrites(normalized, usage);
 
   // Preserve nested details objects for OpenAI format forwarding
   if (usage?.prompt_tokens_details && typeof usage.prompt_tokens_details === "object") {
@@ -178,7 +205,8 @@ export function normalizeUsage(usage) {
  * are consistent across providers:
  *   prompt_tokens               = total input INCLUDING cache read + cache creation
  *   cached_tokens               = cache-read portion (subset of prompt_tokens)
- *   cache_creation_input_tokens = cache-write portion (subset of prompt_tokens)
+ *   cache_creation_input_tokens = legacy/Anthropic writes (subset of prompt_tokens)
+ *   cache_write_tokens, cache_write_30m_tokens, cache_write_12h_tokens = OpenAI writes
  *   completion_tokens, reasoning_tokens, total_tokens
  *
  * Discriminator: Claude reports cache_read_input_tokens with a prompt that
@@ -206,6 +234,7 @@ export function canonicalizeUsage(usage) {
   // drop cache_creation.
   const creation = getCacheCreationUsage(usage);
   const cacheCreation = creation?.total || 0;
+  const writes = getOpenAICacheWriteUsage(usage);
 
   let prompt = num(usage.prompt_tokens ?? usage.input_tokens);
   let cached;
@@ -218,7 +247,7 @@ export function canonicalizeUsage(usage) {
   // Guard on the absence of `cached_tokens`: our own canonical output always
   // sets that key (even to 0), so re-running canonicalizeUsage on an already-
   // folded result takes the passthrough branch instead of folding again.
-  if (usage.cached_tokens === undefined &&
+  if (!writes && usage.cached_tokens === undefined &&
       (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined || usage.cache_creation !== undefined)) {
     cached = num(usage.cache_read_input_tokens);
     prompt = prompt + cached + cacheCreation;
@@ -246,6 +275,7 @@ export function canonicalizeUsage(usage) {
   };
   if (creation?.fiveMinute !== undefined) result.cache_creation_5m_tokens = creation.fiveMinute;
   if (creation?.oneHour !== undefined) result.cache_creation_1h_tokens = creation.oneHour;
+  preserveOpenAICacheWrites(result, usage);
   if (reasoning > 0) result.reasoning_tokens = reasoning;
   return result;
 }
@@ -314,7 +344,7 @@ export function extractUsage(chunk) {
       completion_tokens: chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0,
       cached_tokens: cachedTokens,
       reasoning_tokens: reasoningTokens,
-      prompt_tokens_details: chunk.usage.prompt_tokens_details ?? (cachedTokens !== undefined ? { cached_tokens: cachedTokens } : undefined),
+      prompt_tokens_details: chunk.usage.prompt_tokens_details ?? chunk.usage.input_tokens_details ?? (cachedTokens !== undefined ? { cached_tokens: cachedTokens } : undefined),
       completion_tokens_details: chunk.usage.completion_tokens_details ?? (reasoningTokens !== undefined ? { reasoning_tokens: reasoningTokens } : undefined),
       total_tokens: chunk.usage.total_tokens
     });
@@ -350,9 +380,13 @@ export function mergeUsage(prev, next) {
   if (!next) return prev;
   const merged = { ...prev };
   for (const [k, v] of Object.entries(next)) {
-    // typeof NaN === "number" — guard with Number.isFinite so one malformed
-    // chunk can't poison the whole accumulation (Math.max(x, NaN) is NaN).
-    if (typeof v === "number" && Number.isFinite(v)) {
+    if (k === "cache_write_invalid") {
+      if (v === true) merged[k] = true;
+    } else if (v === null && ["cache_write_tokens", "cache_write_30m_tokens", "cache_write_12h_tokens", "ttl_30m_tokens", "ttl_12h_tokens"].includes(k)) {
+      merged[k] = null;
+      // Preserve unknown native counts; never coerce them to a real zero.
+    } else if (typeof v === "number" && Number.isFinite(v)) {
+      // typeof NaN === "number" — guard so a malformed chunk cannot poison max.
       merged[k] = Math.max(typeof merged[k] === "number" ? merged[k] : 0, v);
     } else if (v && typeof v === "object") {
       merged[k] = Array.isArray(v) ? v : mergeUsage(merged[k], v);

@@ -26,12 +26,15 @@ export const CLAUDE_BLOCK = {
   DOCUMENT: "document",
   TOOL_USE: "tool_use",
   TOOL_RESULT: "tool_result",
+  TOOL_ADDITION: "tool_addition",
   THINKING: "thinking",
   REDACTED_THINKING: "redacted_thinking",
   SERVER_TOOL_USE: "server_tool_use",
   WEB_SEARCH_TOOL_RESULT: "web_search_tool_result",
   CONTAINER_UPLOAD: "container_upload",
 };
+
+export const CLAUDE_TOOL_DEFINITION = "tool_definition";
 
 // OpenAI tool messages have no error flag; preserve failures in readable content.
 export const TOOL_ERROR_PREFIX = "[tool_error] ";

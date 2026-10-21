@@ -10,6 +10,7 @@ import { extractTextContent } from "../formats/gemini.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { normalizeMediaPart } from "../concerns/multimodal.js";
+import { rejectClaudeAudio } from "../concerns/requestMedia.js";
 
 // Empty prefix matches real Claude Code behavior (no tool name prefix).
 // Previously "proxy_" was used but this is a detectable fingerprint difference.
@@ -42,7 +43,8 @@ export function normalizeClaudeInputSchema(rawSchema) {
 }
 
 // Convert OpenAI request to Claude format
-export function openaiToClaudeRequest(model, body, stream) {
+export function openaiToClaudeRequest(model, body, stream, credentials = null, provider = null) {
+  rejectClaudeAudio(body);
   // Tool name mapping for Claude OAuth (capitalizedName → originalName)
   const toolNameMap = new Map();
   // Cap max_tokens at the model's real output ceiling (e.g. Opus 4.8 = 128000),
@@ -183,18 +185,15 @@ export function openaiToClaudeRequest(model, body, stream) {
     }
   }
 
-  // System with Claude Code prompt and cache_control
-  const claudeCodePrompt = { type: CLAUDE_BLOCK.TEXT, text: CLAUDE_SYSTEM_PROMPT };
-
+  // Transport identity is not part of a generic Messages codec. Keep the
+  // existing first-party policy, never inject it into compatible endpoints.
+  const system = provider === "claude" || provider === "anthropic"
+    ? [{ type: CLAUDE_BLOCK.TEXT, text: CLAUDE_SYSTEM_PROMPT }] : [];
   if (systemParts.length > 0) {
     const systemText = systemParts.join("\n");
-    result.system = [
-      claudeCodePrompt,
-      { type: CLAUDE_BLOCK.TEXT, text: systemText, cache_control: { type: "ephemeral", ttl: "1h" } }
-    ];
-  } else {
-    result.system = [claudeCodePrompt];
+    system.push({ type: CLAUDE_BLOCK.TEXT, text: systemText, cache_control: { type: "ephemeral", ttl: "1h" } });
   }
+  if (system.length) result.system = system;
 
   // Tools - convert from OpenAI format to Claude format with prefix for OAuth
   if (body.tools && Array.isArray(body.tools)) {
@@ -432,15 +431,8 @@ function convertOpenAIToolChoice(choice) {
 function openaiToClaudeRequestForAntigravity(model, body, stream) {
   const result = openaiToClaudeRequest(model, body, stream);
 
-  // Remove Claude Code system prompt, keep only user's system messages
-  if (result.system && Array.isArray(result.system)) {
-    result.system = result.system.filter(block =>
-      !block.text || !block.text.includes("You are Claude Code")
-    );
-    if (result.system.length === 0) {
-      delete result.system;
-    }
-  }
+  // No identity prompt is injected without a first-party provider context.
+  // Caller-authored text must never be removed by substring matching.
 
   // Strip prefix from tool names for Antigravity (doesn't use Claude OAuth)
   if (result.tools && Array.isArray(result.tools)) {
@@ -484,4 +476,3 @@ export { openaiToClaudeRequestForAntigravity };
 
 // Register
 register(FORMATS.OPENAI, FORMATS.CLAUDE, openaiToClaudeRequest, null);
-

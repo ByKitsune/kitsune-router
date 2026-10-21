@@ -51,12 +51,20 @@ export async function createSqlJsAdapter(filePath) {
 
     let fd;
     try {
-      fd = fs.openSync(tmpPath, "w");
+      // Exclusive creation rejects collisions/symlinks without truncating state.
+      // Verify permissions before writing bytes, not after publishing the image.
+      fd = fs.openSync(tmpPath, "wx", 0o600);
+      if (process.platform !== "win32") {
+        fs.fchmodSync(fd, 0o600);
+        if ((fs.fstatSync(fd).mode & 0o777) !== 0o600) {
+          throw new Error("[sqljs] Cannot secure database replacement permissions");
+        }
+      }
       fs.writeFileSync(fd, Buffer.from(data));
       fs.fsyncSync(fd);
     } catch (err) {
       if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* already closed */ } }
-      try { fs.unlinkSync(tmpPath); } catch { /* nothing to clean up */ }
+      if (fd !== undefined) { try { fs.unlinkSync(tmpPath); } catch { /* nothing to clean up */ } }
       throw err;
     }
     fs.closeSync(fd);

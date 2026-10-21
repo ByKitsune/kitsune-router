@@ -5,7 +5,7 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { buildChunk } from "../concerns/chunk.js";
-import { buildUsage } from "../concerns/usage.js";
+import { getOpenAICacheWriteUsage, toOpenAIUsage } from "../concerns/usage.js";
 import { fallbackToolCallId } from "../concerns/toolCall.js";
 import { reasoningDelta, extractReasoningText, extractResponsesReasoningText, captureResponsesReasoning } from "../concerns/reasoning.js";
 import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, OPENAI_FINISH, MODEL_FALLBACK } from "../schema/index.js";
@@ -36,6 +36,18 @@ function toResponsesUsage(usage, allowZero = false) {
   const reasoningTokens = [usage.output_tokens_details?.reasoning_tokens, usage.completion_tokens_details?.reasoning_tokens].find(Number.isInteger);
   if (Number.isInteger(cachedTokens)) responseUsage.input_tokens_details = { cached_tokens: cachedTokens };
   if (Number.isInteger(reasoningTokens)) responseUsage.output_tokens_details = { reasoning_tokens: reasoningTokens };
+  const writes = getOpenAICacheWriteUsage(usage);
+  if (writes) {
+    const details = responseUsage.input_tokens_details ||= {};
+    details.cache_write_tokens = writes.total;
+    if (writes.thirtyMinute !== undefined || writes.twelveHour !== undefined) {
+      details.cache_write_tokens_details = {
+        ...(writes.thirtyMinute === undefined ? {} : { ttl_30m_tokens: writes.thirtyMinute }),
+        ...(writes.twelveHour === undefined ? {} : { ttl_12h_tokens: writes.twelveHour }),
+      };
+    }
+    if (writes.invalid) responseUsage.cache_write_invalid = true;
+  }
 
   return responseUsage;
 }
@@ -694,14 +706,13 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     // Extract usage from response.completed event
     const responseUsage = data.response?.usage;
     if (responseUsage && typeof responseUsage === "object") {
-      const inputTokens = responseUsage.input_tokens || responseUsage.prompt_tokens || 0;
-      const outputTokens = responseUsage.output_tokens || responseUsage.completion_tokens || 0;
-      // OpenAI Responses API: input_tokens already includes cached_tokens
-      // Cache info is in input_tokens_details.cached_tokens
-      const cacheReadTokens = responseUsage.input_tokens_details?.cached_tokens || responseUsage.cache_read_input_tokens || 0;
-      const reasoningTokens = responseUsage.output_tokens_details?.reasoning_tokens || 0;
-
-      state.usage = buildUsage({ promptTokens: inputTokens, completionTokens: outputTokens, totalTokens: inputTokens + outputTokens, cachedTokens: cacheReadTokens, reasoningTokens });
+      // Input is already inclusive of cache reads/writes. Preserve native
+      // 30m/12h subsets through the shared normalizer; never add them as extra
+      // Anthropic-style input or invent a missing lifetime split.
+      state.usage = toOpenAIUsage({
+        ...responseUsage,
+        cached_tokens: responseUsage.input_tokens_details?.cached_tokens ?? responseUsage.cache_read_input_tokens ?? responseUsage.cached_tokens,
+      }, "responses");
     }
     
     if (!state.finishReasonSent) {

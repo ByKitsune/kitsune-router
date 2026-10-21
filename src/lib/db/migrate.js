@@ -15,6 +15,36 @@ const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
 // Track per-adapter so reusing same adapter skips re-run, but new adapter (after reset) re-runs.
 const _migratedAdapters = new WeakSet();
 
+function secureBackupPermissions(file, directory = false) {
+  if (!file || process.platform === "win32") return;
+  let fd;
+  try {
+    fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const stat = fs.fstatSync(fd);
+    if (directory ? !stat.isDirectory() : (!stat.isFile() || stat.nlink > 1)) {
+      throw new Error("Refusing non-regular or hard-linked backup");
+    }
+    const mode = directory ? 0o700 : 0o600;
+    fs.fchmodSync(fd, mode);
+    if ((fs.fstatSync(fd).mode & 0o777) !== mode) throw new Error("Backup permissions are not owner-only");
+  } catch (cause) {
+    const error = new Error("[DB] Cannot secure backup permissions", { cause });
+    error.code = "DB_BACKUP_PERMISSIONS";
+    throw error;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+function assertNewBackup(file) {
+  try {
+    fs.lstatSync(file);
+    throw new Error("Backup already exists; refusing overwrite");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+}
+
 // Thrown when row-count assertion fails. Outer transaction rolls back,
 // legacy db.json kept intact, marker not written → next boot retries.
 export class MigrationAborted extends Error {
@@ -220,77 +250,91 @@ export async function runMigrationOnce(adapter) {
   // Fail closed before any schema mutation or backup pruning. Recovery is
   // deliberately manual so startup never replaces newer data with a backup.
   assertDatabaseIntegrity(adapter, DATA_FILE);
-  _migratedAdapters.add(adapter);
 
   // Capture freshness BEFORE migrations stamp _meta (otherwise we'd misclassify
   // a brand-new DB as non-fresh once schemaVersion is written).
   const fresh = isFreshDb(adapter);
 
-  // Prune stale backups every boot so old oversized backups shrink to KEEP.
-  pruneOldBackups();
-
-  // Bootstrap _meta so we can read the stored backup schema version below
-  // (runVersionedMigrations also ensures this, but we need it earlier here).
-  adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
-
-  // Detect a pending schema change via the central SCHEMA_VERSION const.
-  // A lightweight backup is taken BEFORE any schema mutation below.
-  const storedSchemaVer = parseInt(getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0;
-  const schemaChanging = !fresh && storedSchemaVer < SCHEMA_VERSION;
-  if (schemaChanging) {
-    try {
-      const backupDir = makeBackupDir(`schema-${storedSchemaVer}-to-${SCHEMA_VERSION}`);
-      backupDbLite(adapter, backupDir);
-      pruneOldBackups();
-      console.log(`[DB][migrate] pre-schema backup ${storedSchemaVer} → ${SCHEMA_VERSION}: ${backupDir}`);
-    } catch (e) {
-      console.warn(`[DB][migrate] pre-schema backup failed (continuing): ${e.message}`);
-    }
-  }
-
-  // 1. Always run versioned migrations chain (skip-version safe)
-  const migInfo = runVersionedMigrations(adapter);
-
-  // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
-  syncSchemaFromTables(adapter);
-
-  // Stamp the schema version we just reached so future boots skip re-backup.
-  setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
-
-  // 3. One-time legacy JSON import (only if DB was fresh on entry)
   const alreadyImported = fs.existsSync(MIGRATED_MARKER);
   const legacyMain = readJsonSafe(LEGACY_FILES.main);
   const legacyUsage = readJsonSafe(LEGACY_FILES.usage);
   const legacyDisabled = readJsonSafe(LEGACY_FILES.disabled);
   const legacyDetails = readJsonSafe(LEGACY_FILES.details);
   const hasLegacy = !!(legacyMain || legacyUsage || legacyDisabled || legacyDetails);
+  const importLegacy = fresh && hasLegacy && !alreadyImported;
+  let backupDir;
+  const t0 = Date.now();
 
-  if (fresh && hasLegacy && !alreadyImported) {
-    const t0 = Date.now();
-    const backupDir = makeBackupDir("migrate-from-json");
-    for (const f of Object.values(LEGACY_FILES)) backupFile(f, backupDir);
-
-    try {
-      adapter.transaction(() => {
-        importLegacyMain(adapter, legacyMain);
-        importLegacyUsage(adapter, legacyUsage);
-        importLegacyDisabled(adapter, legacyDisabled);
-        importLegacyDetails(adapter, legacyDetails);
-        setMetaSync(adapter, "appVersion", getAppVersion());
-        setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
-        setMetaSync(adapter, "migratedAt", new Date().toISOString());
-      });
-    } catch (err) {
-      if (err instanceof MigrationAborted) {
-        console.error(`[DB][migrate] aborted: ${err.message} | legacy JSON kept | backup: ${backupDir}`);
-        return;
-      }
-      throw err;
+  if (importLegacy) {
+    // Mandatory backup refusal must leave an unstamped DB that can retry after
+    // repair. Validate the complete source set before copying any of it, so a
+    // later symlink/hardlink cannot strand a partial same-timestamp backup.
+    const sources = Object.values(LEGACY_FILES).filter(file => {
+      let stat;
+      try { stat = fs.lstatSync(file); } catch (error) { if (error.code === "ENOENT") return false; throw error; }
+      if (!stat.isFile() || stat.nlink > 1) throw new Error("Refusing non-regular or hard-linked backup source");
+      return true;
+    });
+    backupDir = makeBackupDir("migrate-from-json");
+    secureBackupPermissions(backupDir, true);
+    for (const file of sources) {
+      assertNewBackup(path.join(backupDir, path.basename(file)));
+      secureBackupPermissions(backupFile(file, backupDir));
     }
+  }
 
+  // Prune stale backups every boot so old oversized backups shrink to KEEP.
+  pruneOldBackups();
+
+  // Detect a pending schema change via the central SCHEMA_VERSION const.
+  // A lightweight backup is taken BEFORE any schema mutation below.
+  const storedSchemaVer = fresh ? 0 : (parseInt(getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0);
+  const schemaChanging = !fresh && storedSchemaVer < SCHEMA_VERSION;
+  if (schemaChanging) {
+    try {
+      const backupDir = makeBackupDir(`schema-${storedSchemaVer}-to-${SCHEMA_VERSION}`);
+      secureBackupPermissions(backupDir, true);
+      assertNewBackup(path.join(backupDir, "data.sqlite"));
+      // Backup creation stays inside the private DB/backups ancestry. Harden
+      // the completed file before pruning or proceeding with schema changes.
+      secureBackupPermissions(backupDbLite(adapter, backupDir));
+      pruneOldBackups();
+      console.log(`[DB][migrate] pre-schema backup ${storedSchemaVer} → ${SCHEMA_VERSION}: ${backupDir}`);
+    } catch (e) {
+      if (e.code === "DB_BACKUP_PERMISSIONS") throw e;
+      console.warn(`[DB][migrate] pre-schema backup failed (continuing): ${e.message}`);
+    }
+  }
+
+  const initialize = () => {
+    runVersionedMigrations(adapter);
+    syncSchemaFromTables(adapter);
+    setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
+    if (importLegacy) {
+      importLegacyMain(adapter, legacyMain);
+      importLegacyUsage(adapter, legacyUsage);
+      importLegacyDisabled(adapter, legacyDisabled);
+      importLegacyDetails(adapter, legacyDetails);
+      setMetaSync(adapter, "appVersion", getAppVersion());
+      setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
+      setMetaSync(adapter, "migratedAt", new Date().toISOString());
+    }
+  };
+  // Fresh schema stamps and imported rows commit together. Any SQL/import
+  // failure rolls back the stamps as well; failed adapters are never memoized.
+  try {
+    if (fresh) adapter.transaction(initialize);
+    else initialize();
+  } catch (error) {
+    if (error instanceof MigrationAborted) console.error(`[DB][migrate] aborted: ${error.message} | legacy JSON kept | backup: ${backupDir}`);
+    throw error;
+  }
+
+  if (importLegacy) {
     try { fs.writeFileSync(MIGRATED_MARKER, new Date().toISOString()); } catch {}
     pruneOldBackups();
     console.log(`[DB][migrate] JSON → SQLite in ${Date.now() - t0}ms | legacy JSON kept at DATA_DIR | backup: ${backupDir}`);
+    _migratedAdapters.add(adapter);
     return;
   }
 
@@ -299,4 +343,5 @@ export async function runMigrationOnce(adapter) {
   const newVer = getAppVersion();
   const oldVer = getMetaSync(adapter, "appVersion", null);
   if (oldVer !== newVer) setMetaSync(adapter, "appVersion", newVer);
+  _migratedAdapters.add(adapter);
 }

@@ -1,4 +1,7 @@
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
+import { createHash } from "node:crypto";
+import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "open-sse/services/tokenRefresh/dedup.js";
+import { FETCH_CONNECT_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 
 const BASE64_BLOCK_SIZE = 4;
 
@@ -52,24 +55,40 @@ function extractEmailFromAccessToken(accessToken) {
   return payload.email || payload.preferred_username || payload.sub || undefined;
 }
 
-export async function fetchKiroProfileArn(accessToken, proxyOptions = null) {
+const pendingKiroProfiles = new Map();
+
+export async function fetchKiroProfileArn(accessToken, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (!accessToken) return null;
-  try {
-    const response = await proxyAwareFetch("https://codewhisperer.us-east-1.amazonaws.com/ListAvailableProfiles", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ maxResults: 10 }),
-    }, proxyOptions);
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.profiles?.find((p) => p.arn?.trim())?.arn?.trim() || null;
-  } catch {
-    return null;
-  }
+  const key = JSON.stringify([createHash("sha256").update(accessToken).digest("hex"), getRefreshProxyKey(proxyOptions)]);
+  const pending = pendingKiroProfiles.get(key);
+  if (pending && !pending.controller.signal.aborted) return waitForRefresh(pending, signal);
+
+  const operation = createRefreshOperation(async sharedSignal => {
+    const requestSignal = AbortSignal.any([sharedSignal, AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS)]);
+    try {
+      const response = await proxyAwareFetch("https://codewhisperer.us-east-1.amazonaws.com/ListAvailableProfiles", {
+        method: "POST", signal: requestSignal,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ maxResults: 10 }),
+      }, proxyOptions);
+      if (!response.ok) return null;
+      const data = await response.json();
+      sharedSignal.throwIfAborted();
+      return data.profiles?.find((p) => p.arn?.trim())?.arn?.trim() || null;
+    } catch {
+      sharedSignal.throwIfAborted();
+      return null;
+    }
+  });
+  pendingKiroProfiles.set(key, operation);
+  const cleanup = () => { if (pendingKiroProfiles.get(key) === operation) pendingKiroProfiles.delete(key); };
+  operation.promise.then(cleanup, cleanup);
+  return waitForRefresh(operation, signal);
 }
 
 export function extractCodexAccountInfo(idToken) {

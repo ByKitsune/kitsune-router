@@ -786,13 +786,25 @@ const FUSION_DEFAULTS = {
   panelHardTimeoutMs: 90000, // absolute cap so one hung model can't stall forever
 };
 
-// Resolve a Response (or {__error}) within ms; the loser keeps running but is ignored.
-function withTimeout(promise, ms) {
+// A discarded panel owns an abort controller; losing the race must not leave
+// transport/body work running unobserved after its response is no longer used.
+function withTimeout(promise, ms, controller) {
   return new Promise((resolve) => {
-    const t = setTimeout(() => resolve({ __timeout: true }), ms);
+    const finish = value => {
+      clearTimeout(t);
+      controller.signal.removeEventListener("abort", onAbort);
+      resolve(value);
+    };
+    const onAbort = () => finish({ __timeout: true });
+    const t = setTimeout(() => {
+      controller.abort(new Error("Fusion panel deadline exceeded"));
+      finish({ __timeout: true });
+    }, ms);
+    controller.signal.addEventListener("abort", onAbort, { once: true });
+    if (controller.signal.aborted) onAbort();
     Promise.resolve(promise)
-      .then((v) => { clearTimeout(t); resolve(v); })
-      .catch((e) => { clearTimeout(t); resolve({ __error: e }); });
+      .then(finish)
+      .catch(error => finish({ __error: error }));
   });
 }
 
@@ -803,7 +815,7 @@ function withTimeout(promise, ms) {
  * still preferring a full panel when everyone is fast. Bounded by a hard timeout.
  * Returns a sparse array aligned to `calls` (undefined = not yet / dropped).
  */
-function collectPanel(calls, { minPanel, stragglerGraceMs, panelHardTimeoutMs }) {
+function collectPanel(calls, { minPanel, stragglerGraceMs, panelHardTimeoutMs, signal }) {
   return new Promise((resolve) => {
     const out = new Array(calls.length);
     let settled = 0;
@@ -815,9 +827,12 @@ function collectPanel(calls, { minPanel, stragglerGraceMs, panelHardTimeoutMs })
       finished = true;
       clearTimeout(hardTimer);
       if (graceTimer) clearTimeout(graceTimer);
+      signal?.removeEventListener("abort", finish);
       resolve(out);
     };
     const hardTimer = setTimeout(finish, panelHardTimeoutMs);
+    signal?.addEventListener("abort", finish, { once: true });
+    if (signal?.aborted) finish();
     calls.forEach((p, i) => {
       Promise.resolve(p)
         .then((v) => { out[i] = v; })
@@ -1002,7 +1017,11 @@ export function stripMultimodalContent(body) {
  * @param {Object} [options.tuning] - Override FUSION_DEFAULTS (minPanel, grace, timeout)
  * @returns {Promise<Response>}
  */
-export async function handleFusionChat({ body, models, handleSingleModel, log, comboName, judgeModel, tuning, modelCapabilities = null }) {
+export async function handleFusionChat({ body, models, handleSingleModel, log, comboName, judgeModel, tuning, modelCapabilities = null, signal = null }) {
+  const cancelled = () => new Response(JSON.stringify({ error: { message: "Client closed request", code: "client_aborted" } }), {
+    status: 499, headers: { "Content-Type": "application/json" },
+  });
+  if (signal?.aborted) return cancelled();
   let panel = Array.isArray(models) ? models.filter(Boolean) : [];
   if (panel.length === 0) {
     return new Response(
@@ -1033,7 +1052,7 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
 
   // A single-model fusion has nothing to fuse — just answer directly.
   if (panel.length === 1) {
-    return handleSingleModel(body, panel[0]);
+    return handleSingleModel(body, panel[0], undefined, signal);
   }
 
   const cfg = { ...FUSION_DEFAULTS, ...(tuning || {}) };
@@ -1056,8 +1075,35 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   }
 
   const t0 = Date.now();
-  const calls = panel.map((m) => withTimeout(handleSingleModel(panelBody, m, true), cfg.panelHardTimeoutMs));
-  const settled = await collectPanel(calls, { ...cfg, minPanel });
+  const controllers = panel.map(() => new AbortController());
+  const completed = new Set();
+  const abortPanel = () => controllers.forEach((controller, index) => {
+    if (!completed.has(index)) controller.abort(signal?.reason || new Error("Fusion panel no longer needed"));
+  });
+  signal?.addEventListener("abort", abortPanel, { once: true });
+  const calls = panel.map((model, index) => withTimeout((async () => {
+    const controller = controllers[index];
+    if (signal?.aborted) controller.abort(signal.reason);
+    const response = await handleSingleModel(cloneRequestBody(panelBody), model, true, controller.signal);
+    if (!response?.ok) {
+      void response?.body?.cancel().catch(() => {});
+      completed.add(index);
+      return { ok: false, status: response?.status };
+    }
+    // Header arrival is not a usable panel answer. The same deadline covers
+    // JSON/body consumption, so a stalled body cannot win quorum and hang fusion.
+    const text = extractPanelText(await response.json());
+    completed.add(index);
+    return { ok: !!text, status: response.status, text };
+  })(), cfg.panelHardTimeoutMs, controllers[index]));
+  let settled;
+  try {
+    settled = await collectPanel(calls, { ...cfg, minPanel, signal });
+  } finally {
+    abortPanel();
+    signal?.removeEventListener("abort", abortPanel);
+  }
+  if (signal?.aborted) return cancelled();
   log.info("FUSION", `fan-out collected in ${Date.now() - t0}ms`);
 
   // 2. Collect successful answers.
@@ -1070,8 +1116,7 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
     if (res.__error) { log.warn("FUSION", `Panel ${model} threw`, { error: res.__error?.message || String(res.__error) }); continue; }
     if (!res.ok) { log.warn("FUSION", `Panel ${model} failed`, { status: res.status }); continue; }
     try {
-      const json = await res.clone().json();
-      const text = extractPanelText(json);
+      const text = res.text;
       if (text) {
         answers.push({ model, text });
         log.info("FUSION", `Panel ${model} ok (${text.length} chars)`);
@@ -1093,7 +1138,7 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   }
   if (answers.length === 1) {
     log.info("FUSION", `Only ${answers[0].model} succeeded — answering directly (no fusion)`);
-    return handleSingleModel(body, answers[0].model);
+    return handleSingleModel(body, answers[0].model, undefined, signal);
   }
 
   // 4. Judge analyzes + writes one final answer (streams to client if requested).
@@ -1101,5 +1146,6 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   // do not crash with HTTP 400 'this model does not support image input' (Issue #3375).
   const judgeBody = stripMultimodalContent(appendUserTurn(body, buildJudgePrompt(answers)));
   log.info("FUSION", `Judging ${answers.length} answers with ${judge}`);
-  return handleSingleModel(judgeBody, judge);
+  if (signal?.aborted) return cancelled();
+  return handleSingleModel(judgeBody, judge, undefined, signal);
 }

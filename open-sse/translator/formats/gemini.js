@@ -142,20 +142,21 @@ export function collapseGeminiParts(parts) {
 }
 
 // Gemini's legacy Schema is an OpenAPI/protobuf dialect, not JSON Schema.
-export function geminiSchemaToJSONSchema(schema) {
+export function geminiSchemaToJSONSchema(schema, preservePropertyOrdering = false) {
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) return schema;
   const { nullable, enumDescriptions, propertyOrdering, ...result } = schema;
+  if (preservePropertyOrdering && propertyOrdering !== undefined) result.propertyOrdering = structuredClone(propertyOrdering);
   if (typeof result.type === "string") result.type = result.type.toLowerCase();
   for (const key of ["properties", "$defs", "definitions", "patternProperties"]) {
     if (result[key] && typeof result[key] === "object") {
-      result[key] = Object.fromEntries(Object.entries(result[key]).map(([name, child]) => [name, geminiSchemaToJSONSchema(child)]));
+      result[key] = Object.fromEntries(Object.entries(result[key]).map(([name, child]) => [name, geminiSchemaToJSONSchema(child, preservePropertyOrdering)]));
     }
   }
   for (const key of ["items", "additionalProperties", "not"]) {
-    if (result[key] && typeof result[key] === "object") result[key] = geminiSchemaToJSONSchema(result[key]);
+    if (result[key] && typeof result[key] === "object") result[key] = geminiSchemaToJSONSchema(result[key], preservePropertyOrdering);
   }
   for (const key of ["anyOf", "oneOf", "allOf", "prefixItems"]) {
-    if (Array.isArray(result[key])) result[key] = result[key].map(geminiSchemaToJSONSchema);
+    if (Array.isArray(result[key])) result[key] = result[key].map(child => geminiSchemaToJSONSchema(child, preservePropertyOrdering));
   }
   if (nullable === true) {
     if (result.type) result.type = [...new Set([...(Array.isArray(result.type) ? result.type : [result.type]), "null"])];
@@ -170,7 +171,7 @@ export function copyGeminiRequestControls(result, request) {
   if (config.seed !== undefined) result.seed = config.seed;
   if (Array.isArray(config.stopSequences)) result.stop = [...config.stopSequences];
   if (config.responseMimeType === "application/json") {
-    const schema = config.responseJsonSchema ?? (config.responseSchema ? geminiSchemaToJSONSchema(config.responseSchema) : undefined);
+    const schema = config.responseJsonSchema ?? (config.responseSchema ? geminiSchemaToJSONSchema(config.responseSchema, true) : undefined);
     result.response_format = schema === undefined ? { type: "json_object" }
       : { type: "json_schema", json_schema: { name: "response", schema } };
   }

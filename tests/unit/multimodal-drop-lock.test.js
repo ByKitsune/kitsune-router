@@ -26,7 +26,7 @@ describe("openai→claude: image_url.detail is dropped (docs 11 §4)", () => {
     expect("detail" in imgBlock.source).toBe(false);
   });
 
-  it("drops input_audio entirely (claude has no audio block)", () => {
+  it("rejects input_audio explicitly because Claude has no supported audio block", () => {
     const body = {
       model: "claude-sonnet-4-6",
       messages: [{ role: "user", content: [
@@ -34,9 +34,11 @@ describe("openai→claude: image_url.detail is dropped (docs 11 §4)", () => {
         { type: "input_audio", input_audio: { data: "ZZZ", format: "wav" } },
       ] }],
     };
-    const out = openaiToClaudeRequest("claude-sonnet-4-6", body, false);
-    const blocks = out.messages[0].content;
-    expect(blocks.some((b) => b.type === "audio" || b.type === "input_audio")).toBe(false);
+    const before = structuredClone(body);
+    expect(() => openaiToClaudeRequest("claude-sonnet-4-6", body, false)).toThrow(expect.objectContaining({
+      code: "unsupported_parameter", param: "messages.0.content.1.input_audio",
+    }));
+    expect(body).toEqual(before);
   });
 });
 

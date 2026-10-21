@@ -9,17 +9,20 @@
 
 import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
-import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "./tokenRefresh/dedup.js";
+import { FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { createHash } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
-// [connectionId, provider, proxy policy] -> { connectionId, projectId: string, fetchedAt: number }
+// [connectionId, provider, credential digest, proxy policy] -> { connectionId, projectId: string, fetchedAt: number }
 const projectIdCache = new Map();
 
 /** How long a cached project ID is considered fresh (1 hour). */
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
 // ─── Pending-fetch deduplication ─────────────────────────────────────────────
-// [connectionId, provider, proxy policy] -> { connectionId, promise: Promise<string|null>, controller: AbortController, startedAt: number }
+// Same cache identity -> shared operation plus connectionId and startedAt.
 const pendingFetches = new Map();
 
 /** Abort and evict a pending fetch that has been running longer than this (2 min). */
@@ -85,12 +88,15 @@ startCacheCleanup();
  * @param {string} accessToken  - Valid OAuth access token
  * @param {string} provider     - Provider ID (antigravity or gemini-cli)
  * @param {object|null} proxyOptions - Proxy configuration for outbound requests
+ * @param {AbortSignal|null} signal - Cancels only this caller's subscription
  * @returns {Promise<string|null>} Real project ID or null
  */
-export async function getProjectIdForConnection(connectionId, accessToken, provider = "gemini-cli", proxyOptions = null) {
+export async function getProjectIdForConnection(connectionId, accessToken, provider = "gemini-cli", proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     if (!connectionId || !accessToken) return null;
 
-    const key = JSON.stringify([connectionId, provider, getRefreshProxyKey(proxyOptions)]);
+    const credential = createHash("sha256").update(accessToken).digest("hex");
+    const key = JSON.stringify([connectionId, provider, credential, getRefreshProxyKey(proxyOptions)]);
 
     // Return cached value if still fresh
     const cached = projectIdCache.get(key);
@@ -98,18 +104,16 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
         return cached.projectId;
     }
 
-    // Deduplicate only requests using the same connection, provider and egress policy
-    if (pendingFetches.has(key)) {
-        return pendingFetches.get(key).promise;
-    }
+    // A cancelled waiter cannot abort a live subscriber sharing this identity.
+    const pending = pendingFetches.get(key);
+    if (pending && !pending.controller.signal.aborted) return waitForRefresh(pending, signal);
 
-    // Each fetch gets its own AbortController so it can be canceled via removeConnection()
-    const controller = new AbortController();
-
-    const promise = (async () => {
+    const operation = createRefreshOperation(async sharedSignal => {
+        // Enforce the orphan cap directly, not only during the ten-minute sweep.
+        const requestSignal = AbortSignal.any([sharedSignal, AbortSignal.timeout(PENDING_TTL_MS)]);
         try {
-            const projectId = await fetchProjectId(accessToken, controller.signal, provider, proxyOptions);
-            if (controller.signal.aborted || pendingFetches.get(key)?.controller !== controller) return null;
+            const projectId = await fetchProjectId(accessToken, requestSignal, provider, proxyOptions);
+            if (requestSignal.aborted || pendingFetches.get(key) !== operation) return null;
             if (projectId) {
                 projectIdCache.set(key, { connectionId, projectId, fetchedAt: Date.now() });
                 return projectId;
@@ -117,15 +121,16 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
             console.warn("[ProjectId] could not fetch projectId for connection", connectionId.slice(0, 8));
             return null;
         } catch (error) {
-            console.warn(`[ProjectId] Error fetching project ID: ${error.message}`);
+            if (!sharedSignal.aborted) console.warn(`[ProjectId] Error fetching project ID: ${error.message}`);
             return null;
-        } finally {
-            if (pendingFetches.get(key)?.controller === controller) pendingFetches.delete(key);
         }
-    })();
+    });
 
-    pendingFetches.set(key, { connectionId, promise, controller, startedAt: Date.now() });
-    return promise;
+    Object.assign(operation, { connectionId, startedAt: Date.now() });
+    pendingFetches.set(key, operation);
+    const cleanup = () => { if (pendingFetches.get(key) === operation) pendingFetches.delete(key); };
+    operation.promise.then(cleanup, cleanup);
+    return waitForRefresh(operation, signal);
 }
 
 /**
@@ -167,13 +172,15 @@ export function removeConnection(connectionId) {
  * @returns {Promise<string|null>}
  */
 async function fetchProjectId(accessToken, signal, provider, proxyOptions = null) {
+    signal.throwIfAborted();
     const endpoints = CLOUD_CODE_API[provider] || CLOUD_CODE_API["gemini-cli"];
     const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
     const response = await proxyAwareFetch(endpoints.loadCodeAssist, {
         method: "POST",
         headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
         body: JSON.stringify({ metadata: LOAD_CODE_ASSIST_METADATA }),
-        signal
+        // This deadline includes the JSON/error body, not just response headers.
+        signal: AbortSignal.any([signal, AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS)])
     }, proxyOptions);
 
     if (!response.ok) {
@@ -182,6 +189,7 @@ async function fetchProjectId(accessToken, signal, provider, proxyOptions = null
     }
 
     const data = await response.json();
+    signal.throwIfAborted();
     const projectId = extractProjectId(data);
     if (projectId) return projectId;
 
@@ -213,6 +221,7 @@ async function fetchProjectId(accessToken, signal, provider, proxyOptions = null
  * @returns {Promise<string|null>}
  */
 async function onboardUser(accessToken, tierID, externalSignal, endpoints, provider, proxyOptions = null) {
+    externalSignal.throwIfAborted();
     console.log(`[ProjectId] Onboarding user with tier: ${tierID}`);
 
     const reqBody = { tierId: tierID, metadata: LOAD_CODE_ASSIST_METADATA };
@@ -221,23 +230,20 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         // Bail out immediately if the connection was removed
-        if (externalSignal?.aborted) return null;
+        externalSignal.throwIfAborted();
 
         // Per-attempt timeout controller; forwards external abort as well
         const localCtrl = new AbortController();
-        const timeoutId = setTimeout(() => localCtrl.abort(), 30_000);
-        const forwardAbort = () => localCtrl.abort();
-        externalSignal?.addEventListener("abort", forwardAbort);
+        const timeoutId = setTimeout(() => localCtrl.abort(), Math.min(30_000, FETCH_CONNECT_TIMEOUT_MS));
+        const requestSignal = AbortSignal.any([externalSignal, localCtrl.signal]);
 
         try {
             const response = await proxyAwareFetch(endpoints.onboardUser, {
                 method: "POST",
                 headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
                 body: JSON.stringify(reqBody),
-                signal: localCtrl.signal
+                signal: requestSignal
             }, proxyOptions);
-
-            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorText = await response.text().catch(() => "");
@@ -245,6 +251,8 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
             }
 
             const data = await response.json();
+            clearTimeout(timeoutId);
+            externalSignal.throwIfAborted();
 
             if (data.done === true) {
                 const projectId = extractProjectIdFromOnboard(data);
@@ -260,13 +268,13 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
 
             // Server not done yet – wait and retry
             console.log(`[ProjectId] Onboard attempt ${attempt}/${MAX_ATTEMPTS}: not done yet, waiting...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await delay(2000, undefined, { signal: externalSignal });
 
         } catch (error) {
             clearTimeout(timeoutId);
-            if (error.name === "AbortError") {
+            externalSignal.throwIfAborted();
+            if (localCtrl.signal.aborted) {
                 console.warn(`[ProjectId] onboardUser attempt ${attempt} aborted (timeout or connection removed)`);
-                if (externalSignal?.aborted) return null;   // connection gone – stop retrying
                 continue;
             }
             if (attempt === MAX_ATTEMPTS) {
@@ -275,10 +283,9 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
             }
             // Continue to next attempt instead of throwing (which would skip remaining retries)
             console.warn(`[ProjectId] onboardUser attempt ${attempt} failed: ${error.message}, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await delay(2000, undefined, { signal: externalSignal });
         } finally {
             clearTimeout(timeoutId);
-            externalSignal?.removeEventListener("abort", forwardAbort);
         }
     }
 

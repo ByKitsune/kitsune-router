@@ -5,7 +5,8 @@ export const fmt = (n) => new Intl.NumberFormat().format(n || 0);
 const _compactNf = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 export const fmtCompact = (n) => ((n || 0) >= 100000 ? _compactNf.format(n) : fmt(n));
 
-export const fmtCost = (n) => n === null ? "Not specified" : `$${(n || 0).toFixed(2)}`;
+export const fmtCost = (n) => n === null ? "Not specified"
+  : n > 0 && n < 0.01 ? "<$0.01" : `$${(n || 0).toFixed(2)}`;
 
 export function fmtTime(iso) {
   if (!iso) return "Never";

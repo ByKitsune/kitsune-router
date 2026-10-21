@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { getPricing, updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
+import { updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
 import { getDefaultPricing } from "open-sse/providers/pricing.js";
-import { getSavedPricing } from "@/lib/db/repos/pricingRepo.js";
+import { getConfiguredPricing, getSavedPricing } from "@/lib/db/repos/pricingRepo.js";
+import { PRICING_RATE_FIELDS, PRICING_SERVICE_TIERS } from "open-sse/config/pricingConfig.js";
 
-const RATE_FIELDS = new Set(["input", "output", "cached", "reasoning", "cache_creation", "cache_creation_1h"]);
+const RATE_FIELDS = new Set(PRICING_RATE_FIELDS);
+const SERVICE_TIER_FIELDS = new Set(PRICING_SERVICE_TIERS);
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
@@ -28,6 +30,24 @@ function validateTier(tier, model) {
   return null;
 }
 
+function validateServiceTiers(tiers, model) {
+  if (tiers === null) return null;
+  if (!isPlainObject(tiers)) return `Invalid service-tier pricing for ${model}`;
+  for (const [name, quote] of Object.entries(tiers)) {
+    if (!SERVICE_TIER_FIELDS.has(name)) return `Invalid service-tier pricing field: ${name} for ${model}`;
+    if (quote === null) continue;
+    if (!isPlainObject(quote)) return `Invalid ${name} pricing for ${model}`;
+    for (const [field, value] of Object.entries(quote)) {
+      if (field === "tier") {
+        const error = validateTier(value, `${model} ${name}`);
+        if (error) return error;
+      } else if (!RATE_FIELDS.has(field)) return `Invalid ${name} pricing field: ${field} for ${model}`;
+      else if (value !== null && (!Number.isFinite(value) || value < 0)) return `Invalid ${name} pricing value for ${field} in ${model}`;
+    }
+  }
+  return null;
+}
+
 /**
  * GET /api/pricing
  * Merged rates by default; ?view=overrides returns only explicit saved fields.
@@ -35,7 +55,7 @@ function validateTier(tier, model) {
 export async function GET(request) {
   try {
     const overrides = request?.url && new URL(request.url).searchParams.get("view") === "overrides";
-    const pricing = overrides ? await getSavedPricing() : await getPricing();
+    const pricing = overrides ? await getSavedPricing() : await getConfiguredPricing();
     return NextResponse.json(pricing);
   } catch (error) {
     console.error("Error fetching pricing:", error);
@@ -85,8 +105,10 @@ export async function PATCH(request) {
         if (tierError) {
           return NextResponse.json({ error: tierError }, { status: 400 });
         }
+        const serviceError = Object.hasOwn(pricing, "service_tiers") ? validateServiceTiers(pricing.service_tiers, `${provider}/${model}`) : null;
+        if (serviceError) return NextResponse.json({ error: serviceError }, { status: 400 });
         for (const [key, value] of Object.entries(pricing)) {
-          if (key === "tier") continue;
+          if (key === "tier" || key === "service_tiers") continue;
           if (!RATE_FIELDS.has(key)) {
             return NextResponse.json(
               { error: `Invalid pricing field: ${key} for ${provider}/${model}` },
@@ -136,7 +158,7 @@ export async function DELETE(request) {
       await resetAllPricing();
     }
 
-    const pricing = await getPricing();
+    const pricing = await getConfiguredPricing();
     return NextResponse.json(pricing);
   } catch (error) {
     console.error("Error resetting pricing:", error);

@@ -5,6 +5,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### October consistency, pricing and verification
+
+- Resolve the two documented never-billed TokenHarbor routes by their exact HTTPS origin and literal model IDs, including custom-compatible nodes. Do not infer free pricing from display names or a global `:free` suffix; saved zero/unknown operator overrides retain precedence.
+- Keep confirmed delivered OpenAI processing-speed tariffs independent from Standard and from Codex subscription billing. Preserve native OpenAI 30-minute/12-hour cache writes separately from Anthropic 5-minute/1-hour writes. Returned `auto` remains unconfirmed, not an invented Standard charge.
+- Retain known recorded subtotals and unpriced request counts alongside nullable totals in live/daily statistics and the usage UI. Show positive sub-cent estimates distinctly from free zeroes; never silently reprice historical usage.
+- Reconcile process-capable Headroom authorization, MITM setting persistence, disabled-model configuration imports, private SQLite file boundaries and aggregate failure metrics. Rolling-window exports are gauges; logged terminal failure events are process-lifetime counters, not a complete HTTP audit ledger.
+- Extend request-local transport, cancellation and inference rate-limit contracts beyond the shared chat path. Fusion discards cancel their owned panel attempts; cancelling a request does not establish that an upstream stopped billing.
+- Preserve compact routing on the current Codex attempt rather than a shared previous-request flag. Repair Ollama-compatible JSON output, fragmented SSE, terminal deduplication and error/status forwarding; neither adapter reads an unbounded cloned body before authentication.
+- Adapt verified October upstream fixes selectively: native Anthropic API-key beta identity, readable reasoning aliases, Kimi deferred tools, project-scoped Vertex API-key routing, CLI prototype-safe groups and truncated-body settlement, and bounded compressed request decoding. Open PRs remain proposals, not released-upstream guarantees.
+- Align source-verification gates and state isolation across CI, npm and Docker publication. Preserve original npm tarballs and Docker version digests, require attached Docker provenance/SBOM for guarded promotion, and bound publication subprocesses. Upgrade the test-only Vite dependency to the patched 8.3.3 release.
+- See the [October reconciliation](docs/audit/17-october-reconciliation-2026-10.md) for pinned sources, verification evidence and explicit native/operational limits. This source batch does not publish a release or deploy production.
+
 ### Antigravity lifecycle and selected upstream fixes
 
 - Stop advertising four confirmed retired Gemini 3.5/agent aliases while retaining saved alias resolution. Reject their public chat requests before account selection with HTTP 410 `model_retired`; do not rotate accounts, fabricate usage or scan generated prose. Keep the working `gemini-3-flash` route and attach the documented 2026-11-02 removal schedule to Claude 4.6/GPT-OSS as metadata, not an early shutdown.

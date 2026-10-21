@@ -2,6 +2,7 @@ import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
 import { getProviderIdentityTokens } from "open-sse/providers/identity.js";
+import { getCustomPricingProvider, PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
@@ -23,33 +24,42 @@ function resolvePricing(userPricing, provider, model, resolveConst) {
     if (!Object.hasOwn(userPricing, token)) continue;
     const models = userPricing[token];
     if (models && Object.hasOwn(models, model)) {
-      const saved = models[model];
-      const merged = { ...defaults, ...saved };
-      // Output-billed reasoning follows an overridden output rate; preserve
-      // explicit saved reasoning (including zero) and distinct static tariffs.
-      if (saved?.output != null && saved.reasoning == null
-        && defaults?.reasoning != null && defaults.reasoning === defaults.output) {
-        merged.reasoning = saved.output;
-      }
-      if (saved?.tier || (defaults?.tier && saved?.tier !== null)) {
-        const savedTier = saved?.tier || {};
-        const tier = { ...defaults?.tier, ...savedTier };
-        for (const field of ["input", "output", "cached", "cache_creation", "cache_creation_1h", "reasoning"]) {
-          if (saved?.[field] != null && !Object.hasOwn(savedTier, field)) tier[field] = saved[field];
-        }
-        // A saved output price also owns output-billed reasoning, including a
-        // separately saved tier output. Distinct reasoning tariffs stay intact.
-        if (saved?.output != null && saved.reasoning == null && !Object.hasOwn(savedTier, "reasoning")
-          && defaults?.reasoning === defaults?.output
-          && (defaults?.tier?.reasoning == null || defaults.tier.reasoning === defaults.tier.output)) {
-          tier.reasoning = tier.output;
-        }
-        merged.tier = tier;
-      }
-      return merged;
+      return mergeQuote(defaults, models[model]);
     }
   }
   return defaults;
+}
+
+function mergeQuote(defaults, saved) {
+  const merged = { ...defaults, ...saved };
+  // Explicit null means unknown, not an omitted override.
+  if (saved && Object.hasOwn(saved, "output") && !Object.hasOwn(saved, "reasoning")
+    && defaults?.reasoning != null && defaults.reasoning === defaults.output) {
+    merged.reasoning = saved.output;
+  }
+  if (saved?.tier || (defaults?.tier && saved?.tier !== null)) {
+    const savedTier = saved?.tier || {};
+    const tier = { ...defaults?.tier, ...savedTier };
+    for (const field of PRICING_RATE_FIELDS) {
+      if (saved && Object.hasOwn(saved, field) && !Object.hasOwn(savedTier, field)) tier[field] = saved[field];
+    }
+    // A saved output price also owns output-billed reasoning, including a
+    // separately saved tier output. Distinct reasoning tariffs stay intact.
+    if (saved && Object.hasOwn(saved, "output") && !Object.hasOwn(saved, "reasoning") && !Object.hasOwn(savedTier, "reasoning")
+      && defaults?.reasoning === defaults?.output
+      && (defaults?.tier?.reasoning == null || defaults.tier.reasoning === defaults.tier.output)) {
+      tier.reasoning = tier.output;
+    }
+    merged.tier = tier;
+  }
+  if (saved?.service_tiers && typeof saved.service_tiers === "object") {
+    const tiers = { ...defaults?.service_tiers };
+    for (const [tier, quote] of Object.entries(saved.service_tiers)) {
+      tiers[tier] = quote === null ? null : mergeQuote(defaults?.service_tiers?.[tier], quote);
+    }
+    merged.service_tiers = tiers;
+  }
+  return merged;
 }
 
 export async function getPricing() {
@@ -83,9 +93,16 @@ export async function getPricingForModel(provider, model) {
   if (!model) return null;
   const userPricing = await getSavedPricing();
   const { getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
+  let resolveDefaults = resolveConst;
+  if (/^(?:openai|anthropic)-compatible-/.test(provider || "")) {
+    const { getProviderNodeById } = await import("./nodesRepo.js");
+    const node = await getProviderNodeById(provider);
+    const reference = getCustomPricingProvider(node?.baseUrl);
+    if (reference) resolveDefaults = (_provider, id) => resolveConst(reference, id);
+  }
   // A user override on the exact (effort-annotated) id always wins.
   if (hasUserOverride(userPricing, provider, model)) {
-    return resolvePricing(userPricing, provider, model, resolveConst);
+    return resolvePricing(userPricing, provider, model, resolveDefaults);
   }
   // Usage rows keep the effort-annotated id ("gpt-6.1-sol(xhigh)"); resolving
   // it as-is missed the base model's exact entry and fell through to a broader
@@ -94,9 +111,45 @@ export async function getPricingForModel(provider, model) {
   const { stripThinkingSuffix } = await import("open-sse/translator/concerns/thinkingUnified.js");
   const base = stripThinkingSuffix(model);
   if (base === model) {
-    return resolvePricing(userPricing, provider, model, resolveConst);
+    return resolvePricing(userPricing, provider, model, resolveDefaults);
   }
-  return resolvePricing(userPricing, provider, base, resolveConst);
+  return resolvePricing(userPricing, provider, base, resolveDefaults);
+}
+
+// Effective editor rows include configured custom/native IDs, but public
+// references are never persisted as operator overrides. Resolve node identity
+// freshly so changing/importing a URL cannot retain another host's quote.
+export async function getConfiguredPricing() {
+  const [{ getProviderNodes }, { getCustomModels }, { getProviderConnections }] = await Promise.all([
+    import("./nodesRepo.js"), import("./aliasRepo.js"), import("./connectionsRepo.js"),
+  ]);
+  const [defaults, nodes, custom, connections] = await Promise.all([
+    getPricing(), getProviderNodes(), getCustomModels(), getProviderConnections(),
+  ]);
+  const output = { ...defaults };
+  const identities = new Map(nodes.flatMap(node => [[node.id, node.id], ...(node.prefix ? [[node.prefix, node.id]] : [])]));
+  const rows = new Map();
+  const add = (provider, model) => {
+    if (typeof provider !== "string" || typeof model !== "string" || !model) return;
+    const id = identities.get(provider) || provider;
+    rows.set(JSON.stringify([id, model]), [id, model]);
+  };
+  for (const [provider, models] of Object.entries(defaults)) {
+    if (!identities.has(provider) && !/^(?:openai|anthropic)-compatible-/.test(provider)) continue;
+    for (const model of Object.keys(models || {})) add(provider, model);
+  }
+  for (const row of custom) add(row.providerAlias, row.id);
+  for (const connection of connections) {
+    add(connection.provider, connection.defaultModel);
+    for (const model of connection.providerSpecificData?.customModels || []) {
+      add(connection.provider, typeof model === "string" ? model : model?.id);
+    }
+  }
+  for (const [provider, model] of rows.values()) {
+    const quote = await getPricingForModel(provider, model);
+    output[provider] = { ...output[provider], [model]: quote || {} };
+  }
+  return output;
 }
 
 function hasUserOverride(userPricing, provider, model) {

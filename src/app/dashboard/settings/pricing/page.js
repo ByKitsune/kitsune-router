@@ -120,11 +120,12 @@ export default function PricingSettingsPage() {
             <li><strong>Output:</strong> Completion/response tokens</li>
             <li><strong>Cached:</strong> Cached input tokens at the model-specific rate; there is no universal discount</li>
             <li><strong>Reasoning:</strong> Special reasoning/thinking tokens (fallback to output rate)</li>
-            <li><strong>Cache Creation:</strong> Tokens used to create cache entries (fallback to input rate)</li>
+            <li><strong>Cache Creation:</strong> Writes use their own documented tariffs and lifetime counters: Anthropic 5m/1h and native OpenAI 30m/12h remain distinct. Missing used rates stay unknown.</li>
           </ul>
           <p>
             <strong>Custom Pricing:</strong> You can override default pricing for specific models.
             Reset to defaults anytime to restore reference estimates. Missing rates are unknown, not free. Subscription quotas and media charges per image, duration, character or byte are not interchangeable with token prices.
+            Delivered speed tariffs are independent from Standard; an unconfirmed tier is not priced by the requested speed. Known subtotals remain visibly incomplete when some requests are unpriced.
           </p>
         </div>
       </Card>

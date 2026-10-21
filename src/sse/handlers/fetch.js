@@ -16,6 +16,7 @@ import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo
 import { assertPublicUrlAsync } from "@/shared/utils/ssrfGuard.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 /**
  * Handle web fetch (URL extraction) request for the SSE/Next.js server.
@@ -63,52 +64,54 @@ export async function handleFetch(request) {
     }
   }
 
-  if (!providerInput || typeof providerInput !== "string") {
-    log.warn("FETCH", "Missing provider/model");
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
-  }
+  return withInferenceLimit(request, apiKey, async () => {
+    if (!providerInput || typeof providerInput !== "string") {
+      log.warn("FETCH", "Missing provider/model");
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
+    }
 
-  if (!targetUrl || typeof targetUrl !== "string") {
-    log.warn("FETCH", "Missing url");
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: url");
-  }
+    if (!targetUrl || typeof targetUrl !== "string") {
+      log.warn("FETCH", "Missing url");
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: url");
+    }
 
-  // Validate URL format
-  try {
-    new URL(targetUrl);
-  } catch {
-    log.warn("FETCH", "Invalid URL", { url: targetUrl });
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid URL format");
-  }
+    // Validate URL format
+    try {
+      new URL(targetUrl);
+    } catch {
+      log.warn("FETCH", "Invalid URL", { url: targetUrl });
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid URL format");
+    }
 
-  // SSRF guard: reject internal/private/metadata targets
-  try {
-    await assertPublicUrlAsync(targetUrl);
-  } catch (err) {
-    log.warn("FETCH", "Blocked URL", { url: targetUrl });
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, err.message);
-  }
+    // SSRF guard: reject internal/private/metadata targets
+    try {
+      await assertPublicUrlAsync(targetUrl);
+    } catch (err) {
+      log.warn("FETCH", "Blocked URL", { url: targetUrl });
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, err.message);
+    }
 
-  // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
-  const combos = await getCombos();
-  const comboModels = getComboModelsFromData(providerInput, combos);
-  if (comboModels) {
-    const comboStrategies = settings.comboStrategies || {};
-    const comboStrategy = comboStrategies[providerInput]?.fallbackStrategy || settings.comboStrategy || "fallback";
-    const comboStickyLimit = settings.comboStickyRoundRobinLimit;
-    log.info("FETCH", `Combo "${providerInput}" with ${comboModels.length} providers (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
-    return handleComboChat({
-      body,
-      models: comboModels,
-      handleSingleModel: (b, m) => handleSingleProviderFetch(b, m, request, apiKey, settings),
-      log,
-      comboName: providerInput,
-      comboStrategy,
-      comboStickyLimit
-    });
-  }
+    // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
+    const combos = await getCombos();
+    const comboModels = getComboModelsFromData(providerInput, combos);
+    if (comboModels) {
+      const comboStrategies = settings.comboStrategies || {};
+      const comboStrategy = comboStrategies[providerInput]?.fallbackStrategy || settings.comboStrategy || "fallback";
+      const comboStickyLimit = settings.comboStickyRoundRobinLimit;
+      log.info("FETCH", `Combo "${providerInput}" with ${comboModels.length} providers (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
+      return handleComboChat({
+        body,
+        models: comboModels,
+        handleSingleModel: (b, m) => handleSingleProviderFetch(b, m, request, apiKey, settings),
+        log,
+        comboName: providerInput,
+        comboStrategy,
+        comboStickyLimit
+      });
+    }
 
-  return handleSingleProviderFetch(body, providerInput, request, apiKey, settings);
+    return handleSingleProviderFetch(body, providerInput, request, apiKey, settings);
+  });
 }
 
 async function handleSingleProviderFetch(body, providerInput, request, apiKey, settings) {

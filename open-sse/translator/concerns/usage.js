@@ -15,9 +15,71 @@ export function getCacheCreationUsage(raw) {
   };
 }
 
+/**
+ * OpenAI writes are inclusive input subsets, independent of Anthropic creation.
+ * Missing TTLs stay missing; an aggregate alone does not prove a 30m lifetime.
+ * Invalid supplied counts stay null and carry a marker through JSON round trips.
+ * Native split: cache_write_tokens_details.{ttl_30m_tokens, ttl_12h_tokens}.
+ * https://developers.openai.com/api/docs/guides/prompt-caching (2026-10-21)
+ */
+export function getOpenAICacheWriteUsage(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const details = [raw.input_tokens_details, raw.prompt_tokens_details]
+    .filter(value => value && typeof value === "object" && !Array.isArray(value));
+  let invalid = raw.cache_write_invalid === true;
+  let present = invalid;
+  const count = (field, nestedField) => {
+    const values = [raw[field], ...details.map(detail => nestedField
+      ? detail.cache_write_tokens_details?.[nestedField] : detail[field])]
+      .filter(value => value !== undefined);
+    if (values.length === 0) return undefined;
+    present = true;
+    if (values.some(value => !Number.isSafeInteger(value) || value < 0 || value !== values[0])) invalid = true;
+    return Number.isSafeInteger(values[0]) && values[0] >= 0 ? values[0] : null;
+  };
+  let total = count("cache_write_tokens");
+  const thirtyMinute = count("cache_write_30m_tokens", "ttl_30m_tokens");
+  const twelveHour = count("cache_write_12h_tokens", "ttl_12h_tokens");
+  for (const detail of details) {
+    const split = detail.cache_write_tokens_details;
+    if (split === undefined) continue;
+    present = true;
+    if (!split || typeof split !== "object" || Array.isArray(split) ||
+        (split.ttl_30m_tokens === undefined && split.ttl_12h_tokens === undefined)) invalid = true;
+  }
+  if (!present) return null;
+
+  const hasSplit = thirtyMinute !== undefined || twelveHour !== undefined;
+  const splitTotal = (thirtyMinute ?? 0) + (twelveHour ?? 0);
+  if (hasSplit && (!Number.isSafeInteger(splitTotal) || thirtyMinute === null || twelveHour === null)) invalid = true;
+  if (total === undefined) {
+    total = hasSplit && thirtyMinute !== null && twelveHour !== null && Number.isSafeInteger(splitTotal) ? splitTotal : null;
+  } else if (hasSplit && total !== splitTotal) {
+    // A remainder is unknown, not evidence it was written at the other TTL.
+    invalid = true;
+  }
+
+  const prompt = raw.prompt_tokens ?? raw.input_tokens;
+  if (prompt !== undefined) {
+    const cached = raw.cached_tokens ?? raw.input_tokens_details?.cached_tokens
+      ?? raw.prompt_tokens_details?.cached_tokens ?? raw.prompt_cache_hit_tokens ?? raw.cache_read_input_tokens ?? 0;
+    const legacyCreation = getCacheCreationUsage(raw)?.total ?? 0;
+    const accounted = cached + legacyCreation + (total ?? 0);
+    if (![prompt, cached, legacyCreation, accounted].every(value => Number.isSafeInteger(value) && value >= 0) || accounted > prompt) {
+      invalid = true;
+    }
+  }
+  return {
+    total,
+    ...(thirtyMinute === undefined ? {} : { thirtyMinute }),
+    ...(twelveHour === undefined ? {} : { twelveHour }),
+    ...(invalid ? { invalid: true } : {}),
+  };
+}
+
 // Build OpenAI usage object. Caller computes prompt/completion/total (provider math).
 // TTL subsets retain explicit zeroes; other optional details are added when positive.
-export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, reasoningTokens = 0 }) {
+export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, cacheWriteTokens, cacheWrite30mTokens, cacheWrite12hTokens, cacheWriteInvalid, reasoningTokens = 0 }) {
   const usage = { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens };
   if (cachedTokens > 0 || cacheCreationTokens > 0 || cacheCreation5mTokens !== undefined || cacheCreation1hTokens !== undefined) {
     usage.prompt_tokens_details = {};
@@ -25,6 +87,22 @@ export function buildUsage({ promptTokens, completionTokens, totalTokens, cached
     if (cacheCreationTokens > 0) usage.prompt_tokens_details.cache_creation_tokens = cacheCreationTokens;
     if (cacheCreation5mTokens !== undefined) usage.prompt_tokens_details.cache_creation_5m_tokens = cacheCreation5mTokens;
     if (cacheCreation1hTokens !== undefined) usage.prompt_tokens_details.cache_creation_1h_tokens = cacheCreation1hTokens;
+  }
+  const writes = getOpenAICacheWriteUsage({
+    prompt_tokens: promptTokens, cached_tokens: cachedTokens, cache_creation_input_tokens: cacheCreationTokens,
+    cache_write_tokens: cacheWriteTokens, cache_write_30m_tokens: cacheWrite30mTokens,
+    cache_write_12h_tokens: cacheWrite12hTokens, cache_write_invalid: cacheWriteInvalid,
+  });
+  if (writes) {
+    const details = usage.prompt_tokens_details ||= {};
+    details.cache_write_tokens = writes.total;
+    if (writes.thirtyMinute !== undefined || writes.twelveHour !== undefined) {
+      details.cache_write_tokens_details = {
+        ...(writes.thirtyMinute === undefined ? {} : { ttl_30m_tokens: writes.thirtyMinute }),
+        ...(writes.twelveHour === undefined ? {} : { ttl_12h_tokens: writes.twelveHour }),
+      };
+    }
+    if (writes.invalid) usage.cache_write_invalid = true;
   }
   if (reasoningTokens > 0) {
     usage.completion_tokens_details = { reasoning_tokens: reasoningTokens };
@@ -124,6 +202,13 @@ export function toOpenAIUsage(raw, kind) {
     args.cacheCreationTokens = creation.total;
     args.cacheCreation5mTokens = creation.fiveMinute;
     args.cacheCreation1hTokens = creation.oneHour;
+  }
+  const writes = getOpenAICacheWriteUsage(raw);
+  if (writes) {
+    args.cacheWriteTokens = writes.total;
+    args.cacheWrite30mTokens = writes.thirtyMinute;
+    args.cacheWrite12hTokens = writes.twelveHour;
+    args.cacheWriteInvalid = writes.invalid;
   }
   return buildUsage(args);
 }

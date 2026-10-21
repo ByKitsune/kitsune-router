@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import PropTypes from "prop-types";
 import Card from "@/shared/components/Card";
 import Badge from "@/shared/components/Badge";
+import UsageCost from "@/shared/components/UsageCost";
 import { fmt, fmtCompact, fmtCost, fmtTime } from "@/shared/utils/format";
 
 function SortIcon({ field, currentSort, currentOrder }) {
@@ -42,16 +43,16 @@ function ValueCells({ item, viewMode, isSummary = false }) {
   return (
     <>
       <td className="px-6 py-3 text-right text-text-muted">
-        {isSummary && item.inputCost === undefined ? "—" : fmtCost(item.inputCost)}
+        {isSummary && item.inputCost === undefined ? "—" : <UsageCost value={item.inputCost} coverage={item.costCoverage?.inputCost} />}
       </td>
       <td className="px-6 py-3 text-right text-text-muted">
-        {item.cachedCost === undefined ? "—" : fmtCost(item.cachedCost)}
+        {item.cachedCost === undefined ? "—" : <UsageCost value={item.cachedCost} coverage={item.costCoverage?.cachedCost} />}
       </td>
       <td className="px-6 py-3 text-right text-text-muted">
-        {isSummary && item.outputCost === undefined ? "—" : fmtCost(item.outputCost)}
+        {isSummary && item.outputCost === undefined ? "—" : <UsageCost value={item.outputCost} coverage={item.costCoverage?.outputCost} />}
       </td>
       <td className="px-6 py-3 text-right font-medium text-warning">
-        {fmtCost(item.totalCost !== undefined ? item.totalCost : item.cost)}
+        <UsageCost value={item.totalCost !== undefined ? item.totalCost : item.cost} coverage={item.costCoverage?.totalCost} />
       </td>
     </>
   );

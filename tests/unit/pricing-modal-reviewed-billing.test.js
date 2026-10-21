@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { getProviderIdentityTokens } from "../../open-sse/providers/identity.js";
+import * as pricingConfig from "../../open-sse/config/pricingConfig.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -52,6 +53,7 @@ function fixture(data, metadata = {}, { fallback = false, overrides = {} } = {})
       if (id === "open-sse/providers/pricing.js") return { getDefaultPricing: () => data };
       if (id === "open-sse/providers/metadata/reviewed.js") return { getReviewedModelMetadata: (provider, model) => metadata[provider]?.[model] ?? null };
       if (id === "open-sse/providers/identity.js") return { getProviderIdentityTokens };
+      if (id === "open-sse/config/pricingConfig.js") return pricingConfig;
       throw new Error(`Unexpected fixture import: ${id}`);
     },
   }, { filename });
@@ -133,7 +135,7 @@ describe("PricingModal reviewed billing behavior", () => {
     const modal = fixture(data);
     const tree = await modal.mount();
     const inputs = fields(tree, "known-model");
-    expect(inputs.map((input) => input.props.value)).toEqual([1.5, 6, 0, "", "", ""]);
+    expect(inputs.map((input) => input.props.value)).toEqual([1.5, 6, 0, "", "", "", "", ""]);
     inputs[0].props.onChange({ target: { value: "2" } });
     await modal.save();
     expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 2 } } });
@@ -156,5 +158,32 @@ describe("PricingModal reviewed billing behavior", () => {
     const tree = await modal.mount();
     expect(nodes(tree).find(node => node.props.role === "alert")).toBeDefined();
     expect(nodes(tree).find(node => node.type === "button" && text(node) === "Save Changes").props.disabled).toBe(true);
+  });
+
+  it("edits only a delivered-tier tariff without materializing Standard or other-tier overrides", async () => {
+    const data = { openai: { "gpt-6.1-sol": {
+      input: 2, output: 10, cached: 0.1,
+      service_tiers: { fast: { input: 4, output: 20, cached: 0.2 }, ultrafast: { input: 12, output: 60 } },
+    } } };
+    const modal = fixture(data, {}, { overrides: { openai: { "gpt-6.1-sol": { cached: null } } } });
+    const tree = await modal.mount();
+    const label = nodes(tree).find(node => node.type === "label" && text(node).includes("fast input"));
+    expect(label).toBeDefined();
+    nodes(label).find(node => node.type === "input").props.onChange({ target: { value: "0" } });
+    await modal.save();
+    expect(modal.payload()).toEqual({ openai: { "gpt-6.1-sol": { cached: null, service_tiers: { fast: { input: 0 } } } } });
+  });
+
+  it("does not resurrect inherited premium rates when editing a previously all-unknown quote", async () => {
+    const data = { openai: { "gpt-6.1-sol": { input: 2, output: 10, service_tiers: { fast: null } } } };
+    const modal = fixture(data, {}, { overrides: data });
+    const tree = await modal.mount();
+    const label = nodes(tree).find(node => node.type === "label" && text(node) === "fast output");
+    nodes(label).find(node => node.type === "input").props.onChange({ target: { value: "9" } });
+    await modal.save();
+    expect(modal.payload().openai["gpt-6.1-sol"].service_tiers.fast).toEqual({
+      input: null, output: 9, cached: null, reasoning: null,
+      cache_creation: null, cache_creation_1h: null, cache_write_30m: null, cache_write_12h: null, tier: null,
+    });
   });
 });

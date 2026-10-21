@@ -3,6 +3,7 @@ import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, TOOL_ERROR_PREFIX, VALID_OPENAI_CONTE
 import { extractReasoningText } from "../concerns/reasoning.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
 import { expandToolResultMessages } from "../concerns/toolCall.js";
+import { normalizeChatReasoningAliases } from "../concerns/reasoningAliases.js";
 
 // Re-export valid-type lists (moved to schema/blocks.js) to keep existing importers working.
 export { VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES };
@@ -12,6 +13,7 @@ export { VALID_OPENAI_CONTENT_TYPES, VALID_OPENAI_MESSAGE_TYPES };
 // opts.preserveCacheControl: keep cache_control on content blocks (e.g. for DashScope/alicode)
 // opts.preserveDeveloperRole: keep developer role for providers like official OpenAI (#4172)
 export function filterToOpenAIFormat(body, opts = {}) {
+  body = normalizeChatReasoningAliases(body);
   if (!body.messages || !Array.isArray(body.messages)) return body;
   const keepCache = !!opts.preserveCacheControl;
   const keepDev = !!opts.preserveDeveloperRole;

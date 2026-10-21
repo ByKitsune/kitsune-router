@@ -1,5 +1,14 @@
 # Nhật ký thay đổi
 
+## Chưa phát hành — đối soát tháng Mười
+
+- Sửa giá các tuyến miễn phí chính xác của TokenHarbor và bậc tốc độ thực tế được cung cấp; tách thời hạn ghi bộ nhớ đệm, chi phí chưa biết và cấu hình ghi đè rõ ràng.
+- Hiển thị tổng phụ đã biết cùng số yêu cầu chưa có giá, không thay tổng chưa biết bằng tổng phụ hoặc tính lại lịch sử.
+- Đồng bộ xác thực, lưu trữ riêng tư, hủy/proxy, giới hạn suy luận và chỉ số lỗi; áp dụng chọn lọc các bản sửa giao thức và CLI tháng Mười đã tái hiện.
+- Đồng bộ kiểm chứng mã nguồn và bảo vệ phát hành. Không sửa hồi tố gói 0.9.13 bất biến và không chứng minh quyền truy cập hay hóa đơn thực tế.
+
+[Phạm vi, nguồn và giới hạn kiểm chứng](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/17-october-reconciliation-2026-10.md)
+
 ## 0.9.13: 2026-10-19
 
 - Sửa lỗi ngân sách thinking giả khi thử mô hình Claude của Antigravity; lưu mặc định thinking mà không đổi giới hạn đầu ra do khách đặt rõ ràng.

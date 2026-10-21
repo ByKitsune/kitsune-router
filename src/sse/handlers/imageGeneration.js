@@ -15,6 +15,7 @@ import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 // Providers that don't require credentials (noAuth)
 const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui"]);
@@ -71,28 +72,30 @@ export async function handleImageGeneration(request) {
     if (!valid) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
   }
 
-  if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
-  if (!body.prompt) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
+  return withInferenceLimit(request, apiKey, async () => {
+    if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
+    if (!body.prompt) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
 
-  // Combo expansion: model may be a combo name → run fallback/round-robin across models
-  const comboModels = await getComboModels(modelStr);
-  if (comboModels) {
-    const comboStrategies = settings.comboStrategies || {};
-    const comboStrategy = comboStrategies[modelStr]?.fallbackStrategy || settings.comboStrategy || "fallback";
-    const comboStickyLimit = settings.comboStickyRoundRobinLimit;
-    log.info("IMAGE", `Combo "${modelStr}" with ${comboModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
-    return handleComboChat({
-      body,
-      models: comboModels,
-      handleSingleModel: (b, m) => handleSingleModelImage(b, m, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname }),
-      log,
-      comboName: modelStr,
-      comboStrategy,
-      comboStickyLimit,
-    });
-  }
+    // Combo expansion: model may be a combo name → run fallback/round-robin across models
+    const comboModels = await getComboModels(modelStr);
+    if (comboModels) {
+      const comboStrategies = settings.comboStrategies || {};
+      const comboStrategy = comboStrategies[modelStr]?.fallbackStrategy || settings.comboStrategy || "fallback";
+      const comboStickyLimit = settings.comboStickyRoundRobinLimit;
+      log.info("IMAGE", `Combo "${modelStr}" with ${comboModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
+      return handleComboChat({
+        body,
+        models: comboModels,
+        handleSingleModel: (b, m) => handleSingleModelImage(b, m, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname }),
+        log,
+        comboName: modelStr,
+        comboStrategy,
+        comboStickyLimit,
+      });
+    }
 
-  return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname });
+    return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname });
+  });
 }
 
 async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint } = {}) {

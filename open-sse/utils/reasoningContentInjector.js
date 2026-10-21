@@ -29,7 +29,10 @@ const DEEPSEEK_V4_PRO_ALIASES = {
 function shouldInject(message, scope) {
   if (message?.role !== "assistant") return false;
   const rc = message.reasoning_content;
-  if (typeof rc === "string" && rc.length > 0) return false;
+  // Never fabricate a second carrier. Final Chat normalization owns lossless
+  // alias mapping and explicit diagnostics for structured/conflicting values.
+  if (rc != null && rc !== "") return false;
+  if (message.reasoning != null && message.reasoning !== "") return false;
   if (scope === "toolCalls") return Array.isArray(message.tool_calls) && message.tool_calls.length > 0;
   return true;
 }

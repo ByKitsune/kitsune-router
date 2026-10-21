@@ -4,7 +4,7 @@ import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { getMeta, setMeta } from "../helpers/metaStore.js";
 import { hardenEmitter } from "../../schedulerLifecycle.js";
-import { addNullableCost } from "../../../shared/utils/cost.js";
+import { addNullableCost, mergeCostCoverage } from "../../../shared/utils/cost.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -51,6 +51,10 @@ if (!global._pendingTimers) global._pendingTimers = {};
 if (!global._recentRing) global._recentRing = { items: [], initialized: false };
 if (!global._connectionMapCache) global._connectionMapCache = { map: {}, ts: 0 };
 if (!global._statsEmitTimers) global._statsEmitTimers = { pending: null, update: null };
+// Only terminal HTTP failure counts, never request payloads or identities. At
+// most 200 status buckets (400..599), independent of usage/log retention. Shared
+// across Next.js modules and hot reloads, but intentionally reset on restart.
+if (!global._requestFailureCounts) global._requestFailureCounts = Object.create(null);
 
 const pendingRequests = global._pendingRequests;
 const lastErrorProvider = global._lastErrorProvider;
@@ -58,6 +62,7 @@ const pendingTimers = global._pendingTimers;
 const recentRing = global._recentRing;
 const connCache = global._connectionMapCache;
 const statsEmitTimers = global._statsEmitTimers;
+const requestFailureCounts = global._requestFailureCounts;
 
 export const statsEmitter = global._statsEmitter;
 
@@ -87,8 +92,27 @@ function readCostComponents(meta) {
   return { inputCost: data.inputCost, cachedCost: data.cachedCost, outputCost: data.outputCost };
 }
 
+function requestCostCoverage(values) {
+  return Object.fromEntries(["totalCost", ...COMPONENT_COST_FIELDS].map((field) => {
+    const cost = field === "totalCost" ? values.cost : values[field];
+    // A row NULL is exactly one unpriced request. Missing legacy component
+    // metadata cannot establish coverage, so do not infer it from today's rates.
+    return [field, Number.isFinite(cost) ? { knownCost: cost, unknownRequests: 0 }
+      : cost === null ? { knownCost: 0, unknownRequests: 1 }
+      : { knownCost: null, unknownRequests: null }];
+  }));
+}
+
+function addDailyCostCoverage(target, values) {
+  // Seed existing legacy summaries BEFORE changing their numeric fields. An
+  // old NULL summary has an unreconstructable subtotal/count, unlike a raw row.
+  if (!target.costCoverage) mergeCostCoverage(target, target);
+  mergeCostCoverage(target, values);
+}
+
 function addToCounter(target, key, values) {
   if (!target[key]) target[key] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 };
+  addDailyCostCoverage(target[key], values);
   target[key].requests += values.requests || 1;
   target[key].promptTokens += values.promptTokens || 0;
   target[key].completionTokens += values.completionTokens || 0;
@@ -103,8 +127,9 @@ function aggregateEntryToDay(day, entry) {
   const completionTokens = entry.tokens?.completion_tokens || entry.tokens?.output_tokens || 0;
   const cachedTokens = entry.tokens?.cached_tokens || entry.tokens?.cache_read_input_tokens || entry.tokens?.prompt_cache_hit_tokens || 0;
   const { cost, inputCost, cachedCost, outputCost } = entry;
-  const vals = { promptTokens, completionTokens, cachedTokens, cost, inputCost, cachedCost, outputCost };
+  const vals = { promptTokens, completionTokens, cachedTokens, cost, inputCost, cachedCost, outputCost, costCoverage: requestCostCoverage(entry) };
 
+  addDailyCostCoverage(day, vals);
   day.requests = (day.requests || 0) + 1;
   day.promptTokens = (day.promptTokens || 0) + promptTokens;
   day.completionTokens = (day.completionTokens || 0) + completionTokens;
@@ -359,6 +384,7 @@ export async function saveRequestUsage(entry) {
       const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
       const day = row ? parseJson(row.data, {}) : {
         requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
+        costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
         byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
       };
       aggregateEntryToDay(day, entry);
@@ -465,6 +491,7 @@ export async function getUsageStats(period = "all") {
   const stats = {
     totalRequests: 0,
     totalPromptTokens: 0, totalCompletionTokens: 0, totalCachedTokens: 0, totalCost: 0,
+    costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
     byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
     last10Minutes: [],
     pending: pendingRequests,
@@ -533,6 +560,7 @@ export async function getUsageStats(period = "all") {
     for (const dr of dayRows) {
       const dateKey = dr.dateKey;
       const day = parseJson(dr.data, {});
+      mergeCostCoverage(stats, day);
       stats.totalPromptTokens += day.promptTokens || 0;
       stats.totalCompletionTokens += day.completionTokens || 0;
       stats.totalCachedTokens += day.cachedTokens || 0;
@@ -541,6 +569,7 @@ export async function getUsageStats(period = "all") {
 
       for (const [prov, p] of Object.entries(day.byProvider || {})) {
         if (!stats.byProvider[prov]) stats.byProvider[prov] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0 };
+        mergeCostCoverage(stats.byProvider[prov], p);
         stats.byProvider[prov].requests += p.requests || 0;
         stats.byProvider[prov].promptTokens += p.promptTokens || 0;
         stats.byProvider[prov].completionTokens += p.completionTokens || 0;
@@ -557,6 +586,7 @@ export async function getUsageStats(period = "all") {
         if (!stats.byModel[statsKey]) {
           stats.byModel[statsKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, lastUsed: dateKey };
         }
+        mergeCostCoverage(stats.byModel[statsKey], m);
         stats.byModel[statsKey].requests += m.requests || 0;
         stats.byModel[statsKey].promptTokens += m.promptTokens || 0;
         stats.byModel[statsKey].completionTokens += m.completionTokens || 0;
@@ -575,6 +605,7 @@ export async function getUsageStats(period = "all") {
         if (!stats.byAccount[accountKey]) {
           stats.byAccount[accountKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, connectionId: connId, accountName, lastUsed: dateKey };
         }
+        mergeCostCoverage(stats.byAccount[accountKey], a);
         stats.byAccount[accountKey].requests += a.requests || 0;
         stats.byAccount[accountKey].promptTokens += a.promptTokens || 0;
         stats.byAccount[accountKey].completionTokens += a.completionTokens || 0;
@@ -600,6 +631,7 @@ export async function getUsageStats(period = "all") {
         if (!stats.byApiKey[akKey]) {
           stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, apiKeyMasked, keyName, apiKeyKey, lastUsed: dateKey };
         }
+        mergeCostCoverage(stats.byApiKey[akKey], ak);
         stats.byApiKey[akKey].requests += ak.requests || 0;
         stats.byApiKey[akKey].promptTokens += ak.promptTokens || 0;
         stats.byApiKey[akKey].completionTokens += ak.completionTokens || 0;
@@ -617,6 +649,7 @@ export async function getUsageStats(period = "all") {
         if (!stats.byEndpoint[epKey]) {
           stats.byEndpoint[epKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, endpoint, rawModel, provider: providerDisplayName, lastUsed: dateKey };
         }
+        mergeCostCoverage(stats.byEndpoint[epKey], ep);
         stats.byEndpoint[epKey].requests += ep.requests || 0;
         stats.byEndpoint[epKey].promptTokens += ep.promptTokens || 0;
         stats.byEndpoint[epKey].completionTokens += ep.completionTokens || 0;
@@ -691,8 +724,10 @@ export async function getUsageStats(period = "all") {
       const cachedTokens = tokens.cached_tokens || tokens.cache_read_input_tokens || tokens.prompt_cache_hit_tokens || 0;
       const entryCost = r.cost;
       const components = readCostComponents(r.meta);
+      const recordedCosts = { costCoverage: requestCostCoverage({ cost: entryCost, ...components }) };
       const providerDisplayName = providerNodeNameMap[r.provider] || r.provider;
 
+      mergeCostCoverage(stats, recordedCosts);
       stats.totalPromptTokens += promptTokens;
       stats.totalCompletionTokens += completionTokens;
       stats.totalCachedTokens += cachedTokens;
@@ -700,6 +735,7 @@ export async function getUsageStats(period = "all") {
       addCostComponents(stats, components);
 
       if (!stats.byProvider[r.provider]) stats.byProvider[r.provider] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0 };
+      mergeCostCoverage(stats.byProvider[r.provider], recordedCosts);
       stats.byProvider[r.provider].requests++;
       stats.byProvider[r.provider].promptTokens += promptTokens;
       stats.byProvider[r.provider].completionTokens += completionTokens;
@@ -711,6 +747,7 @@ export async function getUsageStats(period = "all") {
       if (!stats.byModel[modelKey]) {
         stats.byModel[modelKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, lastUsed: r.timestamp };
       }
+      mergeCostCoverage(stats.byModel[modelKey], recordedCosts);
       stats.byModel[modelKey].requests++;
       stats.byModel[modelKey].promptTokens += promptTokens;
       stats.byModel[modelKey].completionTokens += completionTokens;
@@ -725,6 +762,7 @@ export async function getUsageStats(period = "all") {
         if (!stats.byAccount[accountKey]) {
           stats.byAccount[accountKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, connectionId: r.connectionId, accountName, lastUsed: r.timestamp };
         }
+        mergeCostCoverage(stats.byAccount[accountKey], recordedCosts);
         stats.byAccount[accountKey].requests++;
         stats.byAccount[accountKey].promptTokens += promptTokens;
         stats.byAccount[accountKey].completionTokens += completionTokens;
@@ -746,6 +784,7 @@ export async function getUsageStats(period = "all") {
           stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyMasked, keyName, apiKeyKey: apiKeyMasked, lastUsed: r.timestamp };
         }
         const ake = stats.byApiKey[akKey];
+        mergeCostCoverage(ake, recordedCosts);
         ake.requests++; ake.promptTokens += promptTokens; ake.completionTokens += completionTokens; ake.cachedTokens += cachedTokens;
         ake.cost = addNullableCost(ake.cost, entryCost);
         addCostComponents(ake, components);
@@ -755,6 +794,7 @@ export async function getUsageStats(period = "all") {
           stats.byApiKey["local-no-key"] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyMasked: null, keyName: "Local (No API Key)", apiKeyKey: "local-no-key", lastUsed: r.timestamp };
         }
         const ake = stats.byApiKey["local-no-key"];
+        mergeCostCoverage(ake, recordedCosts);
         ake.requests++; ake.promptTokens += promptTokens; ake.completionTokens += completionTokens; ake.cachedTokens += cachedTokens;
         ake.cost = addNullableCost(ake.cost, entryCost);
         addCostComponents(ake, components);
@@ -767,6 +807,7 @@ export async function getUsageStats(period = "all") {
         stats.byEndpoint[epKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, endpoint, rawModel: r.model, provider: providerDisplayName, lastUsed: r.timestamp };
       }
       const epe = stats.byEndpoint[epKey];
+      mergeCostCoverage(epe, recordedCosts);
       epe.requests++; epe.promptTokens += promptTokens; epe.completionTokens += completionTokens; epe.cachedTokens += cachedTokens;
       epe.cost = addNullableCost(epe.cost, entryCost);
       addCostComponents(epe, components);
@@ -893,8 +934,18 @@ function formatLogDate(date = new Date()) {
   return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-// No-op: request log is now derived from usageHistory table on read.
-export async function appendRequestLog() {}
+// Usage-backed UI logs remain strings derived from usageHistory. A FAILED log
+// event is separate: zero-token failures must not become billable usage rows.
+// One terminal event per routed attempt, not one per client request (fallback
+// can emit multiple attempts). Early failures that never log are not inferred.
+export async function appendRequestLog(entry) {
+  const status = typeof entry?.status === "string" ? /^FAILED ([45]\d{2})$/.exec(entry.status)?.[1] : null;
+  if (status) requestFailureCounts[status] = (requestFailureCounts[status] || 0) + 1;
+}
+
+export function getRequestFailureCounts() {
+  return { ...requestFailureCounts };
+}
 
 export async function getRecentLogs(limit = 200) {
   try {

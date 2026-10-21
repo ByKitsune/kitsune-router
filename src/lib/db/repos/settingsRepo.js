@@ -72,6 +72,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   "claudeAutoPing",
   "codexAutoPing",
   "password",
+  "mitmEnabled",
   "mitmSudoEncrypted",
   "mitmCertInstalled",
   "cloudUrl",

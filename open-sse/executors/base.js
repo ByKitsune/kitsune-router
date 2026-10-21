@@ -88,7 +88,8 @@ export class BaseExecutor {
   }
 
   // Override in subclass for provider-specific refresh
-  async refreshCredentials(credentials, log, proxyOptions = null) {
+  async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     return null;
   }
 
@@ -101,7 +102,7 @@ export class BaseExecutor {
     return { status: response.status, ...parsed, message: parsed.message || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, requestContext = null }) {
     const fallbackCount = this.getFallbackCount();
     let lastError = null;
     let lastStatus = 0;
@@ -136,7 +137,7 @@ export class BaseExecutor {
 
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
       signal?.throwIfAborted();
-      const url = this.buildUrl(model, stream, urlIndex, credentials);
+      const url = this.buildUrl(model, stream, urlIndex, credentials, requestContext);
       const transformedBody = this.transformRequest(model, body, stream, credentials);
       // Config-driven strip of params this provider/model rejects upstream.
       // Applied centrally in the base so EVERY executor honors STRIP_RULES

@@ -361,9 +361,11 @@ export class GithubExecutor extends BaseExecutor {
     };
   }
 
-  async refreshCopilotToken(githubAccessToken, log, proxyOptions = null) {
+  async refreshCopilotToken(githubAccessToken, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     try {
       const response = await proxyAwareFetch("https://api.github.com/copilot_internal/v2/token", {
+        signal,
         headers: {
           "Authorization": `token ${githubAccessToken}`,
           "User-Agent": GITHUB_COPILOT.USER_AGENT,
@@ -382,12 +384,14 @@ export class GithubExecutor extends BaseExecutor {
       log?.info?.("TOKEN", "Copilot token refreshed");
       return { token: data.token, expiresAt: data.expires_at };
     } catch (error) {
+      signal?.throwIfAborted();
       log?.error?.("TOKEN", `Copilot refresh error: ${error.message}`);
       return null;
     }
   }
 
-  async refreshGitHubToken(refreshToken, log, proxyOptions = null) {
+  async refreshGitHubToken(refreshToken, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
     try {
       const params = {
         grant_type: "refresh_token",
@@ -399,6 +403,7 @@ export class GithubExecutor extends BaseExecutor {
       }
 
       const response = await proxyAwareFetch(OAUTH_ENDPOINTS.github.token, {
+        signal,
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
         body: new URLSearchParams(params)
@@ -408,18 +413,20 @@ export class GithubExecutor extends BaseExecutor {
       log?.info?.("TOKEN", "GitHub token refreshed");
       return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
     } catch (error) {
+      signal?.throwIfAborted();
       log?.error?.("TOKEN", `GitHub refresh error: ${error.message}`);
       return null;
     }
   }
 
-  async refreshCredentials(credentials, log, proxyOptions = null) {
-    let copilotResult = await this.refreshCopilotToken(credentials.accessToken, log, proxyOptions);
+  async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
+    let copilotResult = await this.refreshCopilotToken(credentials.accessToken, log, proxyOptions, signal);
 
     if (!copilotResult && credentials.refreshToken) {
-      const githubTokens = await this.refreshGitHubToken(credentials.refreshToken, log, proxyOptions);
+      const githubTokens = await this.refreshGitHubToken(credentials.refreshToken, log, proxyOptions, signal);
       if (githubTokens?.accessToken) {
-        copilotResult = await this.refreshCopilotToken(githubTokens.accessToken, log, proxyOptions);
+        copilotResult = await this.refreshCopilotToken(githubTokens.accessToken, log, proxyOptions, signal);
         if (copilotResult) {
           return { ...githubTokens, copilotToken: copilotResult.token, copilotTokenExpiresAt: copilotResult.expiresAt };
         }

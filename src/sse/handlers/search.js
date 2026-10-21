@@ -15,6 +15,7 @@ import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
 
 /**
@@ -61,36 +62,38 @@ export async function handleSearch(request) {
     }
   }
 
-  if (!providerInput || typeof providerInput !== "string") {
-    log.warn("SEARCH", "Missing provider/model");
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
-  }
+  return withInferenceLimit(request, apiKey, async () => {
+    if (!providerInput || typeof providerInput !== "string") {
+      log.warn("SEARCH", "Missing provider/model");
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
+    }
 
-  if (!query || typeof query !== "string" || !query.trim()) {
-    log.warn("SEARCH", "Missing query");
-    return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: query");
-  }
+    if (!query || typeof query !== "string" || !query.trim()) {
+      log.warn("SEARCH", "Missing query");
+      return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: query");
+    }
 
-  // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
-  const combos = await getCombos();
-  const comboModels = getComboModelsFromData(providerInput, combos);
-  if (comboModels) {
-    const comboStrategies = settings.comboStrategies || {};
-    const comboStrategy = comboStrategies[providerInput]?.fallbackStrategy || settings.comboStrategy || "fallback";
-    const comboStickyLimit = settings.comboStickyRoundRobinLimit;
-    log.info("SEARCH", `Combo "${providerInput}" with ${comboModels.length} providers (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
-    return handleComboChat({
-      body,
-      models: comboModels,
-      handleSingleModel: (b, m) => handleSingleProviderSearch(b, m, request, apiKey, settings),
-      log,
-      comboName: providerInput,
-      comboStrategy,
-      comboStickyLimit
-    });
-  }
+    // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
+    const combos = await getCombos();
+    const comboModels = getComboModelsFromData(providerInput, combos);
+    if (comboModels) {
+      const comboStrategies = settings.comboStrategies || {};
+      const comboStrategy = comboStrategies[providerInput]?.fallbackStrategy || settings.comboStrategy || "fallback";
+      const comboStickyLimit = settings.comboStickyRoundRobinLimit;
+      log.info("SEARCH", `Combo "${providerInput}" with ${comboModels.length} providers (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
+      return handleComboChat({
+        body,
+        models: comboModels,
+        handleSingleModel: (b, m) => handleSingleProviderSearch(b, m, request, apiKey, settings),
+        log,
+        comboName: providerInput,
+        comboStrategy,
+        comboStickyLimit
+      });
+    }
 
-  return handleSingleProviderSearch(body, providerInput, request, apiKey, settings);
+    return handleSingleProviderSearch(body, providerInput, request, apiKey, settings);
+  });
 }
 
 async function handleSingleProviderSearch(body, providerInput, request, apiKey, settings) {

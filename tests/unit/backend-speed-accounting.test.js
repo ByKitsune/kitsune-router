@@ -10,7 +10,7 @@ import { handleNonStreamingResponse } from "../../open-sse/handlers/chatCore/non
 import { handleForcedSSEToJson } from "../../open-sse/handlers/chatCore/sseToJsonHandler.js";
 import { buildOnStreamComplete } from "../../open-sse/handlers/chatCore/streamingHandler.js";
 import { createSSEStream } from "../../open-sse/utils/stream.js";
-import { calculateCostBreakdown, MODEL_PRICING } from "../../open-sse/providers/pricing.js";
+import { calculateCostBreakdown, MODEL_PRICING, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { DefaultExecutor } from "../../open-sse/executors/default.js";
 
 beforeEach(() => vi.clearAllMocks());
@@ -34,18 +34,18 @@ function context(requested, sourceFormat = "openai") {
 
 describe("requested versus delivered processing speed", () => {
   it.each([
-    ["fast", "default", true], ["fast", "priority", false], ["ultrafast", "ultrafast", false],
-    ["fast", null, false], ["auto", null, false], [null, "fast", false],
-    [null, null, true], ["default", null, true],
-  ])("accounts for request %s / actual %s without assuming Standard", async (requested, actual, standardCost) => {
+    ["fast", "default", 0.00009], ["fast", "priority", 0.00018], ["ultrafast", "ultrafast", 0.00054],
+    ["fast", null, null], ["auto", null, null], [null, "fast", 0.00018],
+    [null, null, 0.00009], ["default", null, 0.00009],
+  ])("accounts for request %s / actual %s without assuming Standard", async (requested, actual, expectedCost) => {
     const result = await handleNonStreamingResponse({ ...context(requested), providerResponse: Response.json(reply(actual)) });
     expect(result.success).toBe(true);
     const row = saveRequestUsage.mock.calls[0][0];
     expect(row.tokens).toMatchObject({ requestedServiceTier: requested, actualServiceTier: actual });
     expect(saveRequestDetail.mock.calls.at(-1)[0]).toMatchObject({ requestedServiceTier: requested, actualServiceTier: actual });
-    const cost = calculateCostBreakdown(row.tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost;
-    if (standardCost) expect(cost).toBeCloseTo(0.00009, 10);
-    else expect(cost).toBeNull();
+    const cost = calculateCostBreakdown(row.tokens, getPricingForModel("openai", "gpt-6.1-sol")).totalCost;
+    if (expectedCost === null) expect(cost).toBeNull();
+    else expect(cost).toBeCloseTo(expectedCost, 10);
     const body = await result.response.json();
     if (actual == null) expect(body).not.toHaveProperty("service_tier");
     else expect(body.service_tier).toBe(actual);
@@ -84,7 +84,7 @@ describe("requested versus delivered processing speed", () => {
     const wire = await new Response(new Response(sse(events)).body.pipeThrough(transform)).text();
     expect(wire).toContain('"service_tier":"priority"');
     expect(saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "priority" });
-    expect(calculateCostBreakdown(saveRequestUsage.mock.calls[0][0].tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost).toBeNull();
+    expect(calculateCostBreakdown(saveRequestUsage.mock.calls[0][0].tokens, getPricingForModel("openai", "gpt-6.1-sol")).totalCost).toBeCloseTo(0.00018, 10);
   });
 
   it("keeps delivered speed unknown when an Ultrafast stream never confirms it", async () => {

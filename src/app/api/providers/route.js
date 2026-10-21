@@ -10,6 +10,7 @@ import { APIKEY_PROVIDERS } from "@/shared/constants/config";
 import { AI_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, isCustomEmbeddingProvider } from "@/shared/constants/providers";
 import { normalizeProviderId, normalizeProviderSpecificData } from "@/lib/providerNormalization";
 import { hasValidCliToken, isAuthenticated } from "@/dashboardGuard";
+import { sanitizeProviderResponse } from "@/shared/utils/sanitizeProviderResponse";
 
 export const dynamic = "force-dynamic";
 
@@ -75,14 +76,10 @@ export async function GET(request) {
       const name = isCompatible
         ? (c.name || nodeNameMap[c.provider] || c.providerSpecificData?.nodeName || c.provider)
         : c.name;
-      return {
+      return sanitizeProviderResponse({
         ...c,
         name,
-        apiKey: undefined,
-        accessToken: undefined,
-        refreshToken: undefined,
-        idToken: undefined,
-      };
+      });
     });
 
     return NextResponse.json({ connections: safeConnections });
@@ -200,9 +197,7 @@ export async function POST(request) {
       allowOverwrite: body.id ? true : (body.allowOverwrite === true || body.overwrite === true),
     });
 
-    // Hide sensitive fields
-    const result = { ...newConnection };
-    delete result.apiKey;
+    const result = sanitizeProviderResponse(newConnection);
 
     return NextResponse.json({ connection: result }, { status: 201 });
   } catch (error) {

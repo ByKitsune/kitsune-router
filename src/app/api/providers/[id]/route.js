@@ -5,8 +5,9 @@ import {
   updateProviderConnection,
   deleteProviderConnection,
 } from "@/models";
+import { sanitizeProviderResponse, mergeProviderSpecificData, sanitizeProxyUrl, INVALID_PROXY_URL_DISPLAY } from "@/shared/utils/sanitizeProviderResponse";
 
-function normalizeProxyConfig(body = {}) {
+function normalizeProxyConfig(body = {}, existing = {}) {
   const hasAnyProxyField =
     Object.prototype.hasOwnProperty.call(body, "connectionProxyEnabled") ||
     Object.prototype.hasOwnProperty.call(body, "connectionProxyUrl") ||
@@ -14,9 +15,11 @@ function normalizeProxyConfig(body = {}) {
 
   if (!hasAnyProxyField) return { hasAnyProxyField: false };
 
-  const enabled = body?.connectionProxyEnabled === true;
-  const url = typeof body?.connectionProxyUrl === "string" ? body.connectionProxyUrl.trim() : "";
-  const noProxy = typeof body?.connectionNoProxy === "string" ? body.connectionNoProxy.trim() : "";
+  const enabled = Object.hasOwn(body, "connectionProxyEnabled") ? body.connectionProxyEnabled === true : existing.connectionProxyEnabled === true;
+  const rawUrl = Object.hasOwn(body, "connectionProxyUrl") ? body.connectionProxyUrl : existing.connectionProxyUrl;
+  const rawNoProxy = Object.hasOwn(body, "connectionNoProxy") ? body.connectionNoProxy : existing.connectionNoProxy;
+  const url = typeof rawUrl === "string" ? rawUrl.trim() : "";
+  const noProxy = typeof rawNoProxy === "string" ? rawNoProxy.trim() : "";
 
   if (enabled && !url) {
     return {
@@ -69,12 +72,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    // Hide sensitive fields
-    const result = { ...connection };
-    delete result.apiKey;
-    delete result.accessToken;
-    delete result.refreshToken;
-    delete result.idToken;
+    const result = sanitizeProviderResponse(connection);
 
     return NextResponse.json({ connection: result });
   } catch (error) {
@@ -106,7 +104,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    const proxyConfig = normalizeProxyConfig(body);
+    const proxyConfig = normalizeProxyConfig(body, existing.providerSpecificData || {});
     if (proxyConfig.error) {
       return NextResponse.json({ error: proxyConfig.error }, { status: 400 });
     }
@@ -131,19 +129,28 @@ export async function PUT(request, { params }) {
       shouldMergeProviderSpecificData(
         existing.providerSpecificData,
         providerSpecificData,
-        proxyConfig.hasAnyProxyField,
+        proxyConfig.hasAnyProxyField || body.clearConnectionProxyCredentials === true,
         proxyPoolResult.hasProxyPoolField
       )
     ) {
-      updateData.providerSpecificData = {
-        ...(existing.providerSpecificData || {}),
-        ...(providerSpecificData || {}),
-      };
+      updateData.providerSpecificData = mergeProviderSpecificData(existing.providerSpecificData || {}, providerSpecificData || {});
 
       if (proxyConfig.hasAnyProxyField) {
         updateData.providerSpecificData.connectionProxyEnabled = proxyConfig.connectionProxyEnabled;
-        updateData.providerSpecificData.connectionProxyUrl = proxyConfig.connectionProxyUrl;
+        updateData.providerSpecificData.connectionProxyUrl = mergeProviderSpecificData(
+          existing.providerSpecificData?.connectionProxyUrl, proxyConfig.connectionProxyUrl, "connectionProxyUrl"
+        );
         updateData.providerSpecificData.connectionNoProxy = proxyConfig.connectionNoProxy;
+      }
+
+      if (body.clearConnectionProxyCredentials === true) {
+        // A public URL echo preserves credentials. Clearing is therefore an
+        // explicit operation, not an accidental consequence of metadata edits.
+        const clearedUrl = sanitizeProxyUrl(updateData.providerSpecificData.connectionProxyUrl);
+        if (clearedUrl === INVALID_PROXY_URL_DISPLAY) {
+          return NextResponse.json({ error: "Cannot clear credentials from an invalid proxy URL; replace or clear the URL explicitly." }, { status: 400 });
+        }
+        updateData.providerSpecificData.connectionProxyUrl = clearedUrl;
       }
 
       if (proxyPoolResult.hasProxyPoolField) {
@@ -157,12 +164,7 @@ export async function PUT(request, { params }) {
 
     const updated = await updateProviderConnection(id, updateData);
 
-    // Hide sensitive fields
-    const result = { ...updated };
-    delete result.apiKey;
-    delete result.accessToken;
-    delete result.refreshToken;
-    delete result.idToken;
+    const result = sanitizeProviderResponse(updated);
 
     return NextResponse.json({ connection: result });
   } catch (error) {

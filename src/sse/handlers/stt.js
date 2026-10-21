@@ -11,6 +11,7 @@ import { AI_PROVIDERS } from "@/shared/constants/providers";
 import * as log from "../utils/logger.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 // Providers requiring credentials for STT
 const CREDENTIALED_PROVIDERS = new Set(
@@ -30,61 +31,63 @@ export async function handleStt(request) {
   const modelStr = formData.get("model");
   log.request("POST", `/v1/audio/transcriptions | ${modelStr}`);
 
+  const apiKey = extractApiKey(request);
   const settings = await getSettings();
   if (isApiKeyRequired(settings)) {
-    const apiKey = extractApiKey(request);
     if (!apiKey) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     const valid = await isValidApiKey(apiKey);
     if (!valid) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
   }
 
-  if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
-  if (!formData.get("file")) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: file");
+  return withInferenceLimit(request, apiKey, async () => {
+    if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
+    if (!formData.get("file")) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: file");
 
-  const modelInfo = await getModelInfo(modelStr);
-  if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
+    const modelInfo = await getModelInfo(modelStr);
+    if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
 
-  const { provider, model } = modelInfo;
-  log.info("ROUTING", `Provider: ${provider}, Model: ${model}`);
+    const { provider, model } = modelInfo;
+    log.info("ROUTING", `Provider: ${provider}, Model: ${model}`);
 
-  // noAuth providers
-  if (!CREDENTIALED_PROVIDERS.has(provider)) {
-    const result = await handleSttCore({ provider, model, formData, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
-    if (result.success) return result.response;
-    return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "STT failed");
-  }
+    // noAuth providers
+    if (!CREDENTIALED_PROVIDERS.has(provider)) {
+      const result = await handleSttCore({ provider, model, formData, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
+      if (result.success) return result.response;
+      return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "STT failed");
+    }
 
-  // Credentialed — fallback loop
-  const excludeConnectionIds = new Set();
-  let lastError = null;
-  let lastStatus = null;
+    // Credentialed — fallback loop
+    const excludeConnectionIds = new Set();
+    let lastError = null;
+    let lastStatus = null;
 
-  while (true) {
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
+    while (true) {
+      const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
 
-    if (!credentials || credentials.allRateLimited) {
-      if (credentials?.allRateLimited) {
-        const msg = lastError || credentials.lastError || "Unavailable";
-        const status = lastStatus || Number(credentials.lastErrorCode) || HTTP_STATUS.SERVICE_UNAVAILABLE;
-        return unavailableResponse(status, `[${provider}/${model}] ${msg}`, credentials.retryAfter, credentials.retryAfterHuman);
+      if (!credentials || credentials.allRateLimited) {
+        if (credentials?.allRateLimited) {
+          const msg = lastError || credentials.lastError || "Unavailable";
+          const status = lastStatus || Number(credentials.lastErrorCode) || HTTP_STATUS.SERVICE_UNAVAILABLE;
+          return unavailableResponse(status, `[${provider}/${model}] ${msg}`, credentials.retryAfter, credentials.retryAfterHuman);
+        }
+        if (excludeConnectionIds.size === 0) return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
+        return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
       }
-      if (excludeConnectionIds.size === 0) return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
-      return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
+
+      log.info("AUTH", `\x1b[32mUsing ${provider} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
+
+      const result = await handleSttCore({ provider, model, formData, credentials, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
+
+      if (result.success) return result.response;
+
+      const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
+      if (shouldFallback) {
+        excludeConnectionIds.add(credentials.connectionId);
+        lastError = result.error;
+        lastStatus = result.status;
+        continue;
+      }
+      return result.response || errorResponse(result.status, result.error);
     }
-
-    log.info("AUTH", `\x1b[32mUsing ${provider} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
-
-    const result = await handleSttCore({ provider, model, formData, credentials, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
-
-    if (result.success) return result.response;
-
-    const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
-    if (shouldFallback) {
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = result.error;
-      lastStatus = result.status;
-      continue;
-    }
-    return result.response || errorResponse(result.status, result.error);
-  }
+  });
 }

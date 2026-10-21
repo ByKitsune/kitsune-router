@@ -63,7 +63,7 @@ describe("service tier persistence through the real SQLite repository", () => {
     expect(persisted.tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
   });
 
-  it.each([["default", true], ["priority", false]])("uses actual %s rather than requested Fast for persisted cost", async (actualServiceTier, standard) => {
+  it.each([["default", 0.00009], ["priority", 0.00018]])("uses actual %s rather than requested Fast for persisted cost", async (actualServiceTier, expectedCost) => {
     const connectionId = `offline-${actualServiceTier}`;
     saveUsageStats({
       provider: "openai", model: "gpt-6.1-sol", tokens: { prompt_tokens: 20, completion_tokens: 5 },
@@ -72,7 +72,6 @@ describe("service tier persistence through the real SQLite repository", () => {
     await vi.waitFor(() => expect(db.get("SELECT cost FROM usageHistory WHERE connectionId = ?", [connectionId])).toBeTruthy());
     const row = (await usage.getUsageHistory()).find(entry => entry.connectionId === connectionId);
     expect(row.tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier });
-    if (standard) expect(row.cost).toBeCloseTo(0.00009, 10);
-    else expect(row.cost).toBeNull();
+    expect(row.cost).toBeCloseTo(expectedCost, 10);
   });
 });

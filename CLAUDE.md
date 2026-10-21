@@ -28,7 +28,7 @@ npm run build && npm run start:bun                                    # producti
 CLI package (`cli/`):
 ```bash
 npm run cli:pack       # build + npm pack from root
-cd cli && npm run dev  # nodemon watch
+cd cli && npm run dev  # node --watch launcher
 ```
 
 Tests (Vitest lives in `tests/`, an **independent** ESM package, also exposed by root `npm test`):
@@ -38,7 +38,7 @@ cd tests && npm install                 # then tests' own deps (vitest) → test
 npx vitest run                          # all tests; auto-discovers tests/vitest.config.js
 npx vitest run unit/capabilities.test.js   # single file (path relative to tests/)
 ```
-> From the repository root, use `npm test` after installing both dependency sets, or `npm --prefix tests test`. The committed Vitest configuration resolves the repository root and `open-sse`/`@/` aliases regardless of the invocation directory. Do not point test state at a production `DATA_DIR`; the configuration loads `.env` if present.
+> From the repository root, use `npm test` after installing both dependency sets, or `npm --prefix tests test`. The committed Vitest configuration resolves the repository root and `open-sse`/`@/` aliases regardless of the invocation directory. It does not load repository `.env` files (`envDir: false`); supply synthetic configuration or deliberate live-test opt-ins explicitly through the process environment. Do not point test state at a production `DATA_DIR`.
 >
 > **Report actual case and suite failures from the current run**, rather than relying on an old expected count. Notes:
 > - `unit/embeddings.cloud.test.js.skip` targets the private `cloud/` worker — rename back to `.test.js` only when that checkout exists.
@@ -73,7 +73,7 @@ Two authoritative docs already exist — read them before working in these areas
 - One file per provider. `providers/registry/index.js` is an **auto-generated** static import list — regenerate it with `scripts/migrate-registry.mjs` / `injectDisplayToRegistry.mjs`, don't hand-edit.
 - Add a provider: copy `providers/REGISTRY_TEMPLATE.js`, add models to `config/providerModels.js`. Only add an executor for non-OpenAI-compatible upstreams.
 
-### Persistence — IMPORTANT (ARCHITECTURE.md is stale here)
+### Persistence
 State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with an adapter fallback chain (`driver.js`): `bun:sqlite` → `better-sqlite3` (optional native dep) → `node:sqlite` (Node ≥22.5) → `sql.js` (pure-JS fallback, always works). `better-sqlite3` is deliberately in `optionalDependencies` so install never fails without build tools.
 - `src/lib/localDb.js` is a **backward-compat shim** re-exporting `src/lib/db/index.js`. New code should import from `@/lib/db/index.js`; per-entity logic lives in `src/lib/db/repos/*`. Schema/migrations in `src/lib/db/migrations/`.
 - DB file location resolves via `src/lib/db/paths.js` (`DATA_DIR`, else `~/.zenrouter/`).
@@ -81,7 +81,7 @@ State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a
 - Full database import bypasses ordinary repository mutations. `src/lib/db/helpers/importGeneration.js` advances only after commit; dependent in-flight/cache readers must reject old generations. Preserve rollback state, refresh MITM aliases and connection/project/quota state, and do not claim success if post-commit alias synchronization failed. This generation is process-local, not cluster-wide invalidation.
 
 ### RTK token saver (`open-sse/rtk/`)
-Pre-translate hooks that compress `tool_result` content in-place to cut tokens. **Fail-open**: any error returns null and leaves the body untouched — never throw out of them. Skips `is_error`/`status:"error"` results to preserve traces.
+Final-provider-body hooks, after translation/native preparation and before dispatch, compress `tool_result` content in-place to cut tokens. **Fail-open**: any error returns null and leaves the body untouched — never throw out of them. Skips `is_error`/`status:"error"` results to preserve traces.
 
 ## Conventions & gotchas
 
@@ -98,6 +98,8 @@ Pre-translate hooks that compress `tool_result` content in-place to cut tokens. 
 - Vision regressions: keep tool media attached internally until destination-specific serialization; hoisting images before all parallel tool replies can fabricate missing results. Explicit hybrid `tool_result` blocks require native lowering even on final Chat normalization. Gemini `response.result`/`response.output` arrays can contain typed media, but ordinary JSON records and nested examples must remain data. See `tests/unit/vision-large-tool-wire.test.js` and `tests/translator/translator-media-*.test.js`.
 - No-auth proxy plans are scoped to the request's exclusion set and snapshot the configured pool budget. Virtual `noauth:` connection IDs are routing identities, not persistent accounts. Do not write account health for them or retry quota/abuse denials via another egress. A configured pool never silently falls back to direct transport.
 - Provider thinking and processing speed use independent persisted maps (`providerThinking`, `providerServiceTier`) admitted by both settings allowlists. Native `service_tier` is not `reasoning.effort`; explicit Standard/Auto must not be replaced by a paid default. Dashboard probes own their request budget, whereas real client caps must remain untouched.
+- Cost estimates use the confirmed delivered tier, not just the request. Native OpenAI 30m/12h cache writes are separate from Anthropic 5m/1h. Unknown complete totals remain null; `costCoverage` is only a labeled known subtotal. Do not automatically reprice historical usage or turn a subscription multiplier into an API-dollar invoice.
+- MITM password v2 ciphertext needs `${DATA_DIR}/auth/mitm-password.key` as well as the DB. New encryption uses a random installation key, never a machine-ID/fixed-salt fallback. Legacy reads do not silently migrate settings. Database config export is not a full secret/key backup.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

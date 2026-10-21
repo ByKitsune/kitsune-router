@@ -85,7 +85,7 @@ async function getAvailableModelsGrouped() {
 
   const models = modelsResult.data?.data || [];
   const combos = [];
-  const groups = {};
+  const groups = Object.create(null);
 
   models.forEach(m => {
     if (m.owned_by === "combo") {
@@ -168,7 +168,9 @@ async function selectModelFromList(title, currentValue = "", options = {}) {
   });
   
   sortedProviders.forEach(provider => {
-    const providerName = PROVIDER_ALIAS_NAMES[provider] || provider;
+    const providerName = Object.hasOwn(PROVIDER_ALIAS_NAMES, provider)
+      ? PROVIDER_ALIAS_NAMES[provider]
+      : provider;
     console.log(`[${providerName}]`);
     groups[provider].forEach(model => {
       console.log(`  ${idx}. ${model}`);

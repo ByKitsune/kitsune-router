@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FREE_PROVIDERS, AI_PROVIDERS } from "@/shared/constants/providers";
-import { addNullableCost } from "@/shared/utils/cost.js";
+import { addNullableCost, mergeCostCoverage } from "@/shared/utils/cost.js";
 
 // Keep providers without serviceKinds (default LLM) or with "llm" in serviceKinds
 function isLLMProvider(id) {
@@ -156,6 +156,7 @@ function groupDataByKey(data, keyField, sortBy, sortOrder) {
       };
     }
     const s = groups[gk].summary;
+    mergeCostCoverage(s, item);
     s.requests += item.requests || 0;
     s.promptTokens += item.promptTokens || 0;
     s.completionTokens += item.completionTokens || 0;

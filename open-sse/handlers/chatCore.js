@@ -246,6 +246,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: clientSignal });
     if (n > 0) log?.debug?.("MODALITY", `prefetched ${n} remote image(s) for ${targetFormat}`);
   } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
+  if (clientSignal?.aborted) return createErrorResult(499, "Client closed request");
 
   let translatedBody;
   let toolNameMap;
@@ -490,7 +491,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
     const invalidRequest = requestParameterError(error);
-    const status = error.name === "AbortError" ? 499 : invalidRequest ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.BAD_GATEWAY;
+    const cancelled = clientSignal?.aborted || streamController.signal?.aborted || error.name === "AbortError";
+    const status = cancelled ? 499 : invalidRequest ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.BAD_GATEWAY;
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${status}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
@@ -504,7 +506,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       status: "error"
     })).catch(() => { });
 
-    if (error.name === "AbortError") {
+    if (cancelled) {
       streamController.handleError(error);
       return createErrorResult(499, "Request aborted");
     }
@@ -537,13 +539,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       // refreshWithRetry's 2nd/3rd attempt reuses the already-consumed RT →
       // invalid_grant → auth_failed retryable=false.
       const newCredentials = await refreshWithRetry(async () => {
-        const result = await executor.refreshCredentials(credentials, log);
+        const result = await executor.refreshCredentials(credentials, log, proxyOptions, streamController.signal);
         if (result?.refreshToken && result.refreshToken !== credentials.refreshToken) {
           if (result.accessToken) credentials.accessToken = result.accessToken;
           credentials.refreshToken = result.refreshToken;
         }
         return result;
-      }, 3, log);
+      }, 3, log, streamController.signal);
       if (newCredentials?.accessToken || newCredentials?.copilotToken) {
         if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
         Object.assign(credentials, newCredentials);
@@ -567,10 +569,20 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     } // end else (non-permanent 401/403 → refresh path)
   }
 
+  // A refresh/refresh-retry catch must not turn caller cancellation back into
+  // the original 401/403 and cool down or rotate a healthy account.
+  if (clientSignal?.aborted || streamController.signal?.aborted) {
+    trackPendingRequest(model, provider, connectionId, false);
+    return createErrorResult(499, "Client closed request");
+  }
+
   // Provider returned error
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false, true);
     const diagnostics = await parseUpstreamError(providerResponse, executor);
+    if (clientSignal?.aborted || streamController.signal?.aborted) {
+      return createErrorResult(499, "Client closed request");
+    }
     const { statusCode, message, resetsAtMs } = diagnostics;
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({

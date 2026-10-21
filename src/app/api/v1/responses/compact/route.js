@@ -27,12 +27,7 @@ export async function OPTIONS() {
  */
 export async function POST(request) {
   await ensureInitialized();
-  const body = await request.json();
-  body._compact = true;
-  const newRequest = new Request(request.url, {
-    method: "POST",
-    headers: request.headers,
-    body: JSON.stringify(body)
-  });
-  return await handleChat(newRequest);
+  // Do not parse/rebuild here: the shared pipeline authenticates and consumes
+  // one rate-limit slot before its bounded decoder reads the original body.
+  return await handleChat(request, null, undefined, { compact: true });
 }

@@ -33,6 +33,7 @@ import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
 import { consume, rateLimitKey, rateLimitHeaders, rateLimitedResponse } from "@/lib/rateLimit/v1Limiter.js";
 import { getClientIp } from "@/lib/auth/loginLimiter.js";
+import { readRequestJson, RequestBodyError } from "@/shared/utils/requestJson.js";
 
 // Attach the advisory x-ratelimit-* headers to a response.
 //
@@ -60,10 +61,11 @@ function withRateLimitHeaders(response, limitInfo) {
  * Handle chat completion request
  * Supports: OpenAI, Claude, Gemini, OpenAI Responses API formats
  * Format detection and translation handled by translator
+ * options are trusted internal route controls, never client query parameters.
  */
-export async function handleChat(request, clientRawRequest = null, serverRequestId = crypto.randomUUID()) {
+export async function handleChat(request, clientRawRequest = null, serverRequestId = crypto.randomUUID(), options = {}) {
   try {
-    const response = await handleChatInternal(request, clientRawRequest, serverRequestId);
+    const response = await handleChatInternal(request, clientRawRequest, serverRequestId, options);
     return correlateResponse(response, serverRequestId);
   } catch (error) {
     // Previously a bare `catch {}`: any unexpected exception anywhere in the
@@ -80,11 +82,63 @@ export async function handleChat(request, clientRawRequest = null, serverRequest
   }
 }
 
-async function handleChatInternal(request, clientRawRequest = null, serverRequestId) {
+async function handleChatInternal(request, clientRawRequest = null, serverRequestId, options = {}) {
+  if (request?.signal?.aborted) {
+    return errorResponse(499, "Client Closed Request", { code: "client_aborted" });
+  }
+  // Authenticate and rate-limit before reading or decompressing any body.
+  // Keep auth error semantics and auth -> limiter -> routing order unchanged.
+  // Log API key (masked)
+  const authHeader = request.headers.get("Authorization");
+  const apiKey = extractApiKey(request);
+  if (authHeader && apiKey) {
+    const masked = log.maskKey(apiKey);
+    log.debug("AUTH", `API Key: ${masked}`);
+  } else {
+    log.debug("AUTH", "No API key provided (local mode)");
+  }
+
+  // Enforce API key if enabled in settings
+  const settings = await getSettings();
+  if (isApiKeyRequired(settings)) {
+    if (!apiKey) {
+      log.warn("AUTH", "Missing API key (requireApiKey=true)");
+      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
+    }
+    const valid = await isValidApiKey(apiKey);
+    if (!valid) {
+      log.warn("AUTH", "Invalid API key (requireApiKey=true)");
+      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
+    }
+  }
+
+  // Inbound rate limit, after authentication so the bucket is attributable.
+  // Keyed by the API key (many clients share one NAT); an unauthenticated
+  // request falls back to the peer address so a missing key cannot become an
+  // unmetered path. Counters are hashed, bounded and in-memory — see
+  // src/lib/rateLimit/v1Limiter.js for the reasoning and the tunables.
+  const rateLimit = consume(apiKey ? rateLimitKey(apiKey) : `ip:${getClientIp(request)}`);
+  if (!rateLimit.allowed) {
+    log.warn("RATELIMIT", `429 for ${apiKey ? log.maskKey(apiKey) : "unauthenticated"} (limit ${rateLimit.limit}/min)`);
+    return rateLimitedResponse(rateLimit, { "Access-Control-Allow-Origin": "*" });
+  }
+
   let body;
   try {
-    body = await request.json();
-  } catch {
+    body = await readRequestJson(request);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new RequestBodyError(HTTP_STATUS.BAD_REQUEST, "JSON body must be an object", "bad_request");
+    }
+    // Compact shares the original request's auth, rate bucket, decoder and
+    // signal. Apply its internal marker only after bounded JSON validation.
+    if (options.compact === true) body = { ...body, _compact: true };
+  } catch (error) {
+    if (error instanceof RequestBodyError) {
+      log.warn("CHAT", error.message);
+      return withRateLimitHeaders(errorResponse(error.status, error.message, {
+        type: error.type, code: error.code, param: error.param,
+      }), rateLimit);
+    }
     log.warn("CHAT", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
@@ -122,41 +176,6 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
 
   // Request summary is emitted as the unified "▶" line in chatCore (has fmt/thinking/account)
 
-  // Log API key (masked)
-  const authHeader = request.headers.get("Authorization");
-  const apiKey = extractApiKey(request);
-  if (authHeader && apiKey) {
-    const masked = log.maskKey(apiKey);
-    log.debug("AUTH", `API Key: ${masked}`);
-  } else {
-    log.debug("AUTH", "No API key provided (local mode)");
-  }
-
-  // Enforce API key if enabled in settings
-  const settings = await getSettings();
-  if (isApiKeyRequired(settings)) {
-    if (!apiKey) {
-      log.warn("AUTH", "Missing API key (requireApiKey=true)");
-      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
-    }
-    const valid = await isValidApiKey(apiKey);
-    if (!valid) {
-      log.warn("AUTH", "Invalid API key (requireApiKey=true)");
-      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
-    }
-  }
-
-  // Inbound rate limit, after authentication so the bucket is attributable.
-  // Keyed by the API key (many clients share one NAT); an unauthenticated
-  // request falls back to the peer address so a missing key cannot become an
-  // unmetered path. Counters are hashed, bounded and in-memory — see
-  // src/lib/rateLimit/v1Limiter.js for the reasoning and the tunables.
-  const rateLimit = consume(apiKey ? rateLimitKey(apiKey) : `ip:${getClientIp(request)}`);
-  if (!rateLimit.allowed) {
-    log.warn("RATELIMIT", `429 for ${apiKey ? log.maskKey(apiKey) : "unauthenticated"} (limit ${rateLimit.limit}/min)`);
-    return rateLimitedResponse(rateLimit, { "Access-Control-Allow-Origin": "*" });
-  }
-
   if (!modelStr) {
     log.warn("CHAT", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
@@ -187,13 +206,19 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
         body,
         models: comboModels,
         modelCapabilities,
-        handleSingleModel: (b, m, isPanel) => {
+        signal: request?.signal || null,
+        handleSingleModel: (b, m, isPanel, attemptSignal) => {
+          // The body is already parsed; this request only carries per-attempt
+          // cancellation and the original routing/header metadata.
+          const attemptRequest = attemptSignal ? new Request(request.url, {
+            method: request.method || "POST", headers: request.headers, signal: attemptSignal,
+          }) : request;
           let cleanRawReq = clientRawRequest;
           if (isPanel && clientRawRequest) {
             const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
             cleanRawReq = { ...clientRawRequest, body: cleanBody };
           }
-          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, rateLimit);
+          return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit);
         },
         log,
         comboName: modelStr,
@@ -278,13 +303,17 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           body,
           models: comboModels,
           modelCapabilities,
-          handleSingleModel: (b, m, isPanel) => {
+          signal: request?.signal || null,
+          handleSingleModel: (b, m, isPanel, attemptSignal) => {
+            const attemptRequest = attemptSignal ? new Request(request.url, {
+              method: request.method || "POST", headers: request.headers, signal: attemptSignal,
+            }) : request;
             let cleanRawReq = clientRawRequest;
             if (isPanel && clientRawRequest) {
               const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
               cleanRawReq = { ...clientRawRequest, body: cleanBody };
             }
-            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, rateLimit);
+            return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit);
           },
           log,
           comboName: modelStr,
@@ -430,7 +459,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         vercelRelayUrl: refreshedCredentials.providerSpecificData?.vercelRelayUrl || "",
         strictProxy: refreshedCredentials.providerSpecificData?.strictProxy === true,
       };
-      const pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, connProxyOptions);
+      let pid;
+      try {
+        pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, connProxyOptions, request?.signal || null);
+      } catch (error) {
+        if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
+        throw error;
+      }
       if (pid) {
         refreshedCredentials.projectId = pid;
         // Persist to DB in background so subsequent requests have it immediately

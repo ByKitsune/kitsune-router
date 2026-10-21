@@ -1,4 +1,4 @@
-import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES } from "../config/errorConfig.js";
+import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS } from "../config/errorConfig.js";
 
 export const MAX_UPSTREAM_ERROR_BYTES = 8192;
 
@@ -153,15 +153,20 @@ export async function parseUpstreamError(response, executor = null) {
   }
   const generic = parseUpstreamErrorBody(response, bodyText);
   const { message, ...diagnostics } = generic;
+  const structuredReset = executor?.provider === "antigravity"
+    ? parseGoogleQuotaReset(response, bodyText) : null;
 
   // Let executor-specific parser extract provider-specific fields (e.g. codex resetsAtMs)
   if (executor && typeof executor.parseError === "function") {
     try {
       const parsed = executor.parseError(response, bodyText, generic);
       if (parsed && typeof parsed === "object") {
-        const msg = safeDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
+        // Antigravity's legacy retry parser expands details as message text.
+        // A typed reset adds no public diagnostic fields from that private map.
+        const msg = (structuredReset && message) || safeDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
         // Executor parse wins; fill resetsAtMs from generic patterns when absent — PR #3612
-        const resetsAtMs = parsed.resetsAtMs ?? (response.status === 429 ? extractResetsAtMs(response, bodyText || msg) : null);
+        const hint = parsed.resetsAtMs == null ? structuredReset : null;
+        const resetsAtMs = parsed.resetsAtMs ?? hint?.resetsAtMs ?? (RESET_BEARING_STATUSES.has(response.status) ? extractResetsAtMs(response, msg) : null);
         return {
           statusCode: parsed.status || response.status,
           message: withLocationGateHint(msg),
@@ -169,7 +174,8 @@ export async function parseUpstreamError(response, executor = null) {
           param: safeDiagnostic(parsed.param) ?? diagnostics.param,
           code: safeDiagnosticCode(parsed.code) ?? diagnostics.code,
           request_id: safeRequestId(response, parsed.request_id) || diagnostics.request_id,
-          resetsAtMs
+          resetsAtMs,
+          ...(hint ? { resetsAtSource: hint.resetsAtSource } : {})
         };
       }
     } catch { /* fall through to default parsing */ }
@@ -178,6 +184,7 @@ export async function parseUpstreamError(response, executor = null) {
 
   const messageStr = safeDiagnostic(message);
   const finalMessage = withLocationGateHint(messageStr || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`);
+  if (structuredReset) return { statusCode: response.status, message: finalMessage, ...diagnostics, ...structuredReset };
 
   // Provider-reported precise reset time (Retry-After header or "reset at/in"
   // wording). A 403/503 carrying `Retry-After: 3600` used to be discarded, so
@@ -196,6 +203,65 @@ export async function parseUpstreamError(response, executor = null) {
   }
 
   return { statusCode: response.status, message: finalMessage, ...diagnostics };
+}
+
+// M05 upstream candidate a07ed95beae8ce295907082220c386e8e7db138b.
+// Parse only authenticated transport context + canonical typed error.details,
+// never recursive quota-looking keys, human prose or parseFloat prefixes.
+// ProtoJSON RetryInfo: googleapis/googleapis at
+// ebd1d23ac613b177828dad42ad8dfb13ba498279/google/rpc/error_details.proto.
+function parseGoogleQuotaReset(response, text) {
+  const policy = GOOGLE_QUOTA_RESET_HINTS;
+  if (!policy.statuses.has(response.status)) return null;
+  let error;
+  try { error = JSON.parse(text)?.error; } catch { return null; }
+  if (!error || typeof error !== "object" || Array.isArray(error) ||
+      (error.code != null && error.code !== response.status) ||
+      !["RESOURCE_EXHAUSTED", "ABORTED"].includes(error.status) || !Array.isArray(error.details)) return null;
+  const now = Date.now();
+  const timestamps = [];
+  const delays = [];
+  let quotaError = false;
+  for (const detail of error.details.slice(0, policy.maxDetails)) {
+    if (!detail || typeof detail !== "object" || Array.isArray(detail)) continue;
+    if (detail["@type"] === policy.errorInfoType && policy.domains.has(detail.domain) && policy.reasons.has(detail.reason)) {
+      quotaError = true;
+      const value = parseQuotaTimestamp(detail.metadata?.quotaResetTimeStamp);
+      if (value > now) timestamps.push(value);
+    }
+    if (detail["@type"] === policy.retryInfoType && typeof detail.retryDelay === "string") {
+      // ProtoJSON Duration has a mandatory seconds suffix and at most 9
+      // fractional digits; accept only positive canonical values.
+      const match = /^(0|[1-9]\d{0,11})(?:\.(\d{1,9}))?s$/.exec(detail.retryDelay);
+      if (!match) continue;
+      const seconds = Number(match[1]);
+      const nanos = Number((match[2] || "").padEnd(9, "0"));
+      const delay = seconds * 1000 + Math.ceil(nanos / 1000000);
+      if (seconds <= 315576000000 && delay > 0) delays.push(now + delay);
+    }
+  }
+  // ABORTED is ordinarily a conflict, not quota. Require typed quota evidence.
+  if (error.status === "ABORTED" && !quotaError) return null;
+  const candidates = timestamps.length ? timestamps : delays;
+  if (!candidates.length) return null;
+  return {
+    resetsAtMs: Math.min(Math.max(...candidates), now + MAX_RATE_LIMIT_COOLDOWN_MS),
+    resetsAtSource: timestamps.length ? "google.rpc.ErrorInfo.metadata.quotaResetTimeStamp" : "google.rpc.RetryInfo.retryDelay",
+  };
+}
+
+function parseQuotaTimestamp(value) {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second, fraction, zone] = match;
+  const y = Number(year), m = Number(month), d = Number(day);
+  if (y < 1 || m < 1 || m > 12 || d < 1 || d > new Date(Date.UTC(y, m, 0)).getUTCDate() ||
+      Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59 ||
+      (zone !== "Z" && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59))) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed + (fraction?.length > 3 && /[1-9]/.test(fraction.slice(3)) ? 1 : 0);
 }
 
 export function parseUpstreamErrorBody(response, bodyText) {

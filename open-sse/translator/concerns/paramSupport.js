@@ -3,6 +3,9 @@ import { PROVIDERS } from "../../providers/index.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
 import { isGemini4Model } from "../../config/models.js";
 import { FORMATS } from "../formats.js";
+import { rejectClaudeAudio } from "./requestMedia.js";
+import { antigravityOutputConfig } from "./structuredOutput.js";
+import { normalizeChatReasoningAliases } from "./reasoningAliases.js";
 
 // Model-specific request controls. Legacy strip rules retain their behavior;
 // verified unsupported intent can be rejected explicitly before translation.
@@ -80,6 +83,10 @@ export function validateSupportedParams(provider, model, body, targetFormat = nu
   if (!model || !body || typeof body !== "object") return;
   const nativeProvider = canonicalizeProviderId(provider || targetFormat);
   const format = targetFormat || PROVIDERS[nativeProvider]?.format;
+  // Runs before Core's legacy modality stripping as well as before conversion.
+  // A model capability cannot create an audio block in Anthropic's wire schema.
+  if (format === FORMATS.CLAUDE) rejectClaudeAudio(body);
+  if (format === FORMATS.ANTIGRAVITY) antigravityOutputConfig(body, model);
   for (const rule of STRIP_RULES) {
     if (!rule.reject) continue;
     if (rule.provider && rule.provider !== nativeProvider) continue;
@@ -124,6 +131,13 @@ export function stripUnsupportedChatExtensions(provider, body) {
 // Remove unsupported params from body in place; returns body.
 export function stripUnsupportedParams(provider, model, body) {
   if (!model || !body || typeof body !== "object") return body;
+  // Final Chat serialization also covers executors invoked without a translator.
+  // Keep this mutating helper's contract while never editing caller messages.
+  // Primary Claude wires never use this Chat alias contract. Multi-transport
+  // Chat requests have already crossed filterToOpenAIFormat's explicit gate.
+  const normalized = PROVIDERS[provider]?.format === FORMATS.CLAUDE
+    ? body : normalizeChatReasoningAliases(body);
+  if (normalized !== body) body.messages = normalized.messages;
   validateSupportedParams(provider, model, body);
   for (const rule of STRIP_RULES) {
     if (rule.provider && rule.provider !== provider) continue;

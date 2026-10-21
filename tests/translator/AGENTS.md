@@ -76,18 +76,18 @@ a missing registration cannot masquerade as successful passthrough.
 - Single-provider-two-formats (most fragile): `opencode-go` (minimax models → claude, others openai), `github` (escalates `/chat/completions` → `/responses` at runtime), `xiaomi-tokenplan` (claude alias).
 - `gemini`/`gemini-cli`: inspect all system instructions and typed history, not just the final user message. Include tool images and compaction-shaped inputs.
 
-## 8. Current known bugs (currently `it.fails`)
+## 8. Historical expected failures and current explicit limits
 
-Check the executable tests rather than historical line-number lists. At the
-`14524027` audit baseline, three expected failures remained:
+The October reconciliation replaces the former three expected-failure markers
+with ordinary behavioral regressions: compatible-Claude requests do not acquire
+a Claude Code identity prompt; unsupported Claude audio fails explicitly rather
+than disappearing; Kiro remote images must be securely fetched and lowered to
+real native image bytes on the public execution path. A synchronous Kiro
+serializer cannot fetch an unresolved URL and must not invent a destination
+field or turn it into image-looking prose.
 
-| Limitation | Test file |
-|---|---|
-| Claude Code system prompt injected for compatible providers | `bugs-toClaude-context.test.js` |
-| `input_audio` preservation on the Claude route | `bugs-toClaude-context.test.js` |
-| Remote image URL preserved as typed image on the Kiro translator path | `bugs-kiro.test.js` |
-
-When fixing one, change the expected-failure test to an ordinary assertion and
-exercise the real public translation/execution route. Preserve bytes, ordering,
-tool ownership and native semantics; a fabricated unsupported destination field
-does not satisfy the contract.
+Check executable tests rather than old audit counts. Explicit unsupported cases
+are not claims of feature support: Claude audio and unverified
+Antigravity-Claude structured-output fields remain unsupported. Preserve bytes,
+ordering, tool ownership and native semantics, and exercise the actual public
+translation/execution route when changing these boundaries.

@@ -181,6 +181,8 @@ Usage and request logs use the same SQLite layer:
 - Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
 - Daily/live groups, minute buckets and charts propagate unknown totals; Prometheus omits an unknown cost sample rather than publishing zero
 - Cache-write totals include five-minute and one-hour subsets once; canonical TTL counters and the distinct hourly rate survive translation, persistence and pricing overrides
+- Native OpenAI cache writes retain independent 30m/12h counters and tariffs. They never become Anthropic 5m/1h writes, and writes remain subsets of inclusive input.
+- Supplemental `costCoverage` preserves known recorded subtotals and exact unpriced row counts. A nullable complete total stays nullable; old daily null snapshots cannot manufacture missing coverage from current prices.
 - Live `today`/`24h` statistics read standard or native input/output counters, then legacy persisted token columns. Native `prompt_cache_hit_tokens` remains consistent with daily summaries; key grouping still uses non-secret IDs or digests.
 
 ## 4) Auth + Security Surfaces
@@ -198,6 +200,7 @@ Usage and request logs use the same SQLite layer:
 - Dependency cleanup (source change, 2026-10-18): root and CLI no longer depend on `node-forge`. MITM certificate generation uses WebCrypto and `@peculiar/x509`; existing unexpired roots remain unchanged and legacy PKCS#1/PKCS#8 private keys are imported through Node's crypto APIs. The asynchronous root/leaf API is awaited by startup and SNI. This does not change already-published npm/Docker artifacts or install a new root in a system trust store.
 - Provider-node validation and suggested model catalogs use the same DNS-pinned public/trusted-local boundary. Private access requires `isLocalRequest`, metadata remains forbidden, each redirect is revalidated, and cancellation spans DNS, connection and bounded JSON reads. Credentialed error bodies are not returned to the dashboard.
 - Remote-image requests use the engine's independent public-address policy, not the app helper. Literal IPs bypass DNS only after validation; every DNS record must be well formed and public. Mapped/NAT64 IPv4 is checked against the IPv4 ranges, and local-use, multicast, benchmark and documentation ranges are rejected.
+- Shared chat/Responses/compact decoding authenticates and rate-limits before bounded identity/zstd reads. Wire bytes, expanded bytes, decoder workspace and the total read deadline are bounded; unsupported encodings fail explicitly rather than being treated as invalid JSON.
 - MITM interception trust does not imply upstream trust. Outbound ALPN, HTTP/2, and HTTPS connections validate upstream certificates and hostnames; failures return 502 without insecure retry. For an operator-managed CA, use Node's explicit startup trust contract (`NODE_EXTRA_CA_CERTS`); never disable TLS verification or add the interception root implicitly to upstream trust.
 
 ### Client release and protocol identities
@@ -339,39 +342,13 @@ GitHub Copilot service-token freshness uses its own expiry, independently from t
 
 This queue is process-local and proactive-only. It does not serialize other processes, reactive refresh writers or usage writers. The reactive path in `open-sse/handlers/chatCore.js` still uses executor `refreshCredentials()`.
 
-## Cloud Sync Lifecycle (Enable / Sync / Disable)
+## Removed Cloud Sync Boundary
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant UI as Endpoint Page UI
-    participant Sync as /api/sync/cloud
-    participant DB as localDb
-    participant Cloud as External Cloud Sync
-    participant Claude as ~/.claude/settings.json
-
-    UI->>Sync: POST action=enable
-    Sync->>DB: set cloudEnabled=true
-    Sync->>DB: ensure API key exists
-    Sync->>Cloud: POST /sync/{machineId} (providers/aliases/combos/keys)
-    Cloud-->>Sync: sync result
-    Sync->>Cloud: GET /{machineId}/v1/verify
-    Sync-->>UI: enabled + verification status
-
-    UI->>Sync: POST action=sync
-    Sync->>Cloud: POST /sync/{machineId}
-    Cloud-->>Sync: remote data
-    Sync->>DB: update newer local tokens/status
-    Sync-->>UI: synced
-
-    UI->>Sync: POST action=disable
-    Sync->>DB: set cloudEnabled=false
-    Sync->>Cloud: DELETE /sync/{machineId}
-    Sync->>Claude: switch ANTHROPIC_BASE_URL back to local (if needed)
-    Sync-->>UI: disabled
-```
-
-Periodic sync is triggered by `CloudSyncScheduler` when cloud is enabled.
+There is no cloud-sync scheduler, enable/sync/disable route, or active outbound
+cloud-sync lifecycle. Historical diagrams describing those calls are not a
+deployment contract. Cloudflare/Tailscale tunnels expose this local gateway;
+they do not replicate its database or OAuth state. Residual cloud URL/settings
+fields are compatibility data, not an implemented synchronization service.
 
 ## Data Model and Storage Map
 
@@ -468,7 +445,6 @@ flowchart LR
 
     subgraph External[External Services]
         Providers[AI Providers]
-        SyncCloud[Cloud Sync Service]
     end
 
     CLI --> Next
@@ -478,7 +454,6 @@ flowchart LR
     Core --> MainDB
     Core --> UsageDB
     Core --> Providers
-    Next --> SyncCloud
 ```
 
 ### Development worker mesh
@@ -681,6 +656,7 @@ Runtime visibility sources:
 - per-request usage aggregates and recent status logs through the SQLite repositories
 - optional deep request/translation logs under `logs/` when `ENABLE_REQUEST_LOGS=true`
 - dashboard usage endpoints (`/api/usage/*`) for UI consumption
+- `/api/metrics`: rolling usage/TTFT gauges and bounded process-lifetime terminal-failure counters. The latter count logged routed attempts, not every inbound HTTP request, and reset on process restart.
 
 ## Security-Sensitive Boundaries
 
@@ -688,6 +664,7 @@ Runtime visibility sources:
 - Initial password fallback (`INITIAL_PASSWORD`, default `12345678`) must be overridden in real deployments
 - API key HMAC secret (`API_KEY_SECRET`) secures generated local API key format
 - Provider secrets (API keys/tokens) are persisted in local DB and should be protected at filesystem level
+- Saved MITM passwords use versioned authenticated ciphertext and a random installation key at `${DATA_DIR}/auth/mitm-password.key`; legacy ciphertext stays readable without an automatic rewrite. Back up the matching key separately with the database. Losing/corrupting a v2 key requires restoring it or explicitly clearing/re-entering the password; no deterministic fallback is used for new writes. This does not encrypt ordinary provider credentials or disks.
 - CLI authorization incorporates a persisted random secret; a machine identifier alone is not authorization
 - Loopback proxies must append the actual peer to XFF. Only a valid rightmost IP is trusted; a lone `X-Real-IP` does not control login rate-limit attribution
 
@@ -706,14 +683,14 @@ Environment variables actively used by code:
 ## Known Architectural Notes
 
 1. `usageDb` re-exports the SQLite repositories and follows the same absolute `DATA_DIR` as configuration.
-2. `/api/v1/route.js` returns a static model list and is not the main models source used by `/v1/models`.
-3. Request logger writes full headers/body when enabled; treat log directory as sensitive.
+2. `/api/v1/route.js` re-exports the same dynamic catalog GET/OPTIONS as `/api/v1/models/route.js`.
+3. The request logger masks headers and records payload metadata rather than an unrestricted full-prompt dump. Logs, SQLite, authorized exports and any operator-created captures must still be treated as sensitive; redaction is not encryption at rest.
 4. Legacy cloud settings are not proof of an active sync implementation. Current verification and model/media limits are documented in `tests/README.md` and `docs/audit/14-vision-catalog-follow-up-2026-10.md`.
 
 ## Operational Verification Checklist
 
-- Build from source: `cd /root/dev/zenrouter && npm run build`
-- Build Docker image: `cd /root/dev/zenrouter && docker build -t zenrouter .`
+- Use a credential-free checkout and the isolated verification commands in `tests/README.md`; preserve an existing standalone build with `NEXT_DIST_DIR`.
+- Build Docker images only from the intended verified source; building is not publication or container-runtime verification.
 - Start service and verify:
 - `GET /api/settings`
 - `GET /api/v1/models`

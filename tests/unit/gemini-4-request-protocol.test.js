@@ -10,7 +10,7 @@ vi.mock("../../open-sse/utils/requestLogger.js", () => ({ createRequestLogger: a
   logClientRawRequest() {}, logRawRequest() {}, logTargetRequest() {}, logOpenAIRequest() {},
   logProviderResponse() {}, logConvertedResponse() {}, logError() {},
 }) }));
-vi.mock("../../open-sse/utils/proxyFetch.js", () => ({ proxyAwareFetch: async (url, init) => {
+vi.mock("../../open-sse/utils/proxyFetch.js", async original => ({ ...await original(), proxyAwareFetch: async (url, init) => {
   const body = JSON.parse(init.body);
   fixture.requests.push({ url, body });
   const response = {

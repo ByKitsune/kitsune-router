@@ -13,6 +13,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import * as log from "../utils/logger.js";
 import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 // Video generation is xAI-only today; requests without a provider prefix
 // (bare model id, or multipart bodies we deliberately don't parse) land here.
@@ -97,6 +98,10 @@ export async function handleVideoCreate(request, action) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
 
+  return withInferenceLimit(request, extractApiKey(request), () => handleVideoCreateAuthorized(request, action));
+}
+
+async function handleVideoCreateAuthorized(request, action) {
   const bodyInfo = await readForwardableBody(request);
   if (bodyInfo.error) return bodyInfo.error;
 
@@ -185,6 +190,12 @@ export async function handleVideoGet(request, requestId) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
 
+  // Polling dispatches upstream with account credentials too; it shares the same
+  // inbound budget, while passive model/voice catalogs remain outside it.
+  return withInferenceLimit(request, extractApiKey(request), () => handleVideoGetAuthorized(request, requestId));
+}
+
+async function handleVideoGetAuthorized(request, requestId) {
   if (!requestId) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing video request id");
 
   const provider = DEFAULT_VIDEO_PROVIDER;

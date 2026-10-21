@@ -22,6 +22,7 @@ import { parseDataUri } from "../concerns/image.js";
 import { DEFAULT_IMAGE_MIME } from "../schema/index.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
+import { rejectUnresolvedKiroImages } from "../concerns/requestMedia.js";
 import {
   canonicalizeKiroConversation,
   normalizeKiroToolSpecs,
@@ -125,9 +126,6 @@ function convertMessages(messages, model) {
             if (parsed) {
               const format = parsed.mimeType.split("/")[1] || parsed.mimeType;
               pendingImages.push({ format, source: { bytes: parsed.base64 } });
-            } else if (url.startsWith("http://") || url.startsWith("https://")) {
-              // Kiro only supports base64 — fallback to URL text
-              textParts.push(`[Image: ${url}]`);
             }
           } else if (c.type === CLAUDE_BLOCK.IMAGE) {
             // Claude format: source.type = "base64", source.media_type, source.data
@@ -313,6 +311,7 @@ function convertMessages(messages, model) {
  *    legacy prompt tags remain only for models that need them.
  */
 export function openaiToKiroRequest(model, body, stream, credentials) {
+  rejectUnresolvedKiroImages(body);
   const messages = body.messages || [];
   const tools = body.tools || [];
   const maxTokens = readOutputTokenCap(body) ?? 32000;

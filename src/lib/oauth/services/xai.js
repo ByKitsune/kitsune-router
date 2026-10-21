@@ -5,6 +5,9 @@ import { XAI_CONFIG, XAI_PKCE_VERIFIER_BYTES } from "../constants/xai.js";
 import { startLocalServer } from "../utils/server.js";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../utils/pkce.js";
 import { spinner as createSpinner } from "../utils/ui.js";
+import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "open-sse/services/tokenRefresh/dedup.js";
+import { FETCH_CONNECT_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
+import { CACHE_LIMITS, setBounded } from "open-sse/utils/boundedCache.js";
 
 /**
  * xAI (Grok) OAuth Service
@@ -21,7 +24,7 @@ import { spinner as createSpinner } from "../utils/ui.js";
 
 const BASE64_BLOCK_SIZE = 4;
 
-let cachedDiscovery = null;
+const discoveryByPolicy = new Map();
 
 export function validateOAuthEndpoint(rawUrl, field) {
   const value = String(rawUrl || "").trim();
@@ -47,35 +50,51 @@ export function validateOAuthEndpoint(rawUrl, field) {
 }
 
 /**
- * Discover authorization + token endpoints. Cached process-wide.
+ * Discover authorization + token endpoints. Cache and in-flight work are scoped
+ * to the effective egress policy; a caller owns only its waiter subscription.
  */
-export async function discoverEndpoints(proxyOptions = null) {
-  const fetchRequest = proxyOptions
-    ? (await import("open-sse/utils/proxyFetch.js")).proxyAwareFetch
-    : (url, options) => fetch(url, options);
-  if (cachedDiscovery) return cachedDiscovery;
+export async function discoverEndpoints(proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
+  const key = getRefreshProxyKey(proxyOptions);
+  const cached = discoveryByPolicy.get(key);
+  if (cached?.result) return cached.result;
+  if (cached && !cached.controller.signal.aborted) return waitForRefresh(cached, signal);
 
-  try {
-    const res = await fetchRequest(XAI_CONFIG.discoveryUrl, {
-      headers: { Accept: "application/json" },
-    }, proxyOptions);
-    if (res.ok) {
-      const data = await res.json();
-      cachedDiscovery = {
-        authorizeUrl: validateOAuthEndpoint(data.authorization_endpoint, "authorization_endpoint"),
-        tokenUrl: validateOAuthEndpoint(data.token_endpoint, "token_endpoint"),
-      };
-      return cachedDiscovery;
+  const operation = createRefreshOperation(async sharedSignal => {
+    const fetchRequest = proxyOptions
+      ? (await import("open-sse/utils/proxyFetch.js")).proxyAwareFetch
+      : (url, options) => fetch(url, options);
+    sharedSignal.throwIfAborted();
+    const requestSignal = AbortSignal.any([sharedSignal, AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS)]);
+    try {
+      const res = await fetchRequest(XAI_CONFIG.discoveryUrl, {
+        headers: { Accept: "application/json" }, signal: requestSignal,
+      }, proxyOptions);
+      if (res.ok) {
+        const data = await res.json();
+        sharedSignal.throwIfAborted();
+        return {
+          authorizeUrl: validateOAuthEndpoint(data.authorization_endpoint, "authorization_endpoint"),
+          tokenUrl: validateOAuthEndpoint(data.token_endpoint, "token_endpoint"),
+        };
+      }
+    } catch {
+      // Cancellation is not discovery failure and must not enable a token
+      // request against static fallback endpoints after the caller has left.
+      sharedSignal.throwIfAborted();
     }
-  } catch {
-    // fall through to static fallback
-  }
-
-  cachedDiscovery = {
-    authorizeUrl: XAI_CONFIG.authorizeUrl,
-    tokenUrl: XAI_CONFIG.tokenUrl,
+    sharedSignal.throwIfAborted();
+    return { authorizeUrl: XAI_CONFIG.authorizeUrl, tokenUrl: XAI_CONFIG.tokenUrl };
+  });
+  setBounded(discoveryByPolicy, key, operation, CACHE_LIMITS.providerMutexes);
+  const cleanup = result => {
+    if (discoveryByPolicy.get(key) !== operation) return;
+    if (result && !operation.controller.signal.aborted) {
+      setBounded(discoveryByPolicy, key, { result }, CACHE_LIMITS.providerMutexes);
+    } else discoveryByPolicy.delete(key);
   };
-  return cachedDiscovery;
+  operation.promise.then(cleanup, () => cleanup(null));
+  return waitForRefresh(operation, signal);
 }
 
 /**
@@ -155,12 +174,18 @@ export class XaiService extends OAuthService {
   /**
    * Refresh an access token using a refresh_token.
    */
-  async refreshAccessToken(refreshToken, proxyOptions = null) {
-    const { tokenUrl } = await discoverEndpoints(proxyOptions);
+  async refreshAccessToken(refreshToken, proxyOptions = null, signal = null) {
+    signal?.throwIfAborted();
+    const { tokenUrl } = await discoverEndpoints(proxyOptions, signal);
+    signal?.throwIfAborted();
     const fetchRequest = proxyOptions
       ? (await import("open-sse/utils/proxyFetch.js")).proxyAwareFetch
       : (url, options) => fetch(url, options);
+    signal?.throwIfAborted();
+    const deadline = AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS);
+    const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
     const res = await fetchRequest(tokenUrl, {
+      signal: requestSignal,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",

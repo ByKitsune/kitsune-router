@@ -3,7 +3,8 @@
 import PropTypes from "prop-types";
 import Card from "@/shared/components/Card";
 import Tooltip from "@/shared/components/Tooltip";
-import { fmt, fmtCompact, fmtCost } from "@/shared/utils/format";
+import UsageCost from "@/shared/components/UsageCost";
+import { fmt, fmtCompact } from "@/shared/utils/format";
 
 export default function OverviewCards({ stats }) {
   return (
@@ -32,7 +33,9 @@ export default function OverviewCards({ stats }) {
       </Card>
       <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
         <span className="text-text-muted text-sm uppercase font-semibold">Est. Cost</span>
-        <span className="truncate text-2xl font-bold text-warning">{stats.totalCost === null ? fmtCost(stats.totalCost) : `~${fmtCost(stats.totalCost)}`}</span>
+        <span className="text-2xl font-bold text-warning">
+          {stats.totalCost !== null && "~"}<UsageCost value={stats.totalCost} coverage={stats.costCoverage?.totalCost} />
+        </span>
         <span className="text-[10px] text-text-muted">Estimated, not actual billing</span>
       </Card>
     </div>
