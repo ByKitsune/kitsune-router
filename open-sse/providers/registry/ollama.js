@@ -24,6 +24,10 @@ export default {
   },
   models: [
     { id: "gpt-oss:120b", name: "GPT OSS 120B" },
+    // Public cloud tags, 2026-10-21; cloud usage credits are not unlimited free API calls.
+    { id: "minimax-m3.1-flash", name: "MiniMax M3.1 Flash" },
+    { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash" },
+    { id: "deepseek-v4.1-flash:1017", name: "DeepSeek V4.1 Flash (1017)" },
     { id: "kimi-k3", name: "Kimi K3" },
     { id: "kimi-k2.7-code", name: "Kimi K2.7 Code" },
     { id: "kimi-k2.6", name: "Kimi K2.6" },

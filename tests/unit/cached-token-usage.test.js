@@ -128,14 +128,13 @@ describe("calculateCostFromTokens (canonical inclusive convention)", () => {
     expect(cost).toBeCloseTo(expected, 12);
   });
 
-  it("does not let cache_creation drive nonCached negative", () => {
-    // pathological: cached + creation exceeds prompt → nonCached clamps at 0
+  it("does not turn contradictory cache subsets into a falsely complete charge", () => {
+    // 120 cache tokens cannot be disjoint subsets of 100 inclusive input tokens.
     const cost = calculateCostFromTokens(
       { prompt_tokens: 100, completion_tokens: 0, cached_tokens: 80, cache_creation_input_tokens: 40 },
       pricing
     );
-    const expected = (0 * 3 + 80 * 0.3 + 40 * 3.75) / 1_000_000;
-    expect(cost).toBeCloseTo(expected, 12);
+    expect(cost).toBeNull();
   });
 
   it("matches plain input pricing when no cache present", () => {

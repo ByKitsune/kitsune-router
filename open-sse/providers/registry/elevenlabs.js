@@ -16,6 +16,10 @@ export default {
   models: [
     { id: "eleven_v4", name: "Eleven v4", kind: "tts" },
     { id: "eleven_v4_turbo", name: "Eleven v4 Turbo", kind: "tts" },
+    { id: "eleven_v3", name: "Eleven v3", kind: "tts" },
+    { id: "eleven_flash_v2_5", name: "Eleven Flash v2.5 (Low Latency)", kind: "tts" },
+    { id: "eleven_multilingual_v2", name: "Eleven Multilingual v2", kind: "tts" },
+    { id: "eleven_turbo_v2_5", name: "Eleven Turbo v2.5", kind: "tts" },
   ],
   serviceKinds: [
     "tts"

@@ -130,7 +130,8 @@ export function buildCursorHeaders(accessToken, machineId = null, ghostMode = tr
     "x-client-key": clientKey,
     "x-cursor-checksum": checksum,
     "x-cursor-client-version": CURSOR_VERSION,
-    "x-cursor-client-commit": "0fb762053c34788bb7760d5673f8a6d4c8589d50",
+    // Native 3.24.18 sends client commit only for Anysphere users. Ordinary
+    // gateway accounts must not fabricate that employee/canary identity.
     "x-cursor-client-type": "ide",
     "x-cursor-client-os": os,
     "x-cursor-client-arch": arch,

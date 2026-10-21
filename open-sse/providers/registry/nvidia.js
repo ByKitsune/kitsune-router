@@ -23,6 +23,9 @@ export default {
   },
   models: [
     { id: "minimaxai/minimax-m2.7", name: "MiniMax M2.7" },
+    // Public catalog listing only; trial credits and paid entitlement are account-specific.
+    { id: "deepseek-ai/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", supportedFormats: ["openai"] },
+    { id: "nvidia/nemotron-3.5-super-vl-120b-a12b", name: "Nemotron 3.5 Super VL", supportedFormats: ["openai"] },
     { id: "minimaxai/minimax-m3", name: "MiniMax M3" },
     { id: "z-ai/glm-5.2", name: "GLM 5.2" },
     { id: "deepseek-ai/deepseek-v4-pro", name: "DeepSeek V4 Pro" },

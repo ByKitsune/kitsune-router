@@ -28,7 +28,9 @@ describe("windows corrected against models.dev", () => {
   });
 
   it("uses the current Codestral window for the unversioned id", () => {
-    expect(getCapabilitiesForModel("mistral", "codestral-latest").contextWindow).toBe(256000);
+    // Current primary /models/codestral-25-08.md explicitly maps codestral-latest
+    // to codestral-2508 and prints128k. Do not override it with secondary256k.
+    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: 128000, maxOutput: null });
   });
 });
 
@@ -70,7 +72,8 @@ describe("windows already correct are not disturbed", () => {
     // Antigravity deliberately caps Claude at 250k (bridge limit), which is NOT
     // the model's 1M API window. That difference is by design.
     expect(getCapabilitiesForModel("ag", "claude-sonnet-4-6").contextWindow).toBe(250000);
-    // Kiro reports its own 272k for GPT-5.6.
-    expect(getCapabilitiesForModel("kiro", "gpt-5.6-sol").contextWindow).toBe(272000);
+    // Kiro's documented experimental window is independent from its 272K
+    // credit-price boundary and does not establish a native output ceiling.
+    expect(getCapabilitiesForModel("kiro", "gpt-5.6-sol")).toMatchObject({ contextWindow: 1000000, maxOutput: null });
   });
 });

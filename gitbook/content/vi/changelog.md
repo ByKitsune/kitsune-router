@@ -2,6 +2,8 @@
 
 ## Chưa phát hành — đối soát tháng Mười
 
+- Cập nhật định danh phiên bản ổn định và danh mục đã kiểm chứng; kiểm toán giá theo nhà cung cấp và đơn vị tính phí riêng của media. Giá theo khung giờ và giá thay thế công bố dùng thời điểm usage đã ghi trước khi áp dụng ghi đè của người vận hành.
+- Hiển thị giá hiệu lực hoặc chưa biết cho mọi model đã đăng ký, thêm tìm kiếm giữ nguyên chỉnh sửa; phân biệt gói tài khoản, client và tín dụng thuê bao với hóa đơn API.
 - Sửa giá các tuyến miễn phí chính xác của TokenHarbor và bậc tốc độ thực tế được cung cấp; tách thời hạn ghi bộ nhớ đệm, chi phí chưa biết và cấu hình ghi đè rõ ràng.
 - Hiển thị tổng phụ đã biết cùng số yêu cầu chưa có giá, không thay tổng chưa biết bằng tổng phụ hoặc tính lại lịch sử.
 - Đồng bộ xác thực, lưu trữ riêng tư, hủy/proxy, giới hạn suy luận và chỉ số lỗi; áp dụng chọn lọc các bản sửa giao thức và CLI tháng Mười đã tái hiện.

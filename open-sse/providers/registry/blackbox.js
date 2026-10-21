@@ -28,6 +28,11 @@ export default {
   },
   models: [
     { id: "claude-fable-5",    name: "Claude Fable 5",    upstreamModelId: "blackboxai/anthropic/claude-fable-5" },
+    // docs.blackbox.ai/api-reference/models/chat-pricing, 2026-10-21.
+    // Short router names resolve to the publisher's full blackboxai wire IDs.
+    { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", upstreamModelId: "blackboxai/google/gemini-3.5-flash", contextLength: 1000000 },
+    { id: "gemma-4-31b-it", name: "Gemma 4 31B IT", upstreamModelId: "blackboxai/google/gemma-4-31b-it", contextLength: 262144 },
+    { id: "mistral-medium-3.5", name: "Mistral Medium 3.5", upstreamModelId: "blackboxai/mistral/mistral-medium-3.5", contextLength: 262144 },
     { id: "claude-opus-4.8",   name: "Claude Opus 4.8",  upstreamModelId: "blackboxai/anthropic/claude-opus-4.8" },
     { id: "claude-sonnet-4.6", name: "Claude Sonnet 4.6", upstreamModelId: "blackboxai/anthropic/claude-sonnet-4.6" },
     { id: "gpt-5.5",           name: "GPT-5.5",           upstreamModelId: "blackboxai/openai/gpt-5.5" },

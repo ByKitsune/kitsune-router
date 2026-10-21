@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MODEL_PRICING, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import alicodeRegistry from "../../open-sse/providers/registry/alicode.js";
@@ -30,13 +30,15 @@ describe("Qwen registries", () => {
       expect(ids).toContain(id);
     }
   });
-  it("prices coder-plus/flash at base tiers", () => {
-    expect(getPricingForModel("alicode", "qwen3-coder-plus")).toMatchObject({ input: 0.574, output: 2.294 });
-    expect(getPricingForModel("alicode", "qwen3-coder-flash")).toMatchObject({ input: 0.144, output: 0.574 });
+  it("does not bill the Coding Plan's registered Qwen models at inherited PAYG rates", () => {
+    // CN/international Coding Plan primaries: request quotas, not token PAYG.
+    const usage = { prompt_tokens: 1000000, completion_tokens: 1000000 };
+    expect(calculateCostFromTokens(usage, getPricingForModel("alicode", "qwen3.7-plus"))).toBeNull();
+    expect(calculateCostFromTokens(usage, getPricingForModel("alicode-intl", "qwen3.5-plus"))).toBeNull();
   });
-  it("caps qwen3-coder-next at 256K, not 1M", () => {
-    expect(getCapabilitiesForModel("alicode", "qwen3-coder-next").contextWindow).toBe(262144);
-    expect(getCapabilitiesForModel("alicode", "qwen3-coder-plus").contextWindow).toBe(1000000);
+  it("keeps the registered Coding Plan Kimi window distinct from Qwen's context", () => {
+    expect(getCapabilitiesForModel("alicode", "kimi-k2.5").contextWindow).toBe(262144);
+    expect(getCapabilitiesForModel("alicode", "qwen3.5-plus").contextWindow).toBe(1000000);
   });
 });
 
@@ -50,27 +52,36 @@ describe("Xiaomi registries", () => {
     }
     expect(mimo).toContain("mimo-v2.5-asr");
   });
-  it("prices v2.5 at the official PAYG schedule", () => {
-    expect(getPricingForModel("xiaomi-mimo", "mimo-v2.5-pro")).toMatchObject({ input: 0.435, output: 0.87 });
-    expect(getPricingForModel("xiaomi-mimo", "mimo-v2.5")).toMatchObject({ input: 0.14, output: 0.28 });
+  it("prices V2.6 PAYG but does not silently remap the officially retired V2.5 IDs", () => {
+    // MiMo model/pricing pages,2026-10-21: V2.5 retired10:00UTC+8; IDs no longer work.
+    const usage = { prompt_tokens: 1000000, completion_tokens: 1000000 };
+    expect(calculateCostFromTokens(usage, getPricingForModel("xiaomi-mimo", "mimo-v2.6-pro"))).toBeCloseTo(1.305, 12);
+    expect(calculateCostFromTokens(usage, getPricingForModel("xiaomi-mimo", "mimo-v2.6-flash"))).toBeCloseTo(0.42, 12);
+    expect(calculateCostFromTokens(usage, getPricingForModel("xiaomi-mimo", "mimo-v2.5-pro"))).toBeNull();
+    expect(calculateCostFromTokens(usage, getPricingForModel("xiaomi-mimo", "mimo-v2.5"))).toBeNull();
   });
 });
 
 describe("Baidu + Tencent registries", () => {
-  it("baidu lists ERNIE models with corrected glm-5.2 context", () => {
+  it("Baidu retains exact model IDs and the independently published GLM5.2 output range", () => {
     const ids = baiduRegistry.models.map((m) => m.id);
     for (const id of ["ernie-5.1", "ernie-5.0", "ernie-x1-turbo-32k"]) expect(ids).toContain(id);
-    expect(baiduRegistry.models.find((m) => m.id === "glm-5.2").contextLength).toBe(202752);
+    // Native Qianfan model table explicitly gives max_tokens[1,131072].
+    expect(getCapabilitiesForModel("baidu", "glm-5.2").maxOutput).toBe(131072);
   });
-  it("prices ERNIE at Qianfan base tiers", () => {
-    expect(getPricingForModel("baidu", "ernie-5.1")).toMatchObject({ input: 0.56, output: 2.53 });
+  it("preserves Qianfan's CNY quote without silently converting it into a USD invoice", () => {
+    const metadata = getReviewedModelMetadata("baidu", "ernie-5.1");
+    expect(metadata.billing).toMatchObject({ currency: "CNY", unit: "per_1000_tokens", nativeQuote: { input: 0.004, output: 0.018 } });
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("baidu", "ernie-5.1"))).toBeNull();
   });
   it("tencent lists hy3-preview and marks legacy models", () => {
     const ids = tencentRegistry.models.map((m) => m.id);
     expect(ids).toContain("hy3-preview");
   });
-  it("caps seed/doubao at 256K/128K and ernie-5 at 128K", () => {
-    expect(getCapabilitiesForModel("volcengine-ark", "Doubao-Seed-2.0-pro").contextWindow).toBe(262144);
-    expect(getCapabilitiesForModel("baidu", "ernie-5.1").contextWindow).toBe(131072);
+  it("does not promote old family windows into verified Coding Plan or Qianfan route limits", () => {
+    // Current Ark plan lists2.1 IDs;2.0 is compatibility, not current entitlement.
+    // Qianfan prints128k without an independent exact numeric conversion.
+    expect(getCapabilitiesForModel("volcengine-ark", "Doubao-Seed-2.0-pro").contextWindow).toBeNull();
+    expect(getCapabilitiesForModel("baidu", "ernie-5.1")).toMatchObject({ contextWindow: null, maxOutput: 65536 });
   });
 });

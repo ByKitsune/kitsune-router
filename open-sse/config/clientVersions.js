@@ -8,27 +8,39 @@
 // usage handler said something else) and made it impossible to bump
 // versions in one place.
 //
-// App releases checked 2026-10-06 against publisher-controlled sources:
-//   https://registry.npmjs.org/@anthropic-ai/claude-code (latest 2.1.289;
-//     explicit stable channel 2.1.285). Use the non-prerelease latest release.
-//   https://registry.npmjs.org/@openai/codex/latest (0.160.0, 2026-10-01)
-//   https://registry.npmjs.org/@google/gemini-cli/latest (0.62.0, 2026-09-29);
-//     v0.62.0/packages/core/package.json pins @google/genai exactly 1.30.0.
+// Primary app releases rechecked 2026-10-21 against publisher-controlled sources:
+//   https://registry.npmjs.org/@anthropic-ai/claude-code (latest/next 2.1.306;
+//     explicit delayed stable channel 2.1.304). Retain the non-prerelease latest
+//     policy: https://code.claude.com/docs/en/setup.md#configure-release-channel.
+//   https://registry.npmjs.org/@openai/codex/latest (0.163.0, 2026-10-15),
+//     https://github.com/openai/codex/releases/tag/rust-v0.163.0 (not alpha).
+//   https://registry.npmjs.org/@google/gemini-cli/latest (0.65.0, 2026-10-20);
+//     v0.65.0/packages/core/package.json still pins @google/genai 1.30.0
+//     and google-auth-library 10.9.0. Preview/nightly releases are not selected.
 //   https://antigravity.google/docs/changelog.md: native CLI 1.4.0
-//     (2026-10-16; rechecked 2026-10-17), App 2.24.0, IDE 2.5.5.
+//     (2026-10-16), App 2.24.0, IDE 2.5.5. All three remain unchanged.
 //     These are separate surfaces; an App/Hub release is not an IDE version.
+// Secondary releases rechecked 2026-10-21 (separate app/SDK identities):
 //   https://update.code.visualstudio.com/api/update/win32-x64-user/stable/latest:
-//     VS Code 1.140.0; tagged extensions/copilot/package.json is 0.68.0.
-//   https://kiro.dev/changelog/ide/1-2 (IDE 1.2.4) and /cli/2-27 (CLI 2.27.0).
-//   https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest (2.161.3; CN only).
-//   https://x.ai/cli/stable (1.0.46; alpha releases are not selected).
-//   https://github.com/getkimchi/kimchi/releases/tag/v1.6.0 (2026-10-05).
-//   https://github.com/zed-industries/zed/releases/tag/v1.22.0 (unchanged).
-//   Cursor golden download redirects to 3.22.12; OpenCode 1.18.34,
-//     Qoder CLI 1.1.65 and Devin Desktop 3.10.48 remain current.
-//   Trae stable download manifest: 3.5.104 (source pin only; provider inactive).
-//   https://registry.npmjs.org/command-code/latest (1.74.1); inspected bundle
-//     maps x-command-code-version to CLI release and User-Agent to cli.
+//     VS Code 1.143.0; bundled extensions/copilot/package.json is 0.71.0
+//     at exact stable commit 2d0b7506a36c1d6db9a466440131a8e01eab2289.
+//   https://prod.download.desktop.kiro.dev/stable/metadata-win32-x64-user-stable.json:
+//     IDE 1.4.13; https://prod.download.cli.kiro.dev/stable/latest/manifest.json:
+//     CLI 2.33.0. Stable manifests are newer than the website changelogs.
+//   https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest (2.171.0; CN CLI).
+//   https://x.ai/cli/stable (1.0.62; alpha releases are not selected).
+//   https://github.com/getkimchi/kimchi/releases/tag/v1.17.0.
+//   https://github.com/zed-industries/zed/releases/tag/v1.24.4.
+//   https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.24:
+//     Cursor 3.24.18; actual IDE archive still bundles Connect 1.6.1.
+//   https://registry.npmjs.org/opencode-ai/latest (1.19.3),
+//     https://registry.npmjs.org/@qoder-ai/qodercli/latest (1.1.75).
+//   https://docs.devin.ai/desktop/changelog.md: desktop 3.10.67;
+//     actual stable IDE archive independently verifies extension metadata 1.48.2.
+//   https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest:
+//     stable app 3.6.4 (source pin only; provider remains inactive).
+//   https://registry.npmjs.org/command-code/latest (1.86.3); integrity-checked
+//     bundle maps release header to CLI version, UA to cli, environment to production.
 //
 // App release verification does not verify bundled SDK/runtime or entitlement
 // flags. Retain unverified wire pins rather than substituting public SDK latest;
@@ -37,8 +49,9 @@
 import { platform, arch } from "os";
 
 // ─── Claude Code (claude-cli) ──────────────────────────────────────────
-// npm latest channel 2.1.289; delayed stable is 2.1.285; 2.1.290 is next-only.
-export const CLAUDE_CODE_VERSION = "2.1.289";
+// npm latest/next 2.1.306; delayed stable is 2.1.304 (2026-10-21 capture).
+// Follow the existing non-prerelease latest policy, not the delayed stable tag.
+export const CLAUDE_CODE_VERSION = "2.1.306";
 export const CLAUDE_CLI_USER_AGENT = `claude-cli/${CLAUDE_CODE_VERSION} (external, sdk-cli)`;
 
 // Anthropic-Beta flag set — Anthropic adds/removes flags per release. We
@@ -73,7 +86,8 @@ export const CLAUDE_BETA_FLAGS_HEAVY_AGENT = [
   "effort-2025-11-24",
 ];
 
-// SDK 0.128.0 verified in the integrity-checked native 2.1.289 bundle.
+// SDK 0.128.0 reverified in the SHA-512 integrity-checked native 2.1.306 bundle
+// (@anthropic-ai/claude-code-linux-x64); it did not change with the app release.
 // Retain the legacy runtime pin: native source reads process.version; neither
 // launcher Node minimum nor static binary strings verify a fixed runtime.
 export const CLAUDE_STAINLESS = {
@@ -86,39 +100,40 @@ export const CLAUDE_STAINLESS = {
 };
 
 // ─── OpenAI Codex ──────────────────────────────────────────────────────
-// 0.160.0 (npm latest non-prerelease, 2026-10-01). Two surfaces:
+// 0.163.0 (npm latest / rust-v0.163.0 non-prerelease, 2026-10-15). Two surfaces:
 //   - codex_cli_rs/<v>  → User-Agent header on /responses, /chat, /v1/chat
 //   - ?client_version=  → query param on /backend-api/codex/models (gating)
-export const CODEX_CLI_VERSION = "0.160.0";
+export const CODEX_CLI_VERSION = "0.163.0";
 export const CODEX_USER_AGENT = `codex_cli_rs/${CODEX_CLI_VERSION}`;
 // Antigravity-style codex_cli_rs gating is identical.
 export const CODEX_MODELS_CLIENT_VERSION = CODEX_CLI_VERSION;
 
 // ─── GitHub Copilot ────────────────────────────────────────────────────
-// VSCode 1.140.0 is the latest stable. The copilot-chat version
-// that matters is the one BUNDLED in the VS Code release tag `1.140.0`
-// (extensions/copilot/package.json → 0.68.0); the marketplace standalone
-// standalone lags the bundled extension. Pairing
-// vscode/1.140.0 with anything other than 0.68.0 looks inconsistent upstream.
-export const VSCODE_VERSION = "1.140.0";
-export const COPILOT_CHAT_VERSION = "0.68.0";
+// Stable VS Code 1.143.0 bundles Copilot Chat 0.71.0 at
+// 2d0b7506a36c1d6db9a466440131a8e01eab2289 (extensions/copilot/package.json).
+// Pair that bundled extension with its editor; do not use marketplace latest.
+export const VSCODE_VERSION = "1.143.0";
+export const COPILOT_CHAT_VERSION = "0.71.0";
 export const COPILOT_USER_AGENT = `GitHubCopilotChat/${COPILOT_CHAT_VERSION}`;
-// Final @vscode/copilot-api 0.5.2 mixin (bundled with VS Code 1.140.0).
+// Final @vscode/copilot-api 0.5.2 mixin (still bundled with VS Code 1.143.0).
 // Token and Copilot user-info requests bypass that mixin.
 export const COPILOT_API_VERSION = "2026-08-01";
 export const COPILOT_TOKEN_API_VERSION = "2025-04-01";
 
 // ─── Cursor ────────────────────────────────────────────────────────────
-// 3.22.12 (2026-09-30). The checksum (jyh cipher: XOR rolling key + base64)
-// in open-sse/utils/cursorChecksum.js is upstream's algorithm; if Cursor
-// changes it, the import flow must be revalidated end-to-end with a real
-// credential before bumping. Verified algorithm unchanged as of 2026-08-25.
-export const CURSOR_VERSION = "3.22.12";
+// Stable 3.24.18 IDE archive verifies the unchanged Jyh checksum algorithm
+// and Connect 1.6.1. Public requests omit the Anysphere-only client commit.
+// Static bundle inspection is not live credential/protocol validation.
+export const CURSOR_VERSION = "3.24.18";
 export const CURSOR_CONNECT_ES_VERSION = "1.6.1";
 
 // ─── Antigravity ───────────────────────────────────────────────────────
 // Keep the IDE identity separate for optional MITM compatibility overrides.
 // Native gateway calls use the CLI surface; Argon is not offered on the IDE.
+// https://antigravity.google/docs/models.md restricts availability by plan;
+// a CLI User-Agent does not grant a paid subscription or Enterprise license.
+// https://antigravity.google/docs/install.md documents distinct API-key/ADC
+// auth paths; retain the verified OAuth/CloudCode binding, not a guessed port.
 export const ANTIGRAVITY_IDE_VERSION = "2.5.5";
 export const ANTIGRAVITY_IDE_USER_AGENT = (() => {
   // Match the gateway host's platform; this is not a fixed captured macOS UA.
@@ -145,23 +160,24 @@ export const ANTIGRAVITY_MITM_VERSION_OVERRIDE_ENABLED =
 export const ANTIGRAVITY_MITM_VERSION = ANTIGRAVITY_IDE_VERSION;
 
 // ─── Gemini CLI ────────────────────────────────────────────────────────
-// 0.62.0 core bundles genai 1.30.0, but OAuth Code Assist uses the nested
+// v0.65.0 core still bundles genai 1.30.0, but OAuth Code Assist uses the nested
 // google-auth-library 10.9.0 interceptor, NOT the GoogleGenAI API-key branch.
 // Tagged source strips the leading v from the executing Node runtime.
-export const GEMINI_CLI_VERSION = "0.62.0";
+export const GEMINI_CLI_VERSION = "0.65.0";
 export const GEMINI_AUTH_LIBRARY_VERSION = "10.9.0";
 export const GEMINI_AUTH_USER_AGENT = `google-api-nodejs-client/${GEMINI_AUTH_LIBRARY_VERSION}`;
 export const GEMINI_CLI_API_CLIENT = `gl-node/${process.version?.replace(/^v/, "") || "unknown"}`;
 
 // ─── Kiro ──────────────────────────────────────────────────────────────
 // Two distinct upstream lines:
-//   - IDE line 1.2.x (1.2.4 is the newest published, 2026-09-30: Workflows) → client fingerprint
-//   - CLI line 2.27.0 (2026-10-01)
+//   - IDE stable manifest 1.4.13 (2026-10-21) → client fingerprint
+//   - CLI stable manifest 2.33.0 (2026-10-20)
 //
 // The runtime UA uses kiro-ide/<v> as the dominant client identifier;
-// the aws-sdk-js wrapper is the underlying SDK prefix.
-export const KIRO_IDE_VERSION = "1.2.4";
-export const KIRO_CLI_VERSION = "2.27.0";
+// the aws-sdk-js wrapper is a retained legacy wire pin, NOT a claim that the
+// current IDE bundles SDK 3.0.0. Native runtime/host defaults remain unverified.
+export const KIRO_IDE_VERSION = "1.4.13";
+export const KIRO_CLI_VERSION = "2.33.0";
 export const KIRO_AWS_SDK_VERSION = "3.0.0";
 export const KIRO_RUNTIME_SDK_VERSION = "3.0.0";
 export const KIRO_USER_AGENT = `AWS-SDK-JS/${KIRO_AWS_SDK_VERSION} kiro-ide/${KIRO_IDE_VERSION}`;
@@ -190,16 +206,16 @@ export const KIRO_FINGERPRINT = ({
 });
 
 // ─── Trae ──────────────────────────────────────────────────────────────
-// 3.5.104 (publisher stable download manifest; provider remains inactive).
+// 3.6.4 (publisher stable download manifest; provider remains inactive).
 // appVersion is sent in common_params of SOLO session init.
-export const TRAE_APP_VERSION = "3.5.104";
+export const TRAE_APP_VERSION = "3.6.4";
 export const TRAE_USER_AGENT = "Trae/1.0.0 antigravity-cockpit-tools";
 
 // ─── CodeBuddy (Tencent) ───────────────────────────────────────────────
-// CLI 2.161.3 (npm latest, 2026-10-05) verifies the CN CLI surface only.
+// CLI 2.171.0 (npm latest, 2026-10-20) verifies the CN CLI surface only.
 // INTL IDE identity remains unverified: retain its independent legacy wire pin,
 // not a claim about the published IDE release. Keep each region's OAuth paired.
-export const CODEBUDDY_CLI_VERSION = "2.161.3";
+export const CODEBUDDY_CLI_VERSION = "2.171.0";
 export const CODEBUDDY_INTL_WIRE_VERSION = "2.161.1";
 export const CODEBUDDY_CN_TRANSPORT_UA = `CLI/${CODEBUDDY_CLI_VERSION} CodeBuddy/${CODEBUDDY_CLI_VERSION}`;
 export const CODEBUDDY_INTL_TRANSPORT_UA = `IDE/${CODEBUDDY_INTL_WIRE_VERSION} CodeBuddy/${CODEBUDDY_INTL_WIRE_VERSION}`;
@@ -207,9 +223,9 @@ export const CODEBUDDY_CN_OAUTH_UA = CODEBUDDY_CN_TRANSPORT_UA;
 export const CODEBUDDY_INTL_OAUTH_UA = CODEBUDDY_INTL_TRANSPORT_UA;
 
 // ─── Grok CLI / Grok Build ─────────────────────────────────────────────
-// 1.0.46 (official stable channel, 2026-09-30). Preserve the existing wire shape;
+// 1.0.62 (official stable channel, 2026-10-16). Preserve the existing wire shape;
 // update version-dependent OAuth/runtime/catalog/billing identity together.
-export const GROK_CLI_VERSION = "1.0.46";
+export const GROK_CLI_VERSION = "1.0.62";
 export const GROK_CLI_CLIENT_IDENTIFIER = "grok-shell";
 export const GROK_CLI_USER_AGENT =
   `grok-pager/${GROK_CLI_VERSION} grok-shell/${GROK_CLI_VERSION} (linux; x86_64)`;
@@ -218,20 +234,20 @@ export const GROK_CLI_USER_AGENT =
 export const XAI_USER_AGENT = "grok-cli/zenrouter";
 
 // ─── Kimchi ────────────────────────────────────────────────────────────
-// Public CLI v1.6.0 (2026-10-05); tagged source uses kimchi/<release>.
-export const KIMCHI_GATEWAY_VERSION = "1.6.0";
+// Public CLI v1.17.0 (2026-10-20); tagged source uses kimchi/<release>.
+export const KIMCHI_GATEWAY_VERSION = "1.17.0";
 export const KIMCHI_USER_AGENT = `kimchi/${KIMCHI_GATEWAY_VERSION}`;
 
 // ─── Command Code ──────────────────────────────────────────────────────
-// Published 1.74.1 bundle verifies these headers and /alpha/generate; this
+// Published 1.86.3 bundle verifies these headers and /alpha/generate; this
 // release identity does not claim live body/stream compatibility.
-export const COMMAND_CODE_VERSION = "1.74.1";
+export const COMMAND_CODE_VERSION = "1.86.3";
 export const COMMAND_CODE_USER_AGENT = "cli";
 
 // ─── Zed ───────────────────────────────────────────────────────────────
-// 1.22.0 (stable channel, 2026-09-30). x-zed-version header fallback when the client
+// 1.24.4 (stable channel, 2026-10-20). x-zed-version header fallback when the client
 // does not provide appVersion via providerSpecificData.
-export const ZED_VERSION = "1.22.0";
+export const ZED_VERSION = "1.24.4";
 export const ZED_USER_AGENT = "zenrouter/zed";
 export const ZED_DEFAULT_APP_VERSION = ZED_VERSION;
 
@@ -240,20 +256,21 @@ export const ZED_DEFAULT_APP_VERSION = ZED_VERSION;
 export const IFLOW_USER_AGENT = "iFlow-Cli";
 
 // ─── Windsurf / Devin Desktop (Codeium) ────────────────────────────────
-// 3.10.48 — latest STABLE desktop release (windsurf.com/changelog, 2026-09-29).
-// Retain the existing IDE/extension wire pairing; the published desktop release
-// alone does not independently verify its bundled extension protocol identity.
-export const WINDSURF_IDE_VERSION = "3.10.48";
+// Stable Devin desktop 3.10.67 (2026-10-12) independently bundles metadata
+// extensionVersion 1.48.2 via languageServerVersion, not extension package 0.2.0
+// or base VS Code 1.126.0. Identity values do not verify the legacy protobuf layout.
+export const WINDSURF_IDE_VERSION = "3.10.67";
+export const WINDSURF_EXTENSION_VERSION = "1.48.2";
 
 // ─── OpenCode (free-tier identity) ─────────────────────────────────────
-// 1.18.34 (npm opencode-ai latest). The free-tier backend gates on client
+// 1.19.3 (npm opencode-ai latest). The free-tier backend gates on client
 // identity: `User-Agent: opencode` and non-canonical x-opencode-session values
 // fail with 403 FreeTierError, so the version must stay a real release at or
 // above the minimum it enforces.
-export const OPENCODE_VERSION = "1.18.34";
+export const OPENCODE_VERSION = "1.19.3";
 export const OPENCODE_USER_AGENT = `opencode/${OPENCODE_VERSION}`;
 
 // ─── Qoder CLI ─────────────────────────────────────────────────────────
-// 1.1.65 (@qoder-ai/qodercli npm latest). Used for model discovery; the
-// Cosy-Version header is signature-bound separately in shared/qoder/cosy.js.
-export const QODER_CLI_VERSION = "1.1.65";
+// 1.1.75 (@qoder-ai/qodercli npm latest). Used for unsigned PAT discovery/userinfo
+// UA only; legacy Cosy-Version remains signature-bound in shared/qoder/cosy.js.
+export const QODER_CLI_VERSION = "1.1.75";

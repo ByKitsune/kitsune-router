@@ -41,6 +41,7 @@ export default {
   models: [
     { id: "mimo-v2.6-pro", name: "MiMo V2.6 Pro" },
     { id: "mimo-v2.6-flash", name: "MiMo V2.6 Flash" },
+    { id: "mimo-v2.6-pro-ultraspeed", name: "MiMo V2.6 Pro Ultraspeed" },
     { id: "mimo-v2.5-pro", name: "MiMo V2.5 Pro", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
     { id: "mimo-v2.5", name: "MiMo V2.5", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
     { id: "mimo-v2.5-asr", name: "MiMo V2.5 ASR", kind: "stt" },

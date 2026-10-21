@@ -19,23 +19,32 @@ afterEach(() => { setCatalogSource(null); vi.unstubAllGlobals(); });
 
 describe("hosted billing contracts", () => {
   it.each([
-    ["opencode-go", "grok-4.7"],
-    ["clinepass", "cline-pass/glm-5.3"],
-  ])("labels %s/%s as subscription quota rather than a cash token tariff", async (provider, id) => {
+    ["opencode-go", "grok-4.7", 0.26],
+    ["clinepass", "cline-pass/glm-5.3", 0.184],
+  ])("labels %s/%s as subscription quota rather than a cash token tariff", async (provider, id, expected) => {
     // https://opencode.ai/docs/go/ and
     // https://docs.cline.bot/getting-started/clinepass
     const row = (await buildModelsList(["llm"])).find(model => model.id === `${provider}/${id}`);
-    expect(row).toMatchObject({ metadata: { billing: { unit: "month", kind: "subscription-quota-reference" } } });
+    expect(row).toMatchObject({ metadata: { billing: {
+      currency: "USD", unit: "per_1000000_tokens", kind: "subscription-reference",
+      referenceUnit: "USD_quota_reference_per_1000000_tokens", invoiceVerified: false,
+      estimateBasis: "primary-product-token-reference",
+    } } });
+    // Exact product reference prices can estimate normalized token usage. The
+    // monthly fee and remaining allowance are not converted into per-call bills.
+    expect(calculateCostFromTokens({ prompt_tokens: 100000, completion_tokens: 10000 }, getPricingForModel(provider, id))).toBeCloseTo(expected, 12);
   });
 
   it.each([
-    ["morph-kimik3", 500000, 2.795],
-    ["morph-glm53-744b", 500000, 1.06675],
-    ["morph-glm53flash", 500000, 0.19],
-    ["morph-dsv41flash", 0, 0.21],
-    ["morph-dsv4flash", 500000, 0.1289078125],
+    ["morph-kimik3", 500000, 2.0915],
+    ["morph-glm53-744b", 500000, 0.576],
+    ["morph-glm53flash", 500000, 0.491],
+    ["morph-dsv41flash", 0, 0.266],
+    ["morph-dsv4flash", 500000, 0.0851],
   ])("uses %s's hosted tariff for cache-inclusive usage and output-billed reasoning", (id, cached, expected) => {
-    // https://docs.morphllm.com/sdk/components/fast-models
+    // Primary https://www.morphllm.com/api/models/json captured 2026-10-21.
+    // cost_usd is explicitly per token. Half cached input + 100K total output
+    // (including 60K reasoning); no extra reasoning charge or guessed cache fee.
     const tokens = { prompt_tokens: 1000000, cached_tokens: cached, completion_tokens: 100000, reasoning_tokens: 60000 };
     expect(calculateCostFromTokens(tokens, getPricingForModel("morph", id))).toBeCloseTo(expected, 12);
   });

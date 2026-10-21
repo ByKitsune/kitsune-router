@@ -1,7 +1,7 @@
 import { BaseExecutor } from "./base.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { PROVIDERS } from "../config/providers.js";
-import { WINDSURF_IDE_VERSION } from "../config/clientVersions.js";
+import { WINDSURF_IDE_VERSION, WINDSURF_EXTENSION_VERSION } from "../config/clientVersions.js";
 import { randomUUID } from "node:crypto";
 
 // WindsurfExecutor — Codeium gRPC-web chat.
@@ -20,7 +20,7 @@ const WS_CHAT_URL = `${WS_BASE_URL}/${WS_SERVICE}/${WS_METHOD_CHAT}`;
 
 const WS_IDE_NAME = "windsurf";
 const WS_IDE_VERSION = WINDSURF_IDE_VERSION;
-const WS_EXT_VERSION = WINDSURF_IDE_VERSION;
+const WS_EXT_VERSION = WINDSURF_EXTENSION_VERSION;
 const WS_LOCALE = "en-US";
 
 // ─── Model alias map (catalog name → Windsurf wire name) ─────────────────────

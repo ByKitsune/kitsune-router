@@ -48,6 +48,11 @@ export default {
   },
   models: [
     { id: "glm-5.2", name: "GLM-5.2" },
+    // Region-specific fallback in @tencent-ai/codebuddy-code@2.171.0
+    // product.internal.json (2026-10-21). These are not the intl wire IDs.
+    { id: "kimi-k3-2", name: "Kimi-K3", contextLength: 1000000, maxOutputTokens: 32000, capabilities: { vision: true, tools: true, reasoning: true } },
+    { id: "minimax-m3-pay", name: "MiniMax-M3 (Paid)", contextLength: 512000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true } },
+    { id: "glm-5.3-flashx", name: "GLM-5.3-FlashX", contextLength: 1000000, maxOutputTokens: 131072, capabilities: { vision: true, tools: true, reasoning: true } },
     { id: "glm-5.1", name: "GLM-5.1" },
     // EOL models — API 11102 dead (removed from upstream catalog 2026-09-03, e014cb537).
     // Kept as deprecated entries so old stored connections / combos that still reference

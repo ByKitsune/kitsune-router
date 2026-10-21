@@ -20,6 +20,7 @@ export default {
   },
   models: [
     { id: "deepseek-ai/DeepSeek-V4-Pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-ai/DeepSeek-V4-Pro-0813", name: "DeepSeek V4 Pro (0813)", supportedFormats: ["openai"] },
     { id: "deepseek-ai/DeepSeek-V4-Flash", name: "DeepSeek V4 Flash" },
     { id: "deepseek-ai/DeepSeek-V3.2", name: "DeepSeek V3.2" },
     { id: "deepseek-ai/DeepSeek-V3.2-Exp", name: "DeepSeek V3.2 Exp" },

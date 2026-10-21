@@ -10,6 +10,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [query, setQuery] = useState("");
   const initialPricing = useRef({});
   const savedPricing = useRef({});
   const changes = useRef({});
@@ -133,7 +134,11 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
   if (!isOpen) return null;
 
   // Get all unique providers and models for display
-  const allProviders = Object.keys(pricingData).sort();
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleModels = Object.fromEntries(Object.keys(pricingData).map(provider => [provider,
+    Object.keys(pricingData[provider]).filter(model => !normalizedQuery || `${provider}/${model}`.toLowerCase().includes(normalizedQuery)).sort(),
+  ]));
+  const allProviders = Object.keys(visibleModels).filter(provider => visibleModels[provider].length > 0).sort();
   const pricingFields = PRICING_RATE_FIELDS;
 
   return (
@@ -171,12 +176,23 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                   Cache-write rates distinguish the 5m/default TTL from the 1h TTL; saved tier rates and thresholds are preserved.
                   Native OpenAI writes keep their separate 30m and 12h lifetimes.
                   Delivered processing-speed tariffs are separate complete quotes; an unconfirmed tier remains unpriced.
+                  Time-dependent native rates are shown for the current view; actual usage uses the recorded request timestamp. Saved overrides still win.
                 </p>
               </div>
+              <label className="block text-sm">
+                <span className="block mb-1 font-medium">Find provider or model</span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
+                  placeholder="Provider or exact model ID"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded focus:outline-none focus:border-primary"
+                />
+              </label>
 
               {/* Pricing Tables */}
               {allProviders.map(provider => {
-                const models = Object.keys(pricingData[provider]).sort();
+                const models = visibleModels[provider];
                 return (
                   <div key={provider} className="border border-border rounded-lg overflow-hidden">
                     <div className="bg-surface-2 px-4 py-2 font-semibold text-sm">
@@ -278,7 +294,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
 
               {allProviders.length === 0 && (
                 <div className="text-center py-8 text-text-muted">
-                  No pricing data available
+                  {normalizedQuery ? "No matching provider or model" : "No pricing data available"}
                 </div>
               )}
             </div>

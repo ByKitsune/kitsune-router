@@ -142,8 +142,8 @@ exports[`GOLDEN buildUrl (default executor providers) > codebuddy-intl → url (
 
 exports[`GOLDEN buildUrl (default executor providers) > cohere → url (stream + non-stream) 1`] = `
 {
-  "nonStream": "https://api.cohere.ai/v1/chat/completions",
-  "stream": "https://api.cohere.ai/v1/chat/completions",
+  "nonStream": "https://api.cohere.ai/compatibility/v1/chat/completions",
+  "stream": "https://api.cohere.ai/compatibility/v1/chat/completions",
 }
 `;
 
@@ -268,8 +268,8 @@ exports[`GOLDEN buildUrl (default executor providers) > minimax → url (stream 
 
 exports[`GOLDEN buildUrl (default executor providers) > minimax-cn → url (stream + non-stream) 1`] = `
 {
-  "nonStream": "https://api.minimaxi.com/anthropic/v1/messages?beta=true",
-  "stream": "https://api.minimaxi.com/anthropic/v1/messages?beta=true",
+  "nonStream": "https://api.minimax.cn/anthropic/v1/messages?beta=true",
+  "stream": "https://api.minimax.cn/anthropic/v1/messages?beta=true",
 }
 `;
 

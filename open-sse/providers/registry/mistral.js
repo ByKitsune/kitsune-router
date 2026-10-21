@@ -24,6 +24,7 @@ export default {
   },
   models: [
     { id: "zai-glm-5-3", name: "Z.ai GLM 5.3" },
+    { id: "mistral-large-4", name: "Mistral Large 4 (Preview)" },
     { id: "ministral-14b-2512", name: "ministral 14b 2512" },
     { id: "ministral-8b-2512", name: "ministral 8b 2512" },
     { id: "ministral-3b-2512", name: "ministral 3b 2512" },

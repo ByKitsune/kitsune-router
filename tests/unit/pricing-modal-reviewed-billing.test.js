@@ -186,4 +186,22 @@ describe("PricingModal reviewed billing behavior", () => {
       cache_creation: null, cache_creation_1h: null, cache_write_30m: null, cache_write_12h: null, tier: null,
     });
   });
+
+  it("finds newly exposed models by provider or ID without losing edits hidden by filtering", async () => {
+    const modal = fixture({ fixture: { "known-model": { input: 1.5 } }, other: { "second-model": { input: 2 } } });
+    let tree = await modal.mount();
+    fields(tree, "known-model")[0].props.onChange({ target: { value: "0" } });
+    const search = () => nodes(modal.render()).find(node => node.type === "input" && node.props.type === "search");
+    expect(search()).toBeDefined();
+    search().props.onChange({ target: { value: "SECOND-model" } });
+    tree = modal.render();
+    expect(text(tree)).toContain("second-model");
+    expect(text(tree)).not.toContain("known-model");
+    search().props.onChange({ target: { value: "FIXTURE" } });
+    tree = modal.render();
+    expect(fields(tree, "known-model")[0].props.value).toBe(0);
+    expect(text(tree)).not.toContain("second-model");
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 0 } } });
+  });
 });

@@ -1,17 +1,49 @@
+const firstDefined = (...values) => values.find(value => value !== undefined);
+const validCount = value => (typeof value === "number" || typeof value === "string" && value.trim() !== "")
+  && Number.isSafeInteger(Number(value)) && Number(value) >= 0;
+
+// Inspect only documented accounting fields, never arbitrary response/tool payloads.
+// Run before normalizers/optional-detail builders can omit malformed counters.
+export function hasInvalidUsageCounters(raw, kind) {
+  if (!raw || typeof raw !== "object") return false;
+  if (raw.usage_invalid === true) return true;
+  const values = [raw.prompt_tokens, raw.input_tokens, raw.completion_tokens, raw.output_tokens, raw.total_tokens,
+    raw.cached_tokens, raw.cache_read_input_tokens, raw.prompt_cache_hit_tokens, raw.prompt_cache_miss_tokens,
+    raw.reasoning_tokens, raw.cache_creation_input_tokens, raw.cache_creation_tokens,
+    raw.cache_creation_5m_tokens, raw.cache_creation_1h_tokens,
+    raw.cache_creation?.ephemeral_5m_input_tokens, raw.cache_creation?.ephemeral_1h_input_tokens];
+  for (const details of [raw.prompt_tokens_details, raw.input_tokens_details]) {
+    values.push(details?.cached_tokens, details?.cache_creation_tokens, details?.cache_creation_5m_tokens, details?.cache_creation_1h_tokens);
+  }
+  values.push(raw.completion_tokens_details?.reasoning_tokens, raw.output_tokens_details?.reasoning_tokens);
+  if (kind === "gemini") values.push(raw.promptTokenCount, raw.candidatesTokenCount, raw.totalTokenCount, raw.cachedContentTokenCount, raw.thoughtsTokenCount);
+  if (kind === "kiro") values.push(raw.inputTokens, raw.outputTokens, raw.cachedTokens);
+  if (kind === "ollama") values.push(raw.prompt_eval_count, raw.eval_count);
+  if (kind === "commandcode") values.push(raw.inputTokens, raw.outputTokens, raw.totalTokens, raw.cachedInputTokens,
+    raw.cacheReadTokens, raw.reasoningTokens, raw.inputTokenDetails?.cacheReadTokens,
+    raw.inputTokenDetails?.cacheWriteTokens, raw.outputTokenDetails?.reasoningTokens);
+  return values.some(value => value !== undefined && !validCount(value));
+}
+
 // Cache TTL counters are subsets of the aggregate write count, never extra input.
 export function getCacheCreationUsage(raw) {
-  const total = raw?.cache_creation_input_tokens ?? raw?.cache_creation_tokens
-    ?? raw?.prompt_tokens_details?.cache_creation_tokens ?? raw?.input_tokens_details?.cache_creation_tokens;
-  const five = raw?.cache_creation_5m_tokens ?? raw?.prompt_tokens_details?.cache_creation_5m_tokens
-    ?? raw?.input_tokens_details?.cache_creation_5m_tokens ?? raw?.cache_creation?.ephemeral_5m_input_tokens;
-  const hour = raw?.cache_creation_1h_tokens ?? raw?.prompt_tokens_details?.cache_creation_1h_tokens
-    ?? raw?.input_tokens_details?.cache_creation_1h_tokens ?? raw?.cache_creation?.ephemeral_1h_input_tokens;
-  if (total == null && five == null && hour == null) return null;
-  const count = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+  const total = firstDefined(raw?.cache_creation_input_tokens, raw?.cache_creation_tokens,
+    raw?.prompt_tokens_details?.cache_creation_tokens, raw?.input_tokens_details?.cache_creation_tokens);
+  const five = firstDefined(raw?.cache_creation_5m_tokens, raw?.prompt_tokens_details?.cache_creation_5m_tokens,
+    raw?.input_tokens_details?.cache_creation_5m_tokens, raw?.cache_creation?.ephemeral_5m_input_tokens);
+  const hour = firstDefined(raw?.cache_creation_1h_tokens, raw?.prompt_tokens_details?.cache_creation_1h_tokens,
+    raw?.input_tokens_details?.cache_creation_1h_tokens, raw?.cache_creation?.ephemeral_1h_input_tokens);
+  if (total === undefined && five === undefined && hour === undefined) return null;
+  const count = value => value === undefined ? 0 : validCount(value) ? Number(value) : null;
+  const fiveMinute = count(five), oneHour = count(hour);
+  const splitTotal = fiveMinute === null || oneHour === null ? null : fiveMinute + oneHour;
+  const aggregate = total === undefined ? splitTotal : count(total);
+  const invalid = aggregate === null || !Number.isSafeInteger(aggregate) || splitTotal === null || splitTotal > aggregate;
   return {
-    total: total == null ? count(five) + count(hour) : count(total),
-    ...(five == null ? {} : { fiveMinute: count(five) }),
-    ...(hour == null ? {} : { oneHour: count(hour) }),
+    total: Number.isSafeInteger(aggregate) ? aggregate : null,
+    ...(five === undefined ? {} : { fiveMinute }),
+    ...(hour === undefined ? {} : { oneHour }),
+    ...(invalid ? { invalid: true } : {}),
   };
 }
 
@@ -79,8 +111,11 @@ export function getOpenAICacheWriteUsage(raw) {
 
 // Build OpenAI usage object. Caller computes prompt/completion/total (provider math).
 // TTL subsets retain explicit zeroes; other optional details are added when positive.
-export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, cacheWriteTokens, cacheWrite30mTokens, cacheWrite12hTokens, cacheWriteInvalid, reasoningTokens = 0 }) {
+export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, cacheWriteTokens, cacheWrite30mTokens, cacheWrite12hTokens, cacheWriteInvalid, reasoningTokens = 0, usageInvalid = false }) {
   const usage = { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens };
+  if (usageInvalid || hasInvalidUsageCounters({ ...usage, cached_tokens: cachedTokens, reasoning_tokens: reasoningTokens,
+    cache_creation_input_tokens: cacheCreationTokens, cache_creation_5m_tokens: cacheCreation5mTokens,
+    cache_creation_1h_tokens: cacheCreation1hTokens })) usage.usage_invalid = true;
   if (cachedTokens > 0 || cacheCreationTokens > 0 || cacheCreation5mTokens !== undefined || cacheCreation1hTokens !== undefined) {
     usage.prompt_tokens_details = {};
     if (cachedTokens > 0) usage.prompt_tokens_details.cached_tokens = cachedTokens;
@@ -198,6 +233,7 @@ export function toOpenAIUsage(raw, kind) {
   if (!extract || !raw || typeof raw !== "object") return null;
   const creation = getCacheCreationUsage(raw);
   const args = extract(raw, creation);
+  args.usageInvalid = hasInvalidUsageCounters(raw, kind) || creation?.invalid === true;
   if (creation) {
     args.cacheCreationTokens = creation.total;
     args.cacheCreation5mTokens = creation.fiveMinute;
@@ -226,5 +262,6 @@ export function toGeminiUsage(usage) {
     ...(thoughts > 0 ? { thoughtsTokenCount: thoughts } : {}),
     ...(cached !== undefined ? { cachedContentTokenCount: cached } : {}),
     ...(usage.estimated ? { estimated: true } : {}),
+    ...(hasInvalidUsageCounters(usage) ? { usage_invalid: true } : {}),
   };
 }

@@ -27,11 +27,21 @@ export default {
     headers: {
       "x-command-code-version": COMMAND_CODE_VERSION,
       "User-Agent": COMMAND_CODE_USER_AGENT,
-      "x-cli-environment": "cli",
+      // Installed 1.86.3 bundle normalizes its default "prod" to "production".
+      "x-cli-environment": "production",
     },
   },
   models: [
     { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+    // Publisher /provider/v1/models?view=client, 2026-10-21. Only standard-v1
+    // additions: prefix-bound/private-reasoning/no-deferred-tools profiles are
+    // not implied compatible with this existing /alpha/generate adapter.
+    { id: "deepseek/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", contextLength: 1000000, capabilities: { vision: true } },
+    { id: "deepseek/deepseek-v4.1-flash-fast", name: "DeepSeek V4.1 Flash Fast", contextLength: 1000000, capabilities: { vision: true } },
+    { id: "Qwen/Qwen3.8-Max-Prime", name: "Qwen 3.8 Max Prime", contextLength: 1000000, maxOutputTokens: 131072, capabilities: { vision: true } },
+    { id: "Qwen/Qwen3.8-27B", name: "Qwen 3.8 27B", contextLength: 262144, maxOutputTokens: 32768, capabilities: { vision: true } },
+    { id: "MiniMaxAI/MiniMax-M3", name: "MiniMax M3", contextLength: 1000000, capabilities: { vision: true } },
+    { id: "xiaomi/mimo-v2.6-pro", name: "MiMo V2.6 Pro", contextLength: 1048576, capabilities: { vision: true } },
     { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
     { id: "deepseek/deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision (exp)" },
     { id: "z-ai/glm-5.3-flash", name: "GLM 5.3 Flash" },

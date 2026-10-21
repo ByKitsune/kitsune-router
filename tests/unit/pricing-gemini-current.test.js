@@ -25,8 +25,12 @@ describe("Gemini current pricing", () => {
   it("prices gemini-2.5-flash-lite at 0.10/0.40 after the cut", () => {
     expect(getPricingForModel("gemini", "gemini-2.5-flash-lite")).toMatchObject({ input: 0.1, output: 0.4 });
   });
-  it("prices gemini-3.5-flash at 1.50/9.00 and 3.1-flash-lite at 0.25/1.50", () => {
-    expect(getPricingForModel("gemini", "gemini-3.5-flash")).toMatchObject({ input: 1.5, output: 9 });
+  it("keeps the retained Gemini 3.5 redirect's unverified current tariff unknown", () => {
+    // The current native price page has no literal 3.5 Flash row. Its preserved
+    // endpoint redirects to 3.6, but that does not establish an alias invoice.
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 1000 }, getPricingForModel("gemini", "gemini-3.5-flash"))).toBeNull();
+  });
+  it("prices the literal 3.1-flash-lite row at 0.25/1.50", () => {
     expect(getPricingForModel("gemini", "gemini-3.1-flash-lite")).toMatchObject({ input: 0.25, output: 1.5 });
   });
   it("bills embedding input without requiring unused output or cache tariffs", () => {

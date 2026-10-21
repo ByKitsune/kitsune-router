@@ -3,7 +3,7 @@
  */
 
 import { FORMATS } from "../translator/formats.js";
-import { getCacheCreationUsage, getOpenAICacheWriteUsage, toOpenAIUsage } from "../translator/concerns/usage.js";
+import { getCacheCreationUsage, getOpenAICacheWriteUsage, hasInvalidUsageCounters, toOpenAIUsage } from "../translator/concerns/usage.js";
 import { OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 
 // Legacy per-chunk usage console line; off by default (superseded by "📊 done")
@@ -21,6 +21,7 @@ export const COLORS = {
 
 // Buffer tokens to prevent context errors
 const BUFFER_TOKENS = 2000;
+const firstDefined = (...values) => values.find(value => value !== undefined);
 
 // Get HH:MM:SS timestamp
 function getTimeString() {
@@ -111,6 +112,7 @@ export function filterUsageForFormat(usage, targetFormat) {
   }
 
   const filtered = pickFields(fields);
+  if (hasInvalidUsageCounters(usage)) filtered.usage_invalid = true;
   // Claude's native cache counters are separate from input_tokens. OpenAI
   // clients receive those counters as details, without replacing their own split.
   if (fields === formatFields.default) {
@@ -162,25 +164,31 @@ export function normalizeUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
   const normalized = {};
+  if (hasInvalidUsageCounters(usage)) normalized.usage_invalid = true;
   const assignNumber = (key, value) => {
-    if (value === undefined || value === null) return;
+    if (value === undefined) return;
+    if (value === null) { normalized[key] = null; return; }
     const numeric = Number(value);
-    if (Number.isFinite(numeric)) normalized[key] = numeric;
+    normalized[key] = Number.isFinite(numeric) ? numeric : null;
   };
 
-  assignNumber("prompt_tokens", usage?.prompt_tokens ?? usage?.input_tokens);
-  assignNumber("completion_tokens", usage?.completion_tokens ?? usage?.output_tokens);
+  assignNumber("prompt_tokens", firstDefined(usage.prompt_tokens, usage.input_tokens));
+  assignNumber("completion_tokens", firstDefined(usage.completion_tokens, usage.output_tokens));
   assignNumber("total_tokens", usage?.total_tokens);
   assignNumber("cache_read_input_tokens", usage?.cache_read_input_tokens);
   assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens);
   const creation = getCacheCreationUsage(usage);
   if (creation) {
-    if (usage.cache_creation !== undefined) assignNumber("cache_creation_input_tokens", creation.total);
+    // Do not promote inclusive Chat details into Claude's exclusive discriminator.
+    if (usage.cache_creation !== undefined || usage.cache_creation_input_tokens !== undefined) {
+      assignNumber("cache_creation_input_tokens", creation.total);
+    }
     assignNumber("cache_creation_5m_tokens", creation.fiveMinute);
     assignNumber("cache_creation_1h_tokens", creation.oneHour);
+    if (creation.invalid) normalized.usage_invalid = true;
   }
-  assignNumber("cached_tokens", usage?.cached_tokens ?? usage?.prompt_tokens_details?.cached_tokens ?? usage?.input_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens);
-  assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens);
+  assignNumber("cached_tokens", firstDefined(usage.cached_tokens, usage.prompt_tokens_details?.cached_tokens, usage.input_tokens_details?.cached_tokens, usage.prompt_cache_hit_tokens));
+  assignNumber("reasoning_tokens", firstDefined(usage.reasoning_tokens, usage.completion_tokens_details?.reasoning_tokens, usage.output_tokens_details?.reasoning_tokens));
   assignNumber("prompt_cache_hit_tokens", usage?.prompt_cache_hit_tokens);
   assignNumber("prompt_cache_miss_tokens", usage?.prompt_cache_miss_tokens);
   preserveOpenAICacheWrites(normalized, usage);
@@ -194,7 +202,7 @@ export function normalizeUsage(usage) {
   if (usage?.completion_tokens_details && typeof usage.completion_tokens_details === "object") {
     normalized.completion_tokens_details = usage.completion_tokens_details;
   } else if (usage?.output_tokens_details?.reasoning_tokens !== undefined) {
-    normalized.completion_tokens_details = { reasoning_tokens: Number(usage.output_tokens_details.reasoning_tokens) || 0 };
+    normalized.completion_tokens_details = { reasoning_tokens: normalized.reasoning_tokens };
   }
   if (Object.keys(normalized).length === 0) return null;
   return normalized;
@@ -221,22 +229,19 @@ export function normalizeUsage(usage) {
 export function canonicalizeUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
-  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-  const completion = num(usage.completion_tokens ?? usage.output_tokens);
-  const reasoning = num(
-    usage.reasoning_tokens ??
-    usage.completion_tokens_details?.reasoning_tokens ??
-    usage.output_tokens_details?.reasoning_tokens
-  );
+  const num = value => value === undefined ? 0 : value !== null && Number.isFinite(Number(value)) ? Number(value) : null;
+  const sum = (...values) => values.every(value => value !== null) ? values.reduce((total, value) => total + value, 0) : null;
+  const completion = num(firstDefined(usage.completion_tokens, usage.output_tokens));
+  const reasoning = num(firstDefined(usage.reasoning_tokens, usage.completion_tokens_details?.reasoning_tokens, usage.output_tokens_details?.reasoning_tokens));
   // Fall back to the nested prompt_tokens_details.cache_creation_tokens shape
   // (buildUsage()'s OpenAI-forwarding format) when the top-level field is
   // absent, so callers that pass a buildUsage() object through don't silently
   // drop cache_creation.
   const creation = getCacheCreationUsage(usage);
-  const cacheCreation = creation?.total || 0;
+  const cacheCreation = creation ? creation.total : 0;
   const writes = getOpenAICacheWriteUsage(usage);
 
-  let prompt = num(usage.prompt_tokens ?? usage.input_tokens);
+  let prompt = num(firstDefined(usage.prompt_tokens, usage.input_tokens));
   let cached;
 
   // Claude path: prompt excludes cache; cache_read_input_tokens and/or
@@ -250,18 +255,14 @@ export function canonicalizeUsage(usage) {
   if (!writes && usage.cached_tokens === undefined &&
       (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined || usage.cache_creation !== undefined)) {
     cached = num(usage.cache_read_input_tokens);
-    prompt = prompt + cached + cacheCreation;
+    prompt = sum(prompt, cached, cacheCreation);
   } else {
     // OpenAI/Gemini path (or already-canonical input): prompt already includes cached_tokens.
     // Mirror the cacheCreation fallback above: buildUsage() only ever emits the
     // nested prompt_tokens_details.cached_tokens shape, so without this the
     // cache-read count is silently dropped on every buildUsage()-derived usage.
-    cached = num(
-      usage.cached_tokens ??
-      usage.prompt_tokens_details?.cached_tokens ??
-      usage.input_tokens_details?.cached_tokens ??
-      usage.prompt_cache_hit_tokens
-    );
+    cached = num(firstDefined(usage.cached_tokens, usage.prompt_tokens_details?.cached_tokens,
+      usage.input_tokens_details?.cached_tokens, usage.prompt_cache_hit_tokens));
   }
 
   const result = {
@@ -269,14 +270,15 @@ export function canonicalizeUsage(usage) {
     completion_tokens: completion,
     // Recompute rather than pass through: when the fold branch ran above,
     // an upstream total_tokens (cache-exclusive) would otherwise be stale.
-    total_tokens: prompt + completion,
+    total_tokens: sum(prompt, completion),
     cached_tokens: cached,
     cache_creation_input_tokens: cacheCreation,
   };
   if (creation?.fiveMinute !== undefined) result.cache_creation_5m_tokens = creation.fiveMinute;
   if (creation?.oneHour !== undefined) result.cache_creation_1h_tokens = creation.oneHour;
   preserveOpenAICacheWrites(result, usage);
-  if (reasoning > 0) result.reasoning_tokens = reasoning;
+  if (reasoning !== 0) result.reasoning_tokens = reasoning;
+  if (hasInvalidUsageCounters(usage) || creation?.invalid || hasInvalidUsageCounters(result)) result.usage_invalid = true;
   return result;
 }
 
@@ -315,7 +317,7 @@ export function extractUsage(chunk) {
   // so callers must MERGE (mergeUsage), not overwrite, to keep cache counts.
   if (chunk.type === "message_start" && chunk.message?.usage && typeof chunk.message.usage === "object") {
     const u = chunk.message.usage;
-    return normalizeUsage({ ...u, prompt_tokens: u.input_tokens || 0, completion_tokens: u.output_tokens || 0 });
+    return normalizeUsage({ ...u, prompt_tokens: u.input_tokens ?? 0, completion_tokens: u.output_tokens ?? 0 });
   }
 
   // Claude format (message_delta event)
@@ -329,19 +331,16 @@ export function extractUsage(chunk) {
   }
 
   // OpenAI format (also covers DeepSeek which uses prompt_cache_hit_tokens)
-  if (chunk.usage && typeof chunk.usage === "object" && (chunk.usage.prompt_tokens !== undefined || chunk.usage.input_tokens !== undefined)) {
-    const cachedTokens = chunk.usage.cached_tokens
-      ?? chunk.usage.prompt_tokens_details?.cached_tokens
-      ?? chunk.usage.input_tokens_details?.cached_tokens
-      ?? chunk.usage.prompt_cache_hit_tokens;
-    const reasoningTokens = chunk.usage.reasoning_tokens
-      ?? chunk.usage.completion_tokens_details?.reasoning_tokens
-      ?? chunk.usage.output_tokens_details?.reasoning_tokens;
+  if (chunk.usage && typeof chunk.usage === "object" && (chunk.usage.prompt_tokens !== undefined || chunk.usage.input_tokens !== undefined || chunk.usage.usage_invalid === true)) {
+    const cachedTokens = firstDefined(chunk.usage.cached_tokens, chunk.usage.prompt_tokens_details?.cached_tokens,
+      chunk.usage.input_tokens_details?.cached_tokens, chunk.usage.prompt_cache_hit_tokens);
+    const reasoningTokens = firstDefined(chunk.usage.reasoning_tokens, chunk.usage.completion_tokens_details?.reasoning_tokens,
+      chunk.usage.output_tokens_details?.reasoning_tokens);
 
     return normalizeUsage({
       ...chunk.usage,
-      prompt_tokens: chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0,
-      completion_tokens: chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0,
+      prompt_tokens: firstDefined(chunk.usage.prompt_tokens, chunk.usage.input_tokens, 0),
+      completion_tokens: firstDefined(chunk.usage.completion_tokens, chunk.usage.output_tokens, 0),
       cached_tokens: cachedTokens,
       reasoning_tokens: reasoningTokens,
       prompt_tokens_details: chunk.usage.prompt_tokens_details ?? chunk.usage.input_tokens_details ?? (cachedTokens !== undefined ? { cached_tokens: cachedTokens } : undefined),
@@ -361,9 +360,9 @@ export function extractUsage(chunk) {
   // Ollama sends: {"model":"...","done":true,"prompt_eval_count":N,"eval_count":M}
   if (chunk.done === true && typeof chunk.prompt_eval_count === "number") {
     return normalizeUsage({
-      prompt_tokens: chunk.prompt_eval_count || 0,
-      completion_tokens: chunk.eval_count || 0,
-      total_tokens: (chunk.prompt_eval_count || 0) + (chunk.eval_count || 0)
+      prompt_tokens: chunk.prompt_eval_count ?? 0,
+      completion_tokens: chunk.eval_count ?? 0,
+      total_tokens: (chunk.prompt_eval_count ?? 0) + (chunk.eval_count ?? 0)
     });
   }
 
@@ -380,7 +379,7 @@ export function mergeUsage(prev, next) {
   if (!next) return prev;
   const merged = { ...prev };
   for (const [k, v] of Object.entries(next)) {
-    if (k === "cache_write_invalid") {
+    if (k === "cache_write_invalid" || k === "usage_invalid") {
       if (v === true) merged[k] = true;
     } else if (v === null && ["cache_write_tokens", "cache_write_30m_tokens", "cache_write_12h_tokens", "ttl_30m_tokens", "ttl_12h_tokens"].includes(k)) {
       merged[k] = null;
@@ -528,8 +527,8 @@ export function logUsage(provider, usage, model = null, connectionId = null, api
   // Support both formats:
   // - OpenAI: prompt_tokens, completion_tokens
   // - Claude: input_tokens, output_tokens
-  const inTokens = usage?.prompt_tokens || usage?.input_tokens || 0;
-  const outTokens = usage?.completion_tokens || usage?.output_tokens || 0;
+  const inTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
+  const outTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
   const accountPrefix = connectionId ? connectionId.slice(0, 8) + "..." : "unknown";
 
   let msg = `[${getTimeString()}] 📊 ${COLORS.green}[USAGE] ${p} | in=${inTokens} | out=${outTokens} | account=${accountPrefix}${COLORS.reset}`;

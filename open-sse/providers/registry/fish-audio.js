@@ -15,6 +15,12 @@ export default {
   },
   category: "apikey",
   authType: "apikey",
+  models: [
+    { id: "s2.1-pro-free", name: "S2.1 Pro Free (Development/Fair Use)", kind: "tts" },
+    { id: "s2.1-pro", name: "S2.1 Pro", kind: "tts" },
+    { id: "s2-pro", name: "S2 Pro", kind: "tts" },
+    { id: "s1", name: "S1 (Retires 2026-12-31)", kind: "tts" },
+  ],
   serviceKinds: ["tts"],
   ttsConfig: {
     baseUrl: "https://api.fish.audio/v1/tts",
@@ -22,10 +28,10 @@ export default {
     authHeader: "bearer",
     format: "fish-audio",
     models: [
-      { id: "s2.1-pro-free", name: "S2.1 Pro Free" },
+      { id: "s2.1-pro-free", name: "S2.1 Pro Free (Development/Fair Use)" },
       { id: "s2.1-pro", name: "S2.1 Pro" },
       { id: "s2-pro", name: "S2 Pro" },
-      { id: "s1", name: "S1" },
+      { id: "s1", name: "S1 (Retires 2026-12-31)" },
     ],
   },
 };

@@ -48,7 +48,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// Exact bundled CAPI 0.5.2 final mixin: chat/models 2026-08-01;
+// VS Code 1.143.0 bundles Copilot 0.71.0 and CAPI 0.5.2 at
+// 2d0b7506a36c1d6db9a466440131a8e01eab2289: chat/models 2026-08-01;
 // CopilotToken and CopilotUserInfo bypass it and keep 2025-04-01.
 describe("Copilot API-version surfaces", () => {
   it.each(["chat", "responses", "messages"])("sends final CAPI version on %s", async route => {
@@ -59,8 +60,8 @@ describe("Copilot API-version surfaces", () => {
     else await executor.execute(options);
     const headers = lastHeaders(proxyAwareFetch);
     expect(headers.get("x-github-api-version")).toBe("2026-08-01");
-    expect(headers.get("editor-version")).toBe("vscode/1.140.0");
-    expect(headers.get("editor-plugin-version")).toBe("copilot-chat/0.68.0");
+    expect(headers.get("editor-version")).toBe("vscode/1.143.0");
+    expect(headers.get("editor-plugin-version")).toBe("copilot-chat/0.71.0");
     expect(PROVIDERS.github.headers["x-github-api-version"]).toBe("2026-08-01");
   });
 
@@ -101,14 +102,14 @@ describe("Copilot API-version surfaces", () => {
   });
 });
 
-// Gemini CLI 0.62.0 resolves core google-auth-library 10.9.0, not the
+// Gemini CLI 0.65.0 resolves core google-auth-library 10.9.0, not the
 // root 9.15.1 or API-key GoogleGenAI branch. Runtime is the executing host.
 describe("Gemini OAuth Code Assist headers", () => {
   it("uses the auth-client fingerprint and full per-model CLI UA on actual generation", async () => {
     await new GeminiCLIExecutor().execute({ model: "fixture-model", body: { contents: [] }, stream: false, credentials: { accessToken: "fixture-google", projectId: "fixture-project" } });
     const headers = lastHeaders(proxyAwareFetch);
     expect(headers.get("x-goog-api-client")).toBe(apiClient);
-    expect(headers.get("user-agent")).toBe(`GeminiCLI/0.62.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) ${authUserAgent}`);
+    expect(headers.get("user-agent")).toBe(`GeminiCLI/0.65.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) ${authUserAgent}`);
     expect(headers.get("x-goog-api-client")).not.toContain("google-genai-sdk");
   });
 

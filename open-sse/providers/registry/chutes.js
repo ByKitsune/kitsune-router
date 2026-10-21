@@ -25,6 +25,9 @@ export default {
   // Passthrough covers the rest.
   models: [
     { id: "moonshotai/Kimi-K3-TEE", name: "Kimi K3 (TEE)" },
+    // Public /v1/models, 2026-10-21; absence never retires an existing alias.
+    { id: "google/gemma-4-31B-turbo-TEE", name: "Gemma 4 31B Turbo (TEE)", supportedFormats: ["openai"] },
+    { id: "Nemotron-3-Nano-Omni-30B-TEE", name: "Nemotron 3 Nano Omni 30B (TEE)", supportedFormats: ["openai"] },
     { id: "moonshotai/Kimi-K2.6-TEE", name: "Kimi K2.6 (TEE)" },
     { id: "zai-org/GLM-5.2-TEE", name: "GLM 5.2 (TEE)" },
     { id: "zai-org/GLM-5.1-TEE", name: "GLM 5.1 (TEE)" },

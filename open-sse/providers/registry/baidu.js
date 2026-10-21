@@ -29,6 +29,7 @@ export default {
     { id: "ernie-4.5-turbo-20260402", name: "ERNIE 4.5 turbo 20260402" },
     { id: "ernie-4.5-turbo-vl", name: "ERNIE 4.5 turbo vl" },
     { id: "ernie-4.5-turbo-vl-32k", name: "ERNIE 4.5 turbo vl 32k" },
+    { id: "deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash 1017" },
     { id: "deepseek-v4.1-flash", name: "DeepSeek v4.1 flash" },
     { id: "deepseek-v4-pro-0813", name: "DeepSeek v4 pro 0813" },
     { id: "deepseek-v4-flash-0731", name: "DeepSeek v4 flash 0731" },

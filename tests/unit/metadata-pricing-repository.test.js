@@ -49,7 +49,7 @@ describe("saved pricing metadata merge", () => {
     store.value = { openai: { "gpt-6.1-sol": { input: 9, output: 99 } } };
     const repo = await import("../../src/lib/db/repos/pricingRepo.js");
     const pricing = await repo.getPricingForModel("openai", "gpt-6.1-sol");
-    const tokens = { prompt_tokens: 300000, cached_tokens: 100000, cache_creation_input_tokens: 50000, completion_tokens: 10000, reasoning_tokens: 6000 };
+    const tokens = { prompt_tokens: 300000, cached_tokens: 100000, cache_write_tokens: 50000, cache_write_30m_tokens: 50000, completion_tokens: 10000, reasoning_tokens: 6000 };
     expect(calculateCostFromTokens(tokens, pricing)).toBeCloseTo(2.61, 12);
     const cost = calculateCostBreakdown(tokens, pricing);
     expect(cost.inputCost).toBeCloseTo(1.35, 12);
@@ -74,7 +74,7 @@ describe("saved pricing metadata merge", () => {
     const repo = await import("../../src/lib/db/repos/pricingRepo.js");
     const pricing = await repo.getPricingForModel("openai", "gpt-6.1-sol");
     const before = structuredClone(store.value);
-    const tokens = { prompt_tokens: 300000, cached_tokens: 100000, cache_creation_input_tokens: 50000, completion_tokens: 10000, reasoning_tokens: 6000 };
+    const tokens = { prompt_tokens: 300000, cached_tokens: 100000, cache_write_tokens: 50000, cache_write_30m_tokens: 50000, completion_tokens: 10000, reasoning_tokens: 6000 };
     expect(calculateCostFromTokens(tokens, pricing)).toBeCloseTo(1.69, 12);
     const cost = calculateCostBreakdown(tokens, pricing);
     expect(cost.inputCost).toBeCloseTo(1.35, 12);

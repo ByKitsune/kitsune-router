@@ -92,4 +92,13 @@ describe("delivered-tier pricing through HTTP validation and SQLite", () => {
     expect(cost.reasoningCost).toBeNull();
     expect(cost.totalCost).toBeNull();
   });
+
+  it("uses an operator's complete output quote for output-billed reasoning above an unknown static quote", async () => {
+    await repo.updatePricing({ antigravity: { "gemini-4-argon": { output: 9 } } });
+    const tariff = await repo.getPricingForModel("antigravity", "gemini-4-argon");
+    const { calculateCostBreakdown } = await import("../../open-sse/providers/pricing.js");
+    expect(calculateCostBreakdown({ prompt_tokens: 0, completion_tokens: 100, reasoning_tokens: 60 }, tariff).totalCost).toBeCloseTo(0.0009, 12);
+    await repo.updatePricing({ antigravity: { "gemini-4-argon": { output: 9, reasoning: null } } });
+    expect(calculateCostBreakdown({ prompt_tokens: 0, completion_tokens: 100, reasoning_tokens: 60 }, await repo.getPricingForModel("antigravity", "gemini-4-argon")).totalCost).toBeNull();
+  });
 });

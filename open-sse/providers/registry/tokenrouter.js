@@ -24,10 +24,32 @@ export default {
     validateUrl: "https://api.tokenrouter.com/v1/models",
     thinkingFormat: "tokenrouter",
   },
-  // Seed snapshot from live /v1/models (120 entries). Latest catalogue is
-  // fetched via modelsFetcher; other ids still accepted via passthroughModels.
+  // Additive seed reviewed against public /api/pricing on 2026-10-21.
+  // Anonymous /v1/models requires auth; the public tariff catalog is not account
+  // entitlement. New rows below explicitly support this adapter's Chat wire.
+  // Existing aliases remain even when absent from the public tariff catalog.
   models: [
     { id: "MiniMax-Hailuo-2.3", name: "Minimax Hailuo 2.3", kind: "video" },
+    { id: "minimax/minimax-m3.1-flash", name: "MiniMax M3.1 Flash", supportedFormats: ["openai"] },
+    { id: "z-ai/glm-5.3", name: "GLM 5.3", supportedFormats: ["openai"] },
+    { id: "z-ai/glm-5.3-flash", name: "GLM 5.3 Flash", supportedFormats: ["openai"] },
+    { id: "z-ai/glm-5.3-flashx", name: "GLM 5.3 FlashX", supportedFormats: ["openai"] },
+    { id: "deepseek/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", supportedFormats: ["openai"] },
+    { id: "deepseek/deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash (1017)", supportedFormats: ["openai"] },
+    { id: "deepseek/deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision (Exp)", supportedFormats: ["openai"] },
+    { id: "deepseek/deepseek-v4-pro-0813", name: "DeepSeek V4 Pro (0813)", supportedFormats: ["openai"] },
+    { id: "openai/gpt-6.1-sol", name: "GPT 6.1 Sol", supportedFormats: ["openai"] },
+    { id: "openai/gpt-6-sol", name: "GPT 6 Sol", supportedFormats: ["openai"] },
+    { id: "openai/gpt-6-luna", name: "GPT 6 Luna", supportedFormats: ["openai"] },
+    { id: "qwen/qwen3.8-flash", name: "Qwen 3.8 Flash", supportedFormats: ["openai"] },
+    { id: "x-ai/grok-4.6", name: "Grok 4.6", supportedFormats: ["openai"] },
+    { id: "x-ai/grok-4.7", name: "Grok 4.7", supportedFormats: ["openai"] },
+    { id: "xiaomi/mimo-v2.6-pro", name: "MiMo V2.6 Pro", supportedFormats: ["openai"] },
+    { id: "xiaomi/mimo-v2.6-pro-ultraspeed", name: "MiMo V2.6 Pro Ultraspeed", supportedFormats: ["openai"] },
+    { id: "xiaomi/mimo-v2.6-flash", name: "MiMo V2.6 Flash", supportedFormats: ["openai"] },
+    { id: "tencent/hy4-preview", name: "HY4 Preview", supportedFormats: ["openai"] },
+    { id: "nvidia/nemotron-3.5-lightning", name: "Nemotron 3.5 Lightning", supportedFormats: ["openai"] },
+    { id: "stealth/union-alpha", name: "Union Alpha", supportedFormats: ["openai"] },
     { id: "MiniMax-M3", name: "Minimax M3" },
     { id: "anthropic/claude-fable-5", name: "Claude Fable 5" },
     { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5" },

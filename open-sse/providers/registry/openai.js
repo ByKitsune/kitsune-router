@@ -36,7 +36,7 @@ export default {
   ],
   models: [
     // Scheduled API shutdowns: https://developers.openai.com/api/docs/deprecations.md
-    // Notices published on/before 2026-10-17; these are future dates, not retired models.
+    // Notices reviewed 2026-10-21; these are future dates, not retired models.
     // https://developers.openai.com/api/docs/models/gpt-6.1-sol.md
     { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-6-astra", name: "GPT-6 Astra" },
@@ -47,15 +47,16 @@ export default {
     { id: "gpt-5.6-luna", name: "GPT-5.6 Luna" },
     // Responses-only API models; API availability does not establish Codex entitlement.
     { id: "gpt-5.6-cyber", name: "GPT-5.6 Cyber", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    { id: "chat-latest", name: "Chat Latest" },
     { id: "gpt-5.3-codex", name: "GPT-5.3 Codex", targetFormat: "openai-responses", supportedFormats: ["openai-responses"], deprecationDate: "2027-04-01", deprecationNotice: "Scheduled API shutdown April 1, 2027; migrate to GPT-6 Sol." },
     { id: "gpt-5.5", name: "GPT 5.5" },
-    { id: "gpt-5.5-pro", name: "GPT 5.5 Pro" },
+    { id: "gpt-5.5-pro", name: "GPT 5.5 Pro", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-5.4", name: "GPT-5.4" },
     { id: "gpt-5.4-mini", name: "GPT-5.4 Mini" },
     { id: "gpt-5.4-nano", name: "GPT-5.4 Nano", deprecationDate: "2027-04-01", deprecationNotice: "Scheduled API shutdown April 1, 2027; migrate to GPT-6 Luna." },
-    { id: "gpt-5.4-pro", name: "GPT-5.4 Pro" },
+    { id: "gpt-5.4-pro", name: "GPT-5.4 Pro", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-5.2", name: "GPT-5.2" },
-    { id: "gpt-5.2-pro", name: "GPT-5.2 Pro" },
+    { id: "gpt-5.2-pro", name: "GPT-5.2 Pro", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-5.1", name: "GPT-5.1", deprecationDate: "2027-04-01", deprecationNotice: "Scheduled API shutdown April 1, 2027; migrate to GPT-6 Sol." },
     { id: "gpt-5", name: "GPT-5" },
     { id: "gpt-5-mini", name: "GPT-5 Mini" },
@@ -69,10 +70,10 @@ export default {
     { id: "gpt-4.1-nano", name: "GPT-4.1 Nano", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Luna." },
     { id: "o3", name: "O3" },
     { id: "o3-mini", name: "O3 Mini", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Sol." },
-    { id: "o3-pro", name: "O3 Pro" },
+    { id: "o3-pro", name: "O3 Pro", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "o4-mini", name: "O4 Mini", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Terra." },
     { id: "o1", name: "O1", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Sol." },
-    { id: "o1-pro", name: "O1 Pro", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Sol with reasoning.mode: pro." },
+    { id: "o1-pro", name: "O1 Pro", targetFormat: "openai-responses", supportedFormats: ["openai-responses"], deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT-5.6 Sol with reasoning.mode: pro." },
     { id: "text-embedding-3-large", name: "Text Embedding 3 Large", kind: "embedding" },
     { id: "text-embedding-3-small", name: "Text Embedding 3 Small", kind: "embedding" },
     { id: "text-embedding-ada-002", name: "Text Embedding Ada 002", kind: "embedding" },

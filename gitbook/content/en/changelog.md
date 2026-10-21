@@ -2,6 +2,8 @@
 
 ## Unreleased — October reconciliation
 
+- Refresh verified stable upstream client identities and model catalogs; audit exact provider prices and native media billing units. Native time-of-use and published replacement rates use recorded usage time before operator overrides.
+- Make every registered model's effective or unknown price discoverable, with provider/model search that preserves edits. Account plans, client surfaces and subscription credits remain separate from API invoices.
 - Correct exact TokenHarbor free-route estimates and provider-scoped delivered-speed tariffs; preserve separate native cache-write lifetimes, unknown charges and explicit operator overrides.
 - Show known subtotals and unpriced request counts without replacing unknown totals or repricing recorded history.
 - Reconcile authorization, private persistence, cancellation/proxy policy, inference limits and truthful failure metrics; selectively adapt verified October upstream protocol and CLI fixes.

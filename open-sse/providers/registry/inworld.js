@@ -8,7 +8,7 @@ export default {
     textIcon: "IW",
     website: "https://inworld.ai",
     notice: {
-      text: "Free tier available. TTS-1.5 Mini $15/1M chars ($0.015/min), TTS-1.5 Max $25/1M ($0.025/min). Current gen: Realtime TTS-2 (from $25/1M chars). 270+ voices.",
+      text: "On-demand TTS-2 $25/1M characters; TTS-2 Flash $15/1M characters. Paid-plan rates and included balances differ. TTS-1.5 models are deprecated; character prices are not per-minute or token tariffs.",
       apiKeyUrl: "https://platform.inworld.ai/api-keys"
     }
   },
@@ -31,11 +31,11 @@ export default {
       { id: "inworld-tts-2-flash", name: "Inworld TTS 2 Flash" },
       {
         id: "inworld-tts-1.5-mini",
-        name: "Inworld TTS 1.5 Mini ($0.01/min)"
+        name: "Inworld TTS 1.5 Mini (Deprecated)"
       },
       {
         id: "inworld-tts-1.5-max",
-        name: "Inworld TTS 1.5 Max ($0.025/min)"
+        name: "Inworld TTS 1.5 Max (Deprecated)"
       }
     ]
   }

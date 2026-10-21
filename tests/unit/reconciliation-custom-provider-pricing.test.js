@@ -95,4 +95,15 @@ describe("host-scoped custom provider pricing", () => {
       cache_write_tokens: 300, cache_write_30m_tokens: 100, cache_write_12h_tokens: 200 }, tariff);
     expect(cost.totalCost).toBe(0);
   });
+
+  it("exposes each registered model's effective or explicitly unknown quote without saving defaults as overrides", async () => {
+    const { default: registry } = await import("../../open-sse/providers/registry/index.js");
+    const effective = await repo.getConfiguredPricing();
+    const missing = [];
+    for (const provider of registry) for (const model of provider.models || []) {
+      if (!Object.hasOwn(effective[provider.id] || {}, model.id)) missing.push(`${provider.id}/${model.id}`);
+    }
+    expect(missing).toEqual([]);
+    expect(await repo.getSavedPricing()).toEqual({});
+  });
 });

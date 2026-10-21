@@ -33,6 +33,15 @@ export default {
   },
   models: [
     { id: "anthropic/claude-opus-4.7", name: "Claude Opus 4.7" },
+    // Public Cline /api/v1/models, 2026-10-21. Keep full gateway namespaces;
+    // these do not confer Cline Pass subscription entitlement.
+    { id: "anthropic/claude-sonnet-5.5", name: "Claude Sonnet 5.5" },
+    { id: "anthropic/claude-opus-5.5", name: "Claude Opus 5.5" },
+    { id: "openai/gpt-6.1-sol", name: "GPT-6.1 Sol" },
+    { id: "deepseek/deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash 1017" },
+    // Native free[] ID from /api/v1/ai/cline/recommended-models, not the
+    // OpenRouter-style :free twin and never a cline-pass/ entitlement.
+    { id: "cline-free/minimax-m3.1-flash", name: "MiniMax M3.1 Flash (Free)" },
     { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6" },
     { id: "anthropic/claude-opus-4.6", name: "Claude Opus 4.6" },
     { id: "openai/gpt-5.3-codex", name: "GPT-5.3 Codex" },

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getCapabilitiesForModel, setCatalogSource } from "../../open-sse/providers/capabilities.js";
-import { getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { supportsGrokCliReasoningEffort } from "../../open-sse/config/grokCli.js";
 
@@ -22,8 +22,13 @@ describe("verified specs for flagship 2026 models", () => {
       input: 2.0,
       output: 10.0,
       cached: 0.1,
-      cache_creation: 2.5,
+      cache_write_30m: 2.5,
+      cache_write_12h: 5,
     });
+    // Native TTL categories replace ordinary input, not an additive write fee
+    // and not Anthropic 5m/1h cache_creation counters.
+    expect(calculateCostFromTokens({ prompt_tokens: 2000, cache_write_30m_tokens: 1000, cache_write_12h_tokens: 1000 }, pricing)).toBeCloseTo(0.0075, 12);
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, cache_creation_input_tokens: 1000 }, pricing)).toBeNull();
   });
 
   it("resolves Grok 4.7 with 500k context and no invented numeric output maximum", () => {
@@ -66,8 +71,8 @@ describe("verified specs for flagship 2026 models", () => {
     });
   });
 
-  it("prices Gemini 3.8/3.7/3.6 Flash at official 2026 schedule ($0.75/$3.75)", () => {
-    for (const model of ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]) {
+  it("prices literal Gemini 3.8/3.6 Flash rows at the official 2026 schedule ($0.75/$3.75)", () => {
+    for (const model of ["gemini-3.8-flash", "gemini-3.6-flash"]) {
       const p = getPricingForModel("gemini", model);
       expect(p).toMatchObject({
         input: 0.75,
@@ -75,6 +80,12 @@ describe("verified specs for flagship 2026 models", () => {
         cached: 0.075,
       });
     }
+  });
+
+  it("does not turn the Gemini 3.7 redirect destination into an established alias invoice", () => {
+    const metadata = getReviewedModelMetadata("gemini", "gemini-3.7-flash");
+    expect(metadata.limits.documentedSnapshot).toBe("gemini-3.8-flash");
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 100 }, getPricingForModel("gemini", "gemini-3.7-flash"))).toBeNull();
   });
 
   it("prices Gemini 3.1 Pro Preview at official $2/$12 ($0.20 cache read)", () => {

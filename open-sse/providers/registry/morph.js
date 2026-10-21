@@ -20,6 +20,7 @@ export default {
   },
   models: [
     { id: "morph-v3-large", name: "Morph v3 Large" },
+    { id: "morph-dsv41flash-1017", name: "DeepSeek V4.1 Flash 1017 (Morph)", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "morph-v3-fast", name: "Morph v3 Fast" },
     { id: "morph-qwen35-397b", name: "Qwen 3.5 397B (Morph)", contextLength: 262144 },
     { id: "morph-minimax27-230b", name: "MiniMax M2.7 (Morph)", contextLength: 200704 },

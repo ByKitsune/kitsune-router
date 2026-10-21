@@ -123,9 +123,9 @@ function addToCounter(target, key, values) {
 }
 
 function aggregateEntryToDay(day, entry) {
-  const promptTokens = entry.tokens?.prompt_tokens || entry.tokens?.input_tokens || 0;
-  const completionTokens = entry.tokens?.completion_tokens || entry.tokens?.output_tokens || 0;
-  const cachedTokens = entry.tokens?.cached_tokens || entry.tokens?.cache_read_input_tokens || entry.tokens?.prompt_cache_hit_tokens || 0;
+  const promptTokens = entry.tokens?.prompt_tokens ?? entry.tokens?.input_tokens ?? 0;
+  const completionTokens = entry.tokens?.completion_tokens ?? entry.tokens?.output_tokens ?? 0;
+  const cachedTokens = entry.tokens?.cached_tokens ?? entry.tokens?.cache_read_input_tokens ?? entry.tokens?.prompt_cache_hit_tokens ?? 0;
   const { cost, inputCost, cachedCost, outputCost } = entry;
   const vals = { promptTokens, completionTokens, cachedTokens, cost, inputCost, cachedCost, outputCost, costCoverage: requestCostCoverage(entry) };
 
@@ -204,10 +204,10 @@ async function ensureRingInitialized() {
   } catch {}
 }
 
-async function calculateCost(provider, model, tokens) {
+async function calculateCost(provider, model, tokens, timestamp) {
   try {
     const { getPricingForModel } = await import("./pricingRepo.js");
-    const pricing = provider && model ? await getPricingForModel(provider, model) : null;
+    const pricing = provider && model ? await getPricingForModel(provider, model, { timestamp }) : null;
 
     // Keep pricing math centralized, including unknown and unused tariffs.
     const { calculateCostBreakdown } = await import("open-sse/providers/pricing.js");
@@ -217,19 +217,19 @@ async function calculateCost(provider, model, tokens) {
     console.error("Error calculating cost:", e);
     // A failed calculation cannot establish a used component's price. Zero
     // usage is still free, and unused components do not acquire unknown costs.
-    const input = tokens?.prompt_tokens || tokens?.input_tokens || 0;
-    const cached = tokens?.cached_tokens || tokens?.cache_read_input_tokens || tokens?.prompt_cache_hit_tokens || 0;
-    const creation = tokens?.cache_creation_input_tokens || tokens?.cache_creation_tokens
-      || (tokens?.cache_creation_5m_tokens || 0) + (tokens?.cache_creation_1h_tokens || 0);
-    const output = tokens?.completion_tokens || tokens?.output_tokens || 0;
-    const reasoning = tokens?.reasoning_tokens || 0;
+    const input = tokens?.prompt_tokens ?? tokens?.input_tokens ?? 0;
+    const cached = tokens?.cached_tokens ?? tokens?.cache_read_input_tokens ?? tokens?.prompt_cache_hit_tokens ?? 0;
+    const creation = tokens?.cache_creation_input_tokens ?? tokens?.cache_creation_tokens
+      ?? (tokens?.cache_creation_5m_tokens ?? 0) + (tokens?.cache_creation_1h_tokens ?? 0);
+    const output = tokens?.completion_tokens ?? tokens?.output_tokens ?? 0;
+    const reasoning = tokens?.reasoning_tokens ?? 0;
     const breakdown = {
       inputCost: input > cached + creation ? null : 0,
       cachedCost: cached > 0 ? null : 0,
       cacheCreationCost: creation > 0 ? null : 0,
       outputCost: output > reasoning ? null : 0,
       reasoningCost: reasoning > 0 ? null : 0,
-      totalCost: input > 0 || output > 0 || cached > 0 || creation > 0 || reasoning > 0 || tokens?.total_tokens > 0 ? null : 0,
+      totalCost: tokens?.usage_invalid === true || tokens?.cache_write_invalid === true || input > 0 || output > 0 || cached > 0 || creation > 0 || reasoning > 0 || tokens?.total_tokens > 0 ? null : 0,
     };
     return { cost: breakdown.totalCost, breakdown };
   }
@@ -305,8 +305,8 @@ export async function getActiveRequests() {
       const t = e.tokens || {};
       return {
         timestamp: e.timestamp, model: e.model, provider: e.provider || "",
-        promptTokens: t.prompt_tokens || t.input_tokens || 0,
-        completionTokens: t.completion_tokens || t.output_tokens || 0,
+        promptTokens: t.prompt_tokens ?? t.input_tokens ?? 0,
+        completionTokens: t.completion_tokens ?? t.output_tokens ?? 0,
         status: e.status || "ok",
         cost: e.cost, inputCost: e.inputCost, cachedCost: e.cachedCost, outputCost: e.outputCost,
       };
@@ -331,7 +331,7 @@ export async function saveRequestUsage(entry) {
 
     if (!entry.timestamp) entry.timestamp = new Date().toISOString();
     if (entry._persistedUsageId == null) {
-      const { cost, breakdown } = await calculateCost(entry.provider, entry.model, entry.tokens);
+      const { cost, breakdown } = await calculateCost(entry.provider, entry.model, entry.tokens, entry.timestamp);
       entry.cost = cost;
       entry.inputCost = addNullableCost(breakdown.inputCost, breakdown.cacheCreationCost);
       entry.cachedCost = breakdown.cachedCost;
@@ -339,8 +339,8 @@ export async function saveRequestUsage(entry) {
     }
 
     const tokens = entry.tokens || {};
-    const promptTokens = tokens.prompt_tokens || tokens.input_tokens || 0;
-    const completionTokens = tokens.completion_tokens || tokens.output_tokens || 0;
+    const promptTokens = tokens.prompt_tokens ?? tokens.input_tokens ?? 0;
+    const completionTokens = tokens.completion_tokens ?? tokens.output_tokens ?? 0;
 
     let inserted = false;
 
@@ -471,9 +471,9 @@ export async function getUsageStats(period = "all") {
       const t = parseJson(r.tokens, {}) || {};
       return {
         timestamp: r.timestamp, model: r.model, provider: r.provider || "",
-        promptTokens: t.prompt_tokens || t.input_tokens || 0,
-        completionTokens: t.completion_tokens || t.output_tokens || 0,
-        cachedTokens: t.cached_tokens || t.cache_read_input_tokens || 0,
+        promptTokens: t.prompt_tokens ?? t.input_tokens ?? 0,
+        completionTokens: t.completion_tokens ?? t.output_tokens ?? 0,
+        cachedTokens: t.cached_tokens ?? t.cache_read_input_tokens ?? t.prompt_cache_hit_tokens ?? 0,
         status: r.status || "ok",
         cost: r.cost, ...readCostComponents(r.meta),
       };
@@ -721,7 +721,7 @@ export async function getUsageStats(period = "all") {
       const tokens = parseJson(r.tokens, {}) || {};
       const promptTokens = tokens.prompt_tokens ?? tokens.input_tokens ?? r.promptTokens ?? 0;
       const completionTokens = tokens.completion_tokens ?? tokens.output_tokens ?? r.completionTokens ?? 0;
-      const cachedTokens = tokens.cached_tokens || tokens.cache_read_input_tokens || tokens.prompt_cache_hit_tokens || 0;
+      const cachedTokens = tokens.cached_tokens ?? tokens.cache_read_input_tokens ?? tokens.prompt_cache_hit_tokens ?? 0;
       const entryCost = r.cost;
       const components = readCostComponents(r.meta);
       const recordedCosts = { costCoverage: requestCostCoverage({ cost: entryCost, ...components }) };

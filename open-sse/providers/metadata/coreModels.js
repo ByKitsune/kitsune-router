@@ -1,6 +1,8 @@
 /**
  * Reviewed core text metadata: primary facts plus exact models.dev cross-checks
- * as of 2026-10-17. Standalone factual shard without resolver or network imports.
+ * originally reviewed 2026-10-17 and refreshed from primary sources 2026-10-21.
+ * Standalone factual shard without resolver or network imports. Captured source
+ * bodies, UTC timestamps and SHA-256: /tmp/opencode/zenrouter-client-pricing-refresh-20261021/core.
  * API specifications are not proof of OAuth account entitlement or route limits.
  * Missing values are UNKNOWN, not zero/free/unlimited. When integrating, honor
  * limits.unverifiedCapabilityFields and billing.unverifiedPriceFields instead of
@@ -1000,18 +1002,22 @@ const openai = {
       "input": 12.5,
       "output": 75.0,
       "cached": 1.25,
-      "cache_creation": 15.625,
+      "cache_write_30m": 15.625,
+      "cache_write_12h": 31.25,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
-        "input": 25.0,
-        "output": 112.5,
-        "cached": 2.5,
-        "cache_creation": 31.25
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_write_30m": null,
+        "cache_write_12h": null
       }
     },
     "sources": [
-      "https://developers.openai.com/api/docs/models/gpt-5.6-cyber.md"
+      "https://developers.openai.com/api/docs/models/gpt-5.6-cyber.md",
+      "https://developers.openai.com/api/docs/pricing.md"
     ],
     "billing": {
       "currency": "USD",
@@ -1019,8 +1025,7 @@ const openai = {
       "kind": "api",
       "note": "Published standard API rates; account availability and authenticated route limits were not checked.",
       "qualifiers": [
-        "- Prompts with >272K input tokens are priced at 2x input and 1.5x output for the full request.",
-        "- Cache writes are billed at 1.25x the uncached input token rate."
+        "The current price table publishes separate 30m/12h writes, and no long-context tariff. The model page mentions long-context multipliers despite a maximum input of 272K; do not extrapolate a usable long-context tier."
       ]
     },
     "limits": {
@@ -1065,14 +1070,16 @@ const openai = {
       "input": 0.2,
       "output": 1.2,
       "cached": 0.02,
-      "cache_creation": 0.25,
+      "cache_write_30m": 0.25,
+      "cache_write_12h": 0.5,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 0.4,
         "output": 1.8,
         "cached": 0.04,
-        "cache_creation": 0.5
+        "cache_write_30m": 0.5,
+        "cache_write_12h": 1
       }
     },
     "sources": [
@@ -1137,14 +1144,16 @@ const openai = {
       "input": 4.0,
       "output": 20.0,
       "cached": 0.4,
-      "cache_creation": 5.0,
+      "cache_write_30m": 5,
+      "cache_write_12h": 10,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 8.0,
         "output": 30.0,
         "cached": 0.8,
-        "cache_creation": 10.0
+        "cache_write_30m": 10,
+        "cache_write_12h": 20
       }
     },
     "sources": [
@@ -1211,14 +1220,16 @@ const openai = {
       "input": 2.0,
       "output": 12.0,
       "cached": 0.2,
-      "cache_creation": 2.5,
+      "cache_write_30m": 2.5,
+      "cache_write_12h": 5,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 4.0,
         "output": 18.0,
         "cached": 0.4,
-        "cache_creation": 5.0
+        "cache_write_30m": 5,
+        "cache_write_12h": 10
       }
     },
     "sources": [
@@ -1282,14 +1293,16 @@ const openai = {
       "input": 10.0,
       "output": 50.0,
       "cached": 1.0,
-      "cache_creation": 12.5,
+      "cache_write_30m": 12.5,
+      "cache_write_12h": 25,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 20.0,
         "output": 75.0,
         "cached": 2.0,
-        "cache_creation": 25.0
+        "cache_write_30m": 25,
+        "cache_write_12h": 50
       }
     },
     "sources": [
@@ -1342,21 +1355,23 @@ const openai = {
       "thinkingCanDisable": true,
       "thinkingEffortSupported": true,
       "thinkingEfforts": [
-        "none"
+        "none", "low", "medium", "high", "xhigh", "max"
       ]
     },
     "pricing": {
       "input": 0.1,
       "output": 0.5,
       "cached": 0.01,
-      "cache_creation": 0.125,
+      "cache_write_30m": 0.125,
+      "cache_write_12h": 0.25,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 0.2,
         "output": 0.75,
         "cached": 0.02,
-        "cache_creation": 0.25
+        "cache_write_30m": 0.25,
+        "cache_write_12h": 0.5
       }
     },
     "sources": [
@@ -1383,7 +1398,7 @@ const openai = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
-        "none"
+        "none", "low", "medium", "high", "xhigh", "max"
       ],
       "toolCallingNote": "Responses supports tools; Chat Completions function calling requires reasoning_effort=none."
     }
@@ -1408,21 +1423,23 @@ const openai = {
       "thinkingCanDisable": true,
       "thinkingEffortSupported": true,
       "thinkingEfforts": [
-        "none"
+        "none", "low", "medium", "high", "xhigh", "max"
       ]
     },
     "pricing": {
       "input": 2.0,
       "output": 10.0,
       "cached": 0.2,
-      "cache_creation": 2.5,
+      "cache_write_30m": 2.5,
+      "cache_write_12h": 5,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 4.0,
         "output": 15.0,
         "cached": 0.4,
-        "cache_creation": 5.0
+        "cache_write_30m": 5,
+        "cache_write_12h": 10
       }
     },
     "sources": [
@@ -1449,7 +1466,7 @@ const openai = {
       "scope": "public-api-specification",
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
-        "none"
+        "none", "low", "medium", "high", "xhigh", "max"
       ],
       "toolCallingNote": "Responses supports tools; Chat Completions function calling requires reasoning_effort=none."
     }
@@ -1485,14 +1502,16 @@ const openai = {
       "input": 2.0,
       "output": 10.0,
       "cached": 0.1,
-      "cache_creation": 2.5,
+      "cache_write_30m": 2.5,
+      "cache_write_12h": 5,
       "tier": {
         "threshold": 272000,
         "inclusive": false,
         "input": 4.0,
         "output": 15.0,
         "cached": 0.2,
-        "cache_creation": 5.0
+        "cache_write_30m": 5,
+        "cache_write_12h": 10
       }
     },
     "sources": [
@@ -1505,7 +1524,7 @@ const openai = {
       "kind": "api",
       "note": "Published standard API rates; account availability and authenticated route limits were not checked.",
       "qualifiers": [
-        "GPT-6.1 Sol supports US and EU data residency. Fast mode is unavailable with EU",
+        "GPT-6.1 Sol supports US and EU data residency, including Fast and Ultrafast modes.",
         "- Cached input tokens are priced at 5% of the uncached input token rate.",
         "- Cache writes are billed at 1.25x the uncached input token rate.",
         "- Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.",
@@ -3135,6 +3154,231 @@ const xai = {
 // The same model may be reachable via a plan-billed route; reference rates are
 // explicitly NOT subscription debit prices. Clones keep provider scope separate.
 const copy = value => JSON.parse(JSON.stringify(value));
+
+// Standard quotes, independent of paid processing-speed configuration. A dash
+// in a vendor table is an unknown/unsupported tariff, never a zero-dollar fee.
+const primaryPricing = {
+  openai: {
+    url: "https://developers.openai.com/api/docs/pricing.md",
+    capturedAtUtc: "2026-10-21T10:47:37.142421Z",
+    sha256: "129d6019819379a6f30edc0811d4631ddb085dcd4b3b1d0012a945cd1af1bfbf",
+  },
+  anthropic: {
+    url: "https://platform.claude.com/docs/en/about-claude/pricing.md",
+    capturedAtUtc: "2026-10-21T10:47:37.742728Z",
+    sha256: "d0dc6009ff1bae0023eec432d7c21d4a3b71a71e542ac350dbfd13dc85a8b862",
+  },
+  gemini: {
+    url: "https://ai.google.dev/gemini-api/docs/pricing",
+    capturedAtUtc: "2026-10-21T10:47:37.798071Z",
+    sha256: "8e0ce5ac10eafbf19db7c1d289467f639ad28ec9e7aede9053c8d2e3bbf1e380",
+  },
+  xai: {
+    url: "https://docs.x.ai/developers/pricing",
+    capturedAtUtc: "2026-10-21T10:47:38.125284Z",
+    sha256: "849eacc7b8c5b7c5df3677234457372392eacf400a4240e8995a8aaa74b3d688",
+  },
+};
+const catalogCrosscheck = {
+  url: "https://models.dev/api.json",
+  capturedAtUtc: "2026-10-21T10:47:38.332470Z",
+  sha256: "079175d89430bbf5ee2a0e271ced1ad4b4d1cf529fdbd0a5db50bb2e857e90a8",
+  commit: "020f86d1b0970fe421c5dd7baec94478879d9756",
+  scope: "Exact provider/model cross-check only; not proof of currency, entitlement, retirement, or a subscription invoice.",
+};
+
+// Previously these entries had catalog facts but depended on a separate static
+// tariff table. Keep the exact native Standard quote here with its provenance.
+for (const [id, pricing] of Object.entries({
+  "gpt-5.5-pro": { input: 30, output: 180, tier: { threshold: 272000, inclusive: false, input: 60, output: 270 } },
+  "gpt-5.4-pro": { input: 30, output: 180, tier: { threshold: 272000, inclusive: false, input: 60, output: 270 } },
+  "gpt-5.2": { input: 1.75, output: 14, cached: 0.175 },
+  "gpt-5.2-pro": { input: 21, output: 168 },
+  "gpt-5.1": { input: 1.25, output: 10, cached: 0.125 },
+  "gpt-5": { input: 1.25, output: 10, cached: 0.125 },
+  "gpt-5-mini": { input: 0.25, output: 2, cached: 0.025 },
+  "gpt-5-nano": { input: 0.05, output: 0.4, cached: 0.005 },
+  "gpt-5-pro": { input: 15, output: 120 },
+  "gpt-4o": { input: 2.5, output: 10, cached: 1.25 },
+  "gpt-4o-mini": { input: 0.15, output: 0.6, cached: 0.075 },
+  "gpt-4-turbo": { input: 10, output: 30 },
+  "gpt-4.1": { input: 2, output: 8, cached: 0.5 },
+  "gpt-4.1-mini": { input: 0.4, output: 1.6, cached: 0.1 },
+  "gpt-4.1-nano": { input: 0.1, output: 0.4, cached: 0.025 },
+  "o3": { input: 2, output: 8, cached: 0.5 },
+  "o3-mini": { input: 1.1, output: 4.4, cached: 0.55 },
+  "o3-pro": { input: 20, output: 80 },
+  "o4-mini": { input: 1.1, output: 4.4, cached: 0.275 },
+  "o1": { input: 15, output: 60, cached: 7.5 },
+  "o1-pro": { input: 150, output: 600 },
+})) {
+  const entry = openai[id];
+  entry.pricing = pricing;
+  entry.sources.push(primaryPricing.openai.url);
+  entry.billing = {
+    currency: "USD", unit: "1M tokens", kind: "api",
+    note: "Published native Standard API token rates; cache writes are not established for this model. No authenticated availability checked.",
+    unverifiedPriceFields: ["cache_creation", "cache_write_30m", "cache_write_12h", ...("cached" in pricing ? [] : ["cached"])],
+  };
+}
+for (const id of ["gpt-5.5-pro", "gpt-5.4-pro", "gpt-5.2-pro", "gpt-5-pro", "o3-pro", "o1-pro"]) {
+  openai[id].limits.supportedApiFormats = ["openai-responses"];
+  openai[id].sources.push(`https://developers.openai.com/api/docs/models/${id}.md`);
+}
+
+for (const [id, underlying] of [["gpt-daybreak-blue-latest", "gpt-5.6-sol"], ["gpt-daybreak-red-latest", "gpt-5.6-cyber"]]) {
+  const entry = copy(openai[underlying]);
+  entry.description = "Deprecated Daybreak program alias; separate approval and provisioning required.";
+  entry.sources.push(`https://developers.openai.com/api/docs/models/${id}.md`, primaryPricing.openai.url);
+  Object.assign(entry.limits, {
+    idKind: "documented-api-alias", documentedSnapshot: underlying,
+    supportedApiFormats: ["openai-responses"], lifecycleStatus: "deprecated-alias",
+    availability: "Daybreak approval and model provisioning required; deprecation does not establish a shutdown date.",
+  });
+  delete entry.limits.catalogModelId;
+  delete entry.limits.catalogProvider;
+  openai[id] = entry;
+}
+openai["chat-latest"] = {
+  description: "Changing alias for the latest Instant model used in ChatGPT, sold separately through the API.",
+  capabilities: {
+    contextWindow: 400000, maxInput: 272000, maxOutput: 128000,
+    vision: true, pdf: false, audioInput: false, videoInput: false,
+    imageOutput: false, audioOutput: false, reasoning: false, tools: true, search: true, structuredOutput: true,
+  },
+  pricing: { input: 5, output: 30, cached: 0.5 },
+  sources: ["https://developers.openai.com/api/docs/models/chat-latest.md", primaryPricing.openai.url],
+  billing: { currency: "USD", unit: "1M tokens", kind: "api", unverifiedPriceFields: ["cache_creation", "cache_write_30m", "cache_write_12h"], note: "Native Standard API quote, not a ChatGPT subscription charge." },
+  limits: { scope: "public-api-specification", idKind: "changing-api-alias", authenticatedRouteVerified: false, supportedApiFormats: ["openai", "openai-responses"] },
+};
+
+for (const id of ["claude-opus-4-8", "claude-opus-4-7"]) {
+  const entry = copy(anthropic["claude-opus-5"]);
+  entry.description = "Legacy Claude Opus still available on the native API; adaptive thinking and a native 1M context window.";
+  entry.sources = [`https://platform.claude.com/docs/en/models/${id.slice(7)}/overview.md`, primaryPricing.anthropic.url, catalogCrosscheck.url];
+  Object.assign(entry.capabilities, { thinkingCanDisable: true, thinkingEffortSupported: true, thinkingEfforts: ["low", "medium", "high", "xhigh", "max"] });
+  Object.assign(entry.limits, { catalogModelId: id, lifecycleStatus: "active-legacy", apiDefaultEffort: id === "claude-opus-4-7" ? "xhigh" : "high", unverifiedCapabilityFields: ["maxInput"] });
+  anthropic[id] = entry;
+}
+anthropic["claude-opus-4-5-20251101"] = {
+  description: "Legacy Claude Opus 4.5 pinned snapshot; the dateless 4.5 API ID is a documented alias.",
+  capabilities: { ...copy(anthropic["claude-haiku-4-5-20251001"].capabilities), thinkingCanDisable: true },
+  pricing: { input: 5, output: 25, cached: 0.5, cache_creation: 6.25, cache_creation_1h: 10 },
+  sources: ["https://platform.claude.com/docs/en/models/opus-4-5/overview.md", primaryPricing.anthropic.url, catalogCrosscheck.url],
+  billing: { currency: "USD", unit: "1M tokens", kind: "api", cacheWriteTtl: "5m", cacheWrite1h: 10, note: "Native Standard API price; distinct 5m/1h writes. Not a Claude Code subscription invoice." },
+  limits: { scope: "public-api-specification", authenticatedRouteVerified: false, catalogProvider: "anthropic", catalogModelId: "claude-opus-4-5-20251101", lifecycleStatus: "active-legacy", unverifiedCapabilityFields: ["maxInput"] },
+};
+for (const [alias, snapshot] of [["claude-opus-4-5", "claude-opus-4-5-20251101"], ["claude-haiku-4-5", "claude-haiku-4-5-20251001"]]) {
+  const entry = copy(anthropic[snapshot]);
+  Object.assign(entry.limits, { catalogModelId: alias, idKind: "documented-api-alias", documentedSnapshot: snapshot });
+  anthropic[alias] = entry;
+}
+for (const [id, equivalent] of [["claude-mythos-5-1", "claude-fable-5-1"], ["claude-mythos-5", "claude-fable-5"]]) {
+  const entry = copy(anthropic[equivalent]);
+  entry.description = "Verification-required native Claude model with the same documented specifications and prices as " + equivalent + ".";
+  entry.sources = [`https://platform.claude.com/docs/en/models/${id.slice(7)}/overview.md`, primaryPricing.anthropic.url];
+  delete entry.limits.catalogModelId;
+  delete entry.limits.catalogProvider;
+  Object.assign(entry.limits, { accountEligibility: "verified-organization-required", availabilityScope: "native-anthropic-api", documentedEquivalentModel: equivalent, unverifiedCapabilityFields: ["maxInput"] });
+  anthropic[id] = entry;
+}
+// Native Sonnet accepts between_tools, not thinking.type=disabled. Claude Code
+// also refuses to turn thinking off on Haiku 5.5; that is a separate contract.
+Object.assign(anthropic["claude-sonnet-5-5"].capabilities, { thinkingCanDisable: false, thinkingOffType: "between_tools", forcedToolChoice: false });
+
+Object.assign(gemini["gemini-2.5-flash"].limits, {
+  lifecycleStatus: "active-restricted", accountEligibility: "prior-use-required",
+  availabilityScope: "google-public-api-project", shutdownDate: null,
+  note: "The current Google models page includes Flash in the prior-active-use restriction and explicitly says these endpoints are not deprecated.",
+});
+gemini["gemini-2.5-flash"].sources.push("https://ai.google.dev/gemini-api/docs/models");
+gemini["gemma-4-26b-a4b-it"] = copy(gemini["gemma-4-31b-it"]);
+gemini["gemma-4-26b-a4b-it"].description = "Gemma 4 mixture-of-experts instruction model; native Gemini API free-tier availability is separate from the Code Assist product.";
+gemini["gemma-4-26b-a4b-it"].limits.catalogModelId = "gemma-4-26b-a4b-it";
+for (const id of ["gemma-4-31b-it", "gemma-4-26b-a4b-it"]) {
+  const entry = gemini[id];
+  entry.pricing = { input: 0, output: 0, cached: 0 };
+  entry.sources.push("https://ai.google.dev/gemma/docs/core/model_card_4", primaryPricing.gemini.url);
+  entry.billing = { kind: "api", currency: "USD", unit: "1M tokens", tier: "free", unverifiedPriceFields: ["cache_creation"], note: "Published Gemma 4 free-tier input/output/cache prices are genuine zero. The paid native API tier is not available; no Code Assist or self-hosted inference cost is implied." };
+  entry.limits.maxOutputScope = "Exact google/models.dev catalog, not an independently documented model-card output ceiling.";
+  entry.limits.unverifiedCapabilityFields = ["maxInput"];
+}
+for (const [alias, destination] of [["gemini-3.5-flash", "gemini-3.6-flash"], ["gemini-3.7-flash", "gemini-3.8-flash"]]) {
+  // Google explicitly preserves these endpoints and redirects native API calls.
+  // Its current price page has no literal tariff for either retained alias.
+  // Routing alone is not proof that destination billing/promotion applies.
+  const entry = gemini[alias];
+  entry.billing = {
+    kind: "unverified", currency: "USD", unit: "1M tokens",
+    unverifiedPriceFields: ["input", "output", "cached", "cache_creation"],
+    legacyCatalogQuote: copy(entry.pricing),
+    redirectReference: { model: destination, rates: copy(gemini[destination].pricing), nextRates: copy(gemini[destination].billing.nextRates), cacheStorage: copy(gemini[destination].billing.cacheStorage), source: primaryPricing.gemini.url },
+    note: `The native API endpoint routes to ${destination}, but the current price page has no literal ${alias} row. Destination prices and future promotions remain reference-only, not an established alias invoice. Code Assist rollout mappings are independent.`,
+  };
+  entry.pricing = { input: null, output: null, cached: null, reasoning: null };
+  Object.assign(entry.limits, { idKind: "documented-api-redirect", lifecycleStatus: "active-redirect", documentedSnapshot: destination, shutdownDate: null });
+  entry.sources.push("https://ai.google.dev/gemini-api/docs/deprecations?hl=en", `https://ai.google.dev/gemini-api/docs/models/${destination}`);
+}
+gemini["gemini-nano-banana-2.1"] = {
+  description: "Nano Banana 2.1 native image generation, exposed through the gateway's prompt-only image adapter.",
+  capabilities: { imageOutput: true, audioOutput: false, tools: false, search: false, reasoning: false, structuredOutput: false, vision: false, pdf: false, audioInput: false, videoInput: false, maxInput: 131072, maxOutput: 32768 },
+  pricing: { input: 1.5 },
+  sources: ["https://ai.google.dev/gemini-api/docs/models/gemini-nano-banana-2.1", primaryPricing.gemini.url],
+  billing: {
+    currency: "USD", unit: "million_tokens_by_modality", kind: "api",
+    rates: { text_image_video_input: 1.5, text_thinking_output: 7.5, image_output: 30 },
+    imageOutputTokens: { "1K": 1120, "2K": 1680, "4K": 3780 },
+    unverifiedPriceFields: ["output", "cached", "cache_creation"],
+    note: "Standard paid API rates. No single generic output quote: text/thinking and image output differ. Native references, video/PDF inputs, grounding and controls are not forwarded by the prompt-only adapter.",
+  },
+  limits: { kind: "image", scope: "gateway-media-adapter", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["contextWindow"], nativeInputModalities: ["text", "image", "video", "pdf"], nativeOutputModalities: ["image", "text"] },
+};
+
+for (const [id, reasoning] of [["grok-4.20-0309-reasoning", true], ["grok-4.20-0309-non-reasoning", false], ["grok-4.20-multi-agent-0309", true]]) {
+  const entry = copy(xai["grok-4.3"]);
+  entry.description = "Native Grok 4.20 API model, not the Grok Build subscription product.";
+  entry.capabilities.reasoning = reasoning;
+  entry.sources = [`https://docs.x.ai/developers/models/${id}`, primaryPricing.xai.url, catalogCrosscheck.url];
+  Object.assign(entry.limits, { catalogModelId: id, unverifiedCapabilityFields: ["maxInput", "maxOutput"] });
+  xai[id] = entry;
+}
+for (const id of ["grok-4.7", "grok-4.6", "grok-4.5"]) {
+  const entry = xai[id];
+  Object.assign(entry.capabilities, { thinkingCanDisable: false, thinkingEffortSupported: true, thinkingEfforts: id === "grok-4.5" ? ["low", "medium", "high"] : ["low", "medium", "high", "xhigh"] });
+  entry.sources.push("https://docs.x.ai/developers/model-capabilities/text/reasoning.md");
+  entry.limits.apiDefaultReasoningEffort = "high";
+}
+for (const [alias, id] of [["grok-4.20-reasoning", "grok-4.20-0309-reasoning"], ["grok-4.20-non-reasoning", "grok-4.20-0309-non-reasoning"], ["grok-4.20-multi-agent", "grok-4.20-multi-agent-0309"]]) {
+  const entry = copy(xai[id]);
+  delete entry.limits.catalogModelId;
+  delete entry.limits.catalogProvider;
+  Object.assign(entry.limits, { idKind: "documented-api-alias", documentedSnapshot: id });
+  xai[alias] = entry;
+}
+xai["grok-4"] = {
+  description: "Existing compatibility ID; the current documentation redirect does not verify a specific priced backend.",
+  capabilities: { imageOutput: false, audioOutput: false },
+  pricing: { input: null, output: null, cached: null },
+  sources: ["https://docs.x.ai/developers/models/grok-4", "https://docs.x.ai/developers/migration/may-15-retirement.md"],
+  billing: { currency: "unknown", unit: "1M tokens", kind: "unverified", unverifiedPriceFields: ["input", "output", "cached", "cache_creation"], note: "Do not price this bare compatibility ID as the retired grok-4-0709 snapshot or assume the current Grok 4.3 redirect without an exact native mapping." },
+  limits: { authenticatedRouteVerified: false, idKind: "compatibility-id", unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
+};
+
+for (const [provider, models] of Object.entries({ openai, anthropic, gemini, xai })) {
+  for (const entry of Object.values(models)) {
+    entry.provenance = { reviewedAt: "2026-10-21", primaryPricing: copy(primaryPricing[provider]), catalogCrosscheck: copy(catalogCrosscheck) };
+    if (entry.limits.catalogModelId) {
+      entry.limits.catalogAsOf = "2026-10-21";
+      entry.limits.catalogCommit = catalogCrosscheck.commit;
+    }
+    if (entry.pricing && entry.billing.kind === "api" && !entry.sources.includes(primaryPricing[provider].url)) entry.sources.push(primaryPricing[provider].url);
+    if (provider === "openai" && entry.pricing?.cache_write_30m !== undefined) {
+      entry.billing.cacheWriteLifetimes = ["30m", "12h"];
+      entry.billing.unverifiedPriceFields = ["cache_creation"];
+    }
+  }
+}
+
 const reference = (entry, note) => {
   const result = copy(entry);
   result.billing.kind = "api-reference";
@@ -3153,8 +3397,8 @@ const reference = (entry, note) => {
 };
 const codex = {};
 const codexSources = [
-  "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/models-manager/models.json",
-  "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/protocol/src/openai_models.rs",
+  "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/codex-rs/models-manager/models.json",
+  "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/codex-rs/protocol/src/openai_models.rs",
 ];
 
 const codexConfig = {
@@ -3257,9 +3501,32 @@ const codexConfig = {
       "high",
       "xhigh"
     ]
+  },
+  "gpt-daybreak-blue-latest": {
+    "cliDefaultContext": 272000,
+    "cliMaxContext": 872000,
+    "cliDefaultReasoningEffort": "low",
+    "cliReasoningEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"]
+  },
+  "gpt-daybreak-red-latest": {
+    "cliDefaultContext": 372000,
+    "cliMaxContext": 372000,
+    "cliDefaultReasoningEffort": "medium",
+    "cliReasoningEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"]
   }
 };
 
+const codexCredits = {
+  "gpt-6-astra": { input: 250, cached: 25, output: 1250 },
+  "gpt-6.1-sol": { input: 50, cached: 2.5, output: 250 },
+  "gpt-6-sol": { input: 50, cached: 5, output: 250 },
+  "gpt-6-luna": { input: 2.5, cached: 0.25, output: 12.5 },
+  "gpt-5.6-sol": { input: 100, cached: 10, output: 500 },
+  "gpt-5.6-terra": { input: 50, cached: 5, output: 300 },
+  "gpt-5.6-luna": { input: 5, cached: 0.5, output: 30 },
+  "gpt-daybreak-blue-latest": { input: 100, cached: 10, output: 500 },
+  "gpt-daybreak-red-latest": { input: 312.5, cached: 31.25, output: 1875 },
+};
 for (const [id, config] of Object.entries(codexConfig)) {
   const entry = reference(openai[id], "Codex OAuth account limits unverified.");
   // Report the API model maximum, not the Codex CLI configuration ceiling.
@@ -3286,6 +3553,17 @@ for (const [id, config] of Object.entries(codexConfig)) {
   entry.capabilities.thinkingCanDisable = config.cliReasoningEfforts.includes("none");
   entry.capabilities.thinkingEffortSupported = true;
   entry.sources.push(...codexSources);
+  entry.sources.push("https://developers.openai.com/codex/pricing.md");
+  entry.limits.cliBundle = {
+    tag: "rust-v0.163.0", capturedAtUtc: "2026-10-21T10:47:37.158315Z",
+    sha256: "943ca7fe1d19ed019054158303f0dbbd80b3bef43b3aa425a71aa7cb3fb52c2b",
+  };
+  if (codexCredits[id]) entry.billing.planPricing = {
+    ...codexCredits[id], currency: "credits", unit: "1M tokens", speed: "standard",
+    separateCacheWriteCharge: false,
+    source: "https://developers.openai.com/codex/pricing.md",
+    note: "Credit rates are not USD, included subscription usage multipliers, or a verified account invoice. Legacy Enterprise agreements may differ; credit purchase prices depend on the plan.",
+  };
   Object.assign(entry.limits, config, {
     scope: "public-api-specification",
     apiContextWindow: openai[id].capabilities.contextWindow,
@@ -3352,7 +3630,7 @@ codex["gpt-5.3-codex-spark"] = {
     apiMaxInput: 100000,
     apiMaxOutput: 32000,
     unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
-    note: "Omitted from pinned rust-v0.160.0 bundle; retain compatibility ID without treating models.dev vision claims as official.",
+    note: "Omitted from pinned rust-v0.163.0 bundle; retain compatibility ID without treating models.dev vision claims as official.",
     // Reproduced against the running gateway: the ChatGPT-account Codex route
     // rejects this model outright ("not supported when using Codex with a
     // ChatGPT account"). The id is retained so stored combos still resolve
@@ -3364,7 +3642,7 @@ codex["gpt-5.3-codex-spark"] = {
 };
 codex["codex-auto-review"] = {
   capabilities: { contextWindow: 200000, maxOutput: 64000 }, pricing: {}, sources: [...codexSources],
-  billing: { currency: "USD", unit: "subscription", kind: "plan", note: "CLI virtual review model, not a separately priced API model." },
+  billing: { currency: "USD", unit: "subscription", kind: "plan", unverifiedPriceFields: ["input", "output", "cached"], note: "CLI virtual review model, not a separately priced API model." },
   limits: {
     idKind: "cli-virtual-model",
     upstreamModelId: "codex-auto-review",
@@ -3384,12 +3662,39 @@ for (const id of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gp
   Object.assign(entry.limits, { idKind: "gateway-review-alias", upstreamModelId: id, quotaFamily: "review" });
   codex[`${id}-review`] = entry;
 }
+// The gateway provider-model endpoint appends synthetic review aliases. Its
+// response is not a raw native catalog and cannot establish "-review" wire IDs.
+const codexGatewayObservation = {
+  source: "/tmp/opencode/zenrouter-production-20261021-04c0bf77/native-codex-catalog.json",
+  sha256: "ebbea6b5ad5e72417dfa964a909871bd4ad50f6122c784768d473f177b57e871",
+  inferenceEvidence: "/tmp/opencode/zenrouter-production-20261021-04c0bf77/models-extra.json",
+  inferenceSha256: "4ce0c200235b48924b6f2a5b5f0cef82c5f4b6fe39bb082c3273059180c0719e",
+  observedAtUtc: "2026-10-21T10:16:56Z",
+  note: "Existing credential-redacted gateway provider-model responses and successful short gateway text calls. The model-list route appends synthetic review aliases; this is not raw native-wire evidence. This audit did not call production; observations do not establish token ceilings, multimodal support or tariffs.",
+};
+codex["gpt-reserve"] = {
+    description: "Observed Codex gateway base ID retained verbatim; no documented priced-model equivalence or route limits.",
+    capabilities: { vision: false, pdf: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false, tools: false, search: false, reasoning: false, structuredOutput: false },
+    pricing: {}, sources: ["https://developers.openai.com/codex/models.md"],
+    billing: { kind: "plan", currency: "unknown", unit: "subscription", unverifiedPriceFields: ["input", "output", "cached", "cache_creation"], note: "Successful gateway text routing is not a separately priced API model or a USD subscription invoice." },
+    limits: { scope: "observed-codex-gateway-route", idKind: "observed-base-route-id", upstreamModelId: "gpt-reserve", authenticatedRouteVerified: false, gatewayRouteVerified: true, routeAvailable: true, routeContextWindow: null, routeMaxOutput: null, unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
+    provenance: { reviewedAt: "2026-10-21", observation: copy(codexGatewayObservation) },
+};
+for (const id of ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-reserve"]) {
+  const entry = copy(codex[id]);
+  Object.assign(entry.limits, { idKind: "gateway-review-alias", upstreamModelId: id, quotaFamily: "review", nativeReviewWireIdVerified: false });
+  entry.provenance ||= { reviewedAt: "2026-10-21" };
+  entry.provenance.gatewayObservation = copy(codexGatewayObservation);
+  codex[`${id}-review`] = entry;
+}
 const claude = {};
 for (const [id, api] of Object.entries(anthropic)) {
-  if (id === "claude-haiku-5-5") continue;
+  // Claude Code documents model selection for several backends, including the
+  // native API. That does not prove Haiku 5.5 entitlement on this OAuth route.
+  if (id.startsWith("claude-mythos-") || id === "claude-haiku-5-5") continue;
   const entry = reference(api, "Claude Code compaction/configuration does not change the public API model specification.");
   entry.sources.push("https://code.claude.com/docs/en/model-config.md");
-  if (["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-sonnet-5", "claude-fable-5-1", "claude-fable-5"].includes(id)) {
+  if (["claude-opus-5-5", "claude-opus-5", "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5", "claude-fable-5-1", "claude-fable-5"].includes(id)) {
     entry.limits.cliCompactionApproxTokens = 967000;
     entry.limits.cliContextNote = "Native 1M window; configuration, gateways, or third-party deployments can instead compact at 200K.";
   } else {
@@ -3409,9 +3714,21 @@ claude["claude-opus-5-5-20260922"] = {
 };
 const geminiCli = {};
 for (const [id, api] of Object.entries(gemini)) {
-  if (id.endsWith("-customtools") || id === "gemini-4-argon") continue;
+  if (id === "gemini-4-argon" || api.limits.kind === "image") continue;
   geminiCli[id] = reference(api, "Google API model facts do not establish Code Assist / Gemini CLI availability or limits.");
+  geminiCli[id].sources.push("https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.65.0/packages/core/src/config/models.ts");
+  if (id.startsWith("gemma-4-")) {
+    geminiCli[id].pricing = { input: null, output: null, cached: null };
+    geminiCli[id].billing = { kind: "plan", currency: "unknown", unit: "subscription", unverifiedPriceFields: ["input", "output", "cached"], note: "Model ID appears in the stable Gemini CLI bundle. Native Gemini API free-tier zero is NOT an established Code Assist plan tariff." };
+  }
 }
+geminiCli["gemini-3-flash"] = {
+  capabilities: { vision: false, pdf: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
+  pricing: { input: null, output: null, cached: null },
+  sources: ["https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.65.0/packages/core/src/config/models.ts"],
+  billing: { kind: "plan", currency: "unknown", unit: "subscription", unverifiedPriceFields: ["input", "output", "cached"], note: "Code Assist backend routing identity. Rollout flags map Flash IDs dynamically; do not equate this ID to a paid native API model." },
+  limits: { idKind: "code-assist-backend-id", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
+};
 const grokCli = {};
 for (const id of ["grok-4.7", "grok-4.6", "grok-4.5"]) {
   grokCli[id] = reference(xai[id], "Grok Build is plan-billed; CLI account availability and limits unverified.");
@@ -3423,7 +3740,7 @@ for (const effort of ["high", "medium", "low"]) {
 }
 grokCli["grok-build"] = {
   capabilities: {}, pricing: {}, sources: ["https://docs.x.ai/build/overview"],
-  billing: { currency: "USD", unit: "subscription", kind: "plan", note: "Grok Build subscription route, NOT public grok-build-0.1. No verified per-token debit price." },
+  billing: { currency: "unknown", unit: "subscription", kind: "plan", unverifiedPriceFields: ["input", "output", "cached"], note: "Grok Build subscription route, NOT public grok-build-0.1. No verified per-token debit price." },
   limits: { idKind: "cli-route-alias", routeContextWindow: null, routeMaxOutput: null, authenticatedRouteVerified: false, unverifiedCapabilityFields: ["contextWindow", "maxOutput"], note: "Existing registry 500000/64000 and generic family 256000 disagree; no independently verified route cap." },
 };
 export default { openai, codex, anthropic, claude, gemini, "gemini-cli": geminiCli, xai, "grok-cli": grokCli };

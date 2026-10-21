@@ -45,9 +45,16 @@ export default {
       url: "https://www.codebuddy.ai/v2/billing/meter/get-user-resource",
     },
   },
-  // Same model lineup exposed by the CN gateway — intl backend is the same catalog.
+  // Regions have distinct catalogs. New fallback rows below are from the intl
+  // endpoint in @tencent-ai/codebuddy-code@2.171.0/product.json (2026-10-21),
+  // not copied from CN. The authenticated /v3/config may differ per account.
   models: [
     { id: "glm-5.2", name: "GLM-5.2" },
+    { id: "kimi-k3", name: "Kimi-K3", contextLength: 1000000, maxOutputTokens: 32000, capabilities: { vision: true, tools: true, reasoning: true } },
+    // The client must opt in to 1M; the existing gateway uses defaultLength.
+    { id: "deepseek-v4.1-flash", name: "DeepSeek-V4.1-Flash", contextLength: 300000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true } },
+    { id: "deepseek-v4.1-flash-sg", name: "DeepSeek-V4.1-Flash (SG)", contextLength: 300000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true } },
+    { id: "gpt-6-astra", name: "GPT-6 Astra", contextLength: 400000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true } },
     { id: "glm-5.1", name: "GLM-5.1" },
     { id: "glm-5.0", name: "GLM-5.0" },
     { id: "glm-5.0-turbo", name: "GLM-5.0-Turbo" },

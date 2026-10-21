@@ -1,6 +1,6 @@
 import { getProviderIdentityTokens, getDeclaredUpstreamModelId } from "./identity.js";
 import { REVIEWED_MODEL_METADATA, getReviewedModelMetadata, getReviewedPricing } from "./metadata/reviewed.js";
-import { OPENAI_NATIVE_CACHE_WRITE_PRICING, OPENAI_PROCESSING_SPEED_PRICING } from "../config/processingSpeedPricing.js";
+import * as openAIProcessingQuotes from "../config/processingSpeedPricing.js";
 import { LITERAL_ONLY_PRICING_PROVIDERS } from "../config/pricingConfig.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
@@ -739,11 +739,16 @@ for (const [provider, models] of Object.entries(REVIEWED_MODEL_METADATA)) {
 
 // Keep delivered-speed quotes provider-scoped; MODEL_PRICING is also used for
 // subscription/reseller reference estimates that have no matching API invoice.
-for (const [model, service_tiers] of Object.entries(OPENAI_PROCESSING_SPEED_PRICING)) {
-  const writes = OPENAI_NATIVE_CACHE_WRITE_PRICING[model];
+const nativeStandardQuotes = openAIProcessingQuotes.OPENAI_STANDARD_TOKEN_PRICING || {};
+for (const [model, quote] of Object.entries(nativeStandardQuotes)) {
+  PROVIDER_PRICING.openai[model] = { ...quote };
+}
+for (const [model, service_tiers] of Object.entries(openAIProcessingQuotes.OPENAI_PROCESSING_SPEED_PRICING)) {
+  const base = PROVIDER_PRICING.openai[model] || { input: null, output: null, cached: null };
+  const writes = Object.hasOwn(nativeStandardQuotes, model) ? {} : openAIProcessingQuotes.OPENAI_NATIVE_CACHE_WRITE_PRICING[model] || {};
   PROVIDER_PRICING.openai[model] = {
-    ...PROVIDER_PRICING.openai[model], ...writes,
-    tier: { ...PROVIDER_PRICING.openai[model]?.tier, ...writes.tier }, service_tiers,
+    ...base, ...writes,
+    ...(base.tier || writes.tier ? { tier: { ...base.tier, ...writes.tier } } : {}), service_tiers,
   };
 }
 
@@ -881,7 +886,10 @@ function resolveDeliveredTierPricing(tokens, pricing) {
 
 function tokenCost(tokens, rate) {
   if (tokens === 0) return 0;
-  return Number.isFinite(rate) && rate >= 0 ? tokens * rate / 1000000 : null;
+  if (!Number.isFinite(rate) || rate < 0) return null;
+  const product = tokens * rate;
+  const value = Number.isFinite(product) ? product / 1000000 : (tokens / 1000000) * rate;
+  return Number.isFinite(value) ? value : null;
 }
 
 /**
@@ -890,13 +898,13 @@ function tokenCost(tokens, rate) {
  * @returns {{ inputCost: number|null, cachedCost: number|null, cacheCreationCost: number|null, outputCost: number|null, reasoningCost: number|null, totalCost: number|null }}
  */
 export function calculateCostBreakdown(tokens, pricing) {
-  const inputTokens = tokens?.prompt_tokens || tokens?.input_tokens || 0;
+  const inputTokens = tokens?.prompt_tokens ?? tokens?.input_tokens ?? 0;
   // A premium quote is complete and independent of Standard. Missing premium
   // cache/output rates remain unknown; actual delivery always beats the request.
   pricing = resolveDeliveredTierPricing(tokens, pricing);
   const effectivePricing = resolveEffectivePricing(pricing, inputTokens);
-  const cachedTokens = tokens?.cached_tokens || tokens?.cache_read_input_tokens || tokens?.prompt_cache_hit_tokens || 0;
-  const cacheCreation1hTokens = tokens?.cache_creation_1h_tokens || 0;
+  const cachedTokens = tokens?.cached_tokens ?? tokens?.cache_read_input_tokens ?? tokens?.prompt_cache_hit_tokens ?? 0;
+  const cacheCreation1hTokens = tokens?.cache_creation_1h_tokens ?? 0;
   const cacheCreationTokens = tokens?.cache_creation_input_tokens ?? tokens?.cache_creation_tokens
     ?? ((tokens?.cache_creation_5m_tokens || 0) + cacheCreation1hTokens);
   const validLegacyWrites = [cacheCreationTokens, tokens?.cache_creation_5m_tokens ?? 0, cacheCreation1hTokens]
@@ -911,10 +919,14 @@ export function calculateCostBreakdown(tokens, pricing) {
     && [nativeWrites, nativeWrite30m, nativeWrite12h].every(value => Number.isSafeInteger(value) && value >= 0)
     && nativeWrite30m + nativeWrite12h === nativeWrites
     && nativeWrites + cacheCreationTokens + cachedTokens <= inputTokens;
+  const validInput = [inputTokens, cachedTokens, cacheCreationTokens, nativeWrites]
+    .every(value => Number.isSafeInteger(value) && value >= 0)
+    && cachedTokens + cacheCreationTokens + nativeWrites <= inputTokens;
   // Cache reads and writes are subsets of canonical input, not extra input.
   const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens - (Number.isFinite(nativeWrites) ? nativeWrites : 0));
-  const inputCost = tokenCost(nonCachedInput, effectivePricing?.input);
-  const cachedCost = tokenCost(cachedTokens, effectivePricing?.cached);
+  const inputCost = validInput ? tokenCost(nonCachedInput, effectivePricing?.input) : null;
+  const cachedCost = Number.isSafeInteger(cachedTokens) && cachedTokens >= 0
+    ? tokenCost(cachedTokens, effectivePricing?.cached) : null;
   // TTL counters are subsets of aggregate creation. Legacy aggregate-only
   // usage retains the documented five-minute tariff; one-hour writes never do.
   const cacheCreation5mCost = tokenCost(Math.max(0, cacheCreationTokens - cacheCreation1hTokens), effectivePricing?.cache_creation);
@@ -928,12 +940,17 @@ export function calculateCostBreakdown(tokens, pricing) {
 
   // Completion already includes reasoning; a documented output tariff applies
   // when no distinct reasoning tariff is specified. Explicit null stays unknown.
-  const outputTokens = tokens?.completion_tokens || tokens?.output_tokens || 0;
-  const reasoningTokens = tokens?.reasoning_tokens || 0;
-  const outputCost = tokenCost(Math.max(0, outputTokens - reasoningTokens), effectivePricing?.output);
+  const outputTokens = tokens?.completion_tokens ?? tokens?.output_tokens ?? 0;
+  const reasoningTokens = tokens?.reasoning_tokens ?? 0;
+  const validOutput = [outputTokens, reasoningTokens].every(value => Number.isSafeInteger(value) && value >= 0)
+    && reasoningTokens <= outputTokens;
+  const outputCost = validOutput ? tokenCost(outputTokens - reasoningTokens, effectivePricing?.output) : null;
   const reasoningRate = effectivePricing?.reasoning !== undefined ? effectivePricing.reasoning : effectivePricing?.output;
-  const reasoningCost = tokenCost(reasoningTokens, reasoningRate);
-  const totalCost = inputCost === null || cachedCost === null || cacheCreationCost === null || outputCost === null || reasoningCost === null
-    ? null : inputCost + cachedCost + cacheCreationCost + outputCost + reasoningCost;
+  const reasoningCost = Number.isSafeInteger(reasoningTokens) && reasoningTokens >= 0
+    ? tokenCost(reasoningTokens, reasoningRate) : null;
+  const sum = inputCost + cachedCost + cacheCreationCost + outputCost + reasoningCost;
+  const totalCost = tokens?.usage_invalid === true || !Number.isFinite(sum)
+    || inputCost === null || cachedCost === null || cacheCreationCost === null || outputCost === null || reasoningCost === null
+    ? null : sum;
   return { inputCost, cachedCost, cacheCreationCost, outputCost, reasoningCost, totalCost };
 }

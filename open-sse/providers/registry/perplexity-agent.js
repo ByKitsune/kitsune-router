@@ -27,6 +27,7 @@ export default {
   },
   models: [
     { id: "anthropic/claude-fable-5", name: "claude fable 5" },
+    { id: "perplexity/nemotron-3.5-super-120b-a12b", name: "Nemotron 3.5 Super 120B A12B" },
     { id: "anthropic/claude-fable-5-1", name: "claude fable 5 1" },
     { id: "anthropic/claude-opus-5-5", name: "claude opus 5 5" },
     { id: "anthropic/claude-opus-5", name: "claude opus 5" },

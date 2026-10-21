@@ -15,8 +15,9 @@ describe("getCapabilitiesForModel", () => {
   };
 
   const kiroGpt56Expected = {
-    contextWindow: 272000,
-    maxOutput: 128000,
+    contextWindow: 1000000,
+    maxOutput: null,
+    maxInput: null,
     thinkingFormat: "openai",
     reasoning: true,
     vision: true,
@@ -74,12 +75,13 @@ describe("getCapabilitiesForModel", () => {
     expect(getCapabilitiesForModel("kiro", "claude-sonnet-5-thinking-agentic")).toMatchObject(claudeSonnet5Expected);
   });
 
-  it("reports Kiro GPT 5.6 models with the Kiro 272k context window", () => {
+  it("reports Kiro's documented experimental GPT 5.6 window without inventing independent input/output caps", () => {
     expect(getCapabilitiesForModel("kiro", "gpt-5.6-sol")).toMatchObject(kiroGpt56Expected);
-    expect(getCapabilitiesForModel("kiro", "openai/gpt-5.6-sol")).toMatchObject(kiroGpt56Expected);
     expect(getCapabilitiesForModel("kiro", "gpt-5.6-terra-thinking")).toMatchObject(kiroGpt56Expected);
     expect(getCapabilitiesForModel("kiro", "gpt-5.6-luna-agentic")).toMatchObject(kiroGpt56Expected);
     expect(getCapabilitiesForModel("kiro", "gpt-5.6-sol-thinking-agentic")).toMatchObject(kiroGpt56Expected);
+    expect(getReviewedModelMetadata("kiro", "gpt-5.6-sol").billing.longContextThreshold).toBe(272000);
+    expect(getReviewedModelMetadata("kiro", "openai/gpt-5.6-sol")).toBeNull();
   });
 
   it("reports the GPT-6 / GPT-5.6 API limits for both the API and Codex routes", () => {
@@ -106,7 +108,7 @@ describe("getCapabilitiesForModel", () => {
         unverifiedCapabilityFields: [],
       });
       expect(metadata.sources).toContain(
-        "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/models-manager/models.json",
+        "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/codex-rs/models-manager/models.json",
       );
     }
   });

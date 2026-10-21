@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync } from "node:fs";
-
-const url = new URL("../../open-sse/providers/metadata/coreModels.js", import.meta.url);
-const core = existsSync(url) ? (await import(url.href)).default : {};
+import core from "../../open-sse/providers/metadata/coreModels.js";
 
 describe("provider-scoped primary-evidence core metadata shard", () => {
   it("reports the API limits on the Codex route while keeping CLI ceilings separate", () => {
@@ -80,7 +77,16 @@ describe("provider-scoped primary-evidence core metadata shard", () => {
     for (const records of Object.values(core)) {
       for (const record of Object.values(records)) {
         expect(record.sources.length).toBeGreaterThan(0);
-        if (record.sources.includes("https://models.dev/api.json")) expect(record.limits.catalogAsOf).toBe("2026-10-17");
+        if (record.sources.includes("https://models.dev/api.json")) {
+          // Check imported factual records, not JSON parsed out of JavaScript
+          // source text. Derived aliases may retain the underlying snapshot's
+          // date, while the cross-check itself is pinned independently.
+          expect(record.provenance.catalogCrosscheck).toMatchObject({
+            commit: "020f86d1b0970fe421c5dd7baec94478879d9756",
+            sha256: "079175d89430bbf5ee2a0e271ced1ad4b4d1cf529fdbd0a5db50bb2e857e90a8",
+          });
+          if (record.limits.catalogModelId) expect(record.limits.catalogAsOf).toBe("2026-10-21");
+        }
         expect(record.billing).toHaveProperty("kind");
         const check = value => {
           if (typeof value === "number") expect(Number.isFinite(value)).toBe(true);

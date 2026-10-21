@@ -13,6 +13,13 @@ export default {
   },
   category: "apikey",
   authType: "apikey",
+  models: [
+    { id: "sonic-3.6", name: "Sonic 3.6 (Flagship)", kind: "tts" },
+    { id: "sonic-3.6-2026-08-27", name: "Sonic 3.6 (2026-08-27)", kind: "tts" },
+    { id: "sonic-3.5", name: "Sonic 3.5", kind: "tts" },
+    { id: "sonic-3", name: "Sonic 3", kind: "tts" },
+    { id: "sonic-2", name: "Sonic 2 (Retired 2026-10-20)", kind: "tts", deprecated: true },
+  ],
   serviceKinds: [
     "tts"
   ],
@@ -26,6 +33,7 @@ export default {
         id: "sonic-3.6",
         name: "Sonic 3.6 (Flagship)"
       },
+      { id: "sonic-3.6-2026-08-27", name: "Sonic 3.6 (2026-08-27)" },
       {
         id: "sonic-3.5",
         name: "Sonic 3.5"
@@ -36,7 +44,8 @@ export default {
       },
       {
         id: "sonic-2",
-        name: "Sonic 2 (Sunsets 20 Oct 2026)"
+        name: "Sonic 2 (Retired 2026-10-20)",
+        deprecated: true
       }
     ]
   },

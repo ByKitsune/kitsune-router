@@ -29,6 +29,21 @@ export default {
   },
   models: [
     { id: "default", name: "Auto (Server Picks)" },
+    // cursor.com/docs/models/* publishes these exact Model IDs and ordinary
+    // context windows (2026-10-21). Max/fast/effort variants require native
+    // parameters, not invented legacy slugs. Account entitlement remains live.
+    { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5", contextLength: 200000, capabilities: { tools: true, reasoning: true } },
+    { id: "claude-opus-5-5", name: "Claude Opus 5.5", contextLength: 300000, capabilities: { tools: true, reasoning: true } },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5", contextLength: 300000, capabilities: { tools: true, reasoning: true } },
+    { id: "gemini-4-argon", name: "Gemini 4 Argon", contextLength: 200000, capabilities: { tools: true, reasoning: true } },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", contextLength: 200000, capabilities: { tools: true, reasoning: true } },
+    { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", contextLength: 272000, capabilities: { tools: true, reasoning: true } },
+    { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", contextLength: 272000, capabilities: { tools: true, reasoning: true } },
+    { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", contextLength: 272000, capabilities: { tools: true, reasoning: true } },
+    { id: "grok-4.7", name: "Grok 4.7", contextLength: 256000, capabilities: { tools: true, reasoning: true } },
+    { id: "grok-4.6", name: "Grok 4.6", contextLength: 256000, capabilities: { tools: true, reasoning: true } },
+    { id: "composer-2.5", name: "Composer 2.5", contextLength: 200000, capabilities: { tools: true, reasoning: true } },
+    // Retain legacy IDs: an anonymous documentation page cannot retire them.
     { id: "claude-4.5-opus-high-thinking", name: "Claude 4.5 Opus High Thinking" },
     { id: "claude-4.5-opus-high", name: "Claude 4.5 Opus High" },
     { id: "claude-4.5-sonnet-thinking", name: "Claude 4.5 Sonnet Thinking" },

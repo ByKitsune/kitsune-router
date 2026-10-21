@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
-import { getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 
 describe("media and hosted facts reach runtime metadata", () => {
@@ -18,8 +18,8 @@ describe("media and hosted facts reach runtime metadata", () => {
     expect(getPricingForModel("gemini", "gemini-embedding-2").input).toBe(0.2);
   });
   it("keeps per-image and modality prices outside flat text-token tariffs", () => {
-    expect(getPricingForModel("openai", "gpt-image-2.5-flare")).toBeNull();
-    expect(getPricingForModel("gemini", "gemini-3.1-flash-lite-image")).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 100 }, getPricingForModel("openai", "gpt-image-2.5-flare"))).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 100 }, getPricingForModel("gemini", "gemini-3.1-flash-lite-image"))).toBeNull();
     expect(getReviewedModelMetadata("openai", "gpt-image-2.5-flare").billing.rates.image_output).toBe(30);
     expect(getCapabilitiesForModel("gemini", "gemini-3.1-flash-lite-image")).toMatchObject({ imageOutput: true, vision: false, maxInput: 65536 });
   });
@@ -27,6 +27,6 @@ describe("media and hosted facts reach runtime metadata", () => {
     expect(getCapabilitiesForModel("gemini", "gemini-3.8-flash-tts")).toMatchObject({
       audioOutput: true, tools: false, vision: false, maxInput: 8192, maxOutput: 16384,
     });
-    expect(getPricingForModel("gemini", "gemini-3.8-flash-tts")).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 100 }, getPricingForModel("gemini", "gemini-3.8-flash-tts"))).toBeNull();
   });
 });

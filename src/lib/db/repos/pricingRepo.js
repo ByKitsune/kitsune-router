@@ -1,8 +1,9 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
-import { getProviderIdentityTokens } from "open-sse/providers/identity.js";
+import { canonicalizeProviderId, getDeclaredUpstreamModelId, getProviderIdentityTokens } from "open-sse/providers/identity.js";
 import { getCustomPricingProvider, PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
+import { getTimeOfUsePricing, parsePricingTimestamp } from "open-sse/config/timeOfUsePricing.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
@@ -18,8 +19,8 @@ export async function getSavedPricing() {
 
 // Shared display/billing merge: choose one saved row, exact token first. Missing
 // fields inherit static metadata, not a conflicting row saved under another alias.
-function resolvePricing(userPricing, provider, model, resolveConst) {
-  const defaults = resolveConst(provider, model);
+function resolvePricing(userPricing, provider, model, resolveConst, defaultsModel = model) {
+  const defaults = resolveConst(provider, defaultsModel);
   for (const token of getProviderIdentityTokens(provider)) {
     if (!Object.hasOwn(userPricing, token)) continue;
     const models = userPricing[token];
@@ -34,7 +35,7 @@ function mergeQuote(defaults, saved) {
   const merged = { ...defaults, ...saved };
   // Explicit null means unknown, not an omitted override.
   if (saved && Object.hasOwn(saved, "output") && !Object.hasOwn(saved, "reasoning")
-    && defaults?.reasoning != null && defaults.reasoning === defaults.output) {
+    && defaults && Object.hasOwn(defaults, "reasoning") && defaults.reasoning === defaults.output) {
     merged.reasoning = saved.output;
   }
   if (saved?.tier || (defaults?.tier && saved?.tier !== null)) {
@@ -89,27 +90,65 @@ export async function getPricing() {
   return merged;
 }
 
-export async function getPricingForModel(provider, model) {
+export async function getPricingForModel(provider, model, options = {}) {
   if (!model) return null;
   const userPricing = await getSavedPricing();
-  const { getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
-  let resolveDefaults = resolveConst;
+  const [{ getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { getReviewedModelMetadata }] = await Promise.all([
+    import("open-sse/providers/pricing.js"), import("open-sse/providers/metadata/reviewed.js"),
+  ]);
+  let node;
   if (/^(?:openai|anthropic)-compatible-/.test(provider || "")) {
     const { getProviderNodeById } = await import("./nodesRepo.js");
-    const node = await getProviderNodeById(provider);
-    const reference = getCustomPricingProvider(node?.baseUrl);
-    if (reference) resolveDefaults = (_provider, id) => resolveConst(reference, id);
+    node = await getProviderNodeById(provider);
   }
+  const { stripThinkingSuffix } = await import("open-sse/translator/concerns/thinkingUnified.js");
+  return resolveModelPricing(userPricing, provider, model,
+    defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
+    (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
+}
+
+function hasLiteralQuote(providerPrices, modelPrices, provider, model) {
+  return getProviderIdentityTokens(provider).some(token => Object.hasOwn(providerPrices[token] || {}, model))
+    || Object.hasOwn(modelPrices, model);
+}
+
+function defaultResolver(resolveConst, node, options = {}, getReviewedModelMetadata) {
+  let resolveDefaults = resolveConst;
+  const reference = getCustomPricingProvider(node?.baseUrl);
+  if (reference) resolveDefaults = (_provider, id) => resolveConst(reference, id);
+  const resolveReference = resolveDefaults;
+  return (product, id) => {
+    const timed = getTimeOfUsePricing(canonicalizeProviderId(product), getDeclaredUpstreamModelId(product, id), options?.timestamp);
+    if (timed) return timed;
+    const base = resolveReference(product, id);
+    const reviewed = getReviewedModelMetadata?.(product, id);
+    const next = reviewed?.billing?.nextRates || reviewed?.billing?.promotion?.nextRates;
+    if (!base || !next?.from || options?.timestamp === undefined) return base;
+    const at = options.timestamp;
+    const timestamp = parsePricingTimestamp(at)?.getTime();
+    const boundary = /^\d{4}-\d{2}-\d{2}$/.test(next.from) ? `${next.from}T00:00:00Z` : next.from;
+    const startsAt = parsePricingTimestamp(boundary)?.getTime();
+    if (!Number.isFinite(timestamp) || !Number.isFinite(startsAt)) return Object.fromEntries(PRICING_RATE_FIELDS.map(field => [field, null]));
+    if (timestamp < startsAt) return base;
+    // Only native token rates cross into the token calculator. A storage/hour
+    // charge, billing annotation or guaranteed-minimum offer is not a rate.
+    const rates = Object.fromEntries(PRICING_RATE_FIELDS.filter(field => Object.hasOwn(next, field)).map(field => [field, next[field]]));
+    if (Object.hasOwn(rates, "output") && !Object.hasOwn(rates, "reasoning")
+      && (base.reasoning === undefined || base.reasoning === base.output)) rates.reasoning = rates.output;
+    return { ...base, ...rates };
+  };
+}
+
+function resolveModelPricing(userPricing, provider, model, resolveDefaults, stripThinkingSuffix, hasLiteral = () => false) {
+  const base = stripThinkingSuffix(model);
   // A user override on the exact (effort-annotated) id always wins.
   if (hasUserOverride(userPricing, provider, model)) {
-    return resolvePricing(userPricing, provider, model, resolveDefaults);
+    return resolvePricing(userPricing, provider, model, resolveDefaults, hasLiteral(provider, model) ? model : base);
   }
   // Usage rows keep the effort-annotated id ("gpt-6.1-sol(xhigh)"); resolving
   // it as-is missed the base model's exact entry and fell through to a broader
   // glob or to null ($0). Price the variant at its base model's rate — which
   // also honors a user override saved on the base id (9router #4635).
-  const { stripThinkingSuffix } = await import("open-sse/translator/concerns/thinkingUnified.js");
-  const base = stripThinkingSuffix(model);
   if (base === model) {
     return resolvePricing(userPricing, provider, model, resolveDefaults);
   }
@@ -120,20 +159,26 @@ export async function getPricingForModel(provider, model) {
 // references are never persisted as operator overrides. Resolve node identity
 // freshly so changing/importing a URL cannot retain another host's quote.
 export async function getConfiguredPricing() {
-  const [{ getProviderNodes }, { getCustomModels }, { getProviderConnections }] = await Promise.all([
-    import("./nodesRepo.js"), import("./aliasRepo.js"), import("./connectionsRepo.js"),
+  const [{ getProviderNodes }, { getCustomModels }, { getProviderConnections }, { default: registry }] = await Promise.all([
+    import("./nodesRepo.js"), import("./aliasRepo.js"), import("./connectionsRepo.js"), import("open-sse/providers/registry/index.js"),
   ]);
   const [defaults, nodes, custom, connections] = await Promise.all([
     getPricing(), getProviderNodes(), getCustomModels(), getProviderConnections(),
   ]);
+  const [userPricing, { getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { stripThinkingSuffix }, { getReviewedModelMetadata }] = await Promise.all([
+    getSavedPricing(), import("open-sse/providers/pricing.js"), import("open-sse/translator/concerns/thinkingUnified.js"), import("open-sse/providers/metadata/reviewed.js"),
+  ]);
   const output = { ...defaults };
   const identities = new Map(nodes.flatMap(node => [[node.id, node.id], ...(node.prefix ? [[node.prefix, node.id]] : [])]));
+  const nativeTokens = new Set(registry.flatMap(provider => [provider.id, provider.alias, provider.uiAlias, ...(provider.aliases || [])].filter(Boolean)));
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
   const rows = new Map();
   const add = (provider, model) => {
     if (typeof provider !== "string" || typeof model !== "string" || !model) return;
-    const id = identities.get(provider) || provider;
+    const id = nativeTokens.has(provider) ? provider : identities.get(provider) || provider;
     rows.set(JSON.stringify([id, model]), [id, model]);
   };
+  for (const provider of registry) for (const model of provider.models || []) add(provider.id, model.id);
   for (const [provider, models] of Object.entries(defaults)) {
     if (!identities.has(provider) && !/^(?:openai|anthropic)-compatible-/.test(provider)) continue;
     for (const model of Object.keys(models || {})) add(provider, model);
@@ -145,9 +190,14 @@ export async function getConfiguredPricing() {
       add(connection.provider, typeof model === "string" ? model : model?.id);
     }
   }
+  const timestamp = new Date().toISOString();
+  const copiedProviders = new Set();
   for (const [provider, model] of rows.values()) {
-    const quote = await getPricingForModel(provider, model);
-    output[provider] = { ...output[provider], [model]: quote || {} };
+    const quote = resolveModelPricing(userPricing, provider, model,
+      defaultResolver(resolveConst, nodeById.get(provider), { timestamp }, getReviewedModelMetadata), stripThinkingSuffix,
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
+    if (!copiedProviders.has(provider)) { output[provider] = Object.assign(Object.create(null), output[provider]); copiedProviders.add(provider); }
+    output[provider][model] = quote || {};
   }
   return output;
 }
@@ -168,7 +218,7 @@ export async function updatePricing(pricingData) {
     for (const [provider, models] of Object.entries(pricingData)) {
       const row = db.get(`SELECT value FROM kv WHERE scope = 'pricing' AND key = ?`, [provider]);
       const current = row ? (parseJson(row.value, {}) || {}) : {};
-      const merged = { ...current };
+      const merged = Object.assign(Object.create(null), current);
       for (const [model, pricing] of Object.entries(models)) {
         merged[model] = pricing;
       }

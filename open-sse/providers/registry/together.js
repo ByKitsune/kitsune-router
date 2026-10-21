@@ -20,6 +20,9 @@ export default {
   },
   models: [
     { id: "meta-llama/Llama-3.3-70B-Instruct-Turbo", name: "Llama 3.3 70B Turbo" },
+    // Literal Chat API IDs from the public serverless model table, 2026-10-21.
+    { id: "meta-models/Muse-Spark-Open-816B-A42B", name: "Muse Spark Open 816B A42B", supportedFormats: ["openai"] },
+    { id: "deepseek-ai/DeepSeek-V4.1-Flash-1017", name: "DeepSeek V4.1 Flash (1017)", supportedFormats: ["openai"] },
     { id: "deepseek-ai/DeepSeek-V4-Pro-0813", name: "DeepSeek V4 Pro" },
     { id: "deepseek-ai/DeepSeek-V4-Flash-0731", name: "DeepSeek V4 Flash" },
     { id: "deepseek-ai/DeepSeek-V4.1-Flash", name: "DeepSeek V4.1 Flash" },

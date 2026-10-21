@@ -354,12 +354,15 @@ export const DECLARED_UPSTREAM_MODEL_IDS = {
     "claude-opus-4.8": "blackboxai/anthropic/claude-opus-4.8",
     "claude-sonnet-4.6": "blackboxai/anthropic/claude-sonnet-4.6",
     "deepseek-v4-flash": "blackboxai/deepseek/deepseek-v4-flash",
+    "gemini-3.5-flash": "blackboxai/google/gemini-3.5-flash",
+    "gemma-4-31b-it": "blackboxai/google/gemma-4-31b-it",
     "gpt-5.3-codex": "blackboxai/openai/gpt-5.3-codex",
     "gpt-5.4": "blackboxai/openai/gpt-5.4",
     "gpt-5.4-nano": "blackboxai/openai/gpt-5.4-nano",
     "gpt-5.4-pro": "blackboxai/openai/gpt-5.4-pro",
     "gpt-5.5": "blackboxai/openai/gpt-5.5",
-    "grok-4.3": "blackboxai/x-ai/grok-4.3"
+    "grok-4.3": "blackboxai/x-ai/grok-4.3",
+    "mistral-medium-3.5": "blackboxai/mistral/mistral-medium-3.5"
   },
   "codex": {
     "gpt-5.3-codex-spark-review": "gpt-5.3-codex-spark",
@@ -368,7 +371,12 @@ export const DECLARED_UPSTREAM_MODEL_IDS = {
     "gpt-5.5-review": "gpt-5.5",
     "gpt-5.6-luna-review": "gpt-5.6-luna",
     "gpt-5.6-sol-review": "gpt-5.6-sol",
-    "gpt-5.6-terra-review": "gpt-5.6-terra"
+    "gpt-5.6-terra-review": "gpt-5.6-terra",
+    "gpt-6-astra-review": "gpt-6-astra",
+    "gpt-6-luna-review": "gpt-6-luna",
+    "gpt-6-sol-review": "gpt-6-sol",
+    "gpt-6.1-sol-review": "gpt-6.1-sol",
+    "gpt-reserve-review": "gpt-reserve"
   },
   "deepseek": {
     "deepseek-v4-flash": "deepseek-flash",

@@ -650,6 +650,14 @@ above. Tunnel availability does not imply database replication.
 
 ## Observability and Operational Signals
 
+Model/token-price facts remain provider/product-specific. The configured pricing
+view resolves every registered row plus operator-configured custom routes from
+a captured pricing/node snapshot; unknown rates are visible rather than silently
+missing. Runtime estimates select recorded-time native schedules and published
+replacement rates before saved operator overrides. Existing history is never
+repriced during a metadata refresh. See the
+[client/model/pricing review](audit/18-client-model-pricing-refresh-2026-10.md).
+
 Runtime visibility sources:
 
 - console logs from `src/sse/utils/logger.js`

@@ -28,6 +28,13 @@ export default {
   },
   models: [
     { id: "anthropic/claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
+    // Public api.kilo.ai/api/gateway/models, 2026-10-21; paid and free
+    // literal IDs share the existing Kilo OpenRouter-compatible transport.
+    { id: "anthropic/claude-sonnet-5.5", name: "Claude Sonnet 5.5", contextLength: 1000000, maxOutputTokens: 128000 },
+    { id: "anthropic/claude-opus-5.5", name: "Claude Opus 5.5", contextLength: 1000000, maxOutputTokens: 128000 },
+    { id: "openai/gpt-6.1-sol", name: "GPT-6.1 Sol", contextLength: 1050000, maxOutputTokens: 128000 },
+    { id: "deepseek/deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash 1017", contextLength: 1048576, maxOutputTokens: 393216 },
+    { id: "minimax/minimax-m3.1-flash:free", name: "MiniMax M3.1 Flash (Free)", contextLength: 1000000, maxOutputTokens: 524288 },
     { id: "anthropic/claude-opus-4-20250514", name: "Claude Opus 4" },
     { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
     { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
@@ -36,10 +43,10 @@ export default {
     { id: "deepseek/deepseek-chat", name: "DeepSeek Chat" },
     { id: "deepseek/deepseek-reasoner", name: "DeepSeek Reasoner" },
   ],
-  // Kilo Code proxies the OpenRouter catalog (334 models at time of writing),
+  // Kilo Code exposes its own OpenRouter-compatible gateway catalog,
   // so the hardcoded list above is only a fallback. Surfacing the full catalog
   // requires a fetcher + passthroughModels, matching how openrouter.js is set up.
-  // Without these, only the 8 hardcoded models appear in the combo model picker,
+  // Without these, only the hardcoded fallback models appear in the combo model picker,
   // hiding dynamic models like cohere/north-mini-code:free and poolside/laguna-m.1:free.
   modelsFetcher: { url: "https://api.kilo.ai/api/gateway/models", type: "openrouter-free" },
   passthroughModels: true,

@@ -16,7 +16,7 @@ export default {
   },
   category: "apikey",
   transport: {
-    baseUrl: "https://api.minimaxi.com/anthropic/v1/messages",
+    baseUrl: "https://api.minimax.cn/anthropic/v1/messages",
     format: "claude",
     urlSuffix: "?beta=true",
     headers: { ...CLAUDE_API_HEADERS },
@@ -43,12 +43,12 @@ export default {
   transports: [
     {
       format: "openai",
-      baseUrl: "https://api.minimaxi.com/v1/chat/completions",
+      baseUrl: "https://api.minimax.cn/v1/chat/completions",
       auth: { combined: true, header: "Authorization", scheme: "bearer" },
     },
     {
       format: "claude",
-      baseUrl: "https://api.minimaxi.com/anthropic/v1/messages",
+      baseUrl: "https://api.minimax.cn/anthropic/v1/messages",
       urlSuffix: "?beta=true",
       headers: { ...CLAUDE_API_HEADERS },
       auth: { combined: true, header: "x-api-key", scheme: "raw" },
@@ -56,6 +56,7 @@ export default {
   ],
   models: [
     { id: "MiniMax-M3", name: "MiniMax M3" },
+    { id: "MiniMax-M3.1-Flash", name: "MiniMax M3.1 Flash" },
     { id: "MiniMax-M2.7", name: "MiniMax M2.7" },
     { id: "MiniMax-M2.7-highspeed", name: "MiniMax M2.7 Highspeed" },
     { id: "MiniMax-M2.5", name: "MiniMax M2.5" },

@@ -77,30 +77,36 @@ export default {
     { id: "qwen3-coder-next", name: "Qwen3 Coder Next", strip: ["image","audio"] },
     { id: "glm-5", name: "GLM 5" },
     { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
-    { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", contextLength: 272000, rateMultiplier: 2.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental preview of OpenAI GPT 5.6 Sol with 272k context window" },
-    { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", contextLength: 272000, rateMultiplier: 1.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental preview of OpenAI GPT 5.6 Terra with 272k context window" },
-    { id: "gpt-5.6-luna", name: "GPT 5.6 Luna", contextLength: 272000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental preview of OpenAI GPT 5.6 Luna with 272k context window" },
+    // kiro.dev/docs/models + 2026-09-14 model changelog, rechecked 2026-10-21:
+    // 1M is rolling out experimentally. Multipliers are Kiro credits for short
+    // context (<=272K); above that they double. They are NOT USD/token tariffs.
+    { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", contextLength: 1000000, rateMultiplier: 4.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental GPT 5.6 Sol; 1M context subject to account rollout, 4.4x credits up to 272K tokens and 8.8x above" },
+    { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", contextLength: 1000000, rateMultiplier: 2.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental GPT 5.6 Terra; 1M context subject to account rollout, 2.2x credits up to 272K tokens and 4.4x above" },
+    { id: "gpt-5.6-luna", name: "GPT 5.6 Luna", contextLength: 1000000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental GPT 5.6 Luna; 1M context subject to account rollout, 0.6x credits up to 272K tokens and 1.2x above" },
     // Thinking variants
     { id: "claude-sonnet-5-thinking", name: "Claude Sonnet 5 (Thinking)" },
     { id: "claude-sonnet-4.5-thinking", name: "Claude Sonnet 4.5 (Thinking)" },
     { id: "claude-haiku-4.5-thinking", name: "Claude Haiku 4.5 (Thinking)" },
-    { id: "gpt-5.6-sol-thinking", name: "GPT 5.6 Sol (Thinking)", contextLength: 272000, rateMultiplier: 2.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental preview of OpenAI GPT 5.6 Sol with 272k context window" },
-    { id: "gpt-5.6-terra-thinking", name: "GPT 5.6 Terra (Thinking)", contextLength: 272000, rateMultiplier: 1.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental preview of OpenAI GPT 5.6 Terra with 272k context window" },
-    { id: "gpt-5.6-luna-thinking", name: "GPT 5.6 Luna (Thinking)", contextLength: 272000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental preview of OpenAI GPT 5.6 Luna with 272k context window" },
+    { id: "gpt-5.6-sol-thinking", name: "GPT 5.6 Sol (Thinking)", contextLength: 1000000, rateMultiplier: 4.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental GPT 5.6 Sol; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-terra-thinking", name: "GPT 5.6 Terra (Thinking)", contextLength: 1000000, rateMultiplier: 2.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental GPT 5.6 Terra; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-luna-thinking", name: "GPT 5.6 Luna (Thinking)", contextLength: 1000000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental GPT 5.6 Luna; 1M context subject to account rollout, short-context credit multiplier" },
     // Agentic variants
     { id: "claude-sonnet-5-agentic", name: "Claude Sonnet 5 (Agentic)" },
     { id: "claude-sonnet-4.5-agentic", name: "Claude Sonnet 4.5 (Agentic)" },
     { id: "claude-haiku-4.5-agentic", name: "Claude Haiku 4.5 (Agentic)" },
-    { id: "gpt-5.6-sol-agentic", name: "GPT 5.6 Sol (Agentic)", contextLength: 272000, rateMultiplier: 2.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental preview of OpenAI GPT 5.6 Sol with 272k context window" },
-    { id: "gpt-5.6-terra-agentic", name: "GPT 5.6 Terra (Agentic)", contextLength: 272000, rateMultiplier: 1.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental preview of OpenAI GPT 5.6 Terra with 272k context window" },
-    { id: "gpt-5.6-luna-agentic", name: "GPT 5.6 Luna (Agentic)", contextLength: 272000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental preview of OpenAI GPT 5.6 Luna with 272k context window" },
+    { id: "gpt-5.6-sol-agentic", name: "GPT 5.6 Sol (Agentic)", contextLength: 1000000, rateMultiplier: 4.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental GPT 5.6 Sol; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-terra-agentic", name: "GPT 5.6 Terra (Agentic)", contextLength: 1000000, rateMultiplier: 2.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental GPT 5.6 Terra; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-luna-agentic", name: "GPT 5.6 Luna (Agentic)", contextLength: 1000000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental GPT 5.6 Luna; 1M context subject to account rollout, short-context credit multiplier" },
     // Thinking + Agentic variants
     { id: "claude-sonnet-5-thinking-agentic", name: "Claude Sonnet 5 (Thinking + Agentic)" },
     { id: "claude-sonnet-4.5-thinking-agentic", name: "Claude Sonnet 4.5 (Thinking + Agentic)" },
     { id: "claude-haiku-4.5-thinking-agentic", name: "Claude Haiku 4.5 (Thinking + Agentic)" },
-    { id: "gpt-5.6-sol-thinking-agentic", name: "GPT 5.6 Sol (Thinking + Agentic)", contextLength: 272000, rateMultiplier: 2.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental preview of OpenAI GPT 5.6 Sol with 272k context window" },
-    { id: "gpt-5.6-terra-thinking-agentic", name: "GPT 5.6 Terra (Thinking + Agentic)", contextLength: 272000, rateMultiplier: 1.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental preview of OpenAI GPT 5.6 Terra with 272k context window" },
-    { id: "gpt-5.6-luna-thinking-agentic", name: "GPT 5.6 Luna (Thinking + Agentic)", contextLength: 272000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental preview of OpenAI GPT 5.6 Luna with 272k context window" },
+    { id: "gpt-5.6-sol-thinking-agentic", name: "GPT 5.6 Sol (Thinking + Agentic)", contextLength: 1000000, rateMultiplier: 4.4, upstreamModelId: "gpt-5.6-sol", description: "Experimental GPT 5.6 Sol; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-terra-thinking-agentic", name: "GPT 5.6 Terra (Thinking + Agentic)", contextLength: 1000000, rateMultiplier: 2.2, upstreamModelId: "gpt-5.6-terra", description: "Experimental GPT 5.6 Terra; 1M context subject to account rollout, short-context credit multiplier" },
+    { id: "gpt-5.6-luna-thinking-agentic", name: "GPT 5.6 Luna (Thinking + Agentic)", contextLength: 1000000, rateMultiplier: 0.6, upstreamModelId: "gpt-5.6-luna", description: "Experimental GPT 5.6 Luna; 1M context subject to account rollout, short-context credit multiplier" },
+    // The IDE bundle uses "auto". New CLI canonical names for individually
+    // selected models do not establish IDE wire IDs; await ListAvailableModels.
+    { id: "auto", name: "Auto (Server Picks)" },
   ],
   oauth: {
     ssoOidcEndpoint: "https://oidc.us-east-1.amazonaws.com",

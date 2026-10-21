@@ -2,6 +2,8 @@
 
 ## Sin publicar — conciliación de octubre
 
+- Actualiza identidades estables verificadas y catálogos; audita precios por proveedor y unidades nativas de medios. Las tarifas por horario y sustituciones publicadas usan la fecha registrada antes de aplicar valores del operador.
+- Expone el precio efectivo o desconocido de cada modelo con búsqueda que conserva cambios; planes, superficies cliente y créditos de suscripción no equivalen a facturas API.
 - Corrige las rutas gratuitas exactas de TokenHarbor y las tarifas por velocidad realmente entregada; distingue las duraciones de escritura de caché, los costes desconocidos y los valores explícitos del operador.
 - Muestra subtotales conocidos y solicitudes sin precio sin presentarlos como un total completo ni recalcular el historial.
 - Concilia autorización, almacenamiento privado, cancelación/proxy, límites de inferencia, métricas y correcciones verificadas del protocolo y CLI de octubre.

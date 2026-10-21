@@ -1,8 +1,9 @@
 /**
  * Grok CLI / Grok Build (cli-chat-proxy.grok.com)
  *
- * Source of truth: wire capture of official @xai-official/grok 1.0.5
- * talking to https://cli-chat-proxy.grok.com (OpenAI Responses API).
+ * Original transport: wire capture of official @xai-official/grok 1.0.5.
+ * Public 1.0.62 bundle still uses cli-chat-proxy.grok.com and refreshes models
+ * dynamically; it does not establish account entitlement or numeric route caps.
  *
  * Distinct from:
  *  - `xai`      → api.x.ai (API key / xAI API OAuth PKCE)
@@ -73,8 +74,6 @@ export default {
     {
       id: GROK_CLI_MODEL,
       name: "Grok Build",
-      contextLength: 500000,
-      maxOutputTokens: 64000,
     },
     // Public API context reference, not an authenticated CLI output allowance.
     // Exact-model docs do not establish numeric output maxima for these models.

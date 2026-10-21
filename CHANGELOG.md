@@ -5,6 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Upstream client, model and pricing refresh
+
+- Refresh publisher-verified stable client identities and their consuming transport/catalog/OAuth headers without conflating app releases, bundled SDKs, extensions or host runtime versions.
+- Audit provider-scoped model catalogs and token/media billing facts. Preserve unknown prices, operator overrides, accepted compatibility aliases and account-specific entitlement limits rather than treating every new ID as universally available.
+- Expose effective or explicitly unknown pricing for every registered model, with provider/model search that preserves hidden edits and avoids per-model SQLite reads.
+- Apply native DeepSeek peak/off-peak estimates using recorded usage timestamps and a finite reviewed holiday calendar before operator overrides. Resellers and already recorded costs remain unchanged.
+- Reject contradictory canonical token counters as incomplete estimates instead of producing negative, infinite or falsely complete costs. Preserve separate native cache-write families.
+- Record Antigravity plan/surface requirements and scheduled removals without quota-based plan inference or premature retirement. See the [dated audit](docs/audit/18-client-model-pricing-refresh-2026-10.md) for evidence and boundaries.
+
 ### October consistency, pricing and verification
 
 - Resolve the two documented never-billed TokenHarbor routes by their exact HTTPS origin and literal model IDs, including custom-compatible nodes. Do not infer free pricing from display names or a global `:free` suffix; saved zero/unknown operator overrides retain precedence.

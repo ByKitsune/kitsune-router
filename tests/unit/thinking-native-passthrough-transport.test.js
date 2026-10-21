@@ -22,7 +22,7 @@ const reply = { candidates: [{ content: { role: "model", parts: [{ text: "Synthe
 beforeEach(() => {
   vi.clearAllMocks();
   proxyAwareFetch.mockImplementation(async url => Response.json(String(url).includes("anthropic.com")
-    ? { id: "msg_fixture", type: "message", role: "assistant", model: "claude-opus-4.7", content: [{ type: "text", text: "Synthetic reply." }],
+    ? { id: "msg_fixture", type: "message", role: "assistant", model: "claude-opus-4-7", content: [{ type: "text", text: "Synthetic reply." }],
       stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } }
     : { response: reply }));
 });
@@ -71,7 +71,9 @@ describe("native passthrough suffix choices reach the provider payload", () => {
       messages: [{ role: "user", content: "Explain the result." }], max_tokens: 4096,
       thinking: { type: "adaptive", display: "omitted" }, output_config: { effort: "high", format },
     }, "claude-cli/fixture");
-    expect(wire.model).toBe("claude-opus-4.7");
+    // Dot spelling is an accepted client compatibility input. The registry now
+    // knows the documented native API ID and must serialize its dash spelling.
+    expect(wire.model).toBe("claude-opus-4-7");
     expect(wire.output_config).toEqual({ effort, format });
     expect(wire.thinking).toEqual({ type: "adaptive", display: "omitted" });
     expect(wire.max_tokens).toBe(4096);

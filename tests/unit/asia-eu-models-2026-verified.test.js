@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getCapabilitiesForModel, setCatalogSource } from "../../open-sse/providers/capabilities.js";
-import { getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
 
 beforeEach(() => setCatalogSource(null));
 afterEach(() => setCatalogSource(null));
@@ -24,29 +24,26 @@ describe("verified specs for flagship 2026 Asia & EU models", () => {
     });
   });
 
-  it("prices Qwen models at official Model Studio Singapore USD schedule", () => {
-    expect(getPricingForModel("alitp-intl", "qwen3.7-max")).toMatchObject({
-      input: 2.5,
-      output: 7.5,
-    });
-    expect(getPricingForModel("alitp-intl", "qwen3.5-flash")).toMatchObject({
-      input: 0.1,
-      output: 0.4,
-    });
+  it("does not mistake Alibaba Token Plan Credits for the Singapore PAYG invoice", () => {
+    // Token Plan Personal overview: dynamic Credits, Singapore Global only.
+    // Model Studio model-pricing: separate International real-time dollar quote.
+    const usage = { prompt_tokens: 1000000, completion_tokens: 100000 };
+    expect(calculateCostFromTokens(usage, getPricingForModel("alitp-intl", "qwen3.8-max"))).toBeNull();
+    expect(calculateCostFromTokens(usage, getPricingForModel("alims-intl", "qwen3.8-max"))).toBeCloseTo(2.6, 12);
   });
 
   it("resolves Mistral Medium and Small latest with 256k context and reasoning", () => {
     const med = getCapabilitiesForModel("mistral", "mistral-medium-latest");
     expect(med).toMatchObject({
       contextWindow: 262144,
-      maxOutput: 262144,
+      maxOutput: null,
       vision: true,
       reasoning: true,
     });
     const sm = getCapabilitiesForModel("mistral", "mistral-small-latest");
     expect(sm).toMatchObject({
       contextWindow: 262144,
-      maxOutput: 256000,
+      maxOutput: null,
       reasoning: true,
     });
   });

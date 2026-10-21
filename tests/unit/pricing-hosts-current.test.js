@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MODEL_PRICING, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostFromTokens, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 import groqRegistry from "../../open-sse/providers/registry/groq.js";
 import cerebrasRegistry from "../../open-sse/providers/registry/cerebras.js";
@@ -44,13 +44,18 @@ describe("Cohere / Sonar / Voyage catalog", () => {
       expect(ids(cohereRegistry)).toContain(id);
     }
     expect(getCapabilitiesForModel("cohere", "command-a-03-2025").contextWindow).toBe(256000);
-    expect(getPricingForModel("cohere", "command-r-08-2024")).toMatchObject({ input: 0.15, output: 0.6 });
+    // Captured current Command R page has no price. Do not use search summaries
+    // or the pricing FAQ's different03-2024 model as a current08-2024 quote.
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("cohere", "command-r-08-2024"))).toBeNull();
   });
   it("perplexity lists reasoning-pro/deep-research with 200K sonar-pro caps", () => {
     expect(ids(perplexityRegistry)).toContain("sonar-reasoning-pro");
     expect(ids(perplexityRegistry)).toContain("sonar-deep-research");
     expect(getCapabilitiesForModel("perplexity", "sonar-pro").contextWindow).toBe(200000);
-    expect(getPricingForModel("perplexity", "sonar-pro")).toMatchObject({ input: 3, output: 15 });
+    // Sonar migration guide: compatibility requests now reformulate Agent calls;
+    // the old standalone3/15 quote does not establish the migrated invoice.
+    expect(getCapabilitiesForModel("perplexity", "sonar-pro").maxOutput).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("perplexity", "sonar-pro"))).toBeNull();
   });
   it("voyage lists v4 flagships with embedding prices", () => {
     for (const id of ["voyage-4-large", "voyage-4", "voyage-4-lite"]) {

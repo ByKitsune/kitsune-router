@@ -30,6 +30,10 @@ export default {
   },
   models: [
     { id: "anthropic/claude-3.7-sonnet", name: "Claude 3.7 Sonnet (Free)", contextLength: 200000 },
+    // Public /v1/models, 2026-10-21: id is the native chat name;
+    // catalog_id is a distinct identity and tier is not a zero-dollar tariff.
+    { id: "claude-sonnet-5.5", name: "Claude Sonnet 5.5", contextLength: 1000000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true, audioInput: false, videoInput: false } },
+    { id: "claude-opus-5.5", name: "Claude Opus 5.5", contextLength: 1000000, maxOutputTokens: 128000, capabilities: { vision: true, tools: true, reasoning: true, audioInput: false, videoInput: false } },
     { id: "moonshot/kimi-k2.6", name: "Kimi K2.6 (Free)", contextLength: 262144 },
     { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash (Free)", contextLength: 1048576 },
   ],

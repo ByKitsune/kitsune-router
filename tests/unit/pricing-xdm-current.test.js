@@ -29,13 +29,10 @@ describe("Mistral exact and legacy model identities", () => {
     expect(getPricingForModel("mistral", "mistral-small-latest")).toMatchObject({ input: 0.15, output: 0.6 });
     expect(getPricingForModel("mistral", "codestral-latest")).toMatchObject({ input: 0.3, output: 0.9 });
   });
-  it("uses the vendor's current 256K window for the codestral-latest slug", () => {
-    // models.dev's OFFICIAL mistral entry for codestral-latest is 256,000
-    // (verified across mistral, edenai, merge-gateway and vercel rows; the only
-    // 128,000 figures come from an unrelated 22B community model and a
-    // constrained reseller). The previous 128,000 came from the generic
-    // "*codestral*" glob, which is still correct for the legacy 2405 build.
-    expect(getCapabilitiesForModel("mistral", "codestral-latest").contextWindow).toBe(256000);
+  it("uses the primary Codestral2508 page's128K window rather than a secondary256K claim", () => {
+    // https://docs.mistral.ai/models/codestral-25-08.md: API names include
+    // codestral-latest; context128k. No independent output-token cap is given.
+    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: 128000, maxOutput: null });
     // The versioned legacy build keeps its own smaller window.
     expect(getCapabilitiesForModel("mistral", "codestral-2405").contextWindow).toBe(128000);
   });

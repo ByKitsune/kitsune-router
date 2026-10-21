@@ -27,6 +27,10 @@ subsequent pricing, security, protocol, tooling and verification changes. Its
 dated evidence and remaining native/operational limits supersede historical
 open-finding labels; published release artifacts remain immutable.
 
+The [client/model/pricing refresh](18-client-model-pricing-refresh-2026-10.md)
+separates upstream stable client identities, product/account availability and
+provider-specific tariffs, including recorded-time native pricing conditions.
+
 ## Read in this order
 
 | # | Document | Covers |

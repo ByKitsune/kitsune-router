@@ -27,6 +27,7 @@ export default {
   // modelsFetcher and any other id is accepted via passthroughModels.
   models: [
     { id: "venice-uncensored-1-2", name: "Venice Uncensored 1.2" },
+    { id: "deepseek-v4-1-flash-1017", name: "DeepSeek V4.1 Flash (1017)", supportedFormats: ["openai"] },
     { id: "zai-org-glm-5", name: "GLM-5" },
     { id: "z-ai-glm-5-3", name: "GLM 5.3" },
     { id: "z-ai-glm-5-3-flash", name: "GLM 5.3 Flash" },

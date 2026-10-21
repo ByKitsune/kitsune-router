@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { PROVIDER_MODELS } from "../../open-sse/config/providerModels.js";
+import { PROVIDER_MODELS, getModelUpstreamId } from "../../open-sse/config/providerModels.js";
 import { MITM_TOOLS } from "../../src/shared/constants/cliTools.js";
+import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
+import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
+import { openaiToKiroRequest } from "../../open-sse/translator/request/openai-to-kiro.js";
 
 // Guards Kiro model ids that still need mappable defaultModels slots. Without
 // a slot, getMappedModel (src/mitm/server.js) returns null and the request is
@@ -33,7 +36,7 @@ describe("Kiro MITM model slots", () => {
     expect(simpleTask.alias).toBe("simple-task");
   });
 
-  it("offers mappable slots for GPT-5.6 family models", () => {
+  it("keeps the legacy GPT-5.6 MITM aliases mappable independently of refreshed provider metadata", () => {
     const models = new Map(kiro.defaultModels.map((m) => [m.id, m]));
     expect(models.get("gpt-5.6-sol")).toMatchObject({ alias: "gpt-5.6-sol", contextLength: 272000, rateMultiplier: 2.4 });
     expect(models.get("gpt-5.6-terra")).toMatchObject({ alias: "gpt-5.6-terra", contextLength: 272000, rateMultiplier: 1.2 });
@@ -52,7 +55,7 @@ describe("Kiro static provider models", () => {
     ]));
   });
 
-  it("includes GPT-5.6 family and synthetic Kiro variants", () => {
+  it("routes the refreshed GPT-5.6 variants to the same IDE wire IDs and keeps experimental credits separate", () => {
     const models = new Map((PROVIDER_MODELS.kr || []).map((model) => [model.id, model]));
     const ids = [...models.keys()];
     expect(ids).toEqual(expect.arrayContaining([
@@ -71,14 +74,14 @@ describe("Kiro static provider models", () => {
     ]));
 
     for (const [id, rateMultiplier] of [
-      ["gpt-5.6-sol", 2.4],
-      ["gpt-5.6-sol-thinking", 2.4],
-      ["gpt-5.6-sol-agentic", 2.4],
-      ["gpt-5.6-sol-thinking-agentic", 2.4],
-      ["gpt-5.6-terra", 1.2],
-      ["gpt-5.6-terra-thinking", 1.2],
-      ["gpt-5.6-terra-agentic", 1.2],
-      ["gpt-5.6-terra-thinking-agentic", 1.2],
+      ["gpt-5.6-sol", 4.4],
+      ["gpt-5.6-sol-thinking", 4.4],
+      ["gpt-5.6-sol-agentic", 4.4],
+      ["gpt-5.6-sol-thinking-agentic", 4.4],
+      ["gpt-5.6-terra", 2.2],
+      ["gpt-5.6-terra-thinking", 2.2],
+      ["gpt-5.6-terra-agentic", 2.2],
+      ["gpt-5.6-terra-thinking-agentic", 2.2],
       ["gpt-5.6-luna", 0.6],
       ["gpt-5.6-luna-thinking", 0.6],
       ["gpt-5.6-luna-agentic", 0.6],
@@ -87,11 +90,24 @@ describe("Kiro static provider models", () => {
       const model = models.get(id);
       const upstreamModelId = id.replace(/-(thinking-agentic|thinking|agentic)$/, "");
       expect(model).toMatchObject({
-        contextLength: 272000,
+        contextLength: 1000000,
         rateMultiplier,
         upstreamModelId,
       });
-      expect(model.description).toContain("272k context window");
+      const wireModel = getModelUpstreamId("kr", id);
+      const request = openaiToKiroRequest(wireModel, {
+        messages: [{ role: "user", content: "fixture" }],
+        max_completion_tokens: 37,
+        reasoning_effort: "high",
+      }, true, {});
+      expect(request.conversationState.currentMessage.userInputMessage.modelId).toBe(upstreamModelId);
+      expect(request.inferenceConfig.maxTokens).toBe(37);
+      expect(request.additionalModelRequestFields).toEqual({ reasoning: { effort: "high" } });
+      expect(getCapabilitiesForModel("kr", id).contextWindow).toBe(1000000);
+      expect(getReviewedModelMetadata("kr", id)).toMatchObject({
+        limits: { authenticatedRouteVerified: false },
+        billing: { kind: "subscription-credits", creditMultiplier: rateMultiplier, longContextThreshold: 272000 },
+      });
     }
   });
 });

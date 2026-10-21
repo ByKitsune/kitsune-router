@@ -79,7 +79,8 @@ describe("buildGetChatMessageRequest", () => {
     expect(asString).toContain("sk-ws-secret");
     // And the IDE identification fields.
     expect(asString).toContain("windsurf");
-    expect(asString).toContain("3.10.48");
+    expect(asString).toContain("3.10.67");
+    expect(asString).toContain("1.48.2");
   });
 
   it("appends one field-4 message per chat message", () => {

@@ -71,10 +71,14 @@ export function formatDoneLine({ usage, latency }) {
 export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, latency = null, label = "USAGE", silent = false, serviceTier = null }) {
   if (!tokens || typeof tokens !== "object") return;
 
-  const inTokens = tokens.input_tokens ?? tokens.prompt_tokens ?? 0;
-  const outTokens = tokens.output_tokens ?? tokens.completion_tokens ?? 0;
+  // Canonicalize before the zero gate: malformed real usage must not disappear
+  // (or become a free request) just because no positive counter survived.
+  const normalized = canonicalizeUsage(tokens);
+  if (!normalized) return;
+  const inTokens = normalized.prompt_tokens ?? 0;
+  const outTokens = normalized.completion_tokens ?? 0;
 
-  if (inTokens === 0 && outTokens === 0) return;
+  if (inTokens === 0 && outTokens === 0 && normalized.usage_invalid !== true && normalized.cache_write_invalid !== true) return;
 
   if (!silent) {
     const time = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -84,10 +88,6 @@ export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, 
 
   // Canonicalize to one storage convention (prompt_tokens cache-inclusive) so
   // cached/cache-creation tokens survive to cost calc + stats. See canonicalizeUsage.
-  const normalized = canonicalizeUsage(tokens) || {
-    prompt_tokens: tokens.prompt_tokens ?? tokens.input_tokens ?? 0,
-    completion_tokens: tokens.completion_tokens ?? tokens.output_tokens ?? 0
-  };
   // usageHistory persists tokens as JSON, unlike arbitrary top-level fields.
   // Keep the tier provenance there so billing never loses it at the DB boundary.
   Object.assign(normalized, getServiceTierAccounting(provider, serviceTier));

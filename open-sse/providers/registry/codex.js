@@ -1,4 +1,3 @@
-import { withCodexReviewModels } from "../models/helpers.js";
 import { CODEX_USER_AGENT } from "../../config/clientVersions.js";
 
 export default {
@@ -52,9 +51,17 @@ export default {
   },
   models: [
     { id: "gpt-6-astra", name: "GPT 6 Astra" },
+    // Gateway review aliases: the model-list endpoint synthesizes these rows.
+    // Successful gateway calls do not prove literal native "-review" wire IDs.
+    { id: "gpt-6-astra-review", name: "GPT 6 Astra Review", upstreamModelId: "gpt-6-astra", quotaFamily: "review" },
     { id: "gpt-6.1-sol", name: "GPT 6.1 Sol" },
+    { id: "gpt-6.1-sol-review", name: "GPT 6.1 Sol Review", upstreamModelId: "gpt-6.1-sol", quotaFamily: "review" },
     { id: "gpt-6-sol", name: "GPT 6 Sol" },
+    { id: "gpt-6-sol-review", name: "GPT 6 Sol Review", upstreamModelId: "gpt-6-sol", quotaFamily: "review" },
+    { id: "gpt-reserve", name: "GPT Reserve" },
+    { id: "gpt-reserve-review", name: "GPT Reserve Review", upstreamModelId: "gpt-reserve", quotaFamily: "review" },
     { id: "gpt-6-luna", name: "GPT 6 Luna" },
+    { id: "gpt-6-luna-review", name: "GPT 6 Luna Review", upstreamModelId: "gpt-6-luna", quotaFamily: "review" },
     { id: "gpt-5.6-sol", name: "GPT 5.6 Sol" },
     { id: "gpt-5.6-sol-review", name: "GPT 5.6 Sol Review", upstreamModelId: "gpt-5.6-sol", quotaFamily: "review" },
     { id: "gpt-5.6-terra", name: "GPT 5.6 Terra" },

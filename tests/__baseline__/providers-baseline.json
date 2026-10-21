@@ -97,7 +97,7 @@
       "Anthropic-Version": "2023-06-01",
       "Anthropic-Beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05,structured-outputs-2025-12-15,fast-mode-2026-02-01,redact-thinking-2026-02-12,tool-search-tool-2025-10-19,dangerous-tool-use-2026-09-03,inline-tools-2026-09-15,advanced-tool-use-2025-11-20,effort-2025-11-24",
       "Anthropic-Dangerous-Direct-Browser-Access": "true",
-      "User-Agent": "claude-cli/2.1.289 (external, sdk-cli)",
+      "User-Agent": "claude-cli/2.1.306 (external, sdk-cli)",
       "X-App": "cli",
       "X-Stainless-Helper-Method": "stream",
       "X-Stainless-Retry-Count": "0",
@@ -175,7 +175,7 @@
     "forceStream": true,
     "thinkingFormat": "openai",
     "headers": {
-      "User-Agent": "CLI/2.161.3 CodeBuddy/2.161.3",
+      "User-Agent": "CLI/2.171.0 CodeBuddy/2.171.0",
       "X-Product": "SaaS",
       "X-IDE-Type": "CLI",
       "X-IDE-Name": "CLI",
@@ -199,7 +199,7 @@
     "forceStream": true,
     "headers": {
       "originator": "codex_cli_rs",
-      "User-Agent": "codex_cli_rs/0.160.0"
+      "User-Agent": "codex_cli_rs/0.163.0"
     },
     "usage": {
       "url": "https://chatgpt.com/backend-api/wham/usage",
@@ -213,7 +213,7 @@
     "tokenUrl": "https://auth.openai.com/oauth/token"
   },
   "cohere": {
-    "baseUrl": "https://api.cohere.ai/v1/chat/completions",
+    "baseUrl": "https://api.cohere.ai/compatibility/v1/chat/completions",
     "validateUrl": "https://api.cohere.ai/v1/models",
     "format": "openai"
   },
@@ -222,9 +222,9 @@
     "format": "commandcode",
     "forceStream": true,
     "headers": {
-      "x-command-code-version": "1.74.1",
+      "x-command-code-version": "1.86.3",
       "User-Agent": "cli",
-      "x-cli-environment": "cli"
+      "x-cli-environment": "production"
     }
   },
   "cursor": {
@@ -237,7 +237,7 @@
       "Content-Type": "application/connect+proto",
       "User-Agent": "connect-es/1.6.1"
     },
-    "clientVersion": "3.22.12"
+    "clientVersion": "3.24.18"
   },
   "deepgram": {
     "baseUrl": "https://api.deepgram.com/v1/listen",
@@ -320,9 +320,9 @@
     "messagesUrl": "https://api.githubcopilot.com/v1/messages",
     "headers": {
       "copilot-integration-id": "vscode-chat",
-      "editor-version": "vscode/1.140.0",
-      "editor-plugin-version": "copilot-chat/0.68.0",
-      "user-agent": "GitHubCopilotChat/0.68.0",
+      "editor-version": "vscode/1.143.0",
+      "editor-plugin-version": "copilot-chat/0.71.0",
+      "user-agent": "GitHubCopilotChat/0.71.0",
       "openai-intent": "conversation-panel",
       "x-github-api-version": "2026-08-01",
       "x-vscode-user-agent-library-version": "electron-fetch",
@@ -331,10 +331,10 @@
       "Content-Type": "application/json"
     },
     "copilot": {
-      "vscodeVersion": "1.140.0",
-      "chatVersion": "0.68.0",
-      "userAgent": "GitHubCopilotChat/0.68.0",
-      "apiVersion": "2025-04-01"
+      "vscodeVersion": "1.143.0",
+      "chatVersion": "0.71.0",
+      "userAgent": "GitHubCopilotChat/0.71.0",
+      "apiVersion": "2026-08-01"
     },
     "usage": {
       "url": "https://api.github.com/copilot_internal/user"
@@ -412,13 +412,13 @@
     "modelsUrl": "https://cli-chat-proxy.grok.com/v1/models",
     "userUrl": "https://cli-chat-proxy.grok.com/v1/user",
     "billingUrl": "https://cli-chat-proxy.grok.com/v1/billing",
-    "clientVersion": "1.0.46",
+    "clientVersion": "1.0.62",
     "clientIdentifier": "grok-shell",
     "tokenAuth": "xai-grok-cli",
     "headers": {
-      "User-Agent": "grok-pager/1.0.46 grok-shell/1.0.46 (linux; x86_64)",
+      "User-Agent": "grok-pager/1.0.62 grok-shell/1.0.62 (linux; x86_64)",
       "x-grok-client-identifier": "grok-shell",
-      "x-grok-client-version": "1.0.46"
+      "x-grok-client-version": "1.0.62"
     },
     "usage": {
       "url": "https://cli-chat-proxy.grok.com/v1/billing?format=credits",
@@ -490,7 +490,7 @@
     "baseUrl": "https://llm.kimchi.dev/openai/v1/chat/completions",
     "format": "openai",
     "headers": {
-      "User-Agent": "kimchi/1.6.0"
+      "User-Agent": "kimchi/1.17.0"
     },
     "auth": {
       "combined": true,
@@ -563,8 +563,8 @@
     "headers": {
       "Content-Type": "application/json",
       "Accept": "application/vnd.amazon.eventstream",
-      "User-Agent": "AWS-SDK-JS/3.0.0 kiro-ide/1.2.4",
-      "X-Amz-User-Agent": "aws-sdk-js/3.0.0 KiroIDE-1.2.4"
+      "User-Agent": "AWS-SDK-JS/3.0.0 kiro-ide/1.4.13",
+      "X-Amz-User-Agent": "aws-sdk-js/3.0.0 KiroIDE-1.4.13"
     },
     "tokenUrl": "https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken",
     "authUrl": "https://prod.us-east-1.auth.desktop.kiro.dev",
@@ -580,7 +580,7 @@
     "format": "openai"
   },
   "minimax-cn": {
-    "baseUrl": "https://api.minimaxi.com/anthropic/v1/messages",
+    "baseUrl": "https://api.minimax.cn/anthropic/v1/messages",
     "format": "claude",
     "urlSuffix": "?beta=true",
     "headers": {
@@ -608,7 +608,7 @@
     "transports": [
       {
         "format": "openai",
-        "baseUrl": "https://api.minimaxi.com/v1/chat/completions",
+        "baseUrl": "https://api.minimax.cn/v1/chat/completions",
         "auth": {
           "combined": true,
           "header": "Authorization",
@@ -617,7 +617,7 @@
       },
       {
         "format": "claude",
-        "baseUrl": "https://api.minimaxi.com/anthropic/v1/messages",
+        "baseUrl": "https://api.minimax.cn/anthropic/v1/messages",
         "urlSuffix": "?beta=true",
         "headers": {
           "Anthropic-Version": "2023-06-01",
@@ -857,7 +857,17 @@
     "clientId": "b1a00492-073a-47ea-816f-4c329264a828",
     "tokenUrl": "https://auth.x.ai/oauth2/token",
     "refreshUrl": "https://auth.x.ai/oauth2/token",
-    "format": "openai"
+    "format": "openai",
+    "transports": [
+      {
+        "format": "openai",
+        "baseUrl": "https://api.x.ai/v1/chat/completions"
+      },
+      {
+        "format": "openai-responses",
+        "baseUrl": "https://api.x.ai/v1/responses"
+      }
+    ]
   },
   "xiaomi-mimo": {
     "baseUrl": "https://api.xiaomimimo.com/v1/chat/completions",

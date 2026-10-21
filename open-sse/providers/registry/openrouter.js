@@ -27,6 +27,8 @@ export default {
   },
   models: [
     { id: "openai/text-embedding-3-large", name: "OpenAI Text Embedding 3 Large", kind: "embedding" },
+    // Public text catalog seed; existing media rows and live fetching stay intact.
+    { id: "minimax/minimax-m3.1-flash:free", name: "MiniMax M3.1 Flash (Free)", supportedFormats: ["openai"] },
     { id: "openai/text-embedding-3-small", name: "OpenAI Text Embedding 3 Small", kind: "embedding" },
     { id: "openai/text-embedding-ada-002", name: "OpenAI Text Embedding Ada 002", kind: "embedding" },
     { id: "qwen/qwen3-embedding-8b", name: "Qwen3 Embedding 8B", kind: "embedding" },

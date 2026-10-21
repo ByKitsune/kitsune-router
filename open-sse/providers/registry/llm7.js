@@ -26,6 +26,11 @@ export default {
   },
   models: [
     { id: "gpt-5.5", name: "GPT-5.5 (LLM7)", contextLength: 1050000 },
+    // Public /v1/models, 2026-10-21. Preserve case and LLM7's own modalities
+    // and 1M window rather than borrowing the direct vendors' capabilities.
+    { id: "DeepSeek-V4.1-Flash", name: "DeepSeek V4.1 Flash (LLM7)", contextLength: 1000000, capabilities: { vision: false, tools: true, reasoning: true } },
+    { id: "gpt-6.1-sol", name: "GPT-6.1 Sol (LLM7)", contextLength: 1000000, capabilities: { vision: true, tools: true, reasoning: true } },
+    { id: "claude-opus-5-5", name: "Claude Opus 5.5 (LLM7)", contextLength: 1000000, capabilities: { vision: true, tools: true, reasoning: true } },
     { id: "claude-opus-5", name: "Claude Opus 5 (LLM7)", contextLength: 1000000 },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash (LLM7)", contextLength: 1000000 },
     { id: "grok-4.5", name: "Grok 4.5 (LLM7)", contextLength: 500000 },

@@ -20,6 +20,13 @@ export default {
   },
   models: [
     { id: "auto:free", name: "Auto Free (Zero Cost)" },
+    // Public /api/v1/models (2026-10-21): use id, not aliases[] from a
+    // different gateway. Existing models remain valid fallback identities.
+    { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", contextLength: 1050000 },
+    { id: "claude-sonnet-5.5", name: "Claude Sonnet 5.5", contextLength: 1000000 },
+    { id: "claude-opus-5.5", name: "Claude Opus 5.5", contextLength: 1000000 },
+    { id: "deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash 1017", contextLength: 1048576 },
+    { id: "kimi-k3", name: "Kimi K3", contextLength: 1048576 },
     { id: "claude-opus-4.7", name: "Claude Opus 4.7", contextLength: 1000000 },
     { id: "claude-sonnet-4.6", name: "Claude Sonnet 4.6", contextLength: 1000000 },
     { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", contextLength: 200000 },

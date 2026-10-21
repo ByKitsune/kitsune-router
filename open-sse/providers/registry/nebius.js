@@ -20,6 +20,8 @@ export default {
   },
   models: [
     { id: "deepseek-ai/DeepSeek-V4-Flash-0731", name: "DeepSeek V4 Flash" },
+    // Public Token Factory models_info; account/region entitlement is not verified.
+    { id: "deepseek-ai/DeepSeek-V4.1-Flash", name: "DeepSeek V4.1 Flash", supportedFormats: ["openai"] },
     { id: "MiniMaxAI/MiniMax-M3", name: "MiniMax M3" },
     { id: "Qwen/Qwen3-Embedding-8B", name: "Qwen3 Embedding 8B", kind: "embedding" },
   ],
