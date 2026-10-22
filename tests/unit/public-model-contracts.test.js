@@ -110,6 +110,14 @@ describe("route-scoped capabilities and actionable constraints", () => {
     });
   });
 
+  it.each(["gpt-6-luna", "gpt-6-luna-review", "gpt-5.6-luna", "gpt-5.6-luna-review"])("does not offer upstream-rejected Ultra on cx/%s discovery", async model => {
+    connect("codex", { enabledModels: [model] });
+    const row = await rowFor(`cx/${model}`);
+    expect(row.capabilities.thinkingEfforts).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
+    expect(row.metadata.limits.routeReasoningEfforts).not.toContain("ultra");
+    expect(getThinkingLevels("cx", model)).not.toContain("ultra");
+  });
+
   it.each(["gpt-6-sol"])("keeps %s disabled thinking requestable independently of Sol 6.1 restrictions", model => {
     expect(getCapabilitiesForModel("cx", model)).toMatchObject({ thinkingCanDisable: true, thinkingEfforts: expect.arrayContaining(["none", "low", "high", "max"]) });
   });

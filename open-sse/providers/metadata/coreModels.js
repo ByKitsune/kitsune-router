@@ -3526,7 +3526,8 @@ const codexConfig = {
 };
 // Effective route observations override the CLI reference only where observed.
 // None remains requestable on disable-capable families; Sol 6.1 ignores it.
-const codexUltraRoutes = new Set(["gpt-6-luna", "gpt-5.6-luna"]);
+// Live Luna requests on 2026-10-22 explicitly rejected Ultra with invalid_value;
+// the pinned CLI enum is not evidence that the account transport accepts it.
 
 const codexCredits = {
   "gpt-6-astra": { input: 250, cached: 25, output: 1250 },
@@ -3563,7 +3564,6 @@ for (const [id, config] of Object.entries(codexConfig)) {
   if (Number.isFinite(openai[id].capabilities.maxOutput)) entry.capabilities.maxOutput = openai[id].capabilities.maxOutput;
   const routeEfforts = config.cliReasoningEfforts.filter(effort => effort !== "ultra");
   if (id !== "gpt-6.1-sol" && openai[id].capabilities.thinkingCanDisable === true && !routeEfforts.includes("none")) routeEfforts.unshift("none");
-  if (codexUltraRoutes.has(id)) routeEfforts.push("ultra");
   entry.capabilities.thinkingEfforts = routeEfforts;
   entry.capabilities.thinkingCanDisable = routeEfforts.includes("none");
   entry.capabilities.thinkingEffortSupported = true;
@@ -3582,7 +3582,7 @@ for (const [id, config] of Object.entries(codexConfig)) {
   Object.assign(entry.limits, config, {
     scope: "public-api-specification",
     routeReasoningEfforts: [...routeEfforts],
-    routeReasoningEffortScope: "Native CLI effort choices with route-specific corrections: GPT-6.1 Sol none/minimal are ineffective; Ultra is available only on Luna routes. Disabled thinking remains requestable on other disable-capable families.",
+    routeReasoningEffortScope: "Native CLI effort choices with route-specific corrections: GPT-6.1 Sol none/minimal are ineffective; Ultra is not supported by the current account transport, including Luna routes. Disabled thinking remains requestable on other disable-capable families.",
     apiContextWindow: openai[id].capabilities.contextWindow,
     apiMaxInput: openai[id].capabilities.maxInput ?? null,
     apiMaxOutput: openai[id].capabilities.maxOutput,

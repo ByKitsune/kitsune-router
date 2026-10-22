@@ -114,6 +114,17 @@ describe("Antigravity effort is supported native intent or a local error", () =>
 });
 
 describe("Codex uses the resolved model's strict effort set on every path", () => {
+  it.each(["gpt-6-luna", "gpt-6-luna-review", "gpt-5.6-luna", "gpt-5.6-luna-review"])("rejects upstream-rejected %s Ultra before serialization", model => {
+    for (const [body, param] of [[{ reasoning_effort: "ultra" }, "reasoning_effort"], [{ reasoning: { effort: "ultra", summary: "detailed" } }, "reasoning.effort"]]) {
+      const original = structuredClone(body);
+      expect(() => validateSupportedParams("cx", model, body, "openai-responses"))
+        .toThrow(expect.objectContaining({ code: "unsupported_parameter", param, message: expect.stringContaining("max") }));
+      expect(body).toEqual(original);
+      expect(() => new CodexExecutor().transformRequest(model, { model, input: "Reply.", ...body }, true, {}))
+        .toThrow(expect.objectContaining({ code: "unsupported_parameter", param }));
+    }
+  });
+
   it.each(["none", "minimal", "ultra"])("rejects GPT-6.1 Sol %s without clamping or omission", effort => {
     const error = expect.objectContaining({ code: "unsupported_parameter", param: "reasoning.effort" });
     expect(() => validateSupportedParams("cx", "gpt-6.1-sol", { reasoning: { effort } }, "openai-responses")).toThrow(error);

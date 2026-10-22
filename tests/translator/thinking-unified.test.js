@@ -220,16 +220,21 @@ describe("applyThinking per provider format", () => {
     ["gpt-5.6-sol", "max", "max"],
     ["gpt-5.6-terra", "max", "max"],
     ["gpt-5.6-luna", "max", "max"],
-    ["gpt-5.6-luna", "ultra", "ultra"],
   ])("normalizes Codex %s effort %s to %s", (model, effort, expected) => {
     const out = apply("openai-responses", model, { reasoning: { effort } }, "codex");
     expect(out.reasoning.effort).toBe(expected);
     expect(out.reasoning_effort).toBeUndefined();
   });
-  it("applies a supported Codex Ultra suffix", () => {
-    const out = apply("openai-responses", "gpt-5.6-luna(ultra)", {}, "codex");
-    expect(out.reasoning.effort).toBe("ultra");
+  it("applies a supported Codex Max suffix", () => {
+    const out = apply("openai-responses", "gpt-5.6-luna(max)", {}, "codex");
+    expect(out.reasoning.effort).toBe("max");
     expect(out.reasoning_effort).toBeUndefined();
+  });
+  it.each(["gpt-6-luna", "gpt-5.6-luna"])("rejects native and suffixed Ultra for Codex %s", model => {
+    expect(() => apply("openai-responses", model, { reasoning: { effort: "ultra" } }, "codex"))
+      .toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "reasoning.effort" }));
+    expect(() => apply("openai-responses", `${model}(ultra)`, {}, "codex"))
+      .toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "model" }));
   });
   it("keeps Codex-only GPT-5.6 levels out of Kiro translation", () => {
     const out = apply("openai", "gpt-5.6-sol", { reasoning_effort: "max" }, "kiro");

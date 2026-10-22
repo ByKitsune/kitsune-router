@@ -90,22 +90,28 @@ describe("native Codex passthrough thinking suffixes", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  it("preserves supported Luna Ultra without dropping reasoning metadata", async () => {
-    const body = await runNativeCodexRequest("gpt-5.6-luna(ultra)", {
+  it("preserves supported Luna Max without dropping reasoning metadata", async () => {
+    const body = await runNativeCodexRequest("gpt-5.6-luna(max)", {
       effort: "low",
       summary: "detailed",
     });
 
     expect(body.model).toBe("gpt-5.6-luna");
-    expect(body.reasoning).toEqual({ effort: "ultra", summary: "detailed" });
+    expect(body.reasoning).toEqual({ effort: "max", summary: "detailed" });
   });
 
-  it("forwards Ultra through a Luna review alias", async () => {
-    const body = await runNativeCodexRequest("gpt-5.6-luna-review(ultra)", {
+  it.each(["gpt-6-luna", "gpt-5.6-luna", "gpt-6-luna-review", "gpt-5.6-luna-review"])("rejects %s Ultra suffixes without dispatch", async model => {
+    expect(await runNativeCodexRequest(`${model}(ultra)`))
+      .toMatchObject({ status: 400, error: { code: "unsupported_parameter", param: "model" } });
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("forwards Max through a Luna review alias", async () => {
+    const body = await runNativeCodexRequest("gpt-5.6-luna-review(max)", {
       effort: "low",
     });
 
     expect(body.model).toBe("gpt-5.6-luna");
-    expect(body.reasoning).toEqual({ effort: "ultra" });
+    expect(body.reasoning).toEqual({ effort: "max" });
   });
 });

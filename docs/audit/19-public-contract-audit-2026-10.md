@@ -160,7 +160,7 @@ Codex-account and Antigravity-Claude routes advertise PDF/document input as unsu
 
 The output cap is never increased. An explicit numeric thinking budget is preserved or rejected with `invalid_thinking_budget`, the selected budget, required output allowance and original parameter. Generated provider defaults carry private request-local provenance and may fit inside the caller cap. Claude's numeric minimum is 1024 thinking tokens and the output must exceed the selected budget; 2048 is not a universal minimum. Explicit disabled thinking and the verified `reasoning_effort: "none"` workaround remain usable at 16 output tokens. Truly unset upstream-owned defaults are not assigned a fabricated numeric budget.
 
-Antigravity efforts are not silently accepted: supported Gemini low/medium/high controls map natively, while unsupported or fixed-tier-conflicting values return 400. Claude numeric controls remain distinct from ordinal effort. GPT-6.1 Sol rejects ineffective none/minimal; native Ultra is restricted to the owner's reported Luna routes. Public API, pinned CLI and effective route effort sets remain separately labeled. Structured output preserves the bounded non-strict Gemini subset or returns local 400; strict guarantees, unsupported schema constraints and Claude-backed Antigravity JSON mode are not silently replaced with prose.
+Antigravity efforts are not silently accepted: supported Gemini low/medium/high controls map natively, while unsupported or fixed-tier-conflicting values return 400. Claude numeric controls remain distinct from ordinal effort. GPT-6.1 Sol rejects ineffective none/minimal. The initial Luna-only Ultra allowance based on the owner's earlier report is superseded by explicit live native invalid-value rejections on October 22; current Codex routes do not advertise or dispatch Ultra. Public API, pinned CLI and effective route effort sets remain separately labeled. Structured output preserves the bounded non-strict Gemini subset or returns local 400; strict guarantees, unsupported schema constraints and Claude-backed Antigravity JSON mode are not silently replaced with prose.
 
 ### Public responses and account availability
 
@@ -251,3 +251,48 @@ Final follow-up verification (the source stayed unchanged during both full runs)
   ordinary failing/passing regressions. Earlier green snapshots were superseded
   rather than counted as final verification. Non-Python/ANSI formats remain an
   explicit evidence limit, not a universal security certification.
+
+## Authorized delivery and live findings — 2026-10-22
+
+The owner subsequently authorized push to `master` before production access,
+deployment and bounded live checks. `23c55b3b` was pushed first. Its exact-SHA
+CI passed tests/docs but failed the dependency-security job after two Next.js
+advisories were indexed. The approved targeted framework update to 16.4.2 became
+`9b5a0db8`; CI run `39827222035` passed all three jobs and retained a matching
+SHA/ref/report hash for 8,299 passing tests, 100 optional/live skips and 691 files.
+Local full Node 22/24, browser and real-artifact synthetic transport checks also
+passed. No audit gate was weakened and no npm/Docker publication was dispatched.
+
+Production switched to the source-bound 16.4.2 artifact after private backup and
+isolated staging. Database health and configuration counts remained unchanged;
+readiness took 1.73 seconds. Four authenticated/unauthenticated public ingress
+checks passed. The subsequent concerned-model run retained 53 passing checks,
+three failures and five unavailable/timeout outcomes rather than claiming a
+complete green provider sweep:
+
+- All 17 advertised `cx` chat IDs returned nonempty 200 responses with exact model
+  echoes. Reserve/base-review and Astra-review tools returned correctly correlated
+  calls. Gemini read `ZEN-PDF-MARKER-42` from the valid PDF and returned the
+  supported JSON schema; unsupported Codex/Claude PDF routes rejected before
+  billable dispatch. Claude disabled thinking worked with the explicit 16-token cap.
+- Fresh `gpt-6-luna` and `gpt-5.6-luna` Ultra requests reached the native account
+  transport and returned HTTP 400 `invalid_value`, explicitly listing accepted
+  values through `max`. The old positive metadata was therefore incorrect. New
+  discovery/admission/native regressions failed eight cases before removing the
+  unsupported allowance, then 104 focused assertions passed. Review aliases and
+  model suffixes reject locally; supported Max and summary controls remain intact.
+- The configured `gpt-5.6-sol` combo contains only `ort/cx/gpt-5.6-sol`, not the
+  working direct Codex route. Its HTTP 523 came from that distinct compatible
+  upstream. The operator's stored combo was not silently rewritten.
+- Four restricted Antigravity routes returned genuine upstream 404 without typed
+  quota/reset evidence. That does not establish quota exhaustion, entitlement or
+  global retirement. One Gemini-high streaming request hit the client's 90-second
+  timeout; the logged caller abort remains an unresolved availability observation.
+- Runtime logs showed no module-load, uncaught, pipe, database or out-of-memory
+  failure indicators. That is a bounded log observation, not an all-provider SLA.
+
+Operational records are private on the development host under
+`/var/log/zenrouter-dev/runs/production-23c55b3b-20261022/`. Gateway/provider
+credentials remained on production; offline verification inherited only synthetic
+state. These live observations do not verify subscription invoices or authorize
+changes to saved provider/alias/combo configuration.

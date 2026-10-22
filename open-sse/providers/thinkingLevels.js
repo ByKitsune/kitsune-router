@@ -47,11 +47,10 @@ const PATTERN_THINKING = [
   { pattern: "*laguna*", levels: ["minimal", "low", "medium", "high"] },
   { pattern: "*claude*4.6*", levels: CLAUDE_NO_XHIGH },
   { pattern: "*claude*4-6*", levels: CLAUDE_NO_XHIGH },
-  { provider: "codex", pattern: "*gpt-6-luna*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { provider: "codex", pattern: "*gpt-6*", levels: CODEX_GPT_5_6_LEVELS },
   { provider: "codex", pattern: "*gpt-5.6-sol*", levels: CODEX_GPT_5_6_LEVELS },
   { provider: "codex", pattern: "*gpt-5.6-terra*", levels: CODEX_GPT_5_6_LEVELS },
-  { provider: "codex", pattern: "*gpt-5.6-luna*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
+  { provider: "codex", pattern: "*gpt-5.6-luna*", levels: CODEX_GPT_5_6_LEVELS },
   { pattern: "*codex*", levels: ["low", "medium", "high", "xhigh"] }, // codex cannot disable thinking
   { pattern: "*mimo*v2.6*", levels: ["none", "low", "medium", "high", "xhigh"] },
   // mimo-v2.5-pro on opencode-go rejects reasoning_effort "max" (probed live); v2.5 accepts it.

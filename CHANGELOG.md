@@ -28,6 +28,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Public gateway contract consistency
 
+- Reconcile Luna reasoning-effort discovery and local admission with fresh native
+  account-route rejections: `ultra` is no longer offered on Codex Luna/base-review
+  routes. Keep `max`, original parameter diagnostics and summary controls; do not
+  silently remap the rejected effort or confuse a CLI enum with live acceptance.
 - Remove Python traceback headers and frames from public upstream error messages,
   including arbitrary runtime paths and trailing debug payloads. Keep preceding
   actionable validation guidance, parameter diagnostics and request correlation.

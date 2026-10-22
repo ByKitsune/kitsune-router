@@ -70,7 +70,6 @@ describe("Codex reasoning normalization", () => {
     ["gpt-5.6-sol", "max", "max"],
     ["gpt-5.6-terra", "max", "max"],
     ["gpt-5.6-luna", "max", "max"],
-    ["gpt-5.6-luna", "ultra", "ultra"],
   ])("normalizes %s effort %s to %s", (model, effort, expected) => {
     const body = new CodexExecutor().transformRequest(model, {
       model,
@@ -81,7 +80,7 @@ describe("Codex reasoning normalization", () => {
     expect(body.reasoning.effort).toBe(expected);
   });
 
-  it.each(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6.1-sol"])("rejects unsupported %s Ultra instead of remapping it", model => {
+  it.each(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6.1-sol", "gpt-6-luna", "gpt-5.6-luna"])("rejects unsupported %s Ultra instead of remapping it", model => {
     expect(() => new CodexExecutor().transformRequest(model, { model, input: "hi", reasoning: { effort: "ultra" } }, true, {}))
       .toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "reasoning.effort" }));
   });
@@ -90,10 +89,10 @@ describe("Codex reasoning normalization", () => {
     const body = new CodexExecutor().transformRequest("gpt-5.6-luna-review", {
       model: "gpt-5.6-luna-review",
       input: "hi",
-      reasoning_effort: "ultra",
+      reasoning_effort: "max",
     }, true, {});
 
     expect(body.model).toBe("gpt-5.6-luna");
-    expect(body.reasoning.effort).toBe("ultra");
+    expect(body.reasoning.effort).toBe("max");
   });
 });
