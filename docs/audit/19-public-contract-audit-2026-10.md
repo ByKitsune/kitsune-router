@@ -198,4 +198,56 @@ The local client has no literal apiKey fields; private 0600 file substitutions p
 
 No push or production deployment was performed. GitHub CI for the new local commit must be checked after a future authorized push; the starting SHA CI success is not verification of these changes.
 
+## Restart follow-up — public traceback suffixes
 
+The resumed checkout contained local commit `113fe5ea` with a clean tree. Two
+later saved focused reports recorded an uncommitted follow-up: three Python
+traceback redaction failures at `20261022T125953Z-test-91926a`, followed by a
+focused green candidate at `20261022T130044Z-test-228ff0`. Neither the extra
+regressions nor their fix was in that commit. The green candidate therefore was
+not evidence for the clean committed checkout.
+
+Fresh regressions reproduced all three failures against `113fe5ea` in
+`20261022T164251Z-test-00bd27`. The shared diagnostic sanitizer now removes a
+Python `Traceback (most recent call last):` header or complete traceback-frame
+line before collapsing whitespace or redacting individual paths. Headerless
+syntax-error locations require an accompanying Python syntax exception; flattened
+frames require indentation plus a Python filename or virtual frame. Filename
+delimiters are handled independently so apostrophes in double-quoted paths do not
+bypass redaction. Preceding validation guidance, code, parameter and correlation
+remain intact; ordinary quoted file/line/field guidance is not a trace.
+
+Independent review found three defects in the initial narrow fix: quoted
+filenames bypassed removal, ordinary location guidance was overmatched, and
+headerless syntax errors retained source excerpts. Fresh tests reproduced seven
+failures at `20261022T165422Z-test-096246` and two stronger negative-control
+failures at `20261022T165640Z-test-3bec7e`. The corrected two HTTP/native-stream
+protocol suites passed all 72 assertions at `20261022T165718Z-test-9a8252`,
+including the reviewer cases and direct SSE error serialization. Non-Python and
+ANSI-decorated debug formats remain outside this narrow follow-up; no universal
+upstream-debug sanitization claim is made.
+
+No completed setup or main implementation was repeated. This follow-up uses
+synthetic local verification only and does not access, deploy to or retest
+production. Existing historical runtime/artifact evidence above remains separate
+from verification of this follow-up.
+
+Final follow-up verification (the source stayed unchanged during both full runs):
+
+- Node 24 all gates: `20261022T165839Z-all-e94f11` — 8,299 passed, zero failed
+  cases/suites, 100 optional/live skips, 691/691 discovered files; strict report
+  and inventory gates passed. Composed zero-warning lint, baselines/identity,
+  HTTP/2 compatibility, docs tests, app/docs builds and four dependency audits
+  passed. The audits reported zero known vulnerabilities at the time of the run.
+- Node 22 full suite: `20261022T170204Z-test-91d317` — the same 8,299 passed,
+  100 skips, 691 files, zero failures and strict report/inventory gates passed.
+- Real standalone HTTP follow-up: `traceback-runtime-kY8Pco` — all 48
+  Chat/Responses × JSON/stream-request cases passed against a synthetic loopback
+  upstream, including ordinary filename guidance. Each made exactly one upstream
+  attempt; validation stayed HTTP 400 without retry headers. Error parameter,
+  code, guidance and body/header correlation survived; trace/debug suffixes did
+  not. Reported source/sanitizer hashes matched the frozen candidate.
+- All three independent-review findings were reproduced and repaired with
+  ordinary failing/passing regressions. Earlier green snapshots were superseded
+  rather than counted as final verification. Non-Python/ANSI formats remain an
+  explicit evidence limit, not a universal security certification.

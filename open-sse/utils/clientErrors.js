@@ -37,6 +37,15 @@ export function publicRequestId(value) {
 export function redactClientDiagnostic(value) {
   if (typeof value !== "string") return "";
   return value.slice(0, 8192)
+    // Keep line structure until Python trace suffixes are removed. Complete
+    // location/frame lines also cover SyntaxError (no function name); filename
+    // quotes are delimiter-aware, so an apostrophe is valid inside double quotes.
+    .replace(/\bTraceback\s*\(most recent call last\)\s*:[\s\S]*$/i, "")
+    .replace(/(?:^|[\r\n])[ \t]*File[ \t]+(?:"[^"\r\n]+"|'[^'\r\n]+'),[ \t]+line[ \t]+\d+,[ \t]+in[ \t]+\S+[ \t]*(?=\r?$|\r?\n)[\s\S]*$/m, "")
+    .replace(/(?:^|[\r\n])[ \t]*File[ \t]+(?:"[^"\r\n]+"|'[^'\r\n]+'),[ \t]+line[ \t]+\d+[ \t]*\r?\n(?=[\s\S]*\b(?:SyntaxError|IndentationError|TabError):)[\s\S]*$/, "")
+    // Some upstreams flatten frames but retain indentation. Require Python
+    // filename/virtual-frame syntax here, not ordinary file/line/field prose.
+    .replace(/[ \t]{2,}File[ \t]+(?:"[^"\r\n]*\.pyw?"|'[^'\r\n]*\.pyw?'|"<[^"\r\n]+>"|'<[^'\r\n]+>'),[ \t]+line[ \t]+\d+,[ \t]+in[ \t]+\S+[\s\S]*$/, "")
     .replace(/\b(?:debug|stack(?:trace)?|traceback|request[_ -]?headers|response[_ -]?body|raw[_ -]?body)\s*[:=][\s\S]*$/i, "")
     .replace(/\bBearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
     .replace(/(["']?\b(?:api[\s_-]*key|access[\s_-]*token|refresh[\s_-]*token|client[\s_-]*secret|authorization|password|credentials?|secret|token|(?:account|connection|project|tenant|organization|org)[\s_-]*id)["']?(?:\s+(?:provided|supplied|used|received))?\s*(?:[:=]|\bis\b)\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, "$1[REDACTED]")

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildErrorBody, createErrorResult, errorResponse, parseUpstreamError, unavailableResponse } from "../../open-sse/utils/error.js";
+import { buildErrorBody, createErrorResult, errorResponse, parseUpstreamError, unavailableResponse, writeStreamError } from "../../open-sse/utils/error.js";
 import { checkFallbackError } from "../../open-sse/services/accountFallback.js";
 import { handleComboChat } from "../../open-sse/services/combo.js";
 import { sanitizeErrorResponse } from "../../src/sse/utils/requestCorrelation.js";
@@ -77,6 +77,49 @@ describe("uniform public inference error bodies", () => {
     expect(error.message).toContain("temperature");
     expect(error.message).toContain("<= 1");
     expect(error.message).not.toMatch(/anthropic/i);
+  });
+
+  it.each([
+    'reasoning_effort must be low, medium or high\nFile "/sgl-workspace/sglang/python/entrypoints/http_server.py", line 1354, in handle_request\nPOST /v1/chat/completions private-debug-payload',
+    'reasoning_effort must be low, medium or high    File "/custom-runtime/app/server.py", line 42, in handle_request private-debug-payload',
+    'reasoning_effort must be low, medium or high\nTraceback (most recent call last):\n  File "/custom-runtime/app/server.py", line 42, in handle_request\nprivate-debug-payload',
+    `reasoning_effort must be low, medium or high\n  File "/custom-runtime/owner's-app/server.py", line 42, in handle_request\nprivate-debug-payload`,
+    `reasoning_effort must be low, medium or high    File "/custom-runtime/owner's-app/server.py", line 42, in handle_request private-debug-payload`,
+    `reasoning_effort must be low, medium or high\n  File '/custom-runtime/app/server.py', line 42, in handle_request\nprivate-debug-payload`,
+    'reasoning_effort must be low, medium or high\n  File "/custom-runtime/server.py", line 42\n    private_debug_payload =\nSyntaxError: invalid syntax',
+    'reasoning_effort must be low, medium or high\r\n  File "server.py", line 42\r\n    private_debug_payload =\r\nSyntaxError: invalid syntax',
+  ])("removes Python traceback frames while retaining validation guidance", async message => {
+    const parsed = await parseUpstreamError(Response.json({ error: {
+      message, type: "invalid_request_error", code: "invalid_parameter", param: "reasoning_effort",
+    } }, { status: 400 }));
+    const response = await sanitizeErrorResponse(createErrorResult(parsed.statusCode, parsed.message, parsed.resetsAtMs, parsed).response, "req_trace_fixture");
+    const { error } = await response.json();
+    expectContract(error);
+    expect(error.message).toBe("reasoning_effort must be low, medium or high");
+    expect(error.param).toBe("reasoning_effort");
+    expect(error.code).toBe("invalid_parameter");
+    expect(error.request_id).toBe(response.headers.get("x-request-id"));
+    expect(JSON.stringify(error)).not.toMatch(/sgl-workspace|custom-runtime|server\.py|1354|handle_request|private[-_]debug[-_]payload|Traceback|SyntaxError/);
+    expect(parsed.resetsAtMs).toBeFalsy();
+
+    const chunks = [];
+    await writeStreamError({ write: async bytes => chunks.push(bytes) }, 400, message);
+    const frame = Buffer.concat(chunks).toString("utf8").trim();
+    const streamed = JSON.parse(frame.slice("data: ".length));
+    expectContract(streamed.error);
+    expect(streamed.error.message).toBe("reasoning_effort must be low, medium or high");
+  });
+
+  it.each([
+    'file_name must end in ".pdf"; maximum 1354 lines.',
+    'Invalid input file "batch.jsonl", line 42, in field "messages": expected an array.',
+    'File "batch.jsonl", line 42, in record 3 must contain messages as an array.',
+    'Invalid input:\nFile "batch.jsonl", line 42, in field "messages": expected an array.',
+    'File "batch.jsonl", line 42\nmust contain messages as an array.',
+    'File "validator.py", line 42, in field "messages": expected an array.',
+  ])("does not confuse ordinary file and line-count guidance with a traceback: %s", message => {
+    expect(buildErrorBody(400, message, { code: "invalid_parameter", param: "file_name" }).error)
+      .toMatchObject({ message: message.replaceAll("\n", " "), code: "invalid_parameter", param: "file_name" });
   });
 
   it.each([

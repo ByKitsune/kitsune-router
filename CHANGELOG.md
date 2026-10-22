@@ -19,6 +19,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Public gateway contract consistency
 
+- Remove Python traceback headers and frames from public upstream error messages,
+  including arbitrary runtime paths and trailing debug payloads. Keep preceding
+  actionable validation guidance, parameter diagnostics and request correlation.
 - Normalize public inference errors to `message`, `type`, a string `code` and a
   correlated `request_id`. Preserve actionable validation details while redacting
   credentials, account identifiers, private paths and upstream debug payloads.
