@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   connections: [],
   combo: null,
+  aliases: {},
   execute: vi.fn(),
   getProviderConnections: vi.fn(),
   getProviderConnectionById: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock("@/lib/localDb", () => ({
   isApiKeyRequired: (settings) => settings.requireApiKey === true,
   validateApiKey: vi.fn(async () => false),
   getProxyPools: vi.fn(async () => []),
-  getModelAliases: vi.fn(async () => ({})),
+  getModelAliases: vi.fn(async () => mocks.aliases),
   getProviderNodes: vi.fn(async () => []),
   getComboByName: vi.fn(async (name) => name === mocks.combo?.name ? mocks.combo : null),
 }));
@@ -189,6 +190,7 @@ beforeEach(() => {
   mocks.connections = [connection("account-a")];
   vi.stubGlobal("fetch", mocks.fetch);
   mocks.combo = null;
+  mocks.aliases = {};
   mocks.getSettings.mockResolvedValue({
     requireApiKey: false,
     fallbackStrategy: "fill-first",
@@ -292,7 +294,7 @@ describe("output-budget exhaustion through handleChat and real account health lo
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      model: OPUS,
+      model: "budget-safe-combo",
       content: [{ type: "text", text: "The answer is 42." }],
     });
     expect(attempts()).toEqual([["account-a", SONNET], ["account-a", OPUS]]);
@@ -353,5 +355,57 @@ describe("output-budget exhaustion through handleChat and real account health lo
     expect(attempts()).toEqual([
       ["account-a", SONNET], ["account-a", SONNET], ["account-b", SONNET], ["account-b", SONNET],
     ]);
+  });
+});
+
+describe("public quota status through direct, alias and combo routing", () => {
+  it("keeps typed validation authoritative through real account-health and combo boundaries", async () => {
+    mocks.connections.push(connection("account-b"));
+    mocks.combo = { name: "validation-combo", models: [`cc/${SONNET}`, `cc/${OPUS}`] };
+    mocks.execute.mockImplementation(async () => upstream({ error: {
+      type: "invalid_request_error", code: "invalid_parameter", param: "messages.0.role",
+      message: "Expected one of system, user, assistant; received 'quota exhausted retry in 6 hours'",
+    } }, 400));
+    const response = await handleChat(request("validation-combo"));
+    expect(response.status).toBe(400);
+    expect(response.headers.get("retry-after")).toBeNull();
+    expect((await response.json()).error).toMatchObject({ code: "invalid_parameter", param: "messages.0.role" });
+    expect(attempts()).toEqual([["account-a", SONNET]]);
+    expectNoHealthWrites();
+    mocks.execute.mockImplementation(async () => completed());
+    expect((await handleChat(request())).status).toBe(200);
+  });
+  it.each(["direct", "alias", "combo"])("keeps first failure and later cooldown status truthful on a %s route", async route => {
+    mocks.aliases = { "quota-alias": `cc/${SONNET}` };
+    mocks.combo = { name: "quota-combo", models: ["quota-alias"] };
+    const model = route === "direct" ? `cc/${SONNET}` : route === "alias" ? "quota-alias" : "quota-combo";
+    mocks.execute.mockImplementation(async () => ({
+      ...upstream({ error: { type: "rate_limit_error", code: "usage_limit_reached", message: "Your usage limit has been reached. Try again in 60 seconds." } }, 400),
+    }));
+    const startedAt = Date.now();
+    const first = await handleChat(request(model));
+    expect(first.status).toBe(429);
+    const firstError = (await first.json()).error;
+    expect(firstError).toMatchObject({ type: "rate_limit_error", code: "rate_limit_exceeded", request_id: expect.any(String), message: expect.stringContaining("usage limit") });
+    expect(Number(first.headers.get("retry-after"))).toBeGreaterThanOrEqual(59);
+    expect(attempts()).toEqual([["account-a", SONNET]]);
+    const lock = Date.parse(mocks.connections[0][`modelLock_${SONNET}`]);
+    expect(lock).toBeGreaterThanOrEqual(startedAt + 59000);
+    const later = await handleChat(request(model));
+    expect(later.status).toBe(429);
+    expect((await later.json()).error).toMatchObject({ type: "rate_limit_error", code: "rate_limit_exceeded", request_id: expect.any(String) });
+    expect(Number(later.headers.get("retry-after"))).toBeGreaterThanOrEqual(59);
+    expect(attempts()).toEqual([["account-a", SONNET]]);
+  });
+
+  it("returns a true unknown-model 404 without cooling a healthy credential", async () => {
+    mocks.execute.mockImplementation(async () => upstream({ error: { message: "Unknown model", code: "model_not_found" } }, 404));
+    const response = await handleChat(request());
+    expect(response.status).toBe(404);
+    expect((await response.json()).error).toMatchObject({ type: "invalid_request_error", code: "model_not_found", request_id: expect.any(String) });
+    expect(response.headers.get("retry-after")).toBeNull();
+    expectNoHealthWrites();
+    mocks.execute.mockImplementation(async () => completed());
+    expect((await handleChat(request())).status).toBe(200);
   });
 });

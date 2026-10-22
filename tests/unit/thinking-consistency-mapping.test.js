@@ -73,9 +73,9 @@ describe("declared effort sets at the actual translation boundary", () => {
     expectOutputCap(wire, "claude");
   });
 
-  it.each([["codex", "ultra"], ["openai", "max"]])("uses %s's own declared maximum instead of an identity-wide effort override", (provider, expected) => {
-    const wire = translateRequest("claude", "openai-responses", "gpt-6.1-sol", request("claude", "ultra"), false, null, provider);
-    expect(wire.reasoning.effort).toBe(expected);
+  it("does not remap a rejected Codex Ultra effort to a supported value", () => {
+    expect(() => translateRequest("claude", "openai-responses", "gpt-6.1-sol", request("claude", "ultra"), false, null, "codex"))
+      .toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "output_config.effort" }));
   });
 });
 

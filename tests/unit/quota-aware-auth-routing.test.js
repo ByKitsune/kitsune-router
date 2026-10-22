@@ -101,7 +101,7 @@ describe("Claude remaining-first routing", () => {
   });
 
   it("returns allRateLimited when every account is blocking-exhausted", async () => {
-    const resetAt = "2026-09-03T12:00:00.000Z";
+    const resetAt = new Date(Date.now() + 3600000).toISOString();
     mocks.getProviderConnections.mockResolvedValue([
       { id: "cl-a", email: "a@example.com", isActive: true, accessToken: "t-a" },
       { id: "cl-b", email: "b@example.com", isActive: true, accessToken: "t-b" },
@@ -117,5 +117,11 @@ describe("Claude remaining-first routing", () => {
       allRateLimited: true,
       retryAfter: resetAt,
     });
+  });
+
+  it("reports evidenced quota without inventing a reset when every account is exhausted", async () => {
+    mocks.getProviderConnections.mockResolvedValue([{ id: "cl-no-reset", isActive: true, accessToken: "synthetic-no-reset" }]);
+    mocks.getClaudeUsage.mockResolvedValue({ quotas: { "weekly (7d)": { remaining: 0, total: 100, remainingPercentage: 0 } } });
+    await expect(getProviderCredentials("claude")).resolves.toMatchObject({ allRateLimited: true, lastErrorCode: 429, retryAfter: null });
   });
 });

@@ -8,5 +8,8 @@ export function cloneRequestBody(value) {
   for (const key of Object.keys(copy)) {
     if (copy[key] && typeof copy[key] === "object") copy[key] = cloneRequestBody(copy[key]);
   }
+  for (const symbol of Object.getOwnPropertySymbols(value)) {
+    Object.defineProperty(copy, symbol, Object.getOwnPropertyDescriptor(value, symbol));
+  }
   return copy;
 }

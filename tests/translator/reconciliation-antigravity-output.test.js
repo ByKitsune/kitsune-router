@@ -26,7 +26,6 @@ describe("Antigravity structured output intent", () => {
   it.each([
     [FORMATS.OPENAI, { response_format: { type: "json_schema", json_schema: { name: "answer", schema } } }],
     [FORMATS.OPENAI_RESPONSES, { input: "Respond.", instructions: "Retain my instructions.", text: { format: { type: "json_schema", name: "answer", schema } } }],
-    [FORMATS.CLAUDE, { output_config: { format: { type: "json_schema", schema } } }],
   ])("lowers supported %s schemas to the legacy responseSchema wire with no prompt substitution", (source, extra) => {
     const out = translate(extra, source);
     expect(out.request.generationConfig).toMatchObject({ responseMimeType: "application/json", responseSchema: lower });
@@ -63,6 +62,7 @@ describe("Antigravity structured output intent", () => {
   it.each([
     { type: "json_schema" }, { type: "json_schema", json_schema: {} },
     { type: "json_schema", json_schema: { schema, strict: "true" } },
+    { type: "json_schema", json_schema: { schema, strict: true } },
     { type: "xml" }, "json_object",
   ])("rejects malformed output intent rather than degrading to generic text or JSON: %j", response_format => {
     expect(() => translate({ response_format })).toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "response_format" }));
@@ -75,6 +75,18 @@ describe("Antigravity structured output intent", () => {
     { output_config: { format: { type: "json_schema", schema } } },
   ])("explicitly rejects structured output on the unverified Claude-on-Antigravity backend: %j", extra => {
     expect(() => translate(extra, FORMATS.OPENAI, "claude-sonnet-4-6")).toThrow(expect.objectContaining({ code: "unsupported_parameter" }));
+  });
+
+  it("rejects unsupported strict guarantees with safe caller-facing guidance", () => {
+    for (const source of [FORMATS.OPENAI, FORMATS.OPENAI_RESPONSES]) {
+      const extra = source === FORMATS.OPENAI
+        ? { response_format: { type: "json_schema", json_schema: { name: "answer", strict: true, schema } } }
+        : { input: "Respond.", text: { format: { type: "json_schema", name: "answer", strict: true, schema } } };
+      expect(() => translate(extra, source)).toThrow(expect.objectContaining({ code: "unsupported_parameter" }));
+      try { translate(extra, source); } catch (error) {
+        expect(error.message).not.toMatch(/Cloud Code|protobuf|responseSchema|responseJsonSchema|wire/i);
+      }
+    }
   });
 
   it("rejects native structured output on Claude-backed same-format requests", () => {

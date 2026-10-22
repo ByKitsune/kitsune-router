@@ -1,4 +1,8 @@
 import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS } from "../config/errorConfig.js";
+import { classifyAvailabilityError, extractResetsAtMs, isRequestValidationError } from "../services/accountFallback.js";
+import { redactClientDiagnostic, sanitizeClientError } from "./clientErrors.js";
+
+export { extractResetsAtMs } from "../services/accountFallback.js";
 
 export const MAX_UPSTREAM_ERROR_BYTES = 8192;
 
@@ -33,20 +37,10 @@ async function readBoundedErrorBody(response, maxBytes = MAX_UPSTREAM_ERROR_BYTE
  * @returns {object} Error response object
  */
 export function buildErrorBody(statusCode, message, diagnostics = {}) {
-  const errorInfo = ERROR_TYPES[statusCode] || 
-    (statusCode >= 500 
-      ? { type: "server_error", code: "internal_server_error" }
-      : { type: "invalid_request_error", code: "" });
-
-  const error = {
-      message: message || DEFAULT_ERROR_MESSAGES[statusCode] || "An error occurred",
-      type: errorInfo.type,
-      code: errorInfo.code
-  };
-  for (const key of ["type", "param", "code", "request_id"]) {
-    if (diagnostics[key]) error[key] = diagnostics[key];
-  }
-  return { error };
+  return { error: sanitizeClientError({
+    ...diagnostics,
+    message: typeof message === "string" ? message : DEFAULT_ERROR_MESSAGES[statusCode],
+  }, { status: statusCode }) };
 }
 
 /**
@@ -56,17 +50,16 @@ export function buildErrorBody(statusCode, message, diagnostics = {}) {
  * @returns {Response} HTTP Response object
  */
 export function errorResponse(statusCode, message, diagnostics = {}, retryAfterSec = null) {
+  const body = buildErrorBody(statusCode, message, diagnostics);
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
+    "x-request-id": body.error.request_id,
   };
-  if (retryAfterSec && Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
+  if (Number.isFinite(retryAfterSec) && retryAfterSec > 0 && (statusCode === 429 || statusCode === 503)) {
     headers["Retry-After"] = String(Math.ceil(retryAfterSec));
   }
-  return new Response(JSON.stringify(buildErrorBody(statusCode, message, diagnostics)), {
-    status: statusCode,
-    headers,
-  });
+  return new Response(JSON.stringify(body), { status: statusCode, headers });
 }
 
 /**
@@ -81,45 +74,6 @@ export async function writeStreamError(writer, statusCode, message) {
   await writer.write(encoder.encode(`data: ${JSON.stringify(errorBody)}\n\n`));
 }
 
-/**
- * Best-effort extraction of a precise rate-limit reset time from common
- * provider error shapes. GLM/Z.AI: "Your limit will reset at 2026-08-17 02:56:15"
- * (UTC). Also handles "retry in N seconds", "resets in Ns" and Retry-After.
- * Returns epoch ms or null.
- * PR #3612
- */
-export function extractResetsAtMs(response, message) {
-  if (!message) return null;
-  const text = typeof message === "string" ? message : JSON.stringify(message);
-
-  // GLM/Z.AI: "reset at 2026-08-17 02:56:15" (provider sends UTC without suffix)
-  const resetAt = text.match(/reset at\s+(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/i);
-  if (resetAt) {
-    const ms = Date.parse(`${resetAt[1]}T${resetAt[2]}Z`);
-    if (Number.isFinite(ms) && ms > Date.now()) return ms;
-  }
-
-  // "retry in 300 seconds" / "resets in 5 minutes" / "try again in 1 hour"
-  const inTime = text.match(/(?:retry|try again|resets?)\s+(?:after|in)\s+(\d+(?:\.\d+)?)\s*(seconds?|minutes?|hours?)/i);
-  if (inTime) {
-    const n = Number(inTime[1]);
-    const unit = inTime[2][0].toLowerCase();
-    const mult = unit === "s" ? 1000 : unit === "m" ? 60000 : 3600000;
-    const ms = Date.now() + n * mult;
-    if (Number.isFinite(ms)) return ms;
-  }
-
-  // Retry-After header (seconds or HTTP-date)
-  const ra = response?.headers?.get?.("retry-after") ?? response?.headers?.get?.("Retry-After");
-  if (ra) {
-    const secs = Number(ra);
-    if (Number.isFinite(secs) && secs > 0) return Date.now() + secs * 1000;
-    const dateMs = Date.parse(ra);
-    if (Number.isFinite(dateMs) && dateMs > Date.now()) return dateMs;
-  }
-
-  return null;
-}
 
 // Google Cloud Code Assist regional allowlist rejection (Antigravity/Gemini
 // free tier): "User location is not supported for the API use."
@@ -153,6 +107,11 @@ export async function parseUpstreamError(response, executor = null) {
   }
   const generic = parseUpstreamErrorBody(response, bodyText);
   const { message, ...diagnostics } = generic;
+  // Validation diagnostics are authoritative even when rejected input contains
+  // quoted quota/reset phrases or a provider-specific parser would expand them.
+  if (isRequestValidationError(response.status, message, diagnostics)) {
+    return { statusCode: response.status, message, ...diagnostics };
+  }
   const structuredReset = executor?.provider === "antigravity"
     ? parseGoogleQuotaReset(response, bodyText) : null;
 
@@ -166,7 +125,10 @@ export async function parseUpstreamError(response, executor = null) {
         const msg = (structuredReset && message) || safeDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
         // Executor parse wins; fill resetsAtMs from generic patterns when absent — PR #3612
         const hint = parsed.resetsAtMs == null ? structuredReset : null;
-        const resetsAtMs = parsed.resetsAtMs ?? hint?.resetsAtMs ?? (RESET_BEARING_STATUSES.has(response.status) ? extractResetsAtMs(response, msg) : null);
+        const availability = classifyAvailabilityError(response.status, msg, {
+          code: parsed.code ?? diagnostics.code, type: parsed.type ?? diagnostics.type,
+        });
+        const resetsAtMs = parsed.resetsAtMs ?? hint?.resetsAtMs ?? (RESET_BEARING_STATUSES.has(response.status) || availability.kind ? extractResetsAtMs(response, msg) : null);
         return {
           statusCode: parsed.status || response.status,
           message: withLocationGateHint(msg),
@@ -197,7 +159,7 @@ export async function parseUpstreamError(response, executor = null) {
   // describes the request, not account health, and extractResetsAtMs() also
   // matches loose wording like "retry in 5 minutes" — applying that to a client
   // error would cool down a perfectly healthy account.
-  if (RESET_BEARING_STATUSES.has(response.status)) {
+  if (RESET_BEARING_STATUSES.has(response.status) || classifyAvailabilityError(response.status, finalMessage, diagnostics).kind) {
     const resetsAtMs = extractResetsAtMs(response, finalMessage);
     if (resetsAtMs) return { statusCode: response.status, message: finalMessage, ...diagnostics, resetsAtMs };
   }
@@ -267,16 +229,21 @@ function parseQuotaTimestamp(value) {
 export function parseUpstreamErrorBody(response, bodyText) {
   try {
     const json = JSON.parse(bodyText);
-    const source = json.error && typeof json.error === "object" ? json.error : json;
+    const source = json?.error && typeof json.error === "object" && !Array.isArray(json.error) ? json.error : json;
     return {
-      message: safeDiagnostic(source?.message || json.message || (typeof json.error === "string" ? json.error : "")),
-      type: safeDiagnostic(source?.type),
+      message: safeDiagnostic(source?.message || json?.message || (typeof json?.error === "string" ? json.error : typeof json === "string" ? json : "")),
+      type: safeDiagnostic(source?.type || source?.status),
       param: safeDiagnostic(source?.param),
       code: safeDiagnosticCode(source?.code),
-      request_id: safeRequestId(response, source?.request_id || json.request_id),
+      request_id: safeRequestId(response, source?.request_id || json?.request_id),
     };
   } catch {
-    return {};
+    // Plain-text validation/quota messages are useful, but an HTML error page,
+    // stack trace or arbitrary response body is not a public diagnostic.
+    const message = bodyText.length <= 500 && !/<\/?[A-Za-z][^>]*>|[\r\n]|^\s*[\[{]|\b(?:stack|traceback|debug)\b/i.test(bodyText)
+      && /\b(?:invalid|unsupported|must|minimum|maximum|quota|rate limit|usage limit|insufficient credits?|not found|unknown model|unavailable)\b/i.test(bodyText)
+      ? safeDiagnostic(bodyText) : undefined;
+    return { message, request_id: safeRequestId(response) };
   }
 }
 
@@ -286,8 +253,7 @@ export function parseUpstreamErrorBody(response, bodyText) {
 const RESET_BEARING_STATUSES = new Set([402, 403, 429, 500, 502, 503, 504, 529]);
 
 function safeDiagnostic(value) {
-  if (typeof value !== "string") return undefined;
-  return value.replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]").replace(/[\r\n\0]/g, " ").trim().slice(0, 500) || undefined;
+  return redactClientDiagnostic(value) || undefined;
 }
 
 function safeDiagnosticCode(value) {
@@ -308,15 +274,21 @@ function safeRequestId(response, value) {
  * @returns {{ success: false, status: number, error: string, response: Response, resetsAtMs?: number }}
  */
 export function createErrorResult(statusCode, message, resetsAtMs, diagnostics = {}) {
-  const retryAfterSec = resetsAtMs && resetsAtMs > Date.now()
-    ? Math.max(1, Math.ceil((resetsAtMs - Date.now()) / 1000))
-    : null;
+  const availability = classifyAvailabilityError(statusCode, message, diagnostics);
+  const status = availability.statusCode;
+  const resetCandidate = resetsAtMs ?? (availability.kind ? extractResetsAtMs(null, message) : null);
+  const reset = (status === 429 || status === 503) && Number.isFinite(resetCandidate) && resetCandidate > Date.now()
+    ? resetCandidate : null;
+  const responseDiagnostics = status !== Number(statusCode) ? {
+    ...diagnostics, ...ERROR_TYPES[status], code: availability.code || ERROR_TYPES[status]?.code,
+  } : diagnostics;
   return {
     success: false,
-    status: statusCode,
+    status,
     error: message,
-    resetsAtMs,
-    response: errorResponse(statusCode, message, diagnostics, retryAfterSec)
+    resetsAtMs: reset,
+    diagnostics: responseDiagnostics,
+    response: errorResponse(status, message, responseDiagnostics, reset ? (reset - Date.now()) / 1000 : null),
   };
 }
 
@@ -329,24 +301,11 @@ export function createErrorResult(statusCode, message, resetsAtMs, diagnostics =
  * @returns {Response}
  */
 export function unavailableResponse(statusCode, message, retryAfter, retryAfterHuman) {
-  const msg = `${message} (${retryAfterHuman})`;
-  const headers = { "Content-Type": "application/json" };
-
-  // `retryAfter` arrives from provider payloads and is not guaranteed to be a
-  // parseable date: values like "soon", "1 minute", "" or "30" all yield NaN,
-  // which previously emitted the literal header `Retry-After: NaN`. Clients
-  // (and intermediaries) cannot act on that, and it is worse than omitting the
-  // header entirely — so only send a header when the value is a real instant.
-  const retryAfterMs = retryAfter == null ? NaN : new Date(retryAfter).getTime();
-  if (Number.isFinite(retryAfterMs)) {
-    const retryAfterSec = Math.max(Math.ceil((retryAfterMs - Date.now()) / 1000), 1);
-    if (Number.isFinite(retryAfterSec)) headers["Retry-After"] = String(retryAfterSec);
-  }
-
-  return new Response(
-    JSON.stringify({ error: { message: msg } }),
-    { status: statusCode, headers }
-  );
+  const retryAfterMs = typeof retryAfter === "string" && /^\d{4}-\d{2}-\d{2}T/.test(retryAfter) ? Date.parse(retryAfter) : NaN;
+  const retryAfterSec = Number.isFinite(retryAfterMs) && retryAfterMs > Date.now()
+    ? (retryAfterMs - Date.now()) / 1000 : null;
+  const msg = retryAfterSec && retryAfterHuman ? `${message} (${retryAfterHuman})` : message;
+  return errorResponse(statusCode, msg, {}, retryAfterSec);
 }
 
 /**

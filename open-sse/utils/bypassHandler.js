@@ -3,6 +3,7 @@ import { translateResponse, initState } from "../translator/index.js";
 import { FORMATS } from "../translator/formats.js";
 import { SKIP_PATTERNS } from "../config/runtimeConfig.js";
 import { formatSSE } from "./stream.js";
+import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.js";
 
 /**
  * Check for bypass patterns - return fake response without calling provider
@@ -11,6 +12,8 @@ import { formatSSE } from "./stream.js";
 export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming = false) {
   if (!userAgent.includes("claude-cli")) return null;
   if (!body.messages?.length) return null;
+  // App-side warmup/title shortcuts run before provider admission too.
+  if (rejectUnsupportedDocuments(body, { pdf: true })) return null;
 
   const messages = body.messages;
   const getText = (content) => {

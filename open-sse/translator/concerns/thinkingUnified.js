@@ -5,8 +5,10 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { getThinkingLevels } from "../../providers/thinkingLevels.js";
 import { PROVIDERS } from "../../providers/index.js";
-import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel } from "./thinking.js";
+import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel, getThinkingContext, setThinkingContext } from "./thinking.js";
 import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
+import { canonicalizeProviderId } from "../../providers/identity.js";
+import { getProviderModels } from "../../config/providerModels.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
 const FORMAT_TO_NATIVE = {
@@ -139,12 +141,107 @@ export function captureThinking(body) {
     ? { ...body.reasoning } : undefined;
   const claudeOutputConfig = body.output_config && typeof body.output_config === "object"
     ? { ...body.output_config } : undefined;
+  const context = getThinkingContext(body);
+  const outputParam = context?.outputParam || ["max_completion_tokens", "max_tokens", "max_output_tokens"].find(key => body[key] != null)
+    || (body.request?.generationConfig?.maxOutputTokens != null ? "request.generationConfig.maxOutputTokens"
+      : body.generationConfig?.maxOutputTokens != null ? "generationConfig.maxOutputTokens" : undefined);
   return {
     ...cfg, ...(display ? { display } : {}),
     ...(includeThoughts === undefined ? {} : { includeThoughts }),
     ...(responsesReasoning ? { responsesReasoning } : {}),
     ...(claudeOutputConfig ? { claudeOutputConfig } : {}),
+    ...(context?.providerDefault ? { providerDefault: true } : {}),
+    explicitBudget: context?.explicitBudget ?? (cfg.mode === "budget" && !context?.providerDefault),
+    ...(outputParam ? { outputParam } : {}),
+    ...(context?.requestedModel ? { requestedModel: context.requestedModel } : {}),
   };
+}
+
+function unsupportedThinking(param, message) {
+  const error = new Error(`${param}: ${message}`);
+  error.code = "unsupported_parameter";
+  error.param = param;
+  throw error;
+}
+
+// Admission runs before translation as well as at native dispatch. Never let a
+// registry preset, precedence rule or ordinal clamp hide rejected client intent.
+export function validateThinkingParams(provider, model, body, targetFormat = null, requestedModel = null, options = {}) {
+  const nativeProvider = canonicalizeProviderId(provider);
+  if (nativeProvider !== "antigravity" && nativeProvider !== "codex") return;
+  const context = getThinkingContext(body);
+  const alias = nativeProvider === "codex" ? "cx" : "ag";
+  const localModel = value => typeof value === "string" && (value.startsWith(`${alias}/`) || value.startsWith(`${nativeProvider}/`))
+    ? value.slice(value.indexOf("/") + 1) : value;
+  const requested = localModel(requestedModel || context?.requestedModel || model);
+  const parsed = parseSuffix(requested);
+  const cleanModel = stripThinkingSuffix(localModel(model));
+  const providerDefault = options.providerThinkingInjected ?? context?.providerDefault ?? false;
+  setThinkingContext(body, { requestedModel: requested, ...(providerDefault ? { providerDefault: true, explicitBudget: false } : {}) });
+  const models = nativeProvider === "antigravity" ? getProviderModels(alias) : null;
+  const wireEntry = models?.find(value => value.id === parsed.cleanModel) || models?.find(value => value.id === cleanModel) || models?.find(value => {
+    const wire = parseSuffix(value.upstreamModelId || value.id);
+    return wire.cleanModel === cleanModel && (!parsed.override || parsed.override.mode !== "level" || wire.override?.level === parsed.override.level);
+  });
+  const caps = getCapabilitiesForModel(nativeProvider, wireEntry?.id || cleanModel);
+  const efforts = [];
+  for (const [prefix, value] of [["", body], ["request.", body.request]]) {
+    if (!value || providerDefault) continue;
+    for (const [path, effort] of [["reasoning_effort", value.reasoning_effort], ["reasoning.effort", value.reasoning?.effort], ["output_config.effort", value.output_config?.effort]]) {
+      if (effort != null) efforts.push([`${prefix}${path}`, effort]);
+    }
+  }
+  if (parsed.override?.mode === "level") efforts.push(["model", parsed.override.level]);
+  else if (parsed.override?.mode === "none") efforts.push(["model", "none"]);
+  else if (typeof requested === "string" && /\([^()]+\)\s*$/.test(requested) && !parsed.override) {
+    unsupportedThinking("model", "the thinking suffix is not supported; use a declared effort or remove the suffix.");
+  }
+
+  if (nativeProvider === "codex") {
+    const levels = getThinkingLevels(nativeProvider, cleanModel);
+    for (const [param, raw] of efforts) {
+      const effort = typeof raw === "string" ? raw.trim().toLowerCase() : null;
+      if (!effort || !levels?.includes(effort)) {
+        unsupportedThinking(param, `this model accepts reasoning effort ${levels?.join(", ") || "only when declared by the destination"}; omit ${param} to use its default.`);
+      }
+    }
+    return;
+  }
+
+  const entry = models.find(value => value.id === parsed.cleanModel) || wireEntry;
+  const preset = entry && !entry.resolveThinkingTier ? parseSuffix(entry.upstreamModelId || entry.id).override : null;
+  const fixed = caps.fixedThinkingEffort || (preset?.mode === "level" ? preset.level : null);
+  const geminiLevels = caps.thinkingFormat === "gemini-level" && /^gemini(?:-|$)/i.test(cleanModel);
+  const levels = fixed ? [fixed] : caps.thinkingEfforts?.length ? caps.thinkingEfforts
+    : geminiLevels && entry ? ["low", "medium", "high"] : [];
+  let selected;
+  for (const [param, raw] of efforts) {
+    const effort = typeof raw === "string" ? raw.trim().toLowerCase() : null;
+    const canDisable = !fixed && caps.thinkingCanDisable !== false && caps.thinkingFormat === "gemini-budget";
+    if (effort === "none" && canDisable) continue;
+    if (!effort || !levels.includes(effort)) {
+      unsupportedThinking(param, fixed
+        ? `this route fixes thinking effort to ${fixed}; use that effort, omit ${param}, or select a different tier.`
+        : levels.length ? `this route accepts thinking effort ${levels.join(", ")}; use a supported value or omit ${param}.`
+          : `this route cannot preserve reasoning effort; omit ${param}, use a supported native thinking budget, or select a different destination.`);
+    }
+    if (selected && selected !== effort) unsupportedThinking(param, "conflicting effort controls cannot be preserved; supply one matching effort.");
+    selected = effort;
+  }
+  const numeric = [["thinking.budget_tokens", body.thinking?.budget_tokens], ["thinking_budget", body.thinking_budget], ["budget_tokens", body.budget_tokens],
+    ["thinkingConfig.thinkingBudget", body.thinkingConfig?.thinkingBudget], ["generationConfig.thinkingConfig.thinkingBudget", body.generationConfig?.thinkingConfig?.thinkingBudget],
+    ["request.generationConfig.thinkingConfig.thinkingBudget", body.request?.generationConfig?.thinkingConfig?.thinkingBudget]];
+  if (parsed.override?.mode === "budget") numeric.push(["model", parsed.override.budget]);
+  if (fixed && !providerDefault && context?.explicitBudget !== false) {
+    for (const [param, value] of numeric) if (value != null) unsupportedThinking(param, `this route fixes thinking effort to ${fixed}; omit the numeric budget or select a route that supports it.`);
+    if (body.thinking?.type === "disabled") unsupportedThinking("thinking.type", `this route fixes thinking effort to ${fixed}; select a route that supports disabled thinking.`);
+  }
+  for (const [prefix, value] of [["thinkingConfig", body.thinkingConfig], ["generationConfig.thinkingConfig", body.generationConfig?.thinkingConfig], ["request.generationConfig.thinkingConfig", body.request?.generationConfig?.thinkingConfig]]) {
+    if (value?.thinkingLevel == null) continue;
+    const level = value.thinkingLevel;
+    if (!geminiLevels || !levels.includes(level)) unsupportedThinking(`${prefix}.thinkingLevel`, "this route does not support that native thinking level; use a declared tier or a supported native thinking budget.");
+    if (selected && selected !== level) unsupportedThinking(efforts[0][0], "the effort conflicts with the native thinking level; supply one matching control.");
+  }
 }
 
 function openAIThinkingDisplay(body) {
@@ -350,7 +447,7 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider, i
     case "claude-budget": {
       if (none && canDisable) { body.thinking = { type: "disabled" }; break; }
       const budget = toBudget(eff, caps.thinkingRange);
-      body.thinking = { type: "enabled", budget_tokens: Number.isFinite(budget) && budget > 0 ? Math.max(1024, Math.floor(budget)) : 8192, ...(display ? { display } : {}) };
+      body.thinking = { type: "enabled", budget_tokens: Number.isFinite(budget) && budget > 0 ? Math.max(CLAUDE_MIN_THINKING_BUDGET, Math.floor(budget)) : 8192, ...(display ? { display } : {}) };
       break;
     }
     case "gemini-level": {
@@ -467,6 +564,20 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
   const { cleanModel, override } = parseSuffix(model);
   const captured = intent || captureThinking(body);
   const cfg = override || captured;
+  if (captured) setThinkingContext(body, {
+    ...(captured.outputParam ? { outputParam: captured.outputParam } : {}),
+    ...(captured.requestedModel ? { requestedModel: captured.requestedModel } : {}),
+    ...(captured.providerDefault ? { providerDefault: true } : {}),
+    explicitBudget: override ? override.mode === "budget" : captured.explicitBudget ?? captured.mode === "budget",
+  });
+  else if (override) setThinkingContext(body, { explicitBudget: override.mode === "budget" });
+  if (!getThinkingContext(body)?.outputParam) {
+    const outputParam = ["max_completion_tokens", "max_tokens", "max_output_tokens"].find(key => body[key] != null)
+      || (body.request?.generationConfig?.maxOutputTokens != null ? "request.generationConfig.maxOutputTokens"
+        : body.generationConfig?.maxOutputTokens != null ? "generationConfig.maxOutputTokens" : undefined);
+    if (outputParam) setThinkingContext(body, { outputParam });
+  }
+  validateThinkingParams(provider, model, body, targetFormat, captured?.requestedModel);
   const caps = capabilities || getCapabilitiesForModel(provider, cleanModel);
 
   // Model cannot reason → strip any stray thinking fields.

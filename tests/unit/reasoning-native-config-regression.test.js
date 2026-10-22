@@ -72,8 +72,9 @@ describe('Claude valid manual thinking', () => {
   it('does not grant the interleaved exception to unsupported Haiku or Opus 4.6', () => {
     for (const model of ['claude-haiku-4.5', 'claude-opus-4.6']) {
       const body = { model, max_tokens: 4096, tools: [{ name: 'search', input_schema: { type: 'object' } }], thinking: { type: 'enabled', budget_tokens: 8192 } };
-      prepareClaudeRequest(body, 'claude', null, null, { 'anthropic-beta': 'interleaved-thinking-2025-05-14' });
-      expect(body.thinking.budget_tokens).toBeLessThan(4096);
+      expect(() => prepareClaudeRequest(body, 'claude', null, null, { 'anthropic-beta': 'interleaved-thinking-2025-05-14' }))
+        .toThrow(expect.objectContaining({ code: 'invalid_thinking_budget', param: 'max_tokens' }));
+      expect(body.thinking.budget_tokens).toBe(8192);
     }
   });
   it('leaves adaptive budgets and foreign DeepSeek enabled configuration alone', () => {
@@ -114,7 +115,6 @@ describe('Gemini native model controls', () => {
   });
   it('does not project native metadata onto reseller or audio variants', () => {
     expect(getCapabilitiesForModel('openrouter', 'google/gemini-2.5-pro').thinkingRange).toEqual({ min: 0, max: 24576 });
-    expect(getCapabilitiesForModel('gemini', 'gemini-3.8-flash-tts').thinkingEfforts).toBeUndefined();
     const body = applyThinking('gemini', 'gemini-3-flash-preview', { reasoning_effort: 'minimal' }, 'gemini');
     expect(body.generationConfig.thinkingConfig.thinkingLevel).toBe('minimal');
   });

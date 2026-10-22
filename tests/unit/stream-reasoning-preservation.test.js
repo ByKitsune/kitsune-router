@@ -121,7 +121,7 @@ describe.each(["passthrough", "translate"])("%s OpenAI reasoning preservation", 
     const error = { type: "upstream_error", message: "synthetic failure" };
     const result = await collect(frame(chunk({ reasoning_details: [{ text: "Partial" }] })) + frame({ error }), { mode });
     expect(result.payloads[0].choices[0].delta.reasoning_details).toEqual([{ text: "Partial" }]);
-    expect(result.payloads[1]).toEqual({ error });
+    expect(result.payloads[1]).toMatchObject({ error: { ...error, code: expect.any(String), request_id: expect.any(String) } });
     expect(result.payloads.some((value) => value.choices?.[0]?.finish_reason)).toBe(false);
     expect(result.completion.value.thinking).toBe("Partial");
     expect(result.completion.status).toMatchObject({ failed: true, error: "synthetic failure" });

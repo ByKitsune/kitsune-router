@@ -12,6 +12,7 @@ import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, OPENAI_FINISH, MODEL_FALLBACK } fro
 import { isCompleteToolName } from "../../utils/toolCompressor.js";
 import { extractResponseError, responseErrorToClient } from "../concerns/responseError.js";
 import { getResponseServiceTier } from "../../providers/serviceTiers.js";
+import { normalizeResponseIdentity } from "../../utils/streamHelpers.js";
 
 /**
  * Translate OpenAI chunk to Responses API events
@@ -828,6 +829,7 @@ export function openaiResponsesObjectToCompletion(body) {
       ...(body.usage?.output_tokens_details ? { completion_tokens_details: body.usage.output_tokens_details } : {}),
     };
   }
+  normalizeResponseIdentity(completion);
   return completion;
 }
 

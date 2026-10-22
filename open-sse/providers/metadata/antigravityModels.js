@@ -3,6 +3,7 @@ import {
   ANTIGRAVITY_ARGON_MODELS,
   ANTIGRAVITY_MAX_OUTPUT_TOKENS,
 } from "../../config/antigravity.js";
+import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 
 // Public product eligibility is not an authenticated catalog or an account policy.
 // Keep explicit unknowns: neither positive quota nor a 404 establishes a plan.
@@ -187,12 +188,58 @@ const families = [
     },
   },
 ];
+const unknownTokenPricing = {
+  input: null, output: null, cached: null, reasoning: null,
+  cache_creation: null, cache_creation_1h: null, cache_write_30m: null, cache_write_12h: null,
+};
+const subscriptionBilling = {
+  kind: "plan", currency: "unknown", unit: "subscription",
+  unverifiedPriceFields: Object.keys(unknownTokenPricing),
+  note: "Antigravity subscription quota and credits are not API USD token tariffs. Another provider's public API prices do not establish this account's charges; explicit operator overrides remain available.",
+};
+const searchSurfaces = {
+  inlineChat: false,
+  dedicated: { endpoint: "/v1/search", provider: "ag", modelField: "model", queryField: "query" },
+  note: "Use POST /v1/search with provider ag, the desired model and query. The dedicated route preserves Google grounding; ordinary Antigravity chat normalizes function tools and does not preserve inline Google Search tools. Account eligibility remains separate.",
+};
+const thinkingBudgetConstraints = {
+  appliesWhen: "enabled-numeric-thinking",
+  minimumBudgetTokens: CLAUDE_MIN_THINKING_BUDGET,
+  outputCapMustExceedSelectedBudget: true,
+  note: "The output cap must exceed the selected thinking budget. This is conditional on enabled numeric thinking, not a universal output minimum; the gateway does not raise an explicit cap.",
+};
+
+function routeThinkingCapabilities(id) {
+  if (id.startsWith("claude-")) {
+    const fixed = id.includes("-5-5") ? id.match(/-(low|medium|high)$/)?.[1] || "high" : null;
+    return {
+      pdf: false, reasoning: true, thinkingFormat: "gemini-budget", thinkingRange: fixed ? null : { min: CLAUDE_MIN_THINKING_BUDGET },
+      thinkingCanDisable: !fixed, thinkingEffortSupported: Boolean(fixed),
+      thinkingEfforts: fixed ? [fixed] : [],
+      ...(fixed ? { fixedThinkingEffort: fixed } : {}),
+    };
+  }
+  if (/^gemini-3\.[678]-flash/.test(id)) {
+    const fixed = id.match(/-(low|medium|high)$/)?.[1];
+    return {
+      reasoning: true, thinkingFormat: "gemini-level", thinkingCanDisable: false,
+      thinkingEffortSupported: true, thinkingEfforts: fixed ? [fixed] : ["low", "medium", "high"],
+      ...(fixed ? { fixedThinkingEffort: fixed } : {}),
+    };
+  }
+  return {};
+}
 const availabilityModels = Object.fromEntries(families.flatMap(({ ids, availability, lifecycle }) => ids.map(id => [id, {
   sources: [modelsSource, plansSource, enterpriseSource],
+  capabilities: { search: false, ...routeThinkingCapabilities(id) },
+  pricing: { ...unknownTokenPricing },
+  billing: { ...subscriptionBilling },
   limits: {
     scope: "antigravity-cloud-code-gateway",
     lifecycle: lifecycle || listedLifecycle,
     availability: { ...availabilityBase, ...availability },
+    search: searchSurfaces,
+    ...(id.startsWith("claude-") && !id.includes("-5-5") ? { thinkingBudgetConstraints } : {}),
   },
 }])));
 
@@ -220,18 +267,19 @@ export default {
         vision: true,
         reasoning: true,
         tools: true,
+        search: false,
         thinkingFormat: "gemini-level",
         thinkingCanDisable: false,
         thinkingEfforts: ["low", "medium", "high"],
+        thinkingEffortSupported: true,
+        ...(id === "gemini-4-argon" ? {} : {
+          thinkingEfforts: [id.split("-").pop()], fixedThinkingEffort: id.split("-").pop(),
+        }),
       },
-      pricing: { input: null, output: null, cached: null, reasoning: null, cache_creation: null },
+      pricing: { ...unknownTokenPricing },
       sources: [...argonSources],
       billing: {
-        currency: "USD",
-        unit: "subscription",
-        kind: "plan",
-        note: "Antigravity account quota is not a published per-token tariff. Public Gemini API and Flash prices do not establish this route's charges; explicit operator overrides remain available.",
-        unverifiedPriceFields: ["input", "output", "cached", "reasoning", "cache_creation"],
+        ...subscriptionBilling,
       },
       limits: {
         ...availabilityModels[id].limits,
@@ -249,6 +297,8 @@ export default {
       description: "Nano Banana 2 is used by Antigravity's generative image tool, not as a selectable core reasoning model. The reasoning-model plan table does not establish image-tool plan eligibility.",
       sources: [modelsSource, "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image"],
       capabilities: { imageOutput: true },
+      pricing: { ...unknownTokenPricing },
+      billing: { ...subscriptionBilling },
       limits: {
         kind: "image",
         scope: "antigravity-cloud-code-gateway",

@@ -1,4 +1,68 @@
 import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE } from "../config/errorConfig.js";
+import { getModelUpstreamId, getModelQuotaFamily, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
+
+const QUOTA_CODES = new Set(["rate_limit", "rate_limit_exceeded", "quota_exceeded", "quota_exhausted", "insufficient_quota", "usage_limit_reached", "resource_exhausted", "too_many_requests"]);
+const QUOTA_TYPES = new Set(["rate_limit_error", "quota_error", "resource_exhausted"]);
+const BILLING_CODES = new Set(["insufficient_credits", "insufficient_credit", "insufficient_balance", "insufficient_funds", "credit_balance_exhausted", "balance_zero", "payment_required"]);
+const REQUEST_VALIDATION_CODES = new Set(["invalid_parameter", "invalid_value", "invalid_argument", "invalid_role", "invalid_type", "invalid_enum", "missing_parameter", "validation_error", "malformed_request", "unsupported_parameter", "invalid_thinking_budget", "invalid_output_budget", "context_length_exceeded", "context_window_exceeded"]);
+const DESTINATION_VALIDATION_CODES = new Set(["unsupported_parameter", "context_length_exceeded", "context_window_exceeded"]);
+
+function unquotedDiagnostic(message) {
+  return message.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`/g, "");
+}
+
+function errorEvidence(value, diagnostics = {}) {
+  let source = value;
+  if (typeof value === "string" && value.length <= 8192 && /^\s*\{/.test(value)) {
+    try { source = JSON.parse(value); } catch { /* not a structured error */ }
+  }
+  if (source?.error && typeof source.error === "object" && !Array.isArray(source.error)) source = source.error;
+  const scalar = value => typeof value === "string" ? value.trim().toLowerCase() : "";
+  return {
+    message: typeof source?.message === "string" ? source.message : typeof source?.detail === "string" ? source.detail : typeof value === "string" ? value : "",
+    code: scalar(diagnostics.code ?? source?.code),
+    type: scalar(diagnostics.type ?? source?.type ?? source?.status),
+  };
+}
+
+export function isRequestValidationError(status, errorText, diagnostics = {}) {
+  if (Number(status) !== 400 && Number(status) !== 422) return false;
+  const evidence = errorEvidence(errorText, diagnostics);
+  if (REQUEST_VALIDATION_CODES.has(evidence.code)) return true;
+  const message = unquotedDiagnostic(evidence.message);
+  return /\b(?:invalid|unsupported|unknown|unrecognized|unexpected|missing|malformed)\s+(?:(?:request|input|body)\s+)?(?:role|parameter|param|field|value|argument|property|enum|messages?|json)\b|\b(?:role|parameter|param|field|argument|property|enum|messages?)\s+(?:is |was )?(?:invalid|unsupported|unknown|not allowed|not supported|must\b)|\b(?:improperly formed request|expected one of|received value)\b/i.test(message);
+}
+
+export function classifyAvailabilityError(status, errorText, diagnostics = {}) {
+  const statusCode = Number(status);
+  const evidence = errorEvidence(errorText, diagnostics);
+  const text = unquotedDiagnostic(evidence.message).toLowerCase();
+  // Echoed invalid input cannot become a credential fault merely by containing
+  // a quota-looking value or a retry duration supplied by the upstream.
+  if (statusCode === 401 || statusCode === 410 || statusCode === 499 || isRequestValidationError(statusCode, errorText, diagnostics)) return { statusCode, kind: null };
+  if (statusCode === 402 || BILLING_CODES.has(evidence.code) || evidence.type === "billing_error" || /\binsufficient (?:credits?|balance|funds)\b|\b(?:credit|balance) (?:exhausted|zero)\b|balance is at \$0|余额不足|请充值/.test(text)) {
+    return { statusCode: 503, kind: "billing", code: "insufficient_credits" };
+  }
+  if (statusCode === 429 || QUOTA_CODES.has(evidence.code) || QUOTA_TYPES.has(evidence.type) || /\brate[- ]limit (?:exceeded|reached|hit)\b|\brate[- ]limited\b|\btoo many requests\b|\bquota (?:has been |is )?(?:exceeded|exhausted)\b|\bresource exhausted\b|\b(?:usage|plan|subscription) limit(?: for (?:your |the )?plan)? (?:has been |was )?(?:reached|exceeded|exhausted)\b|\b(?:reached|exceeded|exhausted) (?:your |the )?(?:\w+ )?(?:usage|plan|subscription) limit\b/.test(text)) {
+    return { statusCode: 429, kind: "quota", code: "rate_limit_exceeded" };
+  }
+  if (statusCode >= 500 && /overload|(?:service|server|upstream|temporarily).{0,40}(?:at capacity|capacity exhausted|capacity unavailable)|model is unavailable/.test(text)) {
+    return { statusCode: 503, kind: "capacity", code: "service_unavailable" };
+  }
+  return { statusCode, kind: null };
+}
+
+export function retryAfterDateMs(value, now = Date.now()) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const text = value.trim();
+  if (/^\d+(?:\.\d+)?$/.test(text)) {
+    const seconds = Number(text);
+    const ms = now + seconds * 1000;
+    return seconds > 0 && Number.isFinite(ms) ? ms : null;
+  }
+  const ms = /[A-Za-z]{3},?\s+\d|^\d{4}-\d{2}-\d{2}T/.test(text) ? Date.parse(text) : NaN;
+  return Number.isFinite(ms) && ms > now ? ms : null;
+}
 
 /**
  * Calculate exponential backoff cooldown for rate limits (429)
@@ -23,40 +87,24 @@ export function getQuotaCooldown(backoffLevel = 0) {
  * @returns {number|null} Epoch ms when rate limit resets, or null
  */
 export function extractResetsAtMs(response, message) {
+  const header = response?.headers?.get?.("retry-after");
+  const headerReset = retryAfterDateMs(header);
+  if (headerReset) return headerReset;
   if (!message) return null;
-  const text = typeof message === "string" ? message : JSON.stringify(message);
-
-  // GLM/Z.AI: "reset at 2026-08-17 02:56:15" (provider sends UTC without suffix)
+  const text = unquotedDiagnostic(errorEvidence(message).message);
   const resetAt = text.match(/reset at\s+(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/i);
   if (resetAt) {
     const ms = Date.parse(`${resetAt[1]}T${resetAt[2]}Z`);
     if (Number.isFinite(ms) && ms > Date.now()) return ms;
   }
-
-  // "retry in 300 seconds" / "resets in 5 minutes" / "reset after 1m 51s" / "resets in 4m22s"
-  const durMatch = text.match(/(?:retry|try again|resets?)\s+(?:after|in)\s+([0-9a-z\s\.]+?)(?:\.\s|\.[\"'\)\]]|\.$|[\,\)\"\']|$)/i);
-  if (durMatch) {
-    const str = durMatch[1].trim();
-    let totalSecs = 0;
-    const h = str.match(/(\d+)\s*(?:h(?:ours?)?)/i);
-    const m = str.match(/(\d+)\s*(?:m(?:in(?:utes?)?)?)/i);
-    const s = str.match(/(\d+(?:\.\d+)?)\s*(?:s(?:ec(?:onds?)?)?)/i);
-    if (h) totalSecs += parseInt(h[1], 10) * 3600;
-    if (m) totalSecs += parseInt(m[1], 10) * 60;
-    if (s) totalSecs += parseFloat(s[1]);
-    if (totalSecs > 0) return Date.now() + totalSecs * 1000;
+  const duration = text.match(/(?:retry|try again|resets?)\s+(?:after|in)\s+(\d+(?:\.\d+)?\s*(?:hours?|h|minutes?|mins?|m|seconds?|secs?|s)(?:\s*\d+(?:\.\d+)?\s*(?:hours?|h|minutes?|mins?|m|seconds?|secs?|s))*)/i);
+  if (!duration) return null;
+  let seconds = 0;
+  for (const match of duration[1].matchAll(/(\d+(?:\.\d+)?)\s*(h(?:ours?)?|m(?:in(?:utes?)?|ins?)?|s(?:ec(?:onds?)?|ecs?)?)/gi)) {
+    seconds += Number(match[1]) * (match[2][0].toLowerCase() === "h" ? 3600 : match[2][0].toLowerCase() === "m" ? 60 : 1);
   }
-
-  // Retry-After header (seconds or HTTP-date) — PR #3612
-  const ra = response?.headers?.get?.("retry-after") ?? response?.headers?.get?.("Retry-After");
-  if (ra) {
-    const secs = Number(ra);
-    if (Number.isFinite(secs) && secs > 0) return Date.now() + secs * 1000;
-    const dateMs = Date.parse(ra);
-    if (Number.isFinite(dateMs) && dateMs > Date.now()) return dateMs;
-  }
-
-  return null;
+  const ms = Date.now() + seconds * 1000;
+  return seconds > 0 && Number.isFinite(ms) ? ms : null;
 }
 
 /**
@@ -162,26 +210,40 @@ export function needsOperatorReauth(status, errorText) {
  * @returns {{ shouldFallback: boolean, cooldownMs: number, newBackoffLevel?: number, resetsAtMs?: number }}
  */
 export function checkFallbackError(status, errorText, backoffLevel = 0, response = null, scope = FALLBACK_SCOPE.ACCOUNT) {
-  const lowerError = errorText
-    ? (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase()
-    : "";
+  status = Number(status);
+  const evidence = errorEvidence(errorText);
+  const lowerError = unquotedDiagnostic(evidence.message).toLowerCase();
 
-  // Client abort / cancellation: client disconnected, not an account fault
-  if (status === 499 || lowerError.includes("client_aborted") || lowerError.includes("aborted")) {
+  // Cancellation is terminal; Google's typed ABORTED quota status is not a
+  // client disconnect merely because its name contains "aborted".
+  if (Number(status) === 499 || /client_aborted|aborterror|^(?:error:\s*)?aborted\s*$|\b(?:client|request|operation)(?: was)? aborted\b/.test(lowerError)) {
     return { shouldFallback: false, cooldownMs: 0 };
   }
 
-  // Provider-reported precise reset (429, 403, 503 + Retry-After or "reset at / in" pattern)
-  const resetsAtMs = extractResetsAtMs(response, errorText);
+  if (isRequestValidationError(status, errorText)) return { shouldFallback: scope === FALLBACK_SCOPE.COMBO && DESTINATION_VALIDATION_CODES.has(evidence.code), cooldownMs: 0 };
+  const availability = classifyAvailabilityError(status, errorText);
+  if ((Number(status) === 404 || Number(status) === 410) && !availability.kind) {
+    return { shouldFallback: true, cooldownMs: 0 };
+  }
+  // A hint does not make a malformed request an account fault. Require an
+  // availability status or explicit quota/billing evidence before honoring it.
+  const resetBearing = availability.kind || [403, 500, 502, 503, 504, 529].includes(Number(status));
+  const resetsAtMs = resetBearing ? extractResetsAtMs(response, errorText) : null;
   if (resetsAtMs) {
     const cooldownMs = Math.min(resetsAtMs - Date.now(), MAX_RATE_LIMIT_COOLDOWN_MS);
-    if (cooldownMs > 0) {
-      return { shouldFallback: true, cooldownMs, resetsAtMs };
-    }
+    if (cooldownMs > 0) return { shouldFallback: true, cooldownMs, resetsAtMs };
+  }
+  // Typed quota/plan codes must agree with their message equivalents, including
+  // providers that report quota on HTTP 400/403/404 instead of 429.
+  if (availability.kind === "quota" && !ERROR_RULES.some(rule => rule.text && lowerError.includes(rule.text))) {
+    const newLevel = Math.min(backoffLevel + 1, BACKOFF_CONFIG.maxLevel);
+    return { shouldFallback: true, cooldownMs: getQuotaCooldown(newLevel), newBackoffLevel: newLevel };
   }
 
   for (const rule of ERROR_RULES) {
     // Text-based rule: match substring in error message
+    if (rule.backoff && status < 500 && !availability.kind) continue;
+    if (rule.text === "capacity" && status < 500 && !availability.kind) continue;
     if (rule.text && lowerError && lowerError.includes(rule.text)) {
       // Request-only errors never lock a healthy account. Only explicitly
       // model-dependent failures can advance a combo on a client status.
@@ -275,21 +337,28 @@ export function getModelLockKey(model) {
  * Check if a model lock on a connection is still active.
  * Reads flat field `modelLock_${model}` (or `modelLock___all` when model=null).
  */
-export function isModelLockActive(connection, model) {
+export function getModelLockIdentity(provider, model) {
+  const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
+  return alias && model ? `${getModelQuotaFamily(alias, model) || "normal"}:${getModelUpstreamId(alias, model)}` : model;
+}
+
+export function getModelLockUntil(connection, model, provider = connection?.provider) {
+  if (!connection) return null;
   const now = Date.now();
-  const stillLocked = (value) => {
-    if (!value) return false;
+  const target = getModelLockIdentity(provider, model);
+  let latest = null;
+  for (const [key, value] of Object.entries(connection)) {
+    if (!key.startsWith(MODEL_LOCK_PREFIX) || !value) continue;
+    const lockedModel = key.slice(MODEL_LOCK_PREFIX.length);
+    if (key !== MODEL_LOCK_ALL && lockedModel !== model && (!provider || getModelLockIdentity(provider, lockedModel) !== target)) continue;
     const until = new Date(value).getTime();
-    return Number.isFinite(until) && until > now;
-  };
-  // Each key is judged on its own expiry. `a || b` picked the per-model key on the
-  // truthiness of the string, so a stale one hid a still-active account-wide lock:
-  // the connection then read as free for exactly the model that had just failed,
-  // while still reading as locked for every other model. Nothing clears the stale
-  // key either -- the lazy cleanup runs only after a successful request, and an
-  // account under an `__all` lock never gets one. Same rule the sibling
-  // `getEarliestModelLockUntil` already applies when it skips expired entries.
-  return stillLocked(connection[getModelLockKey(model)]) || stillLocked(connection[MODEL_LOCK_ALL]);
+    if (Number.isFinite(until) && until > now && (latest === null || until > latest)) latest = until;
+  }
+  return latest === null ? null : new Date(latest).toISOString();
+}
+
+export function isModelLockActive(connection, model, provider = connection?.provider) {
+  return getModelLockUntil(connection, model, provider) !== null;
 }
 
 /**

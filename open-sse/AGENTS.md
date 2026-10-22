@@ -33,6 +33,10 @@ The app first resolves aliases/combos and selects an account in `src/sse/`. `han
 - Caller aborts are terminal even when `AbortSignal.reason` is an ordinary Error. Retry backoff must observe the caller signal; never keep retrying/dial another URL after cancellation. Provider connection timeouts remain distinct from caller aborts.
 - Processing speed (`service_tier`) is independent of reasoning effort. Preserve Standard/Auto and explicit paid-tier intent through translation, native passthrough and account fallback; never implement Fast by lowering reasoning or silently drop Ultrafast. Public OpenAI API and Codex subscription transports have different supported wire values and account restrictions. See `docs/PROCESSING-SPEED.md`.
 - Every destination serializer must lower retained internal tool media. In particular, Ollama uses user `images[]` and CommandCode uses typed image blocks after the corresponding contiguous tool replies. Do not flatten these arrays into text or discard image-only content.
+- Public error normalization lives in `utils/clientErrors.js` with pure ESM imports. Keep exact request-validation diagnostics through account fallback; quoted rejected values cannot supply quota/reset evidence or cause account-health writes.
+- Echo the caller's route identity only on the client response, never on the upstream request. Chat JSON/SSE IDs are Chat-shaped; native Responses keeps native IDs/events. User-agent branding cannot override the requested endpoint's format.
+- Explicit numeric thinking budgets are caller intent, not soft defaults. Generated/injected budgets carry private request-local provenance so they may fit the unchanged output cap; preserve that context across native copies and retries without serializing it.
+- Reuse the explicit tool-media predicate for Gemini Struct result arrays in admission, conversion and modality stripping. Ordinary application records must not be rejected as documents or replaced with omitted-file prose.
 
 ## How to add
 

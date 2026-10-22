@@ -297,7 +297,7 @@ describe("output-budget exhaustion through handleChat and real account health lo
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      model: OPUS,
+      model: "budget-safe-combo",
       content: [{ type: "text", text: "The answer is 42." }],
     });
     expect(attempts()).toEqual([["account-a", SONNET], ["account-a", OPUS]]);

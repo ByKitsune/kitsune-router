@@ -525,7 +525,7 @@ describe("strict Chat alias opener restoration", () => {
     expect(result.success).toBe(true);
     const wire = await result.response.text();
     const output = frames(wire).map(frame => frame.data);
-    expect(output.filter(chunk => chunk.error)).toEqual([{ error: { type: "server_error", code: "upstream_error", message: "upstream generation failed" } }]);
+    expect(output.filter(chunk => chunk.error)).toEqual([{ error: { type: "server_error", code: "upstream_error", message: "upstream generation failed", request_id: expect.any(String) } }]);
     expect(output.flatMap(chunk => chunk.choices || []).flatMap(choice => choice.delta?.tool_calls || [])).toEqual([]);
     expect(wire).not.toContain('"finish_reason":"tool_calls"');
     expect(wire.match(/data: \[DONE\]/g)).toHaveLength(1);

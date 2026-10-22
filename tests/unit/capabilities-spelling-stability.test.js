@@ -29,7 +29,7 @@ describe("capability resolution is spelling-stable (dot vs dash version separato
     expect(dashed).toMatchObject({
       contextWindow: 250000,
       maxOutput: 64000,
-      thinkingFormat: "claude-adaptive",
+      thinkingFormat: "gemini-budget",
     });
   });
 

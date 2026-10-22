@@ -2,7 +2,7 @@ import { translateResponse, initState } from "../translator/index.js";
 import { FORMATS } from "../translator/formats.js";
 import { trackPendingRequest, appendRequestLog } from "@/lib/usageDb.js";
 import { extractUsage, mergeUsage, hasValidUsage, estimateUsage, logUsage, COLORS } from "./usageTracking.js";
-import { parseSSELine, hasValuableContent, hasSemanticContent, fixInvalidId, formatSSE } from "./streamHelpers.js";
+import { parseSSELine, hasValuableContent, hasSemanticContent, normalizeResponseIdentity, formatSSE } from "./streamHelpers.js";
 import { getOpenAIResponsesEventName, isOpenAIResponsesTerminalEvent, formatIncompleteOpenAIResponsesStreamFailure } from "./responsesStreamHelpers.js";
 import { dbg, isDebugEnabled } from "./debugLog.js";
 import { extractReasoningText, captureResponsesReasoning } from "../translator/concerns/reasoning.js";
@@ -10,7 +10,7 @@ import { normalizeTypedContent } from "../translator/concerns/typedContent.js";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
 import { decloakStreamChunk } from "./claudeCloaking.js";
 import { restoreOpenAIToolNameDeltas } from "./toolCompressor.js";
-import { sanitizeClientError } from "@/shared/utils/clientErrors.js";
+import { sanitizeClientError } from "./clientErrors.js";
 import { extractResponseError, responseErrorToClient } from "../translator/concerns/responseError.js";
 import { getResponseServiceTier } from "../providers/serviceTiers.js";
 
@@ -184,7 +184,11 @@ export function createSSEStream(options = {}) {
     if (data.response?.error) safe.response = { ...data.response, error: sanitizeClientError(data.response.error, { providerIds: [provider] }) };
     return data === chunk ? safe : { ...chunk, data: safe };
   };
-  const formatClientSSE = (chunk) => formatSSE(publicChunk(chunk), sourceFormat);
+  const responseIdentity = {};
+  const formatClientSSE = (chunk) => {
+    normalizeResponseIdentity(chunk, responseModel, responseIdentity);
+    return formatSSE(publicChunk(chunk), sourceFormat);
+  };
 
   let totalContentLength = 0;
   const contentChunks = [];
@@ -388,7 +392,7 @@ export function createSSEStream(options = {}) {
     const sanitized = publicChunk(parsed);
     if (sanitized !== parsed) { parsed = sanitized; fieldsInjected = true; }
     if (sourceFormat === FORMATS.OPENAI && normalizeEmptyFinishReasons(parsed)) fieldsInjected = true;
-    const idFixed = sourceFormat === FORMATS.OPENAI && fixInvalidId(parsed);
+    const idFixed = normalizeResponseIdentity(parsed, responseModel, responseIdentity);
 
     // Queued frames retain the normal compatibility handling when released.
     if (parsed.choices !== undefined) {
@@ -658,7 +662,7 @@ export function createSSEStream(options = {}) {
           const needsDone = sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES;
           if (sourceFormat === FORMATS.OPENAI && !clientTerminalSeen) {
             const separator = passthroughAtEventBoundary ? "" : "\n";
-            const terminal = separator + `data: ${JSON.stringify(buildAbortedOpenAITerminal(model))}\n\n`;
+            const terminal = separator + formatClientSSE(buildAbortedOpenAITerminal(model));
             reqLogger?.appendConvertedChunk?.(terminal);
             controller.enqueue(sharedEncoder.encode(terminal));
             passthroughAtEventBoundary = true;
@@ -706,7 +710,7 @@ export function createSSEStream(options = {}) {
         // A translator's flush is a no-op when the upstream never sent its terminal
         // event. Emit one, plus the sentinel the client expects (#4079).
         if (sourceFormat === FORMATS.OPENAI && !clientTerminalSeen) {
-          const terminal = formatSSE(buildAbortedOpenAITerminal(model), FORMATS.OPENAI);
+          const terminal = formatClientSSE(buildAbortedOpenAITerminal(model));
           reqLogger?.appendConvertedChunk?.(terminal);
           controller.enqueue(sharedEncoder.encode(terminal));
           if (!streamDoneSent) {
@@ -746,7 +750,7 @@ export function createSSEStream(options = {}) {
 
   sseStream.getStreamSnapshot = getStreamSnapshot;
   sseStream.abortTerminalBytes = sourceFormat === FORMATS.OPENAI
-    ? () => (clientTerminalSeen || streamDoneSent ? null : buildAbortedOpenAITerminalBytes(model))
+    ? () => (clientTerminalSeen || streamDoneSent ? null : sharedEncoder.encode(formatClientSSE(buildAbortedOpenAITerminal(model)) + SSE_DONE))
     : null;
   return sseStream;
 }
@@ -770,7 +774,7 @@ export function createSSETransformStreamWithLogger(targetFormat, sourceFormat, p
   });
 }
 
-export function createPassthroughStreamWithLogger(provider = null, reqLogger = null, model = null, connectionId = null, body = null, onStreamComplete = null, apiKey = null, toolNameMap = null, format = FORMATS.OPENAI, wireToolNames = null) {
+export function createPassthroughStreamWithLogger(provider = null, reqLogger = null, model = null, connectionId = null, body = null, onStreamComplete = null, apiKey = null, toolNameMap = null, format = FORMATS.OPENAI, wireToolNames = null, responseModel = null) {
   return createSSEStream({
     mode: STREAM_MODE.PASSTHROUGH,
     sourceFormat: format,
@@ -783,6 +787,7 @@ export function createPassthroughStreamWithLogger(provider = null, reqLogger = n
     connectionId,
     body,
     onStreamComplete,
-    apiKey
+    apiKey,
+    responseModel
   });
 }

@@ -18,14 +18,12 @@ describe("Antigravity effort-tier model identities", () => {
     expect(stripThinkingSuffix(resolved)).toBe(id);
   });
 
-  it("keeps tier aliases on the same reference billing identity as their base model", () => {
-    // https://platform.claude.com/docs/en/about-claude/pricing.md
-    // These are reference estimates, not proof of an Antigravity account's bill.
+  it("keeps subscription tier aliases unknown instead of filling them with another product's API rates", () => {
     const tokens = { prompt_tokens: 100000, cached_tokens: 50000, cache_creation_input_tokens: 10000, completion_tokens: 10000, reasoning_tokens: 6000 };
-    for (const [family, expected] of [["claude-sonnet-5-5", 0.21], ["claude-opus-5-5", 0.42]]) {
-      expect(calculateCostFromTokens(tokens, getPricingForModel("ag", family))).toBeCloseTo(expected, 12);
+    for (const family of ["claude-sonnet-5-5", "claude-opus-5-5"]) {
+      expect(calculateCostFromTokens(tokens, getPricingForModel("ag", family))).toBeNull();
       for (const id of TIERED_IDS.filter(id => id.startsWith(family))) {
-        expect(calculateCostFromTokens(tokens, getPricingForModel("ag", id)), id).toBeCloseTo(expected, 12);
+        expect(calculateCostFromTokens(tokens, getPricingForModel("ag", id)), id).toBeNull();
       }
     }
   });

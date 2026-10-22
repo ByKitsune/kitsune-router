@@ -22,6 +22,7 @@ import { toOpenAIFinish } from "../../translator/concerns/finishReason.js";
 import { extractResponseError } from "../../translator/concerns/responseError.js";
 import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
+import { normalizeResponseIdentity } from "../../utils/streamHelpers.js";
 const DEFAULT_THOUGHT_SIGNATURE = "";
 
 function extractGeminiThoughtSignature(part, pending = DEFAULT_THOUGHT_SIGNATURE) {
@@ -331,6 +332,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     translatedResponse.usage = filterUsageForFormat(translatedResponse.usage, sourceFormat);
   }
 
+  normalizeResponseIdentity(translatedResponse, clientRawRequest?.body?.model);
 
   reqLogger.logConvertedResponse(translatedResponse);
 

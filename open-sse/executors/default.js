@@ -8,7 +8,7 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { KIRO_CLI_USER_AGENT } from "../config/clientVersions.js";
-import { allowsClaudeManualInterleaving, reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
+import { allowsClaudeManualInterleaving, getThinkingContext, setThinkingContext, reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
 import { setBounded, CACHE_LIMITS } from "../utils/boundedCache.js";
 import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
 import { FORMATS } from "../translator/formats.js";
@@ -136,7 +136,10 @@ export class DefaultExecutor extends BaseExecutor {
       }
     }
 
-    return injectReasoningContent({ provider: this.provider, model, body: transformed });
+    const result = injectReasoningContent({ provider: this.provider, model, body: transformed });
+    const thinkingContext = getThinkingContext(body);
+    if (result !== body && thinkingContext) setThinkingContext(result, thinkingContext);
+    return result;
   }
 
   // Fallback json_schema → json_object for openai-compatible providers without native Structured Output.

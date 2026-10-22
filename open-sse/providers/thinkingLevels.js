@@ -33,7 +33,7 @@ const FORMAT_LEVELS = {
   step: L.base,
 };
 
-const CODEX_GPT_5_6_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+const CODEX_GPT_5_6_LEVELS = ["low", "medium", "high", "xhigh", "max"];
 
 // Opus/Sonnet 4.6 lack xhigh (Anthropic + Kiro docs) — keep the 4-level+max set.
 const CLAUDE_NO_XHIGH = ["none", "low", "medium", "high", "max"];
@@ -47,10 +47,11 @@ const PATTERN_THINKING = [
   { pattern: "*laguna*", levels: ["minimal", "low", "medium", "high"] },
   { pattern: "*claude*4.6*", levels: CLAUDE_NO_XHIGH },
   { pattern: "*claude*4-6*", levels: CLAUDE_NO_XHIGH },
+  { provider: "codex", pattern: "*gpt-6-luna*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { provider: "codex", pattern: "*gpt-6*", levels: CODEX_GPT_5_6_LEVELS },
-  { provider: "codex", pattern: "*gpt-5.6-sol*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
-  { provider: "codex", pattern: "*gpt-5.6-terra*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
-  { provider: "codex", pattern: "*gpt-5.6-luna*", levels: CODEX_GPT_5_6_LEVELS },
+  { provider: "codex", pattern: "*gpt-5.6-sol*", levels: CODEX_GPT_5_6_LEVELS },
+  { provider: "codex", pattern: "*gpt-5.6-terra*", levels: CODEX_GPT_5_6_LEVELS },
+  { provider: "codex", pattern: "*gpt-5.6-luna*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { pattern: "*codex*", levels: ["low", "medium", "high", "xhigh"] }, // codex cannot disable thinking
   { pattern: "*mimo*v2.6*", levels: ["none", "low", "medium", "high", "xhigh"] },
   // mimo-v2.5-pro on opencode-go rejects reasoning_effort "max" (probed live); v2.5 accepts it.
@@ -81,7 +82,7 @@ export function getThinkingLevels(provider, model) {
   if (provider === "kiro" && resolveKiroEffortPath(model) === null) return null;
   const caps = getCapabilitiesForModel(provider, model);
   if (!caps.reasoning) return null;
-  if (Array.isArray(caps.thinkingEfforts) && caps.thinkingEfforts.length) {
+  if (Array.isArray(caps.thinkingEfforts)) {
     return caps.thinkingCanDisable === false
       ? caps.thinkingEfforts.filter(level => level !== "none")
       : [...caps.thinkingEfforts];

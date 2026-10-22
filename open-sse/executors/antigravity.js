@@ -9,7 +9,7 @@ import {
   ANTIGRAVITY_PROMPT_REWRITES,
   ANTIGRAVITY_TELEMETRY_KEYS,
 } from "../config/appConstants.js";
-import { HTTP_STATUS } from "../config/runtimeConfig.js";
+import { CLAUDE_MIN_THINKING_BUDGET, HTTP_STATUS } from "../config/runtimeConfig.js";
 import { ANTIGRAVITY_MAX_OUTPUT_TOKENS } from "../config/antigravity.js";
 import { isGemini4Model } from "../config/models.js";
 import { readOutputTokenCap } from "../translator/formats/maxTokens.js";
@@ -18,6 +18,8 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { cleanJSONSchemaForAntigravity, normalizeGeminiContents } from "../translator/formats/gemini.js";
 import { FORMATS } from "../translator/formats.js";
 import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
+import { getThinkingContext, setThinkingContext, thinkingBudgetError } from "../translator/concerns/thinking.js";
+import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
 import { sanitizeAntigravitySystemPrompt } from "../translator/request/openai-to-gemini.js";
 import { DEFAULT_THINKING_AG_SIGNATURE } from "../config/defaultThinkingSignature.js";
 import { isValidBase64 } from "../translator/concerns/thoughtSignature.js";
@@ -225,11 +227,17 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
+    if (!Object.isExtensible(body)) {
+      const context = getThinkingContext(body);
+      body = { ...body };
+      if (context) setThinkingContext(body, context);
+    }
     // Prefer the real provisioned projectId (chat.js resolves + persists it via
     // loadCodeAssist before dispatch). Fall back to ONE stable id per connection
     // — never a fresh random id per request (see resolveAntigravityProjectId).
     const projectId = resolveAntigravityProjectId(credentials, () => this.generateProjectId());
     const cleanModel = String(model || "").replace(/-(\d+)x(\d+)$/, "");
+    validateSupportedParams(this.provider, cleanModel, body, FORMATS.ANTIGRAVITY);
 
     // OpenAI clients may include stream_options even for non-streaming calls.
     // Google generateContent rejects that combination before processing the request.
@@ -421,7 +429,11 @@ export class AntigravityExecutor extends BaseExecutor {
       const thinkingIntent = captureThinking(body) || captureThinking(body.request);
       if (thinkingIntent) {
         const thinkingBody = { generationConfig: { ...generationConfig } };
+        const context = getThinkingContext(body);
+        if (context) thinkingIntent.requestedModel = context.requestedModel;
         applyThinking(FORMATS.ANTIGRAVITY, cleanModel, thinkingBody, this.provider, thinkingIntent);
+        const appliedContext = getThinkingContext(thinkingBody);
+        if (appliedContext) setThinkingContext(body, appliedContext);
         // Keep this executor's output defaults and final budget/cap reconciliation.
         if (thinkingBody.generationConfig.thinkingConfig) {
           generationConfig.thinkingConfig = thinkingBody.generationConfig.thinkingConfig;
@@ -432,14 +444,16 @@ export class AntigravityExecutor extends BaseExecutor {
     // A normalized native config wins over compatibility effort fields. Levels
     // are qualitative; dynamic (-1) and disabled (0) are not positive budgets.
     const thinkingConfig = generationConfig.thinkingConfig;
-    let thinkingBudget = thinkingConfig?.thinkingBudget ??
-      body?.thinking?.budget_tokens ?? body?.thinking_budget ??
-      (body?.reasoning_effort === "low" ? 1024 : body?.reasoning_effort === "medium" ? 2048 : body?.reasoning_effort === "high" ? 4096 : undefined);
+    let thinkingBudget = thinkingConfig?.thinkingBudget ?? body?.thinking?.budget_tokens ?? body?.thinking_budget;
+    const thinkingContext = getThinkingContext(body);
+    const explicitBudget = thinkingContext?.explicitBudget ?? (thinkingBudget !== undefined);
+    const capParam = thinkingContext?.outputParam || "request.generationConfig.maxOutputTokens";
 
     if (thinkingConfig?.thinkingLevel === undefined && thinkingBudget !== undefined) {
       if (!Number.isSafeInteger(thinkingBudget) || thinkingBudget < -1) {
         const error = new Error("thinkingBudget must be an integer at least -1");
         error.code = "invalid_thinking_budget";
+        error.param = "request.generationConfig.thinkingConfig.thinkingBudget";
         throw error;
       }
       if (thinkingBudget > 0) {
@@ -447,13 +461,18 @@ export class AntigravityExecutor extends BaseExecutor {
         if (outputCap === undefined) {
           generationConfig.maxOutputTokens = Math.min(ANTIGRAVITY_MAX_OUTPUT_TOKENS, thinkingBudget + 8192);
         }
-        thinkingBudget = Math.min(thinkingBudget, generationConfig.maxOutputTokens - 1);
-        const minimumBudget = /(^|\/)claude/.test(cleanModel) ? 1024 : 1;
+        const minimumBudget = /(^|\/)claude/.test(cleanModel) ? CLAUDE_MIN_THINKING_BUDGET : 1;
         if (thinkingBudget < minimumBudget) {
-          const error = new Error("Thinking budget cannot fit inside maxOutputTokens");
+          const error = new Error(`The selected thinking budget must be at least ${minimumBudget} tokens; increase it or set thinkingBudget to 0 to disable thinking.`);
           error.code = "invalid_thinking_budget";
+          error.param = "request.generationConfig.thinkingConfig.thinkingBudget";
           throw error;
         }
+        const selectedMinimum = explicitBudget ? thinkingBudget : minimumBudget;
+        if (generationConfig.maxOutputTokens <= selectedMinimum) {
+          throw thinkingBudgetError(selectedMinimum, generationConfig.maxOutputTokens, capParam, "set thinkingBudget to 0 to disable thinking");
+        }
+        if (!explicitBudget) thinkingBudget = Math.min(thinkingBudget, generationConfig.maxOutputTokens - 1);
       }
       generationConfig.thinkingConfig = {
         ...thinkingConfig,
@@ -484,7 +503,7 @@ export class AntigravityExecutor extends BaseExecutor {
     this._lastSessionId = cleanedRequest.sessionId; // cached for buildHeaders (base.execute order)
 
     // Omit top-level requestType="agent" to prevent false upstream 429 quota exhaustion (#3986)
-    return {
+    const result = {
       ...cleanedBody,
       project: projectId,
       model: cleanedBody.model || model,
@@ -492,6 +511,8 @@ export class AntigravityExecutor extends BaseExecutor {
       requestId: buildIdeRequestId({ body: cleanedBody, request: cleanedRequest, credentials, model, requestType: "agent" }),
       request: cleanedRequest
     };
+    if (thinkingContext) setThinkingContext(result, thinkingContext);
+    return result;
   }
 
   async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {

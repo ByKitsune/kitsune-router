@@ -40,6 +40,11 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | Concern | Main regression suites |
 | --- | --- |
 | Multi-turn vision, tool images and compaction | `unit/vision-tool-output-protocols.test.js`, `unit/vision-gemini-history.test.js`, `unit/vision-compression-history.test.js`, `unit/vision-capability-routing.test.js` |
+| Unsupported documents before dispatch, native passthrough and CLI bypasses | `unit/public-contract-document-routing.test.js` |
+| Public JSON/SSE model identity, endpoint framing and inclusive native cache usage | `unit/public-contract-response-identity.test.js` |
+| Uniform errors, quoted validation vs quota, safe diagnostics and retry deadlines | `unit/public-gateway-error-contract.test.js`, `unit/chat-budget-account-health.test.js`, `unit/public-quota-reset-selection.test.js` |
+| Route discovery, private provenance, capability and billing boundaries | `unit/public-model-contracts.test.js` |
+| Explicit thinking budgets, supported effort admission and generated defaults | `unit/public-thinking-contracts.test.js`, `unit/thinking-native-passthrough-transport.test.js` |
 | Large screenshot wire serialization and hybrid parallel results | `unit/vision-large-tool-wire.test.js`, `translator/translator-media-history.test.js`, `translator/translator-media-gemini-struct.test.js` |
 | Retained tool images on Ollama and CommandCode | `translator/translator-media-secondary-targets.test.js` |
 | Encoded media in estimated usage | `unit/vision-usage-estimates.test.js` |

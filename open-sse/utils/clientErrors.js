@@ -21,8 +21,33 @@
 //
 // Upstream errors are untrusted; public output allowlists diagnostics and hides
 // routing identities. Callers retain the original detail in operator logs.
-import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
-import { PROVIDER_IDENTITIES } from "open-sse/providers/identity.js";
+import { HTTP_STATUS } from "../config/runtimeConfig.js";
+import { PROVIDER_IDENTITIES } from "../providers/identity.js";
+import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES } from "../config/errorConfig.js";
+
+const SAFE_REQUEST_ID = /^[A-Za-z0-9._:-]{1,128}$/;
+const SAFE_DIAGNOSTIC = /^[A-Za-z0-9_][A-Za-z0-9_.:-]{0,127}$/;
+
+export function publicRequestId(value) {
+  return typeof value === "string" && SAFE_REQUEST_ID.test(value) && redactClientDiagnostic(value) === value ? value : crypto.randomUUID();
+}
+
+// Only scalar diagnostics may leave the host. Never stringify debug objects,
+// headers or nested provider payloads to manufacture a client message.
+export function redactClientDiagnostic(value) {
+  if (typeof value !== "string") return "";
+  return value.slice(0, 8192)
+    .replace(/\b(?:debug|stack(?:trace)?|traceback|request[_ -]?headers|response[_ -]?body|raw[_ -]?body)\s*[:=][\s\S]*$/i, "")
+    .replace(/\bBearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
+    .replace(/(["']?\b(?:api[\s_-]*key|access[\s_-]*token|refresh[\s_-]*token|client[\s_-]*secret|authorization|password|credentials?|secret|token|(?:account|connection|project|tenant|organization|org)[\s_-]*id)["']?(?:\s+(?:provided|supplied|used|received))?\s*(?:[:=]|\bis\b)\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, "$1[REDACTED]")
+    .replace(/\b(?:sk-(?:ant-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9_]+|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b/g, "[REDACTED]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED]")
+    .replace(/https?:\/\/[^\s<>"']+/gi, "[REDACTED URL]")
+    .replace(/\b[A-Z]:\\[^\s<>"';,]+/gi, "[REDACTED PATH]")
+    .replace(/(?:file:\/\/)?\/(?:root|home|tmp|var|etc|opt|usr|app|workspace|private|Users|mnt|srv|proc|run|data|dev)(?:\/[^\s<>"';,]*)?/g, "[REDACTED PATH]")
+    .replace(/[\r\n\0-\x1f\x7f]/g, " ")
+    .trim().slice(0, 500);
+}
 
 const INTERNAL_PROVIDER_NAMES = new RegExp(`\\b(?:${[...new Set(Object.values(PROVIDER_IDENTITIES))]
   .map(id => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i");
@@ -97,22 +122,43 @@ export function leaksInternalDetail(text, providerIds = []) {
  */
 export function safeClientMessage(upstreamMessage, options = {}) {
   const fallback = options.fallback || CLIENT_MESSAGES.upstream_failed;
-  if (typeof upstreamMessage !== "string" || !upstreamMessage.trim()) return fallback;
-  if (leaksInternalDetail(upstreamMessage, options.providerIds)) return fallback;
-  return upstreamMessage;
+  const message = redactClientDiagnostic(upstreamMessage).replace(/^\[\d{3}\]:\s*/, "");
+  if (!message || /^[{<]|^\[\s*[{"]/.test(message)) return fallback;
+  if (!leaksInternalDetail(message, options.providerIds)) return message;
+
+  // A provider name must not turn a useful parameter/quota constraint into an
+  // opaque HTTP 400. Retain the constraint, not the internal routing identity.
+  if (!/\b(?:must|minimum|maximum|parameter|unsupported|quota|rate limit|usage limit|credits?|exceed|reduce|increase|not supported|not entitled)\b/i.test(message)) return fallback;
+  let neutral = message.replace(new RegExp(INTERNAL_PROVIDER_NAMES.source, "gi"), "upstream")
+    .replace(/\b(?:AgentService|ChatService)\b/gi, "transport")
+    .replace(/provider:\s*[a-z0-9_-]+/gi, "upstream")
+    .replace(/\b(?:cx|ag|gcli|do|ort|thbr|kmc)\/[^\s,;]+/g, "the requested model");
+  for (const id of options.providerIds || []) {
+    if (typeof id !== "string" || !id.trim()) continue;
+    neutral = neutral.replace(new RegExp(`\\b${id.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"), "upstream");
+  }
+  return leaksInternalDetail(neutral, options.providerIds) ? fallback : neutral;
 }
 
 export function sanitizeClientError(value, options = {}) {
-  const source = value && typeof value === "object" ? value : { message: value };
-  const clean = (text) => typeof text === "string"
-    ? text.replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]").replace(/[\r\n\0]/g, " ").trim().slice(0, 500)
-    : "";
-  const error = { message: safeClientMessage(clean(source.message), options) };
-  for (const field of ["type", "code", "param"]) {
-    const text = clean(source[field]);
-    if (text) error[field] = text;
-    else if (field === "code" && Number.isFinite(source[field])) error[field] = source[field];
-  }
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : { message: value };
+  const status = Number(options.status) || 500;
+  const defaults = ERROR_TYPES[status] || (status >= 500
+    ? ERROR_TYPES[500] : { type: "invalid_request_error", code: "invalid_request" });
+  const diagnostic = (field) => {
+    const text = typeof source[field] === "number" && Number.isFinite(source[field])
+      ? String(source[field]) : typeof source[field] === "string" ? source[field].trim() : "";
+    return SAFE_DIAGNOSTIC.test(text) && redactClientDiagnostic(text) === text && !leaksInternalDetail(text, options.providerIds) ? text : "";
+  };
+  const error = {
+    message: safeClientMessage(source.message, {
+      ...options, fallback: options.fallback || DEFAULT_ERROR_MESSAGES[status] || CLIENT_MESSAGES.upstream_failed,
+    }),
+    type: diagnostic("type") || defaults.type,
+    code: diagnostic("code") || defaults.code,
+    request_id: publicRequestId(options.requestId || source.request_id),
+  };
+  if (typeof source.param === "string" && /^[A-Za-z_][A-Za-z0-9_.\[\]-]{0,127}$/.test(source.param) && !leaksInternalDetail(source.param, options.providerIds)) error.param = source.param;
   return error;
 }
 

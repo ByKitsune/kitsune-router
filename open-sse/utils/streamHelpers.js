@@ -104,16 +104,34 @@ export function hasSemanticContent(chunk, eventName = null) {
   return RESPONSES_TOKEN_DELTAS.has(type) && nonEmptyText(chunk.delta);
 }
 
-// Fix invalid id (generic or too short)
-export function fixInvalidId(parsed) {
-  if (parsed.id && (parsed.id === "chat" || parsed.id === "completion" || parsed.id.length < 8)) {
-    const fallbackId = parsed.extend_fields?.requestId || 
-                      parsed.extend_fields?.traceId || 
-                      Date.now().toString(36);
-    parsed.id = `chatcmpl-${fallbackId}`;
-    return true;
+// Client route identity is independent of the model/version sent upstream.
+// A stream owns one Chat ID, including usage trailers and synthesized terminals.
+export function normalizeResponseIdentity(value, requestedModel = null, state = {}) {
+  if (!value || typeof value !== "object") return false;
+  const payload = value.data && typeof value.data === "object" ? value.data : value;
+  if (payload.error && !payload.response) return false;
+  let changed = false;
+  const set = (target, field, content) => {
+    if (target[field] === content) return;
+    target[field] = content;
+    changed = true;
+  };
+  if (Array.isArray(payload.choices)) {
+    if (!state.chatId) {
+      const id = typeof payload.id === "string" ? payload.id : "";
+      const usable = id.length >= 8 && !["chat", "completion"].includes(id);
+      state.chatId = usable && id.startsWith("chatcmpl-") ? id
+        : `chatcmpl-${usable ? id.replace(/^resp_/, "") : crypto.randomUUID()}`;
+    }
+    set(payload, "id", state.chatId);
+    if (typeof requestedModel === "string" && requestedModel) set(payload, "model", requestedModel);
+  } else if (typeof requestedModel === "string" && requestedModel) {
+    const response = payload.response || payload.message || payload;
+    if (response.object === "response" || response.type === "message" || (payload.response && typeof payload.type === "string" && payload.type.startsWith("response.")) || payload.type === "message_start") {
+      set(response, "model", requestedModel);
+    }
   }
-  return false;
+  return changed;
 }
 
 function cleanUsagePayload(payload) {

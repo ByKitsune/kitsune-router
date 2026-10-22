@@ -17,6 +17,7 @@ import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
+import { classifyAvailabilityError } from "open-sse/services/accountFallback.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy, getCapacityAdapterModels } from "open-sse/services/capacityAdapter.js";
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
@@ -30,7 +31,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
-import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { consume, rateLimitKey, rateLimitHeaders, rateLimitedResponse } from "@/lib/rateLimit/v1Limiter.js";
 import { getClientIp } from "@/lib/auth/loginLimiter.js";
 import { readRequestJson, RequestBodyError } from "@/shared/utils/requestJson.js";
@@ -171,7 +172,6 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     log.debug("CHAT", `Stripped [${contextMarker}] marker: "${modelStr}" -> "${cleanModel}"`);
     modelStr = cleanModel;
     body = { ...body, model: cleanModel };
-    if (clientRawRequest?.body) clientRawRequest.body = { ...clientRawRequest.body, model: cleanModel };
   }
 
   // Request summary is emitted as the unified "▶" line in chatCore (has fmt/thinking/account)
@@ -411,10 +411,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       // Locally known tier ineligibility is not quota exhaustion. If no
       // eligible account was attempted, retain the actionable tier error.
       if (lastServiceTierDenial && !lastResponse) return withRateLimitHeaders(lastServiceTierDenial, rateLimit);
+      // A fresh structured upstream/request failure is more precise than the
+      // aggregate cooldown snapshot created by that same failed attempt.
+      if (lastResponse) return withRateLimitHeaders(lastResponse, rateLimit);
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
-        // Always return 503 for allRateLimited to avoid echoing stale 500 error code from DB (#3712)
-        const status = HTTP_STATUS.SERVICE_UNAVAILABLE;
+        const status = Number(credentials.lastErrorCode) === 429
+          ? HTTP_STATUS.RATE_LIMITED : HTTP_STATUS.SERVICE_UNAVAILABLE;
         log.warn("CHAT", `[${provider}/${model}] ${errorMsg} (${credentials.retryAfterHuman})`);
         // The client gets a neutral message: the previous body embedded
         // `[provider/model]` plus the raw upstream error text, which leaked both
@@ -430,7 +433,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         // Full detail stays in the operator log; the client gets a neutral message
         // that does not name the upstream provider (see clientErrors.js).
         log.warn("AUTH", `No active credentials for provider: ${provider}`);
-        return errorResponse(HTTP_STATUS.NOT_FOUND, publicMessage("no_credentials"));
+        return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, publicMessage("no_credentials"));
       }
       log.warn("CHAT", "No more accounts available", { provider });
       // Prefer the structured error the engine already built for this failure.
@@ -572,7 +575,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // account per logical request, 5xx only, never after client abort.
     // A virtual proxy route has no account to retry. Classify its failure before
     // selecting another pool, especially for quota/abuse denials sent as 5xx.
+    const errorEvidence = { ...result.diagnostics, message: result.error };
+    const availability = classifyAvailabilityError(result.status, result.error, result.diagnostics);
     const retryable5xx = [500, 502, 503, 504].includes(Number(result.status))
+      && !availability.kind && !result.resetsAtMs && !result.response?.headers?.get("retry-after")
       && !(credentials.id === "noauth" && credentials.providerSpecificData?.connectionProxyPoolId);
     if (retryable5xx && !retriedConnectionIds.has(credentials.connectionId) && !request?.signal?.aborted) {
       retriedConnectionIds.add(credentials.connectionId);
@@ -590,12 +596,17 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       );
       if (quotaResetMs) resetsAtMs = quotaResetMs;
     }
+    if (resetsAtMs > Date.now() && [429, 503].includes(Number(result.response?.status))) {
+      const headers = new Headers(result.response.headers);
+      headers.set("Retry-After", String(Math.max(1, Math.ceil((resetsAtMs - Date.now()) / 1000))));
+      result.response = new Response(result.response.body, { status: result.response.status, headers });
+    }
 
     // Exhausted Antigravity model is blocked only in RAM cache until upstream resetAt.
     // Do not persist a modelLock_* for this path.
     const shouldFallback = provider === "antigravity" && quotaResetMs
       ? true
-      : (await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, resetsAtMs)).shouldFallback;
+      : (await markAccountUnavailable(credentials.connectionId, result.status, errorEvidence, provider, model, resetsAtMs)).shouldFallback;
 
     if (shouldFallback) {
       log.warn("FALLBACK", `⇄ ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} UNAVAILABLE (${result.status}) → NEXT ACCOUNT`);

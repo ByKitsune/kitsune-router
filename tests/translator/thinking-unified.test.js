@@ -218,18 +218,16 @@ describe("applyThinking per provider format", () => {
   });
   it.each([
     ["gpt-5.6-sol", "max", "max"],
-    ["gpt-5.6-sol", "ultra", "ultra"],
     ["gpt-5.6-terra", "max", "max"],
-    ["gpt-5.6-terra", "ultra", "ultra"],
     ["gpt-5.6-luna", "max", "max"],
-    ["gpt-5.6-luna", "ultra", "max"],
+    ["gpt-5.6-luna", "ultra", "ultra"],
   ])("normalizes Codex %s effort %s to %s", (model, effort, expected) => {
     const out = apply("openai-responses", model, { reasoning: { effort } }, "codex");
     expect(out.reasoning.effort).toBe(expected);
     expect(out.reasoning_effort).toBeUndefined();
   });
   it("applies a supported Codex Ultra suffix", () => {
-    const out = apply("openai-responses", "gpt-5.6-sol(ultra)", {}, "codex");
+    const out = apply("openai-responses", "gpt-5.6-luna(ultra)", {}, "codex");
     expect(out.reasoning.effort).toBe("ultra");
     expect(out.reasoning_effort).toBeUndefined();
   });

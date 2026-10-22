@@ -9,6 +9,7 @@ import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLin
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
 import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
+import { createErrorResult } from "../../utils/error.js";
 
 // Codex returns Responses API SSE → which client format to translate INTO, by request sourceFormat.
 // Preserve each client's native envelope; unknown sources fall back to OpenAI.
@@ -24,11 +25,10 @@ const CODEX_SOURCE_TO_TARGET = {
 /**
  * Determine which SSE transform stream to use based on provider/format.
  */
-function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel }) {
-  const isDroidCLI = userAgent?.toLowerCase().includes("droid") || userAgent?.toLowerCase().includes("codex-cli");
-  // Responses-API providers (e.g. codex) emit Responses SSE → translate into client format
+function buildTransformStream({ provider, sourceFormat, targetFormat, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel }) {
+  // The requested endpoint, not the caller's user-agent, owns response framing.
   const isResponsesProvider = PROVIDERS[provider]?.format === FORMATS.OPENAI_RESPONSES;
-  const needsCodexTranslation = isResponsesProvider && targetFormat === FORMATS.OPENAI_RESPONSES && !isDroidCLI;
+  const needsCodexTranslation = isResponsesProvider && targetFormat === FORMATS.OPENAI_RESPONSES;
 
   if (needsCodexTranslation) {
     const codexTarget = CODEX_SOURCE_TO_TARGET[sourceFormat] || FORMATS.OPENAI;
@@ -39,7 +39,7 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
     return createSSETransformStreamWithLogger(targetFormat, sourceFormat, provider, reqLogger, toolNameMap, model, connectionId, body, onStreamComplete, apiKey, customToolNames, responseModel, wireToolNames);
   }
 
-  return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap, targetFormat, wireToolNames);
+  return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap, targetFormat, wireToolNames, responseModel);
 }
 
 function withAbortRecording(streamController, record) {
@@ -115,20 +115,14 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     if (log?.errorLine) log.errorLine(reqTag, "✗", `BLOCKED ${status} · ${provider}/${model} · non-SSE (${upstreamContentType})\n    ${shortMsg}`);
     else console.warn(`[STREAM] ${provider} | ${model} | blocked pipe: ${shortMsg} [${status}]`);
     streamController?.handleError?.(new Error(`upstream non-SSE: ${status}`));
-    return {
-      success: false,
-      response: new Response(JSON.stringify({ error: { message: `[${status}]: ${shortMsg}` } }), {
-        status,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      }),
-    };
+    return createErrorResult(status >= 400 ? status : 502, shortMsg);
   }
 
   const wireBody = finalBody || translatedBody || body;
   const wireToolNames = toolNameMap?.size > 0
     ? new Set((wireBody?.tools || []).flatMap(tool => tool.functionDeclarations?.map(fn => fn.name) || [tool.function?.name || tool.name]).filter(Boolean))
     : null;
-  const transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel: clientRawRequest?.body?.model });
+  const transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel: clientRawRequest?.body?.model });
 
   // Responses passthrough: synthesize response.failed + [DONE] if the stream aborts/stalls before a terminal event
   const isResponsesPassthrough = sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI_RESPONSES;

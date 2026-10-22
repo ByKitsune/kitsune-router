@@ -34,6 +34,37 @@ export function getReviewedModelMetadata(provider, model) {
   return matches.length === 1 ? table[matches[0]] : null;
 }
 
+// Ordinary discovery is not an audit export. Full records remain available to
+// the authenticated dashboard; omit capture/build internals even inside nested
+// reference quotes and source URLs containing a pinned content hash.
+const AUDIT_METADATA_KEY = /provenance|evidence|bundle|capture|hash|sha256|commit|revision|observation/i;
+const PRIVATE_METADATA_VALUE = /(?:\/(?:tmp|root|home|opt|var)\/|\b[a-f0-9]{32,64}\b)/i;
+
+function publicMetadataValue(value) {
+  if (typeof value === "string") return PRIVATE_METADATA_VALUE.test(value) ? undefined : value;
+  if (Array.isArray(value)) return value.map(publicMetadataValue).filter(item => item !== undefined);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !AUDIT_METADATA_KEY.test(key))
+    .map(([key, item]) => [key, publicMetadataValue(item)])
+    .filter(([, item]) => item !== undefined));
+}
+
+export function getPublicModelMetadata(provider, model, capabilities) {
+  const record = getReviewedModelMetadata(provider, model);
+  if (!record) return null;
+  const result = publicMetadataValue(record);
+  if (capabilities) result.capabilities = publicMetadataValue(capabilities);
+  if (!Number.isFinite((capabilities || record.capabilities)?.maxInput)) {
+    result.limits = {
+      ...result.limits,
+      maxInputStatus: result.limits?.maxInputStatus || result.limits?.contextWindowStatus
+        || "Independent maximum input is unknown or not separately verified; contextWindow is not an input allowance and must not be reduced by a guessed output budget.",
+    };
+  }
+  return result;
+}
+
 // Missing facts leave legacy fallback behavior intact; callers can display
 // billing/limits/source provenance separately instead of claiming verification.
 export function applyReviewedCapabilities(base, provider, model) {

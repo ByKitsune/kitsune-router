@@ -1399,8 +1399,7 @@ const openai = {
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
         "none", "low", "medium", "high", "xhigh", "max"
-      ],
-      "toolCallingNote": "Responses supports tools; Chat Completions function calling requires reasoning_effort=none."
+      ]
     }
   },
   "gpt-6-sol": {
@@ -1467,8 +1466,7 @@ const openai = {
       "authenticatedRouteVerified": false,
       "apiReasoningEfforts": [
         "none", "low", "medium", "high", "xhigh", "max"
-      ],
-      "toolCallingNote": "Responses supports tools; Chat Completions function calling requires reasoning_effort=none."
+      ]
     }
   },
   "gpt-6.1-sol": {
@@ -2174,6 +2172,7 @@ const gemini = {
       "structuredOutput": true,
       "thinkingFormat": "gemini-level",
       "thinkingCanDisable": false,
+      "thinkingEffortSupported": true,
       "thinkingEfforts": [
         "low",
         "medium",
@@ -3364,9 +3363,19 @@ xai["grok-4"] = {
   limits: { authenticatedRouteVerified: false, idKind: "compatibility-id", unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
 };
 
+const nativeSearchSurfaces = {
+  openai: { endpoint: "/v1/responses", apiFormat: "openai-responses", toolType: "web_search" },
+  anthropic: { endpoint: "/v1/messages", apiFormat: "claude", toolType: "web_search_20250305" },
+  gemini: { endpoint: "/v1beta/models/{model}:generateContent", apiFormat: "gemini", toolField: "google_search" },
+  xai: { endpoint: "/v1/responses", apiFormat: "openai-responses", toolType: "web_search" },
+};
 for (const [provider, models] of Object.entries({ openai, anthropic, gemini, xai })) {
   for (const entry of Object.values(models)) {
     entry.provenance = { reviewedAt: "2026-10-21", primaryPricing: copy(primaryPricing[provider]), catalogCrosscheck: copy(catalogCrosscheck) };
+    if (entry.capabilities?.search === true) entry.limits.search = {
+      native: { ...nativeSearchSurfaces[provider] },
+      note: "Search requires an explicit provider-native hosted search tool on the named API surface. The capability does not imply every chat format can carry grounding or that function-tool calling automatically searches the web. Account availability and search charges are separate.",
+    };
     if (entry.limits.catalogModelId) {
       entry.limits.catalogAsOf = "2026-10-21";
       entry.limits.catalogCommit = catalogCrosscheck.commit;
@@ -3515,6 +3524,9 @@ const codexConfig = {
     "cliReasoningEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"]
   }
 };
+// Effective route observations override the CLI reference only where observed.
+// None remains requestable on disable-capable families; Sol 6.1 ignores it.
+const codexUltraRoutes = new Set(["gpt-6-luna", "gpt-5.6-luna"]);
 
 const codexCredits = {
   "gpt-6-astra": { input: 250, cached: 25, output: 1250 },
@@ -3549,8 +3561,11 @@ for (const [id, config] of Object.entries(codexConfig)) {
   entry.capabilities.contextWindow = openai[id].capabilities.contextWindow;
   if (Number.isFinite(openai[id].capabilities.maxInput)) entry.capabilities.maxInput = openai[id].capabilities.maxInput;
   if (Number.isFinite(openai[id].capabilities.maxOutput)) entry.capabilities.maxOutput = openai[id].capabilities.maxOutput;
-  entry.capabilities.thinkingEfforts = [...config.cliReasoningEfforts];
-  entry.capabilities.thinkingCanDisable = config.cliReasoningEfforts.includes("none");
+  const routeEfforts = config.cliReasoningEfforts.filter(effort => effort !== "ultra");
+  if (id !== "gpt-6.1-sol" && openai[id].capabilities.thinkingCanDisable === true && !routeEfforts.includes("none")) routeEfforts.unshift("none");
+  if (codexUltraRoutes.has(id)) routeEfforts.push("ultra");
+  entry.capabilities.thinkingEfforts = routeEfforts;
+  entry.capabilities.thinkingCanDisable = routeEfforts.includes("none");
   entry.capabilities.thinkingEffortSupported = true;
   entry.sources.push(...codexSources);
   entry.sources.push("https://developers.openai.com/codex/pricing.md");
@@ -3566,6 +3581,8 @@ for (const [id, config] of Object.entries(codexConfig)) {
   };
   Object.assign(entry.limits, config, {
     scope: "public-api-specification",
+    routeReasoningEfforts: [...routeEfforts],
+    routeReasoningEffortScope: "Native CLI effort choices with route-specific corrections: GPT-6.1 Sol none/minimal are ineffective; Ultra is available only on Luna routes. Disabled thinking remains requestable on other disable-capable families.",
     apiContextWindow: openai[id].capabilities.contextWindow,
     apiMaxInput: openai[id].capabilities.maxInput ?? null,
     apiMaxOutput: openai[id].capabilities.maxOutput,
@@ -3612,6 +3629,13 @@ for (const id of ["gpt-5.4", "gpt-5.4-mini"]) {
   entry.limits.routeUnavailableReason = "rejected-by-codex-chatgpt-route";
   codex[id] = entry;
 }
+// The owner also observed the retained 5.5 route rejected by ChatGPT accounts.
+// A pinned CLI catalog entry is not proof that this account transport serves it.
+Object.assign(codex["gpt-5.5"].limits, {
+  routeAvailable: false,
+  routeUnavailableReason: "rejected-by-codex-chatgpt-route",
+  unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
+});
 codex["gpt-5.3-codex-spark"] = {
   capabilities: { vision: false, pdf: false }, pricing: {},
   sources: ["https://developers.openai.com/codex/models"],
@@ -3674,9 +3698,9 @@ const codexGatewayObservation = {
 };
 codex["gpt-reserve"] = {
     description: "Observed Codex gateway base ID retained verbatim; no documented priced-model equivalence or route limits.",
-    capabilities: { vision: false, pdf: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false, tools: false, search: false, reasoning: false, structuredOutput: false },
+    capabilities: { vision: false, pdf: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false, tools: true, search: false, reasoning: false, structuredOutput: false },
     pricing: {}, sources: ["https://developers.openai.com/codex/models.md"],
-    billing: { kind: "plan", currency: "unknown", unit: "subscription", unverifiedPriceFields: ["input", "output", "cached", "cache_creation"], note: "Successful gateway text routing is not a separately priced API model or a USD subscription invoice." },
+    billing: { kind: "plan", currency: "unknown", unit: "subscription", unverifiedPriceFields: ["input", "output", "cached", "cache_creation"], note: "Owner-verified gateway text and function-tool routing does not establish a separately priced API model or a USD subscription invoice." },
     limits: { scope: "observed-codex-gateway-route", idKind: "observed-base-route-id", upstreamModelId: "gpt-reserve", authenticatedRouteVerified: false, gatewayRouteVerified: true, routeAvailable: true, routeContextWindow: null, routeMaxOutput: null, unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
     provenance: { reviewedAt: "2026-10-21", observation: copy(codexGatewayObservation) },
 };
@@ -3686,6 +3710,20 @@ for (const id of ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-
   entry.provenance ||= { reviewedAt: "2026-10-21" };
   entry.provenance.gatewayObservation = copy(codexGatewayObservation);
   codex[`${id}-review`] = entry;
+}
+for (const entry of Object.values(codex)) {
+  if (entry.capabilities?.search === true) entry.limits.search = {
+    inlineChat: true,
+    native: { endpoint: "/v1/responses", apiFormat: "openai-responses", toolType: "web_search" },
+    note: "Send an explicit Responses web_search hosted tool. Chat function tools are not web search; only a supported request translation preserves the native declaration. Codex account tool availability remains separate from API-model support.",
+  };
+  entry.limits.promptAccounting = {
+    defaultInstructions: "injected-when-absent-or-empty",
+    upstreamInputIncludesInstructions: true,
+    cachedInputMayIncludeSharedPrefix: true,
+    firstRequestCacheHitPossible: true,
+    note: "Codex injects default instructions when none are supplied. Upstream input and cache counters include the actual transmitted prefix; cache can be shared or pre-existing even on the client's first request. No fixed instruction-token offset is subtracted.",
+  };
 }
 const claude = {};
 for (const [id, api] of Object.entries(anthropic)) {

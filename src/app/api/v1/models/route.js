@@ -20,11 +20,12 @@ import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel, withDeclaredCapabilities } from "open-sse/providers/capabilities.js";
 import { canonicalizeProviderId as resolveProviderAlias, PROVIDER_IDENTITIES } from "open-sse/providers/identity.js";
-import { applyReviewedCapabilities, getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
+import { applyReviewedCapabilities, getReviewedModelMetadata, getPublicModelMetadata } from "open-sse/providers/metadata/reviewed.js";
 import { inferModelKind } from "open-sse/providers/models/schema.js";
 import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 import { getComboTokenLimits } from "./comboLimits.js";
 import { getCachedModelsResponse } from "@/lib/modelsResponseCache.js";
+import { errorResponse } from "open-sse/utils/error.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -436,10 +437,13 @@ export async function buildModelsList(kindFilter) {
       // Without this the flag was UI-only and the id still reached clients (e.g.
       // deepseek/deepseek-v4-flash, a retired compatibility alias). An operator's
       // explicit custom declaration is honoured regardless.
-      const isCustomDeclared = customRows.has(modelId);
+      const customRow = customRows.get(modelId)?.get(kind)
+        || (kind === LLM_KIND ? customRows.get(modelId)?.get("imageToText") : null);
+      const isCustomDeclared = Boolean(customRow);
       const isDeprecated = [staticRows.get(modelId), liveRows.get(modelId)]
         .some((byKind) => byKind && [...byKind.values()].some((row) => row?.deprecated === true));
       if (isDeprecated && !isCustomDeclared) continue;
+      if (getReviewedModelMetadata(providerId, modelId)?.limits?.routeAvailable === false && !isCustomDeclared) continue;
 
       const model = {
         id: `${outputAlias}/${modelId}`,
@@ -462,16 +466,14 @@ export async function buildModelsList(kindFilter) {
         }, providerId, modelId),
         ...modelMetadata(liveRows.get(modelId)?.get(kind)),
       };
-      const metadata = getReviewedModelMetadata(providerId, modelId);
-      if (metadata) model.metadata = metadata;
-      const customRow = customRows.get(modelId)?.get(kind)
-        || (kind === LLM_KIND ? customRows.get(modelId)?.get("imageToText") : null);
       const declared = {
         ...(customRow?.kind === "imageToText" ? capabilitiesFromServiceKind("imageToText") : {}),
         ...modelMetadata(customRow),
       };
       const caps = withDeclaredCapabilities(baseCaps, declared, providerId, modelId);
       if (Number.isFinite(declared.maxInput) && declared.maxInput > 0) caps.maxInput = declared.maxInput;
+      const metadata = getPublicModelMetadata(providerId, modelId, caps);
+      if (metadata) model.metadata = metadata;
       if (kindFilter.includes("imageToText") && !kindFilter.includes(LLM_KIND)
         && (kind === LLM_KIND || kind === "imageToText") && !caps?.vision) continue;
       if (caps) model.capabilities = caps;
@@ -503,7 +505,7 @@ export async function buildModelsList(kindFilter) {
 
     // Web search/fetch — provider IS the model, expose as {alias}/search and/or {alias}/fetch with explicit kind
     const providerInfo = AI_PROVIDERS[providerId];
-    if (kindFilter.includes("webSearch") && providerInfo?.searchConfig && !isDisabled(outputAlias, "search") && !isDisabled(staticAlias, "search") && !isDisabled(providerId, "search")) {
+    if (kindFilter.includes("webSearch") && (providerInfo?.searchConfig || providerInfo?.searchViaChat) && !isDisabled(outputAlias, "search") && !isDisabled(staticAlias, "search") && !isDisabled(providerId, "search")) {
       models.push({
         id: `${outputAlias}/search`,
         object: "model",
@@ -593,9 +595,6 @@ export async function GET() {
     });
   } catch (error) {
     console.log("Error fetching models:", error);
-    return Response.json(
-      { error: { message: error.message, type: "server_error" } },
-      { status: 500 }
-    );
+    return errorResponse(500, "Model discovery is temporarily unavailable. Try again shortly.", { code: "model_discovery_unavailable" });
   }
 }

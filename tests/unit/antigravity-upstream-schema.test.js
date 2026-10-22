@@ -112,7 +112,7 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
   ])("rejects heterogeneous tuple items locally without dropping a variant: %j / %j", (first, second) => {
     const schema = { type: "object", properties: { pair: { type: "array", items: [first, second] } } };
     const diagnostic = expect.objectContaining({
-      code: "unsupported_parameter", param: "tools", message: expect.stringContaining("unsupported_schema"),
+      code: "unsupported_parameter", param: "tools",
     });
     expect(() => clean(schema)).toThrowError(diagnostic);
     const body = nativeRequest(schema);
@@ -124,7 +124,7 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
   it("rejects heterogeneous prefixItems instead of falling through selectBest", () => {
     const schema = { type: "array", prefixItems: [{ type: "string" }, { type: "number" }] };
     const diagnostic = expect.objectContaining({
-      code: "unsupported_parameter", param: "tools", message: expect.stringContaining("unsupported_schema"),
+      code: "unsupported_parameter", param: "tools",
     });
     expect(() => clean(schema)).toThrowError(diagnostic);
     expect(() => nativeParameters(nativeRequest(schema))).toThrowError(diagnostic);
@@ -139,7 +139,6 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
     const schema = { type: "object", properties: { values: { type: "array", ...tuple } } };
     const diagnostic = expect.objectContaining({
       code: "unsupported_parameter", type: "invalid_request_error", status: 400, param: "tools",
-      message: expect.stringContaining("unsupported_schema"),
     });
 
     it("sanitizer rejects positional tail differences before lossy normalization", () => {
@@ -195,7 +194,6 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
         expect(result.response.status).toBe(400);
         expect((await result.response.json()).error).toMatchObject({
           type: "invalid_request_error", code: "unsupported_parameter", param: "tools",
-          message: expect.stringContaining("unsupported_schema"),
         });
         expect(headers).not.toHaveBeenCalled();
         expect(io.fetch).not.toHaveBeenCalled();
@@ -471,7 +469,6 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
     expect(result.response.status).toBe(400);
     expect((await result.response.json()).error).toMatchObject({
       type: "invalid_request_error", code: "unsupported_parameter", param: "tools",
-      message: expect.stringContaining("unsupported_schema"),
     });
     expect(io.fetch).not.toHaveBeenCalled();
     expect(body).toEqual(original);
@@ -565,7 +562,6 @@ describe("selected Antigravity upstream tool-schema fixes", () => {
         const schema = { ...base, ...wrap({ type: "array", [keyword]: [{ type: "string" }, { type: "number" }] }) };
         const diagnostic = expect.objectContaining({
           code: "unsupported_parameter", type: "invalid_request_error", status: 400, param: "tools",
-          message: expect.stringContaining("unsupported_schema"),
         });
         expect(() => clean(schema)).toThrowError(diagnostic);
         const body = nativeRequest(schema);

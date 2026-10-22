@@ -114,6 +114,8 @@ describe("inbound rate limiter (P03-A)", () => {
     expect(res.headers.get("x-ratelimit-limit")).toBe("10");
     const body = await res.json();
     expect(body.error.code).toBe("rate_limit_exceeded");
+    expect(body.error).toMatchObject({ type: "rate_limit_error", request_id: expect.stringMatching(/^[A-Za-z0-9._:-]{1,128}$/) });
+    expect(res.headers.get("x-request-id")).toBe(body.error.request_id);
     // Must not double as a reconnaissance oracle.
     expect(body.error.message).not.toMatch(/provider|account|codex|openai/i);
   });

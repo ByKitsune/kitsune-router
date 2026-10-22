@@ -179,11 +179,11 @@ describe.each([
 
 describe("Antigravity Claude reasoning uses the actual Google wire", () => {
   it.each([
-    ["low", { thinkingBudget: 1024, includeThoughts: true }],
-    ["off", { thinkingBudget: 0, includeThoughts: false }],
-  ])("serializes translated Claude effort %s inside generationConfig", async (effort, thinkingConfig) => {
+    [{ thinking: { type: "enabled", budget_tokens: 1024 } }, { thinkingBudget: 1024, includeThoughts: true }],
+    [{ reasoning_effort: "none" }, { thinkingBudget: 0, includeThoughts: false }],
+  ])("serializes supported translated thinking %j inside generationConfig", async (control, thinkingConfig) => {
     const [sent] = await translatedDispatch(localExecutor(new AntigravityExecutor()), FORMATS.OPENAI, FORMATS.ANTIGRAVITY, "claude-sonnet-4-6", {
-      messages: messages(), reasoning_effort: effort, max_completion_tokens: 6000,
+      messages: messages(), ...control, max_completion_tokens: 6000,
     });
     expect(sent.request.generationConfig).toMatchObject({ maxOutputTokens: 6000, thinkingConfig });
     expect(sent).not.toHaveProperty("thinking");

@@ -6,6 +6,7 @@ import { FORMATS } from "../formats.js";
 import { rejectClaudeAudio } from "./requestMedia.js";
 import { antigravityOutputConfig } from "./structuredOutput.js";
 import { normalizeChatReasoningAliases } from "./reasoningAliases.js";
+import { validateThinkingParams } from "./thinkingUnified.js";
 
 // Model-specific request controls. Legacy strip rules retain their behavior;
 // verified unsupported intent can be rejected explicitly before translation.
@@ -79,14 +80,26 @@ function matches(rule, model) {
 
 // Check the source body before translation can rename or lose a control. Keep
 // the client's original parameter path in the existing request-error contract.
-export function validateSupportedParams(provider, model, body, targetFormat = null) {
+export function validateSupportedParams(provider, model, body, targetFormat = null, requestedModel = null, options = {}) {
   if (!model || !body || typeof body !== "object") return;
   const nativeProvider = canonicalizeProviderId(provider || targetFormat);
   const format = targetFormat || PROVIDERS[nativeProvider]?.format;
+  validateThinkingParams(nativeProvider, model, body, format, requestedModel, options);
   // Runs before Core's legacy modality stripping as well as before conversion.
   // A model capability cannot create an audio block in Anthropic's wire schema.
   if (format === FORMATS.CLAUDE) rejectClaudeAudio(body);
-  if (format === FORMATS.ANTIGRAVITY) antigravityOutputConfig(body, model);
+  if (format === FORMATS.ANTIGRAVITY || format === FORMATS.GEMINI_CLI) antigravityOutputConfig(body, model);
+  if (format === FORMATS.CLAUDE) {
+    const formats = [["response_format", body.response_format], ["text.format", body.text?.format]];
+    for (const [param, value] of formats) {
+      if (value == null || value.type === "text") continue;
+      if (value.type === "json_schema" && !PROVIDERS[nativeProvider]?.quirks?.dropOutputConfig) continue;
+      const error = new Error(`${param} cannot be preserved by this destination. Use a supported JSON schema or select a destination with JSON-mode support.`);
+      error.code = "unsupported_parameter";
+      error.param = param;
+      throw error;
+    }
+  }
   for (const rule of STRIP_RULES) {
     if (!rule.reject) continue;
     if (rule.provider && rule.provider !== nativeProvider) continue;

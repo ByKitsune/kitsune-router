@@ -55,6 +55,34 @@ describe("native passthrough suffix choices reach the provider payload", () => {
     expect(wire.max_tokens).toBe(4096);
   });
 
+  it("fits a generated provider-on budget inside a native Claude client's cap", async () => {
+    const wire = await dispatch("claude", "claude-sonnet-4.5", {
+      messages: [{ role: "user", content: "Explain the result." }], max_tokens: 4096,
+    }, "claude-cli/fixture", { mode: "on" });
+    expect(wire.max_tokens).toBe(4096);
+    expect(wire.thinking.type).toBe("enabled");
+    expect(wire.thinking.budget_tokens).toBeGreaterThanOrEqual(1024);
+    expect(wire.thinking.budget_tokens).toBeLessThan(4096);
+    expect(wire).not.toHaveProperty("reasoning_effort");
+  });
+
+  it("does not treat an explicit numeric budget as a provider-on default", async () => {
+    const body = { model: "claude-sonnet-4.5", stream: false,
+      messages: [{ role: "user", content: "Explain the result." }], max_tokens: 4096,
+      thinking: { type: "enabled", budget_tokens: 10000 } };
+    const before = structuredClone(body);
+    const result = await handleChatCore({
+      body, modelInfo: { provider: "claude", model: "claude-sonnet-4.5" }, sourceFormatOverride: "claude",
+      credentials: { accessToken: "synthetic-thinking-token" }, providerThinking: { mode: "on" },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      clientRawRequest: { headers: { "user-agent": "claude-cli/fixture" }, body, endpoint: "/v1/messages" },
+    });
+    expect(result.status).toBe(400);
+    expect(await result.response.json()).toMatchObject({ error: { code: "invalid_thinking_budget", param: "max_tokens" } });
+    expect(proxyAwareFetch).not.toHaveBeenCalled();
+    expect(body).toEqual(before);
+  });
+
   it("keeps a native off switch above the configured provider effort default", async () => {
     const wire = await dispatch("claude", "claude-opus-4.7", {
       messages: [{ role: "user", content: "Explain the result." }], max_tokens: 4096,
@@ -97,11 +125,11 @@ describe("native passthrough suffix choices reach the provider payload", () => {
     expect(wire.request.generationConfig).toEqual({ maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low", includeThoughts: false } });
   });
 
-  it("applies a declared Antigravity model tier over native conflicting thinking", async () => {
+  it("preserves a declared Antigravity tier with a matching native thinking level", async () => {
     const wire = await dispatch("antigravity", "gemini-3.8-flash-high", {
       userAgent: "antigravity",
       request: { contents: [{ role: "user", parts: [{ text: "Explain the result." }] }],
-        generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low", includeThoughts: false } } },
+        generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "high", includeThoughts: false } } },
     }, "antigravity/fixture");
     expect(wire.model).toBe("gemini-3.8-flash-high");
     expect(wire.request.generationConfig).toEqual({ maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "high", includeThoughts: false } });

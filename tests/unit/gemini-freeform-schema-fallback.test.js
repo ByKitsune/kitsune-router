@@ -56,8 +56,9 @@ describe("Gemini tool schema normalization & fallback (#4447)", () => {
 
   it("allows combo fallback when upstream returns schema INVALID_ARGUMENT", () => {
     const errorMessage = "[400] INVALID_ARGUMENT: Invalid value at 'tools[0].function_declarations[23].parameters.properties[6].value' (type.googleapis.com/google.ai.generativelanguage.v1beta.Schema), 'object'";
-    const res = checkFallbackError(400, errorMessage);
+    const res = checkFallbackError(400, { message: errorMessage, code: "unsupported_parameter", param: "tools" }, 0, null, "combo");
     expect(res.shouldFallback).toBe(true);
+    expect(checkFallbackError(400, { message: errorMessage, code: "unsupported_parameter", param: "tools" }).shouldFallback).toBe(false);
     expect(res.cooldownMs).toBe(0);
   });
 });

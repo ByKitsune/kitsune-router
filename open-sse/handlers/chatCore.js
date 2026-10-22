@@ -41,6 +41,8 @@ import { normalizeGeminiContents, normalizeGeminiToolResultMedia } from "../tran
 import { isGemini4Model } from "../config/models.js";
 import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
 import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
+import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.js";
+import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -92,10 +94,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const reqTag = log?.tagForSession ? log.tagForSession(sessionSeed) : (log?.nextTag ? log.nextTag() : "");
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
-
-  // Check for bypass patterns (warmup, skip, cc naming)
-  const bypassResponse = handleBypassRequest(body, model, userAgent, ccFilterNaming);
-  if (bypassResponse) return bypassResponse;
 
   // Each account/model attempt owns its mutations; retries keep the source history.
   body = cloneRequestBody(body);
@@ -161,6 +159,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     } else if (!body.reasoning_effort) {
       body = { ...body, reasoning_effort: mode };
     }
+    setThinkingContext(body, { providerDefault: true, explicitBudget: false });
   }
 
   const upstreamModel = getModelUpstreamId(alias, model, extractThinking(body));
@@ -210,7 +209,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
 
   try {
-    validateSupportedParams(provider, upstreamModel, body, targetFormat);
+    validateSupportedParams(provider, upstreamModel, body, targetFormat, model, { providerThinkingInjected: useProviderThinking });
   } catch (error) {
     const invalidRequest = requestParameterError(error);
     if (invalidRequest) return invalidRequest;
@@ -220,12 +219,25 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Legacy tool arrays must become typed media even on native Google passthrough.
   if (GOOGLE_WIRE_FORMATS.has(sourceFormat)) normalizeGeminiToolResultMedia(body);
 
-  // Auto-strip media blocks the model can't read (vision/audio/pdf) before translation.
-  let capabilities;
+  // Documents must never disappear into an omitted-file placeholder, including
+  // native passthrough. Reject unsupported routes before any billable dispatch.
+  const capabilityModel = stripThinkingSuffix(model);
+  const declared = await getDeclaredModelCaps(provider, capabilityModel);
+  const capabilities = withDeclaredCapabilities(getCapabilitiesForModel(provider, capabilityModel), declared, provider, capabilityModel);
+  let hasDocuments;
+  try {
+    hasDocuments = rejectUnsupportedDocuments(body, capabilities);
+  } catch (error) {
+    const invalidRequest = requestParameterError(error);
+    if (invalidRequest) return invalidRequest;
+    throw error;
+  }
+  // CLI warmup/title bypasses are text optimizations, not permission to return
+  // synthetic success after silently ignoring unsupported attachments.
+  const bypassResponse = hasDocuments ? null : handleBypassRequest(body, model, userAgent, ccFilterNaming);
+  if (bypassResponse) return bypassResponse;
+  // Other legacy media downgrade policies remain translation-only.
   if (!passthrough) {
-    const capabilityModel = stripThinkingSuffix(model);
-    const declared = await getDeclaredModelCaps(provider, capabilityModel);
-    capabilities = withDeclaredCapabilities(getCapabilitiesForModel(provider, capabilityModel), declared, provider, capabilityModel);
     if (stripUnsupportedModalities(body, sourceFormat, capabilities)) {
       log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
     }
@@ -254,6 +266,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
     translatedBody = { ...body, model: stripThinkingSuffix(upstreamModel) };
+    const thinkingContext = getThinkingContext(body);
+    if (thinkingContext) setThinkingContext(translatedBody, thinkingContext);
     // Gateway suffixes and injected defaults need native wire fields even when
     // translation is bypassed. Retain the client's display/summary options.
     if (parseSuffix(upstreamModel).override || useProviderThinking) {

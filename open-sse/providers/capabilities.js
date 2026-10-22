@@ -35,6 +35,7 @@ import { matchPattern } from "./pricing.js";
 import { applyReviewedCapabilities, getReviewedModelMetadata } from "./metadata/reviewed.js";
 import { normalizeModelId } from "./models/schema.js";
 import { looksLikeVisionModel } from "./visionPatterns.js";
+import { isDocumentUnsupportedRoute } from "../config/documentConfig.js";
 
 /**
  * Safe floor — every resolved result is merged over this so consumers
@@ -58,7 +59,9 @@ export const DEFAULT_CAPABILITIES = {
   thinkingFormat: null,
   thinkingCanDisable: true,  // false → model cannot turn thinking off (clamp to min instead of disable)
   thinkingRange: null,       // { min, max } for budget formats; null = no clamp
-  thinkingEffortSupported: false, // zai format only: model accepts a reasoning_effort level (GLM-5.2+; older GLM ignores it)
+  thinkingEffortSupported: false, // explicit ordinal effort control; numeric thinking budgets are separate
+  thinkingEfforts: null,    // exact supported ordinal values; null = not independently declared
+  fixedThinkingEffort: null, // named tier cannot be overridden by a conflicting effort
   // limits (tokens)
   contextWindow: 200000,
   maxInput: null,       // unknown unless the provider documents a separate input ceiling
@@ -729,8 +732,9 @@ const NATIVE_GEMINI_LEVELS = {
 
 export function getCapabilitiesForModel(provider, model) {
   const baseline = resolveBaselineCapabilities(provider, model);
-  const caps = applyReviewedCapabilities(baseline, provider, model);
   const nativeProvider = canonicalizeProviderId(provider);
+  const reviewed = applyReviewedCapabilities(baseline, provider, model);
+  const caps = isDocumentUnsupportedRoute(nativeProvider, model) ? { ...reviewed, pdf: false } : reviewed;
   if (nativeProvider !== "gemini" && nativeProvider !== "vertex") return caps;
   const budget = NATIVE_GEMINI_BUDGETS[model];
   const efforts = nativeProvider === "gemini" ? NATIVE_GEMINI_LEVELS[model] : undefined;
@@ -813,6 +817,9 @@ export function withDeclaredCapabilities(base, declared, provider, model) {
       }
     }
     if (Object.keys(overlay).length) result = { ...DEFAULT_CAPABILITIES, ...(base ?? {}), ...overlay };
+  }
+  if (isDocumentUnsupportedRoute(canonicalizeProviderId(provider), model) && result?.pdf !== false) {
+    result = { ...result, pdf: false };
   }
   const ceiling = getReviewedModelMetadata(provider, model)?.limits?.gatewayMaxOutput;
   if (Number.isFinite(ceiling) && ceiling > 0 && Number.isFinite(result?.maxOutput) && result.maxOutput > ceiling) {

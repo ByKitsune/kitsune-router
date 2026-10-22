@@ -11,7 +11,7 @@ import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
-import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
 // Derived from providers.js: any TTS provider not noAuth requires stored credentials

@@ -3,12 +3,17 @@ import { getThinkingLevels } from "../../open-sse/providers/thinkingLevels.js";
 
 describe("getThinkingLevels", () => {
   it.each([
-    ["gpt-5.6-sol", ["low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-terra", ["low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-luna", ["low", "medium", "high", "xhigh", "max"]],
-    ["gpt-5.6-sol-review", ["low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-terra-review", ["low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-luna-review", ["low", "medium", "high", "xhigh", "max"]],
+    ["gpt-6-astra", ["low", "medium", "high", "xhigh", "max"]],
+    ["gpt-6-sol", ["none", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-6.1-sol", ["low", "medium", "high", "xhigh", "max"]],
+    ["gpt-6-luna", ["none", "low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-6-luna-review", ["none", "low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-sol", ["none", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-5.6-terra", ["none", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-5.6-luna", ["none", "low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-sol-review", ["none", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-5.6-terra-review", ["none", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-5.6-luna-review", ["none", "low", "medium", "high", "xhigh", "max", "ultra"]],
   ])("returns Codex levels for %s", (model, expected) => {
     expect(getThinkingLevels("codex", model)).toEqual(expected);
   });

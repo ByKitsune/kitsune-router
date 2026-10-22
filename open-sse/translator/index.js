@@ -6,6 +6,7 @@ import { compressToolNames, decloakOpenAIChunk } from "../utils/toolCompressor.j
 import { filterToOpenAIFormat } from "./formats/openai.js";
 import { stripUnsupportedChatExtensions, validateSupportedParams } from "./concerns/paramSupport.js";
 import { applyThinking, captureThinking } from "./concerns/thinkingUnified.js";
+import { getThinkingContext, setThinkingContext } from "./concerns/thinking.js";
 import { captureSessionId } from "../utils/sessionManager.js";
 import { AntigravityExecutor } from "../executors/antigravity.js";
 import { PROVIDERS } from "../providers/index.js";
@@ -103,6 +104,9 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     ? lowerKimiDeferredTools(body) : body;
   // Role the client actually ended on, before any translator drops an emptied turn.
   const clientLastRole = detectClientLastRole(body);
+  // Capture thinking intent from the original (pre-translation) body, before any
+  // format conversion strips/renames the fields. Applied after translation.
+  const thinkingIntent = captureThinking(result);
 
   // Compress tool names > 64 chars to prevent provider INVALID_ARGUMENT rejection (#3622)
   const { body: compressedBody, toolNameMap: compressedMap } = compressToolNames(sourceFormat, result);
@@ -123,9 +127,6 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     fixMissingToolResponses(result);
   }
 
-  // Capture thinking intent from the original (pre-translation) body, before any
-  // format conversion strips/renames the fields. Applied after translation.
-  const thinkingIntent = captureThinking(result);
 
   // Capture session id from the original body (envelope still intact, e.g. antigravity request.sessionId)
   const clientSessionId = captureSessionId(result, credentials, connectionId, targetFormat);
@@ -187,6 +188,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   if (!kiroThinkingMappedByTranslator) {
     applyThinking(targetFormat, model, result, provider, thinkingIntent, capabilities);
   }
+  const thinkingContext = getThinkingContext(result);
 
   // Always normalize to clean OpenAI format when target is OpenAI
   // This handles hybrid requests (e.g., OpenAI messages + Claude tools)
@@ -256,6 +258,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   //   }
   // }
 
+  if (thinkingContext) setThinkingContext(result, thinkingContext);
   return result;
 }
 

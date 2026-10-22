@@ -323,7 +323,7 @@ describe("real no-auth proxy transport", () => {
     expect(await db.getProviderConnections()).toEqual([]);
   });
 
-  it.each([[403, "IP blocked"], [429, "rate limit"], [500, "quota exceeded"]])("does not contact another relay after an upstream denial (%s)", async (status, message) => {
+  it.each([[403, "IP blocked", 403], [429, "rate limit", 429], [500, "quota exceeded", 429]])("does not contact another relay after an upstream denial (%s)", async (status, message, publicStatus) => {
     const hits = [];
     await relayPools((id, _req, res) => {
       hits.push(id);
@@ -331,7 +331,7 @@ describe("real no-auth proxy transport", () => {
       res.end(JSON.stringify({ error: { message } }));
     });
     const response = await handleChat(request(AbortSignal.timeout(2000)));
-    expect(response.status).toBe(status);
+    expect(response.status).toBe(publicStatus);
     expect(hits).toHaveLength(1);
     expect(await db.getProviderConnections()).toEqual([]);
   });

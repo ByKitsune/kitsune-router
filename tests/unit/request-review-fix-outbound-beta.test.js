@@ -31,18 +31,31 @@ describe("request review fix: actual outbound beta", () => {
     expect(sent()[0].body.thinking).toEqual({ type: "enabled", budget_tokens: 8192, display: "omitted" });
     expect(sent()[0].body.metadata).toEqual({ user_id: "review-user" });
   });
-  it("reconciles the denied-beta retry and future turns even if inbound beta repeats", async () => {
+  it("rejects an explicit budget on denied-beta retries and future turns rather than shrinking it", async () => {
     const credentials = { connectionId: "review-rejected-interleaving", apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
     vi.mocked(proxyAwareFetch).mockResolvedValueOnce(Response.json({ error: { message: `Unexpected value(s) \`${beta}\` for the \`anthropic-beta\` header` } }, { status: 400 }));
     const execute = async () => new DefaultExecutor("claude").execute({ model, body: normalizeClaudePassthrough(native(), model, credentials.rawHeaders), stream: false, credentials });
+    await expect(execute()).rejects.toMatchObject({ code: "invalid_thinking_budget", param: "max_tokens" });
+    await expect(execute()).rejects.toMatchObject({ code: "invalid_thinking_budget", param: "max_tokens" });
+    expect(sent()).toHaveLength(1);
+    expect(sent()[0].body.thinking.budget_tokens).toBe(8192);
+  });
+
+  it("fits generated effort budgets after a denied-beta retry and on future turns", async () => {
+    const credentials = { connectionId: "review-generated-rejected-interleaving", apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
+    vi.mocked(proxyAwareFetch).mockResolvedValueOnce(Response.json({ error: { message: `Unexpected value(s) \`${beta}\` for the \`anthropic-beta\` header` } }, { status: 400 }));
+    const execute = async () => {
+      const body = translateRequest("openai", "claude", model, { messages, max_tokens: 4096, reasoning_effort: "high", tools: [{ type: "function", function: { name: "lookup", parameters: { type: "object" } } }] }, false, credentials, "claude");
+      return new DefaultExecutor("claude").execute({ model, body, stream: false, credentials });
+    };
     await execute();
     await execute();
     expect(sent()).toHaveLength(3);
-    expect(sent()[0].body.thinking.budget_tokens).toBe(8192);
+    expect(sent()[0].body.thinking.budget_tokens).toBe(24576);
     for (const request of sent().slice(1)) {
       expect(request.headers.get("anthropic-beta")).not.toContain(beta);
       expect(request.body.max_tokens).toBe(4096);
-      expect(request.body.thinking).toEqual({ type: "enabled", budget_tokens: 3072, display: "omitted" });
+      expect(request.body.thinking.budget_tokens).toBe(3072);
     }
   });
   it("preserves translated OpenAI high effort only with actual outbound beta", async () => {
@@ -72,13 +85,14 @@ describe("request review fix: actual outbound beta", () => {
   it("does not trust beta on an arbitrary reseller's actual headers", async () => {
     const executor = new DefaultExecutor("anthropic-compatible-review");
     const credentials = { apiKey: "offline-fixture", runtimeTransport: { format: "claude", baseUrl: "https://reseller.invalid/messages", headers: { "Anthropic-Beta": beta } }, rawHeaders: { "anthropic-beta": beta } };
-    await executor.execute({ model, body: normalizeClaudePassthrough(native(), model, credentials.rawHeaders), stream: false, credentials });
-    expect(sent()[0].body.thinking.budget_tokens).toBe(3072);
-    expect(sent()[0].body.max_tokens).toBe(4096);
+    await expect(executor.execute({ model, body: normalizeClaudePassthrough(native(), model, credentials.rawHeaders), stream: false, credentials }))
+      .rejects.toMatchObject({ code: "invalid_thinking_budget", param: "max_tokens" });
+    expect(sent()).toHaveLength(0);
   });
   it.each(["claude-haiku-4.5", "claude-opus-4.6"])("never grants unsupported %s manual interleaving", async id => {
     const credentials = { apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
-    await new DefaultExecutor("claude").execute({ model: id, body: normalizeClaudePassthrough(native(id), id, credentials.rawHeaders), stream: false, credentials });
-    expect(sent()[0].body.thinking.budget_tokens).toBe(3072);
+    await expect(new DefaultExecutor("claude").execute({ model: id, body: native(id), stream: false, credentials }))
+      .rejects.toMatchObject({ code: "invalid_thinking_budget", param: "max_tokens" });
+    expect(sent()).toHaveLength(0);
   });
 });

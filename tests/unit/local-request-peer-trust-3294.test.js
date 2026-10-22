@@ -74,7 +74,7 @@ describe("peer header trust", () => {
     }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
   });
 
   it("rejects a spoofed loopback peer IP carrying a wrong trust token", async () => {

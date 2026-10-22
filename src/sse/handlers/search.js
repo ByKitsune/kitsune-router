@@ -14,7 +14,7 @@ import * as log from "../utils/logger.js";
 import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
-import { publicMessage } from "@/shared/utils/clientErrors.js";
+import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
 

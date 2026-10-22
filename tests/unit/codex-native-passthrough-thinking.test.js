@@ -43,7 +43,7 @@ async function runNativeCodexRequest(model, reasoning) {
     ...(reasoning ? { reasoning } : {}),
   };
 
-  await handleChatCore({
+  const result = await handleChatCore({
     body,
     modelInfo: { provider: "codex", model },
     credentials: { accessToken: "test-token", providerSpecificData: {} },
@@ -65,6 +65,7 @@ async function runNativeCodexRequest(model, reasoning) {
     },
   });
 
+  if (!result.success) return { status: result.status, ...(await result.response.json()) };
   return executeMock.mock.calls.at(-1)[0].body;
 }
 
@@ -83,29 +84,28 @@ describe("native Codex passthrough thinking suffixes", () => {
     });
   });
 
-  it("forwards Ultra for Sol", async () => {
-    const body = await runNativeCodexRequest("gpt-5.6-sol(ultra)");
-
-    expect(body.model).toBe("gpt-5.6-sol");
-    expect(body.reasoning).toEqual({ effort: "ultra" });
+  it("rejects unsupported Sol Ultra without dispatch", async () => {
+    expect(await runNativeCodexRequest("gpt-5.6-sol(ultra)"))
+      .toMatchObject({ status: 400, error: { code: "unsupported_parameter", param: "model" } });
+    expect(executeMock).not.toHaveBeenCalled();
   });
 
-  it("converts unsupported Luna Ultra to Max without dropping reasoning metadata", async () => {
+  it("preserves supported Luna Ultra without dropping reasoning metadata", async () => {
     const body = await runNativeCodexRequest("gpt-5.6-luna(ultra)", {
       effort: "low",
       summary: "detailed",
     });
 
     expect(body.model).toBe("gpt-5.6-luna");
-    expect(body.reasoning).toEqual({ effort: "max", summary: "detailed" });
+    expect(body.reasoning).toEqual({ effort: "ultra", summary: "detailed" });
   });
 
-  it("forwards Ultra through a Terra review alias", async () => {
-    const body = await runNativeCodexRequest("gpt-5.6-terra-review(ultra)", {
+  it("forwards Ultra through a Luna review alias", async () => {
+    const body = await runNativeCodexRequest("gpt-5.6-luna-review(ultra)", {
       effort: "low",
     });
 
-    expect(body.model).toBe("gpt-5.6-terra");
+    expect(body.model).toBe("gpt-5.6-luna");
     expect(body.reasoning).toEqual({ effort: "ultra" });
   });
 });

@@ -22,6 +22,7 @@
 //    first job is to not break real traffic (ByKitsune protects its own users
 //    at 60 RPM/user, 120 RPM/key, concurrency 100).
 import { CACHE_LIMITS, setBounded } from "open-sse/utils/boundedCache.js";
+import { buildErrorBody } from "open-sse/utils/error.js";
 
 const DEFAULT_RPM = 600;         // requests per minute per API key
 const DEFAULT_BURST = 120;       // max requests in any 1s slice (burst guard)
@@ -139,18 +140,14 @@ export function rateLimitHeaders(result) {
  * reconnaissance oracle.
  */
 export function rateLimitedResponse(result, corsHeaders = {}) {
+  const body = buildErrorBody(429, "Rate limit exceeded. Please retry later.");
   return new Response(
-    JSON.stringify({
-      error: {
-        message: "Rate limit exceeded. Please retry later.",
-        type: "rate_limit_error",
-        code: "rate_limit_exceeded",
-      },
-    }),
+    JSON.stringify(body),
     {
       status: 429,
       headers: {
         "Content-Type": "application/json",
+        "x-request-id": body.error.request_id,
         ...corsHeaders,
         ...rateLimitHeaders(result),
         "Retry-After": String(result.retryAfterSeconds || result.resetSeconds),

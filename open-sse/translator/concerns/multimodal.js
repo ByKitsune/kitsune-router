@@ -1,6 +1,21 @@
 import { CLAUDE_BLOCK, OPENAI_BLOCK, RESPONSES_ITEM, DEFAULT_IMAGE_MIME } from "../schema/index.js";
 import { encodeDataUri, parseDataUri } from "./image.js";
 
+const TOOL_MEDIA_TYPES = new Set([
+  OPENAI_BLOCK.IMAGE_URL, CLAUDE_BLOCK.IMAGE, CLAUDE_BLOCK.DOCUMENT,
+  OPENAI_BLOCK.FILE, RESPONSES_ITEM.INPUT_IMAGE, RESPONSES_ITEM.INPUT_FILE,
+  OPENAI_BLOCK.INPUT_AUDIO, OPENAI_BLOCK.AUDIO_URL, OPENAI_BLOCK.INPUT_VIDEO, OPENAI_BLOCK.VIDEO_URL,
+]);
+const NATIVE_MEDIA_PART_KEYS = new Set([
+  "inlineData", "inline_data", "fileData", "file_data", "thought", "thoughtSignature", "thought_signature",
+]);
+
+// Legacy Gemini Struct arrays also hold ordinary application records.
+export function isExplicitToolMediaPart(part) {
+  return Boolean(part && typeof part === "object" && !Array.isArray(part) &&
+    (TOOL_MEDIA_TYPES.has(part.type) || (!part.type && Object.keys(part).every(key => NATIVE_MEDIA_PART_KEYS.has(key)))));
+}
+
 // Normalize recognized media only. Ordinary tool JSON is not inspected as media.
 export function normalizeMediaPart(part) {
   if (!part || typeof part !== "object") return null;

@@ -8,12 +8,13 @@ import {
 } from "../services/oauthCredentialManager.js";
 import { normalizeResponsesInput } from "../translator/formats/responsesApi.js";
 import { FORMATS } from "../translator/formats.js";
-import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
+import { applyThinking, captureThinking, validateThinkingParams } from "../translator/concerns/thinkingUnified.js";
 import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { normalizeMediaPart } from "../translator/concerns/multimodal.js";
 import { OPENAI_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 import { getModelUpstreamId } from "../config/providerModels.js";
 import { getThinkingLevels } from "../providers/thinkingLevels.js";
+import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
 import { CODEX_SSE_PEEK_TIMEOUT_MS, DEFAULT_RETRY_CONFIG, HTTP_STATUS, resolveRetryEntry } from "../config/runtimeConfig.js";
 import { dbg } from "../utils/debugLog.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
@@ -166,13 +167,6 @@ function resolveCacheSessionId(body, credentials) {
   });
 }
 
-function normalizeReasoningEffort(model, value) {
-  const supportedLevels = getThinkingLevels("codex", model);
-  if (supportedLevels?.includes(value)) return value;
-  if (value === "ultra" && supportedLevels?.includes("max")) return "max";
-  if (value === "max" || value === "ultra") return "xhigh";
-  return value;
-}
 
 function findNestedMessage(value, depth = 0) {
   if (!value || depth > 6 || typeof value === "string") return null;
@@ -585,6 +579,7 @@ export class CodexExecutor extends BaseExecutor {
    * Image fetching is handled separately in prefetchImages() so this stays sync.
    */
   transformRequest(model, body, stream, credentials) {
+    validateThinkingParams(this.provider, getModelUpstreamId("cx", body.model || model), body, FORMATS.OPENAI_RESPONSES, body.model || model);
     delete body._compact;
     // Resolve conversation-stable session_id (priority: body → assistant-text → workspace → machine)
     this._currentSessionId = resolveCacheSessionId(body, credentials);
@@ -635,6 +630,7 @@ export class CodexExecutor extends BaseExecutor {
       }
     }
 
+    if (modelEffort) validateThinkingParams(this.provider, body.model, { reasoning: { effort: modelEffort } }, FORMATS.OPENAI_RESPONSES);
     const thinkingIntent = captureThinking(body);
     if (thinkingIntent) applyThinking(FORMATS.OPENAI_RESPONSES, body.model, body, this.provider, thinkingIntent);
 
@@ -643,9 +639,10 @@ export class CodexExecutor extends BaseExecutor {
       body.reasoning = {};
     }
     if (body.reasoning.effort === undefined) {
-      body.reasoning.effort = body.reasoning_effort || modelEffort || "low";
+      const defaultEffort = getThinkingLevels(this.provider, body.model)?.includes("low") ? "low" : undefined;
+      body.reasoning.effort = body.reasoning_effort || modelEffort || defaultEffort;
     }
-    body.reasoning.effort = normalizeReasoningEffort(body.model, body.reasoning.effort);
+    if (body.reasoning.effort !== undefined) body.reasoning.effort = String(body.reasoning.effort).trim().toLowerCase();
     if (body.reasoning.summary === undefined) body.reasoning.summary = "auto";
     delete body.reasoning_effort;
 
@@ -685,6 +682,8 @@ export class CodexExecutor extends BaseExecutor {
     // the wire copy lowers the sentinel/alias or inserts a catalog default.
     const wireTier = serviceTier.wireServiceTier ?? undefined;
     const wireBody = wireTier === body.service_tier ? body : { ...body };
+    const thinkingContext = getThinkingContext(body);
+    if (wireBody !== body && thinkingContext) setThinkingContext(wireBody, thinkingContext);
     if (wireTier === undefined) delete wireBody.service_tier;
     else wireBody.service_tier = wireTier;
     return wireBody;

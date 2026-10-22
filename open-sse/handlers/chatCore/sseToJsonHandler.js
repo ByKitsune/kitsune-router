@@ -15,6 +15,8 @@ import { decloakOpenAIChunk } from "../../utils/toolCompressor.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { getResponseServiceTier, getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
+import { normalizeResponseIdentity } from "../../utils/streamHelpers.js";
+import { toOpenAIUsage } from "../../translator/concerns/usage.js";
 // Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
 import { saveRequestDetail } from "@/lib/usageDb.js";
@@ -242,28 +244,19 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
 
       // Client is Responses API → return as-is
       if (sourceFormat === FORMATS.OPENAI_RESPONSES) {
+        normalizeResponseIdentity(jsonResponse, clientRawRequest?.body?.model);
         return { success: true, response: new Response(JSON.stringify(jsonResponse), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
       }
 
       if (sourceFormat === FORMATS.CLAUDE) {
-        return { success: true, response: new Response(JSON.stringify(responsesJsonToClaudeMessage(jsonResponse)), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
+        const message = responsesJsonToClaudeMessage(jsonResponse);
+        normalizeResponseIdentity(message, clientRawRequest?.body?.model);
+        return { success: true, response: new Response(JSON.stringify(message), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
       }
 
-      // Build client-format response.
-      // input_tokens EXCLUDES cached tokens on cache-capable upstreams, so summing
-      // only input+output under-reports prompt_tokens — measured: 2012 reported
-      // where the real prompt was ~5344 with 5332 served from cache. Fold the cache
-      // counters in, and keep them visible in prompt_tokens_details so a client can
-      // tell a cache hit from a small prompt.
-      const cacheRead = usage.cache_read_input_tokens || usage.cached_tokens || 0;
-      const cacheCreate = usage.cache_creation_input_tokens || 0;
-      const inTokens = (usage.input_tokens || 0) + cacheRead + cacheCreate;
-      const outTokens = usage.output_tokens || 0;
-      const cacheDetails = (cacheRead > 0 || cacheCreate > 0)
-        ? { prompt_tokens_details: {
-              ...(cacheRead > 0 ? { cached_tokens: cacheRead } : {}),
-              ...(cacheCreate > 0 ? { cache_creation_tokens: cacheCreate } : {}) } }
-        : {};
+      // Responses input totals already include cache reads/writes. Keep their
+      // native subsets instead of adding them again or dropping nested details.
+      const chatUsage = toOpenAIUsage(usage, "responses");
       let finalResp;
 
       const toolCalls = openaiResponsesObjectToCompletion(jsonResponse).choices[0].message.tool_calls || [];
@@ -297,10 +290,10 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
           model: jsonResponse.model || model,
           ...(getResponseServiceTier(jsonResponse) ? { service_tier: jsonResponse.service_tier } : {}),
           choices: [{ index: 0, message, finish_reason: finishReason }],
-          usage: { prompt_tokens: inTokens, completion_tokens: outTokens, total_tokens: inTokens + outTokens, ...cacheDetails,
-            ...(usage.output_tokens_details ? { completion_tokens_details: usage.output_tokens_details } : {}) }
+          ...(chatUsage ? { usage: chatUsage } : {})
         };
       }
+      normalizeResponseIdentity(finalResp, clientRawRequest?.body?.model);
 
       return { success: true, response: new Response(JSON.stringify(finalResp), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
     } catch (err) {
@@ -373,6 +366,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     const finalBody = aggregationState.nativeResponse
       ? sourceFormat === FORMATS.CLAUDE ? decloakToolNames(aggregationState.nativeResponse, toolNameMap) : nativeGeminiResponseToClient(aggregationState.nativeResponse, sourceFormat)
       : openAICompletionToClient(parsed, sourceFormat, customToolNames);
+    normalizeResponseIdentity(finalBody, clientRawRequest?.body?.model);
 
     return { success: true, response: new Response(JSON.stringify(finalBody), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
   } catch (err) {

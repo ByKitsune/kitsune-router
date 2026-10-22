@@ -1,16 +1,9 @@
-import { sanitizeClientError } from "@/shared/utils/clientErrors.js";
+import { publicRequestId, redactClientDiagnostic, sanitizeClientError } from "open-sse/utils/clientErrors.js";
 
 const SAFE_UPSTREAM_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 
-function safeText(value) {
-  return typeof value === "string"
-    ? value.replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]").replace(/[\r\n\0]/g, " ").trim().slice(0, 500)
-    : "";
-}
-
 function safeUpstreamId(value) {
-  const candidate = safeText(value);
-  return candidate && SAFE_UPSTREAM_ID.test(candidate) ? candidate : "";
+  return typeof value === "string" && SAFE_UPSTREAM_ID.test(value) && redactClientDiagnostic(value) === value ? value : "";
 }
 
 function responseOptions(response, headers) {
@@ -22,22 +15,24 @@ function responseOptions(response, headers) {
 }
 
 export async function sanitizeErrorResponse(response, serverRequestId = crypto.randomUUID()) {
+  serverRequestId = publicRequestId(serverRequestId);
   const headers = new Headers(response.headers);
   headers.set("x-request-id", serverRequestId);
   let source;
   try { source = await response.clone().json(); } catch { source = null; }
-  const sourceError = source?.error && typeof source.error === "object" && !Array.isArray(source.error) ? source.error : {};
-  const error = sanitizeClientError(sourceError);
-  error.request_id = serverRequestId;
-  const upstreamRequestId = safeUpstreamId(sourceError.upstream_request_id || sourceError.request_id);
+  const sourceError = source?.error ?? source ?? {};
+  const error = sanitizeClientError(sourceError, { status: response.status, requestId: serverRequestId });
+  const upstreamRequestId = safeUpstreamId(sourceError?.upstream_request_id || sourceError?.request_id);
   if (upstreamRequestId && upstreamRequestId !== serverRequestId) error.upstream_request_id = upstreamRequestId;
   headers.delete("content-length");
+  headers.set("content-type", "application/json");
 
-  return new Response(JSON.stringify({ error }), responseOptions(response, headers));
+  return new Response(JSON.stringify(source?.type === "error" ? { type: "error", error } : { error }), responseOptions(response, headers));
 }
 
 export async function correlateResponse(response, serverRequestId = crypto.randomUUID()) {
   if (!(response instanceof Response)) return response;
+  serverRequestId = publicRequestId(serverRequestId);
   if (response.status >= 400) return sanitizeErrorResponse(response, serverRequestId);
   const headers = new Headers(response.headers);
   headers.set("x-request-id", serverRequestId);

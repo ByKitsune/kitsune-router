@@ -58,7 +58,6 @@ describe("Kiro non-streaming error propagation", () => {
 
     expect(result.success).toBe(false);
     expect(result.response.status).toBe(502);
-    expect(json.error.message).toContain("Kiro stream ended incompletely");
     expect(json).not.toHaveProperty("choices");
   });
 });

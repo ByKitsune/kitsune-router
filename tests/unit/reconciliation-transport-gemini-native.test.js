@@ -124,7 +124,7 @@ describe("native Gemini audio transport reconciliation", () => {
     const body = await response.json();
     expect(response.status).toBe(status);
     expect(body.error.message).not.toMatch(/gemini|private@|synthetic-private-token/);
-    expect(body.error.code).toBe(status);
+    expect(body.error.code).toBe(String(status));
     expect(body.error.status).toBe(nativeStatus);
     expect(response.headers.get("retry-after")).toMatch(/^6[01]$/);
     expect(state.failures[0][0]).toBe("native-fixture");

@@ -10,7 +10,7 @@ import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { isDeepSeekModel } from "../../providers/models/helpers.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
 import { applyAssistantPrefillPolicy } from "../concerns/assistantPrefillPolicy.js";
-import { reconcileClaudeThinkingBudget, supportsClaudeManualInterleaving } from "../concerns/thinking.js";
+import { getThinkingContext, setThinkingContext, reconcileClaudeThinkingBudget, supportsClaudeManualInterleaving } from "../concerns/thinking.js";
 
 const CACHE_CONTROL_5M = { type: "ephemeral" };
 const CACHE_CONTROL_1H = { type: "ephemeral", ttl: "1h" };
@@ -246,6 +246,7 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null) 
   // 1. Downgrade adaptive thinking for models that don't support it
   if (body.thinking?.type === "adaptive" && ADAPTIVE_THINKING_UNSUPPORTED.test(model)) {
     body.thinking = { ...body.thinking, type: "enabled", budget_tokens: 10000 };
+    setThinkingContext(body, { explicitBudget: false });
   }
 
   reconcileClaudeThinkingBudget(body, supportsClaudeManualInterleaving(body, model || body.model));
@@ -562,6 +563,7 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
   if (provider === "claude" || modelCaps.thinkingFormat === "claude-budget" || modelCaps.thinkingFormat === "claude-adaptive") {
     reconcileClaudeThinkingBudget(body, supportsClaudeManualInterleaving(body, body.model));
   }
+  const thinkingContext = getThinkingContext(body);
 
   // 1. System: remove all cache_control, add only to last block with ttl 1h
   if (body.system && Array.isArray(body.system)) {
@@ -746,5 +748,6 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
     body = applyCloaking(body, apiKey, sid);
   }
 
+  if (thinkingContext) setThinkingContext(body, thinkingContext);
   return body;
 }

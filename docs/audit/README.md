@@ -31,6 +31,11 @@ The [client/model/pricing refresh](18-client-model-pricing-refresh-2026-10.md)
 separates upstream stable client identities, product/account availability and
 provider-specific tariffs, including recorded-time native pricing conditions.
 
+The [public contract audit](19-public-contract-audit-2026-10.md) follows the
+owner's PDF, errors, reasoning, discovery and billing reports against the current
+customized gateway. It records local evidence separately from live-provider and
+subscription-billing guarantees.
+
 ## Read in this order
 
 | # | Document | Covers |

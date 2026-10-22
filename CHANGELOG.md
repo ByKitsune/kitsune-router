@@ -5,6 +5,59 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Public document-routing safety
+
+- Reject PDF/document input before upstream dispatch on transports that cannot
+  preserve it, including native Codex requests and the Antigravity Claude bridge.
+  Return HTTP 400 `unsupported_parameter` with the source part location instead
+  of replacing the document with omitted-file prose or allowing a paid empty
+  response. Typed tool-result documents follow the same admission policy.
+- Keep Codex/ChatGPT-backed document capability separate from public OpenAI PDF
+  support. Codex routes no longer advertise `pdf: true` from public model-family
+  metadata; a custom capability checkbox cannot add an unsupported native wire.
+  Document-bearing requests are not answered by text-only CLI warmup bypasses.
+
+### Public gateway contract consistency
+
+- Normalize public inference errors to `message`, `type`, a string `code` and a
+  correlated `request_id`. Preserve actionable validation details while redacting
+  credentials, account identifiers, private paths and upstream debug payloads.
+  Exact validation diagnostics remain authoritative over quoted quota-looking
+  input; malformed requests cannot create account locks or rotate healthy siblings.
+- Return evidenced quota exhaustion as 429 and credit/capacity unavailability as
+  503 with known retry deadlines. Preserve actual missing-model 404 and retirement
+  410, matching combo status/body, and separate review/tier quota identities.
+- Echo the exact requested model ID in JSON/SSE, including review, tier, alias and
+  combo names. Keep Chat IDs Chat-shaped and native Responses framing intact;
+  the endpoint, not a CLI user-agent, selects framing. Preserve readable upstream
+  reasoning summaries and nested measured cache usage without inventing reasoning.
+- Preserve explicit output caps and numeric thinking budgets; impossible budgets
+  report their request-specific minimum and disable alternative. Generated provider
+  defaults retain cap-fitting behavior. Reject unsupported or conflicting effort
+  controls instead of silently clamping them; retain supported native Gemini levels
+  and Claude disabled-thinking controls.
+- Preserve the bounded, non-strict Gemini structured-output subset or reject
+  unsupported constraints locally. Do not claim strict guarantees or silently
+  discard Claude-on-Antigravity output intent. Literal Gemini tool-result records
+  are not attachments, even when their JSON resembles a document block.
+- Hide explicitly rejected Codex built-ins from discovery while retaining saved
+  resolution and deliberate custom declarations. Correct Reserve tools, Argon
+  vision/effort facts and search surfaces; keep independent input ceilings unknown
+  where unverified. Public model metadata no longer exports private build/evidence
+  paths or hashes; full provenance remains on the authenticated dashboard.
+- Explain Codex default-instruction/cache accounting without subtracting real
+  upstream tokens. Separate USD API references from subscription credits; keep
+  Antigravity subscription prices unknown rather than borrowing public API rates.
+  Preserve cache lifetimes and price-tier inclusivity instead of lossy conversion.
+- Verify 8,285 assertions on both Node 22 and Node 24 with zero failed cases or
+  suites and 100 optional/live skips across 691 files. Lint, baselines, identity,
+  HTTP/2 compatibility, app/docs builds and four dependency audits pass. Native
+  loopback and packed-CLI checks cover 29 scenarios, all 45 configured Codex/AG
+  model routes and 600 concurrent-client health requests. These are synthetic
+  transport checks, not live entitlement, file-understanding or invoice proof.
+  See the [public contract audit](docs/audit/19-public-contract-audit-2026-10.md).
+  No push, publication or production deployment is included.
+
 ### Upstream client, model and pricing refresh
 
 - Refresh publisher-verified stable client identities and their consuming transport/catalog/OAuth headers without conflating app releases, bundled SDKs, extensions or host runtime versions.

@@ -38,7 +38,7 @@ const nativeReply = {
   },
 };
 
-async function dispatch(format, { model = FLASH, extra = {}, providerThinking } = {}) {
+async function dispatch(format, { model = FLASH, extra = {}, providerThinking, expectedStatus = 200 } = {}) {
   const input = format === "openai-responses"
     ? { input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "Describe the fixture." }] }], max_output_tokens: 4096 }
     : format === "claude"
@@ -52,6 +52,13 @@ async function dispatch(format, { model = FLASH, extra = {}, providerThinking } 
     connectionId: "synthetic-tier-connection", providerThinking,
     log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
   });
+  if (expectedStatus !== 200) {
+    expect(result.status).toBe(expectedStatus);
+    expect(proxyAwareFetch).not.toHaveBeenCalled();
+    expect(body).toEqual(before);
+    expect(await result.response.json()).toMatchObject({ error: { code: "unsupported_parameter" } });
+    return;
+  }
   expect(result.success).toBe(true);
   expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
   expect(body).toEqual(before);
@@ -80,14 +87,12 @@ describe.each(formats)("Antigravity declared tier selection from %s", format => 
     expectTier(sent, `${FLASH}-${effort}`, effort);
   });
 
-  it("selects the explicit low annotation before a conflicting high body effort", async () => {
-    const sent = await dispatch(format, { model: `${FLASH}(low)`, extra: effortFields(format, "high") });
-    expectTier(sent, "gemini-3.8-flash-low", "low");
+  it("rejects an explicit low annotation with conflicting high effort", async () => {
+    await dispatch(format, { model: `${FLASH}(low)`, extra: effortFields(format, "high"), expectedStatus: 400 });
   });
 
-  it("keeps a directly named high tier high despite a low body effort", async () => {
-    const sent = await dispatch(format, { model: `${FLASH}-high`, extra: effortFields(format, "low") });
-    expectTier(sent, "gemini-3.8-flash-high", "high");
+  it("rejects a directly named high tier with low effort", async () => {
+    await dispatch(format, { model: `${FLASH}-high`, extra: effortFields(format, "low"), expectedStatus: 400 });
   });
 });
 
@@ -111,16 +116,11 @@ describe("Antigravity normalized intent and provider defaults", () => {
     expectTier(sent, "gemini-3.8-flash-low", "low");
   });
 
-  it("keeps output_config.effort above both OpenAI effort fields", async () => {
-    const sent = await dispatch("openai", {
-      extra: { output_config: { effort: "low" }, reasoning_effort: "high", reasoning: { effort: "medium" } },
+  it("rejects conflicting effort controls rather than silently picking one", async () => {
+    await dispatch("openai", {
+      extra: { output_config: { effort: "low" }, reasoning_effort: "high", reasoning: { effort: "medium" } }, expectedStatus: 400,
     });
-    expectTier(sent, "gemini-3.8-flash-low", "low");
-  });
-
-  it("keeps Chat effort above Responses effort when both occur", async () => {
-    const sent = await dispatch("openai-responses", { extra: { reasoning_effort: "low", reasoning: { effort: "high" } } });
-    expectTier(sent, "gemini-3.8-flash-low", "low");
+    await dispatch("openai-responses", { extra: { reasoning_effort: "low", reasoning: { effort: "high" } }, expectedStatus: 400 });
   });
 
   it("does not replace an explicit low annotation with an injected high provider default", async () => {
@@ -142,7 +142,7 @@ describe("existing Argon routing is not tier-inferred", () => {
   });
 
   it.each(["low", "medium", "high"])("keeps the named %s tier and its preset", async level => {
-    const sent = await dispatch("openai", { model: `${ARGON}-${level}`, extra: { reasoning_effort: level === "low" ? "high" : "low" } });
+    const sent = await dispatch("openai", { model: `${ARGON}-${level}`, extra: { reasoning_effort: level } });
     expectTier(sent, `${ARGON}-${level}`, level);
   });
 });

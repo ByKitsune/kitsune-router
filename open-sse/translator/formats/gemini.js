@@ -1,7 +1,7 @@
 // Gemini helper functions for translator
 
 import { safeParseJSON } from "../concerns/json.js";
-import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
+import { normalizeMediaPart, splitToolResultContent, isExplicitToolMediaPart } from "../concerns/multimodal.js";
 import { GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
 import { isGemini4Model } from "../../config/models.js";
@@ -188,13 +188,6 @@ export function copyGeminiRequestControls(result, request) {
   }
 }
 
-const TOOL_MEDIA_TYPES = new Set([
-  OPENAI_BLOCK.IMAGE_URL, CLAUDE_BLOCK.IMAGE, CLAUDE_BLOCK.DOCUMENT,
-  OPENAI_BLOCK.FILE, RESPONSES_ITEM.INPUT_IMAGE, RESPONSES_ITEM.INPUT_FILE,
-]);
-const NATIVE_MEDIA_PART_KEYS = new Set([
-  "inlineData", "inline_data", "fileData", "file_data", "thought", "thoughtSignature", "thought_signature",
-]);
 
 // Only explicit content blocks in result/output arrays are attachments. A
 // record with an inlineData property, nested examples and JSON strings are data.
@@ -206,8 +199,7 @@ function splitGeminiResponseMedia(response, convertMedia) {
     const remaining = [];
     const start = media.length;
     for (const item of response[key]) {
-      const explicitPart = item && typeof item === "object" && (TOOL_MEDIA_TYPES.has(item.type) ||
-        (!item.type && Object.keys(item).every(key => NATIVE_MEDIA_PART_KEYS.has(key))));
+      const explicitPart = isExplicitToolMediaPart(item);
       const normalized = explicitPart ? normalizeMediaPart(item) : null;
       const converted = normalized ? convertMedia(normalized) : [];
       if (converted.length) media.push(...converted);
@@ -546,9 +538,7 @@ function normalizeTupleItems(obj) {
       !sameTupleSchema(tuple[0], tail);
     if (incompatibleTail || (tuple.length > 0 && !tuple.every(item => item && typeof item === "object" &&
       !Array.isArray(item) && sameTupleSchema(item, tuple[0])))) {
-      throw Object.assign(new Error("unsupported_schema: Antigravity cannot represent heterogeneous tuple items or explicit tails"), {
-        // Reuse Core's typed local 400 contract; unsupported_schema is the
-        // diagnostic reason, not a new unrecognized lifecycle error code.
+      throw Object.assign(new Error("Tool schema contains heterogeneous tuple items or incompatible tuple tails; use a uniform array schema."), {
         code: "unsupported_parameter", type: "invalid_request_error", status: 400, param: "tools",
       });
     }

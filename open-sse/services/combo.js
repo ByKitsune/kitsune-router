@@ -2,9 +2,9 @@
  * Shared combo (model combo) handling with fallback support
  */
 
-import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
+import { checkFallbackError, classifyAvailabilityError, extractResetsAtMs, formatRetryAfter } from "./accountFallback.js";
 import { FALLBACK_SCOPE } from "../config/errorConfig.js";
-import { unavailableResponse } from "../utils/error.js";
+import { createErrorResult, errorResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 import { isOpenAIResponsesTerminalEvent } from "../utils/responsesStreamHelpers.js";
@@ -48,10 +48,7 @@ async function rejectFastEmptyStream(response, timeoutMs = 150) {
     return new Response(client, { status: response.status, statusText: response.statusText, headers: response.headers });
   }
   if (timed.empty) {
-    return new Response(JSON.stringify({ error: { message: "Upstream returned an empty stream", code: "empty_stream" } }), {
-      status: 503,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    });
+    return errorResponse(503, "Upstream returned an empty stream", { code: "empty_stream" });
   }
   return new Response(client, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
@@ -589,7 +586,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // don't corrupt the request for subsequent fallback models (#3619).
       const modelBody = cloneRequestBody(body);
       const rawResult = await handleSingleModel(modelBody, modelStr);
-      const result = rawResult?.ok ? await rejectFastEmptyStream(rawResult) : rawResult;
+      let result = rawResult?.ok ? await rejectFastEmptyStream(rawResult) : rawResult;
       
       // Success (2xx) - return response
       if (result.ok) {
@@ -612,25 +609,23 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // Extract error info from response
       let errorText = result.statusText || "";
       let errorCode = null;
+      let errorType = null;
       let retryAfter = null;
       try {
         const errorBody = await result.clone().json();
         errorText = errorBody?.error?.message || errorBody?.error || errorBody?.message || errorText;
         const code = errorBody?.error?.code ?? errorBody?.code;
         if (typeof code === "string") errorCode = code;
+        if (typeof errorBody?.error?.type === "string") errorType = errorBody.error.type;
         // Validate before use: provider payloads carry values like "soon",
         // "1 minute", "" or "30". A non-parseable value used to flow into the
         // `Retry-After` response header as the literal string "NaN".
         const candidate = errorBody?.retryAfter ?? null;
-        retryAfter = candidate != null && Number.isFinite(new Date(candidate).getTime()) ? candidate : null;
+        retryAfter = typeof candidate === "string" && /^\d{4}-\d{2}-\d{2}T/.test(candidate) && Date.parse(candidate) > Date.now() ? candidate : null;
       } catch {
         // Ignore JSON parse errors
       }
 
-      // Track earliest retryAfter across all combo models
-      if (retryAfter && (!earliestRetryAfter || new Date(retryAfter) < new Date(earliestRetryAfter))) {
-        earliestRetryAfter = retryAfter;
-      }
 
       // Normalize error text to string (Worker-safe)
       if (typeof errorText !== "string") {
@@ -639,8 +634,15 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
 
       // Preserve structured diagnostics for model-dependent request failures,
       // without reclassifying them as account faults or changing the response.
-      const classificationText = errorCode ? `${errorCode}: ${errorText}` : errorText;
-      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, classificationText, 0, result, FALLBACK_SCOPE.COMBO);
+      const errorEvidence = { message: errorText, code: errorCode, type: errorType };
+      const availability = classifyAvailabilityError(result.status, errorText, errorEvidence);
+      if ((availability.kind || result.status === 503) && retryAfter && (!earliestRetryAfter || Date.parse(retryAfter) < Date.parse(earliestRetryAfter))) earliestRetryAfter = retryAfter;
+      const reset = availability.kind || result.status === 503 ? extractResetsAtMs(result, errorText) : null;
+      if (reset && (!earliestRetryAfter || reset < Date.parse(earliestRetryAfter))) earliestRetryAfter = new Date(reset).toISOString();
+      if (availability.statusCode !== result.status) {
+        result = createErrorResult(result.status, errorText, reset, errorEvidence).response;
+      }
+      const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorEvidence, 0, result, FALLBACK_SCOPE.COMBO);
 
       if (!shouldFallback) {
         log.warn("COMBO", `Model ${modelStr} failed (no fallback)`, { status: result.status });
@@ -650,7 +652,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // For transient errors (503/502/504), wait for cooldown before falling through
       // so a briefly-overloaded provider gets a chance to recover rather than being
       // skipped immediately (fixes: combo falls through on transient 503)
-      if (cooldownMs && cooldownMs > 0 && cooldownMs <= 5000 &&
+      if (!availability.kind && !reset && cooldownMs && cooldownMs > 0 && cooldownMs <= 5000 &&
           (result.status === 503 || result.status === 502 || result.status === 504)) {
         log.info("COMBO", `Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
         await new Promise(r => setTimeout(r, cooldownMs));
@@ -658,13 +660,13 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
 
       // Fallback to next model
       lastError = errorText || String(result.status);
-      if (!lastStatus) lastStatus = result.status;
+      lastStatus = result.status;
       lastResponse = result;
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
     } catch (error) {
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
-      if (!lastStatus) lastStatus = 500;
+      lastStatus = 503;
       lastResponse = null;
       log.warn("COMBO", `Model ${modelStr} threw error, trying next`, { error: lastError });
     }
@@ -677,19 +679,16 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   const allDisabled = lastError && lastError.toLowerCase().includes("no credentials");
   const status = allDisabled ? 503 : (lastStatus || 503);
   const msg = lastError || "All combo models unavailable";
-
-  if (earliestRetryAfter) {
-    const retryHuman = formatRetryAfter(earliestRetryAfter);
-    log.warn("COMBO", `All models failed | ${msg} (${retryHuman})`);
-    return unavailableResponse(status, msg, earliestRetryAfter, retryHuman);
+  log.warn("COMBO", `All models failed | ${msg}${earliestRetryAfter ? ` (${formatRetryAfter(earliestRetryAfter)})` : ""}`);
+  if (lastResponse && lastResponse.status === status) {
+    if (earliestRetryAfter && (status === 429 || status === 503)) {
+      const headers = new Headers(lastResponse.headers);
+      headers.set("Retry-After", String(Math.max(1, Math.ceil((Date.parse(earliestRetryAfter) - Date.now()) / 1000))));
+      return new Response(lastResponse.body, { status, headers });
+    }
+    return lastResponse;
   }
-
-  log.warn("COMBO", `All models failed | ${msg}`);
-  if (lastResponse && lastResponse.status === status) return lastResponse;
-  return new Response(
-    JSON.stringify({ error: { message: msg } }),
-    { status, headers: { "Content-Type": "application/json" } }
-  );
+  return errorResponse(status, "The requested model is temporarily unavailable. Please try again shortly.");
 }
 
 /**
@@ -1018,16 +1017,11 @@ export function stripMultimodalContent(body) {
  * @returns {Promise<Response>}
  */
 export async function handleFusionChat({ body, models, handleSingleModel, log, comboName, judgeModel, tuning, modelCapabilities = null, signal = null }) {
-  const cancelled = () => new Response(JSON.stringify({ error: { message: "Client closed request", code: "client_aborted" } }), {
-    status: 499, headers: { "Content-Type": "application/json" },
-  });
+  const cancelled = () => errorResponse(499, "Client closed request", { code: "client_aborted" });
   if (signal?.aborted) return cancelled();
   let panel = Array.isArray(models) ? models.filter(Boolean) : [];
   if (panel.length === 0) {
-    return new Response(
-      JSON.stringify({ error: { message: "Fusion combo has no models" } }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return errorResponse(400, "Fusion combo has no models");
   }
 
   // Filter panel models by detectRequiredCapabilities(body) so text-only panel
@@ -1131,10 +1125,7 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   // 3. Degrade gracefully when the panel is too thin to fuse.
   if (answers.length === 0) {
     log.warn("FUSION", "All panel models failed");
-    return new Response(
-      JSON.stringify({ error: { message: "All fusion panel models failed" } }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
+    return errorResponse(503, "All fusion panel models failed");
   }
   if (answers.length === 1) {
     log.info("FUSION", `Only ${answers[0].model} succeeded — answering directly (no fusion)`);

@@ -372,7 +372,10 @@ export function openaiToGeminiRequest(model, body, stream) {
 
 // OpenAI -> Gemini CLI (Cloud Code Assist)
 export function openaiToGeminiCLIRequest(model, body, stream) {
-  return openaiToGeminiBase(model, body, stream, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE);
+  const result = openaiToGeminiBase(model, body, stream, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE);
+  const outputConfig = antigravityOutputConfig(body, model);
+  if (outputConfig) Object.assign(result.generationConfig, outputConfig);
+  return result;
 }
 
 // Wrap Gemini CLI format in Cloud Code wrapper

@@ -9,7 +9,7 @@ import { getSettings, isApiKeyRequired } from "@/lib/localDb";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
-import { publicMessage, sanitizeClientError } from "@/shared/utils/clientErrors.js";
+import { publicMessage, sanitizeClientError } from "open-sse/utils/clientErrors.js";
 import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { MAX_UPSTREAM_ERROR_BYTES, parseUpstreamError } from "open-sse/utils/error.js";
@@ -607,14 +607,14 @@ async function forwardAdmittedGeminiNativeRequest(request, body, model, action) 
 
     const headers = corsHeadersFrom(upstreamResponse);
     headers.set("Content-Type", "application/json");
-    return Response.json({ error: {
-      ...sanitizeClientError({
-        message: errorText,
-        code: typeof diagnostics.code === "number" ? diagnostics.code : upstreamResponse.status,
+    const error = {
+      ...sanitizeClientError({ message: errorText, code: diagnostics.code ?? upstreamResponse.status,
         ...(diagnostics.param ? { param: diagnostics.param } : {}),
-      }, { providerIds: ["gemini"] }),
+      }, { providerIds: ["gemini"], status: upstreamResponse.status }),
       ...(nativeErrorStatus ? { status: nativeErrorStatus } : {}),
-    } }, {
+    };
+    headers.set("x-request-id", error.request_id);
+    return Response.json({ error }, {
       status: upstreamResponse.status,
       statusText: upstreamResponse.statusText,
       headers,

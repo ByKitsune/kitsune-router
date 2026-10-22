@@ -116,10 +116,9 @@ describe("OpenAI → Claude context mapping", () => {
       expect(translate({ max_tokens: 200000 }, "claude-opus-4.8").max_tokens).toBe(128000);
     });
 
-    it.each([FORMATS.OPENAI, FORMATS.CLAUDE])("shrinks conflicting thinking inside the %s client's cap", (source) => {
-      const out = translate({ max_tokens: 16000, thinking: { type: "enabled", budget_tokens: 32768 } }, "claude-sonnet-4.5", source);
-      expect(out.max_tokens).toBe(16000);
-      expect(out.thinking).toMatchObject({ type: "enabled", budget_tokens: 14976 });
+    it.each([FORMATS.OPENAI, FORMATS.CLAUDE])("rejects an explicit thinking budget that exceeds the %s client's cap", (source) => {
+      expect(() => translate({ max_tokens: 16000, thinking: { type: "enabled", budget_tokens: 32768 } }, "claude-sonnet-4.5", source))
+        .toThrow(expect.objectContaining({ code: "invalid_thinking_budget", param: "max_tokens", message: expect.stringContaining("32768") }));
     });
 
     it("keeps a valid thinking budget unchanged", () => {

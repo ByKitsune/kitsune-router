@@ -159,12 +159,18 @@ describe("complete reasoning control handoff", () => {
 });
 
 describe("thinking controls follow the actual upstream wire format", () => {
-  it.each([["low", 1024, true], ["none", 0, false]])("maps Claude-on-Antigravity %s to Google thinkingConfig rather than native Claude fields", (effort, budget, includeThoughts) => {
-    const wire = translateRequest(FORMATS.OPENAI, FORMATS.ANTIGRAVITY, "claude-opus-5-5", {
+  it.each(["low", "none"])("rejects %s when a Claude-on-Antigravity route fixes effort to high", effort => {
+    expect(() => translateRequest(FORMATS.OPENAI, FORMATS.ANTIGRAVITY, "claude-opus-5-5", {
       messages: [{ role: "user", content: "Explain the result." }], max_tokens: 6000, reasoning_effort: effort,
+    }, false, { projectId: "synthetic-reasoning-fixture" }, "antigravity"))
+      .toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "reasoning_effort" }));
+  });
+
+  it("preserves the supported disabled control on the budgeted Claude bridge", () => {
+    const wire = translateRequest(FORMATS.OPENAI, FORMATS.ANTIGRAVITY, "claude-sonnet-4-6", {
+      messages: [{ role: "user", content: "Explain the result." }], max_tokens: 16, reasoning_effort: "none",
     }, false, { projectId: "synthetic-reasoning-fixture" }, "antigravity");
-    expect(wire.request.generationConfig.thinkingConfig).toEqual({ thinkingBudget: budget, includeThoughts });
-    expect(wire.request.generationConfig.maxOutputTokens).toBe(6000);
+    expect(wire.request.generationConfig).toMatchObject({ maxOutputTokens: 16, thinkingConfig: { thinkingBudget: 0, includeThoughts: false } });
     expect(wire).not.toHaveProperty("thinking");
     expect(wire).not.toHaveProperty("output_config");
   });

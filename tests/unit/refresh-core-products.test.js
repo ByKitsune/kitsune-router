@@ -71,7 +71,7 @@ describe("primary-evidence model product boundaries", () => {
 
   it.each(["gpt-6-sol", "gpt-6-luna"])("accepts %s's documented native API effort range independently of the Codex CLI range", model => {
     expect(getCapabilitiesForModel("openai", model).thinkingEfforts).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
-    expect(getCapabilitiesForModel("cx", model).thinkingEfforts).not.toContain("none");
+    expect(getReviewedModelMetadata("cx", model).limits.cliReasoningEfforts).not.toContain("none");
   });
 
   it.each(["grok-4.7", "grok-4.6", "grok-4.5"])("does not claim that %s reasoning can be disabled", model => {

@@ -2,6 +2,28 @@
 // Gateway compatibility heuristics for level↔budget maps, not vendor guarantees.
 // Provider-specific application lives in thinkingUnified.js; shared budget validation lives here.
 
+import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
+
+// Request-local provenance never becomes JSON or a client-visible parameter.
+// Generated defaults may fit a cap; explicit numeric intent may not.
+const THINKING_CONTEXT = Symbol("thinkingContext");
+
+export function getThinkingContext(body) {
+  return body?.[THINKING_CONTEXT];
+}
+
+export function setThinkingContext(body, context) {
+  Object.defineProperty(body, THINKING_CONTEXT, { value: { ...getThinkingContext(body), ...context }, writable: true, configurable: true });
+  return body;
+}
+
+export function thinkingBudgetError(budget, cap, param = "max_tokens", disable = 'set thinking.type to "disabled"', minimum = budget + 1) {
+  const error = new RangeError(`${param} (${cap}) cannot contain the selected thinking budget of ${budget} tokens; this request requires an output cap of at least ${minimum}. Increase ${param}, lower the selected thinking budget, or ${disable}.`);
+  error.code = "invalid_thinking_budget";
+  error.param = param;
+  return error;
+}
+
 // Discrete effort levels, ordered low→high.
 export const EFFORT_LEVELS = ["minimal", "low", "medium", "high", "xhigh", "max"];
 
@@ -49,21 +71,24 @@ export function allowsClaudeManualInterleaving(body, model, headers) {
 }
 
 // Reconcile Anthropic manual thinking without ever increasing the output cap.
-// The budget is a soft target. Interleaved tool turns have a documented exception
-// to the ordinary budget < max_tokens relationship, gated at final dispatch.
+// Explicit numeric budgets are retained. Generated defaults may fit a cap.
+// Interleaved tool turns have a documented exception, gated at final dispatch.
 export function reconcileClaudeThinkingBudget(body, allowInterleaved = false) {
   if (body?.thinking?.type !== "enabled") return body;
   const requested = body.thinking.budget_tokens;
-  let budget = Number.isFinite(requested) && requested > 0 ? Math.max(1024, Math.floor(requested)) : 8192;
+  let budget = Number.isFinite(requested) && requested > 0 ? Math.max(CLAUDE_MIN_THINKING_BUDGET, Math.floor(requested)) : 8192;
   const cap = body.max_tokens;
+  const context = getThinkingContext(body);
+  const explicit = context?.explicitBudget ?? (Number.isFinite(requested) && requested > 0);
+  const param = context?.outputParam || "max_tokens";
   if (cap !== undefined && cap !== null && Number.isFinite(cap)) {
-    if (cap <= 0 || (!allowInterleaved && cap <= 1024)) {
-      const error = new RangeError("max_tokens must exceed 1024 for enabled thinking; increase the output cap or disable thinking");
-      error.code = "invalid_thinking_budget";
-      throw error;
+    const selectedMinimum = explicit ? budget : CLAUDE_MIN_THINKING_BUDGET;
+    if (cap <= 0 || (!allowInterleaved && cap <= selectedMinimum)) {
+      throw thinkingBudgetError(selectedMinimum, cap, param);
     }
-    if (!allowInterleaved && budget >= cap) budget = Math.max(1024, Math.floor(cap) - 1024);
+    if (!allowInterleaved && budget >= cap) budget = Math.max(CLAUDE_MIN_THINKING_BUDGET, Math.floor(cap) - CLAUDE_MIN_THINKING_BUDGET);
   }
+  setThinkingContext(body, { explicitBudget: explicit });
   body.thinking = { ...body.thinking, budget_tokens: budget };
   return body;
 }

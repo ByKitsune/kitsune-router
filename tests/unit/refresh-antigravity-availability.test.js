@@ -143,7 +143,8 @@ describe("reviewed Antigravity plan and surface facts", () => {
         status: "scheduled-retirement", retirementDate: "2026-11-02", dateMeaning: "scheduled-shutdown",
         asOf: "2026-10-21", source: "https://antigravity.google/docs/models.md",
       });
-      expect(row.metadata.limits.availability.gatewayObservation).toMatchObject({ httpStatus: 200, accountPlan: "unknown" });
+      expect(row.metadata.limits.availability).not.toHaveProperty("gatewayObservation");
+      expect(getReviewedModelMetadata("ag", model).limits.availability.gatewayObservation).toMatchObject({ httpStatus: 200, accountPlan: "unknown" });
     },
   );
 
@@ -171,15 +172,18 @@ describe("reviewed Antigravity plan and surface facts", () => {
     });
     expect(row.metadata.limits.lifecycle.status).toBe("unknown");
     expect(row.metadata.limits.availability).toMatchObject({ role: "legacy-chat", coreChatSelectable: null });
-    expect(row.metadata.limits.availability.gatewayObservation).toMatchObject({ httpStatus: 200, accountPlan: "unknown" });
+    expect(row.metadata.limits.availability).not.toHaveProperty("gatewayObservation");
+    expect(getReviewedModelMetadata("ag", "gemini-3-flash").limits.availability.gatewayObservation).toMatchObject({ httpStatus: 200, accountPlan: "unknown" });
     expect(getCapabilitiesForModel("ag", "gemini-3-flash")).toMatchObject({ vision: true, tools: true });
     expect(getReviewedModelMetadata("ag", "some-future-model")).toBeNull();
     expect(getReviewedModelMetadata("gemini", "gemini-pro-agent")).toBeNull();
   });
 
-  it("carries fresh hashed primary provenance to public model metadata", async () => {
+  it("retains hashed primary provenance only in authenticated diagnostic metadata", async () => {
     const row = (await buildModelsList(["llm"])).find(entry => entry.id === "ag/gemini-4-argon");
-    expect(row?.metadata?.limits?.availability?.sourceEvidence).toEqual(expect.arrayContaining([
+    expect(row.metadata.limits.availability).not.toHaveProperty("sourceEvidence");
+    expect(row.metadata.sources).toContain("https://antigravity.google/docs/models.md");
+    expect(getReviewedModelMetadata("ag", "gemini-4-argon").limits.availability.sourceEvidence).toEqual(expect.arrayContaining([
       expect.objectContaining({ url: "https://antigravity.google/docs/models.md", status: 200, sha256: "e99908d9be1aeff50e5ad9fa37ce01633e147adad8b56fbbb83632de5f8bcf3a", retrievedAt: "2026-10-21T10:48:03.178598+00:00" }),
       expect.objectContaining({ url: "https://antigravity.google/docs/plans.md", status: 200, sha256: "b3962a073ffe885bfb11639013c6f11c339b247b105ebeff1f72ad2bf6ae8a2c", retrievedAt: "2026-10-21T10:48:03.404421+00:00" }),
       expect.objectContaining({ url: "https://antigravity.google/docs/enterprise.md", status: 200, sha256: "4f1c3bafe8d8e2ed842ab5a02a3aef00fdb7a2672653da649803d7b6e9ac5b41", retrievedAt: "2026-10-21T10:48:03.444071+00:00" }),

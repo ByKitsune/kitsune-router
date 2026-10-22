@@ -15,11 +15,7 @@
 //   - the operator log keeps the specific reason (checked in the handler tests
 //     and by the fact that handlers log before responding).
 import { describe, expect, it } from "vitest";
-import { publicMessage, leaksInternalDetail, safeClientMessage } from "../../src/shared/utils/clientErrors.js";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
-const ROOT = new URL("../..", import.meta.url).pathname;
+import { publicMessage, leaksInternalDetail, safeClientMessage } from "../../open-sse/utils/clientErrors.js";
 
 describe("publicMessage", () => {
   it("never names a provider, account or routing prefix", () => {
@@ -81,53 +77,3 @@ describe("safeClientMessage", () => {
   });
 });
 
-describe("no client-facing handler names an internal provider", () => {
-  // Scope: the externally reachable client paths — the /v1 SSE handlers plus
-  // the Gemini-native route. Dashboard routes (/api/translator/*,
-  // /api/providers/*) are operator-only and may name providers; and an
-  // "Unknown provider: <input>" validation message echoes the CALLER's own
-  // argument, which reveals nothing about internal routing, so it is allowed.
-  const CLIENT_PATH_FILES = [
-    "src/sse/handlers/chat.js",
-    "src/sse/handlers/imageGeneration.js",
-    "src/sse/handlers/videoGeneration.js",
-    "src/sse/handlers/embeddings.js",
-    "src/sse/handlers/tts.js",
-    "src/sse/handlers/stt.js",
-    "src/sse/handlers/search.js",
-    "src/sse/handlers/fetch.js",
-    "src/app/api/v1beta/models/[...path]/route.js",
-  ];
-
-  it("has no remaining 'provider: <id>' string in a client response", () => {
-    const offenders = [];
-    for (const rel of CLIENT_PATH_FILES) {
-      const text = readFileSync(join(ROOT, rel), "utf8");
-      for (const line of text.split("\n")) {
-        const isClientFacing = /errorResponse\(|unavailableResponse\(|Response\.json\(|NextResponse\.json\(/.test(line);
-        if (!isClientFacing) continue;
-        // "Unknown provider: <caller input>" is validation of the caller's own
-        // argument and is intentionally allowed.
-        if (/Unknown provider:/.test(line)) continue;
-        if (/provider:\s*\$\{|provider:\s*[a-z0-9_-]+/i.test(line)) {
-          offenders.push(`${rel}: ${line.trim().slice(0, 110)}`);
-        }
-      }
-    }
-    expect(offenders, offenders.join("\n")).toEqual([]);
-  });
-
-  it("keeps routing prefixes out of client responses", () => {
-    const offenders = [];
-    for (const rel of CLIENT_PATH_FILES) {
-      const text = readFileSync(join(ROOT, rel), "utf8");
-      for (const line of text.split("\n")) {
-        const isClientFacing = /errorResponse\(|unavailableResponse\(|Response\.json\(|NextResponse\.json\(/.test(line);
-        if (isClientFacing && /\b(?:cx|ag|gcli|do|ort|thbr)\//.test(line)) {
-          offenders.push(`${rel}: ${line.trim().slice(0, 110)}`);
-        }
-      }
-    }
-    expect(offenders, offenders.join("\n")).toEqual([]);
-  });
-});

@@ -198,7 +198,8 @@ describe.each(endpoints)("inbound inference budget: $name", ({ call }) => {
     expect(response.headers.get("x-ratelimit-remaining")).toBe("0");
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(await response.json()).toEqual({ error: {
-      message: "Rate limit exceeded. Please retry later.",
+      message: expect.any(String),
+      request_id: response.headers.get("x-request-id"),
       type: "rate_limit_error",
       code: "rate_limit_exceeded",
     } });

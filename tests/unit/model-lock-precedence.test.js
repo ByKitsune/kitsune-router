@@ -3,6 +3,7 @@ import {
   MODEL_LOCK_ALL,
   getEarliestModelLockUntil,
   getModelLockKey,
+  getModelLockUntil,
   isModelLockActive,
 } from "../../open-sse/services/accountFallback.js";
 
@@ -44,5 +45,24 @@ describe("isModelLockActive precedence", () => {
 
   it("returns false when the connection carries no lock at all", () => {
     expect(isModelLockActive({}, MODEL)).toBe(false);
+  });
+
+  it("uses the latest applicable lock but not unrelated model deadlines", () => {
+    const until = new Date(Date.now() + 120_000).toISOString();
+    const connection = { [MODEL_LOCK_ALL]: until, [getModelLockKey(MODEL)]: new Date(Date.now() + 60_000).toISOString(), modelLock_other: new Date(Date.now() + 1000).toISOString() };
+    expect(getModelLockUntil(connection, MODEL)).toBe(until);
+  });
+
+  it("shares a real lock across exact upstream aliases without merging thinking tiers", () => {
+    const connection = { provider: "antigravity", "modelLock_gemini-3.8-flash": future() };
+    expect(isModelLockActive(connection, "gemini-3.8-flash-medium")).toBe(true);
+    expect(isModelLockActive(connection, "gemini-3.8-flash-medium(medium)")).toBe(true);
+    expect(isModelLockActive(connection, "gemini-3.8-flash-high")).toBe(false);
+  });
+
+  it("does not merge Codex review and normal quota families despite an identical wire model", () => {
+    const connection = { provider: "codex", "modelLock_gpt-6.1-sol-review": future() };
+    expect(isModelLockActive(connection, "gpt-6.1-sol-review")).toBe(true);
+    expect(isModelLockActive(connection, "gpt-6.1-sol")).toBe(false);
   });
 });

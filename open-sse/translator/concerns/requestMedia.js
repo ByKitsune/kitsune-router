@@ -1,16 +1,16 @@
 import { CLAUDE_BLOCK, OPENAI_BLOCK, RESPONSES_ITEM } from "../schema/index.js";
-import { normalizeMediaPart } from "./multimodal.js";
+import { normalizeMediaPart, isExplicitToolMediaPart } from "./multimodal.js";
 
 // Only protocol content containers are traversed. Tool arguments, JSON results,
 // annotations and strings are data, even when they look like media blocks.
 export function visitRequestMedia(body, visit) {
-  const parts = (content, path) => {
+  const parts = (content, path, struct = false) => {
     if (!Array.isArray(content)) {
-      if (content && typeof content === "object") parts([content], path);
+      if (content && typeof content === "object") parts([content], path, struct);
       return;
     }
     for (const [index, part] of content.entries()) {
-      if (!part || typeof part !== "object") continue;
+      if (!part || typeof part !== "object" || (struct && !isExplicitToolMediaPart(part))) continue;
       const location = `${path}.${index}`;
       visit(part, location);
       if (part.type === CLAUDE_BLOCK.TOOL_RESULT) parts(part.content, `${location}.content`);
@@ -22,9 +22,9 @@ export function visitRequestMedia(body, visit) {
         parts(result.parts, `${location}.functionResponse.parts`);
         // Only typed content arrays are media containers; a free-form result
         // record (including its nested examples) must remain ordinary data.
-        if (Array.isArray(result.response)) parts(result.response, `${location}.functionResponse.response`);
+        if (Array.isArray(result.response)) parts(result.response, `${location}.functionResponse.response`, true);
         else for (const key of ["parts", "content", "result", "output"]) {
-          if (Array.isArray(result.response?.[key])) parts(result.response[key], `${location}.functionResponse.response.${key}`);
+          if (Array.isArray(result.response?.[key])) parts(result.response[key], `${location}.functionResponse.response.${key}`, true);
         }
       }
     }
@@ -44,6 +44,28 @@ export function visitRequestMedia(body, visit) {
       parts(content?.parts, `${body?.request ? "request." : ""}contents.${index}.parts`);
     }
   }
+}
+
+// Refuse before capability stripping or format conversion can replace an
+// unsupported document with prose. Literal tool JSON is never traversed.
+export function rejectUnsupportedDocuments(body, capabilities) {
+  let hasDocuments = false;
+  visitRequestMedia(body, (part, path) => {
+    const fileType = [OPENAI_BLOCK.FILE, CLAUDE_BLOCK.DOCUMENT, RESPONSES_ITEM.INPUT_FILE].includes(part.type);
+    const native = part.inlineData || part.inline_data || part.fileData || part.file_data;
+    const mime = native?.mimeType || native?.mime_type;
+    if (!fileType && !(typeof mime === "string" && mime.toLowerCase() === "application/pdf")) return;
+    // Some clients carry an actual image in a generic file block. It belongs
+    // to the image admission policy, not the document capability.
+    if (normalizeMediaPart(part)?.type === OPENAI_BLOCK.IMAGE_URL) return;
+    hasDocuments = true;
+    if (capabilities?.pdf !== false) return;
+    const error = new Error("This route does not support PDF or document input. Select a document-capable route or send extracted text instead; the request was not sent upstream.");
+    error.code = "unsupported_parameter";
+    error.param = path;
+    throw error;
+  });
+  return hasDocuments;
 }
 
 export function rejectClaudeAudio(body) {

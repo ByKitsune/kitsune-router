@@ -68,7 +68,9 @@ export function normalizeQuotasToSnapshot(providerId, usage) {
     if (!isBlockingQuotaName(name, sessionKey) || !isQuotaExhausted(quota)) continue;
     const resetAt = quota?.resetAt || null;
     if (!resetAt) continue;
-    if (!blockingResetAt || Date.parse(resetAt) < Date.parse(blockingResetAt)) {
+    // All exhausted windows must reset before this account is selectable.
+    if (!Number.isFinite(Date.parse(resetAt))) continue;
+    if (!blockingResetAt || Date.parse(resetAt) > Date.parse(blockingResetAt)) {
       blockingResetAt = resetAt;
     }
   }

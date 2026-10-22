@@ -2,6 +2,11 @@
 
 ## Unreleased — October reconciliation
 
+- Reject unsupported Codex/Antigravity-Claude PDF input before dispatch; preserve typed Gemini documents and ordinary JSON tool results rather than silently dropping data.
+- Standardize inference errors and retry metadata without exposing secrets or turning quoted validation input into account quota locks. Preserve missing-model and retirement statuses separately.
+- Echo requested model IDs consistently, keep endpoint-owned JSON/SSE framing and measured usage, and preserve readable upstream reasoning summaries. Explicit thinking/output budgets remain unchanged; unsupported controls and unrepresentable structured output fail locally.
+- Filter rejected built-in routes and private build/evidence metadata from discovery. Keep unknown input ceilings and subscription costs honest; API USD references are not Codex credit invoices.
+
 - Refresh verified stable upstream client identities and model catalogs; audit exact provider prices and native media billing units. Native time-of-use and published replacement rates use recorded usage time before operator overrides.
 - Make every registered model's effective or unknown price discoverable, with provider/model search that preserves edits. Account plans, client surfaces and subscription credits remain separate from API invoices.
 - Correct exact TokenHarbor free-route estimates and provider-scoped delivered-speed tariffs; preserve separate native cache-write lifetimes, unknown charges and explicit operator overrides.

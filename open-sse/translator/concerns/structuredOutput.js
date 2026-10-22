@@ -2,7 +2,7 @@ import { CLOUD_CODE_OUTPUT_SCHEMA as policy } from "../schema/structuredOutput.j
 
 const record = value => value !== null && typeof value === "object" && !Array.isArray(value);
 function unsupported(param) {
-  const error = new Error(`unsupported_parameter: This destination cannot preserve ${param} using its supported structured-output wire; use a supported schema or a different destination.`);
+  const error = new Error(`This destination cannot preserve ${param}. Remove unsupported schema constraints, omit ${param}, or select a destination that supports the requested structured output.`);
   error.code = "unsupported_parameter";
   error.param = param;
   throw error;
@@ -119,6 +119,7 @@ export function antigravityOutputConfig(body, model) {
     if (format.type === "json_schema") {
       const details = nested ? format.json_schema : format;
       if (!record(details) || (details.strict !== undefined && typeof details.strict !== "boolean") || details.schema == null) unsupported(param);
+      if (details.strict === true) unsupported(param);
       if ((nested && Object.keys(format).some(key => key !== "type" && key !== "json_schema")) ||
           Object.keys(details).some(key => !(nested ? policy.schemaKeys : policy.formatKeys).has(key)) ||
           (details.name !== undefined && (typeof details.name !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(details.name))) ||

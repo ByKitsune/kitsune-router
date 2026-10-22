@@ -3,6 +3,7 @@
 // media with a short text placeholder so messages never become empty.
 import { FORMATS } from "../formats.js";
 import { CLAUDE_BLOCK, OPENAI_BLOCK, RESPONSES_ITEM } from "../schema/index.js";
+import { isExplicitToolMediaPart } from "./multimodal.js";
 
 // Placeholder text inserted where a media block was removed.
 // Current turn: explain the active model can't read what the user just sent.
@@ -111,10 +112,11 @@ function stripResponses(body, caps) {
   }
 }
 
-function filterGeminiParts(parts, caps, isLast) {
+function filterGeminiParts(parts, caps, isLast, struct = false) {
   const removed = new Set();
   const out = [];
   for (const part of parts) {
+    if (struct && !isExplicitToolMediaPart(part)) { out.push(part); continue; }
     const inline = part?.inlineData || part?.inline_data;
     const file = part?.fileData || part?.file_data;
     const cap = capForMime(inline?.mimeType || inline?.mime_type || file?.mimeType || file?.mime_type) || capForOpenAIBlock(part);
@@ -122,10 +124,10 @@ function filterGeminiParts(parts, caps, isLast) {
     const result = part?.functionResponse;
     if (result) {
       if (Array.isArray(result.parts)) result.parts = filterGeminiParts(result.parts, caps, isLast);
-      if (Array.isArray(result.response)) result.response = filterGeminiParts(result.response, caps, isLast);
+      if (Array.isArray(result.response)) result.response = filterGeminiParts(result.response, caps, isLast, true);
       else if (result.response && typeof result.response === "object") {
-        for (const key of ["parts", "content"]) {
-          if (Array.isArray(result.response[key])) result.response[key] = filterGeminiParts(result.response[key], caps, isLast);
+        for (const key of ["parts", "content", "result", "output"]) {
+          if (Array.isArray(result.response[key])) result.response[key] = filterGeminiParts(result.response[key], caps, isLast, true);
         }
       }
     }

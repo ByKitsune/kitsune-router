@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   jsonResponse: vi.fn((body, init) => ({
     status: init?.status || 200,
     body,
+    headers: new Headers(init?.headers),
   })),
   getSettings: vi.fn(),
   validateApiKey: vi.fn(),
@@ -78,7 +79,8 @@ describe("dashboard guard public LLM API access", () => {
     }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ message: "API key required for remote API access", type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
+    expect(response.headers.get("x-request-id")).toBe(response.body.error.request_id);
   });
 
   it("allows loopback peer IP regardless of Host", async () => {
@@ -95,7 +97,7 @@ describe("dashboard guard public LLM API access", () => {
     const response = await proxy(request("/api/v1/chat/completions", { host: "router.example.com" }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ message: "API key required for remote API access", type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
   });
 
   it("allows loopback rewritten public LLM API without API key", async () => {
@@ -109,21 +111,21 @@ describe("dashboard guard public LLM API access", () => {
     const response = await proxy(request("/v1beta/models", { host: "router.example.com" }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ message: "API key required for remote API access", type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
   });
 
   it("rejects remote rewritten beta public LLM API without API key", async () => {
     const response = await proxy(request("/api/v1beta/models", { host: "router.example.com" }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ message: "API key required for remote API access", type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
   });
 
   it("rejects remote codex rewrite without API key", async () => {
     const response = await proxy(request("/codex/x", { host: "router.example.com" }));
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("API key required for remote API access");
+    expect(response.body.error).toMatchObject({ message: "API key required for remote API access", type: "authentication_error", code: "invalid_api_key", request_id: expect.any(String) });
   });
 
   it("allows remote codex rewrite with valid API key", async () => {

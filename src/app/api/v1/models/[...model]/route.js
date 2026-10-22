@@ -1,5 +1,6 @@
 import { buildModelsList } from "../route.js";
 import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
+import { errorResponse } from "open-sse/utils/error.js";
 
 // URL slug → service kind(s). `web` covers both webSearch and webFetch.
 const KIND_SLUG_MAP = {
@@ -65,24 +66,12 @@ export async function GET(_request, { params }) {
     );
 
     if (!matchedModel) {
-      return json(
-        {
-          error: {
-            message: `The model '${identifier}' does not exist or you do not have access to it.`,
-            type: "invalid_request_error",
-            code: "model_not_found",
-          },
-        },
-        { status: 404 },
-      );
+      return errorResponse(404, "The requested model is not advertised. Select a model from /v1/models or check your custom declaration.", { code: "model_not_found" });
     }
 
     return json(matchedModel);
   } catch (error) {
     console.log("Error fetching model:", error);
-    return json(
-      { error: { message: error.message, type: "server_error" } },
-      { status: 500 },
-    );
+    return errorResponse(500, "Model discovery is temporarily unavailable. Try again shortly.", { code: "model_discovery_unavailable" });
   }
 }

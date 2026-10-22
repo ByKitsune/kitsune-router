@@ -9,16 +9,15 @@
 //   REJECTED (HTTP 503 wrapping upstream 400): cx/gpt-5.5, cx/gpt-5.4,
 //     cx/gpt-5.4-mini, cx/gpt-5.3-codex-spark
 //
-// The rejected ones stay listed so stored combos keep resolving instead of
-// 404ing, but they must be flagged as not servable, because ByKitsune reads
-// this catalog and would otherwise advertise an unusable model.
+// Rejected IDs stay in the registry so stored combos resolve, but public
+// discovery filters them unless an operator deliberately declares a custom row.
 import { describe, expect, it } from "vitest";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 
 // Reproduced live: "The '<id>' model is not supported when using Codex with a
 // ChatGPT account."
-const REJECTED = ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex-spark"];
+const REJECTED = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex-spark"];
 const SERVED = ["gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"];
 
 describe("routes the Codex ChatGPT account rejects are flagged", () => {
@@ -41,7 +40,7 @@ describe("routes the Codex ChatGPT account rejects are flagged", () => {
   });
 
   it("propagates the flag to the -review aliases", () => {
-    for (const model of ["gpt-5.4-review", "gpt-5.4-mini-review", "gpt-5.3-codex-spark-review"]) {
+    for (const model of REJECTED.map(id => `${id}-review`)) {
       expect(getReviewedModelMetadata("codex", model)?.limits?.routeAvailable, model).toBe(false);
     }
   });

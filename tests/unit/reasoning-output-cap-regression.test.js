@@ -103,25 +103,26 @@ describe("final executor output caps", () => {
       .rejects.toMatchObject({ code: "invalid_output_budget" });
     expect(proxyAwareFetch).not.toHaveBeenCalled();
   });
-  it("Antigravity never raises an explicit cap in the actual serialized fetch body", async () => {
-    await new AntigravityExecutor().execute({ model: "gemini-2.5-pro", body: agBody({ maxOutputTokens: 1000, thinkingConfig: { thinkingBudget: 24576 } }), stream: false, credentials: { projectId: "cap-test" } });
-    const sent = JSON.parse(vi.mocked(proxyAwareFetch).mock.calls[0][1].body).request.generationConfig;
-    expect(sent.maxOutputTokens).toBe(1000);
-    expect(sent.thinkingConfig.thinkingBudget).toBe(999);
+  it("Antigravity rejects an explicit budget that cannot fit without dispatching or increasing the cap", async () => {
+    const body = agBody({ maxOutputTokens: 1000, thinkingConfig: { thinkingBudget: 24576 } });
+    await expect(new AntigravityExecutor().execute({ model: "gemini-2.5-pro", body, stream: false, credentials: { projectId: "cap-test" } }))
+      .rejects.toMatchObject({ code: "invalid_thinking_budget", param: "request.generationConfig.maxOutputTokens" });
+    expect(body.request.generationConfig.maxOutputTokens).toBe(1000);
+    expect(body.request.generationConfig.thinkingConfig.thinkingBudget).toBe(24576);
+    expect(proxyAwareFetch).not.toHaveBeenCalled();
   });
-  it.each([-1, 0])("Antigravity preserves thinking sentinel %s despite a top-level effort fallback", (budget) => {
-    const result = agConfig({ maxOutputTokens: 1000, thinkingConfig: { thinkingBudget: budget, includeThoughts: false } }, { reasoning_effort: "high" });
+  it.each([-1, 0])("Antigravity preserves native thinking sentinel %s without changing its output cap", (budget) => {
+    const result = agConfig({ maxOutputTokens: 1000, thinkingConfig: { thinkingBudget: budget, includeThoughts: false } });
     expect(result.maxOutputTokens).toBe(1000);
     expect(result.thinkingConfig).toEqual({ thinkingBudget: budget, includeThoughts: false });
   });
   it("Antigravity preserves qualitative thinkingLevel without adding a numeric budget", () => {
-    expect(agConfig({ maxOutputTokens: 1000, thinkingConfig: { thinkingLevel: "high" } }, { reasoning_effort: "high" }).thinkingConfig)
+    expect(agConfig({ maxOutputTokens: 1000, thinkingConfig: { thinkingLevel: "high" } }, { reasoning_effort: "high" }, "gemini-4-argon").thinkingConfig)
       .toEqual({ thinkingLevel: "high" });
   });
-  it("Antigravity keeps a valid numeric budget below the final known ceiling", () => {
-    const result = agConfig({ maxOutputTokens: 100000, thinkingConfig: { thinkingBudget: 100000 } });
-    expect(result.maxOutputTokens).toBe(65536);
-    expect(result.thinkingConfig.thinkingBudget).toBe(65535);
+  it("Antigravity rejects explicit thinking above the final known output ceiling", () => {
+    expect(() => agConfig({ maxOutputTokens: 100000, thinkingConfig: { thinkingBudget: 100000 } }))
+      .toThrow(expect.objectContaining({ code: "invalid_thinking_budget", message: expect.stringContaining("100000") }));
   });
   it("Antigravity retains the omitted-cap positive-budget default", () => {
     expect(agConfig({ thinkingConfig: { thinkingBudget: 4096 } }).maxOutputTokens).toBe(12288);

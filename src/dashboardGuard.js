@@ -3,6 +3,7 @@ import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
+import { buildErrorBody } from "open-sse/utils/error.js";
 
 const CLI_TOKEN_HEADER = "x-zen-cli-token";
 const CLI_TOKEN_SALT = "zen-cli-auth";
@@ -254,7 +255,8 @@ export async function proxy(request) {
     // cross-origin request that sends an Authorization header.
     if (request.method === "OPTIONS") return NextResponse.next();
     if (await canAccessPublicLlmApi(request)) return NextResponse.next();
-    return NextResponse.json({ error: "API key required for remote API access" }, { status: 401 });
+    const body = buildErrorBody(401, "API key required for remote API access");
+    return NextResponse.json(body, { status: 401, headers: { "x-request-id": body.error.request_id } });
   }
 
   // Deny-by-default for /api/* — public allow-list bypasses, everything else requires auth.
