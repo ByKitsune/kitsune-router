@@ -5,6 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Framework security maintenance
+
+- Update the gateway/docs Next.js runtime and matching third-party integration
+  package to stable 16.4.2. Refresh only their locked dependency closures after
+  GitHub CI identified newly indexed Next.js advisories GHSA-2464-fhr4-w9xw
+  (image optimization) and GHSA-p3m5-59mp-jv5r (Server Actions). Keep the
+  dependency-security gate enabled; earlier clean audit results are dated
+  snapshots, not a guarantee against subsequently published advisories.
+
 ### Public document-routing safety
 
 - Reject PDF/document input before upstream dispatch on transports that cannot
