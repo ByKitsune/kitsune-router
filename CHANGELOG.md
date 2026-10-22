@@ -7,6 +7,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Framework security maintenance
 
+- Refresh the transitive editor DOMPurify override to 3.4.17 after newly indexed
+  shadow-root/template and in-place hook advisories. Keep the scoped lock update
+  separate from claims of application-specific exploitability; do not suppress
+  GitHub dependency alerts merely because an npm audit snapshot lags behind.
 - Update the gateway/docs Next.js runtime and matching third-party integration
   package to stable 16.4.2. Refresh only their locked dependency closures after
   GitHub CI identified newly indexed Next.js advisories GHSA-2464-fhr4-w9xw
