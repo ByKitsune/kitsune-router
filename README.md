@@ -36,6 +36,11 @@ Source updates after that release are listed under [Unreleased](CHANGELOG.md#unr
 They are not retroactively included in earlier published artifacts. For the current
 test workflow and its live-provider limits, see [tests/README.md](tests/README.md).
 
+For a source checkout, install the committed dependency tree with `npm ci`, not
+an old `node_modules` directory. `npm run check:deps` verifies the installed
+direct dependencies against the lockfile before builds. See the
+[transport recovery and source-build checks](docs/audit/20-fetch-transport-recovery-2026-10.md).
+
 ## 🚀 Quick Start
 
 Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.13 and apply after the package/image is published; preparing release documentation does not publish it.

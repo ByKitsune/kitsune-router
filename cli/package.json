@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "dev": "node --watch cli.js",
+    "prebuild": "node ../scripts/check-installed-dependencies.mjs",
     "build": "node scripts/build-cli.js",
     "pack:cli": "npm run build && npm pack --pack-destination ..",
     "publish:cli": "npm run build && npm publish",

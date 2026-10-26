@@ -5,6 +5,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Next.js upstream transport recursion fix
+
+- Keep proxy-aware upstream dispatch below Next.js's enclosing fetch wrapper,
+  preventing recursive fetch calls and `Maximum call stack size exceeded` errors
+  across chat, OAuth refresh, usage and model-catalog requests. Retain managed
+  pooling, selected proxy/relay policy and caller-owned dispatchers.
+- Exercise the real Next.js fetch/dedupe wrapper around the transport, including
+  background calls, request-scoped POSTs, module re-evaluation and stream aborts.
+- Fail source build/test checks when installed direct dependencies differ from
+  their committed lockfile, instead of packaging stale Next.js/Undici installs.
+  Use `npm ci` to reconcile application, test, CLI and documentation dependencies;
+  optional native packages may remain absent on unsupported platforms.
+- Keep generated verification reports out of Git and document safe standalone
+  smoke checks with disposable state. See the [transport recovery follow-up](docs/audit/20-fetch-transport-recovery-2026-10.md).
+
 ### High-throughput streaming, translator fast path, and connection pooling
 
 - Implement pass-through and minimal-copy fast paths for compatible request/response

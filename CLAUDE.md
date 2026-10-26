@@ -17,7 +17,8 @@ The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the
 Dashboard/gateway (run from repo root):
 ```bash
 cp .env.example .env
-npm install
+npm ci
+npm run check:deps
 PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 npm run build && npm run start                                        # production (node)
 npm run build && npm run start:bun                                    # production (bun runtime; bun:sqlite)
@@ -33,12 +34,13 @@ cd cli && npm run dev  # node --watch launcher
 
 Tests (Vitest lives in `tests/`, an **independent** ESM package, also exposed by root `npm test`):
 ```bash
-npm install                             # ROOT deps first — tests import from src/ which needs `open`, `undici`, etc.
-cd tests && npm install                 # then tests' own deps (vitest) → tests/node_modules (allowed by tests/.gitignore)
+npm ci                                  # ROOT deps first — tests import from src/ which needs `open`, `undici`, etc.
+cd tests && npm ci                      # then tests' own locked deps → tests/node_modules (allowed by tests/.gitignore)
 npx vitest run                          # all tests; auto-discovers tests/vitest.config.js
 npx vitest run unit/capabilities.test.js   # single file (path relative to tests/)
 ```
 > From the repository root, use `npm test` after installing both dependency sets, or `npm --prefix tests test`. The committed Vitest configuration resolves the repository root and `open-sse`/`@/` aliases regardless of the invocation directory. It does not load repository `.env` files (`envDir: false`); supply synthetic configuration or deliberate live-test opt-ins explicitly through the process environment. Do not point test state at a production `DATA_DIR`.
+> Source `prebuild`/`pretest` hooks reject installed direct-dependency drift from the lockfile. `node scripts/check-installed-dependencies.mjs . tests cli gitbook` checks all four installed projects. Restore them with `npm ci`; never lower locked versions to match a stale install. These metadata checks do not replace integrity checks or security audits.
 >
 > **Report actual case and suite failures from the current run**, rather than relying on an old expected count. Notes:
 > - `unit/embeddings.cloud.test.js.skip` targets the private `cloud/` worker — rename back to `.test.js` only when that checkout exists.

@@ -36,6 +36,10 @@ owner's PDF, errors, reasoning, discovery and billing reports against the curren
 customized gateway. It records local evidence separately from live-provider and
 subscription-billing guarantees.
 
+The [transport recovery follow-up](20-fetch-transport-recovery-2026-10.md)
+records the Next.js/global-fetch recursion incident, installed dependency drift,
+reproducible build checks and isolated deployment validation.
+
 ## Read in this order
 
 | # | Document | Covers |

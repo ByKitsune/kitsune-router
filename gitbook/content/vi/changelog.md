@@ -2,6 +2,11 @@
 
 ## Chưa phát hành — đối soát tháng Mười
 
+- Sửa lời gọi đệ quy giữa fetch của Next.js và lớp truyền tải gateway; khôi phục chat, làm mới OAuth, usage và danh mục mà không đổi chính sách tài khoản hoặc proxy.
+- Kiểm tra dependency trực tiếp đã cài so với lockfile trước khi build/test. Cài lại bằng `npm ci` để không đóng gói Next.js/Undici cũ; không thay đổi các gói 0.9.13 đã phát hành.
+
+[Khôi phục truyền tải và build mã nguồn có thể tái lập](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/20-fetch-transport-recovery-2026-10.md)
+
 - Cập nhật định danh phiên bản ổn định và danh mục đã kiểm chứng; kiểm toán giá theo nhà cung cấp và đơn vị tính phí riêng của media. Giá theo khung giờ và giá thay thế công bố dùng thời điểm usage đã ghi trước khi áp dụng ghi đè của người vận hành.
 - Hiển thị giá hiệu lực hoặc chưa biết cho mọi model đã đăng ký, thêm tìm kiếm giữ nguyên chỉnh sửa; phân biệt gói tài khoản, client và tín dụng thuê bao với hóa đơn API.
 - Sửa giá các tuyến miễn phí chính xác của TokenHarbor và bậc tốc độ thực tế được cung cấp; tách thời hạn ghi bộ nhớ đệm, chi phí chưa biết và cấu hình ghi đè rõ ràng.

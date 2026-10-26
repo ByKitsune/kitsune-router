@@ -101,11 +101,13 @@ Claude Code/Codex/OpenClaw/Cursor/Cline 设置：
 
 ```bash
 cp .env.example .env
-npm install
+npm ci
 PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 生产模式：
+
+源码构建前会检查已安装的直接依赖是否与 lockfile 一致。若 Next.js、Undici 或构建工具版本不匹配，请运行 `npm ci`，不要把 lockfile 降级为旧的 `node_modules` 版本。详见[传输修复与源码构建检查](docs/audit/20-fetch-transport-recovery-2026-10.md)。
 
 ```bash
 npm run build
@@ -1022,9 +1024,9 @@ Model：cc/claude-opus-4-7
 
 ```bash
 # 克隆并安装
-git clone https://github.com/ZenRouter/ZenRouter.git
+git clone https://github.com/ZenRouter/ZenRouter.git zenrouter
 cd zenrouter
-npm install
+npm ci
 npm run build
 
 # 配置

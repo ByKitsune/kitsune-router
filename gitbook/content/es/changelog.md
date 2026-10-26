@@ -2,6 +2,11 @@
 
 ## Sin publicar — conciliación de octubre
 
+- Corrige la recursión entre el wrapper fetch de Next.js y el transporte del gateway; recupera chat, renovación OAuth, uso y catálogo sin cambiar las políticas de cuentas o proxy.
+- Verifica las dependencias directas instaladas frente al lockfile antes de compilar o probar. Reinstala con `npm ci` para no empaquetar versiones antiguas de Next.js/Undici. Los artefactos 0.9.13 publicados no cambian.
+
+[Recuperación del transporte y compilaciones reproducibles](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/20-fetch-transport-recovery-2026-10.md)
+
 - Actualiza identidades estables verificadas y catálogos; audita precios por proveedor y unidades nativas de medios. Las tarifas por horario y sustituciones publicadas usan la fecha registrada antes de aplicar valores del operador.
 - Expone el precio efectivo o desconocido de cada modelo con búsqueda que conserva cambios; planes, superficies cliente y créditos de suscripción no equivalen a facturas API.
 - Corrige las rutas gratuitas exactas de TokenHarbor y las tarifas por velocidad realmente entregada; distingue las duraciones de escritura de caché, los costes desconocidos y los valores explícitos del operador.

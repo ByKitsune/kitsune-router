@@ -239,7 +239,14 @@ export const __testing = { createBypassRequest };
 export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
   throwIfCancelled(options.signal);
   const targetUrl = typeof url === "string" ? url : url instanceof Request ? url.url : url.toString();
-  const fetchImpl = globalThis.fetch === fetchState.patched ? fetchState.original : globalThis.fetch;
+  // Next installs its own fetch wrapper after instrumentation has installed
+  // ours. That wrapper delegates back to our patch: calling it from here would
+  // recurse Next -> ZenRouter -> Next for chat AND background OAuth/catalog
+  // requests. Keep the captured downstream transport as the terminal boundary,
+  // while retaining the independent global-fetch test/instrumentation seam.
+  const currentFetch = globalThis.fetch;
+  const fetchImpl = currentFetch === fetchState.patched || currentFetch?.__nextPatched === true
+    ? fetchState.original : currentFetch;
   const enabled = proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true;
   const poolId = normalizeString(proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId);
   const hasPool = !!poolId && poolId !== "__none__";
@@ -286,7 +293,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     }
   }
 
-  if (options.dispatcher || globalThis.fetch !== fetchState.patched || !/^https?:/i.test(targetUrl)) {
+  if (options.dispatcher || fetchImpl !== fetchState.original || !/^https?:/i.test(targetUrl)) {
     return fetchImpl(url, options);
   }
 
@@ -312,7 +319,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
 
   const dispatcher = await getUpstreamDispatcher({ headersTimeoutMs: options.upstreamHeadersTimeoutMs });
   throwIfCancelled(options.signal);
-  return fetchState.original(url, { ...options, dispatcher });
+  return fetchImpl(url, { ...options, dispatcher });
 }
 
 fetchState.implementation = proxyAwareFetch;

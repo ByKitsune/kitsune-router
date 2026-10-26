@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Unit tests for zenrouter embeddings endpoint",
   "scripts": {
+    "pretest": "node ../scripts/check-installed-dependencies.mjs .. .",
     "test": "vitest run --config vitest.config.js --reporter=verbose",
     "test:watch": "vitest --config vitest.config.js --reporter=verbose"
   },

@@ -2,6 +2,11 @@
 
 ## Unreleased — October reconciliation
 
+- Fix recursive calls between Next.js's fetch wrapper and the gateway transport, restoring chat, OAuth refresh, usage and catalog requests without changing account/proxy policy.
+- Check installed direct dependencies against committed lockfiles before source builds/tests. Reinstall with `npm ci` rather than packaging stale Next.js/Undici dependencies. Published 0.9.13 artifacts remain unchanged.
+
+[Transport recovery and reproducible source builds](https://github.com/ZenRouter/ZenRouter/blob/master/docs/audit/20-fetch-transport-recovery-2026-10.md)
+
 - Reject unsupported Codex/Antigravity-Claude PDF input before dispatch; preserve typed Gemini documents and ordinary JSON tool results rather than silently dropping data.
 - Standardize inference errors and retry metadata without exposing secrets or turning quoted validation input into account quota locks. Preserve missing-model and retirement statuses separately.
 - Echo requested model IDs consistently, keep endpoint-owned JSON/SSE framing and measured usage, and preserve readable upstream reasoning summaries. Explicit thinking/output budgets remain unchanged; unsupported controls and unrepresentable structured output fail locally.
