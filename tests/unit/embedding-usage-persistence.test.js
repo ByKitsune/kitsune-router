@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   handleEmbeddingsCore: vi.fn(),
-  saveRequestUsage: vi.fn(),
+  enqueueRequestUsage: vi.fn(),
 }));
 
 vi.mock("../../src/sse/services/auth.js", () => ({
@@ -34,14 +34,14 @@ vi.mock("../../src/sse/services/tokenRefresh.js", () => ({
   updateProviderCredentials: vi.fn(),
   checkAndRefreshToken: async (_provider, credentials) => credentials,
 }));
-vi.mock("@/lib/usageDb.js", () => ({ saveRequestUsage: mocks.saveRequestUsage }));
+vi.mock("@/lib/usageDb.js", () => ({ enqueueRequestUsage: mocks.enqueueRequestUsage }));
 
 import { handleEmbeddings } from "../../src/sse/handlers/embeddings.js";
 
 describe("embedding usage persistence", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.saveRequestUsage.mockResolvedValue(undefined);
+    mocks.enqueueRequestUsage.mockImplementation(async entry => ({ accepted: true, eventId: entry.eventId }));
     mocks.handleEmbeddingsCore.mockResolvedValue({
       success: true,
       usage: { prompt_tokens: 12, total_tokens: 12 },
@@ -55,7 +55,7 @@ describe("embedding usage persistence", () => {
       body: JSON.stringify({ model: "openai/text-embedding-3-small", input: "hello" }),
     }));
 
-    expect(mocks.saveRequestUsage).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mocks.enqueueRequestUsage).toHaveBeenCalledWith(expect.objectContaining({
       provider: "openai",
       model: "text-embedding-3-small",
       connectionId: "connection-a",
@@ -86,6 +86,6 @@ describe("embedding usage persistence", () => {
       body: JSON.stringify({ model: "openai/text-embedding-3-small", input: "hello" }),
     }));
 
-    expect(mocks.saveRequestUsage).not.toHaveBeenCalled();
+    expect(mocks.enqueueRequestUsage).not.toHaveBeenCalled();
   });
 });

@@ -69,6 +69,7 @@ describe("model-dependent request failures in a combo", () => {
   });
 
   it.each([
+    { status: 503, error: { message: "Usage accounting could not be accepted", code: "usage_acceptance_failed" } },
     { status: 400, error: { message: "messages must be an array", code: "invalid_request_error" } },
     { status: 413, error: { message: "Payload too large" } },
     { status: 499, error: { message: "Client disconnected", code: "unsupported_parameter", param: "temperature" } },

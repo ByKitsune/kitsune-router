@@ -5,7 +5,7 @@ const saved = { details: [], usage: [] };
 vi.mock("@/lib/usageDb.js", () => ({
   appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async (detail) => { saved.details.push(detail); }),
-  saveRequestUsage: vi.fn(async (row) => { saved.usage.push(row); }),
+  enqueueRequestUsage: vi.fn(async (row) => { saved.usage.push(row); return { accepted: true, eventId: row.eventId }; }),
   trackPendingRequest: vi.fn(),
 }));
 
@@ -77,7 +77,7 @@ describe("aborted streaming usage (#3488)", () => {
       ...callbacks,
       onStreamAborted: (snapshot, reason) => {
         calls.push({ snapshot, reason });
-        callbacks.onStreamAborted(snapshot, reason);
+        return callbacks.onStreamAborted(snapshot, reason);
       },
     });
     const reader = result.response.body.getReader();
@@ -109,7 +109,7 @@ describe("aborted streaming usage (#3488)", () => {
       ...callbacks,
       onStreamAborted: (snapshot, reason) => {
         calls.push({ snapshot, reason });
-        callbacks.onStreamAborted(snapshot, reason);
+        return callbacks.onStreamAborted(snapshot, reason);
       },
     });
     const reader = result.response.body.getReader();

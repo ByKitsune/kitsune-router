@@ -9,7 +9,7 @@
 // P03-B: the response was missing HSTS, X-Content-Type-Options, X-Frame-Options,
 // Referrer-Policy and Permissions-Policy, and sent
 // `Access-Control-Allow-Headers: *`. This is not cosmetic: the gateway is
-// published through a Cloudflare tunnel (zen.hlcyn.xyz → 127.0.0.1:20128).
+// published through a Cloudflare tunnel (router.bykitsune.org → 127.0.0.1:20128).
 //
 // P03-C: /api/health returned a constant {"ok":true}. The tunnel watchdog reads
 // it, so it reported healthy even with the database unreachable.
@@ -156,6 +156,10 @@ describe("CORS allowlist (P03-B)", () => {
     expect(API_CORS_HEADERS["Access-Control-Allow-Origin"]).toBe("*");
   });
 
+  it("exposes request correlation and retry policy without credential headers", () => {
+    expect(API_CORS_HEADERS["Access-Control-Expose-Headers"]).toBe("x-request-id, x-should-retry, Retry-After");
+  });
+
   it("lets a caller override specific values", () => {
     expect(corsHeaders({ "Access-Control-Allow-Methods": "GET" })["Access-Control-Allow-Methods"]).toBe("GET");
   });
@@ -196,7 +200,7 @@ describe("security headers (P03-B)", () => {
 
   it("documents that the gateway is publicly reachable via the tunnel", () => {
     expect(config).toMatch(/Cloudflare tunnel/);
-    expect(config).toMatch(/zen\.hlcyn\.xyz/);
+    expect(config).toMatch(/router\.bykitsune\.org/);
   });
 });
 

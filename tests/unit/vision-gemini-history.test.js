@@ -7,6 +7,8 @@ import { geminiToOpenAIRequest } from "../../open-sse/translator/request/gemini-
 import { antigravityToOpenAIRequest } from "../../open-sse/translator/request/antigravity-to-openai.js";
 import { normalizeGeminiContents } from "../../open-sse/translator/formats/gemini.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
+import { splitToolCallId } from "../../open-sse/translator/concerns/thoughtSignature.js";
+import { DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE } from "../../open-sse/config/defaultThinkingSignature.js";
 
 function pngChunk(type, data) {
   const typeAndData = Buffer.concat([Buffer.from(type), data]);
@@ -331,4 +333,77 @@ it("keeps adjacent user-turn media occurrence counts stable across repeated Gemi
   expect(JSON.stringify(second) === JSON.stringify(first), "normalization is idempotent").toBe(true);
   expectOccurrences(second, [2, 1, 0]);
   expect(JSON.stringify(contents) === JSON.stringify(before), "normalization leaves source parts unchanged").toBe(true);
+});
+
+describe.each(sources)("$name native tool identity boundaries", (source) => {
+  it.each([DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE])("keeps reused raw IDs without encoding gateway signature %s", (signature) => {
+    const native = nativeHistory();
+    const calls = native.contents.flatMap(turn => turn.parts).filter(part => part.functionCall);
+    calls[0].thoughtSignature = signature;
+    calls[1].thought_signature = signature;
+    calls[2].functionCall.thoughtSignature = signature;
+    const body = source.wrap(native);
+    const before = structuredClone(body);
+    const intermediate = serialized(source.convert("gemini-2.5-flash", body, false));
+    const ids = ["call_reused", "call_parallel", "call_reused"];
+    expect(intermediate.messages.flatMap(message => message.tool_calls || []).map(call => call.id)).toEqual(ids);
+    expect(intermediate.messages.filter(message => message.role === "tool").map(message => message.tool_call_id)).toEqual(ids);
+    expect(JSON.stringify(intermediate).includes("_TSIG_")).toBe(false);
+    expectHistory(wire(targets[0], intermediate));
+    expect(JSON.stringify(body)).toBe(JSON.stringify(before));
+  });
+
+  it("keeps distinct opaque signatures and image ownership on repeated raw IDs across serialization", () => {
+    const signatures = ["first opaque tool context", "parallel opaque context", "compacted opaque context"]
+      .map(value => Buffer.from(value).toString("base64"));
+    const native = nativeHistory();
+    const calls = native.contents.flatMap(turn => turn.parts).filter(part => part.functionCall);
+    calls[0].thoughtSignature = signatures[0];
+    calls[1].thought_signature = signatures[1];
+    calls[2].functionCall.thoughtSignature = signatures[2];
+    const body = source.wrap(native);
+    const before = structuredClone(body);
+    let intermediate = serialized(source.convert("gemini-2.5-flash", body, false));
+    const incomingCalls = intermediate.messages.flatMap(message => message.tool_calls || []);
+    const results = intermediate.messages.filter(message => message.role === "tool");
+    expect(incomingCalls.map(call => splitToolCallId(call.id))).toEqual([
+      { rawId: "call_reused", thoughtSignature: signatures[0] },
+      { rawId: "call_parallel", thoughtSignature: signatures[1] },
+      { rawId: "call_reused", thoughtSignature: signatures[2] },
+    ]);
+    expect(results.map(message => message.tool_call_id)).toEqual(incomingCalls.map(call => call.id));
+    for (let pass = 0; pass < 3; pass++) {
+      const output = wire(targets[0], intermediate);
+      expectHistory(output);
+      expect(parts(output).filter(part => part.functionCall).map(part => part.thoughtSignature)).toEqual(signatures);
+      intermediate = serialized(source.convert("gemini-2.5-flash", source.wrap(output), false));
+    }
+    const unrelated = source.convert("gemini-2.5-flash", source.wrap(nativeHistory()), false);
+    expect(unrelated.messages.flatMap(message => message.tool_calls || []).map(call => splitToolCallId(call.id).thoughtSignature)).toEqual(["", "", ""]);
+    expect(JSON.stringify(body)).toBe(JSON.stringify(before));
+  });
+
+  it("preserves explicit IDs while allocating deterministic non-colliding IDs only for missing ones", () => {
+    const body = source.wrap({ contents: [
+      { role: "user", parts: [{ text: "Inspect all occurrences" }] },
+      { role: "model", parts: [
+        { functionCall: { name: "capture", args: { step: 1 } } },
+        { functionCall: { id: "call_capture", name: "explicit", args: { step: 2 } } },
+        { functionCall: { name: "capture", args: { step: 3 } } },
+      ] },
+      { role: "user", parts: [
+        { functionResponse: { name: "capture", response: { result: "first" } } },
+        { functionResponse: { id: "call_capture", name: "explicit", response: { result: "explicit" } } },
+        { functionResponse: { name: "capture", response: { result: "third" } } },
+      ] },
+    ] });
+    const before = structuredClone(body);
+    const intermediate = serialized(source.convert("gemini-2.5-flash", body, false));
+    const calls = intermediate.messages.flatMap(message => message.tool_calls || []);
+    const results = intermediate.messages.filter(message => message.role === "tool");
+    expect(calls.map(call => call.id)).toEqual(["call_capture_d2", "call_capture", "call_capture_d3"]);
+    expect(results.map(message => message.tool_call_id)).toEqual(calls.map(call => call.id));
+    expect(serialized(source.convert("gemini-2.5-flash", body, false))).toEqual(intermediate);
+    expect(JSON.stringify(body)).toBe(JSON.stringify(before));
+  });
 });

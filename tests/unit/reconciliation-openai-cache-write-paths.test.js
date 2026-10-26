@@ -7,7 +7,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest() {},
   appendRequestLog: async () => {},
   saveRequestDetail: async () => {},
-  saveRequestUsage: async record => { storage.records.push(record); },
+  enqueueRequestUsage: async record => { storage.records.push(record); return { accepted: true, eventId: record.eventId }; },
 }));
 import { createSSEStream } from "../../open-sse/utils/stream.js";
 import { canonicalizeUsage, normalizeUsage } from "../../open-sse/utils/usageTracking.js";

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/usageDb.js", () => ({
   appendRequestLog: vi.fn(async () => {}), saveRequestDetail: vi.fn(async () => {}),
   saveRequestUsage: vi.fn(async () => {}), trackPendingRequest: vi.fn(),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 
 import { FORMATS } from "../../open-sse/translator/formats.js";

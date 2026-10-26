@@ -1,11 +1,13 @@
 import { loadState, saveState, generateShortId } from "../shared/state.js";
 import { spawnQuickTunnel, killCloudflared, isCloudflaredRunning, setUnexpectedExitHandler } from "./cloudflared.js";
 import { clearPid } from "./pid.js";
-import { waitForHealth, probeUrlAlive } from "./healthCheck.js";
-import { WORKER_URL } from "./config.js";
+import { WORKER_URL, HEALTH_CHECK } from "./config.js";
 import { getSettings, updateSettings } from "@/lib/localDb";
+import { getHelperLifecycle } from "@/mitm/manager";
 
-const svc = {
+const lifecycle = getHelperLifecycle();
+const scope = lifecycle.scope("cloudflare-manager");
+const svc = scope.data.service ??= {
   cancelToken: { cancelled: false },
   spawnInProgress: false,
   lastRestartAt: 0,
@@ -16,119 +18,105 @@ export function getTunnelService() { return svc; }
 export function isTunnelManuallyDisabled() { return svc.cancelToken.cancelled; }
 export function isTunnelReconnecting() { return svc.spawnInProgress; }
 
-let onUnexpectedExit = null;
-export function setTunnelUnexpectedExitCallback(cb) { onUnexpectedExit = cb; }
+export function setTunnelUnexpectedExitCallback(cb) { scope.data.onUnexpectedExit = cb; }
+
+scope.stop = () => {
+  svc.cancelToken.cancelled = true;
+  scope.data.onUnexpectedExit = null;
+  setUnexpectedExitHandler(null);
+  killCloudflared();
+};
 
 async function registerTunnelUrl(shortId, tunnelUrl) {
-  await fetch(`${WORKER_URL}/api/tunnel/register`, {
+  const response = await fetch(`${WORKER_URL}/api/tunnel/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ shortId, tunnelUrl })
   });
+  await response?.body?.cancel?.();
 }
 
-function throwIfCancelled(token) {
-  if (token.cancelled) throw new Error("tunnel cancelled");
-}
-
-export async function enableTunnel(localPort = 20128) {
-  console.log(`[Tunnel] enable start (port=${localPort})`);
-  svc.cancelToken = { cancelled: false };
+export function enableTunnel(localPort = 20128) {
+  if (lifecycle.isStopping()) return lifecycle.run(scope, "enable", () => {});
+  if (scope.pending.has("disable")) return scope.pending.get("disable").then(() => enableTunnel(localPort));
+  if (scope.pending.has("enable")) return scope.pending.get("enable");
+  const token = svc.cancelToken.cancelled ? svc.cancelToken = { cancelled: false } : svc.cancelToken;
   svc.activeLocalPort = localPort;
   svc.spawnInProgress = true;
-  const token = svc.cancelToken;
-
-  try {
-    if (isCloudflaredRunning()) {
-      const existing = loadState();
-      if (existing?.tunnelUrl && existing?.shortId) {
-        const publicUrl = `https://r${existing.shortId}.abc-tunnel.us`;
-        // Reuse only if BOTH direct + public URL alive (avoid stale socket after network change)
-        const [directOk, publicOk] = await Promise.all([
-          probeUrlAlive(existing.tunnelUrl),
-          probeUrlAlive(publicUrl),
-        ]);
-        if (directOk && publicOk) {
-          console.log(`[Tunnel] already running, reuse: ${existing.tunnelUrl}`);
-          return { success: true, tunnelUrl: existing.tunnelUrl, shortId: existing.shortId, publicUrl, alreadyRunning: true };
+  return lifecycle.run(scope, "enable", async (assert, generation) => {
+    const check = () => { assert(); if (token.cancelled) throw new Error("tunnel cancelled"); };
+    try {
+      if (isCloudflaredRunning()) {
+        const existing = loadState();
+        if (existing?.tunnelUrl && existing?.shortId) {
+          const publicUrl = `https://r${existing.shortId}.abc-tunnel.us`;
+          const alive = await Promise.allSettled([
+            lifecycle.probe(existing.tunnelUrl, HEALTH_CHECK, check),
+            lifecycle.probe(publicUrl, HEALTH_CHECK, check),
+          ]);
+          check();
+          if (alive.every(result => result.status === "fulfilled" && result.value)) {
+            return { success: true, tunnelUrl: existing.tunnelUrl, shortId: existing.shortId, publicUrl, alreadyRunning: true };
+          }
         }
-        console.log(`[Tunnel] stale (direct=${directOk} public=${publicOk}), respawn`);
       }
+      check();
+      await killCloudflared(localPort);
+      check();
+      const existing = loadState();
+      const shortId = existing?.shortId || generateShortId();
+      const onUrlUpdate = (url) => {
+        if (!lifecycle.active(scope, generation) || token.cancelled) return Promise.resolve();
+        return lifecycle.run(scope, "url-update", async () => {
+          check();
+          await registerTunnelUrl(shortId, url);
+          check();
+          saveState({ shortId, tunnelUrl: url });
+          await updateSettings({ tunnelEnabled: true, tunnelUrl: url });
+        });
+      };
+      setUnexpectedExitHandler(() => {
+        if (!lifecycle.active(scope, generation) || token.cancelled) return Promise.resolve();
+        return lifecycle.run(scope, "unexpected-exit", () => scope.data.onUnexpectedExit?.());
+      });
+      const { tunnelUrl } = await spawnQuickTunnel(localPort, onUrlUpdate, check);
+      check();
+      const publicUrl = `https://r${shortId}.abc-tunnel.us`;
+      await registerTunnelUrl(shortId, tunnelUrl);
+      check();
+      saveState({ shortId, tunnelUrl });
+      await updateSettings({ tunnelEnabled: true, tunnelUrl });
+      check();
+      await lifecycle.health(scope, [publicUrl, tunnelUrl], HEALTH_CHECK, check);
+      check();
+      return { success: true, tunnelUrl, shortId, publicUrl };
+    } finally {
+      if (svc.cancelToken === token) svc.spawnInProgress = false;
     }
-
-    killCloudflared(localPort);
-    console.log("[Tunnel] killed existing cloudflared");
-    throwIfCancelled(token);
-
-    const existing = loadState();
-    const shortId = existing?.shortId || generateShortId();
-
-    const onUrlUpdate = async (url) => {
-      if (token.cancelled) return;
-      console.log(`[Tunnel] url updated: ${url}`);
-      await registerTunnelUrl(shortId, url);
-      saveState({ shortId, tunnelUrl: url });
-      await updateSettings({ tunnelEnabled: true, tunnelUrl: url });
-    };
-
-    // Register exit handler BEFORE spawn so it fires even on early exit
-    setUnexpectedExitHandler(() => {
-      console.warn("[Tunnel] cloudflared exited unexpectedly, scheduling respawn");
-      if (onUnexpectedExit) onUnexpectedExit();
-    });
-
-    const { tunnelUrl } = await spawnQuickTunnel(localPort, onUrlUpdate);
-    console.log(`[Tunnel] spawned: ${tunnelUrl}`);
-    throwIfCancelled(token);
-
-    const publicUrl = `https://r${shortId}.abc-tunnel.us`;
-    await registerTunnelUrl(shortId, tunnelUrl);
-    saveState({ shortId, tunnelUrl });
-    await updateSettings({ tunnelEnabled: true, tunnelUrl });
-    console.log(`[Tunnel] registered shortId=${shortId} publicUrl=${publicUrl}`);
-
-    // Either URL proves the tunnel is serving. Relay registration can lag even
-    // while the direct trycloudflare URL is already reachable.
-    const healthyUrl = await waitForHealth([publicUrl, tunnelUrl], token);
-    if (healthyUrl === publicUrl) {
-      console.log("[Tunnel] public URL healthy");
-      if (!(await probeUrlAlive(tunnelUrl))) {
-        console.warn("[Tunnel] direct URL not reachable yet, continuing via publicUrl");
-      }
-    } else {
-      console.warn(`[Tunnel] relay not answering yet, continuing via direct URL: ${healthyUrl}`);
-    }
-
-    console.log("[Tunnel] enable success");
-    return { success: true, tunnelUrl, shortId, publicUrl };
-  } catch (e) {
-    // Suppress noise when spawn was deliberately killed (restart/disable superseded it)
-    if (!/cloudflared killed|tunnel cancelled/.test(e.message)) {
-      console.error(`[Tunnel] enable error: ${e.message}`);
-    }
-    throw e;
-  } finally {
-    svc.spawnInProgress = false;
-  }
+  });
 }
 
-export async function disableTunnel() {
-  console.log("[Tunnel] disable");
-  // Abort any in-flight enable so it cannot resurrect state after we clear it
+export function disableTunnel() {
+  if (scope.pending.has("disable")) return scope.pending.get("disable");
+  if (lifecycle.isStopping()) return lifecycle.run(scope, "disable", () => {});
+  lifecycle.invalidate(scope);
   svc.cancelToken.cancelled = true;
   setUnexpectedExitHandler(null);
-
-  try { killCloudflared(svc.activeLocalPort); } catch (e) { console.warn(`[Tunnel] kill warn: ${e.message}`); }
-  clearPid();
-
-  const state = loadState();
-  if (state) saveState({ shortId: state.shortId, tunnelUrl: null });
-
-  await updateSettings({ tunnelEnabled: false, tunnelUrl: "" });
-  // Force-clear flags so a subsequent enable is not blocked by a stuck spawnInProgress
-  svc.spawnInProgress = false;
-  svc.activeLocalPort = null;
-  return { success: true };
+  const closed = killCloudflared(svc.activeLocalPort);
+  const previous = [...scope.pending.values()];
+  return lifecycle.run(scope, "disable", async check => {
+    await Promise.allSettled(previous);
+    await closed;
+    check();
+    clearPid();
+    const state = loadState();
+    if (state) saveState({ shortId: state.shortId, tunnelUrl: null });
+    await updateSettings({ tunnelEnabled: false, tunnelUrl: "" });
+    check();
+    svc.spawnInProgress = false;
+    svc.activeLocalPort = null;
+    return { success: true };
+  });
 }
 
 export async function getTunnelStatus() {

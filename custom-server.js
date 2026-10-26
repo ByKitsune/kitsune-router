@@ -3,8 +3,36 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const { isIP } = require("node:net");
-const { pathToFileURL } = require("url");
+const { registerShutdownHook, isShuttingDown, runShutdownHooks } = require("./shutdown-lifecycle.cjs");
 
+const managedShutdown = require.main === module;
+if (managedShutdown) {
+  process.env.ZENROUTER_MANAGED_SHUTDOWN = "1";
+  process.env.NEXT_MANUAL_SIG_HANDLE = "1";
+  const dbLifecycle = globalThis[Symbol.for("zenrouter.db.lifecycle")] ??= { managed: true, releases: new Set() };
+  dbLifecycle.managed = true;
+  for (const release of [...dbLifecycle.releases]) release();
+  let stopping = false;
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.once(signal, () => {
+      if (stopping) return;
+      stopping = true;
+      const configured = Number(process.env.ZENROUTER_SHUTDOWN_DEADLINE_MS || 15000);
+      const deadlineMs = Number.isSafeInteger(configured) && configured > 0 ? configured : 15000;
+      const forceExit = setTimeout(() => process.exit(1), deadlineMs);
+      runShutdownHooks({ deadlineMs }).then(() => {
+        clearTimeout(forceExit);
+        process.exit(0);
+      }).catch(error => {
+        clearTimeout(forceExit);
+        console.error("[Shutdown]", error.message);
+        process.exit(1);
+      });
+    });
+  }
+}
+
+let serverNumber = 0;
 const origCreate = http.createServer.bind(http);
 
 // Load a .env sitting next to this file (or in the standalone project root)
@@ -74,39 +102,6 @@ const PEER_TOKEN = crypto.randomBytes(24).toString("hex");
 process.env.ZENROUTER_PEER_TOKEN = PEER_TOKEN;
 process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
 
-let backgroundRefreshStarted = false;
-
-function startBackgroundTokenRefreshFromCustomServer() {
-  if (backgroundRefreshStarted) return;
-  backgroundRefreshStarted = true;
-  // Prefer source path (repo / standalone that still has src). Fail-open if missing
-  // — initializeApp also starts the same scheduler when the Next app boots.
-  const modPath = path.join(__dirname, "src", "sse", "services", "backgroundTokenRefresh.js");
-  import(pathToFileURL(modPath).href)
-    .then((m) => {
-      try {
-        m.startBackgroundTokenRefresh();
-      } catch (e) {
-        console.error("[BackgroundTokenRefresh] start failed:", e && e.message ? e.message : e);
-      }
-      const stop = () => {
-        try {
-          m.stopBackgroundTokenRefresh();
-        } catch {
-          /* ignore */
-        }
-      };
-      process.once("SIGINT", stop);
-      process.once("SIGTERM", stop);
-    })
-    .catch((e) => {
-      // Expected in published CLI standalone (src/ not on disk). App bootstrap covers it.
-      if (process.env.DEBUG_BACKGROUND_TOKEN_REFRESH) {
-        console.error("[BackgroundTokenRefresh] import failed:", e && e.message ? e.message : e);
-      }
-    });
-}
-
 // Wrap Next standalone HTTP server: derive client IP from the TCP socket
 // (unspoofable) and strip client-supplied forwarding headers so downstream
 // rate-limiting keys on the real peer address instead of attacker-controlled XFF.
@@ -115,6 +110,32 @@ http.createServer = (...args) => {
   const rest = args.filter((a) => typeof a !== "function");
   if (!handler) return origCreate(...args);
   const wrapped = (req, res) => {
+    if (String(req.headers.connection || "").split(",").some(value => value.trim().toLowerCase() === "close")) {
+      const originalWriteHead = res.writeHead;
+      res.writeHead = function (statusCode, statusMessage, headers) {
+        if (typeof statusMessage !== "string") { headers = statusMessage; statusMessage = undefined; }
+        this.shouldKeepAlive = false;
+        this.setHeader("Connection", "close");
+        if (Array.isArray(headers)) {
+          const filtered = [];
+          for (let index = 0; index < headers.length; index += 2) {
+            if (String(headers[index]).toLowerCase() !== "connection") filtered.push(headers[index], headers[index + 1]);
+          }
+          headers = [...filtered, "Connection", "close"];
+        } else if (headers) {
+          headers = Object.fromEntries(Object.entries(headers).filter(([name]) => name.toLowerCase() !== "connection"));
+          headers.Connection = "close";
+        }
+        return statusMessage === undefined
+          ? originalWriteHead.call(this, statusCode, headers)
+          : originalWriteHead.call(this, statusCode, statusMessage, headers);
+      };
+    }
+    if (managedShutdown && isShuttingDown()) {
+      res.writeHead(503, { "Content-Type": "application/json", "Cache-Control": "no-store", Connection: "close", "Retry-After": "1" });
+      res.end('{"error":{"code":"service_draining","message":"Service is restarting"}}');
+      return;
+    }
     // Static Asset URL Normalizer: fix encoded dynamic segments in _next/static
     // e.g. /_next/static/chunks/app/(dashboard)/dashboard/providers/%5Bid%5D/page-*.js
     // Browser encodes [ ] ( ) but disk files are decoded. Without this, ChunkLoadError 2134.
@@ -242,14 +263,47 @@ http.createServer = (...args) => {
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);
-  // Increase HTTP keep-alive timeout to prevent stale connection resets during agent idle periods.
-  // Default Node keepAliveTimeout is 5s, which causes "error sending request" after idle.
-  // See decolua/9router#3709.
-  server.keepAliveTimeout = 65000;
-  server.headersTimeout = 66000;
-  server.once("listening", () => {
-    startBackgroundTokenRefreshFromCustomServer();
-  });
+  const configuredKeepAlive = Number(process.env.ZENROUTER_HTTP_KEEP_ALIVE_MS || 65000);
+  server.keepAliveTimeout = Number.isSafeInteger(configuredKeepAlive) && configuredKeepAlive >= 1000 && configuredKeepAlive <= 600000 ? configuredKeepAlive : 65000;
+  server.headersTimeout = Math.max(66000, server.keepAliveTimeout + 1000);
+  if (managedShutdown) {
+    const sockets = new Set();
+    const activeBySocket = new Map();
+    server.on("connection", socket => {
+      sockets.add(socket);
+      socket.once("close", () => { sockets.delete(socket); activeBySocket.delete(socket); });
+    });
+    server.on("request", (req, res) => {
+      const socket = req.socket;
+      activeBySocket.set(socket, (activeBySocket.get(socket) || 0) + 1);
+      let settled = false;
+      const complete = () => {
+        if (settled) return;
+        settled = true;
+        const active = Math.max(0, (activeBySocket.get(socket) || 1) - 1);
+        if (active) activeBySocket.set(socket, active);
+        else {
+          activeBySocket.delete(socket);
+          if (isShuttingDown() && !socket.destroyed) socket.end();
+        }
+      };
+      res.once("finish", complete);
+      res.once("close", complete);
+    });
+    const unregister = registerShutdownHook(`http-server-${++serverNumber}`, 20, ({ remainingMs }) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        for (const socket of sockets) socket.destroy();
+        reject(new Error("HTTP_DRAIN_DEADLINE_EXCEEDED"));
+      }, remainingMs);
+      server.close(error => {
+        clearTimeout(timer);
+        if (error && error.code !== "ERR_SERVER_NOT_RUNNING") reject(error);
+        else resolve();
+      });
+      server.closeIdleConnections?.();
+    }));
+    server.once("close", unregister);
+  }
   const origEmit = server.emit;
   // JBR 25 sends h2c upgrades that the HTTP/1.1 server would otherwise close.
   server.emit = function (event, ...eventArgs) {

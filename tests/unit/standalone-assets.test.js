@@ -43,15 +43,26 @@ describe("standalone build assets", () => {
       .toBe("static asset");
   });
 
-  // Without the wrapper beside server.js nothing can prove a request is local.
-  it("copies the request-sanitizing server wrapper into the standalone output", () => {
+  it("copies the request-sanitizing wrapper and shared shutdown lifecycle into standalone output", () => {
     const projectRoot = createBuildFixture(".next");
     writeFileSync(join(projectRoot, "custom-server.js"), "wrapper");
+    writeFileSync(join(projectRoot, "shutdown-lifecycle.cjs"), "lifecycle");
 
     copyStandaloneAssets({ projectRoot, distDir: ".next" });
 
     expect(readFileSync(join(projectRoot, ".next", "standalone", "custom-server.js"), "utf8"))
       .toBe("wrapper");
+    expect(readFileSync(join(projectRoot, ".next", "standalone", "shutdown-lifecycle.cjs"), "utf8"))
+      .toBe("lifecycle");
+  });
+
+  it("starts background refresh from Next instrumentation rather than an untraced raw import", () => {
+    const wrapper = readFileSync(new URL("../../custom-server.js", import.meta.url), "utf8");
+    const instrumentation = readFileSync(new URL("../../src/instrumentation.js", import.meta.url), "utf8");
+    expect(wrapper).not.toContain("startBackgroundTokenRefreshFromCustomServer");
+    expect(wrapper).not.toContain('"backgroundTokenRefresh.js"');
+    expect(instrumentation).toContain('import("@/sse/services/backgroundTokenRefresh.js")');
+    expect(instrumentation).toContain("startBackgroundTokenRefresh()");
   });
 
   it("preserves the raw MITM child's relative certificate and handler modules in standalone output", () => {

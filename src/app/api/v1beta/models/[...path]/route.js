@@ -14,7 +14,8 @@ import { API_CORS_HEADERS } from "@/shared/utils/cors.js";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { MAX_UPSTREAM_ERROR_BYTES, parseUpstreamError } from "open-sse/utils/error.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
-import { saveRequestUsage } from "@/lib/usageDb.js";
+import { randomUUID } from "node:crypto";
+import { enqueueRequestUsage } from "@/lib/usageDb.js";
 import { canonicalizeUsage, extractUsage } from "open-sse/utils/usageTracking.js";
 
 let initialized = false;
@@ -253,6 +254,8 @@ function exactGeminiNativeUsage(raw) {
 }
 
 function createGeminiNativeUsageRecorder(request, credentials, model) {
+  const eventId = randomUUID();
+  const timestamp = new Date().toISOString();
   let tokens = null;
   let persisted = null;
   let failed = false;
@@ -265,11 +268,17 @@ function createGeminiNativeUsageRecorder(request, credentials, model) {
     },
     persist(status = "success") {
       if (!tokens) return Promise.resolve();
-      persisted ??= saveRequestUsage({
-        provider: "gemini", model, connectionId: credentials.connectionId,
-        apiKey: extractGeminiClientApiKey(request), endpoint: new URL(request.url).pathname,
-        tokens, status: status === "success" && failed ? "error" : status,
-      }).catch(error => { console.log(`[GEMINI_NATIVE] usage persistence failed: ${error?.name || "Error"}`); });
+      if (!persisted) {
+        const entry = {
+          eventId, timestamp, provider: "gemini", model, connectionId: credentials.connectionId,
+          apiKey: extractGeminiClientApiKey(request), endpoint: new URL(request.url).pathname,
+          tokens: structuredClone(tokens), status: status === "success" && failed ? "error" : status,
+        };
+        persisted = enqueueRequestUsage(entry).catch(() => {
+          console.error("[GEMINI_NATIVE] Durable usage acceptance failed");
+          throw Object.assign(new Error("Usage accounting could not be accepted"), { code: "usage_acceptance_failed" });
+        });
+      }
       return persisted;
     },
   };
@@ -379,17 +388,32 @@ function observeGeminiNativeBody(response, recorder, request, attemptController,
     }
   } : observeJson;
   const flush = () => observe(decoder.decode());
-  const onAbort = () => {
-    if (finished) return;
+  let completion;
+  const finish = (status, reason, cancelUpstream = false) => {
+    if (completion) return completion;
     finished = true;
     cleanup();
     flush();
-    // Backpressure must not defer accounting until another client read that
-    // will never happen. The transport already observes the same caller signal.
-    void recorder.persist("aborted").then(() => {
-      streamController.error(request.signal.reason);
-      void reader.cancel(request.signal.reason).catch(() => {});
-    });
+    if (cancelUpstream) attemptController.abort(reason);
+    const release = (async () => {
+      try { if (cancelUpstream) await reader.cancel(reason); }
+      catch { /* A failed upstream read still needs its reader lock released. */ }
+      finally { reader.releaseLock(); }
+    })();
+    completion = (async () => {
+      try { await recorder.persist(status); }
+      finally { await release; }
+    })();
+    release.catch(() => {});
+    return completion;
+  };
+  const onAbort = () => {
+    if (finished) return;
+    const reason = request.signal.reason || new Error("Client closed request");
+    void finish("aborted", reason, true).then(
+      () => streamController.error(reason),
+      error => streamController.error(error),
+    ).catch(() => {});
   };
   return new ReadableStream({
     start(controller) {
@@ -398,35 +422,26 @@ function observeGeminiNativeBody(response, recorder, request, attemptController,
       if (request.signal?.aborted) onAbort();
     },
     async pull(controller) {
-      try {
-        const { done, value } = await reader.read();
+      let chunk;
+      try { chunk = await reader.read(); }
+      catch (error) {
         if (finished) return;
-        if (done) {
-          finished = true;
-          cleanup();
-          flush();
-          await recorder.persist();
-          controller.close();
-        } else {
-          observe(decoder.decode(value, { stream: true }));
-          controller.enqueue(value);
-        }
-      } catch (error) {
-        if (finished) return;
-        finished = true;
-        cleanup();
-        flush();
-        await recorder.persist(request.signal?.aborted ? "aborted" : "error");
+        try { await finish(request.signal?.aborted ? "aborted" : "error", error, true); }
+        catch (acceptanceError) { controller.error(acceptanceError); return; }
         controller.error(error);
+        return;
+      }
+      if (finished) return;
+      if (chunk.done) {
+        try { await finish("success"); controller.close(); }
+        catch (error) { controller.error(error); }
+      } else {
+        observe(decoder.decode(chunk.value, { stream: true }));
+        controller.enqueue(chunk.value);
       }
     },
     async cancel(reason) {
-      finished = true;
-      cleanup();
-      flush();
-      attemptController.abort(reason);
-      await recorder.persist("aborted");
-      await reader.cancel(reason).catch(() => {});
+      await finish("aborted", reason, true);
     },
   });
 }
@@ -584,7 +599,10 @@ async function forwardAdmittedGeminiNativeRequest(request, body, model, action) 
         return null;
       },
     });
-    await usageRecorder.persist("error");
+    try { await usageRecorder.persist("error"); }
+    catch {
+      return Response.json({ error: { code: "usage_acceptance_failed", message: "Usage accounting could not be accepted" } }, { status: 503, headers: { "Access-Control-Allow-Origin": "*" } });
+    }
     if (request.signal?.aborted) {
       return Response.json({ error: { message: "Client closed request" } }, { status: 499 });
     }

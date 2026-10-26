@@ -1,4 +1,5 @@
-import { createErrorResult, parseUpstreamError, formatProviderError } from "../utils/error.js";
+import { createErrorResult, formatProviderError } from "../utils/error.js";
+import { parseMediaError } from "./imageProviders/_base.js";
 import { HTTP_STATUS, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { getExecutor } from "../executors/index.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
@@ -21,7 +22,9 @@ export async function handleEmbeddingsCore({
   clientSignal,
 }) {
   const { provider, model } = modelInfo;
-  const cancelled = () => createErrorResult(499, "Client closed request");
+  let measured = null;
+  const cancelled = () => ({ ...createErrorResult(499, "Client closed request"), usage: measured });
+  const parseError = response => parseMediaError(response, value => { measured = value?.usage || null; }, clientSignal);
   if (clientSignal?.aborted) return cancelled();
 
   // Validate input
@@ -95,67 +98,58 @@ export async function handleEmbeddingsCore({
   } catch (error) {
     return fetchError(error);
   }
-  if (clientSignal?.aborted) return cancelled();
+  if (clientSignal?.aborted) {
+    await providerResponse.body?.cancel().catch(() => {});
+    return cancelled();
+  }
 
-  // Handle 401/403 — try token refresh (skip for noAuth providers)
   const executor = getExecutor(provider);
-  if (
-    !executor?.noAuth &&
-    (providerResponse.status === HTTP_STATUS.UNAUTHORIZED ||
-      providerResponse.status === HTTP_STATUS.FORBIDDEN)
-  ) {
-    let newCredentials;
-    try {
-      newCredentials = await refreshWithRetry(
-        () => executor.refreshCredentials(credentials, log, proxyOptions, clientSignal),
-        3,
-        log,
-        clientSignal,
-      );
-    } catch (error) {
-      return fetchError(error);
-    }
-
-    if (newCredentials?.accessToken || newCredentials?.apiKey) {
-      log?.info?.("TOKEN", `${provider.toUpperCase()} | refreshed for embeddings`);
-      Object.assign(credentials, newCredentials);
-      if (onCredentialsRefreshed) await onCredentialsRefreshed(newCredentials);
-      if (clientSignal?.aborted) return cancelled();
-
+  let diagnostics;
+  if (!executor?.noAuth && [HTTP_STATUS.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN].includes(providerResponse.status)) {
+    diagnostics = await parseError(providerResponse);
+    if (clientSignal?.aborted) return cancelled();
+    const prompt = measured?.prompt_tokens ?? measured?.input_tokens;
+    const incurred = Number.isSafeInteger(prompt) && prompt > 0 && measured?.total_tokens === prompt;
+    if (!incurred) {
+      let newCredentials;
       try {
-        const retryHeaders = adapter.buildHeaders(credentials, ctx);
-        const retryUrl = adapter.buildUrl(model, credentials, ctx);
-        void providerResponse.body?.cancel().catch(() => {});
-        providerResponse = await fetchAttempt(retryUrl, retryHeaders);
+        newCredentials = await refreshWithRetry(
+          () => executor.refreshCredentials(credentials, log, proxyOptions, clientSignal), 3, log, clientSignal,
+        );
+        if (newCredentials?.accessToken || newCredentials?.apiKey) {
+          if (onCredentialsRefreshed) await onCredentialsRefreshed(newCredentials);
+          clientSignal?.throwIfAborted();
+          Object.assign(credentials, newCredentials);
+          providerResponse = await fetchAttempt(adapter.buildUrl(model, credentials, ctx), adapter.buildHeaders(credentials, ctx));
+          diagnostics = null;
+        }
       } catch (error) {
+        if (error?.code === "STALE_CONNECTION_WRITE") {
+          return { ...createErrorResult(503, "Credentials changed during refresh", null, { code: error.code }), localFailure: true, usage: measured };
+        }
         return fetchError(error);
       }
-    } else {
-      log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
     }
   }
-  if (clientSignal?.aborted) return cancelled();
-
   if (!providerResponse.ok) {
-    const { statusCode, message } = await parseUpstreamError(providerResponse);
+    const { statusCode, message } = diagnostics || await parseError(providerResponse);
     if (clientSignal?.aborted) return cancelled();
-    const errMsg = formatProviderError(new Error(message), provider, model, statusCode);
-    log?.debug?.("EMBEDDINGS", `Provider error: ${errMsg}`);
-    return createErrorResult(statusCode, errMsg);
+    return { ...createErrorResult(statusCode, formatProviderError(new Error(message), provider, model, statusCode)), usage: measured };
   }
 
   let responseBody;
   try {
     responseBody = await providerResponse.json();
+    measured = responseBody?.usage || null;
   } catch {
     if (clientSignal?.aborted) return cancelled();
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Invalid JSON response from ${provider}`);
   }
   if (clientSignal?.aborted) return cancelled();
-
-  if (onRequestSuccess) await onRequestSuccess();
-
   const normalized = adapter.normalize(responseBody, model);
+  measured = normalized.usage || measured;
+  if (onRequestSuccess) await onRequestSuccess();
+  if (clientSignal?.aborted) return cancelled();
   log?.debug?.("EMBEDDINGS", `Success | usage=${JSON.stringify(normalized.usage || {})}`);
 
   return {

@@ -155,10 +155,13 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 
 ## 3) Persistence Layer
 
-Primary state DB — **SQLite** under `src/lib/db/` with an adapter fallback
-chain (`driver.js`): `bun:sqlite` → `better-sqlite3` (optional native dep) →
-`node:sqlite` (Node ≥22.5) → `sql.js`. Repos live in `src/lib/db/repos/*`;
-schema/migrations in `src/lib/db/migrations/`.
+Primary state DB — **SQLite** under `src/lib/db/`. Bun uses `bun:sqlite`;
+Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5).
+Pure-JS `sql.js` requires `ZENROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive
+single-process DATA_DIR ownership; native/sql.js mixed writers fail closed.
+A crash-left owner directory requires confirming the old process is gone before
+operator recovery. Repos live in `src/lib/db/repos/*`; schema/migrations in
+`src/lib/db/migrations/`.
 
 - file: `${DATA_DIR}/db/data.sqlite` (or `~/.zenrouter/db/data.sqlite`)
 - ⚠️ keep `DATA_DIR` ABSOLUTE for the standalone/bun build (it chdirs into
@@ -176,7 +179,9 @@ Usage and request logs use the same SQLite layer:
 
 - `src/lib/usageDb.js` re-exports the `usageHistory`, `usageDaily`, log and request-detail repositories
 - State follows the absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database
-- Full database import commits atomically before invalidating repository caches and advancing the process-local import generation. Declared capabilities, model responses, live catalogs and quota readers discard stale in-flight snapshots. The API also releases prior connection/project state and cached sudo credentials. MITM alias replica failure is reported explicitly as post-commit synchronization failure; it is not a database rollback. Multi-process deployments still require coordinating cache invalidation/restarts across workers.
+- Configuration mutations advance persisted scope revisions in the same transaction. Bounded per-adapter node/combo/connection/key/settings/pricing caches include access/filter parameters and reject stale in-flight snapshots across native SQLite workers. Runtime rotation counters use separate views. Full imports additionally advance the process-local generation and refresh dependent connection/project/quota/MITM state; a post-commit alias replica error is not a database rollback. Multi-process deployments still require coordinating non-repository state and lifecycle.
+- Usage acceptance freezes event identity, token snapshot, recorded timestamp, delivered tier and resolved quote in `usageOutbox`; a unique event index prevents replay duplication. Projection commits history, daily totals, lifetime count and queue removal together. Historical nullable costs remain unchanged. `enqueueRequestUsage` acknowledges durable acceptance only; `saveRequestUsage` waits for history-query visibility. SQLite acceptance/projection is deferred bounded synchronous work, not off-thread execution.
+- An incurred attempt retains its usage even on an upstream error or disconnect. `usage_acceptance_failed` is a local accounting failure, not provider unavailability: HTTP responses carry `x-should-retry: false`, without account cooldown, account/combo fallback or a fabricated retry time. The ByKitsune relay preserves that terminal header and does not repeat inference. An error after streaming headers remains a failed stream, not a success terminator.
 - Recorded token costs and component costs use `number | null`: an unknown used tariff is `null`, not a zero-dollar charge
 - Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
 - Daily/live groups, minute buckets and charts propagate unknown totals; Prometheus omits an unknown cost sample rather than publishing zero
@@ -353,7 +358,7 @@ Proactive checks in `src/sse/services/tokenRefresh.js` queue by connection throu
 
 GitHub Copilot service-token freshness uses its own expiry, independently from the OAuth `lastRefreshAt`. Adoption copies only service-token fields and synchronizes top-level/nested carriers. It does not overwrite caller proxy metadata or mark the OAuth grant refreshed. Existing policy-aware single-flight and ten-second result caches remain intact.
 
-This queue is process-local and proactive-only. It does not serialize other processes, reactive refresh writers or usage writers. The reactive path in `open-sse/handlers/chatCore.js` still uses executor `refreshCredentials()`.
+This network-refresh queue is process-local and proactive-only; it does not serialize refresh acquisition across workers. Credential commits use expected account snapshots and persisted import revisions to reject stale results. The reactive chat path still acquires through executor `refreshCredentials()`, but a stale persistence fence prevents its retry from dispatching replaced credentials. A commit fence is not a distributed single-use OAuth acquisition lock.
 
 ## Removed Cloud Sync Boundary
 
@@ -624,8 +629,8 @@ Primary contracts: [OpenAI Chat](https://developers.openai.com/api/reference/res
 ### Multimodal translation and capability routing
 
 - **Remote image URLs and inline base64**: Remote HTTP image URLs dispatched to Claude are prefetched and converted to inline base64 data URIs before reaching Anthropic's Messages API (which strictly forbids `source.type: "url"`). Claude requests with remote images preserve `OPENAI_BLOCK.IMAGE_URL` when bridging through OpenAI.
-- **Multimodal tool outputs**: Screenshots and images returned within `tool_result` content arrays are preserved as structured `OPENAI_BLOCK.IMAGE_URL` blocks and hoisted into user messages rather than stringified into raw text, preventing multi-million token context overflows.
-- **Documents and video**: Claude `document` blocks (PDF) map to OpenAI `file` and Responses `input_file` blocks. `video_url` and `input_video` blocks translate to Gemini `inlineData`/`fileData` and are cleanly stripped with descriptive placeholders when routed to non-video models.
+- **Multimodal tool outputs**: Screenshots and images remain typed media through the internal bridge. Destination serializers lower them after the corresponding contiguous tool replies, preserving order, occurrence ownership and raw call IDs. Native Gemini ingress retains explicitly supplied reused IDs; outbound Gemini serialization disambiguates wire IDs without changing ingress history. Image-only tool results must not become prose or an empty success.
+- **Documents and video**: Claude PDF blocks map to supported OpenAI `file`/Responses `input_file` representations; Gemini retains supported typed `inlineData`/`fileData`. Unsupported destination mappings, unresolved opaque IDs and overlong signed IDs fail explicitly. Do not silently replace media with descriptive placeholders or base64 text. An operator-selected modality strip is a distinct explicit policy, not translation support.
 - **Combo and fusion modality safety**: `detectRequiredCapabilities` scans the entire conversation history (including tool results and earlier user turns) so that follow-up turns never fall back to text-only models when media is present. In fusion mode, media blocks are stripped from the judge prompt so text-only judges evaluate clean text answers without crashing (Issue #3375).
 The 2026-09-27–2026-10-02 upstream audit adapted [#4143](https://github.com/decolua/9router/pull/4143), [#4533](https://github.com/decolua/9router/pull/4533), [#4481](https://github.com/decolua/9router/pull/4481), [#4523](https://github.com/decolua/9router/pull/4523), and [#4412](https://github.com/decolua/9router/pull/4412). Already-present streaming defaults, forced-Claude JSON conversion, Gemini system/schema fixes, and fork-specific security fixes were not duplicated. [Upstream insecure-TLS fallback](https://github.com/decolua/9router/commit/b58bd80406a24030acac6312fce519534c61947a) was rejected; certificate failures must not trigger unauthenticated TLS.
 
@@ -644,9 +649,10 @@ The 2026-09-27–2026-10-02 upstream audit adapted [#4143](https://github.com/de
 
 ## 3) Stream Safety
 
-- disconnect-aware stream controller with Bun & Node socket-close bridge in `custom-server.js` to immediately abort upstream requests and stop token billing on client hangup (#3559)
-- translation stream with end-of-stream flush, cancel-path aborted usage recording, and `[DONE]` handling
-- usage estimation fallback when provider usage metadata is missing
+- disconnect-aware stream controller with Bun & Node socket-close bridge in `custom-server.js` to abort upstream work on client hangup and retain already-incurred usage; cancellation does not prove that the provider stopped charging
+- incremental per-stream decoding handles split UTF-8, LF/CRLF/bare-CR lines, multiline SSE data, comments and fragmented events. Native Messages/Responses retain their own terminators; malformed or truncated EOF cannot fabricate successful completion.
+- valid deltas are emitted as soon as demand permits; finalization waits for durable usage acceptance. Native Gemini finish candidates retain a bounded3000ms grace for a following usage-only trailer. Caller cancellation releases readers/listeners and retains observed usage.
+- usage estimation fallback when provider usage metadata is missing; unknown or truncated accounting on an upstream HTTP error remains explicit uncertainty, not a zero-cost success. Known-usage acceptance failure is terminal503 even with concurrent cancellation; an aborted error-body read without observed usage returns499 without retry or account-health mutation.
 - Codex and Qoder inspect complete SSE events before committing response headers, bounded by 1000 ms and 256 KiB. Deadline handoff preserves consumed bytes and the outstanding read; cancellation closes the upstream reader/socket.
 - Qoder queue code `10605` returns HTTP 429 with available retry timing; quota codes `110`/`112` remain 403. Errors after output terminate in-band as structured SSE errors, never fabricated assistant text or a replayed request.
 

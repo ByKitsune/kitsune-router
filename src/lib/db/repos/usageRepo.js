@@ -1,10 +1,12 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { initializeOutbox, acceptOutbox, projectOutboxBatch, usageOutboxMetrics } from "../helpers/usageOutbox.js";
+import { readScopeRevision } from "../helpers/scopedCache.js";
 import { EventEmitter } from "events";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
-import { getMeta, setMeta } from "../helpers/metaStore.js";
 import { hardenEmitter } from "../../schedulerLifecycle.js";
 import { addNullableCost, mergeCostCoverage } from "../../../shared/utils/cost.js";
+import { canonicalizeUsage } from "../../../../open-sse/utils/usageTracking.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -174,17 +176,20 @@ export function invalidateUsageConnectionCache() {
 }
 
 async function getConnectionMapCached() {
-  if (Date.now() - connCache.ts < CONN_CACHE_TTL_MS) return connCache.map;
+  const db = await getAdapter();
+  const revision = readScopeRevision(db, ["connections", "connectionImport"]);
+  if (connCache.revision === revision && Date.now() - connCache.ts < CONN_CACHE_TTL_MS) return connCache.map;
   const pendingMap = connCache.map;
   try {
     const { getProviderConnections } = await import("./connectionsRepo.js");
     const all = await getProviderConnections();
     // An import may have replaced the connections while the read was pending.
-    if (connCache.map !== pendingMap) return getConnectionMapCached();
+    if (connCache.map !== pendingMap || readScopeRevision(db, ["connections", "connectionImport"]) !== revision) return getConnectionMapCached();
     const map = {};
     for (const c of all) map[c.id] = c.name || c.email || c.id;
     connCache.map = map;
     connCache.ts = Date.now();
+    connCache.revision = revision;
   } catch {}
   return connCache.map;
 }
@@ -206,13 +211,14 @@ async function ensureRingInitialized() {
 
 async function calculateCost(provider, model, tokens, timestamp) {
   try {
-    const { getPricingForModel } = await import("./pricingRepo.js");
+    const [{ getPricingForModel }, { calculateCostBreakdown }] = await Promise.all([
+      import("./pricingRepo.js"), import("open-sse/providers/pricing.js"),
+    ]);
     const pricing = provider && model ? await getPricingForModel(provider, model, { timestamp }) : null;
 
     // Keep pricing math centralized, including unknown and unused tariffs.
-    const { calculateCostBreakdown } = await import("open-sse/providers/pricing.js");
     const breakdown = calculateCostBreakdown(tokens, pricing);
-    return { cost: breakdown.totalCost, breakdown };
+    return { cost: breakdown.totalCost, breakdown, pricing: structuredClone(pricing) };
   } catch (e) {
     console.error("Error calculating cost:", e);
     // A failed calculation cannot establish a used component's price. Zero
@@ -325,85 +331,176 @@ export async function getActiveRequests() {
   return { activeRequests, recentRequests, errorProvider };
 }
 
-export async function saveRequestUsage(entry) {
-  try {
-    const db = await getAdapter();
+export function initializeUsagePersistence(db) {
+  return initializeOutbox(db, projectUsageEvent, entry => {
+    pushToRing({ ...entry, apiKey: null });
+    scheduleStatsEvent("update", 250);
+  });
+}
 
-    if (!entry.timestamp) entry.timestamp = new Date().toISOString();
-    if (entry._persistedUsageId == null) {
-      const { cost, breakdown } = await calculateCost(entry.provider, entry.model, entry.tokens, entry.timestamp);
-      entry.cost = cost;
-      entry.inputCost = addNullableCost(breakdown.inputCost, breakdown.cacheCreationCost);
-      entry.cachedCost = breakdown.cachedCost;
-      entry.outputCost = addNullableCost(breakdown.outputCost, breakdown.reasoningCost);
-    }
+function projectUsageEvent(db, entry) {
+  if (db.get(`SELECT id FROM usageHistory WHERE eventId = ?`, [entry.eventId])) return null;
+  const tokens = entry.tokens || {};
+  const result = db.run(
+    `INSERT INTO usageHistory(eventId, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, ttftMs, totalMs) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [entry.eventId, entry.timestamp, entry.provider, entry.model, entry.connectionId, entry.apiKey, entry.endpoint,
+      tokens.prompt_tokens ?? tokens.input_tokens ?? 0, tokens.completion_tokens ?? tokens.output_tokens ?? 0,
+      entry.cost, entry.status, stringifyJson(tokens), stringifyJson({ inputCost: entry.inputCost, cachedCost: entry.cachedCost, outputCost: entry.outputCost, quote: entry.quote, dateKey: entry.dateKey, canonicalTokens: entry.canonicalTokens }),
+      Number.isFinite(entry.latency?.ttft) && entry.latency.ttft > 0 ? Math.round(entry.latency.ttft) : null,
+      Number.isFinite(entry.latency?.total) && entry.latency.total > 0 ? Math.round(entry.latency.total) : null]);
+  const dateKey = entry.dateKey || getLocalDateKey(entry.timestamp);
+  const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
+  const day = row ? parseJson(row.data, {}) : {
+    requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
+    costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
+    byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
+  };
+  aggregateEntryToDay(day, entry);
+  db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
+  db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '1') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1`);
+  return { ...entry, _persistedUsageId: Number(result.lastInsertRowid) };
+}
 
-    const tokens = entry.tokens || {};
-    const promptTokens = tokens.prompt_tokens ?? tokens.input_tokens ?? 0;
-    const completionTokens = tokens.completion_tokens ?? tokens.output_tokens ?? 0;
-
-    let inserted = false;
-
-    // All 3 writes (history insert, daily upsert, lifetime counter) in ONE transaction.
-    // better-sqlite3 is sync → no JS yield mid-transaction → no race in same process.
-    db.transaction(() => {
-      // Dedup by OBJECT IDENTITY: re-saving the same entry object (retry /
-      // late endpoint backfill) updates the stored row instead of duplicating
-      // it. Field-equality dedup was removed — distinct requests completing in
-      // the same millisecond with identical model/tokens are legitimate rows,
-      // not duplicates, and must all persist.
-      if (entry._persistedUsageId != null) {
-        if (entry.endpoint && !entry._endpointPersisted) {
-          db.run(`UPDATE usageHistory SET endpoint = ? WHERE id = ?`, [entry.endpoint, entry._persistedUsageId]);
-          entry._endpointPersisted = true;
-        }
-        return;
-      }
-
-      const result = db.run(
-        `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, ttftMs, totalMs) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          entry.timestamp, entry.provider || null, entry.model || null,
-          entry.connectionId || null, entry.apiKey || null, entry.endpoint || null,
-          promptTokens, completionTokens, entry.cost, entry.status || "ok",
-          stringifyJson(tokens), stringifyJson({ inputCost: entry.inputCost, cachedCost: entry.cachedCost, outputCost: entry.outputCost }),
-          // NULL when unmeasured — never 0, which would read as "instant".
-          Number.isFinite(entry.latency?.ttft) && entry.latency.ttft > 0 ? Math.round(entry.latency.ttft) : null,
-          Number.isFinite(entry.latency?.total) && entry.latency.total > 0 ? Math.round(entry.latency.total) : null,
-        ]
-      );
-      try {
-        const rowid = Number(result?.lastInsertRowid ?? 0);
-        if (rowid > 0) {
-          entry._persistedUsageId = rowid;
-          entry._endpointPersisted = Boolean(entry.endpoint);
-        }
-      } catch { /* identity marker is best-effort */ }
-
-      const dateKey = getLocalDateKey(entry.timestamp);
-      const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
-      const day = row ? parseJson(row.data, {}) : {
-        requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
-        costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
-        byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
-      };
-      aggregateEntryToDay(day, entry);
-      db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
-
-      // Atomic counter increment in same transaction
-      const cur = db.get(`SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'`);
-      const next = (cur ? parseInt(cur.value, 10) : 0) + 1;
-      db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [String(next)]);
-      inserted = true;
-    });
-
-    if (inserted) {
-      pushToRing(entry);
-      scheduleStatsEvent("update", 250);
-    }
-  } catch (e) {
-    console.error("Failed to save usage stats:", e);
+export async function enqueueRequestUsage(entry) {
+  if (!entry || typeof entry !== "object") throw new TypeError("Usage entry is required");
+  const submitted = structuredClone({
+    eventId: entry.eventId, timestamp: entry.timestamp || new Date().toISOString(), provider: entry.provider || null, model: entry.model || null,
+    connectionId: entry.connectionId || null, apiKey: entry.apiKey || null, endpoint: entry.endpoint || null,
+    status: entry.status || "ok", tokens: entry.tokens || {}, latency: entry.latency || null,
+  });
+  if (Buffer.byteLength(JSON.stringify(submitted)) > 128 * 1024) {
+    throw Object.assign(new Error("Usage input exceeds accounting record limit"), { code: "USAGE_EVENT_TOO_LARGE" });
   }
+  const db = await getAdapter();
+  const state = initializeUsagePersistence(db);
+  let eventId = submitted.eventId || state.identities.get(entry);
+  if (!eventId) { eventId = randomUUID(); state.identities.set(entry, eventId); }
+  if (typeof eventId !== "string" || !eventId || eventId.length > 200) throw new TypeError("Invalid usage eventId");
+  if (!Number.isFinite(Date.parse(submitted.timestamp))) throw new TypeError("Invalid usage timestamp");
+  try {
+    if (!entry.eventId) Object.defineProperty(entry, "eventId", { value: eventId, configurable: true });
+    if (!entry.timestamp) entry.timestamp = submitted.timestamp;
+  } catch {}
+  const { timestamp } = submitted;
+  let snapshot = state.snapshots.get(entry);
+  if (!snapshot || snapshot.eventId !== eventId) {
+    snapshot = { ...submitted, eventId, dateKey: getLocalDateKey(timestamp), canonicalTokens: canonicalizeUsage(submitted.tokens) };
+    state.snapshots.set(entry, snapshot);
+  }
+  let operation = state.admissions.get(eventId);
+  if (!operation) {
+    if (state.accepting.size >= 256) {
+      state.rejected++;
+      throw Object.assign(new Error("Usage acceptance capacity exceeded; retry with the same eventId"), { code: "USAGE_ACCEPT_BUSY", eventId });
+    }
+    operation = (async () => {
+      const existing = db.get(`SELECT eventId FROM usageHistory WHERE eventId = ?`, [eventId])
+        || db.get(`SELECT eventId FROM usageOutbox WHERE eventId = ?`, [eventId]);
+      if (existing) { db.flushDurable?.(); state.duplicates++; return { eventId, accepted: true, duplicate: true }; }
+      if (!Object.hasOwn(snapshot, "quote")) {
+        const { cost, breakdown, pricing } = await calculateCost(snapshot.provider, snapshot.model, snapshot.tokens, snapshot.timestamp);
+        snapshot.cost = cost;
+        snapshot.inputCost = addNullableCost(breakdown.inputCost, breakdown.cacheCreationCost);
+        snapshot.cachedCost = breakdown.cachedCost;
+        snapshot.outputCost = addNullableCost(breakdown.outputCost, breakdown.reasoningCost);
+        snapshot.quote = { provider: snapshot.provider, model: snapshot.model, timestamp: snapshot.timestamp, pricing: pricing ?? null, breakdown };
+      }
+      return acceptOutbox(db, snapshot);
+    })();
+    state.admissions.set(eventId, operation);
+    state.accepting.add(operation);
+    operation.catch(() => { state.errors++; });
+    operation.finally(() => { state.admissions.delete(eventId); state.accepting.delete(operation); }).catch(() => {});
+  }
+  return operation;
+}
+
+function backfillUsageEndpoint(db, eventId, endpoint) {
+  let row = db.get(`SELECT * FROM usageHistory WHERE eventId = ?`, [eventId]);
+  if (!row || row.endpoint || !endpoint) return row;
+  db.transaction(() => {
+    row = db.get(`SELECT * FROM usageHistory WHERE eventId = ?`, [eventId]);
+    if (!row || row.endpoint) return;
+    db.run(`UPDATE usageHistory SET endpoint = ? WHERE eventId = ? AND endpoint IS NULL`, [endpoint, eventId]);
+    const dateKey = parseJson(row.meta, {})?.dateKey || getLocalDateKey(row.timestamp);
+    const daily = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
+    if (!daily) return;
+    const day = parseJson(daily.data, {});
+    const oldKey = `Unknown|${row.model}|${row.provider || "unknown"}`;
+    const nextKey = `${endpoint}|${row.model}|${row.provider || "unknown"}`;
+    const old = day.byEndpoint?.[oldKey];
+    if (old) {
+      const entry = { ...row, tokens: parseJson(row.tokens, {}), ...readCostComponents(row.meta) };
+      const one = { byEndpoint: {} };
+      aggregateEntryToDay(one, { ...entry, endpoint: "Unknown" });
+      const values = one.byEndpoint[oldKey];
+      for (const field of ["requests", "promptTokens", "completionTokens", "cachedTokens", "cost", ...COMPONENT_COST_FIELDS]) {
+        if (Number.isFinite(old[field]) && Number.isFinite(values[field])) old[field] -= values[field];
+      }
+      for (const [field, coverage] of Object.entries(values.costCoverage || {})) {
+        if (old.costCoverage?.[field]) {
+          old.costCoverage[field].knownCost -= coverage.knownCost || 0;
+          old.costCoverage[field].unknownRequests -= coverage.unknownRequests || 0;
+        }
+      }
+      if (old.requests <= 0) delete day.byEndpoint[oldKey];
+      else if (old.costCoverage) {
+        for (const [field, coverage] of Object.entries(old.costCoverage)) {
+          if (coverage.unknownRequests === 0 && coverage.knownCost !== null) old[field === "totalCost" ? "cost" : field] = coverage.knownCost;
+        }
+      }
+      const target = {};
+      aggregateEntryToDay(target, { ...entry, endpoint });
+      const next = target.byEndpoint[nextKey];
+      addToCounter(day.byEndpoint, nextKey, { ...next, costCoverage: next.costCoverage, meta: { endpoint, rawModel: row.model, provider: row.provider } });
+      db.run(`UPDATE usageDaily SET data = ? WHERE dateKey = ?`, [stringifyJson(day), dateKey]);
+    }
+  });
+  db.flushDurable?.();
+  return { ...row, endpoint };
+}
+
+export async function saveRequestUsage(entry) {
+  const accepted = await enqueueRequestUsage(entry);
+  const db = await getAdapter();
+  const deadline = Date.now() + 35_000;
+  let row;
+  do {
+    projectOutboxBatch(db, { eventId: accepted.eventId, force: true });
+    row = backfillUsageEndpoint(db, accepted.eventId, entry.endpoint);
+    if (row) break;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  } while (Date.now() < deadline);
+  if (!row) throw Object.assign(new Error("Usage accepted but projection did not become visible before deadline"), { code: "USAGE_PROJECTION_PENDING", eventId: accepted.eventId });
+  try {
+    entry._persistedUsageId = Number(row.id);
+    entry._endpointPersisted = Boolean(row.endpoint);
+    entry.cost = row.cost;
+    Object.assign(entry, readCostComponents(row.meta));
+  } catch {}
+  return { ...accepted, projected: true, id: Number(row.id) };
+}
+
+export async function getUsageQueueMetrics() {
+  const db = await getAdapter();
+  initializeUsagePersistence(db);
+  return usageOutboxMetrics(db);
+}
+
+export async function flushUsageQueue({ deadline = Date.now() + 5000, stop = false } = {}) {
+  const db = await getAdapter();
+  const state = initializeUsagePersistence(db);
+  if (stop) state.stopped = true;
+  if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+  while (Date.now() < deadline) {
+    if (state.accepting.size) await Promise.race([Promise.allSettled([...state.accepting]), new Promise(resolve => setTimeout(resolve, 10))]);
+    try { projectOutboxBatch(db, { force: true }); }
+    catch { state.errors++; }
+    const metrics = usageOutboxMetrics(db);
+    if (!metrics.depth && !metrics.accepting) return { ...metrics, drained: true };
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  return { ...usageOutboxMetrics(db), drained: false };
 }
 
 export async function getUsageHistory(filter = {}) {

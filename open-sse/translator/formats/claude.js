@@ -183,7 +183,7 @@ export function fixToolUseOrdering(messages) {
     } else {
       // Ensure content is array
       const content = Array.isArray(msg.content) ? msg.content : [{ type: CLAUDE_BLOCK.TEXT, text: msg.content }];
-      merged.push({ role: msg.role, content: [...content] });
+      merged.push({ ...msg, content: [...content] });
     }
   }
 

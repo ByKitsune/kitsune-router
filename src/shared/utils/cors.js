@@ -43,6 +43,7 @@ export const API_CORS_HEADERS = {
     "X-Stainless-Timeout",
   ].join(", "),
   "Access-Control-Max-Age": "86400",
+  "Access-Control-Expose-Headers": "x-request-id, x-should-retry, Retry-After",
 };
 
 export function corsHeaders(extra = {}) {

@@ -1,10 +1,35 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { calculateCostBreakdown, calculateCostFromTokens, getPricingForModel as price } from "../../open-sse/providers/pricing.js";
 
-const store = vi.hoisted(() => ({ value: {}, getAll: vi.fn(), write: vi.fn(() => { throw Error("Unexpected DB write"); }) }));
-vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: store.getAll, clear: store.write }) }));
-vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter: store.write }));
-beforeEach(() => { vi.resetModules(); store.value = {}; store.getAll.mockImplementation(async () => store.value); store.write.mockClear(); });
+const store = vi.hoisted(() => ({ value: {}, adapter: null, getAdapter: vi.fn(), read: vi.fn(), getAll: vi.fn(), write: vi.fn(() => { throw Error("Unexpected DB write"); }) }));
+vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: store.getAll, set: store.write, setMany: store.write, remove: store.write, clear: store.write }) }));
+vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter: store.getAdapter }));
+beforeEach(() => {
+  vi.resetModules();
+  vi.clearAllMocks();
+  store.value = {};
+  store.getAll.mockImplementation(async () => store.value);
+  store.read.mockImplementation((sql, keys) => {
+    expect([["cacheRevision:pricing"], ["cacheRevision:nodes", "cacheRevision:pricing"]]).toContainEqual(keys);
+    expect(sql).toBe(`SELECT key, value FROM _meta WHERE key IN (${keys.map(() => "?").join(",")})`);
+    return keys.map(key => ({ key, value: "0" }));
+  });
+  store.adapter = { all: store.read, run: store.write, exec: store.write, transaction: store.write, pragma: store.write, close: vi.fn() };
+  store.getAdapter.mockResolvedValue(store.adapter);
+  vi.stubGlobal("fetch", vi.fn(() => { throw Error("Unexpected network request"); }));
+});
+afterEach(() => {
+  try {
+    expect(store.getAdapter).toHaveBeenCalled();
+    expect(store.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?,?)", ["cacheRevision:nodes", "cacheRevision:pricing"]);
+    expect(store.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?)", ["cacheRevision:pricing"]);
+    expect(store.write).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    store.adapter.close();
+    vi.unstubAllGlobals();
+  }
+});
 
 describe("saved pricing metadata merge", () => {
   it("merges partial saved rates identically for billing and display without writing storage", async () => {
@@ -18,6 +43,17 @@ describe("saved pricing metadata merge", () => {
     const displayed = await repo.getPricing();
     expect(displayed.tokenrouter[model]).toEqual(expected);
     expect(displayed.tr[model]).toEqual(expected);
+    const saved = await repo.getSavedPricing();
+    expect(saved).toEqual(before);
+    expect(saved).not.toBe(store.value);
+    expect(saved.tr).not.toBe(store.value.tr);
+    expect(saved.tr[model]).not.toBe(store.value.tr[model]);
+    expect(Object.isFrozen(saved)).toBe(true);
+    expect(Object.isFrozen(saved.tr)).toBe(true);
+    expect(Object.isFrozen(saved.tr[model])).toBe(true);
+    expect(() => { saved.tr[model].input = 11; }).toThrow(TypeError);
+    expect(await repo.getSavedPricing()).toBe(saved);
+    expect(store.getAll).toHaveBeenCalledTimes(1);
     expect(store.value).toEqual(before);
     expect(store.write).not.toHaveBeenCalled();
   });

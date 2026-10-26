@@ -1,12 +1,36 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { calculateCostFromTokens } from "../../open-sse/providers/pricing.js";
 
-const fixture = vi.hoisted(() => ({ prices: {} }));
-vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: async () => fixture.prices }) }));
-vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter() { throw new Error("Unexpected state write"); } }));
+const fixture = vi.hoisted(() => ({ prices: {}, adapter: null, getAdapter: vi.fn(), read: vi.fn(), write: vi.fn(() => { throw new Error("Unexpected state write"); }) }));
+vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: async () => fixture.prices, set: fixture.write, setMany: fixture.write, remove: fixture.write, clear: fixture.write }) }));
+vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter: fixture.getAdapter }));
 
-beforeEach(() => { fixture.prices = {}; vi.resetModules(); });
-afterEach(() => vi.resetModules());
+beforeEach(() => {
+  fixture.prices = {};
+  vi.resetModules();
+  vi.clearAllMocks();
+  fixture.read.mockImplementation((sql, keys) => {
+    expect([["cacheRevision:pricing"], ["cacheRevision:nodes", "cacheRevision:pricing"]]).toContainEqual(keys);
+    expect(sql).toBe(`SELECT key, value FROM _meta WHERE key IN (${keys.map(() => "?").join(",")})`);
+    return keys.map(key => ({ key, value: "0" }));
+  });
+  fixture.adapter = { all: fixture.read, run: fixture.write, exec: fixture.write, transaction: fixture.write, pragma: fixture.write, close: vi.fn() };
+  fixture.getAdapter.mockResolvedValue(fixture.adapter);
+  vi.stubGlobal("fetch", vi.fn(() => { throw Error("Unexpected network request"); }));
+});
+afterEach(() => {
+  try {
+    expect(fixture.getAdapter).toHaveBeenCalled();
+    expect(fixture.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?,?)", ["cacheRevision:nodes", "cacheRevision:pricing"]);
+    expect(fixture.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?)", ["cacheRevision:pricing"]);
+    expect(fixture.write).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    fixture.adapter.close();
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  }
+});
 
 describe("published future price transitions use the recorded quote date", () => {
   it.each([

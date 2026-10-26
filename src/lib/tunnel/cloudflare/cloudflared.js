@@ -5,6 +5,10 @@ import os from "os";
 import { execSync, spawn } from "child_process";
 import { savePid, loadPid, clearPid } from "./pid.js";
 import { DATA_DIR } from "@/lib/dataDir.js";
+import { getHelperLifecycle } from "@/mitm/manager";
+
+const lifecycle = getHelperLifecycle();
+const scope = lifecycle.scope("cloudflared");
 
 const BIN_DIR = path.join(DATA_DIR, "bin");
 const BINARY_NAME = "cloudflared";
@@ -60,56 +64,54 @@ export function getDownloadStatus() {
   return { downloading: dlState.downloading, progress: dlState.progress };
 }
 
-function downloadFile(url, dest) {
+function downloadFile(url, dest, check) {
+  check();
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-
-    https.get(url, (response) => {
-      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
-        file.close();
-        fs.unlinkSync(dest);
-        downloadFile(response.headers.location, dest).then(resolve).catch(reject);
+    let file;
+    let failure;
+    const request = https.get(url, (response) => {
+      const next = [301, 302, 303, 307, 308].includes(response.statusCode) ? response.headers.location : null;
+      if (next || response.statusCode !== 200) {
+        response.resume();
+        response.once("end", () => {
+          try {
+            check();
+            if (next) downloadFile(new URL(next, url).href, dest, check).then(resolve, reject);
+            else reject(new Error(`Download failed with status ${response.statusCode}`));
+          } catch (error) { reject(error); }
+        });
+        response.once("error", reject);
         return;
       }
-
-      if (response.statusCode !== 200) {
-        file.close();
-        fs.unlinkSync(dest);
-        reject(new Error(`Download failed with status ${response.statusCode}`));
+      try { check(); }
+      catch (error) {
+        response.resume();
+        response.once("end", () => reject(error));
+        response.once("error", reject);
         return;
       }
-
+      file = fs.createWriteStream(dest);
       const totalBytes = parseInt(response.headers["content-length"], 10) || 0;
       let receivedBytes = 0;
       dlState.downloading = true;
       dlState.progress = 0;
-
-      response.on("data", (chunk) => {
+      response.on("data", chunk => {
         receivedBytes += chunk.length;
         if (totalBytes > 0) dlState.progress = Math.round((receivedBytes / totalBytes) * 100);
       });
-
+      response.once("error", error => file.destroy(error));
       response.pipe(file);
-
-      file.on("finish", () => {
+      response.once("aborted", () => file.destroy(new Error("cloudflared download aborted")));
+      file.once("error", error => { failure = error; response.destroy(); });
+      file.once("close", () => {
         dlState.downloading = false;
-        dlState.progress = 100;
-        file.close(() => resolve(dest));
+        if (failure) { dlState.progress = 0; reject(failure); }
+        else { dlState.progress = 100; resolve(dest); }
       });
-
-      file.on("error", (err) => {
-        dlState.downloading = false;
-        dlState.progress = 0;
-        file.close();
-        fs.unlinkSync(dest);
-        reject(err);
-      });
-    }).on("error", (err) => {
-      dlState.downloading = false;
-      dlState.progress = 0;
-      file.close();
-      if (fs.existsSync(dest)) fs.unlinkSync(dest);
-      reject(err);
+    });
+    request.once("error", error => {
+      if (file) { failure = error; file.destroy(error); }
+      else reject(error);
     });
   });
 }
@@ -134,15 +136,12 @@ function isValidBinary(filePath) {
   }
 }
 
-let downloadPromise = null;
-
-export async function ensureCloudflared() {
-  if (downloadPromise) return downloadPromise;
-  downloadPromise = _ensureCloudflared().finally(() => { downloadPromise = null; });
-  return downloadPromise;
+export function ensureCloudflared() {
+  return lifecycle.run(scope, "download", _ensureCloudflared);
 }
 
-async function _ensureCloudflared() {
+async function _ensureCloudflared(check) {
+  check();
   if (!fs.existsSync(BIN_DIR)) {
     fs.mkdirSync(BIN_DIR, { recursive: true });
   }
@@ -167,7 +166,8 @@ async function _ensureCloudflared() {
   const isArchive = url.endsWith(".tgz");
   const downloadDest = isArchive ? path.join(BIN_DIR, "cloudflared.tgz.tmp") : tmpPath;
 
-  await downloadFile(url, downloadDest);
+  await downloadFile(url, downloadDest, check);
+  check();
 
   if (isArchive) {
     execSync(`tar -xzf "${downloadDest}" -C "${BIN_DIR}"`, { stdio: "pipe", windowsHide: true });
@@ -183,17 +183,35 @@ async function _ensureCloudflared() {
   return BIN_PATH;
 }
 
-let cloudflaredProcess = null;
-let unexpectedExitHandler = null;
-let intentionalKill = false; // suppress unexpected-exit callback during deliberate kill
+scope.stop = () => {
+  scope.data.unexpectedExitHandler = null;
+  killCloudflared();
+};
 
 /** Register a callback to be called when cloudflared exits unexpectedly after connecting */
 export function setUnexpectedExitHandler(handler) {
-  unexpectedExitHandler = handler;
+  scope.data.unexpectedExitHandler = handler;
 }
 
-export async function spawnCloudflared(tunnelToken) {
+function notifyExit(generation) {
+  if (!lifecycle.active(scope, generation)) return;
+  lifecycle.run(scope, "exit-callback", () => scope.data.unexpectedExitHandler?.()).catch(() => {});
+}
+
+export function spawnCloudflared(tunnelToken) {
+  const processGeneration = scope.data.processGeneration || 0;
+  return lifecycle.run(scope, "spawn", (assert, generation) => {
+    const check = () => {
+      assert();
+      if ((scope.data.processGeneration || 0) !== processGeneration) throw new Error("cloudflared killed");
+    };
+    return runCloudflared(tunnelToken, check, generation);
+  });
+}
+
+async function runCloudflared(tunnelToken, check, generation) {
   const binaryPath = await ensureCloudflared();
+  check();
 
   const child = spawn(binaryPath, ["tunnel", "run", "--dns-resolver-addrs", "1.1.1.1:53", "--token", tunnelToken], {
     detached: false,
@@ -202,7 +220,7 @@ export async function spawnCloudflared(tunnelToken) {
     stdio: ["ignore", "pipe", "pipe"]
   });
 
-  cloudflaredProcess = child;
+  scope.data.process = lifecycle.child(scope, child);
   savePid(child.pid);
 
   return new Promise((resolve, reject) => {
@@ -239,7 +257,8 @@ export async function spawnCloudflared(tunnelToken) {
     });
 
     child.on("exit", (code, signal) => {
-      if (cloudflaredProcess === child) cloudflaredProcess = null;
+      const cloudflaredProcess = scope.data.process;
+      if (cloudflaredProcess === child) scope.data.process = null;
       clearPid(child.pid);
       const wasConnected = resolved; // true = already connected successfully
       if (!resolved) {
@@ -261,9 +280,8 @@ export async function spawnCloudflared(tunnelToken) {
         }
         return;
       }
-      // Watchdog (initializeApp) handles recovery — no auto-reconnect here
-      if (intentionalKill) { intentionalKill = false; return; }
-      if (wasConnected && unexpectedExitHandler) unexpectedExitHandler();
+      if (scope.data.killed?.has(child)) return;
+      if (wasConnected) notifyExit(generation);
     });
   });
 }
@@ -272,8 +290,20 @@ export async function spawnCloudflared(tunnelToken) {
  * Spawn cloudflared quick tunnel (no account needed)
  * Returns the generated trycloudflare.com URL
  */
-export async function spawnQuickTunnel(localPort, onUrlUpdate) {
+export function spawnQuickTunnel(localPort, onUrlUpdate, parentCheck = () => {}) {
+  const processGeneration = scope.data.processGeneration || 0;
+  return lifecycle.run(scope, "spawn", (assert, generation) => {
+    const check = () => {
+      assert(); parentCheck();
+      if ((scope.data.processGeneration || 0) !== processGeneration) throw new Error("cloudflared killed");
+    };
+    return runQuickTunnel(localPort, onUrlUpdate, check, generation);
+  });
+}
+
+async function runQuickTunnel(localPort, onUrlUpdate, check, generation) {
   const binaryPath = await ensureCloudflared();
+  check();
 
   const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "cloudflared-quick-"));
   const configPath = path.join(configDir, "config.yml");
@@ -302,7 +332,7 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
     stdio: ["ignore", "pipe", "pipe"],
   });
 
-  cloudflaredProcess = child;
+  scope.data.process = lifecycle.child(scope, child);
   savePid(child.pid);
 
   return new Promise((resolve, reject) => {
@@ -336,6 +366,8 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
     let lastUrl = null;
 
     const handleLog = (data) => {
+      if (!lifecycle.active(scope, generation)) return;
+      try { check(); } catch { return; }
       const msg = data.toString();
       logTail = (logTail + msg).slice(-4000);
       const tunnelUrl = getQuickTunnelUrlFromLog(msg);
@@ -356,7 +388,19 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
       if (tunnelUrl !== lastUrl) {
         console.log(`[Tunnel] cloudflared URL changed: ${tunnelUrl}`);
         lastUrl = tunnelUrl;
-        if (onUrlUpdate) onUrlUpdate(tunnelUrl);
+        if (onUrlUpdate) {
+          scope.data.nextUrl = tunnelUrl;
+          lifecycle.run(scope, "url-callback", async () => {
+            while (scope.data.nextUrl) {
+              check();
+              const url = scope.data.nextUrl;
+              scope.data.nextUrl = null;
+              try { await onUrlUpdate(url); }
+              catch { check(); }
+              check();
+            }
+          }).catch(() => {});
+        }
       }
     };
 
@@ -372,11 +416,11 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
     });
 
     child.on("exit", (code, signal) => {
-      if (cloudflaredProcess === child) cloudflaredProcess = null;
+      const cloudflaredProcess = scope.data.process;
+      if (cloudflaredProcess === child) scope.data.process = null;
       clearPid(child.pid);
       // Deliberate kill (restart/disable) — exit silently, no error noise
-      if (intentionalKill) {
-        intentionalKill = false;
+      if (scope.data.killed?.has(child) || !lifecycle.active(scope, generation)) {
         clearTimeout(timeout);
         cleanup();
         if (!resolved) { resolved = true; reject(new Error("cloudflared killed")); }
@@ -397,7 +441,7 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
         }
         return;
       }
-      if (unexpectedExitHandler) unexpectedExitHandler();
+      notifyExit(generation);
       cleanup();
     });
   });
@@ -418,12 +462,14 @@ function killCloudflaredByPort(port) {
 }
 
 export function killCloudflared(localPort) {
-  intentionalKill = true;
-  if (cloudflaredProcess) {
+  scope.data.killed ??= new WeakSet();
+  scope.data.processGeneration = (scope.data.processGeneration || 0) + 1;
+  if (scope.data.process) {
+    scope.data.killed.add(scope.data.process);
     try {
-      cloudflaredProcess.kill();
+      scope.data.process.kill();
     } catch (e) { /* ignore */ }
-    cloudflaredProcess = null;
+    scope.data.process = null;
   }
 
   const pid = loadPid();
@@ -435,6 +481,7 @@ export function killCloudflared(localPort) {
   }
 
   killCloudflaredByPort(localPort);
+  return Promise.all([...scope.children.values()]).then(() => {});
 }
 
 export function isCloudflaredRunning() {

@@ -21,19 +21,22 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-10-21T12:00:00Z"));
 });
 
-afterEach(() => {
-  for (const adapter of adapters) adapter.close();
+afterEach(async () => {
   vi.restoreAllMocks();
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  for (const event of shutdownEvents) {
-    for (const listener of process.rawListeners(event)) {
-      if (!previousListeners.get(event).includes(listener)) process.removeListener(event, listener);
+  try {
+    for (const adapter of adapters) await adapter.close();
+  } finally {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    for (const event of shutdownEvents) {
+      for (const listener of process.rawListeners(event)) {
+        if (!previousListeners.get(event).includes(listener)) process.removeListener(event, listener);
+      }
     }
+    vi.unstubAllEnvs();
+    vi.resetModules();
+    fs.rmSync(root, { recursive: true, force: true });
   }
-  vi.unstubAllEnvs();
-  vi.resetModules();
-  fs.rmSync(root, { recursive: true, force: true });
 });
 
 async function sqlJs() {
@@ -101,17 +104,27 @@ describe.skipIf(process.platform === "win32")("sql.js private atomic replacement
     await vi.advanceTimersByTimeAsync(100);
     expect(fs.readFileSync(file)).toEqual(before);
     expect(fs.readdirSync(root).filter(name => name.includes(".tmp-"))).toEqual([]);
+    expect(() => adapter.flushDurable()).toThrow("synthetic disk failure");
+    expect(fs.readFileSync(file)).toEqual(before);
+    expect(fs.readdirSync(root).filter(name => name.includes(".tmp-"))).toEqual([]);
     failing.mockRestore();
   });
 
   it("does not publish when a filesystem fails to apply private replacement permissions", async () => {
     const { adapter, file } = await sqlJs();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(fs, "fchmodSync").mockImplementation(() => { throw new Error("synthetic permission failure"); });
-    adapter.exec("CREATE TABLE synthetic_state(value TEXT)");
-    await vi.advanceTimersByTimeAsync(100);
-    expect(fs.existsSync(file)).toBe(false);
-    expect(fs.readdirSync(root).filter(name => name.includes(".tmp-"))).toEqual([]);
+    const failing = vi.spyOn(fs, "fchmodSync").mockImplementation(() => { throw new Error("synthetic permission failure"); });
+    try {
+      adapter.exec("CREATE TABLE synthetic_state(value TEXT)");
+      await vi.advanceTimersByTimeAsync(100);
+      expect(fs.existsSync(file)).toBe(false);
+      expect(fs.readdirSync(root).filter(name => name.includes(".tmp-"))).toEqual([]);
+      expect(() => adapter.flushDurable()).toThrow("synthetic permission failure");
+      expect(fs.existsSync(file)).toBe(false);
+      expect(fs.readdirSync(root).filter(name => name.includes(".tmp-"))).toEqual([]);
+    } finally {
+      failing.mockRestore();
+    }
   });
 });
 
@@ -122,6 +135,21 @@ async function nativeMigrationFixture() {
   const adapter = await createNodeSqliteAdapter(DATA_FILE);
   adapters.push(adapter);
   return { adapter, file: DATA_FILE, backups: BACKUPS_DIR };
+}
+
+async function seedVersionOneSchema(adapter) {
+  const { TABLES, buildCreateTableSql } = await import("@/lib/db/schema.js");
+  for (const [name, definition] of Object.entries(TABLES)) {
+    if (["connectionRuntime", "usageOutbox"].includes(name)) continue;
+    const columns = { ...definition.columns };
+    if (name === "usageHistory") {
+      delete columns.eventId;
+      delete columns.ttftMs;
+      delete columns.totalMs;
+    }
+    adapter.exec(buildCreateTableSql(name, { ...definition, columns }));
+    for (const index of definition.indexes || []) adapter.exec(index);
+  }
 }
 
 describe.skipIf(process.platform === "win32")("migration backup permissions and integrity", () => {
@@ -144,7 +172,7 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
 
   it("takes a private SQLite safety backup before schema synchronization", async () => {
     const { adapter, backups } = await nativeMigrationFixture();
-    adapter.exec("CREATE TABLE _meta(key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE settings(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
+    await seedVersionOneSchema(adapter);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["backupSchemaVersion", "1"]);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["schemaVersion", "1"]);
     adapter.run("INSERT INTO settings VALUES (?, ?)", [1, '{"synthetic":"preserved"}']);
@@ -158,6 +186,8 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
     const check = new DatabaseSync(file, { readOnly: true });
     try {
       expect(check.prepare("SELECT data FROM settings WHERE id = 1").get().data).toBe('{"synthetic":"preserved"}');
+      expect(check.prepare("PRAGMA table_info(usageHistory)").all().map(column => column.name)).not.toContain("eventId");
+      expect(check.prepare("SELECT value FROM _meta WHERE key='schemaVersion'").get().value).toBe("1");
     } finally {
       check.close();
     }
@@ -165,11 +195,12 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
 
   it("does not overwrite an existing SQLite backup with the same timestamp", async () => {
     const { adapter } = await nativeMigrationFixture();
-    adapter.exec("CREATE TABLE _meta(key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE settings(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
+    await seedVersionOneSchema(adapter);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["backupSchemaVersion", "1"]);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["schemaVersion", "1"]);
     const { makeBackupDir } = await import("@/lib/db/backup.js");
-    const backupDir = makeBackupDir("schema-1-to-2");
+    const { SCHEMA_VERSION } = await import("@/lib/db/schema.js");
+    const backupDir = makeBackupDir(`schema-1-to-${SCHEMA_VERSION}`);
     const backup = path.join(backupDir, "data.sqlite");
     fs.writeFileSync(backup, "synthetic-prior-backup");
     const { runMigrationOnce } = await import("@/lib/db/migrate.js");
@@ -196,7 +227,7 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
     const { createSqlJsAdapter } = await import("@/lib/db/adapters/sqljsAdapter.js");
     const adapter = await createSqlJsAdapter(DATA_FILE);
     adapters.push(adapter);
-    adapter.exec("CREATE TABLE _meta(key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE settings(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
+    await seedVersionOneSchema(adapter);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["backupSchemaVersion", "1"]);
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["schemaVersion", "1"]);
     adapter.run("INSERT INTO settings VALUES (?, ?)", [1, '{"synthetic":"preserved"}']);

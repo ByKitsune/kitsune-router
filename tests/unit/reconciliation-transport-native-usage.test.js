@@ -71,11 +71,12 @@ afterEach(async () => {
 });
 
 describe("native Gemini authoritative usage through the real repository", () => {
-  it("commits one canonical usage row before native JSON EOF with typed audio untouched", async () => {
+  it("accepts native JSON usage before EOF and projects one canonical row with typed audio untouched", async () => {
     const text = JSON.stringify({ ...audio, usageMetadata: metadata });
     await relay((_req, res) => { res.setHeader("Content-Type", "application/json"); res.end(text); });
     const response = await dispatch();
     expect(await response.text()).toBe(text);
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ provider: "gemini", connectionId: "native-usage-fixture", model: "gemini-3.1-flash-tts-preview",
@@ -111,16 +112,18 @@ describe("native Gemini authoritative usage through the real repository", () => 
       chunks.push(value);
     }
     expect(Buffer.concat(chunks).toString()).toBe(prefix + suffix);
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0].tokens).toEqual(expectedTokens);
   });
 
-  it("records one cumulative SSE usage row before EOF without rewriting native framing or duplicating trailers", async () => {
+  it("accepts cumulative SSE usage before EOF and projects one row without rewriting native framing or duplicating trailers", async () => {
     const text = `data: ${JSON.stringify(audio)}\n\ndata: ${JSON.stringify({ usageMetadata: metadata })}\n\ndata: ${JSON.stringify({ usageMetadata: metadata })}\n\n`;
     await relay((_req, res) => { res.setHeader("Content-Type", "text/event-stream"); res.end(text); });
     const response = await dispatch({ stream: true });
     expect(await response.text()).toBe(text);
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0].tokens).toEqual(expectedTokens);
@@ -132,6 +135,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     const text = `data: ${JSON.stringify(payload)}\n\n`;
     await relay((_req, res) => { res.setHeader("Content-Type", "text/event-stream"); res.end(text); });
     expect(await (await dispatch({ stream: true })).text()).toBe(text);
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0].tokens).toEqual(expectedTokens);
@@ -141,6 +145,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     const payload = { candidates: [{ content: { parts: [{ text: JSON.stringify({ usageMetadata: metadata }) }] } }] };
     await relay((_req, res) => { res.setHeader("Content-Type", "text/event-stream"); res.end(`data: ${JSON.stringify(payload)}\n\n`); });
     await (await dispatch({ stream: true })).text();
+    await usage.flushUsageQueue();
     expect(await usage.getUsageHistory()).toEqual([]);
   });
 
@@ -156,6 +161,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     if (end === "cancel") caller.abort(new Error("caller left after usage"));
     else upstream.destroy();
     expect(await pending).toBe("failed");
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0].tokens).toEqual(expectedTokens);
@@ -179,6 +185,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     caller.abort(new Error("caller left JSON after usage"));
     expect(response.status).toBe(200); // Headers were already delivered; do not rewrite the protocol.
     expect(await pending).toBe("aborted");
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ tokens: expectedTokens, status: "aborted" });
@@ -194,7 +201,10 @@ describe("native Gemini authoritative usage through the real repository", () => 
     await new Promise(resolve => setImmediate(resolve));
     caller.abort(new Error("caller stopped consuming SSE"));
     try {
-      await vi.waitFor(async () => expect(await usage.getUsageHistory()).toHaveLength(1), { timeout: 500 });
+      await vi.waitFor(async () => {
+        await usage.flushUsageQueue();
+        expect(await usage.getUsageHistory()).toHaveLength(1);
+      }, { timeout: 500 });
       expect((await usage.getUsageHistory())[0]).toMatchObject({ tokens: expectedTokens, status: "aborted" });
     } finally {
       await response.body.cancel().catch(() => {});
@@ -210,6 +220,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     const response = await dispatch();
     expect(response.status).toBe(429);
     expect((await response.json()).error.status).toBe("RESOURCE_EXHAUSTED");
+    await usage.flushUsageQueue();
     const rows = await usage.getUsageHistory();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ tokens: expectedTokens, status: "error" });
@@ -220,6 +231,7 @@ describe("native Gemini authoritative usage through the real repository", () => 
     "does not fabricate exact usage from missing, estimated or contradictory counters %#", async raw => {
       await relay((_req, res) => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ ...audio, usageMetadata: raw })); });
       await (await dispatch()).text();
+      await usage.flushUsageQueue();
       expect(await usage.getUsageHistory()).toEqual([]);
     });
 });

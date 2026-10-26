@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import dns from "node:dns";
+import dns from "node:dns/promises";
 import http from "node:http";
 import net from "node:net";
 import { Agent, Dispatcher1Wrapper } from "undici";
@@ -23,6 +23,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   for (const key of proxyEnvKeys) vi.stubEnv(key, "");
+  vi.stubEnv("DISABLE_MITM_BYPASS", "0");
   globalThis.fetch = patchedFetch;
   getProxyPoolById.mockReset();
 });
@@ -142,9 +143,7 @@ describe("configured egress uses real proxy transport without implicit direct re
   it("keeps a failed selected proxy out of the MITM direct-IP path", async () => {
     const trap = await origin("DIRECT EGRESS");
     const broken = await proxy();
-    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockImplementation((_host, callback) => {
-      callback(new Error("offline DNS failure"));
-    });
+    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockRejectedValue(new Error("offline DNS failure"));
     const result = await outcome(proxyAwareFetch(upstreamUrl(trap, "cloudcode-pa.googleapis.com"), requestOptions(), {
       enabled: true, url: broken.url, strictProxy: false,
     }));
@@ -431,9 +430,7 @@ describe("guard, cancellation and diagnostic boundaries", () => {
 
   it("matches MITM bypass hosts exactly, not hostname substrings", async () => {
     const direct = await origin("non-MITM fixture");
-    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockImplementation((_host, callback) => {
-      callback(new Error("offline DNS failure"));
-    });
+    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockRejectedValue(new Error("offline DNS failure"));
     const response = await proxyAwareFetch(upstreamUrl(direct, "cloudcode-pa.googleapis.com.attacker.invalid"), requestOptions());
     expect(await response.text()).toBe("non-MITM fixture");
     expect(dnsLookup).not.toHaveBeenCalled();
@@ -442,13 +439,22 @@ describe("guard, cancellation and diagnostic boundaries", () => {
   it("retains DNS bypass consideration for an exact intentional-direct MITM host", async () => {
     const direct = await origin("exact MITM fixture");
     globalThis.__mitmBypassCooldown?.delete("api2.cursor.sh");
-    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockImplementation((_host, callback) => {
-      callback(new Error("offline DNS failure"));
-    });
+    const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockRejectedValue(new Error("offline DNS failure"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const response = await proxyAwareFetch(upstreamUrl(direct, "api2.cursor.sh"), requestOptions());
+    const target = upstreamUrl(direct, "api2.cursor.sh");
+    const fetchState = globalThis[Symbol.for("zenrouter.proxy-fetch.v1")];
+    const dispatch = vi.spyOn(fetchState, "original").mockImplementation((url, options) => {
+      expect(url).toBe(target);
+      expect(options.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
+      return nativeFetch(direct.url, options);
+    });
+    const response = await proxyAwareFetch(target, {
+      method: "POST", headers: { authorization }, body, signal: AbortSignal.timeout(2000),
+    });
     expect(await response.text()).toBe("exact MITM fixture");
     expect(dnsLookup).toHaveBeenCalledOnce();
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(direct.requests).toEqual([{ authorization, body, target: undefined, path: undefined }]);
     globalThis.__mitmBypassCooldown?.delete("api2.cursor.sh");
   });
 });

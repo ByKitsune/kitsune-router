@@ -69,7 +69,7 @@ const nextConfig = {
     // connect-src 'none'` it WILL block. Remove that at proxy (nginx add_header,
     // Cloudflare Transform Rules). This header below is the correct enforcing policy.
     // Baseline security headers. Zen binds 127.0.0.1 but is published through a
-    // Cloudflare tunnel (zen.hlcyn.xyz → 127.0.0.1:20128), so responses do reach
+    // Cloudflare tunnel (router.bykitsune.org → 127.0.0.1:20128), so responses do reach
     // the public internet and the hardening applies.
     //   - X-Content-Type-Options stops MIME sniffing (a JSON error body must
     //     never be interpreted as HTML/script).

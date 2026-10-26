@@ -1,5 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import https from "node:https";
+import tls from "node:tls";
+import selfsigned from "selfsigned";
 
 /**
  * Bug: the MITM DNS bypass branch in `createBypassRequest` returned response
@@ -10,8 +12,8 @@ import https from "node:https";
  * executor also calls `response.arrayBuffer()` directly.
  *
  * These tests drive `createBypassRequest` against a local HTTPS server with
- * a self-signed cert. Each fixture request opts out of verification explicitly;
- * public-CA verification remains enabled process-wide.
+ * a self-signed cert. Fixtures opt out per request or inject a trusted fixture CA
+ * at the TLS boundary; public-CA verification remains enabled process-wide.
  */
 
 const HOST = "127.0.0.1";
@@ -149,6 +151,7 @@ describe("proxyFetch MITM bypass — response shape (#3514)", () => {
     // GitHub executor / combo.js / codex.js handlers hand back. A bare Map
     // throws "Invalid header object" inside the Response constructor.
     expect(() => new Response("body", { headers: res.headers })).not.toThrow();
+    await res.text();
   });
 
   it("exposes arrayBuffer() for callers like the Cursor executor", async () => {
@@ -171,6 +174,7 @@ describe("proxyFetch MITM bypass — response shape (#3514)", () => {
     const res = await __testing.createBypassRequest(url, HOST, { method: "POST", rejectUnauthorized: false });
     const cookies = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie")];
     expect(cookies).toEqual(expect.arrayContaining(["a=1", "b=2"]));
+    await res.text();
   });
 
   it("honors AbortSignal by destroying the in-flight socket", async () => {
@@ -191,5 +195,97 @@ describe("proxyFetch MITM bypass — response shape (#3514)", () => {
     ).rejects.toThrow();
 
     await hanging.close();
+  });
+
+  it("keeps caller cancellation attached through a real pinned-DNS TLS response body", async () => {
+    const hanging = await startServer((_req, res) => res.write("first"));
+    const ctrl = new AbortController();
+    try {
+      const response = await __testing.createBypassRequest(new URL(`https://pinned.fixture.invalid:${hanging.port}/stream`), HOST, {
+        signal: ctrl.signal, rejectUnauthorized: false,
+      });
+      const reader = response.body.getReader();
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe("first");
+      const pending = expect(reader.read()).rejects.toThrow();
+      ctrl.abort(new Error("caller stopped bypass body"));
+      await pending;
+      reader.releaseLock();
+    } finally { await hanging.close(); }
+  });
+
+  it("enforces a full-body deadline after headers, not just an idle connect timeout", async () => {
+    const hanging = await startServer((_req, res) => res.write("first"));
+    try {
+      const response = await __testing.createBypassRequest(new URL(`https://${HOST}:${hanging.port}/deadline`), HOST, {
+        rejectUnauthorized: false, requestTimeoutMs: 100,
+      });
+      await expect(response.text()).rejects.toThrow(/deadline/);
+    } finally { await hanging.close(); }
+  });
+
+  it("rejects a pre-header deadline without an unhandled socket error or pending promise", async () => {
+    const hanging = await startServer(() => {});
+    try {
+      await expect(__testing.createBypassRequest(new URL(`https://${HOST}:${hanging.port}/deadline`), HOST, {
+        rejectUnauthorized: false, requestTimeoutMs: 100,
+      })).rejects.toThrow(/deadline/);
+    } finally { await hanging.close(); }
+  });
+
+  it("returns a cancellable standard Response and explicitly reports bypass as unpooled", async () => {
+    const hanging = await startServer((_req, res) => res.write("body"));
+    const { getUpstreamPoolStats } = await import("open-sse/utils/proxyFetch.js");
+    const previousDeadline = Date.now() + 1000;
+    while (getUpstreamPoolStats().excluded.mitmBypass.active && Date.now() < previousDeadline) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    try {
+      const response = await __testing.createBypassRequest(new URL(`https://${HOST}:${hanging.port}/cancel`), HOST, { rejectUnauthorized: false });
+      expect(response).toBeInstanceOf(Response);
+      expect(getUpstreamPoolStats().excluded.mitmBypass).toMatchObject({ pooled: false, active: 1 });
+      await response.body.cancel();
+      const deadline = Date.now() + 1000;
+      while (getUpstreamPoolStats().excluded.mitmBypass.active && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      expect(getUpstreamPoolStats().excluded.mitmBypass.active).toBe(0);
+    } finally { await hanging.close(); }
+  });
+
+  it("pins the dial to the chosen IP but verifies the requested hostname and sends its SNI", async () => {
+    const hostname = "pinned.fixture.invalid";
+    const pems = await selfsigned.generate([{ name: "commonName", value: hostname }], {
+      algorithm: "sha256",
+      extensions: [{ name: "subjectAltName", altNames: [{ type: 2, value: hostname }] }],
+    });
+    const received = [];
+    const fixture = https.createServer({ key: pems.private, cert: pems.cert }, (req, res) => {
+      received.push({ sni: req.socket.servername, host: req.headers.host });
+      res.end("verified");
+    });
+    const sockets = new Set();
+    fixture.on("connection", socket => {
+      sockets.add(socket);
+      socket.once("close", () => sockets.delete(socket));
+    });
+    await new Promise(resolve => fixture.listen(0, HOST, resolve));
+    const connect = tls.connect;
+    const spy = vi.spyOn(tls, "connect").mockImplementation(options => {
+      expect(options.host).toBe(HOST);
+      expect(options.rejectUnauthorized).toBeUndefined();
+      return connect({ ...options, ca: pems.cert });
+    });
+    try {
+      const response = await __testing.createBypassRequest(new URL(`https://${hostname}:${fixture.address().port}/verified`), HOST);
+      expect(await response.text()).toBe("verified");
+      await expect(__testing.createBypassRequest(new URL(`https://wrong.fixture.invalid:${fixture.address().port}/rejected`), HOST))
+        .rejects.toThrow(/Hostname|altnames|certificate/i);
+      expect(received).toEqual([{ sni: hostname, host: `${hostname}:${fixture.address().port}` }]);
+    } finally {
+      spy.mockRestore();
+      const closing = new Promise(resolve => fixture.close(resolve));
+      for (const socket of sockets) socket.destroy();
+      await closing;
+    }
   });
 });

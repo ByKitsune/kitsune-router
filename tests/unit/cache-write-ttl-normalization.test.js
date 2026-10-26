@@ -3,7 +3,7 @@ const persisted = vi.hoisted(() => []);
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}),
-  saveRequestUsage: vi.fn(async (record) => { persisted.push(record); }),
+  enqueueRequestUsage: vi.fn(async (record) => { persisted.push(record); return { accepted: true, eventId: record.eventId }; }),
 }));
 import { canonicalizeUsage, filterUsageForFormat, normalizeUsage } from "../../open-sse/utils/usageTracking.js";
 import { toOpenAIUsage } from "../../open-sse/translator/concerns/usage.js";

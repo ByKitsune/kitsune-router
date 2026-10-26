@@ -16,6 +16,8 @@ import {
 import { getMitmStatus, startMitm, loadEncryptedPassword, initDbHooks, restoreToolDNS, removeAllDNSEntriesSync } from "@/mitm/manager";
 import { syncToJson as syncMitmAliasCache } from "@/lib/mitmAliasCache";
 import { killAllBridges } from "@/lib/mcp/stdioSseBridge";
+import { registerShutdownHook, isShuttingDown } from "@/lib/shutdownLifecycle.js";
+import { shutdownAllManaged } from "@/lib/schedulerLifecycle.js";
 
 // Inject correct paths and DB hooks into manager.js (CJS) from ESM context
 (function bootstrapMitm() {
@@ -48,31 +50,84 @@ const g = global.__appSingleton ??= {
   tunnelAutoResumed: false,
   tailscaleAutoResumed: false,
 };
+g.pending ??= new Map();
+
+function canStartWork() {
+  return !g.draining && !isShuttingDown();
+}
+
+function runOwnedTask(name, run) {
+  if (!canStartWork()) return Promise.resolve();
+  if (g.pending.has(name)) return g.pending.get(name);
+  const task = Promise.resolve().then(() => {
+    if (canStartWork()) return run();
+  });
+  g.pending.set(name, task);
+  task.finally(() => {
+    if (g.pending.get(name) === task) g.pending.delete(name);
+  }).catch(() => {});
+  return task;
+}
+
+export function stopApplicationStartup() {
+  if (g.stopPromise) return g.stopPromise;
+  g.draining = true;
+  clearTimeout(g.startupTimeout);
+  g.startupTimeout = null;
+  stopWatchdog();
+  stopNetworkMonitor();
+  setTunnelUnexpectedExitCallback(null);
+  for (const service of [getTunnelService(), getTailscaleService()]) {
+    if (service.cancelToken) service.cancelToken.cancelled = true;
+  }
+  shutdownAllManaged();
+  killCloudflared();
+  const helperDrain = globalThis[Symbol.for("zenrouter.helper.lifecycle")]?.stop();
+  g.stopPromise = (async () => {
+    while (g.pending.size) await Promise.allSettled([...g.pending.values()]);
+    await helperDrain;
+  })();
+  return g.stopPromise;
+}
+
+async function cleanupApplication() {
+  await stopApplicationStartup();
+  try { removeAllDNSEntriesSync(); } catch { /* best effort */ }
+  try { killAllBridges(); } catch { /* best effort */ }
+  killCloudflared();
+}
+
+function registerApplicationCleanup() {
+  if (g.signalHandlersRegistered) return;
+  if (process.env.ZENROUTER_MANAGED_SHUTDOWN === "1") {
+    registerShutdownHook("application-schedulers", 10, cleanupApplication);
+  } else {
+    const exit = () => {
+      cleanupApplication().then(() => process.exit(), (error) => {
+        console.error("[InitApp] cleanup failed:", error);
+        process.exit(1);
+      });
+    };
+    process.on("SIGINT", exit);
+    process.on("SIGTERM", exit);
+  }
+  g.exitHandler = () => { try { removeAllDNSEntriesSync(); } catch { /* ignore */ } };
+  process.on("exit", g.exitHandler);
+  g.signalHandlersRegistered = true;
+}
 
 export async function initializeApp() {
   try {
-    // Register cleanup + exit-respawn callback immediately so signals and
-    // unexpected cloudflared exits are handled even during the deferred window.
-    if (!g.signalHandlersRegistered) {
-      const cleanup = () => {
-        try { removeAllDNSEntriesSync(); } catch { /* best effort */ }
-        try { killAllBridges(); } catch { /* best effort */ }
-        killCloudflared();
-        process.exit();
-      };
-      process.on("SIGINT", cleanup);
-      process.on("SIGTERM", cleanup);
-      process.on("exit", () => { try { removeAllDNSEntriesSync(); } catch { /* ignore */ } });
-      g.signalHandlersRegistered = true;
-    }
+    registerApplicationCleanup();
+    if (!canStartWork()) return;
+    setTunnelUnexpectedExitCallback(() => safeRestartTunnel("unexpected-exit"));
 
-    setTunnelUnexpectedExitCallback(() => {
-      safeRestartTunnel("unexpected-exit").catch(() => {});
-    });
-
-    // Defer the heavy work — nothing here blocks incoming requests.
-    setTimeout(() => {
-      runHeavyStartup().catch((e) => console.error("[InitApp] deferred startup failed:", e.message));
+    if (g.startupScheduled) return;
+    g.startupScheduled = true;
+    g.startupTimeout = setTimeout(() => {
+      g.startupTimeout = null;
+      runOwnedTask("startup", runHeavyStartup)
+        .catch((e) => console.error("[InitApp] deferred startup failed:", e.message));
     }, STARTUP_DEFER_MS);
   } catch (error) {
     console.error("[InitApp] Error:", error);
@@ -80,8 +135,11 @@ export async function initializeApp() {
 }
 
 async function runHeavyStartup() {
+  if (!canStartWork()) return;
   await cleanupProviderConnections();
+  if (!canStartWork()) return;
   const settings = await getSettings();
+  if (!canStartWork()) return;
 
   // Auto-resume tunnel (once per process)
   if (settings.tunnelEnabled && !g.tunnelAutoResumed) {
@@ -97,27 +155,29 @@ async function runHeavyStartup() {
     safeRestartTailscale("startup").catch((e) => console.log("[InitApp] Tailscale resume failed:", e.message));
   }
 
-  if (settings.tunnelEnabled) ensureCloudflared().catch(() => {});
+  if (settings.tunnelEnabled) runOwnedTask("cloudflared", ensureCloudflared).catch(() => {});
 
   if (settings.mitmEnabled && process.env.ZENROUTER_DISABLE_MITM !== "1") {
     // Sync mitmAlias DB → JSON cache so standalone MITM server can read it.
-    syncMitmAliasCache().catch(() => {});
-    autoStartMitm(settings);
+    runOwnedTask("mitm-aliases", syncMitmAliasCache).catch(() => {});
+    runOwnedTask("mitm", () => autoStartMitm(settings)).catch(() => {});
   }
 
   configureTunnelMonitoring(settings);
 
   if (hasQuotaAutoPingEnabled(settings)) {
-    import("@/shared/services/quotaAutoPing")
-      .then(({ startQuotaAutoPing }) => startQuotaAutoPing())
-      .catch((e) => console.log("[AutoPing] scheduler start failed:", e.message));
+    runOwnedTask("quota-start", async () => {
+      const { startQuotaAutoPing } = await import("@/shared/services/quotaAutoPing");
+      if (canStartWork()) startQuotaAutoPing();
+    }).catch((e) => console.log("[AutoPing] scheduler start failed:", e.message));
   }
 
   // Proactive OAuth token refresh (e.g. grok-cli ~6h TTL). Module is idempotent
   // and also started from custom-server.js when that entry is used.
-  import("@/sse/services/backgroundTokenRefresh.js")
-    .then(({ startBackgroundTokenRefresh }) => startBackgroundTokenRefresh())
-    .catch((e) => console.log("[BackgroundTokenRefresh] scheduler start failed:", e.message));
+  runOwnedTask("refresh-start", async () => {
+    const { startBackgroundTokenRefresh } = await import("@/sse/services/backgroundTokenRefresh.js");
+    if (canStartWork()) startBackgroundTokenRefresh();
+  }).catch((e) => console.log("[BackgroundTokenRefresh] scheduler start failed:", e.message));
 }
 
 function hasQuotaAutoPingEnabled(settings) {
@@ -126,24 +186,27 @@ function hasQuotaAutoPingEnabled(settings) {
 }
 
 async function autoStartMitm(settings) {
-  if (g.mitmStartInProgress) return;
+  if (g.mitmStartInProgress || !canStartWork()) return;
   g.mitmStartInProgress = true;
   try {
     if (!settings.mitmEnabled) return;
     const mitmStatus = await getMitmStatus();
-    if (mitmStatus.running) return;
+    if (!canStartWork() || mitmStatus.running) return;
 
     const password = await loadEncryptedPassword();
+    if (!canStartWork()) return;
     if (!password && process.platform !== "win32") {
       console.log("[InitApp] MITM was enabled but no saved password found, skipping auto-start");
       return;
     }
 
     const keys = await getApiKeys();
+    if (!canStartWork()) return;
     const activeKey = keys.find(k => k.isActive !== false);
 
     console.log("[InitApp] MITM was enabled, auto-starting...");
     await startMitm(activeKey?.key || "sk_zenrouter", password);
+    if (!canStartWork()) return;
     console.log("[InitApp] MITM auto-started");
     try {
       await restoreToolDNS(password);
@@ -164,10 +227,15 @@ const FORCE_RESTART_REASONS = /^(startup|netchange|sleep|sleep\+netchange|online
 
 // ─── Safe restart (4 guards: spawn / cooldown / alive / internet) ────────────
 
-async function safeRestartTunnel(reason) {
+function safeRestartTunnel(reason) {
+  return runOwnedTask("tunnel", () => restartTunnel(reason));
+}
+
+async function restartTunnel(reason) {
+  if (!canStartWork()) return;
   const svc = getTunnelService();
   const settings = await getSettings();
-  if (!settings.tunnelEnabled) return;
+  if (!canStartWork() || !settings.tunnelEnabled) return;
   if (svc.cancelToken.cancelled) return;
   if (svc.spawnInProgress) return;
 
@@ -181,11 +249,12 @@ async function safeRestartTunnel(reason) {
     console.log(`[Tunnel] degraded but cooldown active, skip (${reason})`);
     return;
   }
-  if (!await checkInternet()) return;
+  if (!await checkInternet() || !canStartWork() || svc.cancelToken.cancelled) return;
 
   console.log(`[Tunnel] safeRestart (${reason}) — tunnel unreachable${force ? " [force]" : ""}`);
   try {
     await enableTunnel();
+    if (!canStartWork()) return;
     svc.lastRestartAt = Date.now();
     console.log("[Tunnel] restart success");
   } catch (err) {
@@ -195,22 +264,28 @@ async function safeRestartTunnel(reason) {
   }
 }
 
-async function safeRestartTailscale(reason) {
+function safeRestartTailscale(reason) {
+  return runOwnedTask("tailscale", () => restartTailscale(reason));
+}
+
+async function restartTailscale(reason) {
+  if (!canStartWork()) return;
   const svc = getTailscaleService();
   const settings = await getSettings();
-  if (!settings.tailscaleEnabled) return;
+  if (!canStartWork() || !settings.tailscaleEnabled) return;
   if (svc.cancelToken.cancelled) return;
   if (svc.spawnInProgress) return;
 
   // Tailscale daemon is OS-level with built-in reconnect; trust it when running (even on netchange).
   // Startup uses strict probe — cached state is cold after process/dev reload.
   const running = reason === "startup" ? await isTailscaleRunningStrict() : isTailscaleRunning();
-  if (running) return;
+  if (running || !canStartWork() || svc.cancelToken.cancelled) return;
 
   // Daemon alive but funnel dropped → recover funnel only; never full-restart (preserves login/daemon).
   if (isDaemonAlive() && svc.activeLocalPort) {
     try {
       await startFunnel(svc.activeLocalPort);
+      if (!canStartWork()) return;
       svc.lastRestartAt = Date.now();
       console.log("[Tailscale] funnel re-established (daemon alive)");
     } catch (err) {
@@ -224,11 +299,12 @@ async function safeRestartTailscale(reason) {
     console.log(`[Tailscale] degraded but cooldown active, skip (${reason})`);
     return;
   }
-  if (!await checkInternet()) return;
+  if (!await checkInternet() || !canStartWork() || svc.cancelToken.cancelled) return;
 
   console.log(`[Tailscale] safeRestart (${reason}) — daemon not running${force ? " [force]" : ""}`);
   try {
     await enableTailscale();
+    if (!canStartWork()) return;
     svc.lastRestartAt = Date.now();
     console.log("[Tailscale] restart success");
   } catch (err) {
@@ -239,7 +315,7 @@ async function safeRestartTailscale(reason) {
 // ─── Watchdog: 60s tick check both services ──────────────────────────────────
 
 function startWatchdog() {
-  if (g.watchdogInterval) return;
+  if (g.watchdogInterval || !canStartWork()) return;
   g.watchdogInterval = setInterval(() => {
     safeRestartTunnel("watchdog").catch(() => {});
     safeRestartTailscale("watchdog").catch(() => {});
@@ -271,60 +347,75 @@ function getNetworkFingerprint() {
 }
 
 function startNetworkMonitor() {
-  if (g.networkMonitorInterval) return;
+  if (g.networkMonitorInterval || !canStartWork()) return;
 
   g.lastNetworkFingerprint = getNetworkFingerprint();
   g.lastWatchdogTick = Date.now();
   g.lastOnline = null;
+  const generation = g.networkGeneration || 0;
 
-  g.networkMonitorInterval = setInterval(async () => {
-    try {
-      const now = Date.now();
-      const elapsed = now - g.lastWatchdogTick;
-      g.lastWatchdogTick = now;
-
-      const currentFingerprint = getNetworkFingerprint();
-      const networkChanged = currentFingerprint !== g.lastNetworkFingerprint;
-      const wasSleep = elapsed > NETWORK_CHECK_INTERVAL_MS * 6;
-      if (networkChanged) g.lastNetworkFingerprint = currentFingerprint;
-
-      // Real reachability check (TCP 1.1.1.1:443) — not just interface presence
-      const online = await checkInternet();
-      const wasOffline = g.lastOnline === false;
-      g.lastOnline = online;
-
-      if (!online) return; // no internet → idle, don't restart
-
-      const onlineEdge = wasOffline; // offline → online transition
-      if (!networkChanged && !wasSleep && !onlineEdge) return;
-
-      // Wait for DHCP/DNS to settle before probing
-      await new Promise((r) => setTimeout(r, NETWORK_SETTLE_MS));
-
-      const reason = onlineEdge ? "online"
-        : wasSleep && networkChanged ? "sleep+netchange"
-        : wasSleep ? "sleep" : "netchange";
-      safeRestartTunnel(reason).catch(() => {});
-      safeRestartTailscale(reason).catch(() => {});
-    } catch (err) {
-      console.log("[NetworkMonitor] error:", err.message);
-    }
+  g.networkMonitorInterval = setInterval(() => {
+    runOwnedTask("network-monitor", () => checkNetwork(generation))
+      .catch((err) => console.log("[NetworkMonitor] error:", err.message));
   }, NETWORK_CHECK_INTERVAL_MS);
 
   if (g.networkMonitorInterval.unref) g.networkMonitorInterval.unref();
 }
 
+async function checkNetwork(generation) {
+  const canContinue = () => canStartWork() && (g.networkGeneration || 0) === generation;
+  if (!canContinue()) return;
+  const now = Date.now();
+  const elapsed = now - g.lastWatchdogTick;
+  g.lastWatchdogTick = now;
+
+  const currentFingerprint = getNetworkFingerprint();
+  const networkChanged = currentFingerprint !== g.lastNetworkFingerprint;
+  const wasSleep = elapsed > NETWORK_CHECK_INTERVAL_MS * 6;
+  if (networkChanged) g.lastNetworkFingerprint = currentFingerprint;
+
+  // Real reachability check (TCP 1.1.1.1:443) — not just interface presence
+  const online = await checkInternet();
+  if (!canContinue()) return;
+  const wasOffline = g.lastOnline === false;
+  g.lastOnline = online;
+
+  if (!online) return; // no internet → idle, don't restart
+
+  const onlineEdge = wasOffline; // offline → online transition
+  if (!networkChanged && !wasSleep && !onlineEdge) return;
+
+  // Wait for DHCP/DNS to settle before probing.
+  await new Promise((resolve) => {
+    g.networkSettleResolve = resolve;
+    g.networkSettleTimeout = setTimeout(resolve, NETWORK_SETTLE_MS);
+  });
+  g.networkSettleTimeout = null;
+  g.networkSettleResolve = null;
+  if (!canContinue()) return;
+
+  const reason = onlineEdge ? "online"
+    : wasSleep && networkChanged ? "sleep+netchange"
+    : wasSleep ? "sleep" : "netchange";
+  safeRestartTunnel(reason).catch(() => {});
+  safeRestartTailscale(reason).catch(() => {});
+}
 
 function stopNetworkMonitor() {
-  if (!g.networkMonitorInterval) return;
   clearInterval(g.networkMonitorInterval);
   g.networkMonitorInterval = null;
+  g.networkGeneration = (g.networkGeneration || 0) + 1;
+  clearTimeout(g.networkSettleTimeout);
+  g.networkSettleTimeout = null;
+  g.networkSettleResolve?.();
+  g.networkSettleResolve = null;
   g.lastNetworkFingerprint = null;
   g.lastOnline = null;
 }
 
 export function configureTunnelMonitoring(settings) {
-  if (settings?.tunnelEnabled || settings?.tailscaleEnabled) {
+  if (canStartWork() && (settings?.tunnelEnabled || settings?.tailscaleEnabled)) {
+    registerApplicationCleanup();
     startWatchdog();
     startNetworkMonitor();
     return;

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   isValidBase64,
   buildToolCallId,
@@ -12,10 +12,6 @@ import { DEFAULT_THINKING_AG_SIGNATURE } from "../../open-sse/config/defaultThin
 import { checkFallbackError } from "../../open-sse/services/accountFallback.js";
 
 describe("Thought signature validation & truncation resilience", () => {
-  beforeEach(() => {
-    clearSignatureCache();
-  });
-
   it("identifies invalid base64 strings, including the truncated 25-char error string", () => {
     // Exact truncated signature from the log that triggered Google API 400:
     // "Invalid value at 'request.contents[191].parts[0].thought_signature' (TYPE_BYTES), Base64 decoding failed for \"EmIKYAERTTIPsMumWW2CIAWzb\""
@@ -47,37 +43,53 @@ describe("Thought signature validation & truncation resilience", () => {
     expect(split.thoughtSignature).toBe(sig);
   });
 
-  it("recovers full signature from cache when a client truncates tool_call_id", () => {
+  it("recovers the full truncated signature only from its explicit request-local map", () => {
     const sig = DEFAULT_THINKING_AG_SIGNATURE;
-    const fullId = buildToolCallId("read_file", 0, sig);
-
-    // Simulate client or database truncating id to 60 characters
+    const signatures = new Map();
+    const fullId = buildToolCallId("read_file", 0, sig, "call_request_one", signatures);
     const truncatedId = fullId.slice(0, 60);
     expect(truncatedId.length).toBe(60);
-
-    const split = splitToolCallId(truncatedId);
-    expect(split.thoughtSignature).toBe(sig);
+    expect(splitToolCallId(truncatedId, signatures)).toEqual({ rawId: "call_request_one", thoughtSignature: sig });
+    expect(splitToolCallId(truncatedId, new Map()).thoughtSignature).not.toBe(sig);
+    expect(splitToolCallId(truncatedId).thoughtSignature).not.toBe(sig);
   });
 
-  it("recovers full signature from cache even when truncated inside delimiter", () => {
+  it("recovers truncation inside the delimiter without crossing request maps", () => {
     const sig = DEFAULT_THINKING_AG_SIGNATURE;
-    const fullId = buildToolCallId("read_file", 0, sig);
+    const signatures = new Map();
+    const fullId = buildToolCallId("read_file", 0, sig, "call_request_one", signatures);
     const delimIdx = fullId.indexOf("_TSIG_");
-
-    // Sliced right in the middle of "_TSIG_"
-    const cutDelim = fullId.slice(0, delimIdx + 3); // ends with "_TS"
-    const split = splitToolCallId(cutDelim);
-    expect(split.thoughtSignature).toBe(sig);
+    const cutDelim = fullId.slice(0, delimIdx + 3);
+    expect(splitToolCallId(cutDelim, signatures)).toEqual({ rawId: "call_request_one", thoughtSignature: sig });
+    expect(splitToolCallId(cutDelim, new Map()).thoughtSignature).toBe("");
+    expect(splitToolCallId(cutDelim).thoughtSignature).toBe("");
   });
 
-  it("safely falls back to empty string if signature is truncated and cache misses", () => {
-    const sig = DEFAULT_THINKING_AG_SIGNATURE;
-    const fullId = buildToolCallId("read_file", 0, sig);
-    const truncatedId = fullId.slice(0, 60);
+  it("safely falls back to an empty signature after clearing its request-local map", () => {
+    const signatures = new Map();
+    const fullId = buildToolCallId("read_file", 0, DEFAULT_THINKING_AG_SIGNATURE, "call_request_one", signatures);
+    const truncatedId = fullId.slice(0, fullId.indexOf("_TSIG_") + 3);
+    clearSignatureCache(signatures);
+    expect(signatures.size).toBe(0);
+    expect(splitToolCallId(truncatedId, signatures).thoughtSignature).toBe("");
+  });
 
-    clearSignatureCache();
-    const split = splitToolCallId(truncatedId);
-    expect(split.thoughtSignature).toBe("");
+  it("isolates identical raw IDs between tenants and never implicitly caches a raw ID", () => {
+    const first = new Map();
+    const second = new Map();
+    const firstSignature = Buffer.from("first tenant opaque signature").toString("base64");
+    const secondSignature = Buffer.from("second tenant opaque signature").toString("base64");
+    const firstId = buildToolCallId("lookup", 0, firstSignature, "call_1", first);
+    buildToolCallId("lookup", 0, secondSignature, "call_1", second);
+    cacheSignature("call_1", firstSignature);
+    expect(splitToolCallId("call_1_TS", first).thoughtSignature).toBe(firstSignature);
+    expect(splitToolCallId("call_1_TS", second).thoughtSignature).toBe(secondSignature);
+    expect(splitToolCallId("call_1_TS").thoughtSignature).toBe("");
+    expect(splitToolCallId("call_1").thoughtSignature).toBe("");
+    expect(splitToolCallId(firstId).thoughtSignature).toBe(firstSignature);
+    clearSignatureCache(first);
+    expect(splitToolCallId("call_1_TS", first).thoughtSignature).toBe("");
+    expect(splitToolCallId("call_1_TS", second).thoughtSignature).toBe(secondSignature);
   });
 
   it("openaiToGeminiRequest replaces invalid or truncated thought signature with default", () => {

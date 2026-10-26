@@ -5,7 +5,7 @@
 Official CLI package for running, configuring, and managing **ZenRouter** on macOS, Linux, and Windows.
 
 - **GitHub Repository**: [https://github.com/ZenRouter/ZenRouter](https://github.com/ZenRouter/ZenRouter)
-- **Web Dashboard**: [https://zen.hlcyn.xyz](https://zen.hlcyn.xyz)
+- **Web Dashboard**: [https://router.bykitsune.org](https://router.bykitsune.org)
 
 ---
 

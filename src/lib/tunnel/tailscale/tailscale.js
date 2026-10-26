@@ -2,12 +2,20 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
-import { execSync, exec, spawn } from "child_process";
+import { execSync, exec, spawn as spawnProcess } from "child_process";
 import { promisify } from "util";
 import { execWithPassword } from "@/mitm/dns/dnsConfig";
 import { DATA_DIR } from "@/lib/dataDir.js";
+import { getHelperLifecycle } from "@/mitm/manager";
 
+const lifecycle = getHelperLifecycle();
+const scope = lifecycle.scope("tailscale");
 const execAsync = promisify(exec);
+
+function spawn(...args) {
+  lifecycle.assert(scope, scope.generation);
+  return lifecycle.child(scope, spawnProcess(...args));
+}
 
 const BIN_DIR = path.join(DATA_DIR, "bin");
 const IS_MAC = os.platform() === "darwin";
@@ -40,10 +48,13 @@ const UNIX_TAILSCALE_CANDIDATES = [
 const PROBE_TTL_MS = 10000;
 const PROBE_TIMEOUT_MS = 1500;
 
-const binCache = { value: undefined, fetchedAt: 0, refreshing: false };
-const runningCache = { value: false, fetchedAt: 0, refreshing: false };
-const loggedInCache = { value: false, fetchedAt: 0, refreshing: false };
-const funnelUrlCache = { value: null, port: null, fetchedAt: 0, refreshing: false };
+const binCache = scope.data.binCache ??= { value: undefined, fetchedAt: 0 };
+const runningCache = scope.data.runningCache ??= { value: false, fetchedAt: 0 };
+const loggedInCache = scope.data.loggedInCache ??= { value: false, fetchedAt: 0 };
+const funnelUrlCache = scope.data.funnelUrlCache ??= { value: null, port: null, fetchedAt: 0 };
+scope.stop = () => {
+  for (const child of scope.children.keys()) { try { child.kill(); } catch { /* best effort */ } }
+};
 
 function fallbackBin() {
   if (fs.existsSync(TAILSCALE_BIN)) return TAILSCALE_BIN;
@@ -52,159 +63,96 @@ function fallbackBin() {
   return null;
 }
 
-function bgRefreshBin() {
-  if (binCache.refreshing) return;
-  binCache.refreshing = true;
-  const cmd = IS_WINDOWS ? "where tailscale 2>nul" : "which tailscale 2>/dev/null";
-  execAsync(cmd, { windowsHide: true, timeout: PROBE_TIMEOUT_MS, env: { ...process.env, PATH: EXTENDED_PATH } })
-    .then(({ stdout }) => {
-      const sys = stdout.trim();
-      binCache.value = sys || fallbackBin();
-    })
-    .catch(() => { binCache.value = fallbackBin(); })
-    .finally(() => {
-      binCache.fetchedAt = Date.now();
-      binCache.refreshing = false;
-    });
+function refreshCache(name, cache, read) {
+  if (lifecycle.isStopping()) return;
+  lifecycle.run(scope, name, async check => {
+    try { const value = await read(check); check(); cache.value = value; }
+    finally { cache.fetchedAt = Date.now(); }
+  }).catch(() => {});
 }
 
-// Sync getter: returns cached value, triggers background refresh if stale
 export function getTailscaleBin() {
-  if (Date.now() - binCache.fetchedAt > PROBE_TTL_MS) bgRefreshBin();
-  // First call: synchronously probe common install paths (no exec, no event-loop block)
-  if (binCache.value === undefined) {
-    if (fs.existsSync(TAILSCALE_BIN)) binCache.value = TAILSCALE_BIN;
-    else if (IS_WINDOWS && fs.existsSync(WINDOWS_TAILSCALE_BIN)) binCache.value = WINDOWS_TAILSCALE_BIN;
-    else if (!IS_WINDOWS) {
-      const found = UNIX_TAILSCALE_CANDIDATES.find((p) => fs.existsSync(p));
-      binCache.value = found || null;
-    } else binCache.value = null;
+  if (Date.now() - binCache.fetchedAt > PROBE_TTL_MS) {
+    refreshCache("bin", binCache, async check => {
+      const cmd = IS_WINDOWS ? "where tailscale 2>nul" : "which tailscale 2>/dev/null";
+      try {
+        const { stdout } = await execAsync(cmd, { windowsHide: true, timeout: PROBE_TIMEOUT_MS, env: { ...process.env, PATH: EXTENDED_PATH } });
+        check();
+        return stdout.trim() || fallbackBin();
+      } catch (error) { check(); return fallbackBin(); }
+    });
   }
+  if (binCache.value === undefined) binCache.value = fallbackBin();
   return binCache.value;
 }
 
-export function isTailscaleInstalled() {
-  return getTailscaleBin() !== null;
-}
+export function isTailscaleInstalled() { return getTailscaleBin() !== null; }
+function tsArgs(...args) { return [...SOCKET_FLAG, ...args]; }
 
-/** Build tailscale CLI args with custom socket (no root needed) */
-function tsArgs(...args) {
-  return [...SOCKET_FLAG, ...args];
-}
-
-// Async strict probe: authoritative, awaitable (never blocks event loop). Updates cache.
-export async function isTailscaleLoggedInStrict() {
-  const bin = getTailscaleBin();
-  if (!bin) return false;
-  try {
-    const { stdout } = await execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} status --json`, {
-      windowsHide: true,
-      env: { ...process.env, PATH: EXTENDED_PATH },
-      timeout: 5000
-    });
-    const json = JSON.parse(stdout);
-    // BackendState=Running + Self.Online=true → device still exists in tailnet
-    const loggedIn = json.BackendState === "Running" && json.Self?.Online === true;
-    loggedInCache.value = loggedIn;
-    loggedInCache.fetchedAt = Date.now();
-    return loggedIn;
-  } catch {
-    return false;
-  }
-}
-
-function bgRefreshLoggedIn() {
-  if (loggedInCache.refreshing) return;
-  const bin = getTailscaleBin();
-  if (!bin) {
-    loggedInCache.value = false;
-    loggedInCache.fetchedAt = Date.now();
-    return;
-  }
-  loggedInCache.refreshing = true;
-  // Dual-socket aware: probe custom socket first, then system socket
-  probeStatusAsync(bin)
-    .then((json) => {
-      loggedInCache.value = !!json && json.BackendState === "Running" && json.Self?.Online === true;
-    })
-    .catch(() => { loggedInCache.value = false; })
-    .finally(() => {
-      loggedInCache.fetchedAt = Date.now();
-      loggedInCache.refreshing = false;
-    });
-}
-
-// Probe `status --json` over custom then system socket. Resolves parsed JSON or null. Never blocks event loop.
-async function probeStatusAsync(bin) {
-  for (const socketArgs of [SOCKET_FLAG, SYSTEM_SOCKET_FLAG]) {
+async function probeStatusAsync(bin, check, sockets = [SOCKET_FLAG, SYSTEM_SOCKET_FLAG]) {
+  for (const socketArgs of sockets) {
+    check();
     try {
       const { stdout } = await execAsync(`"${bin}" ${socketArgs.join(" ")} status --json`, {
         windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH }, timeout: PROBE_TIMEOUT_MS,
       });
+      check();
       return JSON.parse(stdout);
-    } catch { /* try next socket */ }
+    } catch { check(); }
   }
   return null;
 }
 
-// Sync getter: never blocks; returns last known state, refreshes in background
+export function isTailscaleLoggedInStrict() {
+  return lifecycle.run(scope, "logged-in-strict", async check => {
+    const bin = getTailscaleBin();
+    if (!bin) return false;
+    const json = await probeStatusAsync(bin, check, [SOCKET_FLAG]);
+    check();
+    loggedInCache.value = !!json && json.BackendState === "Running" && json.Self?.Online === true;
+    loggedInCache.fetchedAt = Date.now();
+    return loggedInCache.value;
+  });
+}
+
 export function isTailscaleLoggedIn() {
-  if (Date.now() - loggedInCache.fetchedAt > PROBE_TTL_MS) bgRefreshLoggedIn();
+  if (Date.now() - loggedInCache.fetchedAt > PROBE_TTL_MS) {
+    refreshCache("logged-in", loggedInCache, async check => {
+      const bin = getTailscaleBin();
+      const json = bin && await probeStatusAsync(bin, check);
+      return !!json && json.BackendState === "Running" && json.Self?.Online === true;
+    });
+  }
   return loggedInCache.value;
 }
 
-function bgRefreshRunning() {
-  if (runningCache.refreshing) return;
-  const bin = getTailscaleBin();
-  if (!bin) {
-    runningCache.value = false;
-    runningCache.fetchedAt = Date.now();
-    return;
-  }
-  runningCache.refreshing = true;
-  execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel status --json`, { windowsHide: true, timeout: PROBE_TIMEOUT_MS })
-    .then(({ stdout }) => {
-      try {
-        const json = JSON.parse(stdout);
-        runningCache.value = Object.keys(json.AllowFunnel || {}).length > 0;
-      } catch { runningCache.value = false; }
-    })
-    .catch(() => { runningCache.value = false; })
-    .finally(() => {
-      runningCache.fetchedAt = Date.now();
-      runningCache.refreshing = false;
-    });
-}
-
-// Sync getter: never blocks; returns last known state, refreshes in background
-export function isTailscaleRunning() {
-  if (Date.now() - runningCache.fetchedAt > PROBE_TTL_MS) bgRefreshRunning();
-  return runningCache.value;
-}
-
-// Async strict probe for hot user-initiated paths (enable/connect flow).
-// Awaitable, never blocks event loop; updates cache as a side effect.
-export async function isTailscaleRunningStrict() {
+async function readRunning(check) {
   const bin = getTailscaleBin();
   if (!bin) return false;
   try {
-    const { stdout } = await execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel status --json`, {
-      windowsHide: true,
-      timeout: PROBE_TIMEOUT_MS,
-    });
-    const json = JSON.parse(stdout);
-    const running = Object.keys(json.AllowFunnel || {}).length > 0;
+    const { stdout } = await execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel status --json`, { windowsHide: true, timeout: PROBE_TIMEOUT_MS });
+    check();
+    return Object.keys(JSON.parse(stdout).AllowFunnel || {}).length > 0;
+  } catch { check(); return false; }
+}
+
+export function isTailscaleRunning() {
+  if (Date.now() - runningCache.fetchedAt > PROBE_TTL_MS) refreshCache("running", runningCache, readRunning);
+  return runningCache.value;
+}
+
+export function isTailscaleRunningStrict() {
+  return lifecycle.run(scope, "running-strict", async check => {
+    const running = await readRunning(check);
+    check();
     runningCache.value = running;
     runningCache.fetchedAt = Date.now();
     return running;
-  } catch {
-    return false;
-  }
+  });
 }
 
-// Check if a system-level tailscaled is running (uses system socket, not ZenRouter's custom one).
 export function isSystemDaemonRunning() {
-  if (IS_WINDOWS || !SYSTEM_TAILSCALE_SOCKET || !fs.existsSync(SYSTEM_TAILSCALE_SOCKET)) return false;
+  if (lifecycle.isStopping() || IS_WINDOWS || !SYSTEM_TAILSCALE_SOCKET || !fs.existsSync(SYSTEM_TAILSCALE_SOCKET)) return false;
   const bin = getTailscaleBin();
   if (!bin) return false;
   try {
@@ -212,30 +160,19 @@ export function isSystemDaemonRunning() {
       encoding: "utf8", windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH }, timeout: PROBE_TIMEOUT_MS,
     });
     return JSON.parse(out).BackendState === "Running";
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function bgRefreshFunnelUrl(port) {
-  if (funnelUrlCache.refreshing) return;
-  const bin = getTailscaleBin();
-  if (!bin) return;
-  funnelUrlCache.refreshing = true;
-  execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} status --json`, { windowsHide: true, timeout: PROBE_TIMEOUT_MS })
-    .then(({ stdout }) => {
-      try {
-        const json = JSON.parse(stdout);
-        const dnsName = json.Self?.DNSName?.replace(/\.$/, "");
-        funnelUrlCache.value = dnsName ? `https://${dnsName}` : null;
-      } catch { /* keep prev */ }
-    })
-    .catch(() => { /* keep prev */ })
-    .finally(() => {
-      funnelUrlCache.port = port;
-      funnelUrlCache.fetchedAt = Date.now();
-      funnelUrlCache.refreshing = false;
-    });
+  refreshCache("funnel-url", funnelUrlCache, async check => {
+    const bin = getTailscaleBin();
+    if (!bin) return null;
+    const json = await probeStatusAsync(bin, check, [SOCKET_FLAG]);
+    check();
+    funnelUrlCache.port = port;
+    const dnsName = json?.Self?.DNSName?.replace(/\.$/, "");
+    return dnsName ? `https://${dnsName}` : null;
+  });
 }
 
 /** Get actual funnel URL from Self.DNSName (sync, authoritative — avoids hostname-conflict suffix). */
@@ -270,19 +207,26 @@ export function getTailscaleFunnelUrl(port) {
  * - Linux: fetch install.sh, pipe to sudo -S sh via stdin
  * - Windows: download MSI via UAC-elevated PowerShell
  */
-export async function installTailscale(sudoPassword, hostname, onProgress) {
+export function installTailscale(sudoPassword, hostname, onProgress) {
+  return lifecycle.run(scope, "install", check => runInstallTailscale(sudoPassword, hostname, onProgress, check));
+}
+
+async function runInstallTailscale(sudoPassword, hostname, onProgress, check) {
+  check();
   const log = onProgress || (() => {});
   if (IS_WINDOWS) {
-    await installTailscaleWindows(log);
+    await installTailscaleWindows(log, check);
+    check();
     return { success: true };
   }
-  if (IS_MAC) await installTailscaleMac(sudoPassword, log);
-  else await installTailscaleLinux(sudoPassword, log);
-
+  if (IS_MAC) await installTailscaleMac(sudoPassword, log, check);
+  else await installTailscaleLinux(sudoPassword, log, check);
+  check();
   log("Starting daemon...");
-  await startDaemonWithPassword(sudoPassword);
+  await startDaemonWithPassword(sudoPassword, check);
+  check();
   log("Logging in...");
-  return startLogin(hostname);
+  return startLogin(hostname, check);
 }
 
 const EXTENDED_PATH = `/usr/local/bin:/opt/homebrew/bin:/usr/sbin:/usr/bin:/bin:/snap/bin:${process.env.PATH || ""}`;
@@ -291,7 +235,8 @@ function hasBrew() {
   try { execSync("which brew", { stdio: "ignore", windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }); return true; } catch { return false; }
 }
 
-async function installTailscaleMac(sudoPassword, log) {
+async function installTailscaleMac(sudoPassword, log, check) {
+  check();
   if (hasBrew()) {
     log("Installing via Homebrew...");
     await new Promise((resolve, reject) => {
@@ -338,6 +283,7 @@ async function installTailscaleMac(sudoPassword, log) {
     child.on("error", reject);
   });
 
+  check();
   log("Installing package...");
   await new Promise((resolve, reject) => {
     const child = spawn("sudo", ["-S", "installer", "-pkg", pkgPath, "-target", "/"], {
@@ -366,7 +312,8 @@ async function installTailscaleMac(sudoPassword, log) {
   });
 }
 
-async function installTailscaleLinux(sudoPassword, log) {
+async function installTailscaleLinux(sudoPassword, log, check) {
+  check();
   // Reject password containing newline → prevents stdin command injection
   if (typeof sudoPassword !== "string" || sudoPassword.includes("\n")) {
     throw new Error("Invalid sudo password");
@@ -382,6 +329,7 @@ async function installTailscaleLinux(sudoPassword, log) {
     curlChild.stdout.on("data", (d) => { scriptContent += d.toString(); });
     curlChild.stderr.on("data", (d) => { curlErr += d.toString(); });
     curlChild.on("exit", (code) => {
+      try { check(); } catch (error) { reject(error); return; }
       if (code !== 0) return reject(new Error(`Failed to download install script: ${curlErr}`));
       log("Running install script...");
       // Persist script to temp file → exec by path (NOT via stdin) → sh never reads attacker-controlled stdin
@@ -417,7 +365,8 @@ async function installTailscaleLinux(sudoPassword, log) {
   });
 }
 
-async function installTailscaleWindows(log) {
+async function installTailscaleWindows(log, check) {
+  check();
   const msiUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi";
   const msiPath = path.join(os.tmpdir(), "tailscale-setup.msi");
 
@@ -442,6 +391,7 @@ async function installTailscaleWindows(log) {
     child.on("error", reject);
   });
 
+  check();
   // Install MSI with UAC elevation via PowerShell Start-Process -Verb RunAs
   log("Installing Tailscale (UAC prompt may appear)...");
   await new Promise((resolve, reject) => {
@@ -467,14 +417,16 @@ async function installTailscaleWindows(log) {
       log("Installation complete.");
       return;
     }
-    await new Promise((r) => setTimeout(r, 1000));
+    await lifecycle.delay(scope, 1000, check);
+    check();
   }
   throw new Error("Installation finished but tailscale.exe not found");
 }
 
 // Self-heal: if state dir/files were previously created by root (e.g. legacy sudo daemon),
 // reclaim ownership recursively so the user-mode daemon can read/write state files.
-async function ensureUserOwnedDir(dir) {
+async function ensureUserOwnedDir(dir, check) {
+  check();
   try {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -503,11 +455,14 @@ async function ensureUserOwnedDir(dir) {
 
     // Try direct chown first (works if already owned). Fallback to passwordless sudo.
     try {
-      execSync(`chown -R ${uid}:${gid} "${dir}"`, { stdio: "ignore", timeout: 3000 });
+      await execAsync(`chown -R ${uid}:${gid} "${dir}"`, { timeout: 3000 });
+      check();
     } catch {
-      try { execSync(`sudo -n chown -R ${uid}:${gid} "${dir}"`, { stdio: "ignore", timeout: 3000 }); } catch { /* ignore */ }
+      check();
+      try { await execAsync(`sudo -n chown -R ${uid}:${gid} "${dir}"`, { timeout: 3000 }); } catch { /* ignore */ }
+      check();
     }
-  } catch { /* ignore */ }
+  } catch { check(); }
 }
 
 /** Check if running daemon uses TUN mode (Funnel TLS requires TUN). */
@@ -530,7 +485,15 @@ export function isDaemonAlive() {
  * - Without: userspace-networking fallback (no sudo, but Funnel TLS unstable)
  * State always lives in ~/.zenrouter/tailscale/ via --statedir.
  */
-export async function startDaemonWithPassword(sudoPassword) {
+export function startDaemonWithPassword(sudoPassword, parentCheck = () => {}) {
+  return lifecycle.run(scope, "daemon", async assert => {
+    const check = () => { assert(); parentCheck(); };
+    return runDaemon(sudoPassword, check);
+  });
+}
+
+async function runDaemon(sudoPassword, check) {
+  check();
   if (IS_WINDOWS) {
     // Windows: tailscale runs as a Windows Service. Start it then poll BackendState
     // until daemon finishes init (avoids "NoState" errors when calling funnel/up too early).
@@ -549,7 +512,8 @@ export async function startDaemonWithPassword(sudoPassword) {
           return;
         }
       } catch { /* daemon not ready */ }
-      await new Promise((r) => setTimeout(r, 500));
+      await lifecycle.delay(scope, 500, check);
+      check();
     }
     console.log("[Tailscale] win: BackendState still NoState after poll");
     return;
@@ -578,10 +542,13 @@ export async function startDaemonWithPassword(sudoPassword) {
   } else {
     try { execSync(`sudo -n pkill -9 -f "tailscaled.*${TAILSCALE_SOCKET}"`, { stdio: "ignore", timeout: 3000 }); } catch { /* ignore */ }
   }
-  await new Promise((r) => setTimeout(r, 1500));
+  check();
+  await lifecycle.delay(scope, 1500, check);
+  check();
 
   // Reclaim folder ownership (previous root daemon may have locked it)
-  await ensureUserOwnedDir(TAILSCALE_DIR);
+  await ensureUserOwnedDir(TAILSCALE_DIR, check);
+  check();
 
   const tailscaledBin = IS_MAC ? "/usr/local/bin/tailscaled" : "tailscaled";
   const daemonArgs = [
@@ -612,12 +579,8 @@ export async function startDaemonWithPassword(sudoPassword) {
   }
 
   // Wait for socket ready
-  await new Promise((r) => setTimeout(r, 3000));
-}
-
-/** Best-effort: ensure daemon running (used for login flow) */
-function ensureDaemon() {
-  startDaemonWithPassword("").catch(() => {});
+  await lifecycle.delay(scope, 3000, check);
+  check();
 }
 
 /** Read AuthURL from `tailscale status --json` (Win exposes it there, not stdout). */
@@ -639,221 +602,146 @@ function getAuthUrlFromStatus() {
  * Resolves with { authUrl } or { alreadyLoggedIn: true }.
  * On Windows, AuthURL comes from `status --json` (not stdout) — must poll status.
  */
-export function startLogin(hostname) {
-  const bin = getTailscaleBin();
-  if (!bin) return Promise.reject(new Error("Tailscale not installed"));
-
-  return new Promise((resolve, reject) => {
-    // Ensure daemon is running (best-effort, no sudo)
-    ensureDaemon();
-
-    // Check if already logged in
-    if (isTailscaleLoggedIn()) {
-      resolve({ alreadyLoggedIn: true });
-      return;
-    }
-
+export function startLogin(hostname, parentCheck = () => {}) {
+  return lifecycle.run(scope, "login", async assert => {
+    const check = () => { assert(); parentCheck(); };
+    try { await startDaemonWithPassword("", check); } catch { check(); }
+    check();
+    const bin = getTailscaleBin();
+    if (!bin) throw new Error("Tailscale not installed");
+    if (isTailscaleLoggedIn()) return { alreadyLoggedIn: true };
     const args = tsArgs("up", "--accept-routes");
     if (hostname) args.push(`--hostname=${hostname}`);
-    const child = spawn(bin, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      detached: true,
-      windowsHide: true
+    return runTailscaleChild(bin, args, 15000, check, (output, ended) => {
+      const url = output.match(/https:\/\/login\.tailscale\.com\/a\/[a-zA-Z0-9]+/)?.[0] || getAuthUrlFromStatus();
+      if (url) return { authUrl: url };
+      if (ended && isTailscaleLoggedIn()) return { alreadyLoggedIn: true };
     });
+  });
+}
 
-    let resolved = false;
+export function cancelTailscaleCommands() {
+  const commands = [...(scope.data.commands?.entries() || [])];
+  const closed = commands.map(([child]) => scope.children.get(child));
+  for (const [child, cancel] of commands) {
+    cancel();
+    try { child.kill(); } catch { /* best effort */ }
+  }
+  return Promise.all(closed).then(() => {});
+}
+
+function runTailscaleChild(bin, args, timeoutMs, check, inspect) {
+  check();
+  const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+  scope.data.commands ??= new Map();
+  return new Promise((resolve, reject) => {
+    let done = false, closing = false, closed = false, failure;
     let output = "";
-
-    const parseAuthUrl = (text) => {
-      const match = text.match(/https:\/\/login\.tailscale\.com\/a\/[a-zA-Z0-9]+/);
-      return match ? match[0] : null;
-    };
-
-    const finishWithUrl = (url, source) => {
-      if (resolved) return;
-      resolved = true;
+    const release = () => {
       clearTimeout(timeout);
-      clearInterval(statusPoll);
-      console.log(`[Tailscale] login authUrl detected (${source})`);
-      child.unref();
-      resolve({ authUrl: url });
+      clearInterval(poll);
+      scope.wakes.delete(cancel);
+      child.stdout.removeListener("data", data);
+      child.stderr.removeListener("data", data);
     };
-
-    // Poll status --json every 500ms — Windows exposes AuthURL only there
-    const statusPoll = setInterval(() => {
-      if (resolved) return;
-      const url = getAuthUrlFromStatus();
-      if (url) finishWithUrl(url, "status");
-    }, 500);
-
+    const finish = (error, value) => {
+      if (done) return;
+      done = true;
+      release();
+      if (error) reject(error); else resolve(value);
+    };
+    const abort = error => {
+      if (done || closing) return;
+      closing = true;
+      failure = error;
+      release();
+      if (closed) finish(error);
+      else { try { child.kill(); } catch { /* best effort */ } }
+    };
+    const cancel = () => {
+      try { check(); } catch (error) { abort(error); }
+    };
+    const inspectOutput = (ended = false) => {
+      if (done || closing) return;
+      try {
+        check();
+        const value = inspect(output, ended);
+        if (value) finish(null, value);
+        else if (ended) abort(new Error(`Tailscale command did not complete: ${output.trim()}`));
+      } catch (error) { abort(error); }
+    };
+    const poll = setInterval(() => inspectOutput(), 500);
     const timeout = setTimeout(() => {
-      if (resolved) return;
-      resolved = true;
-      clearInterval(statusPoll);
-      child.unref();
-      const url = parseAuthUrl(output) || getAuthUrlFromStatus();
-      if (url) resolve({ authUrl: url });
-      else reject(new Error("tailscale up timed out without auth URL"));
-    }, 15000);
-
-    const handleData = (data) => {
-      output += data.toString();
-      const url = parseAuthUrl(output);
-      if (url) finishWithUrl(url, "stdout");
-    };
-
-    child.stdout.on("data", handleData);
-    child.stderr.on("data", handleData);
-
-    child.on("error", (err) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      clearInterval(statusPoll);
-      console.error(`[Tailscale] login spawn error: ${err.message}`);
-      reject(err);
-    });
-
-    child.on("exit", (code) => {
-      if (resolved) return;
-      console.log(`[Tailscale] login exit code=${code}`);
-      // Don't trust exit code alone — Win `tailscale up` exits 0 even when not logged in.
-      // Let status poll continue until AuthURL appears or timeout.
-      const url = parseAuthUrl(output) || getAuthUrlFromStatus();
-      if (url) {
-        finishWithUrl(url, "exit");
-        return;
-      }
-      // Only resolve alreadyLoggedIn if status confirms BackendState=Running
-      if (isTailscaleLoggedIn()) {
-        resolved = true;
-        clearTimeout(timeout);
-        clearInterval(statusPoll);
-        resolve({ alreadyLoggedIn: true });
-        return;
-      }
-      // Otherwise keep polling — daemon may publish AuthURL shortly after exit
+      inspectOutput(true);
+      if (!closing && !closed) { try { child.kill(); } catch { /* best effort */ } }
+    }, timeoutMs);
+    scope.wakes.add(cancel);
+    scope.data.commands.set(child, () => abort(Object.assign(new Error("helper operation cancelled"), { code: "HELPER_STOPPED" })));
+    const data = chunk => { if (!done && !closing) { output = (output + chunk.toString()).slice(-65536); inspectOutput(); } };
+    child.stdout.on("data", data);
+    child.stderr.on("data", data);
+    child.once("error", abort);
+    child.once("close", () => {
+      closed = true;
+      scope.data.commands.delete(child);
+      if (closing) finish(failure); else inspectOutput(true);
     });
   });
 }
 
 /** Start tailscale funnel for the given port */
-export async function startFunnel(port) {
-  const bin = getTailscaleBin();
-  if (!bin) throw new Error("Tailscale not installed");
-
-  // Reset any existing funnel
-  try { execSync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel --bg reset`, { stdio: "ignore", windowsHide: true }); } catch (e) { /* ignore */ }
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(bin, tsArgs("funnel", "--bg", `${port}`), {
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true
-    });
-
-    let resolved = false;
-    let output = "";
-
-    const timeout = setTimeout(() => {
-      if (resolved) return;
-      resolved = true;
-      // --bg exits after setup, read actual hostname from status
+export function startFunnel(port, parentCheck = () => {}) {
+  return lifecycle.run(scope, "funnel", async assert => {
+    const check = () => { assert(); parentCheck(); };
+    const bin = getTailscaleBin();
+    if (!bin) throw new Error("Tailscale not installed");
+    check();
+    try { execSync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel --bg reset`, { stdio: "ignore", windowsHide: true }); } catch { /* best effort */ }
+    return runTailscaleChild(bin, tsArgs("funnel", "--bg", `${port}`), 30000, check, output => {
+      if (output.includes("Funnel is not enabled")) {
+        const enableUrl = output.match(/https:\/\/login\.tailscale\.com\/[^\s]+/)?.[0];
+        if (enableUrl) return { funnelNotEnabled: true, enableUrl };
+      }
       const url = getActualFunnelUrl() || getTailscaleFunnelUrl(port);
-      if (url) resolve({ tunnelUrl: url });
-      else reject(new Error(`Tailscale funnel timed out: ${output.trim() || "no output"}`));
-    }, 30000);
-
-    // Always resolve via Self.DNSName to get the real hostname (avoids -1 suffix from conflicts)
-    const parseFunnelUrl = () => getActualFunnelUrl();
-
-    let funnelNotEnabled = false;
-
-    const handleData = (data) => {
-      output += data.toString();
-
-      if (output.includes("Funnel is not enabled")) funnelNotEnabled = true;
-
-      // Wait for the enable URL to arrive in a later chunk
-      if (funnelNotEnabled && !resolved) {
-        const enableMatch = output.match(/https:\/\/login\.tailscale\.com\/[^\s]+/);
-        if (enableMatch) {
-          resolved = true;
-          clearTimeout(timeout);
-          child.kill();
-          resolve({ funnelNotEnabled: true, enableUrl: enableMatch[0] });
-          return;
-        }
-      }
-
-      const url = parseFunnelUrl();
-      if (url && !resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        resolve({ tunnelUrl: url });
-      }
-    };
-
-    child.stdout.on("data", handleData);
-    child.stderr.on("data", handleData);
-
-    child.on("exit", (code) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      console.log(`[Tailscale] funnel exit code=${code} output="${output.trim().slice(0, 200)}"`);
-      const url = parseFunnelUrl() || getTailscaleFunnelUrl(port);
-      if (url) resolve({ tunnelUrl: url });
-      else reject(new Error(`tailscale funnel failed (code ${code}): ${output.trim()}`));
-    });
-
-    child.on("error", (err) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      reject(err);
+      if (url) return { tunnelUrl: url };
     });
   });
 }
 
 /** Provision TLS cert for funnel domain (required before Funnel serves HTTPS). Best-effort. */
-export async function provisionCert(hostname) {
-  const bin = getTailscaleBin();
-  if (!bin || !hostname) return;
-  const certsDir = path.join(TAILSCALE_DIR, "certs");
-  fs.mkdirSync(certsDir, { recursive: true });
-  const certFile = path.join(certsDir, `${hostname}.crt`);
-  const keyFile = path.join(certsDir, `${hostname}.key`);
-  try {
-    await execAsync(
-      `"${bin}" ${SOCKET_FLAG.join(" ")} cert --cert-file "${certFile}" --key-file "${keyFile}" "${hostname}"`,
-      { windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH }, timeout: 30000 }
-    );
-    console.log(`[Tailscale] cert provisioned for ${hostname}`);
-  } catch (e) {
-    console.warn(`[Tailscale] cert provision failed (non-fatal): ${e.message}`);
-  }
+export function provisionCert(hostname) {
+  return lifecycle.run(scope, "cert", async check => {
+    const bin = getTailscaleBin();
+    if (!bin || !hostname) return;
+    const certsDir = path.join(TAILSCALE_DIR, "certs");
+    fs.mkdirSync(certsDir, { recursive: true });
+    const certFile = path.join(certsDir, `${hostname}.crt`);
+    const keyFile = path.join(certsDir, `${hostname}.key`);
+    check();
+    try {
+      await execAsync(`"${bin}" ${SOCKET_FLAG.join(" ")} cert --cert-file "${certFile}" --key-file "${keyFile}" "${hostname}"`,
+        { windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH }, timeout: 30000 });
+    } catch (error) { check(); console.warn(`[Tailscale] cert provision failed (non-fatal): ${error.message}`); }
+  });
 }
 
 /** Stop tailscale funnel */
 export function stopFunnel() {
+  if (lifecycle.isStopping()) return;
   const bin = getTailscaleBin();
   if (!bin) return;
   try { execSync(`"${bin}" ${SOCKET_FLAG.join(" ")} funnel --bg reset`, { stdio: "ignore", windowsHide: true }); } catch (e) { /* ignore */ }
 }
 
 /** Kill tailscaled daemon (runs as root, needs sudo) */
-export async function stopDaemon(sudoPassword) {
-  // Try non-sudo first
-  try { execSync("pkill -x tailscaled", { stdio: "ignore", windowsHide: true, timeout: 3000 }); } catch { /* ignore */ }
-
-  // Check if still alive
-  try { execSync("pgrep -x tailscaled", { stdio: "ignore", windowsHide: true, timeout: 2000 }); } catch { return; } // Dead, done
-
-  // Kill with sudo password
-  if (!IS_WINDOWS) {
-    try { await execWithPassword("pkill -x tailscaled", sudoPassword || ""); } catch { /* ignore */ }
-  }
-
-  // Cleanup socket
-  try { if (fs.existsSync(TAILSCALE_SOCKET)) fs.unlinkSync(TAILSCALE_SOCKET); } catch { /* ignore */ }
+export function stopDaemon(sudoPassword) {
+  return lifecycle.run(scope, "stop-daemon", async check => {
+    try { execSync("pkill -x tailscaled", { stdio: "ignore", windowsHide: true, timeout: 3000 }); } catch { /* ignore */ }
+    try { execSync("pgrep -x tailscaled", { stdio: "ignore", windowsHide: true, timeout: 2000 }); } catch { return; }
+    if (!IS_WINDOWS) {
+      try { await execWithPassword("pkill -x tailscaled", sudoPassword || ""); } catch { /* ignore */ }
+      check();
+    }
+    try { if (fs.existsSync(TAILSCALE_SOCKET)) fs.unlinkSync(TAILSCALE_SOCKET); } catch { /* ignore */ }
+  });
 }

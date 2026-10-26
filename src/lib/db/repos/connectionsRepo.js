@@ -1,6 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
-import { getAdapter } from "../driver.js";
+import { getAdapter, getAdapterSync } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
+import { getScopedCache, readScopeRevision } from "../helpers/scopedCache.js";
+import { bumpScopeRevisions, connectionScopes } from "../helpers/cacheRevisions.js";
+
+const RUNTIME_FIELDS = new Set(["lastUsedAt", "consecutiveUseCount"]);
 
 const OPTIONAL_FIELDS = [
   "displayName", "email", "globalPriority", "defaultModel",
@@ -89,6 +93,8 @@ function upsert(db, c) {
        data=excluded.data, updatedAt=excluded.updatedAt`,
     [r.id, r.provider, r.authType, r.name, r.email, r.priority, r.isActive, r.data, r.createdAt, r.updatedAt]
   );
+  db.run(`DELETE FROM connectionRuntime WHERE connectionId = ?`, [c.id]);
+  bumpScopeRevisions(db, connectionScopes([c.provider]));
 }
 
 function deriveConnectionName(data, fallbackName) {
@@ -102,40 +108,63 @@ function deriveConnectionName(data, fallbackName) {
   return fallbackName;
 }
 
-const connectionCache = new Map();
-
 export function invalidateConnectionCache() {
-  connectionCache.clear();
+  try {
+    const db = getAdapterSync();
+    getScopedCache(db, "connections").invalidate();
+    getScopedCache(db, "connectionViews").invalidate();
+  } catch {}
 }
 
-function getFilterKey(filter = {}) {
-  const p = filter.provider || "*";
-  const a = filter.isActive === undefined ? "*" : (filter.isActive ? "1" : "0");
-  return `${p}:${a}`;
+function invalidateProviders(db, providers, runtime = false) {
+  const scopes = connectionScopes(providers, runtime);
+  if (!runtime) getScopedCache(db, "connections").invalidate(scopes);
+  getScopedCache(db, "connectionViews").invalidate(scopes);
 }
 
 export async function getProviderConnections(filter = {}) {
-  const cacheKey = getFilterKey(filter);
-  if (connectionCache.has(cacheKey)) {
-    return connectionCache.get(cacheKey);
-  }
   const db = await getAdapter();
-  const where = [];
-  const params = [];
-  if (filter.provider) { where.push("provider = ?"); params.push(filter.provider); }
-  if (filter.isActive !== undefined) { where.push("isActive = ?"); params.push(filter.isActive ? 1 : 0); }
-  const sql = `SELECT * FROM providerConnections${where.length ? ` WHERE ${where.join(" AND ")}` : ""}`;
-  const rows = db.all(sql, params);
-  const list = rows.map(rowToConn);
-  list.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-  connectionCache.set(cacheKey, list);
-  return list;
+  const provider = filter.provider || null;
+  const active = filter.isActive === undefined ? null : Boolean(filter.isActive);
+  const descriptor = ["providerConnections", "internal", "list", provider, active];
+  const scopes = provider ? ["connectionImport", `connections:${provider}`] : ["connectionImport", "connections"];
+  const runtimeScopes = provider ? [`connectionRuntime:${provider}`] : ["connectionRuntime"];
+  return getScopedCache(db, "connectionViews").get(descriptor, [...scopes, ...runtimeScopes], async () => {
+    const base = await getScopedCache(db, "connections").get(descriptor, scopes, () => {
+      const where = [];
+      const params = [];
+      if (provider) { where.push("provider = ?"); params.push(provider); }
+      if (active !== null) { where.push("isActive = ?"); params.push(active ? 1 : 0); }
+      const rows = db.all(`SELECT * FROM providerConnections${where.length ? ` WHERE ${where.join(" AND ")}` : ""}`, params);
+      const list = rows.map(rowToConn);
+      list.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+      return list;
+    });
+    const runtime = db.all(`SELECT connectionId, data, updatedAt FROM connectionRuntime${provider ? " WHERE provider = ?" : ""}`, provider ? [provider] : []);
+    const byId = new Map(runtime.map(row => [row.connectionId, row]));
+    return base.map(connection => {
+      const row = byId.get(connection.id);
+      return row ? { ...connection, ...parseJson(row.data, {}), updatedAt: row.updatedAt } : connection;
+    });
+  });
+}
+
+function readConnection(db, id) {
+  const connection = rowToConn(db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]));
+  if (!connection) return null;
+  const runtime = db.get(`SELECT data, updatedAt FROM connectionRuntime WHERE connectionId = ?`, [id]);
+  return runtime ? { ...connection, ...parseJson(runtime.data, {}), updatedAt: runtime.updatedAt } : connection;
 }
 
 export async function getProviderConnectionById(id) {
   const db = await getAdapter();
-  const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
-  return rowToConn(row);
+  for (;;) {
+    const revision = readScopeRevision(db, ["connectionImport"]);
+    const connection = readConnection(db, id);
+    if (readScopeRevision(db, ["connectionImport"]) !== revision) continue;
+    if (connection) Object.defineProperty(connection, "_writeFence", { value: { importRevision: revision, connection: structuredClone(connection) } });
+    return connection;
+  }
 }
 
 // Internal sync reorder — must be called INSIDE a transaction.
@@ -240,7 +269,7 @@ export async function createProviderConnection(data) {
         throw err;
       }
       const normalized = resetHealthStateOnActivation(existing, data);
-      const merged = { ...existing, ...normalized, updatedAt: now };
+      const merged = { ...readConnection(db, existing.id), ...normalized, updatedAt: now };
       upsert(db, merged);
       result = merged;
       return;
@@ -286,54 +315,79 @@ export async function createProviderConnection(data) {
     result = conn;
   });
 
-  invalidateConnectionCache();
+  invalidateProviders(db, [result.provider]);
   return result;
 }
 
-// Critical: OAuth refresh token race — atomic merge inside transaction
-export async function updateProviderConnection(id, data) {
+export async function updateProviderConnection(id, data, { expected } = {}) {
   const db = await getAdapter();
-  let result;
+  const runtimeOnly = Object.keys(data).length > 0 && Object.keys(data).every(key => RUNTIME_FIELDS.has(key));
+  let result = null;
+  let providers = [];
   db.transaction(() => {
-    const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
-    if (!row) { result = null; return; }
-    const existing = rowToConn(row);
+    const existing = readConnection(db, id);
+    if (!existing) return;
+    if (expected) {
+      const fields = ["provider", "authType", "isActive", "apiKey", "accessToken", "refreshToken", "idToken", "expiresAt", "lastRefreshAt", "projectId", "providerSpecificData"];
+      if (expected.importRevision !== readScopeRevision(db, ["connectionImport"])
+        || fields.some(field => JSON.stringify(expected.connection?.[field]) !== JSON.stringify(existing[field]))) {
+        const error = new Error("Provider credentials changed while refresh was in flight");
+        error.code = "STALE_CONNECTION_WRITE";
+        throw error;
+      }
+    }
     const normalized = resetHealthStateOnActivation(existing, data);
-    const merged = { ...existing, ...normalized, updatedAt: new Date().toISOString() };
-    upsert(db, merged);
-    if (data.priority !== undefined) reorderInTx(db, existing.provider);
+    const merged = { ...existing, ...normalized, id, updatedAt: new Date().toISOString() };
+    providers = [existing.provider, merged.provider];
+    if (runtimeOnly) {
+      const runtime = Object.fromEntries([...RUNTIME_FIELDS].filter(field => merged[field] !== undefined).map(field => [field, merged[field]]));
+      db.run(`INSERT INTO connectionRuntime(connectionId, provider, data, updatedAt) VALUES(?, ?, ?, ?) ON CONFLICT(connectionId) DO UPDATE SET provider = excluded.provider, data = excluded.data, updatedAt = excluded.updatedAt`,
+        [id, merged.provider, stringifyJson(runtime), merged.updatedAt]);
+      bumpScopeRevisions(db, connectionScopes(providers, true));
+    } else {
+      upsert(db, merged);
+      if (data.priority !== undefined) reorderInTx(db, existing.provider);
+      if (merged.provider !== existing.provider) bumpScopeRevisions(db, connectionScopes([existing.provider]));
+    }
     result = merged;
   });
-  invalidateConnectionCache();
+  if (result) invalidateProviders(db, providers, runtimeOnly);
   return result;
 }
 
 export async function deleteProviderConnection(id) {
   const db = await getAdapter();
-  let ok = false;
+  let provider = null;
   db.transaction(() => {
     const row = db.get(`SELECT provider FROM providerConnections WHERE id = ?`, [id]);
     if (!row) return;
+    provider = row.provider;
     db.run(`DELETE FROM providerConnections WHERE id = ?`, [id]);
-    reorderInTx(db, row.provider);
-    ok = true;
+    db.run(`DELETE FROM connectionRuntime WHERE connectionId = ?`, [id]);
+    reorderInTx(db, provider);
+    bumpScopeRevisions(db, connectionScopes([provider]));
   });
-  if (ok) invalidateConnectionCache();
-  return ok;
+  if (provider) invalidateProviders(db, [provider]);
+  return provider !== null;
 }
 
 export async function deleteProviderConnectionsByProvider(providerId) {
   const db = await getAdapter();
-  const before = db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [providerId]);
-  db.run(`DELETE FROM providerConnections WHERE provider = ?`, [providerId]);
-  invalidateConnectionCache();
-  return before?.n || 0;
+  let count = 0;
+  db.transaction(() => {
+    count = db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [providerId])?.n || 0;
+    db.run(`DELETE FROM providerConnections WHERE provider = ?`, [providerId]);
+    db.run(`DELETE FROM connectionRuntime WHERE provider = ?`, [providerId]);
+    bumpScopeRevisions(db, connectionScopes([providerId]));
+  });
+  invalidateProviders(db, [providerId]);
+  return count;
 }
 
 export async function reorderProviderConnections(providerId) {
   const db = await getAdapter();
-  db.transaction(() => reorderInTx(db, providerId));
-  invalidateConnectionCache();
+  db.transaction(() => { reorderInTx(db, providerId); bumpScopeRevisions(db, connectionScopes([providerId])); });
+  invalidateProviders(db, [providerId]);
 }
 
 export async function cleanupProviderConnections() {
@@ -349,7 +403,7 @@ export async function cleanupProviderConnections() {
   db.transaction(() => {
     const rows = db.all(`SELECT * FROM providerConnections`);
     for (const row of rows) {
-      const conn = rowToConn(row);
+      const conn = readConnection(db, row.id);
       let dirty = false;
       for (const f of fieldsToCheck) {
         if (conn[f] === null || conn[f] === undefined) {

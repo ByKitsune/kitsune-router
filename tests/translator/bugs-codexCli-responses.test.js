@@ -26,15 +26,12 @@ describe("Codex CLI Responses → OpenAI", () => {
     expect(typeof asst.tool_calls[0].function.arguments).toBe("string");
   });
 
-  it("input_image with file_id is not used as a raw url", () => {
-    const out = R2O({
-      input: [{ type: "message", role: "user", content: [
-        { type: "input_image", file_id: "file-abc" },
-      ] }],
-    });
-    const userMsg = out.messages.find((m) => m.role === "user");
-    const img = Array.isArray(userMsg?.content) ? userMsg.content.find((c) => c.type === "image_url") : null;
-    expect(img).toBeNull();
+  it("rejects an unresolved input_image file_id instead of treating it as a URL or prose", () => {
+    const body = { input: [{ type: "message", role: "user", content: [
+      { type: "input_image", file_id: "file-abc" },
+    ] }] };
+    expect(() => R2O(body)).toThrow(expect.objectContaining({ code: "unsupported_parameter", param: "input_image.file_id" }));
+    expect(body.input[0].content).toEqual([{ type: "input_image", file_id: "file-abc" }]);
   });
 });
 

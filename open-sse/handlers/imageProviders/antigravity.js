@@ -1,17 +1,18 @@
 // Antigravity image adapter - delegates to the executor for correct request
 // envelope (project, model, requestType, sessionId) and auth headers.
-import { nowSec, sizeToAspectRatio } from "./_base.js";
+import { nowSec, parseMediaError, sizeToAspectRatio } from "./_base.js";
 import { getExecutor } from "../../executors/index.js";
 import { detectImageMime, fetchImageAsBase64, parseDataUri } from "../../translator/concerns/image.js";
 
 // Convert image input (data URI, remote URL, or raw base64) to Gemini inlineData.
-async function resolveImageInput(input) {
+async function resolveImageInput(input, signal) {
   if (!input || typeof input !== "string") return null;
 
   let parsed = parseDataUri(input);
 
   if (!parsed && /^https?:\/\//i.test(input)) {
-    const fetched = await fetchImageAsBase64(input, { timeoutMs: 15000 });
+    const fetched = await fetchImageAsBase64(input, { timeoutMs: 15000, signal });
+    signal?.throwIfAborted();
     parsed = fetched ? parseDataUri(fetched.url) : null;
   }
 
@@ -35,26 +36,6 @@ function buildImagePrompt(prompt, referenceCount) {
   return `Generate an image as the final response. ${referenceInstruction}Do not answer with text only.\n\n${prompt}`;
 }
 
-function parseQuotaResetAt(bodyText) {
-  try {
-    const data = JSON.parse(bodyText);
-    const details = data?.error?.details || [];
-    for (const detail of details) {
-      const timestamp = detail?.metadata?.quotaResetTimeStamp;
-      const resetAtMs = timestamp ? Date.parse(timestamp) : NaN;
-      if (Number.isFinite(resetAtMs) && resetAtMs > Date.now()) return resetAtMs;
-
-      const retryDelay = detail?.retryDelay;
-      const delayMatch = typeof retryDelay === "string" ? retryDelay.match(/^(\d+(?:\.\d+)?)s$/) : null;
-      if (delayMatch) {
-        const delayMs = Number(delayMatch[1]) * 1000;
-        if (Number.isFinite(delayMs) && delayMs > 0) return Date.now() + delayMs;
-      }
-    }
-  } catch {}
-  return null;
-}
-
 export default {
   // Delegate to executor instead of building URL/headers/body manually
   useExecutor: true,
@@ -64,7 +45,8 @@ export default {
   buildHeaders: () => ({}),
   buildBody: () => ({}),
 
-  async executeViaExecutor(model, body, credentials, log) {
+  async executeViaExecutor(model, body, credentials, log, { clientSignal, observeUsage } = {}) {
+    clientSignal?.throwIfAborted();
     const executor = getExecutor("antigravity");
     if (!executor) throw new Error("Antigravity executor not found");
 
@@ -95,7 +77,8 @@ export default {
 
     const parts = [];
     for (const input of imageInputs) {
-      const inlineData = await resolveImageInput(input);
+      const inlineData = await resolveImageInput(input, clientSignal);
+      clientSignal?.throwIfAborted();
       if (!inlineData) {
         const error = new Error("Invalid reference image. Use a data URL, HTTP(S) URL, or raw base64 image.");
         error.status = 400;
@@ -117,21 +100,29 @@ export default {
       stream: false,
       credentials,
       log,
+      signal: clientSignal,
     });
 
+    if (clientSignal?.aborted) {
+      await result.response.body?.cancel().catch(() => {});
+      clientSignal.throwIfAborted();
+    }
     if (!result.response.ok) {
-      const text = await result.response.text();
-      const error = new Error(text || `HTTP ${result.response.status}`);
+      const diagnostics = await parseMediaError(result.response, observeUsage, clientSignal);
+      const error = new Error(diagnostics.message || `HTTP ${result.response.status}`);
       error.status = result.response.status;
       // Explicit upstream marker: imageGenerationCore uses this to preserve the
       // real status (e.g. 404 for an unavailable model) instead of reporting a
       // generic 502 that would cool down healthy pooled accounts.
       error.upstreamStatus = result.response.status;
-      error.resetsAtMs = parseQuotaResetAt(text);
+      error.resetsAtMs = diagnostics.resetsAtMs;
       throw error;
     }
 
-    return result.response.json();
+    const responseBody = await result.response.json();
+    observeUsage?.(responseBody);
+    clientSignal?.throwIfAborted();
+    return responseBody;
   },
 
   normalize: (responseBody, prompt) => {

@@ -4,17 +4,50 @@
  * Responses API uses: { input: [...], instructions: "..." }
  * Chat API uses: { messages: [...] }
  */
+import { createHash } from "node:crypto";
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { convertResponsesApiFormat, normalizeToolParameters } from "../formats/responsesApi.js";
-import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimodal.js";
 import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
+import { splitToolCallId } from "../concerns/thoughtSignature.js";
 
-// Responses API enforces max 64 chars on call_id (#393)
 const MAX_CALL_ID_LEN = 64;
-const clampCallId = (id) => (typeof id === "string" && id.length > MAX_CALL_ID_LEN ? id.substring(0, MAX_CALL_ID_LEN) : id);
+
+function callIdMapper(messages) {
+  const reserved = new Set();
+  const reserve = id => { if (typeof id === "string" && id.length <= MAX_CALL_ID_LEN) reserved.add(id); };
+  for (const message of messages) {
+    for (const call of message.tool_calls || []) reserve(call.id);
+    reserve(message.tool_call_id);
+    for (const block of Array.isArray(message.content) ? message.content : []) {
+      if (block.type === CLAUDE_BLOCK.TOOL_RESULT) reserve(block.tool_use_id);
+    }
+  }
+  const aliases = new Map();
+  return id => {
+    if (typeof id !== "string" || id.length <= MAX_CALL_ID_LEN) return id;
+    if (splitToolCallId(id).thoughtSignature) {
+      const error = new Error("unsupported_parameter: A signed Gemini tool ID cannot fit this destination's call_id limit without losing its opaque signature. Use a native Google route or resend history with a supported continuity representation.");
+      error.code = "unsupported_parameter";
+      error.param = "tool_calls.id";
+      throw error;
+    }
+    if (aliases.has(id)) return aliases.get(id);
+    const hash = createHash("sha256").update(id).digest("hex").slice(0, 16);
+    let candidate = `${id.slice(0, MAX_CALL_ID_LEN - hash.length - 1)}_${hash}`;
+    let suffix = 2;
+    while (reserved.has(candidate)) {
+      const tail = `_${hash}_${suffix++}`;
+      candidate = `${id.slice(0, MAX_CALL_ID_LEN - tail.length)}${tail}`;
+    }
+    aliases.set(id, candidate);
+    reserved.add(candidate);
+    return candidate;
+  };
+}
 
 
 export function openaiResponsesToOpenAIRequest(model, body, stream) {
@@ -82,6 +115,7 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
   // Extract system message as instructions
   let hasSystemMessage = false;
   const messages = body.messages || [];
+  const clampCallId = callIdMapper(messages);
   let pendingToolMedia = [];
   const flushToolMedia = () => {
     if (pendingToolMedia.length > 0) {

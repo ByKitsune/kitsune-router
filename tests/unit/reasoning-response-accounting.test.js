@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-const db = vi.hoisted(() => ({ saveRequestUsage: vi.fn(async () => {}), saveRequestDetail: vi.fn(async () => {}), appendRequestLog: vi.fn(async () => {}), trackPendingRequest: vi.fn() }));
+const db = vi.hoisted(() => ({ enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })), saveRequestDetail: vi.fn(async () => {}), appendRequestLog: vi.fn(async () => {}), trackPendingRequest: vi.fn() }));
 vi.mock('@/lib/usageDb.js', () => db);
 const { FORMATS: F } = await import('../../open-sse/translator/formats.js');
 const { handleNonStreamingResponse: native } = await import('../../open-sse/handlers/chatCore/nonStreamingHandler.js');
@@ -30,21 +30,21 @@ it('CONTROL native partial text is returned and raw billed output persists', asy
  const result = await native(ctx(Response.json(chat('Partial'))));
  expect(result.response.status).toBe(200);
  expect((await result.response.json()).choices[0].finish_reason).toBe('length');
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
- expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
 });
 it('RED native reasoning-only budget failure must still persist actual usage', async () => {
  const result = await native(ctx(Response.json(chat())));
  expect(result.response.status).toBe(400);
- observed('native budget usage persistence', { status: result.response.status, records: db.saveRequestUsage.mock.calls.length });
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
- expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
+ observed('native budget usage persistence', { status: result.response.status, records: db.enqueueRequestUsage.mock.calls.length });
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
  expect(db.saveRequestDetail).toHaveBeenCalledTimes(1);
  expect(db.saveRequestDetail.mock.calls[0][0]).toMatchObject({ status: 'failed', tokens: { prompt_tokens: 12, completion_tokens: 16 } });
 });
 it('RED native Gemini MAX_TOKENS reasoning-only must return budget failure', async () => {
  const result = await native(ctx(Response.json({ candidates: [{ content: { parts: [{ thought: true, text: 'Thinking' }] }, finishReason: 'MAX_TOKENS' }], usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 0, thoughtsTokenCount: 16, totalTokenCount: 28 } }), F.OPENAI, F.GEMINI));
- observed('Gemini exhausted', { status: result.response.status, body: await result.response.clone().json(), saved: db.saveRequestUsage.mock.calls });
+ observed('Gemini exhausted', { status: result.response.status, body: await result.response.clone().json(), saved: db.enqueueRequestUsage.mock.calls });
  expect(result.response.status).toBe(400);
 });
 it('RED Responses refusal string counts as usable output despite incomplete status', async () => {
@@ -54,7 +54,7 @@ it('RED Responses refusal string counts as usable output despite incomplete stat
 });
 it('RED forced Chat SSE reasoning-only must match native budget failure', async () => {
  const result = await forced(ctx(chatSSE()));
- observed('forced Chat budget', { status: result.response.status, saved: db.saveRequestUsage.mock.calls[0]?.[0]?.tokens });
+ observed('forced Chat budget', { status: result.response.status, saved: db.enqueueRequestUsage.mock.calls[0]?.[0]?.tokens });
  expect(result.response.status).toBe(400);
 });
 
@@ -64,7 +64,7 @@ it('wrapped Gemini thought-only MAX_TOKENS reports the native client budget fiel
  const result = await native({ ...ctx(Response.json(payload), F.GEMINI, F.GEMINI_CLI), body: { generationConfig: { maxOutputTokens: 16 } }, onRequestSuccess });
  expect(result.response.status).toBe(400);
  expect(await result.response.json()).toMatchObject({ error: { code: 'output_budget_exhausted', param: 'generationConfig.maxOutputTokens' } });
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
  expect(db.saveRequestDetail.mock.calls[0][0].status).toBe('failed');
  expect(onRequestSuccess).not.toHaveBeenCalled();
 });
@@ -73,27 +73,27 @@ it('forced Chat budget failure is accounted once, detailed as failed, and never 
  const result = await forced({ ...ctx(chatSSE()), onRequestSuccess });
  expect(result.response.status).toBe(400);
  expect(await result.response.json()).toMatchObject({ error: { code: 'output_budget_exhausted', param: 'max_completion_tokens' } });
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
- expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
  expect(db.saveRequestDetail).toHaveBeenCalledTimes(1);
  expect(db.saveRequestDetail.mock.calls[0][0]).toMatchObject({ status: 'failed', tokens: { prompt_tokens: 12, completion_tokens: 16 } });
  expect(onRequestSuccess).not.toHaveBeenCalled();
 });
 it('RED Gemini actual completion accounting must include thought tokens', async () => {
  await native(ctx(Response.json({ candidates: [{ content: { parts: [{ text: 'Answer' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3, thoughtsTokenCount: 16, totalTokenCount: 31 } }), F.OPENAI, F.GEMINI));
- observed('Gemini saved', db.saveRequestUsage.mock.calls[0][0].tokens);
- expect(db.saveRequestUsage.mock.calls[0][0].tokens.completion_tokens).toBe(19);
+ observed('Gemini saved', db.enqueueRequestUsage.mock.calls[0][0].tokens);
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens.completion_tokens).toBe(19);
 });
 it('RED JSON client usage must be actual tokens, not context guard buffer', async () => {
  const result = await native(ctx(Response.json(chat('Answer', 'stop'))));
- const json = await result.response.json(); observed('native actual usage', { client: json.usage, saved: db.saveRequestUsage.mock.calls[0][0].tokens });
+ const json = await result.response.json(); observed('native actual usage', { client: json.usage, saved: db.enqueueRequestUsage.mock.calls[0][0].tokens });
  expect(json.usage.prompt_tokens).toBe(12);
 });
 
 it('wrapped Gemini completion includes thoughts exactly once in actual client and stored usage', async () => {
  const payload = { response: { candidates: [{ content: { parts: [{ text: 'Answer' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3, thoughtsTokenCount: 16, totalTokenCount: 31 } } };
  const result = await native(ctx(Response.json(payload), F.OPENAI, F.GEMINI_CLI));
- expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 19, total_tokens: 31, reasoning_tokens: 16 });
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 19, total_tokens: 31, reasoning_tokens: 16 });
  expect((await result.response.json()).usage).toMatchObject({ prompt_tokens: 12, completion_tokens: 19, total_tokens: 31, completion_tokens_details: { reasoning_tokens: 16 } });
 });
 it('RED native Chat to Responses partial length must be incomplete', async () => {
@@ -118,8 +118,8 @@ it.each(['native', 'forced'])('%s Chat partial output preserves actual detailed 
 it('forced Responses empty incomplete preserves incurred usage before its structured budget error', async () => {
  const onRequestSuccess = vi.fn();
  const result = await forced({ ...ctx(responsesSSE(), F.OPENAI_RESPONSES, F.OPENAI_RESPONSES), onRequestSuccess });
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
- expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 });
  expect(result.response.status).toBe(400);
  expect(await result.response.json()).toMatchObject({ error: { code: 'output_budget_exhausted', param: 'max_output_tokens' } });
  expect(db.saveRequestDetail.mock.calls[0][0]).toMatchObject({ status: 'failed', tokens: { prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 16 } });
@@ -131,7 +131,7 @@ it.each(['output_text', 'refusal'])('forced Responses incomplete preserves usabl
  const result = await forced(ctx(upstream, F.OPENAI_RESPONSES, F.OPENAI_RESPONSES));
  expect(result.response.status).toBe(200);
  expect(await result.response.json()).toMatchObject(payload);
- expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
+ expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
 });
 
 it.each([F.OPENAI, F.CLAUDE])('forced Responses partial budget terminal maps correctly to %s', async (sourceFormat) => {

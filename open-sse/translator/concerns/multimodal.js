@@ -24,9 +24,12 @@ export function normalizeMediaPart(part) {
     const source = part.image_url;
     const url = typeof source === "string" ? source : source?.url;
     if (typeof url !== "string" || !url) return null;
+    if (type === OPENAI_BLOCK.IMAGE_URL && source && typeof source === "object" && !part.detail) return part;
+    const { detail, ...rest } = part;
     return {
+      ...rest,
       type: OPENAI_BLOCK.IMAGE_URL,
-      image_url: { ...(typeof source === "object" ? source : {}), url, ...(part.detail ? { detail: part.detail } : {}) },
+      image_url: { ...(typeof source === "object" ? source : {}), url, ...(detail ? { detail } : {}) },
     };
   }
   if (type === CLAUDE_BLOCK.IMAGE) {

@@ -258,12 +258,20 @@ async function removeDNSEntry(tool, sudoPassword) {
 /**
  * Remove ALL tool DNS entries (used when stopping server)
  */
-async function removeAllDNSEntries(sudoPassword) {
+async function removeAllDNSEntries(sudoPassword, { strict = false } = {}) {
   for (const tool of Object.keys(TOOL_HOSTS)) {
     try {
       await removeDNSEntry(tool, sudoPassword);
     } catch (e) {
       err(`DNS ${tool}: failed to remove — ${e.message}`);
+    }
+  }
+  if (strict) {
+    let content;
+    try { content = fs.readFileSync(HOSTS_FILE, "utf8"); }
+    catch { throw Object.assign(new Error("Unable to verify tool DNS cleanup"), { code: "DNS_CLEANUP_FAILED" }); }
+    if (Object.values(TOOL_HOSTS).flat().some(host => content.includes(host))) {
+      throw Object.assign(new Error("Tool DNS entries remain after cleanup"), { code: "DNS_CLEANUP_FAILED" });
     }
   }
 }

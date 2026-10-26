@@ -19,6 +19,12 @@ import { getUsageStats, getRequestFailureCounts } from "@/lib/db/repos/usageRepo
 import { hasValidCliToken, isAuthenticated } from "@/dashboardGuard";
 import { APP_CONFIG } from "@/shared/constants/config.js";
 import { PROVIDER_MODELS } from "open-sse/config/providerModels.js";
+import { getRequestPhaseMetrics } from "open-sse/utils/requestTiming.js";
+import { getDbCacheMetrics } from "@/lib/db/helpers/scopedCache.js";
+import { getUsageQueueMetrics } from "@/lib/db/repos/usageRepo.js";
+import { getRequestDetailQueueMetrics } from "@/lib/db/repos/requestDetailsRepo.js";
+import { getRequestLogQueueMetrics } from "open-sse/utils/requestLogger.js";
+import { getUpstreamPoolStats } from "open-sse/utils/transportPool.js";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +149,39 @@ export async function GET(request) {
     for (const status of Object.keys(failures).sort()) {
       lines.push(`zenrouter_failures_total{status="${status}"} ${failures[status]}`);
     }
+  }
+
+  for (const metrics of getRequestPhaseMetrics()) {
+    const labels = { phase: metrics.phase };
+    lines.push(line("zenrouter_request_phase_samples_total", metrics.count, labels));
+    lines.push(line("zenrouter_request_phase_milliseconds_total", round(metrics.totalMs, 6), labels));
+    lines.push(line("zenrouter_request_phase_window_samples", metrics.windowSamples, labels));
+    for (const quantile of ["p50", "p95", "p99"]) {
+      lines.push(line("zenrouter_request_phase_milliseconds", round(metrics[quantile], 6), { ...labels, quantile }));
+    }
+  }
+
+  for (const [name, metrics] of Object.entries(getDbCacheMetrics())) {
+    for (const field of ["hits", "misses", "loads", "loadErrors", "coalesced", "evictions", "invalidations", "rejected", "entries", "bytes", "pending"]) {
+      if (Number.isFinite(metrics[field])) lines.push(line(`zenrouter_config_cache_${field}`, metrics[field], { cache: name }));
+    }
+  }
+  const queues = await Promise.allSettled([getUsageQueueMetrics(), getRequestDetailQueueMetrics()]);
+  for (const [index, result] of queues.entries()) {
+    const queue = index === 0 ? "usage" : "details";
+    lines.push(line("zenrouter_background_queue_metrics_ok", result.status === "fulfilled" ? 1 : 0, { queue }));
+    if (result.status === "fulfilled") {
+      for (const field of ["depth", "bytes", "accepting", "accepted", "projected", "duplicates", "rejected", "errors", "written", "dropped", "retries"]) {
+        if (Number.isFinite(result.value[field])) lines.push(line(`zenrouter_background_queue_${field}`, result.value[field], { queue }));
+      }
+    }
+  }
+  for (const [field, value] of Object.entries(getRequestLogQueueMetrics())) {
+    if (Number.isFinite(value)) lines.push(line(`zenrouter_background_queue_${field}`, value, { queue: "files" }));
+  }
+  const pools = getUpstreamPoolStats();
+  for (const field of ["active", "queued", "livePools", "created", "poolHits", "requests", "completed", "failed", "cancelled", "rejected", "connectionsCreated", "disposalErrors"]) {
+    if (Number.isFinite(pools[field])) lines.push(line(`zenrouter_upstream_pool_${field}`, pools[field]));
   }
 
   return new NextResponse(`${lines.join("\n")}\n`, {

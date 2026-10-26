@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => {
     sttCore: vi.fn(),
     ttsCore: vi.fn(),
     videoCore: vi.fn(),
-    saveRequestUsage: vi.fn(),
+    enqueueRequestUsage: vi.fn(),
     logger: {
       request: vi.fn(), info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn(),
       maskKey: vi.fn(() => "[redacted]"),
@@ -56,7 +56,7 @@ vi.mock("@/sse/services/tokenRefresh.js", () => ({
   updateProviderCredentials: mocks.updateProviderCredentials,
 }));
 vi.mock("@/shared/utils/ssrfGuard.js", () => ({ assertPublicUrlAsync: mocks.assertPublicUrlAsync }));
-vi.mock("@/lib/usageDb.js", () => ({ saveRequestUsage: mocks.saveRequestUsage }));
+vi.mock("@/lib/usageDb.js", () => ({ enqueueRequestUsage: mocks.enqueueRequestUsage }));
 vi.mock("@/sse/utils/logger.js", () => mocks.logger);
 vi.mock("open-sse/handlers/fetch/index.js", () => ({ handleFetchCore: mocks.fetchCore }));
 vi.mock("open-sse/handlers/search/index.js", () => ({ handleSearchCore: mocks.searchCore }));
@@ -147,7 +147,7 @@ function expectNoDispatchOrMutation() {
   expect(mocks.updateProviderCredentials).not.toHaveBeenCalled();
   expect(mocks.markAccountUnavailable).not.toHaveBeenCalled();
   expect(mocks.clearAccountError).not.toHaveBeenCalled();
-  expect(mocks.saveRequestUsage).not.toHaveBeenCalled();
+  expect(mocks.enqueueRequestUsage).not.toHaveBeenCalled();
   for (const core of coreMocks) expect(core).not.toHaveBeenCalled();
   expect(global.fetch).not.toHaveBeenCalled();
 }
@@ -170,7 +170,7 @@ beforeEach(() => {
   mocks.assertPublicUrlAsync.mockResolvedValue(undefined);
   mocks.fetchCore.mockImplementation(async () => ({ success: true, data: { content: { text: "fixture" } } }));
   for (const core of coreMocks.slice(1)) core.mockImplementation(async () => success());
-  mocks.saveRequestUsage.mockResolvedValue(undefined);
+  mocks.enqueueRequestUsage.mockResolvedValue(undefined);
 });
 
 afterEach(() => {

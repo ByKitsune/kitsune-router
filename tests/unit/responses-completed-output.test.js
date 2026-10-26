@@ -4,9 +4,6 @@ import { FORMATS } from "../../open-sse/translator/formats.js";
 import { initState } from "../../open-sse/translator/index.js";
 import { openaiToOpenAIResponsesResponse } from "../../open-sse/translator/response/openai-responses.js";
 
-// targetFormat === OPENAI is the direct openai -> openai-responses route, which is
-// the only one where flush() reaches this translator (see the flushReachesUs note
-// above the finish_reason branch).
 function newState() {
   return { ...initState(FORMATS.OPENAI_RESPONSES), targetFormat: FORMATS.OPENAI };
 }
@@ -54,6 +51,7 @@ describe("response.completed output (issue #4307)", () => {
     const state = newState();
     openaiToOpenAIResponsesResponse(textChunk("O"), state);
     openaiToOpenAIResponsesResponse(textChunk("K"), state);
+    openaiToOpenAIResponsesResponse(finishChunk(), state);
     const response = completedResponse(openaiToOpenAIResponsesResponse(null, state));
 
     expect(response.status).toBe("completed");
@@ -117,6 +115,7 @@ describe("response.completed output (issue #4307)", () => {
 
   it("reports an empty output array when nothing was produced", () => {
     const state = newState();
+    openaiToOpenAIResponsesResponse(finishChunk(), state);
     const response = completedResponse(openaiToOpenAIResponsesResponse(null, state));
     expect(response.output).toEqual([]);
   });
@@ -142,10 +141,23 @@ describe("response.completed output (issue #4307)", () => {
   it("does not duplicate items when flush runs more than once", () => {
     const state = newState();
     openaiToOpenAIResponsesResponse(textChunk("once"), state);
+    openaiToOpenAIResponsesResponse(finishChunk(), state);
     openaiToOpenAIResponsesResponse(null, state);
     const second = openaiToOpenAIResponsesResponse(null, state);
 
     expect(second).toEqual([]);
     expect(state.completedOutputItems.size).toBe(1);
+  });
+
+  it.each([false, true])("does not fabricate completed output from truncated EOF (content=%s)", hasContent => {
+    const state = newState();
+    if (hasContent) openaiToOpenAIResponsesResponse(textChunk("partial"), state);
+    const first = openaiToOpenAIResponsesResponse(null, state);
+    const second = openaiToOpenAIResponsesResponse(null, state);
+
+    expect(first).toEqual([]);
+    expect(second).toEqual([]);
+    expect(state.completedSent).toBe(false);
+    expect(state.completedOutputItems?.size ?? 0).toBe(0);
   });
 });

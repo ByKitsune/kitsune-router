@@ -30,12 +30,13 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied public assets to ${publicDestination}`);
   }
 
-  // Without it beside server.js the standalone build serves requests unsanitized.
-  const serverWrapperSource = resolve(projectRoot, "custom-server.js");
-  const serverWrapperDestination = resolve(standaloneDir, "custom-server.js");
-  if (existsSync(serverWrapperSource)) {
-    cpSync(serverWrapperSource, serverWrapperDestination, { force: true });
-    console.log(`[standalone-assets] Copied custom-server.js to ${serverWrapperDestination}`);
+  for (const name of ["custom-server.js", "shutdown-lifecycle.cjs"]) {
+    const source = resolve(projectRoot, name);
+    const destination = resolve(standaloneDir, name);
+    if (existsSync(source)) {
+      cpSync(source, destination, { force: true });
+      console.log(`[standalone-assets] Copied ${name} to ${destination}`);
+    }
   }
 
   // The MITM child is spawned directly, outside Next's module graph.

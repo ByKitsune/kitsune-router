@@ -4,7 +4,8 @@ import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 import { FORMATS } from "../../translator/formats.js";
 import { PROVIDERS } from "../../config/providers.js";
-import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
+import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, formatDoneLine } from "./requestDetail.js";
+import { acceptUsageRecord } from "./streamingHandler.js";
 import { RESPONSES_ITEM } from "../../translator/schema/index.js";
 import { extractReasoningText, extractResponsesReasoningText } from "../../translator/concerns/reasoning.js";
 import { normalizeTypedContent } from "../../translator/concerns/typedContent.js";
@@ -16,7 +17,10 @@ import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { getResponseServiceTier, getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 import { normalizeResponseIdentity } from "../../utils/streamHelpers.js";
+import { extractUsage, canonicalizeUsage, mergeUsage } from "../../utils/usageTracking.js";
 import { toOpenAIUsage } from "../../translator/concerns/usage.js";
+import { createSSEParser, parseSSEEvent, streamEventPayload, consumeSSEStream, isValidStreamIndex, SSE_COMPLETION_GRACE_MS } from "../../utils/sse.js";
+import { unsupportedResponseMedia } from "../../translator/concerns/responseMedia.js";
 // Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
 import { saveRequestDetail } from "@/lib/usageDb.js";
@@ -84,109 +88,143 @@ export function responsesJsonToClaudeMessage(response) {
 export function createSSEAggregationState(targetFormat, sourceFormat, model) {
   const gemini = [FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX];
   return {
-    ...initState(FORMATS.OPENAI), model, targetFormat, sourceFormat: FORMATS.OPENAI,
+    ...initState(FORMATS.OPENAI), model, targetFormat, sourceFormat: FORMATS.OPENAI, clientFormat: sourceFormat,
     collectNativeResponse: (targetFormat === FORMATS.CLAUDE && sourceFormat === FORMATS.CLAUDE) ||
       (gemini.includes(targetFormat) && gemini.includes(sourceFormat)),
   };
 }
 
-/** Aggregate registered provider response translators into one Chat completion. */
-export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = FORMATS.OPENAI, translationState = null) {
-  const chunks = [];
+function createSSEAggregator(fallbackModel, targetFormat, translationState) {
   const state = translationState || createSSEAggregationState(targetFormat, FORMATS.OPENAI, fallbackModel);
-  const appendChunk = (chunk) => {
-    if (chunk?.error) { streamError = chunk.error; return; }
-    const translated = targetFormat === FORMATS.OPENAI || Array.isArray(chunk?.choices)
-      ? [chunk] : translateResponse(targetFormat, FORMATS.OPENAI, chunk, state);
-    if (translated) chunks.push(...translated);
-  };
-  let streamError = null;
-
-  for (const line of String(rawSSE || "").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("data:")) continue;
-    const payload = trimmed.slice(5).trim();
-    if (!payload || payload === "[DONE]") continue;
-    let chunk;
-    try { chunk = JSON.parse(payload); } catch { continue; }
-    appendChunk(chunk);
-  }
-  if (targetFormat !== FORMATS.OPENAI) {
-    chunks.push(...translateResponse(targetFormat, FORMATS.OPENAI, null, state));
-  }
-
-  if (streamError) return { error: streamError };
-  if (chunks.length === 0) return null;
-
-  const first = chunks[0];
-  const contentParts = [];
-  const reasoningParts = [];
-  const refusalParts = [];
-  const reasoningDetails = [];
-  const images = [];
-  const toolCallMap = new Map(); // index -> { id, type, function: { name, arguments } }
-  let finishReason = "stop";
+  const choices = new Map();
+  let first = null;
   let usage = null;
+  let incurredUsage = null;
   let actualServiceTier = null;
-
-  for (const chunk of chunks) {
+  let streamError = null;
+  let terminal = false;
+  let completionDeadline = null;
+  let stopped = false;
+  const fail = message => { streamError ||= { type: "stream_error", code: "stream_disconnected", message }; };
+  const append = chunk => {
+    if (chunk == null) return;
+    const failure = extractResponseError(chunk);
+    if (failure) { streamError ||= failure.error; return; }
+    first ||= { id: chunk.id, created: chunk.created, model: chunk.model };
     actualServiceTier = getResponseServiceTier(chunk) ?? actualServiceTier;
-    const choice = chunk?.choices?.[0];
-    const delta = choice?.delta || {};
-    normalizeTypedContent(delta);
-    if (typeof delta.content === "string" && delta.content.length > 0) contentParts.push(delta.content);
-    if (typeof delta.refusal === "string") refusalParts.push(delta.refusal);
-    if (Array.isArray(delta.images)) images.push(...delta.images);
-    const reasoningDelta = extractReasoningText(delta);
-    if (typeof reasoningDelta === "string" && reasoningDelta.length > 0) reasoningParts.push(reasoningDelta);
-    const details = delta.reasoning_details ?? delta.provider_specific_fields?.reasoning_details;
-    if (Array.isArray(details)) reasoningDetails.push(...details);
-    if (choice?.finish_reason) finishReason = choice.finish_reason;
-    if (chunk?.usage && typeof chunk.usage === "object") usage = chunk.usage;
-
-    // Accumulate tool_calls from streaming deltas
-    if (Array.isArray(delta.tool_calls)) {
-      for (const tc of delta.tool_calls) {
-        const idx = tc.index ?? 0;
-        if (!toolCallMap.has(idx)) {
-          toolCallMap.set(idx, { id: tc.id || "", type: "function", function: { name: "", arguments: "" } });
-        }
-        const existing = toolCallMap.get(idx);
-        if (tc.id) existing.id = tc.id;
-        if (tc.function?.name) existing.function.name += tc.function.name;
-        if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
+    if (chunk.usage) usage = chunk.usage;
+    for (const choice of chunk.choices || []) {
+      const index = choice.index ?? 0;
+      if (!isValidStreamIndex(index)) throw new RangeError("Invalid upstream choice index");
+      const entry = choices.get(index) || { content: [], reasoning: [], refusal: [], details: [], images: [], tools: new Map(), finishReason: null };
+      choices.set(index, entry);
+      const delta = choice.delta || {};
+      normalizeTypedContent(delta);
+      if (typeof delta.content === "string") entry.content.push(delta.content);
+      if (typeof delta.refusal === "string") entry.refusal.push(delta.refusal);
+      const reasoning = extractReasoningText(delta);
+      if (reasoning) entry.reasoning.push(reasoning);
+      const details = delta.reasoning_details ?? delta.provider_specific_fields?.reasoning_details;
+      if (Array.isArray(details)) entry.details.push(...details);
+      if (Array.isArray(delta.images)) entry.images.push(...delta.images);
+      if (choice.finish_reason) entry.finishReason = choice.finish_reason;
+      if (["network_error", "error", "server_error", "timeout"].includes(choice.native_finish_reason || choice.finish_reason)) fail("Upstream generation failed");
+      for (const call of delta.tool_calls || []) {
+        const toolIndex = call.index ?? 0;
+        if (!isValidStreamIndex(toolIndex)) throw new RangeError("Invalid upstream tool index");
+        const tool = entry.tools.get(toolIndex) || { id: "", names: [], arguments: [] };
+        entry.tools.set(toolIndex, tool);
+        if (call.id) tool.id = call.id;
+        if (call.function?.name) tool.names.push(call.function.name);
+        if (call.function?.arguments) tool.arguments.push(call.function.arguments);
       }
     }
-  }
-
-  const message = { role: "assistant", content: contentParts.join("") || (toolCallMap.size > 0 ? null : "") };
-  if (refusalParts.length > 0) message.refusal = refusalParts.join("");
-  if (reasoningParts.length > 0) message.reasoning_content = reasoningParts.join("");
-  if (reasoningDetails.length > 0) message.reasoning_details = reasoningDetails;
-  if (images.length > 0) message.images = images;
-  if (toolCallMap.size > 0) {
-    message.tool_calls = [...toolCallMap.entries()].sort((a, b) => a[0] - b[0]).map(([, tc]) => tc);
-  }
-
-  const result = {
-    id: first.id || `chatcmpl-${Date.now()}`,
-    object: "chat.completion",
-    created: first.created || Math.floor(Date.now() / 1000),
-    model: first.model || fallbackModel || "unknown",
-    choices: [{ index: 0, message, finish_reason: finishReason }]
   };
-  if (usage) result.usage = usage;
-  if (actualServiceTier) result.service_tier = actualServiceTier;
-  return result;
+  return {
+    event(event) {
+      if (stopped) return false;
+      const chunk = streamEventPayload(event, parseSSEEvent(event));
+      if (event.data.trim() === "[DONE]") {
+        stopped = true;
+        if (!terminal) fail("Upstream stream closed without a terminal event");
+        return false;
+      }
+      const parsed = !chunk.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...chunk, type: event.event } : chunk;
+      incurredUsage = mergeUsage(incurredUsage, extractUsage(parsed));
+      const failure = extractResponseError(parsed) || unsupportedResponseMedia(targetFormat, state.clientFormat || FORMATS.OPENAI, parsed);
+      if (failure) { usage = failure.usage || canonicalizeUsage(incurredUsage) || usage; streamError = failure.error; stopped = true; return false; }
+      actualServiceTier = getResponseServiceTier(parsed) ?? actualServiceTier;
+      const isChat = Array.isArray(parsed.choices);
+      const type = event.event || parsed.type;
+      const nativeTerminal = !isChat && (targetFormat === FORMATS.CLAUDE ? type === "message_stop"
+        : targetFormat === FORMATS.OLLAMA ? parsed.done === true
+          : (parsed.candidates || parsed.response?.candidates)?.some(candidate => Boolean(candidate.finishReason)));
+      for (const converted of (targetFormat === FORMATS.OPENAI || isChat ? [parsed] : translateResponse(targetFormat, FORMATS.OPENAI, parsed, state)) || []) append(converted);
+      if (isChat) terminal = choices.size > 0 && [...choices.values()].every(choice => choice.finishReason);
+      else if (nativeTerminal) terminal = true;
+      if (streamError) { stopped = true; return false; }
+      if (nativeTerminal) { stopped = true; return false; }
+      if (terminal) completionDeadline ??= Date.now() + SSE_COMPLETION_GRACE_MS;
+      else completionDeadline = null;
+      return true;
+    },
+    deadline: () => completionDeadline,
+    snapshot() {
+      const observedUsage = canonicalizeUsage(incurredUsage) || usage;
+      return { ...(observedUsage ? { usage: observedUsage } : {}), ...(actualServiceTier ? { service_tier: actualServiceTier } : {}) };
+    },
+    result() {
+      if (!streamError && targetFormat !== FORMATS.OPENAI) for (const chunk of translateResponse(targetFormat, FORMATS.OPENAI, null, state) || []) append(chunk);
+      if (!terminal && !streamError) fail("Upstream stream closed without a terminal event");
+      if (streamError) return { error: streamError, ...(usage ? { usage } : {}) };
+      if (!first) return null;
+      return {
+        id: first.id || `chatcmpl-${Date.now()}`, object: "chat.completion", created: first.created || Math.floor(Date.now() / 1000), model: first.model || fallbackModel || "unknown",
+        choices: [...choices.entries()].sort((a, b) => a[0] - b[0]).map(([index, entry]) => ({ index, finish_reason: entry.finishReason,
+          message: { role: "assistant", content: entry.content.join("") || (entry.tools.size ? null : ""),
+            ...(entry.refusal.length ? { refusal: entry.refusal.join("") } : {}), ...(entry.reasoning.length ? { reasoning_content: entry.reasoning.join("") } : {}),
+            ...(entry.details.length ? { reasoning_details: entry.details } : {}), ...(entry.images.length ? { images: entry.images } : {}),
+            ...(entry.tools.size ? { tool_calls: [...entry.tools.entries()].sort((a, b) => a[0] - b[0]).map(([, tool]) => ({ id: tool.id, type: "function", function: { name: tool.names.join(""), arguments: tool.arguments.join("") } })) } : {}),
+          },
+        })), ...(usage ? { usage } : {}), ...(actualServiceTier ? { service_tier: actualServiceTier } : {}),
+      };
+    },
+  };
+}
+
+export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = FORMATS.OPENAI, translationState = null) {
+  const aggregate = createSSEAggregator(fallbackModel, targetFormat, translationState);
+  const parser = createSSEParser({ mode: targetFormat === FORMATS.OLLAMA ? "ndjson" : "sse" });
+  try {
+    let stopped = false;
+    for (const event of parser.feed(String(rawSSE || ""))) if (aggregate.event(event) === false) { stopped = true; break; }
+    if (!stopped) for (const event of parser.end()) if (aggregate.event(event) === false) break;
+    return aggregate.result();
+  } catch { return { error: { type: "stream_error", code: "invalid_stream", message: "Invalid upstream stream event" } }; }
+  finally { parser.reset(); }
+}
+
+export async function convertSSEToOpenAIResponse(stream, fallbackModel, targetFormat = FORMATS.OPENAI, translationState = null, { signal, onAbort } = {}) {
+  const aggregate = createSSEAggregator(fallbackModel, targetFormat, translationState);
+  try {
+    await consumeSSEStream(stream, event => aggregate.event(event), { mode: targetFormat === FORMATS.OLLAMA ? "ndjson" : "sse", signal, deadline: aggregate.deadline });
+    return aggregate.result();
+  } catch (error) {
+    if (signal?.aborted) {
+      await onAbort?.(aggregate.snapshot());
+      throw signal.reason || error;
+    }
+    return { error: { type: "stream_error", code: "invalid_stream", message: "Invalid upstream stream event" }, ...aggregate.snapshot() };
+  }
 }
 
 /**
  * Handle case: provider forced streaming but client wants JSON.
  * Supports both Codex/Responses API SSE and standard Chat Completions SSE.
  */
-export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, toolNameMap, customToolNames, trackDone, appendLog, reqTag, log, serviceTier }) {
-  const contentType = providerResponse.headers.get("content-type") || "";
-  const isSSE = contentType.includes("text/event-stream") || (contentType === "" && isResponsesProvider(provider));
+export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat = FORMATS.OPENAI, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, toolNameMap, customToolNames, trackDone, appendLog, reqTag, log, serviceTier, signal, usageEventId = crypto.randomUUID(), usageTimestamp = new Date().toISOString() }) {
+  const contentType = (providerResponse.headers.get("content-type") || "").toLowerCase();
+  const isSSE = contentType.includes("text/event-stream") || (contentType === "" && isResponsesProvider(provider)) || (targetFormat === FORMATS.OLLAMA && contentType.includes("application/x-ndjson"));
   if (!isSSE) return null; // not handled here
 
   trackDone();
@@ -197,6 +235,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     request: extractRequestConfig(body, stream),
     providerRequest: finalBody || translatedBody || null
   };
+  const onAbort = snapshot => acceptUsageRecord({ provider, model, tokens: extractUsageFromResponse(snapshot), connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, snapshot) });
 
   // Codex/Responses API SSE path
   // Branch on the UPSTREAM format (targetFormat = format we spoke to the provider in),
@@ -205,12 +244,12 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
   const isCodexResponsesApi = isResponsesProvider(provider) || targetFormat === FORMATS.OPENAI_RESPONSES;
   if (isCodexResponsesApi) {
     try {
-      const jsonResponse = decloakOpenAIChunk(await convertResponsesStreamToJson(providerResponse.body), toolNameMap);
+      const jsonResponse = decloakOpenAIChunk(await convertResponsesStreamToJson(providerResponse.body, { signal, onAbort }), toolNameMap);
       const usage = jsonResponse.usage || {};
       const recordedUsage = extractUsageFromResponse(jsonResponse);
       ctx.serviceTier = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, jsonResponse);
-      saveUsageStats({ provider, model, tokens: recordedUsage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: ctx.serviceTier });
-      const nativeFailure = extractResponseError(jsonResponse);
+      await acceptUsageRecord({ provider, model, tokens: recordedUsage, connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: ctx.serviceTier });
+      const nativeFailure = extractResponseError(jsonResponse) || unsupportedResponseMedia(targetFormat, sourceFormat, jsonResponse);
       const failure = outputBudgetError(jsonResponse, sourceFormat, body)
         || (nativeFailure ? createErrorResult(
           nativeFailure.status,
@@ -297,26 +336,27 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
 
       return { success: true, response: new Response(JSON.stringify(finalResp), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
     } catch (err) {
-      console.error("[ChatCore] Responses API SSE→JSON failed:", err);
+      if (err?.code === "usage_acceptance_failed") return createErrorResult(503, err.message, null, { code: err.code });
+      if (signal?.aborted) throw signal.reason || err;
+      console.error("[ChatCore] Responses API SSE→JSON failed");
       return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Failed to convert streaming response to JSON");
     }
   }
 
   // Standard Chat Completions SSE path
   try {
-    const sseText = await providerResponse.text();
     const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
     aggregationState.toolNameMap = toolNameMap;
-    const parsed = decloakOpenAIChunk(parseSSEToOpenAIResponse(sseText, model, targetFormat, aggregationState), toolNameMap);
+    const parsed = decloakOpenAIChunk(await convertSSEToOpenAIResponse(providerResponse.body, model, targetFormat, aggregationState, { signal, onAbort }), toolNameMap);
     if (!parsed) return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
-    const failure = extractResponseError(parsed);
-    if (failure) {
-      return createErrorResult(failure.status, failure.error.message || "Upstream SSE stream failed", null, failure.error);
-    }
-
     const usage = parsed.usage || {};
     ctx.serviceTier = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, parsed);
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: ctx.serviceTier });
+    await acceptUsageRecord({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, eventId: usageEventId, timestamp: usageTimestamp, silent: true, serviceTier: ctx.serviceTier });
+    const failure = extractResponseError(parsed);
+    if (failure) {
+      appendLog({ tokens: usage, status: `FAILED ${failure.status}` });
+      return createErrorResult(failure.status, failure.error.message || "Upstream SSE stream failed", null, failure.error);
+    }
     const budgetError = outputBudgetError(parsed, sourceFormat, body);
     if (budgetError) {
       appendLog({ tokens: usage, status: `FAILED ${HTTP_STATUS.BAD_REQUEST}` });
@@ -370,7 +410,9 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
 
     return { success: true, response: new Response(JSON.stringify(finalBody), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
   } catch (err) {
-    console.error("[ChatCore] Chat Completions SSE→JSON failed:", err);
+    if (err?.code === "usage_acceptance_failed") return createErrorResult(503, err.message, null, { code: err.code });
+    if (signal?.aborted) throw signal.reason || err;
+    console.error("[ChatCore] Chat Completions SSE→JSON failed");
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Failed to convert streaming response to JSON");
   }
 }

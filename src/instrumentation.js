@@ -1,5 +1,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { installRuntimeLifecycle } = await import("@/lib/runtimeLifecycle.js");
+    installRuntimeLifecycle();
     const { initConsoleLogCapture } = await import("@/lib/consoleLogBuffer");
     initConsoleLogCapture();
 
@@ -10,5 +12,7 @@ export async function register() {
 
     const { startModelCatalogSync } = await import("@/lib/modelCatalog/sync.js");
     startModelCatalogSync();
+    const { startBackgroundTokenRefresh } = await import("@/sse/services/backgroundTokenRefresh.js");
+    startBackgroundTokenRefresh();
   }
 }

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   unexpectedIO: vi.fn(() => { throw new Error("Unexpected real I/O"); }),
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("@/sse/services/auth.js", () => ({
   getProviderCredentials: mocks.credentials, markAccountUnavailable: mocks.markUnavailable,
@@ -36,6 +37,7 @@ vi.mock("open-sse/providers/declaredCaps.js", () => ({ getDeclaredModelCaps: asy
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: mocks.trackPendingRequest, appendRequestLog: mocks.appendRequestLog,
   saveRequestDetail: mocks.saveRequestDetail, saveRequestUsage: mocks.saveRequestUsage,
+  enqueueRequestUsage: mocks.enqueueRequestUsage,
 }));
 vi.mock("@/lib/pxpipe/loader.js", () => ({ getTransform: async () => null }));
 vi.mock("@/lib/pxpipe/events.js", () => ({ appendPxpipeEvent: vi.fn() }));
@@ -72,7 +74,7 @@ function request(model, endpoint = ENDPOINTS[0], stream = false) {
 function noAccountSideEffects() {
   for (const spy of [mocks.credentials, mocks.refresh, mocks.updateCredentials, mocks.getProject,
     mocks.markUnavailable, mocks.clearError, mocks.quotaError, mocks.clearStrikes,
-    mocks.execute, mocks.trackPendingRequest, mocks.appendRequestLog, mocks.saveRequestUsage, mocks.saveRequestDetail]) {
+    mocks.execute, mocks.trackPendingRequest, mocks.appendRequestLog, mocks.saveRequestUsage, mocks.enqueueRequestUsage, mocks.saveRequestDetail]) {
     expect(spy).not.toHaveBeenCalled();
   }
 }

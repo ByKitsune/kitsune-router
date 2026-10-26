@@ -11,6 +11,7 @@ vi.mock("../../open-sse/utils/proxyFetch.js", () => ({ proxyAwareFetch: io.fetch
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest() {}, appendRequestLog: async () => {},
   saveRequestDetail: async () => {}, saveRequestUsage: async () => {},
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("../../open-sse/providers/declaredCaps.js", () => ({ getDeclaredModelCaps: async () => undefined }));
 vi.mock("../../open-sse/utils/requestLogger.js", () => ({ createRequestLogger: async () => ({

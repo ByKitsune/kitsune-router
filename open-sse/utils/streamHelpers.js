@@ -2,55 +2,30 @@ import { FORMATS } from "../translator/formats.js";
 import { extractReasoningText } from "../translator/concerns/reasoning.js";
 import { CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 
-// Parse SSE data line
 export function parseSSELine(line, format = null) {
   if (!line) return null;
-
-  const trimmedLine = line.trim();
-
-  // NDJSON format (Ollama & friends): raw JSON lines without "data:" prefix.
-  // Auto-detected by the leading "{"; SSE lines start with "data:" and are
-  // unaffected.
-  if (trimmedLine.startsWith("{")) {
-    try {
-      return JSON.parse(trimmedLine);
-    } catch {
-      return null;
-    }
-  }
-
-  // Standard SSE format: "data: {...}"
-  if (line.charCodeAt(0) !== 100) return null; // 'd' = 100
-
-  const data = line.slice(5).trim();
-  if (data === "[DONE]") return { done: true };
-
-  try {
-    return JSON.parse(data);
-  } catch (error) {
-    if (data.length > 0 && data.length < 1000) {
-      console.log(`[WARN] Failed to parse SSE line (${data.length} chars): ${data.substring(0, 100)}...`);
-    }
-    return null;
-  }
+  const raw = line.trim();
+  const ndjson = (format === null || format === FORMATS.OLLAMA) && raw.startsWith("{");
+  if (!ndjson && line !== "data" && !line.startsWith("data:")) return null;
+  const data = ndjson ? raw : line === "data" ? "" : line.slice(5).replace(/^ /, "");
+  if (data.trim() === "[DONE]") return { done: true };
+  try { return JSON.parse(data); } catch { return null; }
 }
 
 // Check if chunk has valuable content (not empty)
 export function hasValuableContent(chunk, format) {
-  // OpenAI format
-  if (format === FORMATS.OPENAI && chunk.choices?.[0]?.delta) {
-    const delta = chunk.choices[0].delta;
-    return Boolean(
-      delta.content && delta.content !== "" ||
-      typeof delta.refusal === "string" && delta.refusal.length > 0 ||
-      extractReasoningText(delta) ||
-      delta.tool_calls && delta.tool_calls.length > 0 ||
-      // Generated images arrive on their own chunk with nothing else in the
-      // delta, so leaving `images` out of this list dropped every one of them.
-      delta.images && delta.images.length > 0 ||
-      chunk.choices[0].finish_reason ||
-      delta.role
-    );
+  if (!chunk) return false;
+  if (chunk.usage || chunk.error || chunk.response?.usage) return true;
+  if (format === FORMATS.OPENAI && Array.isArray(chunk.choices)) {
+    return chunk.choices.some(choice => {
+      const delta = choice?.delta || {};
+      return Boolean(
+        delta.content || delta.refusal || extractReasoningText(delta) ||
+        delta.tool_calls?.length || delta.images?.length || delta.audio ||
+        choice?.finish_reason || delta.role ||
+        Object.keys(delta).some(key => !["reasoning_details", "provider_specific_fields", "content", "reasoning", "reasoning_content", "tool_calls", "images"].includes(key))
+      );
+    });
   }
 
   // Claude format
@@ -61,7 +36,8 @@ export function hasValuableContent(chunk, format) {
     const hasInputJson = chunk.delta?.partial_json && chunk.delta.partial_json !== "";
     const hasSignature = typeof chunk.delta?.signature === "string" && chunk.delta.signature !== "";
     
-    if (isContentBlockDelta && !hasText && !hasThinking && !hasInputJson && !hasSignature) {
+    if (isContentBlockDelta && !hasText && !hasThinking && !hasInputJson && !hasSignature &&
+        !Object.keys(chunk.delta || {}).some(key => !["type", "text", "thinking", "partial_json", "signature"].includes(key))) {
       return false;
     }
     return true;
@@ -164,7 +140,7 @@ function cleanUsagePayload(payload) {
 // Format output as SSE
 export function formatSSE(data, sourceFormat) {
   if (data === null || data === undefined) return "data: null\n\n";
-  if (data && data.done) return "data: [DONE]\n\n";
+  if (data?.done === true && Object.keys(data).length === 1) return "data: [DONE]\n\n";
 
   // OpenAI Responses API format
   if (data && data.event && data.data) {

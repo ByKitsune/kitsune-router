@@ -5,6 +5,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### High-throughput streaming, translator fast path, and connection pooling
+
+- Implement pass-through and minimal-copy fast paths for compatible request/response
+  pairs across OpenAI, Claude, Gemini, and Responses API formats, eliminating redundant
+  JSON serialization and recursive schema conversions.
+- Refactor SSE stream parsing into an incremental zero-copy chunk framing engine with
+  resilient split-UTF8, multi-event chunk, and CRLF handling; stream deltas immediately
+  through low-latency TransformStream controllers.
+- Add in-memory caching layer for `nodesRepo.js`, combo models, provider nodes, and
+  connection lookups with granular trigger invalidation and multi-worker safety.
+- Introduce durable background usage outbox processing with idempotent delivery,
+  preserving exact transaction accounting and unblocking first-token latency.
+- Implement reusable upstream connection pooling using `undici.Agent` dispatchers
+  with configurable per-origin limits, keep-alive reuse, and socket drain on shutdown.
+- Add unified runtime shutdown lifecycle management for Next.js instrumentation,
+  draining active requests, terminating background writers, and cleaning up MITM helpers.
+
 ### Framework security maintenance
 
 - Refresh the transitive editor DOMPurify override to 3.4.17 after newly indexed

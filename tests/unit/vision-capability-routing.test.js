@@ -13,6 +13,7 @@ vi.mock("@/lib/localDb", () => ({
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("../../open-sse/utils/requestLogger.js", () => ({
   createRequestLogger: async () => ({

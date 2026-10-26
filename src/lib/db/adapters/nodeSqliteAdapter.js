@@ -1,6 +1,7 @@
 // Built-in node:sqlite adapter — available in Node >= 22.5.0.
 // No native build, no npm install. API mirrors betterSqliteAdapter.
 import { PRAGMA_SQL } from "../schema.js";
+import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
@@ -23,6 +24,7 @@ export async function createNodeSqliteAdapter(filePath) {
   db.exec(PRAGMA_SQL);
 
   const stmtCache = new Map();
+  let transactionDepth = 0;
   function prepare(sql) {
     let stmt = stmtCache.get(sql);
     if (!stmt) {
@@ -43,10 +45,7 @@ export async function createNodeSqliteAdapter(filePath) {
     try { stmtCache.clear(); } catch {}
     try { db.close(); } catch {}
   }
-  const onShutdown = () => gracefulClose();
-  process.once("beforeExit", onShutdown);
-  process.once("SIGINT", () => { onShutdown(); process.exit(0); });
-  process.once("SIGTERM", () => { onShutdown(); process.exit(0); });
+  const releaseShutdown = registerAdapterShutdown(() => { clearInterval(checkpointTimer); gracefulClose(); });
 
   return {
     driver: "node:sqlite",
@@ -62,20 +61,22 @@ export async function createNodeSqliteAdapter(filePath) {
     },
     exec(sql) { return db.exec(sql); },
     transaction(fn) {
-      // node:sqlite has no transaction wrapper. Use SAVEPOINT for nested support.
+      const nested = transactionDepth > 0;
       const sp = `sp_${Math.random().toString(36).slice(2)}`;
-      db.exec(`SAVEPOINT ${sp}`);
+      db.exec(nested ? `SAVEPOINT ${sp}` : "BEGIN IMMEDIATE");
+      transactionDepth++;
       try {
-        const r = fn();
-        db.exec(`RELEASE ${sp}`);
-        return r;
-      } catch (e) {
-        try { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); } catch {}
-        throw e;
-      }
+        const result = fn();
+        db.exec(nested ? `RELEASE ${sp}` : "COMMIT");
+        return result;
+      } catch (error) {
+        try { if (nested) { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); } else db.exec("ROLLBACK"); } catch {}
+        throw error;
+      } finally { transactionDepth--; }
     },
     checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
     close() {
+      releaseShutdown();
       clearInterval(checkpointTimer);
       gracefulClose();
     },

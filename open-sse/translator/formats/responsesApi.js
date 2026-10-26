@@ -35,13 +35,22 @@ export function normalizeResponsesContent(content) {
     if (part.type === RESPONSES_ITEM.INPUT_IMAGE) {
       const url = typeof part.image_url === "string" ? part.image_url : part.image_url?.url;
       if (url) return { type: OPENAI_BLOCK.IMAGE_URL, image_url: { url, detail: part.detail || "auto" } };
-      if (part.file_id) return { type: OPENAI_BLOCK.TEXT, text: JSON.stringify(part) };
+      if (part.file_id) {
+        const error = new Error("unsupported_parameter: Responses image file IDs cannot be resolved by this protocol route; supply inline image data or a supported image URL.");
+        error.code = "unsupported_parameter";
+        error.param = "input_image.file_id";
+        throw error;
+      }
     }
     if (part.type === RESPONSES_ITEM.INPUT_FILE) {
       if (typeof part.file_data === "string" && part.file_data) {
         return { type: OPENAI_BLOCK.FILE, file: { file_data: part.file_data, ...(part.filename ? { filename: part.filename } : {}) } };
       }
-      return { type: OPENAI_BLOCK.TEXT, text: JSON.stringify(part) };
+      if (part.file_id) return { type: OPENAI_BLOCK.FILE, file: { file_id: part.file_id } };
+      const error = new Error("unsupported_parameter: Responses file input requires inline file_data or a supported file ID on this protocol route.");
+      error.code = "unsupported_parameter";
+      error.param = "input_file";
+      throw error;
     }
     return part;
   });

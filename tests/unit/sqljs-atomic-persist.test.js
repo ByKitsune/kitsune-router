@@ -32,5 +32,6 @@ describe("sql.js atomic persist", () => {
     expect(fs.existsSync(dbPath)).toBe(true);
     const content = fs.readFileSync(dbPath);
     expect(content.toString("utf8", 0, 16)).toBe(SQLITE_MAGIC);
+    adapter.close();
   });
 });

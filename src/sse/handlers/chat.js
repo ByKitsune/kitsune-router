@@ -8,7 +8,7 @@ import {
   isValidApiKey,
 } from "../services/auth.js";
 import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../services/antigravityQuota.js";
-import { getSettings, isApiKeyRequired } from "@/lib/localDb";
+import { getSettings, isApiKeyRequired, getProviderConnectionById } from "@/lib/localDb";
 import { getDisabledByProvider } from "@/lib/disabledModelsDb";
 import { getModelInfo, getComboModels, resolveModelCapabilities } from "../services/model.js";
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
@@ -35,6 +35,8 @@ import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { consume, rateLimitKey, rateLimitHeaders, rateLimitedResponse } from "@/lib/rateLimit/v1Limiter.js";
 import { getClientIp } from "@/lib/auth/loginLimiter.js";
 import { readRequestJson, RequestBodyError } from "@/shared/utils/requestJson.js";
+import { startRequestPhase } from "open-sse/utils/requestTiming.js";
+import { isShuttingDown } from "@/lib/shutdownLifecycle.js";
 
 // Attach the advisory x-ratelimit-* headers to a response.
 //
@@ -84,6 +86,7 @@ export async function handleChat(request, clientRawRequest = null, serverRequest
 }
 
 async function handleChatInternal(request, clientRawRequest = null, serverRequestId, options = {}) {
+  if (isShuttingDown()) return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Service is restarting", { code: "service_draining" });
   if (request?.signal?.aborted) {
     return errorResponse(499, "Client Closed Request", { code: "client_aborted" });
   }
@@ -99,19 +102,22 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     log.debug("AUTH", "No API key provided (local mode)");
   }
 
-  // Enforce API key if enabled in settings
-  const settings = await getSettings();
-  if (isApiKeyRequired(settings)) {
-    if (!apiKey) {
-      log.warn("AUTH", "Missing API key (requireApiKey=true)");
-      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
+  const authenticationDone = startRequestPhase("authentication");
+  let settings;
+  try {
+    settings = await getSettings();
+    if (isApiKeyRequired(settings)) {
+      if (!apiKey) {
+        log.warn("AUTH", "Missing API key (requireApiKey=true)");
+        return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
+      }
+      const valid = await isValidApiKey(apiKey);
+      if (!valid) {
+        log.warn("AUTH", "Invalid API key (requireApiKey=true)");
+        return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
+      }
     }
-    const valid = await isValidApiKey(apiKey);
-    if (!valid) {
-      log.warn("AUTH", "Invalid API key (requireApiKey=true)");
-      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
-    }
-  }
+  } finally { authenticationDone(); }
 
   // Inbound rate limit, after authentication so the bucket is attributable.
   // Keyed by the API key (many clients share one NAT); an unauthenticated
@@ -125,6 +131,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
   }
 
   let body;
+  const decodingDone = startRequestPhase("request_decode");
   try {
     body = await readRequestJson(request);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -142,7 +149,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     }
     log.warn("CHAT", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
-  }
+  } finally { decodingDone(); }
 
   // Build clientRawRequest for logging (if not provided)
   if (!clientRawRequest) {
@@ -158,6 +165,8 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
   }
   // Per OpenAI Chat Completions API spec, stream defaults to false (#4122)
   const endpointPath = clientRawRequest?.endpoint || (request?.url ? new URL(request.url).pathname : "");
+  const sourceFormat = detectFormatByEndpoint(endpointPath, body);
+  const requestContext = { settings, sourceFormat };
   if (endpointPath.includes("/chat/completions") && body.stream === undefined) {
     body = { ...body, stream: false };
     if (clientRawRequest?.body) clientRawRequest.body = { ...clientRawRequest.body, stream: false };
@@ -218,7 +227,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
             const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
             cleanRawReq = { ...clientRawRequest, body: cleanBody };
           }
-          return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit);
+          return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit, requestContext);
         },
         log,
         comboName: modelStr,
@@ -234,7 +243,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
       models: augmentedModels,
       modelCapabilities,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit, requestContext),
         adapterAdded, modelCapabilities
       ),
       log,
@@ -257,7 +266,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
       models: soloAugmented,
       modelCapabilities,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit, requestContext),
         adapterAdded, modelCapabilities
       ),
       log,
@@ -266,13 +275,15 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
     });
   }
 
-  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, rateLimit);
+  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, rateLimit, requestContext);
 }
 
 /**
  * Handle single model chat request
  */
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, rateLimit = null) {
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, rateLimit = null, requestContext = null) {
+  const settings = requestContext?.settings || await getSettings();
+  const sourceFormat = requestContext?.sourceFormat || (request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null);
   // Optional account pinning, same opt-in header as the image/video endpoints:
   // `x-connection-id: <providerConnection id>` (9router #4718). Falls back to
   // the normal account strategy when the header is absent or the id is
@@ -280,13 +291,16 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   // the resolved provider's active, unexcluded, unlocked selectable set, so a
   // pinned id can never select a cross-provider account.
   const preferredConnectionId = request?.headers?.get("x-connection-id") || null;
-  const modelInfo = await getModelInfo(modelStr);
+  const modelResolutionDone = startRequestPhase("model_resolution");
+  let modelInfo;
+  try { modelInfo = await getModelInfo(modelStr); }
+  finally { modelResolutionDone(); }
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
     const comboModels = await getComboModels(modelStr);
     if (comboModels) {
-      const chatSettings = await getSettings();
+      const chatSettings = settings;
       // Check for combo-specific strategy first, fallback to global
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -313,7 +327,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
               const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
               cleanRawReq = { ...clientRawRequest, body: cleanBody };
             }
-            return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit);
+            return handleSingleModelChat(b, m, cleanRawReq, attemptRequest, apiKey, rateLimit, requestContext);
           },
           log,
           comboName: modelStr,
@@ -329,7 +343,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         models: augmentedModels,
         modelCapabilities,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit),
+          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, rateLimit, requestContext),
           adapterAdded, modelCapabilities
         ),
         log,
@@ -403,7 +417,11 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return errorResponse(499, "Client Closed Request");
     }
 
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { sessionKey, preferredConnectionId });
+    const selectionDone = startRequestPhase("provider_selection");
+    let credentials;
+    try {
+      credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { sessionKey, preferredConnectionId });
+    } finally { selectionDone(); }
     if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
 
     // All accounts unavailable
@@ -451,7 +469,14 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    let refreshedCredentials;
+    try {
+      refreshedCredentials = credentials.id === "noauth" ? credentials : await checkAndRefreshToken(provider, credentials);
+    } catch (error) {
+      if (error?.code !== "STALE_CONNECTION_WRITE") throw error;
+      excludeConnectionIds.add(credentials.connectionId);
+      continue;
+    }
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
@@ -471,13 +496,26 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
       if (pid) {
         refreshedCredentials.projectId = pid;
-        // Persist to DB in background so subsequent requests have it immediately
-        updateProviderCredentials(credentials.connectionId, { projectId: pid }).catch(() => { });
+        const committed = await updateProviderCredentials(credentials.connectionId, { projectId: pid }, {
+          expected: refreshedCredentials._writeFence,
+        });
+        if (!committed && refreshedCredentials._writeFence) {
+          excludeConnectionIds.add(credentials.connectionId);
+          continue;
+        }
+        if (refreshedCredentials._writeFence) {
+          const latest = await getProviderConnectionById(credentials.connectionId);
+          if (!latest || latest.projectId !== pid || latest.accessToken !== refreshedCredentials.accessToken) {
+            excludeConnectionIds.add(credentials.connectionId);
+            continue;
+          }
+          Object.defineProperty(refreshedCredentials, "_writeFence", { value: latest._writeFence, configurable: true });
+        }
       }
     }
 
-    // Use shared chatCore
-    const chatSettings = await getSettings();
+    // Keep feature defaults consistent with the authenticated request snapshot.
+    const chatSettings = settings;
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
     const providerServiceTier = (chatSettings.providerServiceTier || {})[provider]?.mode || null;
     const result = await handleChatCore({
@@ -508,14 +546,24 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       providerThinking,
       providerServiceTier,
       clientSignal: request?.signal || null,
-      // Detect source format by endpoint + body
-      sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
+      sourceFormatOverride: sourceFormat,
       onCredentialsRefreshed: async (newCreds) => {
-        await updateProviderCredentials(credentials.connectionId, {
+        const committed = await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,
-          existingProviderSpecificData: credentials.providerSpecificData,
+          existingProviderSpecificData: refreshedCredentials.providerSpecificData,
           testStatus: "active"
-        });
+        }, { expected: refreshedCredentials._writeFence });
+        if (!committed && refreshedCredentials._writeFence) {
+          throw Object.assign(new Error("Selected credentials changed during refresh"), { code: "STALE_CONNECTION_WRITE" });
+        }
+        if (committed && refreshedCredentials._writeFence) {
+          const latest = await getProviderConnectionById(credentials.connectionId);
+          if (!latest || (newCreds.accessToken && latest.accessToken !== newCreds.accessToken)
+            || (newCreds.refreshToken && latest.refreshToken !== newCreds.refreshToken)) {
+            throw Object.assign(new Error("Selected credentials changed after refresh"), { code: "STALE_CONNECTION_WRITE" });
+          }
+          Object.defineProperty(refreshedCredentials, "_writeFence", { value: latest._writeFence, configurable: true });
+        }
       },
       // Mid-stream failure: the upstream returned 200 + SSE and then failed
       // inside the body (Codex response.failed, quota exhausted mid-generation).
@@ -551,6 +599,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     });
 
     if (result.success) return withRateLimitHeaders(result.response, rateLimit);
+    if (result.credentialsSuperseded === true || result.response?.headers?.get("x-should-retry") === "false") return withRateLimitHeaders(result.response, rateLimit);
 
     // Client abort: client disconnected / cancelled. Do not lock account or retry/fallback.
     const isClientAborted = request?.signal?.aborted || result.error === "client_aborted" || Number(result.status) === 499;

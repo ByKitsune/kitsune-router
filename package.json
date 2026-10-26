@@ -47,14 +47,14 @@
     "recharts": "^3.10.1",
     "reflect-metadata": "^0.2.2",
     "sql.js": "^1.14.2",
-    "undici": "^8.11.2",
+    "undici": "^8.12.3",
     "uuid": "^14.0.2",
     "zustand": "^5.0.15"
   },
   "optionalDependencies": {
     "better-sqlite3": "^13.0.3"
   },
-  "comment_better_sqlite3": "kept in optionalDependencies so npm install doesn't fail on systems without build tools — sql.js is used as fallback at runtime",
+  "comment_better_sqlite3": "kept optional so installation succeeds without build tools; sql.js fallback requires explicit exclusive single-process DATA_DIR ownership",
   "devDependencies": {
     "@eslint-community/eslint-utils": "^4.10.1",
     "@eslint/compat": "^2.1.1",

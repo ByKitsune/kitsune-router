@@ -1,4 +1,4 @@
-import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE } from "../config/errorConfig.js";
+import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE, NON_RETRYABLE_ROUTER_CODES } from "../config/errorConfig.js";
 import { getModelUpstreamId, getModelQuotaFamily, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
 
 const QUOTA_CODES = new Set(["rate_limit", "rate_limit_exceeded", "quota_exceeded", "quota_exhausted", "insufficient_quota", "usage_limit_reached", "resource_exhausted", "too_many_requests"]);
@@ -213,6 +213,7 @@ export function checkFallbackError(status, errorText, backoffLevel = 0, response
   status = Number(status);
   const evidence = errorEvidence(errorText);
   const lowerError = unquotedDiagnostic(evidence.message).toLowerCase();
+  if (NON_RETRYABLE_ROUTER_CODES.has(evidence.code) || response?.headers?.get("x-should-retry") === "false") return { shouldFallback: false, cooldownMs: 0 };
 
   // Cancellation is terminal; Google's typed ABORTED quota status is not a
   // client disconnect merely because its name contains "aborted".

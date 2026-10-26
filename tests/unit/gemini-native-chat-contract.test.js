@@ -6,6 +6,7 @@ const fixture = vi.hoisted(() => ({ base: "", requests: [], clientKey: null }));
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("@/sse/services/auth.js", () => ({
   clearAccountError: vi.fn(), getProviderCredentials: vi.fn(),

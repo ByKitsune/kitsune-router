@@ -8,6 +8,10 @@ import { invalidatePricingCache } from "./repos/pricingRepo.js";
 import { invalidateSettingsCache } from "./repos/settingsRepo.js";
 import { invalidateObservabilityConfigCache } from "./repos/requestDetailsRepo.js";
 import { invalidateUsageConnectionCache } from "./repos/usageRepo.js";
+import { CONFIG_SCOPES, bumpScopeRevisions } from "./helpers/cacheRevisions.js";
+import { invalidateScopedCaches } from "./helpers/scopedCache.js";
+export { getDbCacheMetrics } from "./helpers/scopedCache.js";
+export { configureDbLifecycle, closeDb } from "./driver.js";
 
 // Settings
 export {
@@ -65,13 +69,15 @@ export {
 // Usage
 export {
   statsEmitter, trackPendingRequest, getActiveRequests,
-  saveRequestUsage, getUsageHistory, getUsageStats, getChartData,
+  saveRequestUsage, enqueueRequestUsage, flushUsageQueue, getUsageQueueMetrics,
+  getUsageHistory, getUsageStats, getChartData,
   appendRequestLog, getRecentLogs,
 } from "./repos/usageRepo.js";
 
 // Request details
 export {
   saveRequestDetail, getRequestDetails, getRequestDetailById, getDistinctProviders,
+  flushRequestDetails, getRequestDetailQueueMetrics,
 } from "./repos/requestDetailsRepo.js";
 
 // Export/import full DB
@@ -81,7 +87,7 @@ export async function exportDb() {
 
   const out = {
     settings: await exportSettings(),
-    providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    providerConnections: db.all(`SELECT pc.*, cr.data AS runtimeData, cr.updatedAt AS runtimeUpdatedAt FROM providerConnections pc LEFT JOIN connectionRuntime cr ON cr.connectionId = pc.id`).map((r) => ({ ...parseJson(r.data, {}), ...parseJson(r.runtimeData, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.runtimeUpdatedAt || r.updatedAt })),
     providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     apiKeys: db.all(`SELECT * FROM apiKeys`).map((r) => ({ id: r.id, key: r.key, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, createdAt: r.createdAt })),
@@ -182,7 +188,10 @@ export async function importDb(payload) {
     for (const [provider, ids] of Object.entries(disabledModels)) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('disabledModels', ?, ?)`, [provider, stringifyJson(ids)]);
     }
+    db.run(`DELETE FROM connectionRuntime`);
+    bumpScopeRevisions(db, [...CONFIG_SCOPES, "connectionImport", "connectionRuntime"]);
   });
+  invalidateScopedCaches(db, [...CONFIG_SCOPES, "connectionImport", "connectionRuntime"]);
 
   // Direct SQL bypasses repo mutations. Invalidate only after commit, before
   // yielding or exporting settings; a rolled-back import must keep its caches.

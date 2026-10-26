@@ -45,6 +45,7 @@ afterEach(async () => {
 describe("TTFT schema safety backup", () => {
   it("backs up the v0.9.9 schema before adding nullable latency columns", async () => {
     const { TABLES, buildCreateTableSql, SCHEMA_VERSION } = await import("@/lib/db/schema.js");
+    const { latestVersion } = await import("@/lib/db/migrations/index.js");
     const dbDir = join(dataDir, "db");
     await mkdir(dbDir, { recursive: true });
     const fixture = new DatabaseSync(join(dbDir, "data.sqlite"));
@@ -79,6 +80,12 @@ describe("TTFT schema safety backup", () => {
       expect(backupColumns).not.toContain("totalMs");
       expect(backup.prepare("SELECT data FROM settings WHERE id = 1").get().data).toBe('{"fixture":"preserved"}');
       expect(backup.prepare("SELECT COUNT(*) AS n FROM usageHistory").get().n).toBe(1);
+      expect(backup.prepare("SELECT timestamp, provider, model, tokens FROM usageHistory").get()).toMatchObject({
+        timestamp: "2026-10-15T10:00:00.000Z", provider: "fixture", model: "older-model", tokens: '{"prompt_tokens":10,"completion_tokens":2}',
+      });
+      expect(backup.prepare("SELECT value FROM _meta WHERE key = 'appVersion'").get().value).toBe("0.9.9");
+      expect(backup.prepare("SELECT value FROM _meta WHERE key = 'schemaVersion'").get().value).toBe("1");
+      expect(backup.prepare("SELECT value FROM _meta WHERE key = 'backupSchemaVersion'").get().value).toBe("1");
     } finally {
       backup.close();
     }
@@ -86,13 +93,16 @@ describe("TTFT schema safety backup", () => {
       .toEqual(expect.arrayContaining(["ttftMs", "totalMs"]));
     expect(db.get("SELECT ttftMs, totalMs FROM usageHistory")).toMatchObject({ ttftMs: null, totalMs: null });
     expect(db.get("SELECT value FROM _meta WHERE key = 'backupSchemaVersion'").value).toBe(String(SCHEMA_VERSION));
-    expect(db.get("SELECT value FROM _meta WHERE key = 'schemaVersion'").value).toBe("1");
+    expect(db.get("SELECT value FROM _meta WHERE key = 'schemaVersion'").value).toBe(String(latestVersion()));
 
     db.close();
     delete global._dbAdapter;
     vi.resetModules();
     const { getAdapter: reopen } = await import("@/lib/db/driver.js");
-    await reopen();
+    const reopened = await reopen();
     expect(await readdir(backupRoot)).toEqual(backupDirectories);
+    expect(reopened.get("SELECT COUNT(*) AS n FROM usageHistory").n).toBe(1);
+    expect(reopened.get("SELECT value FROM _meta WHERE key = 'schemaVersion'").value).toBe(String(latestVersion()));
+    expect(reopened.get("SELECT value FROM _meta WHERE key = 'backupSchemaVersion'").value).toBe(String(SCHEMA_VERSION));
   });
 });

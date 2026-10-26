@@ -1,34 +1,9 @@
-import { getDbImportGeneration } from "./db/helpers/importGeneration.js";
+import { getAdapter } from "./db/driver.js";
+import { getScopedCache } from "./db/helpers/scopedCache.js";
+import { CONFIG_SCOPES } from "./db/helpers/cacheRevisions.js";
 
-const CACHE_TTL_MS = 30_000;
-let state = null;
-
-function currentState() {
-  const generation = getDbImportGeneration();
-  if (!state || state.generation !== generation) {
-    state = { generation, data: null, expiresAt: 0, pending: null };
-  }
-  return state;
-}
-
-export async function getCachedModelsResponse(load) {
-  for (;;) {
-    const snapshot = currentState();
-    if (snapshot.data && Date.now() < snapshot.expiresAt) return snapshot.data;
-    const pending = snapshot.pending ||= load();
-    let data;
-    try {
-      data = await pending;
-    } catch (error) {
-      if (snapshot !== currentState()) continue;
-      throw error;
-    } finally {
-      if (snapshot.pending === pending) snapshot.pending = null;
-    }
-    // A build may span an import (including a slow upstream catalog request).
-    if (snapshot !== currentState()) continue;
-    snapshot.data = data;
-    snapshot.expiresAt = Date.now() + CACHE_TTL_MS;
-    return data;
-  }
+export async function getCachedModelsResponse(load, { access = "public", params = null, dataset = "v1-models" } = {}) {
+  const db = await getAdapter();
+  return getScopedCache(db, "modelsResponse", { maxEntries: 16, maxBytes: 16 * 1024 * 1024, ttlMs: 30_000 })
+    .get([dataset, access, params], CONFIG_SCOPES, load);
 }

@@ -4,7 +4,7 @@ import http from "node:http";
 const fixture = vi.hoisted(() => ({ base: "", requests: [], reply: null, sse: false }));
 const db = vi.hoisted(() => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
-  saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  saveRequestDetail: vi.fn(async () => {}), enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("@/lib/usageDb.js", () => db);
 vi.mock("../../open-sse/providers/declaredCaps.js", () => ({ getDeclaredModelCaps: vi.fn(async () => undefined) }));
@@ -67,8 +67,8 @@ describe("reasoning caps and usage over real loopback HTTP", () => {
     expect(fixture.requests).toHaveLength(1);
     expect(fixture.requests[0].max_completion_tokens).toBe(2000);
     expect(fixture.requests[0].max_tokens).toBeUndefined();
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
     expect((await result.response.json()).usage.input_tokens).toBe(12);
   });
 
@@ -79,7 +79,7 @@ describe("reasoning caps and usage over real loopback HTTP", () => {
     expect(fixture.requests).toHaveLength(1);
     expect(fixture.requests[0].generationConfig.maxOutputTokens).toBe(1000);
     expect(fixture.requests[0].generationConfig.thinkingConfig.thinkingBudget).toBeGreaterThan(0);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
     expect((await result.response.json()).usage.completion_tokens).toBe(16);
   });
 
@@ -111,8 +111,8 @@ describe("reasoning caps and usage over real loopback HTTP", () => {
     expect((await result.response.json()).error.code).toBe("output_budget_exhausted");
     expect(fixture.requests).toHaveLength(1);
     expect(fixture.requests[0].max_completion_tokens).toBe(16);
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
   });
 
   it("preserves an incomplete live Responses terminal without inventing disconnect failure", async () => {
@@ -125,8 +125,8 @@ describe("reasoning caps and usage over real loopback HTTP", () => {
     expect(wire).not.toContain("stream_disconnected");
     expect(wire).not.toContain("response.failed");
     expect(fixture.requests).toHaveLength(1);
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 16, reasoning_tokens: 13 });
   });
   it("returns unwrapped native Gemini reasoning SSE through a Responses provider", async () => {
     fixture.sse = true;

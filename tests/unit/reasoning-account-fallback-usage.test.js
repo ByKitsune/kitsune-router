@@ -47,6 +47,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}),
   saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async () => ({ accepted: true })),
 }));
 vi.mock("@/lib/pxpipe/events.js", () => ({ appendPxpipeEvent: vi.fn() }));
 vi.mock("@/lib/pxpipe/loader.js", () => ({ getTransform: vi.fn(async () => null) }));
@@ -87,7 +88,7 @@ vi.mock("../../open-sse/translator/concerns/image.js", () => ({
   fetchImageAsBase64: async () => null,
 }));
 
-const { saveRequestUsage } = await import("@/lib/usageDb.js");
+const { enqueueRequestUsage: saveRequestUsage } = await import("@/lib/usageDb.js");
 const { handleChat } = await import("@/sse/handlers/chat.js");
 
 const SONNET = "claude-sonnet-5-5";
@@ -248,7 +249,6 @@ describe("output-budget exhaustion through handleChat and real account health lo
     await expectBudgetError(await handleChat(request()));
 
     expect(attempts()).toEqual([["account-a", SONNET], ["account-b", SONNET]]);
-    console.log("AUDIT ACCOUNT BILLING", JSON.stringify(saveRequestUsage.mock.calls));
     expect(saveRequestUsage).toHaveBeenCalledTimes(2);
     expectNoHealthWrites();
   });
@@ -284,7 +284,6 @@ describe("output-budget exhaustion through handleChat and real account health lo
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ content: [{ type: "text", text: "The answer is 42." }] });
     expect(attempts()).toEqual([["account-a", SONNET], ["account-b", SONNET]]);
-    console.log("AUDIT ACCOUNT BILLING", JSON.stringify(saveRequestUsage.mock.calls));
     expect(saveRequestUsage).toHaveBeenCalledTimes(2);
     expectNoHealthWrites();
   });
@@ -301,7 +300,6 @@ describe("output-budget exhaustion through handleChat and real account health lo
       content: [{ type: "text", text: "The answer is 42." }],
     });
     expect(attempts()).toEqual([["account-a", SONNET], ["account-a", OPUS]]);
-    console.log("AUDIT COMBO BILLING", JSON.stringify(saveRequestUsage.mock.calls));
     expect(saveRequestUsage).toHaveBeenCalledTimes(2);
     expectNoHealthWrites();
   });
@@ -317,6 +315,39 @@ describe("output-budget exhaustion through handleChat and real account health lo
 
     expect(attempts()).toEqual(models.map((model) => ["account-a", model.slice(3)]));
     expectNoHealthWrites();
+  });
+
+  it("records measured usage from failed attempts once before retrying a genuine upstream failure", async () => {
+    mocks.execute.mockImplementationOnce(async () => upstream({
+      error: { type: "api_error", message: "Upstream internal server error" },
+      usage: { input_tokens: 12, output_tokens: 3 },
+    }, 500));
+    mocks.execute.mockImplementation(async () => completed());
+    const response = await handleChat(request());
+    expect(response.status).toBe(200);
+    await response.json();
+    expect(attempts()).toEqual([["account-a", SONNET], ["account-a", SONNET]]);
+    expect(saveRequestUsage).toHaveBeenCalledTimes(2);
+    const rows = saveRequestUsage.mock.calls.map(([row]) => row);
+    expect(rows[0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 3 });
+    expect(rows[1].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 6 });
+    expect(rows[0].eventId).not.toBe(rows[1].eventId);
+    for (const row of rows) expect(Number.isFinite(Date.parse(row.timestamp))).toBe(true);
+    expectNoHealthWrites();
+  });
+
+  it("keeps an oversized uncertain accounting attempt terminal across real account and combo fallback", async () => {
+    mocks.connections.push(connection("account-b"));
+    mocks.combo = { name: "uncertain-accounting", models: [`cc/${SONNET}`, `cc/${OPUS}`] };
+    mocks.execute.mockImplementation(async () => upstream({ error: { message: "private diagnostic".repeat(10000) }, usage: { input_tokens: 12, output_tokens: 3 } }, 500));
+    const response = await handleChat(request("uncertain-accounting"));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("x-should-retry")).toBe("false");
+    expect(response.headers.get("retry-after")).toBeNull();
+    const payload = await response.json(); expect(payload.error.code).toBe("usage_accounting_uncertain");
+    expect(JSON.stringify(payload)).not.toContain("private diagnostic");
+    expect(attempts()).toEqual([["account-a", SONNET]]);
+    expect(saveRequestUsage).not.toHaveBeenCalled(); expectNoHealthWrites();
   });
 
   it("still grants a genuine upstream 500 one immediate retry before any health lock", async () => {

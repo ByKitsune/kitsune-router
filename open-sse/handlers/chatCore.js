@@ -15,10 +15,10 @@ import { handleBypassRequest } from "../utils/bypassHandler.js";
 import { trackPendingRequest, appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { getExecutor } from "../executors/index.js";
 import { supportsGrokCliReasoningEffort } from "../config/grokCli.js";
-import { buildRequestDetail, extractRequestConfig } from "./chatCore/requestDetail.js";
+import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse } from "./chatCore/requestDetail.js";
 import { handleForcedSSEToJson } from "./chatCore/sseToJsonHandler.js";
 import { handleNonStreamingResponse } from "./chatCore/nonStreamingHandler.js";
-import { handleStreamingResponse, buildOnStreamComplete } from "./chatCore/streamingHandler.js";
+import { handleStreamingResponse, buildOnStreamComplete, acceptUsageRecord } from "./chatCore/streamingHandler.js";
 import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.js";
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
@@ -40,9 +40,10 @@ import { cloneRequestBody } from "../utils/requestBody.js";
 import { normalizeGeminiContents, normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
 import { isGemini4Model } from "../config/models.js";
 import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
-import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
+import { getServiceTierAccounting, prepareServiceTierRequest } from "../providers/serviceTiers.js";
 import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.js";
 import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
+import { startRequestPhase } from "../utils/requestTiming.js";
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -80,6 +81,17 @@ function requestParameterError(error) {
   });
 }
 
+function permanentDenialEvidence(status, responseBody, diagnostics) {
+  const error = responseBody?.error && typeof responseBody.error === "object" && !Array.isArray(responseBody.error) ? responseBody.error : responseBody;
+  const details = error?.details;
+  const typedCodes = [error?.code, error?.error_code, diagnostics?.code,
+    ...[details, ...(Array.isArray(details) ? details.slice(0, 32) : [])].map(detail => detail?.error_code)];
+  if (typedCodes.some(code => typeof code === "string" && /^[a-z][a-z0-9_]{0,127}$/.test(code) && isPermanentAuthDenial(status, code))) return true;
+  const message = typeof error?.message === "string" ? error.message : diagnostics?.message;
+  const unquoted = String(message || "").slice(0, 8192).replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`/g, "");
+  return isPermanentAuthDenial(status, unquoted);
+}
+
 export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerServiceTier, clientSignal }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
@@ -94,6 +106,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const reqTag = log?.tagForSession ? log.tagForSession(sessionSeed) : (log?.nextTag ? log.nextTag() : "");
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
+  const preparationDone = startRequestPhase("request_prepare");
 
   // Each account/model attempt owns its mutations; retries keep the source history.
   body = cloneRequestBody(body);
@@ -285,7 +298,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     }
   } else {
     try {
-      translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool, capabilities);
+      translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool, capabilities, { ownership: "owned" });
     } catch (error) {
       const invalidRequest = requestParameterError(error);
       if (invalidRequest) return invalidRequest;
@@ -428,32 +441,38 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     anchorClaudeCache(translatedBody);
   }
 
+  preparationDone();
   if (clientSignal?.aborted) return createErrorResult(499, "Client closed request");
 
   const executor = getExecutor(provider);
+  let usageEventId = crypto.randomUUID();
+  let usageTimestamp = new Date(requestStartTime).toISOString();
   trackPendingRequest(model, provider, connectionId, true);
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
 
   const msgCount = translatedBody.messages?.length || translatedBody.input?.length || translatedBody.contents?.length || translatedBody.request?.contents?.length || 0;
   log?.debug?.("REQUEST", `${provider.toUpperCase()} | ${model} | ${msgCount} msgs`);
 
+  let removeClientAbort = () => {};
   const streamController = createStreamController({
     onDisconnect: (reason) => {
+      removeClientAbort();
       trackPendingRequest(model, provider, connectionId, false);
       if (onDisconnect) onDisconnect(reason);
     },
-    onError: () => trackPendingRequest(model, provider, connectionId, false),
+    onError: () => { removeClientAbort(); trackPendingRequest(model, provider, connectionId, false); },
     log, provider, model, reqTag
   });
+  const complete = streamController.handleComplete;
+  streamController.handleComplete = () => { removeClientAbort(); complete(); };
+  const handleError = streamController.handleError;
+  streamController.handleError = error => { removeClientAbort(); handleError(error); };
 
   if (clientSignal) {
-    if (clientSignal.aborted) {
-      streamController.handleDisconnect("client_aborted");
-    } else {
-      clientSignal.addEventListener("abort", () => {
-        streamController.handleDisconnect("client_aborted");
-      }, { once: true });
-    }
+    const abort = () => streamController.handleDisconnect("client_aborted");
+    removeClientAbort = () => clientSignal.removeEventListener("abort", abort);
+    if (clientSignal.aborted) abort();
+    else clientSignal.addEventListener("abort", abort, { once: true });
   }
 
   const proxyOptions = {
@@ -495,6 +514,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Most executors return their registry format. Cursor AgentService is an
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
+  const upstreamHeadersDone = startRequestPhase("upstream_headers");
   try {
     const result = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
     providerResponse = result.response;
@@ -502,6 +522,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     providerHeaders = result.headers;
     finalBody = result.transformedBody;
     providerResponseFormat = result.responseFormat || targetFormat;
+    upstreamHeadersDone();
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
     const invalidRequest = requestParameterError(error);
@@ -524,13 +545,14 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       streamController.handleError(error);
       return createErrorResult(499, "Request aborted");
     }
+    streamController.handleComplete();
     if (invalidRequest) return invalidRequest;
     const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
     if (log?.errorLine) {
       log.errorLine(reqTag, "✗", `ERROR 502 · ${provider}/${model} · ${Date.now() - requestStartTime}ms\n    ${errMsg}${error.stack ? `\n    ${error.stack}` : ""}`);
     }
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
-  }
+  } finally { upstreamHeadersDone(); }
 
   // Handle 401/403 - try token refresh (skip for noAuth providers).
   // Permanent org-policy denials (Anthropic `oauth_not_allowed_for_organization`)
@@ -538,14 +560,23 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // denied credential doesn't burn refresh budget and lock every sibling
   // account in turn. The normal error path below still locks this account
   // (terminal, extended cooldown) and falls back once to the next account.
+  let providerErrorDiagnostics = null;
+  let incurredUsage = null;
+  let errorServiceTier = serviceTier;
+  let permanentDenial = false;
+  let accountingUncertain = false;
+  const readProviderError = () => parseUpstreamError(providerResponse, executor, (responseBody, capture) => {
+    accountingUncertain = capture.uncertain;
+    incurredUsage = extractUsageFromResponse(responseBody);
+    errorServiceTier = getServiceTierAccounting(provider, serviceTier, responseBody);
+    permanentDenial = permanentDenialEvidence(providerResponse.status, responseBody);
+  }, { signal: streamController.signal });
   if (!executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
-    let permanentDenial = false;
-    try {
-      const peekText = await providerResponse.clone().text();
-      permanentDenial = isPermanentAuthDenial(providerResponse.status, peekText);
-    } catch { /* clone/peek failed — fall through to refresh as before */ }
-    if (permanentDenial) {
-      if (log?.line) log.line(reqTag, "⛔", `PERMANENT AUTH DENIAL · ${provider}/${model} · skipping token refresh`);
+    providerErrorDiagnostics = await readProviderError();
+    permanentDenial ||= permanentDenialEvidence(providerResponse.status, null, providerErrorDiagnostics);
+    const alreadyIncurred = incurredUsage && (incurredUsage.prompt_tokens > 0 || incurredUsage.completion_tokens > 0 || incurredUsage.usage_invalid || incurredUsage.cache_write_invalid);
+    if (permanentDenial || alreadyIncurred || accountingUncertain) {
+      if (log?.line) log.line(reqTag, "⛔", `${accountingUncertain ? "ACCOUNTING UNCERTAIN" : permanentDenial ? "PERMANENT AUTH DENIAL" : "INCURRED USAGE"} · ${provider}/${model} · skipping token refresh`);
     } else {
     try {
       // Mutate credentials after each successful refresh: rotating refresh_token
@@ -562,22 +593,42 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       }, 3, log, streamController.signal);
       if (newCredentials?.accessToken || newCredentials?.copilotToken) {
         if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
+        const previousSpecific = credentials.providerSpecificData;
         Object.assign(credentials, newCredentials);
+        if (newCredentials.providerSpecificData) credentials.providerSpecificData = { ...previousSpecific, ...newCredentials.providerSpecificData };
         if (onCredentialsRefreshed) {
-          try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
+          try {
+            const committed = await onCredentialsRefreshed(newCredentials);
+            if (committed === false) throw Object.assign(new Error("Selected credentials changed during refresh"), { code: "STALE_CONNECTION_WRITE" });
+          } catch (e) {
+            if (e?.code === "STALE_CONNECTION_WRITE") throw e;
+            log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`);
+          }
         }
         try {
+          usageEventId = crypto.randomUUID();
+          usageTimestamp = new Date().toISOString();
           const retryResult = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
-          if (retryResult.response.ok) {
-            providerResponse = retryResult.response;
-            providerUrl = retryResult.url;
-            providerResponseFormat = retryResult.responseFormat || targetFormat;
-          }
+          providerResponse = retryResult.response;
+          providerErrorDiagnostics = null;
+          incurredUsage = null;
+          errorServiceTier = serviceTier;
+          permanentDenial = false;
+          accountingUncertain = false;
+          providerUrl = retryResult.url;
+          finalBody = retryResult.transformedBody ?? finalBody;
+          providerResponseFormat = retryResult.responseFormat || targetFormat;
         } catch { log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`); }
       } else {
         log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
       }
     } catch (e) {
+      if (e?.code === "STALE_CONNECTION_WRITE") {
+        await providerResponse.body?.cancel().catch(() => {});
+        trackPendingRequest(model, provider, connectionId, false);
+        streamController.handleComplete();
+        return { ...createErrorResult(HTTP_STATUS.SERVICE_UNAVAILABLE, "Routing configuration changed; retry the request"), credentialsSuperseded: true };
+      }
       log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${e.message}`);
     }
     } // end else (non-permanent 401/403 → refresh path)
@@ -585,24 +636,37 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // A refresh/refresh-retry catch must not turn caller cancellation back into
   // the original 401/403 and cool down or rotate a healthy account.
-  if (clientSignal?.aborted || streamController.signal?.aborted) {
+  if (providerResponse.ok && (clientSignal?.aborted || streamController.signal?.aborted)) {
     trackPendingRequest(model, provider, connectionId, false);
+    streamController.handleComplete();
+    await providerResponse.body?.cancel().catch(() => {});
     return createErrorResult(499, "Client closed request");
   }
 
   // Provider returned error
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false, true);
-    const diagnostics = await parseUpstreamError(providerResponse, executor);
+    const diagnostics = providerErrorDiagnostics || await readProviderError();
+    try {
+      await acceptUsageRecord({ provider, model, tokens: incurredUsage, connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: errorServiceTier });
+    } catch (error) {
+      streamController.handleComplete();
+      return createErrorResult(503, error.message, null, { code: error.code });
+    }
     if (clientSignal?.aborted || streamController.signal?.aborted) {
+      streamController.handleComplete();
       return createErrorResult(499, "Client closed request");
+    }
+    if (accountingUncertain) {
+      streamController.handleComplete();
+      return createErrorResult(503, "Usage accounting could not be determined; do not retry this request", null, { code: "usage_accounting_uncertain" });
     }
     const { statusCode, message, resetsAtMs } = diagnostics;
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
       latency: { ttft: 0, total: Date.now() - requestStartTime },
-      tokens: { prompt_tokens: 0, completion_tokens: 0 },
+      tokens: incurredUsage || { prompt_tokens: 0, completion_tokens: 0 },
       request: extractRequestConfig(body, stream),
       providerRequest: finalBody || translatedBody || null,
       response: { error: message, status: statusCode, thinking: null },
@@ -616,25 +680,38 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       log.errorLine(reqTag, "✗", `ERROR ${statusCode} · ${provider}/${model} · ${Date.now() - requestStartTime}ms${urlStr}\n    ${errMsg}`);
     }
     reqLogger.logError(new Error(message));
+    streamController.handleComplete();
     return createErrorResult(statusCode, errMsg, resetsAtMs, diagnostics);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, serviceTier, pxpipe: pxpipeSummary, reqTag, log };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, serviceTier, usageEventId, usageTimestamp, pxpipe: pxpipeSummary, reqTag, log };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 
   // Provider forced streaming but client wants JSON
   if (!clientWantsStream && providerRequiresStreaming) {
-    const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, toolNameMap, customToolNames, trackDone, appendLog });
-    if (result) { streamController.handleComplete(); return result; }
+    try {
+      const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, toolNameMap, customToolNames, trackDone, appendLog, signal: streamController.signal });
+      if (result) { streamController.handleComplete(); return result; }
+    } catch (error) {
+      streamController.handleComplete();
+      if (clientSignal?.aborted || streamController.signal?.aborted) { trackDone(); return createErrorResult(499, "Client closed request"); }
+      throw error;
+    }
   }
 
   // Non-streaming response. Stream-only providers normally arrive here only
   // after the SSE-to-JSON handler determined that their upstream returned JSON.
   if (!stream || (!clientWantsStream && providerRequiresStreaming)) {
-    const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, reqLogger, toolNameMap, customToolNames, trackDone, appendLog });
-    streamController.handleComplete();
-    return result;
+    try {
+      const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, signal: streamController.signal });
+      if (result.response?.headers?.get("x-should-retry") === "false") return result;
+      if (clientSignal?.aborted || streamController.signal?.aborted) { trackDone(); return createErrorResult(499, "Client closed request"); }
+      return result;
+    } catch (error) {
+      if (clientSignal?.aborted || streamController.signal?.aborted) { trackDone(); return createErrorResult(499, "Client closed request"); }
+      throw error;
+    } finally { streamController.handleComplete(); }
   }
 
   // Streaming response

@@ -35,7 +35,7 @@ function getDimensions(body) {
   };
 }
 
-async function resolveImageInput(value) {
+async function resolveImageInput(value, signal) {
   if (Array.isArray(value)) {
     return { bytes: value, b64: Buffer.from(value).toString("base64") };
   }
@@ -43,7 +43,7 @@ async function resolveImageInput(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (/^https?:\/\//i.test(trimmed)) {
-    const b64 = await urlToBase64(trimmed);
+    const b64 = await urlToBase64(trimmed, signal);
     return { bytes: base64ToBytes(b64), b64 };
   }
   const match = /^data:image\/[^;]+;base64,(.+)$/i.exec(trimmed);
@@ -67,20 +67,20 @@ function addOptionalFields(target, body, append) {
   }
 }
 
-async function buildJsonBody(body) {
+async function buildJsonBody(body, signal) {
   const req = { prompt: body.prompt, ...getDimensions(body) };
 
   addOptionalFields(req, body, (target, key, value) => {
     target[key] = value;
   });
 
-  const imageData = await resolveImageInput(body.image);
+  const imageData = await resolveImageInput(body.image, signal);
   if (imageData) {
     req.image_b64 = imageData.b64;
     req.image = imageData.bytes;
   }
 
-  const maskData = await resolveImageInput(body.mask_image || body.maskImage || body.mask);
+  const maskData = await resolveImageInput(body.mask_image || body.maskImage || body.mask, signal);
   if (maskData) {
     req.mask_b64 = maskData.b64;
     req.mask = maskData.bytes;
@@ -155,16 +155,17 @@ export default {
     return headers;
   },
 
-  buildBody: async (model, body) => (
+  buildBody: async (model, body, { clientSignal } = {}) => (
     MULTIPART_MODELS.has(model)
       ? buildMultipartBody(body)
-      : await buildJsonBody(body)
+      : await buildJsonBody(body, clientSignal)
   ),
 
-  async parseResponse(response) {
+  async parseResponse(response, { observeUsage, clientSignal } = {}) {
     const contentType = (response.headers.get("Content-Type") || "").toLowerCase();
     if (contentType.startsWith("image/")) {
       const buf = await response.arrayBuffer();
+      clientSignal?.throwIfAborted();
       return {
         created: nowSec(),
         data: [{ b64_json: Buffer.from(buf).toString("base64") }],
@@ -172,6 +173,9 @@ export default {
     }
 
     const json = await response.json();
+    observeUsage?.(json);
+    observeUsage?.(json.result);
+    clientSignal?.throwIfAborted();
     return normalizeCloudflareResponse(json);
   },
 

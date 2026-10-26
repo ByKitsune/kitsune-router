@@ -124,6 +124,8 @@ export class BaseExecutor {
         if (dynamic === false) return false; // hook vetoes retry (e.g. Retry-After too long)
         if (dynamic != null) waitMs = dynamic;
       }
+      if (response?.body && !response.body.locked) await response.body.cancel().catch(() => {});
+      signal?.throwIfAborted();
       retryAttemptsByUrl[urlIndex]++;
       log?.debug?.("RETRY", `${reason} retry ${retryAttemptsByUrl[urlIndex]}/${attempts} after ${waitMs / 1000}s`);
       try {
@@ -153,16 +155,18 @@ export class BaseExecutor {
       const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
       const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
       const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
+      let response;
 
       try {
         const bodyStr = JSON.stringify(transformedBody);
         const fetchT0 = Date.now();
         dbg("FETCH", `${this.provider.toUpperCase()} → ${url} | body=${bodyStr.length}B | connectTimeout=${timeoutMs}ms`);
-        const response = await proxyAwareFetch(url, {
+        response = await proxyAwareFetch(url, {
           method: "POST",
           headers,
           body: bodyStr,
-          signal: mergedSignal
+          signal: mergedSignal,
+          upstreamHeadersTimeoutMs: timeoutMs
         }, proxyOptions);
         clearTimeout(connectTimer);
         const ct = response.headers?.get?.("content-type") || "";
@@ -172,6 +176,8 @@ export class BaseExecutor {
         if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) { urlIndex--; continue; }
 
         if (this.shouldRetry(response.status, urlIndex)) {
+          if (response.body && !response.body.locked) await response.body.cancel().catch(() => {});
+          signal?.throwIfAborted();
           log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
           lastStatus = response.status;
           continue;
@@ -180,11 +186,12 @@ export class BaseExecutor {
         return { response, url, headers, transformedBody };
       } catch (error) {
         clearTimeout(connectTimer);
+        if (response?.body && !response.body.locked) await response.body.cancel().catch(() => {});
         // AbortSignal.reason may be an ordinary Error, not an AbortError.
         // Caller cancellation must never enter network retry or URL fallback.
         signal?.throwIfAborted();
         lastError = error;
-        const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
+        const isConnectTimeout = connectCtrl.signal.aborted;
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
         // Connect timeout is internal — convert to retryable network error, don't propagate AbortError
         if (error.name === "AbortError" && !isConnectTimeout) throw error;

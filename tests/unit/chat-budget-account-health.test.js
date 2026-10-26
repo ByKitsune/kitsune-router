@@ -48,6 +48,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}),
   saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async () => ({ accepted: true })),
 }));
 vi.mock("@/lib/pxpipe/events.js", () => ({ appendPxpipeEvent: vi.fn() }));
 vi.mock("@/lib/pxpipe/loader.js", () => ({ getTransform: vi.fn(async () => null) }));

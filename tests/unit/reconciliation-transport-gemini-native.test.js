@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 
-const state = vi.hoisted(() => ({ credentials: null, failures: [], directCalls: 0 }));
+const state = vi.hoisted(() => ({ credentials: null, failures: [], directCalls: 0, usage: [], accept: null }));
 const transport = vi.hoisted(() => ({ nativeFetch: globalThis.fetch }));
 vi.hoisted(() => {
   globalThis.fetch = (url, options) => {
@@ -20,7 +20,7 @@ vi.mock("@/sse/services/auth.js", () => ({
 }));
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => ({}), isApiKeyRequired: () => false }));
 vi.mock("open-sse/translator/index.js", () => ({ initTranslators: async () => {} }));
-vi.mock("@/lib/usageDb.js", () => ({ saveRequestUsage: async () => {} }));
+vi.mock("@/lib/usageDb.js", () => ({ enqueueRequestUsage: async (entry) => { state.usage.push(entry); return state.accept?.(entry); } }));
 
 import { POST } from "../../src/app/api/v1beta/models/[...path]/route.js";
 
@@ -48,6 +48,8 @@ function dispatch({ signal, stream = false } = {}) {
 beforeEach(() => {
   state.directCalls = 0;
   state.failures = [];
+  state.usage = [];
+  state.accept = null;
   state.credentials = { connectionId: "native-fixture", apiKey: "provider-fixture", providerSpecificData: {} };
   for (const name of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) vi.stubEnv(name, "");
 });
@@ -130,5 +132,39 @@ describe("native Gemini audio transport reconciliation", () => {
     expect(state.failures[0][0]).toBe("native-fixture");
     expect(state.failures[0][1]).toBe(status);
     expect(state.failures[0][5]).toBeGreaterThan(Date.now() + 58000);
+  });
+
+  it("accepts one cumulative native usage event before EOF without changing audio framing", async () => {
+    const usageMetadata = { promptTokenCount: 3, candidatesTokenCount: 5, totalTokenCount: 8 };
+    const text = `data: ${JSON.stringify({ usageMetadata })}\n\ndata: ${JSON.stringify({ usageMetadata })}\n\n`;
+    const relay = await listen((_req, res) => { res.setHeader("Content-Type", "text/event-stream"); res.end(text); });
+    state.credentials.providerSpecificData = { strictProxy: true, vercelRelayUrl: relay };
+    let accept;
+    state.accept = () => new Promise(resolve => { accept = resolve; });
+    const response = await dispatch({ stream: true });
+    let settled = false;
+    const body = response.text().then(value => { settled = true; return value; });
+    await vi.waitFor(() => expect(accept).toBeTypeOf("function"));
+    expect(settled).toBe(false);
+    expect(state.usage).toHaveLength(1);
+    expect(state.usage[0]).toMatchObject({ eventId: expect.stringMatching(/^[0-9a-f-]{36}$/), timestamp: expect.any(String),
+      tokens: { prompt_tokens: 3, completion_tokens: 5, total_tokens: 8 } });
+    accept({ accepted: true });
+    expect(await body).toBe(text);
+    expect(state.usage).toHaveLength(1);
+  });
+
+  it("fails native EOF honestly when durable usage cannot be accepted", async () => {
+    const relay = await listen((_req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 5, totalTokenCount: 8 } }));
+    });
+    state.credentials.providerSpecificData = { strictProxy: true, vercelRelayUrl: relay };
+    state.accept = async () => { throw new Error("private database path"); };
+    const response = await dispatch();
+    expect(response.status).toBe(200);
+    await expect(response.text()).rejects.toMatchObject({ code: "usage_acceptance_failed" });
+    expect(state.failures).toEqual([]);
+    expect(state.usage).toHaveLength(1);
   });
 });

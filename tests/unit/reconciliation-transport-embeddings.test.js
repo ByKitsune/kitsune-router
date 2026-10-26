@@ -12,11 +12,11 @@ vi.hoisted(() => {
 });
 
 const state = vi.hoisted(() => ({
-  credentials: null, health: [], usage: [],
+  credentials: null, health: [], usage: [], accept: null,
 }));
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => ({}), isApiKeyRequired: () => false }));
 vi.mock("@/lib/usageDb.js", () => ({
-  saveRequestUsage: async (entry) => { state.usage.push(entry); },
+  enqueueRequestUsage: async (entry) => { state.usage.push(entry); return state.accept?.(entry); },
 }));
 vi.mock("../../src/sse/services/model.js", () => ({
   getModelInfo: async () => ({ provider: "openai-compatible-fixture", model: "embedding-fixture" }),
@@ -62,6 +62,7 @@ function options(providerSpecificData, extra = {}) {
 beforeEach(() => {
   state.health = [];
   state.usage = [];
+  state.accept = null;
   for (const name of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) vi.stubEnv(name, "");
 });
 afterEach(async () => {
@@ -168,5 +169,38 @@ describe("embeddings transport reconciliation", () => {
     expect(result.error).toMatch(/timeout/i);
     expect(paths).toHaveLength(3);
     expect(paths).toEqual(["/v1/embeddings", "/v1/oauth/token", "/v1/embeddings"]);
+  });
+
+  it("waits for durable usage acceptance before returning a successful embedding response", async () => {
+    const direct = await listen((_req, res) => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(payload)); });
+    state.credentials = options({ baseUrl: direct }).credentials;
+    let accept;
+    state.accept = () => new Promise(resolve => { accept = resolve; });
+    let settled = false;
+    const pending = handleEmbeddings(new Request("http://localhost/v1/embeddings", {
+      method: "POST", body: JSON.stringify({ model: "fixture/embedding", input: "hello" }),
+    })).then(response => { settled = true; return response; });
+    await vi.waitFor(() => expect(accept).toBeTypeOf("function"));
+    expect(settled).toBe(false);
+    expect(state.usage).toHaveLength(1);
+    expect(state.usage[0]).toMatchObject({ eventId: expect.stringMatching(/^[0-9a-f-]{36}$/), timestamp: expect.any(String),
+      tokens: { prompt_tokens: 3, completion_tokens: 0, total_tokens: 3 } });
+    accept({ accepted: true });
+    expect(await (await pending).json()).toEqual(payload);
+  });
+
+  it("reports local acceptance failure without cooling down or retrying the upstream account", async () => {
+    let requests = 0;
+    const direct = await listen((_req, res) => { requests++; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(payload)); });
+    state.credentials = options({ baseUrl: direct }).credentials;
+    state.accept = async () => { throw new Error("private database path"); };
+    const response = await handleEmbeddings(new Request("http://localhost/v1/embeddings", {
+      method: "POST", body: JSON.stringify({ model: "fixture/embedding", input: "hello" }),
+    }));
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("usage_acceptance_failed");
+    expect(requests).toBe(1);
+    expect(state.health.filter(args => typeof args[1] === "number")).toEqual([]);
+    expect(state.usage).toHaveLength(1);
   });
 });

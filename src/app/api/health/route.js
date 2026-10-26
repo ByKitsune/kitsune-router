@@ -6,7 +6,7 @@
 // cooldown. An operator could not tell a working gateway from a broken one.
 //
 // Security: this endpoint is reachable through the public tunnel
-// (zen.hlcyn.xyz → 127.0.0.1:20128), so it must never expose account emails,
+// (router.bykitsune.org → 127.0.0.1:20128), so it must never expose account emails,
 // token material, API keys, provider ids or prompt content. It reports COUNTS
 // and booleans only. Per-connection diagnostics stay in the authenticated
 // dashboard API.

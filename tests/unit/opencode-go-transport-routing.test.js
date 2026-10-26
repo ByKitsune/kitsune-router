@@ -51,6 +51,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}),
   saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 
 // image.js imports Agent from "undici" (not installed in some dev envs); the

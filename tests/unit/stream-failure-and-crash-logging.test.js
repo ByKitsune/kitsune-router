@@ -15,6 +15,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+vi.mock("@/lib/usageDb.js", () => ({
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
+  saveRequestDetail: vi.fn(async () => {}),
+  appendRequestLog: vi.fn(async () => {}),
+  trackPendingRequest: vi.fn(),
+}));
+
 import { buildOnStreamComplete } from "../../open-sse/handlers/chatCore/streamingHandler.js";
 
 const ROOT = new URL("../..", import.meta.url).pathname;
@@ -42,9 +49,9 @@ function makeComplete(overrides = {}) {
 }
 
 describe("mid-stream failure marks the account unavailable (P10-B)", () => {
-  it("invokes onStreamFailed when the stream body reports failure", () => {
+  it("invokes onStreamFailed when the stream body reports failure", async () => {
     const { onStreamComplete, onStreamFailed } = makeComplete();
-    onStreamComplete(
+    await onStreamComplete(
       { content: "partial", thinking: "" },
       { prompt_tokens: 10, completion_tokens: 5 },
       Date.now(),
@@ -57,9 +64,9 @@ describe("mid-stream failure marks the account unavailable (P10-B)", () => {
     expect(arg.status).toBe(502);
   });
 
-  it("does not mark the account on a successful stream", () => {
+  it("does not mark the account on a successful stream", async () => {
     const { onStreamComplete, onStreamFailed } = makeComplete();
-    onStreamComplete(
+    await onStreamComplete(
       { content: "all good", thinking: "" },
       { prompt_tokens: 10, completion_tokens: 5 },
       Date.now(),
@@ -69,48 +76,56 @@ describe("mid-stream failure marks the account unavailable (P10-B)", () => {
     expect(onStreamFailed).not.toHaveBeenCalled();
   });
 
-  it("supplies a fallback error message when the upstream gives none", () => {
+  it("supplies a fallback error message when the upstream gives none", async () => {
     const { onStreamComplete, onStreamFailed } = makeComplete();
-    onStreamComplete({ content: "x" }, null, Date.now(), { failed: true });
+    await onStreamComplete({ content: "x" }, null, Date.now(), { failed: true });
 
     expect(onStreamFailed).toHaveBeenCalledTimes(1);
     expect(onStreamFailed.mock.calls[0][0].error).toBe("upstream stream failed");
   });
 
-  it("still claims persistence once (no double accounting)", () => {
+  it("still claims persistence once (no double accounting)", async () => {
     const { onStreamComplete, onStreamFailed } = makeComplete();
-    onStreamComplete({ content: "x" }, null, Date.now(), { failed: true, error: "boom" });
-    onStreamComplete({ content: "x" }, null, Date.now(), { failed: true, error: "boom again" });
+    const winner = onStreamComplete({ content: "x" }, null, Date.now(), { failed: true, error: "boom" });
+    expect(onStreamComplete({ content: "x" }, null, Date.now(), { failed: true, error: "boom again" })).toBe(winner);
 
+    expect(onStreamFailed).toHaveBeenCalledTimes(1);
+    await winner;
     expect(onStreamFailed).toHaveBeenCalledTimes(1);
   });
 
-  it("never throws out of the completion callback when the handler fails", () => {
+  it("never throws out of the completion callback when the handler fails", async () => {
     // Accounting must not break the response path.
     const onStreamFailed = vi.fn(() => { throw new Error("handler exploded"); });
     const { onStreamComplete } = makeComplete({ onStreamFailed });
-    expect(() => onStreamComplete({ content: "x" }, null, Date.now(), { failed: true })).not.toThrow();
+    let acceptance;
+    expect(() => { acceptance = onStreamComplete({ content: "x" }, null, Date.now(), { failed: true }); }).not.toThrow();
+    await expect(acceptance).resolves.toBeUndefined();
   });
 
-  it("tolerates a missing onStreamFailed callback", () => {
+  it("tolerates a missing onStreamFailed callback", async () => {
     const callbacks = buildOnStreamComplete({
       provider: "codex", model: "m", connectionId: "c", apiKey: "k",
       requestStartTime: Date.now(), body: {}, stream: true,
       finalBody: null, translatedBody: null, clientRawRequest: null,
       pxpipe: null, reqTag: "T", log: null,
     });
-    expect(() => callbacks.onStreamComplete({ content: "x" }, null, Date.now(), { failed: true })).not.toThrow();
+    let acceptance;
+    expect(() => { acceptance = callbacks.onStreamComplete({ content: "x" }, null, Date.now(), { failed: true }); }).not.toThrow();
+    await expect(acceptance).resolves.toBeUndefined();
   });
 });
 
 describe("a client disconnect is not an account fault (P10-B)", () => {
-  it("keeps abort and completion mutually exclusive", () => {
+  it("keeps abort and completion mutually exclusive", async () => {
     // onStreamAborted claims persistence first, so a disconnect can never reach
     // the failed-stream branch and mark the account.
     const { onStreamComplete, onStreamAborted, onStreamFailed } = makeComplete();
-    onStreamAborted({ content: "partial", usage: null, ttftAt: null }, "client_aborted");
-    onStreamComplete({ content: "partial" }, null, Date.now(), { failed: true, error: "should not count" });
+    const winner = onStreamAborted({ content: "partial", usage: null, ttftAt: null }, "client_aborted");
+    expect(onStreamComplete({ content: "partial" }, null, Date.now(), { failed: true, error: "should not count" })).toBe(winner);
 
+    expect(onStreamFailed).not.toHaveBeenCalled();
+    await winner;
     expect(onStreamFailed).not.toHaveBeenCalled();
   });
 
@@ -118,9 +133,9 @@ describe("a client disconnect is not an account fault (P10-B)", () => {
     const source = readFileSync(join(ROOT, "open-sse/handlers/chatCore/streamingHandler.js"), "utf8");
     const abortIndex = source.indexOf("const onStreamAborted = (snapshot, reason) =>");
     expect(abortIndex).toBeGreaterThan(-1);
-    // The abort handler must guard on persistenceClaimed.
-    const abortBody = source.slice(abortIndex, abortIndex + 200);
-    expect(abortBody).toMatch(/persistenceClaimed/);
+    const abortBody = source.slice(abortIndex, abortIndex + 100);
+    expect(abortBody).toContain("=> claim(async () =>");
+    expect(source).toMatch(/const claim = record => \{\s*if \(persistenceClaimed\) return persistencePromise;\s*persistenceClaimed = true;/);
   });
 });
 

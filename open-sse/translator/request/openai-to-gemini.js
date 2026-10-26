@@ -180,7 +180,7 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
     model: model,
     contents: [],
     generationConfig: {},
-    safetySettings: DEFAULT_SAFETY_SETTINGS
+    safetySettings: DEFAULT_SAFETY_SETTINGS.map(setting => ({ ...setting }))
   };
 
   const existingToolNames = new Set();

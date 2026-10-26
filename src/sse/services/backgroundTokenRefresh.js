@@ -4,6 +4,7 @@
 import * as log from "../utils/logger.js";
 import { getRefreshLeadMs } from "open-sse/services/tokenRefresh.js";
 import { getCredentialExpiryMs } from "open-sse/services/oauthCredentialManager.js";
+import { isShuttingDown } from "../../lib/shutdownLifecycle.js";
 
 /** Refresh when expiry is within 30 minutes (or the provider on-request lead, whichever larger). */
 export const BACKGROUND_REFRESH_LEAD_MS = 30 * 60 * 1000;
@@ -14,6 +15,8 @@ let started = false;
 let intervalHandle = null;
 let initialTimeoutHandle = null;
 let tickRunning = false;
+let activeTick = null;
+let draining = false;
 
 function isTruthyEnv(value) {
   if (value == null || value === "") return false;
@@ -71,32 +74,46 @@ export function selectConnectionsNeedingRefresh(connections, nowMs = Date.now())
   return out;
 }
 
+function isDraining() {
+  return draining || isShuttingDown();
+}
+
 async function loadActiveConnections() {
   // Dynamic import avoids circular load with db / app graph at module eval time.
   const { getProviderConnections } = await import("../../lib/db/repos/connectionsRepo.js");
+  if (isDraining()) return [];
   return getProviderConnections({ isActive: true });
 }
 
-async function refreshOne(connection) {
+async function refreshOne(connection, signal) {
   const { checkAndRefreshToken } = await import("./tokenRefresh.js");
-  return checkAndRefreshToken(connection.provider, connection, { force: true });
+  if (isDraining()) return;
+  return checkAndRefreshToken(connection.provider, connection, { force: true, signal });
 }
 
 /**
  * One scheduler tick. Fail-open at top level and per connection.
  * @param {{ loadConnections?: Function, refreshConnection?: Function }} [deps]
  */
-export async function runBackgroundTokenRefreshTick(deps = {}) {
-  if (tickRunning) {
-    log.debug("BG_TOKEN_REFRESH", "Tick already running, skip");
-    return;
-  }
+export function runBackgroundTokenRefreshTick(deps = {}) {
+  if (tickRunning || isDraining()) return Promise.resolve();
   tickRunning = true;
+  const task = runTick(deps, new AbortController().signal);
+  activeTick = task;
+  task.finally(() => {
+    if (activeTick === task) activeTick = null;
+  }).catch(() => {});
+  return task;
+}
+
+async function runTick(deps, signal) {
   try {
     const load = deps.loadConnections || loadActiveConnections;
     const refresh = deps.refreshConnection || refreshOne;
 
     const connections = await load();
+    if (isDraining()) return;
+    signal.throwIfAborted();
     const due = selectConnectionsNeedingRefresh(connections, Date.now());
 
     if (due.length === 0) {
@@ -114,7 +131,9 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
     await Promise.allSettled(
       due.map(async (conn) => {
         try {
-          await refresh(conn);
+          if (isDraining()) return;
+          signal.throwIfAborted();
+          await refresh(conn, signal);
           log.info("BG_TOKEN_REFRESH", "Connection refresh finished", {
             id: conn.id,
             provider: conn.provider,
@@ -143,7 +162,7 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
  * @returns {boolean} true if started this call
  */
 export function startBackgroundTokenRefresh({ intervalMs } = {}) {
-  if (started) return false;
+  if (started || isDraining()) return false;
   if (isTruthyEnv(process.env.DISABLE_BACKGROUND_TOKEN_REFRESH)) {
     log.info("BG_TOKEN_REFRESH", "Disabled via DISABLE_BACKGROUND_TOKEN_REFRESH");
     return false;
@@ -179,7 +198,8 @@ export function startBackgroundTokenRefresh({ intervalMs } = {}) {
   return true;
 }
 
-export function stopBackgroundTokenRefresh() {
+export function stopBackgroundTokenRefresh({ drain = false } = {}) {
+  if (drain) draining = true;
   if (initialTimeoutHandle) {
     clearTimeout(initialTimeoutHandle);
     initialTimeoutHandle = null;
@@ -192,4 +212,5 @@ export function stopBackgroundTokenRefresh() {
     started = false;
     log.info("BG_TOKEN_REFRESH", "Scheduler stopped");
   }
+  return drain ? activeTick || Promise.resolve() : undefined;
 }

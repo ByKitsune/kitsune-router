@@ -7,10 +7,12 @@ import { toOpenAIUsage } from "../../translator/concerns/usage.js";
 import { filterUsageForFormat } from "../../utils/usageTracking.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
-import { parseSSEToOpenAIResponse, createSSEAggregationState, responsesJsonToClaudeMessage } from "./sseToJsonHandler.js";
+import { convertSSEToOpenAIResponse, createSSEAggregationState, responsesJsonToClaudeMessage } from "./sseToJsonHandler.js";
+import { acceptUsageRecord } from "./streamingHandler.js";
+import { unsupportedResponseMedia } from "../../translator/concerns/responseMedia.js";
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
 import { openaiResponsesObjectToCompletion } from "../../translator/response/openai-responses.js";
-import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
+import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { decloakOpenAIChunk } from "../../utils/toolCompressor.js";
@@ -194,25 +196,28 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   return responseBody;
 }
 
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, serviceTier }) {  trackDone();
-  const contentType = providerResponse.headers.get("content-type") || "";
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, serviceTier, signal, usageEventId = crypto.randomUUID(), usageTimestamp = new Date().toISOString() }) {
+  trackDone();
+  const contentType = (providerResponse.headers.get("content-type") || "").toLowerCase();
   let responseBody;
 
-  if (contentType.includes("text/event-stream")) {
-    if (targetFormat === FORMATS.OPENAI_RESPONSES) {
-      // Responses-API SSE (e.g. OpenCode zen muse): aggregate via the
-      // Responses stream converter — the Chat-Completions chunk parser below
-      // would silently drop every response.output_text.delta event.
-      responseBody = await convertResponsesStreamToJson(providerResponse.body);
-    } else {
-      const sseText = await providerResponse.text();
-      const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
-      const parsed = parseSSEToOpenAIResponse(sseText, model, targetFormat, aggregationState);
-      if (!parsed) {
-        appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
-        return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
+  if (contentType.includes("text/event-stream") || (targetFormat === FORMATS.OLLAMA && contentType.includes("application/x-ndjson"))) {
+    const onAbort = snapshot => acceptUsageRecord({ provider, model, tokens: extractUsageFromResponse(snapshot), connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, snapshot) });
+    try {
+      if (targetFormat === FORMATS.OPENAI_RESPONSES) {
+        responseBody = await convertResponsesStreamToJson(providerResponse.body, { signal, onAbort });
+      } else {
+        const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
+        const parsed = await convertSSEToOpenAIResponse(providerResponse.body, model, targetFormat, aggregationState, { signal, onAbort });
+        if (!parsed) {
+          appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+          return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
+        }
+        responseBody = parsed.error ? parsed : aggregationState.nativeResponse || parsed;
       }
-      responseBody = aggregationState.nativeResponse || parsed;
+    } catch (error) {
+      if (error?.code === "usage_acceptance_failed") return createErrorResult(503, error.message, null, { code: error.code });
+      throw error;
     }
   } else {
     try {
@@ -231,8 +236,10 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   // Record incurred tokens before any terminal classification or fallback.
   const usage = extractUsageFromResponse(responseBody);
   const tierAccounting = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, responseBody);
-  saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: tierAccounting });
-  const failure = extractResponseError(responseBody);
+  try {
+    await acceptUsageRecord({ provider, model, tokens: usage, connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, silent: true, serviceTier: tierAccounting });
+  } catch (error) { return createErrorResult(503, error.message, null, { code: error.code }); }
+  const failure = extractResponseError(responseBody) || unsupportedResponseMedia(targetFormat, sourceFormat, responseBody);
   if (failure) {
     appendLog({ tokens: usage, status: `FAILED ${failure.status}` });
     return createErrorResult(failure.status, failure.error.message || "Upstream response failed", null, failure.error);

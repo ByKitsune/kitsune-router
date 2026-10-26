@@ -4,6 +4,7 @@ import { adjustMaxTokens, requiresMaxCompletionTokens } from "../formats/maxToke
 import { normalizeMediaPart } from "../concerns/multimodal.js";
 import { convertGeminiFunctionResponseContent, copyGeminiRequestControls, geminiSchemaToJSONSchema, collapseGeminiParts } from "../formats/gemini.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
+import { geminiToolHistory } from "../concerns/geminiToolHistory.js";
 
 // Convert Gemini request to OpenAI format
 export function geminiToOpenAIRequest(model, body, stream) {
@@ -44,8 +45,9 @@ export function geminiToOpenAIRequest(model, body, stream) {
 
   // Convert contents to messages
   if (body.contents && Array.isArray(body.contents)) {
+    const toolIds = geminiToolHistory(body.contents);
     for (const content of body.contents) {
-      const converted = convertGeminiContent(content);
+      const converted = convertGeminiContent(content, toolIds);
       if (converted) {
         result.messages.push(...(Array.isArray(converted) ? converted : [converted]));
       }
@@ -75,7 +77,7 @@ export function geminiToOpenAIRequest(model, body, stream) {
 }
 
 // Convert Gemini content to OpenAI message
-function convertGeminiContent(content) {
+function convertGeminiContent(content, toolIds) {
   const role = content.role === GEMINI_ROLE.USER ? ROLE.USER : ROLE.ASSISTANT;
   
   if (!content.parts || !Array.isArray(content.parts)) {
@@ -105,10 +107,8 @@ function convertGeminiContent(content) {
     }
 
     if (part.functionCall) {
-      // Gemini lacks a native call id; derive a deterministic one from the name so the
-      // matching functionResponse maps to the same tool_call_id (providers require pairing).
       toolCalls.push({
-        id: part.functionCall.id || `call_${part.functionCall.name}`,
+        id: toolIds.get(part),
         type: OPENAI_BLOCK.FUNCTION,
         function: {
           name: part.functionCall.name,
@@ -120,7 +120,7 @@ function convertGeminiContent(content) {
     if (part.functionResponse) {
       toolResults.push({
         role: ROLE.TOOL,
-        tool_call_id: part.functionResponse.id || `call_${part.functionResponse.name}`,
+        tool_call_id: toolIds.get(part),
         content: convertGeminiFunctionResponseContent(part.functionResponse),
         ...(Object.hasOwn(part.functionResponse.response || {}, "error") ? { is_error: part.functionResponse.response.error != null && part.functionResponse.response.error !== false } : {})
       });

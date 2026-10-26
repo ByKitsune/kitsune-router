@@ -1,4 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { lookup } from "node:dns/promises";
+import { Dispatcher1Wrapper } from "undici";
+
+vi.mock("node:dns/promises", async original => ({ ...await original(), lookup: vi.fn() }));
 
 import REGISTRY from "../../open-sse/providers/registry/index.js";
 import { handleFetchCore } from "../../open-sse/handlers/fetch/index.js";
@@ -9,8 +13,18 @@ const CONFIG = {
   timeoutMs: 30000,
 };
 
-afterEach(() => {
+beforeEach(() => {
+  lookup.mockReset().mockImplementation(async (hostname, options) => {
+    expect(hostname).toBe("ollama.com");
+    expect(options).toEqual({ all: true });
+    return [{ address: "93.184.216.34", family: 4 }];
+  });
+});
+afterEach(async () => {
+  const calls = global.fetch.mock?.calls || [];
+  await Promise.all(calls.map(([, init]) => init.dispatcher.close()));
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("Ollama Cloud web fetch provider", () => {
@@ -55,6 +69,9 @@ describe("Ollama Cloud web fetch provider", () => {
     const [requestUrl, init] = global.fetch.mock.calls[0];
     expect(requestUrl).toBe("https://ollama.com/api/web_fetch");
     expect(init.method).toBe("POST");
+    expect(init.redirect).toBe("manual");
+    expect(init.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
+    expect(lookup).toHaveBeenCalledOnce();
     expect(init.headers).toEqual({
       "content-type": "application/json",
       authorization: "Bearer ollama-test-key",
@@ -108,5 +125,15 @@ describe("Ollama Cloud web fetch provider", () => {
       status: 502,
       error: "Ollama returned an empty or invalid web fetch response",
     });
+  });
+
+  it("rejects a mixed public/private DNS answer before sending the bearer token", async () => {
+    lookup.mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }, { address: "10.0.0.1", family: 4 }]);
+    vi.stubGlobal("fetch", vi.fn());
+    const result = await handleFetchCore({
+      url: "https://example.com", provider: "ollama", providerConfig: CONFIG, credentials: { apiKey: "ollama-test-key" },
+    });
+    expect(result).toEqual({ success: false, status: 502, error: "SSRF blocked: private or invalid IP" });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

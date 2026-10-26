@@ -3,9 +3,9 @@ import "../translator/registerAll.js";
 
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
-  saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  saveRequestDetail: vi.fn(async () => {}), enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
-import { saveRequestDetail, saveRequestUsage } from "@/lib/usageDb.js";
+import { saveRequestDetail, enqueueRequestUsage } from "@/lib/usageDb.js";
 import { handleNonStreamingResponse } from "../../open-sse/handlers/chatCore/nonStreamingHandler.js";
 import { handleForcedSSEToJson } from "../../open-sse/handlers/chatCore/sseToJsonHandler.js";
 import { buildOnStreamComplete } from "../../open-sse/handlers/chatCore/streamingHandler.js";
@@ -40,7 +40,7 @@ describe("requested versus delivered processing speed", () => {
   ])("accounts for request %s / actual %s without assuming Standard", async (requested, actual, expectedCost) => {
     const result = await handleNonStreamingResponse({ ...context(requested), providerResponse: Response.json(reply(actual)) });
     expect(result.success).toBe(true);
-    const row = saveRequestUsage.mock.calls[0][0];
+    const row = enqueueRequestUsage.mock.calls[0][0];
     expect(row.tokens).toMatchObject({ requestedServiceTier: requested, actualServiceTier: actual });
     expect(saveRequestDetail.mock.calls.at(-1)[0]).toMatchObject({ requestedServiceTier: requested, actualServiceTier: actual });
     const cost = calculateCostBreakdown(row.tokens, getPricingForModel("openai", "gpt-6.1-sol")).totalCost;
@@ -55,7 +55,7 @@ describe("requested versus delivered processing speed", () => {
     const providerResponse = new Response(sse([{ type: "response.completed", response: reply("default") }]), { headers: { "content-type": "text/event-stream" } });
     const result = await handleForcedSSEToJson({ ...context("fast"), providerResponse });
     expect((await result.response.json()).service_tier).toBe("default");
-    expect(saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
+    expect(enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
     expect(saveRequestDetail.mock.calls.at(-1)[0]).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
   });
 
@@ -69,7 +69,7 @@ describe("requested versus delivered processing speed", () => {
     ];
     const wire = await new Response(new Response(sse(events)).body.pipeThrough(transform)).text();
     expect(wire).toContain('"service_tier":"default"');
-    expect(saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
+    expect(enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
     expect(saveRequestDetail.mock.calls.at(-1)[0]).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "default" });
   });
 
@@ -83,8 +83,8 @@ describe("requested versus delivered processing speed", () => {
     ];
     const wire = await new Response(new Response(sse(events)).body.pipeThrough(transform)).text();
     expect(wire).toContain('"service_tier":"priority"');
-    expect(saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "priority" });
-    expect(calculateCostBreakdown(saveRequestUsage.mock.calls[0][0].tokens, getPricingForModel("openai", "gpt-6.1-sol")).totalCost).toBeCloseTo(0.00018, 10);
+    expect(enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "fast", actualServiceTier: "priority" });
+    expect(calculateCostBreakdown(enqueueRequestUsage.mock.calls[0][0].tokens, getPricingForModel("openai", "gpt-6.1-sol")).totalCost).toBeCloseTo(0.00018, 10);
   });
 
   it("keeps delivered speed unknown when an Ultrafast stream never confirms it", async () => {
@@ -92,8 +92,8 @@ describe("requested versus delivered processing speed", () => {
     const transform = createSSEStream({ provider: "openai", model: "gpt-6.1-sol", targetFormat: "openai-responses", sourceFormat: "openai", onStreamComplete });
     const wire = await new Response(new Response(sse([{ type: "response.completed", response: reply(null) }])).body.pipeThrough(transform)).text();
     expect(wire).not.toContain('"service_tier":"ultrafast"');
-    expect(saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "ultrafast", actualServiceTier: null });
-    expect(calculateCostBreakdown(saveRequestUsage.mock.calls[0][0].tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost).toBeNull();
+    expect(enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ requestedServiceTier: "ultrafast", actualServiceTier: null });
+    expect(calculateCostBreakdown(enqueueRequestUsage.mock.calls[0][0].tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost).toBeNull();
   });
 
   it("marks implicit Codex premium defaults unconfirmed when the response has no tier", async () => {
@@ -101,7 +101,7 @@ describe("requested versus delivered processing speed", () => {
     ctx.provider = "codex";
     ctx.serviceTier.wireServiceTier = "ultrafast";
     await handleNonStreamingResponse({ ...ctx, providerResponse: Response.json(reply(null)) });
-    const row = saveRequestUsage.mock.calls[0][0];
+    const row = enqueueRequestUsage.mock.calls[0][0];
     expect(row.tokens).toMatchObject({ requestedServiceTier: null, actualServiceTier: null });
     expect(calculateCostBreakdown(row.tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost).toBeNull();
   });
@@ -111,7 +111,7 @@ describe("requested versus delivered processing speed", () => {
     ctx.body.service_tier = null;
     ctx.serviceTier.selection = null;
     await handleNonStreamingResponse({ ...ctx, providerResponse: Response.json(reply(null)) });
-    const row = saveRequestUsage.mock.calls[0][0];
+    const row = enqueueRequestUsage.mock.calls[0][0];
     expect(row.tokens).toMatchObject({ requestedServiceTier: null, actualServiceTier: null });
     expect(calculateCostBreakdown(row.tokens, MODEL_PRICING["gpt-6.1-sol"]).totalCost).toBeNull();
   });

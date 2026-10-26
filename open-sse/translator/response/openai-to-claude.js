@@ -63,14 +63,19 @@ function stopTextBlock(state, results) {
 }
 
 function startPendingTools(state, results, finishing = false) {
-  for (const tool of state.toolCalls.values()) {
-    if (tool.started) continue;
-    if (!tool.id || !tool.name || (!finishing && !tool.ready)) break;
-    tool.started = true;
-    tool.name = state.toolNameMap?.get(tool.name) || tool.name;
-    const name = tool.name;
-    results.push({ type: "content_block_start", index: tool.blockIndex,
-      content_block: { type: CLAUDE_BLOCK.TOOL_USE, id: tool.id, name, input: {} } });
+  for (const [index, tool] of state.toolCalls) {
+    if (!tool.started) {
+      if (!tool.id || !tool.name || (!finishing && !tool.ready)) break;
+      tool.started = true;
+      tool.name = state.toolNameMap?.get(tool.name) || tool.name;
+      results.push({ type: "content_block_start", index: tool.blockIndex,
+        content_block: { type: CLAUDE_BLOCK.TOOL_USE, id: tool.id, name: tool.name, input: {} } });
+    }
+    const parts = state.toolArgBuffers?.get(index);
+    if (tool.name === "Read" || !parts?.length) continue;
+    results.push({ type: "content_block_delta", index: tool.blockIndex,
+      delta: { type: "input_json_delta", partial_json: parts.join("") } });
+    state.toolArgBuffers.delete(index);
   }
 }
 
@@ -262,9 +267,8 @@ export function openaiToClaudeResponse(chunk, state) {
 
     state.finishReason = choice.finish_reason;
     state.claudeFinishPending = choice.finish_reason;
-    // Native-provider pivots already attach their final usage. Direct Chat
-    // streams may put it in a choices:[] trailer, before [DONE] or EOF.
-    if (completeUsage || state.targetFormat !== FORMATS.OPENAI) {
+    // A native upstream may also put usage in a separate trailer before EOF.
+    if (completeUsage) {
       results.push(...emitClaudeTerminal(state));
     }
   }

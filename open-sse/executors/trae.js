@@ -48,7 +48,7 @@ export default class TraeExecutor extends BaseExecutor {
   }
 
   base() {
-    return (this.config.baseUrl || "https://core-normal.trae.ai/api/remote/v1").replace(/\/$/, "");
+    return (this.config?.baseUrl || "https://core-normal.trae.ai/api/remote/v1").replace(/\/$/, "");
   }
 
   buildHeaders(credentials, stream = true) {
@@ -101,7 +101,7 @@ export default class TraeExecutor extends BaseExecutor {
   }
 
   // POST /chat_sessions — creates a session and submits the first turn.
-  async createSession(headers, query, model, psd, signal) {
+  async createSession(headers, query, model, psd, signal, proxyOptions = null) {
     const { mode, strategy, modelName } = this.resolveMode(model);
     const body = {
       mode,
@@ -124,7 +124,7 @@ export default class TraeExecutor extends BaseExecutor {
       headers,
       body: JSON.stringify(body),
       signal,
-    }, null);
+    }, proxyOptions);
     const text = await res.text();
     if (!res.ok) throw new Error(`[${res.status}] ${text}`);
     const json = JSON.parse(text);
@@ -134,17 +134,21 @@ export default class TraeExecutor extends BaseExecutor {
 
   // GET /events SSE → invoke onEvent(eventType, dataObj) per frame.
   // Resolves when `done`/`error` arrives, the stream ends, or timeout fires.
-  async streamEvents(headers, sessionId, replyTo, onEvent, signal) {
+  async streamEvents(headers, sessionId, replyTo, onEvent, signal, proxyOptions = null) {
+    signal?.throwIfAborted();
     const url = `${this.base()}/chat_sessions/${sessionId}/events?reply_to_message_id=${encodeURIComponent(replyTo)}`;
     const ctrl = new AbortController();
-    if (signal?.aborted) ctrl.abort();
     const timer = setTimeout(() => ctrl.abort(new Error("trae stream timeout")), STREAM_TIMEOUT_MS);
-    const onAbort = () => ctrl.abort();
-    if (signal) signal.addEventListener("abort", onAbort, { once: true });
+    const onAbort = () => ctrl.abort(signal.reason);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    let reader;
     try {
-      const res = await proxyAwareFetch(url, { method: "GET", headers, signal: ctrl.signal }, null);
-      if (!res.ok || !res.body) throw new Error(`[${res.status}] events stream failed`);
-      const reader = res.body.getReader();
+      const res = await proxyAwareFetch(url, { method: "GET", headers, signal: ctrl.signal }, proxyOptions);
+      if (!res.ok || !res.body) {
+        await res.body?.cancel().catch(() => {});
+        throw new Error(`[${res.status}] events stream failed`);
+      }
+      reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
       let ev = null;
@@ -169,12 +173,15 @@ export default class TraeExecutor extends BaseExecutor {
         }
       }
     } finally {
+      await reader?.cancel().catch(() => {});
+      reader?.releaseLock();
       clearTimeout(timer);
-      if (signal) signal.removeEventListener("abort", onAbort);
+      signal?.removeEventListener("abort", onAbort);
     }
   }
 
-  async execute({ model, body, stream, credentials, signal }) {
+  async execute({ model, body, stream, credentials, signal, proxyOptions = null }) {
+    signal?.throwIfAborted();
     const headers = this.buildHeaders(credentials, stream !== false);
     const psd = credentials?.providerSpecificData || {};
     const query = flattenQuery(body?.messages || []);
@@ -188,8 +195,9 @@ export default class TraeExecutor extends BaseExecutor {
 
     let session;
     try {
-      session = await this.createSession(headers, query, model, psd, signal);
+      session = await this.createSession(headers, query, model, psd, signal, proxyOptions);
     } catch (err) {
+      signal?.throwIfAborted();
       return { response: errResponse(502, err?.message ? String(err.message) : String(err)), url: this.base(), headers, transformedBody: body };
     }
 
@@ -240,7 +248,7 @@ export default class TraeExecutor extends BaseExecutor {
                 }
               }
               return ev === "done";
-            }, signal);
+            }, signal, proxyOptions);
             if (errorEvent) {
               emit({
                 id: responseId,
@@ -302,8 +310,9 @@ export default class TraeExecutor extends BaseExecutor {
         if (ev === "token_usage") usage = data;
         if (ev === "plan_item") renderNewText(data);
         return ev === "done";
-      }, signal);
+      }, signal, proxyOptions);
     } catch (err) {
+      signal?.throwIfAborted();
       return { response: errResponse(502, err?.message ? String(err.message) : String(err)), url: this.base(), headers, transformedBody: body };
     }
     if (errorEvent) {

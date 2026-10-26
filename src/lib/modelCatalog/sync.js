@@ -22,6 +22,9 @@ const FEATURE_FIELDS = { reasoning: "reasoning", tool_call: "tools", structured_
 
 let state = { running: false, lastSync: null, lastError: null, lastResult: null, etag: null, fileVersion: null };
 let timer = null;
+let activeSync = null;
+let syncController = null;
+let stopped = false;
 
 export function getSyncState() {
   return { ...state, file: CATALOG_FILE, url: CATALOG_URL, intervalMs: SYNC_INTERVAL_MS };
@@ -150,15 +153,26 @@ async function collectEntries() {
 }
 
 // Run one sync. Returns a summary, or null when it could not complete.
-export async function syncModelCatalog() {
-  if (state.running) return null;
+export function syncModelCatalog() {
+  if (state.running || stopped) return Promise.resolve(null);
   state.running = true;
+  const controller = new AbortController();
+  syncController = controller;
+  const task = runSync(controller.signal);
+  activeSync = task;
+  task.finally(() => {
+    if (activeSync === task) { activeSync = null; syncController = null; }
+  }).catch(() => {});
+  return task;
+}
+
+async function runSync(signal) {
   try {
     const headers = { accept: "application/json" };
     // A file written by an older schema has to be rebuilt even when upstream is
     // unchanged, so only ask upstream for a 304 when the file is current.
     if (state.etag && state.fileVersion === CATALOG_VERSION) headers["if-none-match"] = state.etag;
-    const response = await fetch(CATALOG_URL, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const response = await fetch(CATALOG_URL, { headers, signal: AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]) });
 
     let result;
     if (response.status === 304) {
@@ -171,6 +185,7 @@ export async function syncModelCatalog() {
       const catalog = await response.json();
       const etag = response.headers.get("etag") || null;
       const entries = await collectEntries();
+      signal.throwIfAborted();
       const { models, providers } = build(catalog, entries);
       const serialized = JSON.stringify({ v: CATALOG_VERSION, etag, syncedAt: Date.now(), models, providers });
 
@@ -221,16 +236,26 @@ function restoreEtag() {
 
 // Schedule the recurring sync. Disable entirely with MODEL_CATALOG_SYNC=off.
 export function startModelCatalogSync() {
-  if (timer) return;
+  if (timer || stopped) return;
   if (String(process.env.MODEL_CATALOG_SYNC || "").toLowerCase() === "off") return;
   restoreEtag();
 
   const schedule = (delay) => {
+    if (stopped) return;
     timer = setTimeout(async () => {
+      timer = null;
       const result = await syncModelCatalog();
       schedule(result ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
     }, delay);
     timer.unref?.();
   };
   schedule(STARTUP_DELAY_MS);
+}
+
+export async function stopModelCatalogSync() {
+  stopped = true;
+  clearTimeout(timer);
+  timer = null;
+  syncController?.abort();
+  await activeSync;
 }

@@ -783,6 +783,7 @@ const FUSION_DEFAULTS = {
   minPanel: 2,             // answers needed before stragglers get a grace window
   stragglerGraceMs: 8000,  // wait this long for laggards once quorum is reached
   panelHardTimeoutMs: 90000, // absolute cap so one hung model can't stall forever
+  panelSettlementMs: 250,  // bounded wait for a cancelled attempt's already-in-flight accounting acceptance
 };
 
 // A discarded panel owns an abort controller; losing the race must not leave
@@ -834,9 +835,10 @@ function collectPanel(calls, { minPanel, stragglerGraceMs, panelHardTimeoutMs, s
     if (signal?.aborted) finish();
     calls.forEach((p, i) => {
       Promise.resolve(p)
-        .then((v) => { out[i] = v; })
+        .then((v) => { out[i] = v; if (v?.terminalResponse) finish(); })
         .catch((e) => { out[i] = { __error: e }; })
         .finally(() => {
+          if (finished) return;
           settled++;
           if (out[i] && out[i].ok) ok++;
           if (settled === calls.length) return finish();
@@ -1075,13 +1077,25 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
     if (!completed.has(index)) controller.abort(signal?.reason || new Error("Fusion panel no longer needed"));
   });
   signal?.addEventListener("abort", abortPanel, { once: true });
-  const calls = panel.map((model, index) => withTimeout((async () => {
+  const attempts = panel.map((model, index) => (async () => {
     const controller = controllers[index];
     if (signal?.aborted) controller.abort(signal.reason);
     const response = await handleSingleModel(cloneRequestBody(panelBody), model, true, controller.signal);
-    if (!response?.ok) {
+    if (controller.signal.aborted) {
+      // An attempt cancelled during its own accounting acceptance must keep a
+      // terminal no-retry outcome so the bounded barrier does not discard it.
+      if (response?.headers?.get("x-should-retry") === "false") {
+        completed.add(index);
+        return { ok: false, status: response.status, terminalResponse: response };
+      }
       void response?.body?.cancel().catch(() => {});
       completed.add(index);
+      return { ok: false, status: response?.status };
+    }
+    if (!response?.ok) {
+      completed.add(index);
+      if (response?.headers?.get("x-should-retry") === "false") return { ok: false, status: response.status, terminalResponse: response };
+      void response?.body?.cancel().catch(() => {});
       return { ok: false, status: response?.status };
     }
     // Header arrival is not a usable panel answer. The same deadline covers
@@ -1089,13 +1103,44 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
     const text = extractPanelText(await response.json());
     completed.add(index);
     return { ok: !!text, status: response.status, text };
-  })(), cfg.panelHardTimeoutMs, controllers[index]));
+  })());
+  // collectPanel's sparse result can report `__timeout` while the aborted attempt
+  // is still finishing its accounting acceptance, so terminal outcomes are read
+  // from the authoritative settlement of each attempt instead.
+  const settlements = attempts.map(attempt => attempt.then(value => ({ value }), error => ({ error })));
+  const calls = attempts.map((attempt, index) => withTimeout(attempt, cfg.panelHardTimeoutMs, controllers[index]));
   let settled;
   try {
     settled = await collectPanel(calls, { ...cfg, minPanel, signal });
   } finally {
     abortPanel();
     signal?.removeEventListener("abort", abortPanel);
+  }
+  const cancelDeferred = keep => {
+    for (const result of settled) if (result?.terminalResponse && result.terminalResponse !== keep) void result.terminalResponse.body?.cancel().catch(() => {});
+  };
+  const terminalResponse = settled.find(result => result?.terminalResponse)?.terminalResponse;
+  if (terminalResponse) { cancelDeferred(terminalResponse); return terminalResponse; }
+
+  // A cancelled or timed-out attempt may already have measured usage whose
+  // durable acceptance then fails. That failure is terminal (x-should-retry:false)
+  // and must not be discarded by the timeout wrapper, so wait a bounded
+  // accounting barrier before deciding to continue, degrade, or return 499.
+  const unsettled = [];
+  for (let index = 0; index < settled.length; index++) {
+    const result = settled[index];
+    if (result === undefined || result?.__timeout) unsettled.push(index);
+  }
+  if (unsettled.length > 0) {
+    const barrier = unsettled.map(index => settlements[index]);
+    const outcome = await Promise.race([
+      Promise.all(barrier).then(values => ({ values })),
+      new Promise(resolve => { const timer = setTimeout(() => resolve(null), cfg.panelSettlementMs); timer.unref?.(); }),
+    ]);
+    if (outcome) {
+      const late = outcome.values.map(entry => entry?.value?.terminalResponse).find(Boolean);
+      if (late) { cancelDeferred(late); return late; }
+    }
   }
   if (signal?.aborted) return cancelled();
   log.info("FUSION", `fan-out collected in ${Date.now() - t0}ms`);

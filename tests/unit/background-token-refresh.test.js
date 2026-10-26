@@ -189,6 +189,32 @@ describe("start/stop guards", () => {
     stopBackgroundTokenRefresh();
   });
 
+  it("drains an active credential operation and prevents new ticks", async () => {
+    const mod = await import("../../src/sse/services/backgroundTokenRefresh.js");
+    let entered;
+    let settle;
+    const ready = new Promise(resolve => { entered = resolve; });
+    const committed = new Promise(resolve => { settle = resolve; });
+    let signal;
+    const refreshConnection = vi.fn(async (_connection, value) => {
+      signal = value;
+      entered();
+      await committed;
+    });
+    const tick = mod.runBackgroundTokenRefreshTick({ loadConnections: async () => [conn({ expiresAt: new Date().toISOString() })], refreshConnection });
+    await ready;
+    let drained = false;
+    const stop = mod.stopBackgroundTokenRefresh({ drain: true }).then(() => { drained = true; });
+    expect(signal.aborted).toBe(false);
+    await Promise.resolve();
+    expect(drained).toBe(false);
+    settle();
+    await Promise.all([tick, stop]);
+    await mod.runBackgroundTokenRefreshTick({ loadConnections: async () => [conn()], refreshConnection });
+    expect(refreshConnection).toHaveBeenCalledTimes(1);
+    expect(mod.startBackgroundTokenRefresh()).toBe(false);
+  });
+
   it("is idempotent: second start is no-op", async () => {
     vi.stubEnv("DISABLE_BACKGROUND_TOKEN_REFRESH", "");
     const { startBackgroundTokenRefresh, stopBackgroundTokenRefresh } = await import(

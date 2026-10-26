@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
-  saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
   saveRequestDetail: vi.fn(async () => {}),
   appendRequestLog: vi.fn(async () => {}),
   trackPendingRequest: vi.fn(),
@@ -159,8 +159,8 @@ describe("semantic streaming TTFT", () => {
       expect(payloads(output).some((value) => value.type === "response.completed")).toBe(true);
       expect(payloads(output).some((value) => value.choices)).toBe(false);
     }
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
   });
 
   it.each(["passthrough", "translate"].flatMap((mode) => [
@@ -199,8 +199,8 @@ describe("semantic streaming TTFT", () => {
       expect(payloads(output).some((value) => value.type === data.type)).toBe(true);
       expect(payloads(output).some((value) => value.type === "message_stop")).toBe(true);
     }
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
   });
 
   it.each(["passthrough", "translate"])("times an EOF tail from its arrival rather than delayed flush in %s", async (mode) => {
@@ -211,8 +211,8 @@ describe("semantic streaming TTFT", () => {
     const output = await fixture.close(6000);
 
     expect(output).toContain("Hello");
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
   });
 
   it.each(["passthrough", "translate"])("keeps metadata/usage-only TTFT unknown in %s", async (mode) => {
@@ -223,8 +223,8 @@ describe("semantic streaming TTFT", () => {
     await fixture.write(6000, frame(chunk({}, "stop")) + frame({ choices: [], usage }));
     await fixture.close();
 
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0]).toMatchObject({ tokens: usage, latency: { ttft: null, total: 6000 } });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0]).toMatchObject({ tokens: usage, latency: { ttft: null, total: 6000 } });
   });
 
   it.each(["passthrough", "translate"])("waits for a complete split UTF-8 semantic frame in %s", async (mode) => {
@@ -238,7 +238,7 @@ describe("semantic streaming TTFT", () => {
     const output = await fixture.close();
 
     expect(output).toContain("Hello \u{1f600}");
-    expect(db.saveRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
+    expect(db.enqueueRequestUsage.mock.calls[0][0].latency).toEqual({ ttft: 5000, total: 6000 });
   });
 
   it.each([false, true])("preserves failure accounting with semantic output=%s", async (withContent) => {
@@ -249,8 +249,8 @@ describe("semantic streaming TTFT", () => {
     await fixture.write(6000, frame({ error: { message: "upstream failure" } }));
     await fixture.output;
 
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0]).toMatchObject({ tokens: usage, latency: { ttft: withContent ? 5000 : null, total: 6000 } });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0]).toMatchObject({ tokens: usage, latency: { ttft: withContent ? 5000 : null, total: 6000 } });
     expect(db.saveRequestDetail.mock.calls[0][0].status).toBe("failed");
     expect(fixture.onStreamComplete.mock.calls[0][3]).toMatchObject({ failed: true, error: "upstream failure" });
   });
@@ -260,12 +260,12 @@ describe("semantic streaming TTFT", () => {
     await fixture.write(100, ": keepalive\n\n");
     await fixture.write(200, frame({ choices: [], usage }));
     await fixture.write(5000, frame(chunk({ content: "Partial" })));
-    fixture.callbacks.onStreamAborted(fixture.stream.getStreamSnapshot(), "client_closed");
+    await fixture.callbacks.onStreamAborted(fixture.stream.getStreamSnapshot(), "client_closed");
     await fixture.close(6000);
 
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject(usage);
-    expect(db.saveRequestUsage.mock.calls[0][0].latency).toBeUndefined();
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject(usage);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].latency).toBeUndefined();
     expect(db.saveRequestDetail.mock.calls[0][0]).toMatchObject({ status: "aborted", latency: { ttft: 100, total: 5000 } });
   });
 
@@ -277,8 +277,8 @@ describe("semantic streaming TTFT", () => {
     const output = await fixture.close();
 
     expect(output).toContain('"content":"Hello"');
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0]).toMatchObject({
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0]).toMatchObject({
       tokens: usage, latency: { ttft: 5000, total: 6000 },
     });
     expect(fixture.onStreamComplete.mock.calls[0][2]).toBe(startTime + 100);

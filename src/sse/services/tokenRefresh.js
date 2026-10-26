@@ -143,7 +143,7 @@ function needsProjectId(provider) {
  * @param {string} accessToken
  * @param {object|null} proxyOptions
  */
-function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = null, signal = null) {
+function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = null, signal = null, expected = null) {
   if (signal?.aborted || !needsProjectId(provider) || !connectionId || !accessToken) return;
 
   // Evict the stale cached entry so getProjectIdForConnection does a real fetch
@@ -152,7 +152,7 @@ function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = n
   getProjectIdForConnection(connectionId, accessToken, provider, proxyOptions, signal)
     .then((projectId) => {
       if (!projectId || signal?.aborted) return;
-      updateProviderCredentials(connectionId, { projectId }).catch((err) => {
+      updateProviderCredentials(connectionId, { projectId }, { expected }).catch((err) => {
         log.debug("TOKEN_REFRESH", "Failed to persist refreshed projectId", {
           connectionId,
           error: err?.message ?? err,
@@ -178,7 +178,7 @@ function _refreshProjectId(provider, connectionId, accessToken, proxyOptions = n
  * @param {object} newCredentials
  * @returns {Promise<boolean>}
  */
-export async function updateProviderCredentials(connectionId, newCredentials) {
+export async function updateProviderCredentials(connectionId, newCredentials, { expected } = {}) {
   try {
     const updates = {};
 
@@ -213,7 +213,7 @@ export async function updateProviderCredentials(connectionId, newCredentials) {
     }
     if (newCredentials.projectId)            updates.projectId = newCredentials.projectId;
 
-    const result = await updateProviderConnection(connectionId, updates);
+    const result = await updateProviderConnection(connectionId, updates, ...(expected ? [{ expected }] : []));
     log.info("TOKEN_REFRESH", "Credentials updated in localDb", {
       connectionId,
       success: !!result
@@ -244,7 +244,8 @@ const proactiveRefreshTails = new Map();
  */
 export async function checkAndRefreshToken(provider, credentials, options = {}) {
   options.signal?.throwIfAborted();
-  const creds = { ...credentials };
+  const creds = { ...credentials, providerSpecificData: structuredClone(credentials?.providerSpecificData || {}) };
+  if (creds.id === "noauth" && (creds.connectionId === "noauth" || creds.connectionId?.startsWith("noauth:"))) return creds;
   if (!creds.connectionId && creds.id) {
     creds.connectionId = creds.id;
   }
@@ -294,14 +295,23 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
   const signal = options.signal;
   signal?.throwIfAborted();
 
+  let credentialFence;
   // Adopt newer persisted token state even when the refresh token did not rotate.
   if (creds.connectionId) {
-    const latest = await getProviderConnectionById(creds.connectionId).catch(() => null);
+    const latest = await getProviderConnectionById(creds.connectionId);
+    if (!latest) throw Object.assign(new Error("Selected connection no longer exists"), { code: "STALE_CONNECTION_WRITE" });
+    credentialFence = latest._writeFence;
     signal?.throwIfAborted();
+    if (credentialFence && latest.provider !== provider) {
+      throw Object.assign(new Error("Selected credentials changed before refresh started; select the account again"), { code: "STALE_CONNECTION_WRITE" });
+    }
     const latestRefreshMs = Date.parse(latest?.lastRefreshAt || "");
     const credsRefreshMs = Date.parse(creds.lastRefreshAt || "");
     const dbIsNewer = Number.isFinite(latestRefreshMs)
       && (!Number.isFinite(credsRefreshMs) || latestRefreshMs > credsRefreshMs);
+    if (credentialFence && latest.refreshToken && creds.refreshToken && latest.refreshToken !== creds.refreshToken && !dbIsNewer) {
+      throw Object.assign(new Error("Selected credentials were replaced before refresh started; select the account again"), { code: "STALE_CONNECTION_WRITE" });
+    }
     if (dbIsNewer) {
       creds = {
         ...creds,
@@ -367,7 +377,16 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
       };
 
       // Keep following proactive callers behind this credential commit.
-      await updateProviderCredentials(creds.connectionId, mergedCreds);
+      const committed = await updateProviderCredentials(creds.connectionId, mergedCreds, { expected: credentialFence });
+      if (!committed && credentialFence) throw Object.assign(new Error("Credential refresh could not commit to the selected account"), { code: "STALE_CONNECTION_WRITE" });
+      if (credentialFence) {
+        const latest = await getProviderConnectionById(creds.connectionId);
+        if (!latest || (newCreds.accessToken && latest.accessToken !== newCreds.accessToken)
+          || (newCreds.refreshToken && latest.refreshToken !== newCreds.refreshToken)) {
+          throw Object.assign(new Error("Credentials changed immediately after refresh commit"), { code: "STALE_CONNECTION_WRITE" });
+        }
+        credentialFence = latest._writeFence;
+      }
 
       creds = {
         ...creds,
@@ -381,7 +400,7 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
       };
 
       // Non-blocking: refresh projectId with the new access token
-      if (!signal?.aborted) _refreshProjectId(provider, creds.connectionId, creds.accessToken, proxyOptions, options.projectSignal || signal);
+      if (!signal?.aborted) _refreshProjectId(provider, creds.connectionId, creds.accessToken, proxyOptions, options.projectSignal || signal, credentialFence);
     }
   }
   signal?.throwIfAborted();
@@ -410,16 +429,25 @@ async function checkAndRefreshTokenInternal(provider, creds, options) {
           copilotTokenExpiresAt: copilotTokenResult.expiresAt,
         };
 
-        await updateProviderCredentials(creds.connectionId, {
+        const committed = await updateProviderCredentials(creds.connectionId, {
           providerSpecificData: updatedSpecific,
-        });
+        }, { expected: credentialFence });
+        if (!committed && credentialFence) throw Object.assign(new Error("Copilot refresh could not commit to the selected account"), { code: "STALE_CONNECTION_WRITE" });
 
+        if (credentialFence) {
+          const latest = await getProviderConnectionById(creds.connectionId);
+          if (!latest || latest.providerSpecificData?.copilotToken !== copilotTokenResult.token) {
+            throw Object.assign(new Error("Copilot credentials changed immediately after refresh commit"), { code: "STALE_CONNECTION_WRITE" });
+          }
+          credentialFence = latest._writeFence;
+        }
         creds.providerSpecificData = updatedSpecific;
         creds.copilotToken = copilotTokenResult.token;
       }
     }
   }
 
+  if (credentialFence) Object.defineProperty(creds, "_writeFence", { value: credentialFence, configurable: true });
   return creds;
 }
 

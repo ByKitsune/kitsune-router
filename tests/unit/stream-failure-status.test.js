@@ -10,6 +10,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(),
   appendRequestLog: vi.fn(async () => {}),
   saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 
 const { buildOnStreamComplete } = await import(
@@ -101,7 +102,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
     expect(calls[0][3].error).toContain("translate boom");
   });
 
-  it("buildOnStreamComplete records status failed + error on failure meta", () => {
+  it("buildOnStreamComplete records status failed + error on failure meta", async () => {
     const { onStreamComplete } = buildOnStreamComplete({
       provider: "codex",
       model: "gpt-5.3-codex",
@@ -111,7 +112,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
       body: { model: "x", messages: [] },
       stream: true,
     });
-    onStreamComplete({ content: "partial", thinking: null }, null, Date.now(), {
+    await onStreamComplete({ content: "partial", thinking: null }, null, Date.now(), {
       failed: true,
       error: "boom from upstream",
     });
@@ -121,7 +122,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
     expect(record.response.error).toBe("boom from upstream");
   });
 
-  it("buildOnStreamComplete still records success without failure meta (compat)", () => {
+  it("buildOnStreamComplete still records success without failure meta (compat)", async () => {
     const { onStreamComplete } = buildOnStreamComplete({
       provider: "codex",
       model: "gpt-5.3-codex",
@@ -131,7 +132,7 @@ describe("in-stream failure is not logged as success (#4104)", () => {
       body: { model: "x", messages: [] },
       stream: true,
     });
-    onStreamComplete({ content: "ok", thinking: null }, null, Date.now());
+    await onStreamComplete({ content: "ok", thinking: null }, null, Date.now());
     const record = saveRequestDetail.mock.calls.at(-1)[0];
     expect(record.status).toBe("success");
     expect(record.response.error).toBeUndefined();

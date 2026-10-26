@@ -72,7 +72,7 @@ describe("SSE providers keep their sentinel handling", () => {
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(encoder.encode(
-          `data: ${JSON.stringify({ choices: [{ delta: { content: "hi" } }] })}\ndata: [DONE]`,
+          `data: ${JSON.stringify({ choices: [{ delta: { content: "hi" } }] })}\n\ndata: [DONE]`,
         ));
         controller.close();
       },
@@ -92,6 +92,19 @@ describe("SSE providers keep their sentinel handling", () => {
     expect(text).toContain('"content":"hi"');
     // The sentinel is a framing marker, not a chunk — it must not be translated.
     expect(text).not.toContain('"done":true');
+    expect(text).toContain('"finish_reason":"network_error"');
+    expect(text.match(/data: \[DONE\]/g)).toHaveLength(1);
+  });
+
+  it("does not split adjacent data fields into independent successful events", async () => {
+    const wire = `data: ${JSON.stringify({ choices: [{ delta: { content: "hi" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    const stream = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(wire)); controller.close(); } });
+    const text = await new Response(stream.pipeThrough(createSSETransformStreamWithLogger(FORMATS.OPENAI, FORMATS.OPENAI))).text();
+    expect(text).not.toContain('"content":"hi"');
+    expect(text).not.toContain('"finish_reason":"stop"');
+    expect(text).not.toContain('"done":true');
+    expect(text).toContain('"finish_reason":"network_error"');
+    expect(text.match(/data: \[DONE\]/g)).toHaveLength(1);
   });
 
   it("terminates translated OpenAI-compatible streams with data: [DONE]", async () => {

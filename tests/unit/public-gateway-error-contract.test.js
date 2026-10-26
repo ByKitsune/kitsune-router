@@ -53,6 +53,20 @@ describe("uniform public inference error bodies", () => {
     expect(JSON.stringify(error)).not.toMatch(/private|injected|root/);
   });
 
+  it("forbids retry and combo fallback for a local usage acceptance failure", async () => {
+    const failure = errorResponse(503, "Usage accounting could not be accepted", { code: "usage_acceptance_failed" }, 90);
+    expect(failure.headers.get("x-should-retry")).toBe("false");
+    expect(failure.headers.get("Access-Control-Expose-Headers")).toContain("x-should-retry");
+    expect(failure.headers.get("retry-after")).toBeNull();
+    const { response, handleSingleModel } = await combo([failure, Response.json({ choices: [] })]);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("x-should-retry")).toBe("false");
+    expect((await response.json()).error.code).toBe("usage_acceptance_failed");
+    expect(handleSingleModel).toHaveBeenCalledTimes(1);
+    expect(checkFallbackError(503, { code: "usage_acceptance_failed", message: "local failure" })).toEqual({ shouldFallback: false, cooldownMs: 0 });
+    expect(checkFallbackError(503, "Temporarily unavailable").shouldFallback).toBe(true);
+  });
+
   it("keeps precise local parameter and minimum-budget guidance", () => {
     const message = "Thinking budget 32 is below the minimum 1024; increase max_tokens or reduce reasoning effort.";
     const { error } = buildErrorBody(400, message, { type: "invalid_request_error", code: "invalid_thinking_budget", param: "thinking.budget_tokens" });

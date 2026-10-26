@@ -6,6 +6,7 @@ const socket = vi.hoisted(() => ({ origin: "", requests: [], reply: null }));
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),
   saveRequestDetail: vi.fn(async () => {}), saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 vi.mock("../../open-sse/providers/declaredCaps.js", () => ({
   getDeclaredModelCaps: vi.fn(async () => undefined),

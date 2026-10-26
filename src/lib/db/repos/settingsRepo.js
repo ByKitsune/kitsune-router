@@ -1,5 +1,8 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
+import { getScopedCache } from "../helpers/scopedCache.js";
+import { bumpScopeRevisions } from "../helpers/cacheRevisions.js";
+import { invalidateObservabilityConfigCache } from "./requestDetailsRepo.js";
 
 // Whitelist of settings allowed to be persisted via updateSettings.
 // Only known settings keys may be written; arbitrary keys and prototype
@@ -149,23 +152,19 @@ const DEFAULT_SETTINGS = {
   pxpipeTimeoutMs: 15000,
 };
 
-let cachedRaw = null;
-let cachedRawTs = 0;
-const RAW_CACHE_TTL_MS = 2000;
+let settingsGeneration = 0;
 
 async function readRaw() {
-  if (cachedRaw !== null && Date.now() - cachedRawTs < RAW_CACHE_TTL_MS) return cachedRaw;
   const db = await getAdapter();
-  const row = db.get(`SELECT data FROM settings WHERE id = 1`);
-  const raw = row ? parseJson(row.data, {}) : {};
-  cachedRaw = raw;
-  cachedRawTs = Date.now();
-  return raw;
+  return getScopedCache(db, "settings", { ttlMs: 2000 }).get(["settings", "internal", settingsGeneration], ["settings"], () => {
+    const row = db.get(`SELECT data FROM settings WHERE id = 1`);
+    return row ? parseJson(row.data, {}) : {};
+  });
 }
 
 export function invalidateSettingsCache() {
-  cachedRaw = null;
-  cachedRawTs = 0;
+  settingsGeneration++;
+  invalidateObservabilityConfigCache();
 }
 
 // Merge raw settings with defaults; backward-compat for missing keys
@@ -222,6 +221,7 @@ export async function updateSettings(updates) {
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(next)],
     );
+    bumpScopeRevisions(db, ["settings"]);
   });
   invalidateSettingsCache();
   return mergeWithDefaults(next);

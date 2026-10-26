@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
-  saveRequestUsage: vi.fn(async () => {}),
+  enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
   saveRequestDetail: vi.fn(async () => {}),
   appendRequestLog: vi.fn(async () => {}),
   trackPendingRequest: vi.fn(),
@@ -89,8 +89,8 @@ async function consumeJson(transport, client, target, payload, wire) {
 }
 
 function assertStoredUsage() {
-  expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-  expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({
+  expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+  expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({
     prompt_tokens: 12, completion_tokens: 9, total_tokens: 21, reasoning_tokens: 6,
   });
 }
@@ -418,8 +418,8 @@ describe("native provider SSE consumed as JSON", () => {
     }]);
     expect(json.usage).toEqual(target === FORMATS.CLAUDE ? { prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 } : usage);
     expect(JSON.stringify(json.choices[0].message)).not.toContain("opaque-claude");
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 });
   });
 });
 
@@ -538,8 +538,8 @@ describe("native SSE JSON continuity fidelity", () => {
       { type: "tool_use", id: tool.id, name: "lookup", input: { key: "value" } },
     ]);
     expect(json.usage).toEqual({ input_tokens: 12, output_tokens: 9 });
-    expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
-    expect(db.saveRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 });
+    expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
+    expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 });
   });
 
   it.each(["forced handler", "native handler"])("%s preserves wrapped Gemini signed thought parts as native parts", async (handler) => {
@@ -593,7 +593,7 @@ describe("Claude initial tool input fallback", () => {
       const json = await result.response.json();
       expect(json.choices[0].message.tool_calls).toEqual([{ ...tool, function: { name: "lookup", arguments: wantedArguments } }]);
       expect(json.choices[0].finish_reason).toBe("tool_calls");
-      expect(db.saveRequestUsage).toHaveBeenCalledTimes(1);
+      expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
     } else {
       const result = await consumeStream(wire, FORMATS.CLAUDE, FORMATS.OPENAI);
       const calls = result.events.flatMap((event) => event.choices?.[0]?.delta?.tool_calls || []);

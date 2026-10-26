@@ -213,20 +213,23 @@ class ZedExecutor extends BaseExecutor {
     super("zed");
   }
 
-  async resolveModel(model, credentials, signal, log) {
+  async resolveModel(model, credentials, signal, log, proxyOptions = null) {
+    signal?.throwIfAborted();
     try {
-      const catalog = await resolveZedModels(credentials, { config: this.config, signal });
+      const catalog = await resolveZedModels(credentials, { config: this.config, signal, proxyOptions });
       let raw = catalog?.rawById?.get(model) ?? null;
       if (!raw) {
         const refreshed = await resolveZedModels(credentials, {
           config: this.config,
           signal,
+          proxyOptions,
           forceRefresh: true,
         });
         raw = refreshed?.rawById?.get(model) ?? null;
       }
       return { raw, provider: normalizeZedProvider(raw?.provider, model) };
     } catch (error) {
+      signal?.throwIfAborted();
       const message = error instanceof Error ? error.message : String(error);
       log?.warn?.("ZED", `model catalog unavailable, inferring provider for ${model}: ${message}`);
       return { raw: null, provider: normalizeZedProvider(null, model) };
@@ -234,7 +237,8 @@ class ZedExecutor extends BaseExecutor {
   }
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
-    const { provider } = await this.resolveModel(model, credentials, signal, log);
+    const { provider } = await this.resolveModel(model, credentials, signal, log, proxyOptions);
+    signal?.throwIfAborted();
     const providerRequest = buildProviderRequest(provider, model, body, stream, credentials);
     const bodyRecord = body || {};
     const payload = {
@@ -248,18 +252,19 @@ class ZedExecutor extends BaseExecutor {
     const response = await zedLlmFetch(credentials, "/completions", {
       config: this.config,
       signal,
-        fetchOptions: {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/x-ndjson, text/event-stream, */*",
-            "User-Agent": ZED_USER_AGENT,
-            "x-zed-version": this.config?.appVersion?.toString() || ZED_DEFAULT_APP_VERSION,
-            [ZED_HEADERS.clientSupportsStatus]: "true",
-            [ZED_HEADERS.clientSupportsStreamEnded]: "true",
-          },
-          body: JSON.stringify(payload),
+      proxyOptions,
+      fetchOptions: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/x-ndjson, text/event-stream, */*",
+          "User-Agent": ZED_USER_AGENT,
+          "x-zed-version": this.config?.appVersion?.toString() || ZED_DEFAULT_APP_VERSION,
+          [ZED_HEADERS.clientSupportsStatus]: "true",
+          [ZED_HEADERS.clientSupportsStreamEnded]: "true",
         },
+        body: JSON.stringify(payload),
+      },
     });
 
     const wrapped = response.ok ? wrapZedCompletionStream(response, provider, model) : response;

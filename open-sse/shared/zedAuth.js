@@ -315,6 +315,8 @@ export async function zedLlmFetch(credentials, path, options = {}) {
 
   let response = await buildRequest(false);
   if (shouldRefreshZedLlmToken(response)) {
+    if (response.body && !response.body.locked) await response.body.cancel().catch(() => {});
+    options.signal?.throwIfAborted();
     response = await buildRequest(true);
   }
   return response;

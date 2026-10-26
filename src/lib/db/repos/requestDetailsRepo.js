@@ -1,5 +1,6 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
+import { readScopeRevision } from "../helpers/scopedCache.js";
 
 const DEFAULT_MAX_RECORDS = 200;
 const DEFAULT_BATCH_SIZE = 20;
@@ -34,7 +35,10 @@ export function resolveObservabilityEnabled(settings, env = process.env) {
 }
 
 async function getObservabilityConfig() {
-  if (cachedConfig && (Date.now() - cachedConfigTs) < CONFIG_CACHE_TTL_MS) return cachedConfig;
+  const db = await getAdapter();
+  const revision = readScopeRevision(db, ["settings"]);
+  const envKey = JSON.stringify([process.env.OBSERVABILITY_ENABLED, process.env.ENABLE_REQUEST_LOGS]);
+  if (cachedConfig?.revision === revision && cachedConfig.envKey === envKey && (Date.now() - cachedConfigTs) < CONFIG_CACHE_TTL_MS) return cachedConfig;
   const generation = configGeneration;
   let config;
   try {
@@ -57,111 +61,157 @@ async function getObservabilityConfig() {
     };
   }
   // Do not publish settings read before a committed import.
-  if (generation !== configGeneration) return getObservabilityConfig();
-  cachedConfig = config;
+  if (generation !== configGeneration || readScopeRevision(db, ["settings"]) !== revision) return getObservabilityConfig();
+  const bounded = (value, fallback, min, max) => Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Math.floor(Number(value)))) : fallback;
+  config.maxRecords = bounded(config.maxRecords, DEFAULT_MAX_RECORDS, 1, 100_000);
+  config.batchSize = bounded(config.batchSize, DEFAULT_BATCH_SIZE, 1, 50);
+  config.flushIntervalMs = bounded(config.flushIntervalMs, DEFAULT_FLUSH_INTERVAL_MS, 1, 60_000);
+  config.maxJsonSize = bounded(config.maxJsonSize, DEFAULT_MAX_JSON_SIZE, 1024, 64 * 1024);
+  cachedConfig = { ...config, revision, envKey };
   cachedConfigTs = Date.now();
   return cachedConfig;
 }
 
-let writeBuffer = [];
-let flushTimer = null;
-let isFlushing = false;
+const queues = globalThis[Symbol.for("zenrouter.db.detailQueues")] ||= new WeakMap();
+const MAX_BUFFER_RECORDS = 1000;
+const MAX_BUFFER_BYTES = 2 * 1024 * 1024;
+
+function queueFor(db) {
+  if (queues.has(db)) return queues.get(db);
+  const queue = { items: [], bytes: 0, timer: null, pending: null, accepted: 0, written: 0, dropped: 0, retries: 0, closed: false };
+  queues.set(db, queue);
+  const close = db.close.bind(db);
+  db.close = () => {
+    queue.closed = true;
+    if (queue.timer) clearTimeout(queue.timer);
+    queue.timer = null;
+    return close();
+  };
+  return queue;
+}
 
 function sanitizeHeaders(headers) {
   if (!headers || typeof headers !== "object") return {};
-  const sensitiveKeys = ["authorization", "x-api-key", "cookie", "token", "api-key"];
-  const sanitized = { ...headers };
-  for (const key of Object.keys(sanitized)) {
-    if (sensitiveKeys.some((s) => key.toLowerCase().includes(s))) delete sanitized[key];
+  const sensitive = /authorization|api.?key|cookie|token|credential|secret/i;
+  return Object.fromEntries(Object.entries(headers).filter(([key]) => !sensitive.test(key)));
+}
+
+function metadataMap(value) {
+  const out = {};
+  for (const [key, item] of Object.entries(value || {}).slice(0, 80)) {
+    if (key.length <= 80 && /token|estimated|invalid|tier|ttft|total|duration|ms|enabled|saved|ratio/i.test(key)
+      && (typeof item === "boolean" || Number.isFinite(item) || item === null || (typeof item === "string" && item.length <= 80 && /tier/i.test(key)))) {
+      out[key] = item;
+    }
   }
-  return sanitized;
+  return out;
 }
 
-export const __test__ = { sanitizeHeaders };
-
-function generateDetailId(model) {
-  const timestamp = new Date().toISOString();
-  const random = Math.random().toString(36).substring(2, 8);
-  const modelPart = model ? model.replace(/[^a-zA-Z0-9-]/g, "-") : "unknown";
-  return `${timestamp}-${random}-${modelPart}`;
+function projectDetail(detail) {
+  const text = value => typeof value === "string" ? value.slice(0, 200) : null;
+  const timestamp = text(detail.timestamp) || new Date().toISOString();
+  const redact = value => value == null ? {} : { redacted: true };
+  return {
+    id: text(detail.id) || `${timestamp}-${Math.random().toString(36).slice(2, 10)}`,
+    timestamp, provider: text(detail.provider), model: text(detail.model), connectionId: text(detail.connectionId), status: text(detail.status),
+    latency: metadataMap(detail.latency), tokens: metadataMap(detail.tokens),
+    request: redact(detail.request), providerRequest: redact(detail.providerRequest), providerResponse: redact(detail.providerResponse), response: redact(detail.response),
+    ...(detail.pxpipe ? { pxpipe: {
+      ...metadataMap(detail.pxpipe),
+      ...(typeof detail.pxpipe.applied === "boolean" ? { applied: detail.pxpipe.applied } : {}),
+      ...(Number.isFinite(detail.pxpipe.imageCount) ? { imageCount: detail.pxpipe.imageCount } : {}),
+      ...(typeof detail.pxpipe.reason === "string" && /^[a-z_]{1,60}$/.test(detail.pxpipe.reason) ? { reason: detail.pxpipe.reason } : {}),
+    } } : {}),
+  };
 }
 
-function redactPayload(value) {
-  return value === undefined || value === null ? {} : { redacted: true };
+export const __test__ = { sanitizeHeaders, projectDetail };
+
+function scheduleDetailFlush(db, queue, delayMs) {
+  if (queue.timer || queue.closed) return;
+  queue.timer = setTimeout(() => {
+    queue.timer = null;
+    flushDetailBatch(db).catch(() => {});
+  }, delayMs);
+  queue.timer.unref?.();
 }
 
-async function flushToDatabase() {
-  if (isFlushing) return;
-  if (writeBuffer.length === 0) return;
-  isFlushing = true;
-  try {
-    // Drain entire buffer (loop in case more pushed during await)
-    while (writeBuffer.length > 0) {
-      const items = writeBuffer.splice(0, writeBuffer.length);
-      const db = await getAdapter();
-      const config = await getObservabilityConfig();
-
+async function flushDetailBatch(db) {
+  const queue = queueFor(db);
+  if (queue.pending) return queue.pending;
+  if (!queue.items.length || queue.closed) return;
+  queue.pending = (async () => {
+    const config = await getObservabilityConfig();
+    const items = [];
+    let batchBytes = 0;
+    for (const item of queue.items) {
+      if (items.length >= 50 || (items.length && batchBytes + item.bytes > 256 * 1024)) break;
+      items.push(item);
+      batchBytes += item.bytes;
+    }
+    try {
       db.transaction(() => {
         for (const item of items) {
-          if (!item.id) item.id = generateDetailId(item.model);
-          if (!item.timestamp) item.timestamp = new Date().toISOString();
-          if (item.request?.headers) item.request.headers = sanitizeHeaders(item.request.headers);
-
-          const record = {
-            id: item.id,
-            provider: item.provider || null,
-            model: item.model || null,
-            connectionId: item.connectionId || null,
-            timestamp: item.timestamp,
-            status: item.status || null,
-            latency: item.latency || {},
-            tokens: item.tokens || {},
-            request: redactPayload(item.request),
-            providerRequest: redactPayload(item.providerRequest),
-            providerResponse: redactPayload(item.providerResponse),
-            response: redactPayload(item.response),
-            pxpipe: item.pxpipe || undefined,
-          };
-
-          db.run(
-            `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data`,
-            [record.id, record.timestamp, record.provider, record.model, record.connectionId, record.status, stringifyJson(record)]
-          );
+          const record = item.record;
+          db.run(`INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data`,
+            [record.id, record.timestamp, record.provider, record.model, record.connectionId, record.status, item.json]);
         }
-
-        const cnt = db.get(`SELECT COUNT(*) as c FROM requestDetails`);
-        if (cnt && cnt.c > config.maxRecords) {
-          db.run(
-            `DELETE FROM requestDetails WHERE id IN (SELECT id FROM requestDetails ORDER BY timestamp ASC LIMIT ?)`,
-            [cnt.c - config.maxRecords]
-          );
-        }
+        const count = db.get(`SELECT COUNT(*) AS c FROM requestDetails`)?.c || 0;
+        if (count > config.maxRecords) db.run(`DELETE FROM requestDetails WHERE id IN (SELECT id FROM requestDetails ORDER BY timestamp ASC LIMIT ?)`, [count - config.maxRecords]);
       });
+      db.flushDurable?.();
+      queue.items.splice(0, items.length);
+      queue.bytes -= items.reduce((sum, item) => sum + item.bytes, 0);
+      queue.written += items.length;
+    } catch (error) {
+      queue.retries++;
+      throw error;
     }
-  } catch (e) {
-    console.error("[requestDetailsRepo] Batch write failed:", e);
-  } finally {
-    isFlushing = false;
+  })();
+  try { return await queue.pending; }
+  finally {
+    queue.pending = null;
+    if (queue.items.length) scheduleDetailFlush(db, queue, queue.retries ? 1000 : 10);
   }
 }
 
 export async function saveRequestDetail(detail) {
+  const record = projectDetail(detail);
   const config = await getObservabilityConfig();
-  if (!config.enabled) {return;}
-
-  writeBuffer.push(detail);
-
-  // Trigger immediate flush if batch threshold reached.
-  // flushToDatabase() drains entire buffer in a loop, so all pushes during await are persisted.
-  if (writeBuffer.length >= config.batchSize) {
-    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-    flushToDatabase().catch((e) => console.error("[requestDetailsRepo] flush err:", e));
-  } else if (!flushTimer) {
-    flushTimer = setTimeout(() => {
-      flushTimer = null;
-      flushToDatabase().catch(() => {});
-    }, config.flushIntervalMs);
+  if (!config.enabled) return { accepted: false, disabled: true };
+  const db = await getAdapter();
+  const queue = queueFor(db);
+  const json = stringifyJson(record);
+  const bytes = Buffer.byteLength(json);
+  if (queue.closed || bytes > config.maxJsonSize || queue.items.length >= MAX_BUFFER_RECORDS || queue.bytes + bytes > MAX_BUFFER_BYTES) {
+    queue.dropped++;
+    return { accepted: false, dropped: true };
   }
+  queue.items.push({ record, json, bytes });
+  queue.bytes += bytes;
+  queue.accepted++;
+  if (queue.items.length >= config.batchSize) {
+    if (queue.timer) clearTimeout(queue.timer);
+    queue.timer = null;
+    scheduleDetailFlush(db, queue, 0);
+  } else scheduleDetailFlush(db, queue, config.flushIntervalMs);
+  return { accepted: true };
+}
+
+export async function getRequestDetailQueueMetrics() {
+  const queue = queueFor(await getAdapter());
+  return { depth: queue.items.length, bytes: queue.bytes, accepted: queue.accepted, written: queue.written, dropped: queue.dropped, retries: queue.retries };
+}
+
+export async function flushRequestDetails({ deadline = Date.now() + 5000 } = {}) {
+  const db = await getAdapter();
+  const queue = queueFor(db);
+  if (queue.timer) { clearTimeout(queue.timer); queue.timer = null; }
+  while (queue.items.length && Date.now() < deadline) {
+    await flushDetailBatch(db);
+    if (queue.items.length) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  return { ...(await getRequestDetailQueueMetrics()), drained: queue.items.length === 0 };
 }
 
 export async function getRequestDetails(filter = {}) {
@@ -208,22 +258,3 @@ export async function getRequestDetailById(id) {
   const row = db.get(`SELECT data FROM requestDetails WHERE id = ?`, [id]);
   return row ? parseJson(row.data, null) : null;
 }
-
-const _shutdownHandler = async () => {
-  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-  if (writeBuffer.length > 0) await flushToDatabase();
-};
-
-function ensureShutdownHandler() {
-  process.off("beforeExit", _shutdownHandler);
-  process.off("SIGINT", _shutdownHandler);
-  process.off("SIGTERM", _shutdownHandler);
-  process.off("exit", _shutdownHandler);
-
-  process.on("beforeExit", _shutdownHandler);
-  process.on("SIGINT", _shutdownHandler);
-  process.on("SIGTERM", _shutdownHandler);
-  process.on("exit", _shutdownHandler);
-}
-
-ensureShutdownHandler();

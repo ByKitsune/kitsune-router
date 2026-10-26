@@ -1,12 +1,14 @@
 import { loadState, generateShortId } from "../shared/state.js";
-import { startFunnel, stopFunnel, isTailscaleRunning, isTailscaleRunningStrict, isTailscaleLoggedIn, isTailscaleLoggedInStrict, startLogin, startDaemonWithPassword, provisionCert } from "./tailscale.js";
-import { waitForHealth } from "./healthCheck.js";
+import { startFunnel, stopFunnel, cancelTailscaleCommands, isTailscaleRunning, isTailscaleRunningStrict, isTailscaleLoggedIn, isTailscaleLoggedInStrict, startLogin, startDaemonWithPassword, provisionCert } from "./tailscale.js";
+import { HEALTH_CHECK } from "./config.js";
 import { getSettings, updateSettings } from "@/lib/localDb";
-import { getCachedPassword, loadEncryptedPassword, initDbHooks } from "@/mitm/manager";
+import { getCachedPassword, loadEncryptedPassword, initDbHooks, getHelperLifecycle } from "@/mitm/manager";
 
 initDbHooks(getSettings, updateSettings);
 
-const svc = {
+const lifecycle = getHelperLifecycle();
+const scope = lifecycle.scope("tailscale-manager");
+const svc = scope.data.service ??= {
   cancelToken: { cancelled: false },
   spawnInProgress: false,
   lastRestartAt: 0,
@@ -16,100 +18,91 @@ const svc = {
 export function getTailscaleService() { return svc; }
 export function isTailscaleReconnecting() { return svc.spawnInProgress; }
 
-function throwIfCancelled(token) {
-  if (token.cancelled) throw new Error("tailscale cancelled");
-}
+scope.stop = () => { svc.cancelToken.cancelled = true; };
 
-export async function enableTailscale(localPort = 20128) {
-  console.log(`[Tailscale] enable start (port=${localPort})`);
-  svc.cancelToken = { cancelled: false };
+export function enableTailscale(localPort = 20128) {
+  if (lifecycle.isStopping()) return lifecycle.run(scope, "enable", () => {});
+  if (scope.pending.has("disable")) return scope.pending.get("disable").then(() => enableTailscale(localPort));
+  if (scope.pending.has("enable")) return scope.pending.get("enable");
+  lifecycle.invalidate(scope);
+  svc.cancelToken.cancelled = true;
+  const token = svc.cancelToken = { cancelled: false };
   svc.activeLocalPort = localPort;
   svc.spawnInProgress = true;
-  const token = svc.cancelToken;
-
-  try {
-    const sudoPass = getCachedPassword() || await loadEncryptedPassword() || "";
-    await startDaemonWithPassword(sudoPass);
-    console.log("[Tailscale] daemon ready");
-    throwIfCancelled(token);
-
-    const existing = loadState();
-    const shortId = existing?.shortId || generateShortId();
-    const tsHostname = shortId;
-
-    const loggedIn = await isTailscaleLoggedInStrict();
-    console.log(`[Tailscale] loggedIn=${loggedIn}`);
-    if (!loggedIn) {
-      const loginResult = await startLogin(tsHostname);
-      if (loginResult.authUrl) {
-        console.log(`[Tailscale] needs login, authUrl=${loginResult.authUrl}`);
-        return { success: false, needsLogin: true, authUrl: loginResult.authUrl };
-      }
-      console.log("[Tailscale] login resolved alreadyLoggedIn");
-    }
-    throwIfCancelled(token);
-
-    stopFunnel();
-    let result;
+  return lifecycle.run(scope, "enable", async assert => {
+    const check = () => { assert(); if (token.cancelled) throw new Error("tailscale cancelled"); };
     try {
-      console.log("[Tailscale] starting funnel");
-      result = await startFunnel(localPort);
-    } catch (e) {
-      console.error(`[Tailscale] funnel error: ${e.message}`);
-      // Daemon not logged in / not ready → auto-trigger login flow so user stays in-app
-      if (/NoState|unexpected state|not logged in|Logged ?out|NeedsLogin/i.test(e.message || "")) {
-        console.log("[Tailscale] retry via startLogin");
-        const loginResult = await startLogin(tsHostname);
+      const sudoPass = getCachedPassword() || await loadEncryptedPassword() || "";
+      check();
+      await startDaemonWithPassword(sudoPass, check);
+      check();
+      const existing = loadState();
+      const tsHostname = existing?.shortId || generateShortId();
+      const loggedIn = await isTailscaleLoggedInStrict();
+      check();
+      if (!loggedIn) {
+        const loginResult = await startLogin(tsHostname, check);
+        check();
         if (loginResult.authUrl) return { success: false, needsLogin: true, authUrl: loginResult.authUrl };
       }
-      throw e;
-    }
-    throwIfCancelled(token);
-
-    if (result.funnelNotEnabled) {
-      console.log(`[Tailscale] funnel not enabled, enableUrl=${result.enableUrl}`);
-      return { success: false, funnelNotEnabled: true, enableUrl: result.enableUrl };
-    }
-
-    // Strict probe: bypass cache so we don't false-negative on first invocation
-    if (!(await isTailscaleLoggedInStrict()) || !(await isTailscaleRunningStrict())) {
-      console.error("[Tailscale] strict probe failed (device removed?)");
+      check();
       stopFunnel();
-      return { success: false, error: "Tailscale not connected. Device may have been removed. Please re-login." };
+      let result;
+      try {
+        result = await startFunnel(localPort, check);
+      } catch (error) {
+        check();
+        if (/NoState|unexpected state|not logged in|Logged ?out|NeedsLogin/i.test(error.message || "")) {
+          const loginResult = await startLogin(tsHostname, check);
+          check();
+          if (loginResult.authUrl) return { success: false, needsLogin: true, authUrl: loginResult.authUrl };
+        }
+        throw error;
+      }
+      check();
+      if (result.funnelNotEnabled) return { success: false, funnelNotEnabled: true, enableUrl: result.enableUrl };
+      const stillLoggedIn = await isTailscaleLoggedInStrict();
+      check();
+      const running = stillLoggedIn && await isTailscaleRunningStrict();
+      check();
+      if (!running) {
+        stopFunnel();
+        return { success: false, error: "Tailscale not connected. Device may have been removed. Please re-login." };
+      }
+      await updateSettings({ tailscaleEnabled: true, tailscaleUrl: result.tunnelUrl });
+      check();
+      await provisionCert(new URL(result.tunnelUrl).hostname);
+      check();
+      try {
+        await lifecycle.health(scope, result.tunnelUrl, HEALTH_CHECK, check);
+      } catch (error) {
+        check();
+        if (!error.message.startsWith("Health check timeout")) throw error;
+      }
+      check();
+      return { success: true, tunnelUrl: result.tunnelUrl };
+    } finally {
+      if (svc.cancelToken === token) svc.spawnInProgress = false;
     }
-
-    await updateSettings({ tailscaleEnabled: true, tailscaleUrl: result.tunnelUrl });
-    console.log(`[Tailscale] funnel up: ${result.tunnelUrl}`);
-
-    // Provision TLS cert so Funnel can serve HTTPS (non-fatal if fails)
-    const hostname = new URL(result.tunnelUrl).hostname;
-    await provisionCert(hostname);
-
-    // Verify funnel serves /api/health — timeout is non-fatal (DNS may still be propagating)
-    let reachableNow = false;
-    try {
-      await waitForHealth(result.tunnelUrl, token);
-      reachableNow = true;
-    } catch (he) {
-      if (!he.message.startsWith("Health check timeout")) throw he;
-      console.warn(`[Tailscale] health check timed out, will retry via watchdog`);
-    }
-    console.log(`[Tailscale] enable success (reachable=${reachableNow})`);
-    return { success: true, tunnelUrl: result.tunnelUrl };
-  } catch (e) {
-    console.error(`[Tailscale] enable error: ${e.message}`);
-    throw e;
-  } finally {
-    svc.spawnInProgress = false;
-  }
+  });
 }
 
-export async function disableTailscale() {
-  console.log("[Tailscale] disable");
+export function disableTailscale() {
+  if (scope.pending.has("disable")) return scope.pending.get("disable");
+  if (lifecycle.isStopping()) return lifecycle.run(scope, "disable", () => {});
+  lifecycle.invalidate(scope);
   svc.cancelToken.cancelled = true;
-  stopFunnel();
-  await updateSettings({ tailscaleEnabled: false, tailscaleUrl: "" });
-  return { success: true };
+  const closed = cancelTailscaleCommands();
+  const previous = [...scope.pending.values()];
+  return lifecycle.run(scope, "disable", async check => {
+    await Promise.allSettled(previous);
+    await closed;
+    check();
+    stopFunnel();
+    await updateSettings({ tailscaleEnabled: false, tailscaleUrl: "" });
+    check();
+    return { success: true };
+  });
 }
 
 export async function getTailscaleStatus() {

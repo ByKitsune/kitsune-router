@@ -1,33 +1,114 @@
-import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS } from "../config/errorConfig.js";
+import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS, NON_RETRYABLE_ROUTER_CODES } from "../config/errorConfig.js";
 import { classifyAvailabilityError, extractResetsAtMs, isRequestValidationError } from "../services/accountFallback.js";
 import { redactClientDiagnostic, sanitizeClientError } from "./clientErrors.js";
 
 export { extractResetsAtMs } from "../services/accountFallback.js";
 
 export const MAX_UPSTREAM_ERROR_BYTES = 8192;
+export const MAX_UPSTREAM_ACCOUNTING_BYTES = 128 * 1024;
 
-async function readBoundedErrorBody(response, maxBytes = MAX_UPSTREAM_ERROR_BYTES) {
+async function readBoundedErrorBody(response, maxBytes = MAX_UPSTREAM_ERROR_BYTES, signal) {
   const reader = response.body?.getReader?.();
-  if (!reader) return "";
-
+  if (!reader) return { body: "", diagnostic: "", complete: true };
   const decoder = new TextDecoder();
-  let body = "";
+  const diagnosticDecoder = new TextDecoder();
+  const chunks = [];
+  const diagnosticChunks = [];
   let bytesRead = 0;
+  let complete = false;
+  let cancelPromise = null;
+  const onAbort = () => { if (!cancelPromise) cancelPromise = reader.cancel(signal.reason).catch(() => {}); };
+  signal?.addEventListener("abort", onAbort, { once: true });
   try {
+    if (signal?.aborted) onAbort();
     while (bytesRead < maxBytes) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) { complete = true; break; }
       const remaining = maxBytes - bytesRead;
       const chunk = value.byteLength > remaining ? value.subarray(0, remaining) : value;
-      body += decoder.decode(chunk, { stream: true });
+      chunks.push(decoder.decode(chunk, { stream: true }));
+      if (bytesRead < MAX_UPSTREAM_ERROR_BYTES) {
+        diagnosticChunks.push(diagnosticDecoder.decode(chunk.subarray(0, MAX_UPSTREAM_ERROR_BYTES - bytesRead), { stream: true }));
+      }
       bytesRead += chunk.byteLength;
       if (value.byteLength > remaining) break;
     }
-    body += decoder.decode();
-    return body;
-  } finally {
-    await reader.cancel().catch(() => {});
+  } catch {} finally {
+    signal?.removeEventListener("abort", onAbort);
+    try {
+      // Reuse the same cancellation promise as the abort handler; awaiting it
+      // guarantees upstream cleanup completes before the reader is released,
+      // and a client abort cannot race a second cancel() past the first.
+      if (!cancelPromise) cancelPromise = reader.cancel().catch(() => {});
+      await cancelPromise;
+    } catch {} finally { reader.releaseLock(); }
   }
+  chunks.push(decoder.decode());
+  diagnosticChunks.push(diagnosticDecoder.decode());
+  // An aborted read is a deliberate stop, not truncated input: the caller left,
+  // so the body is treated as complete-but-uncertain rather than as a stall.
+  if (signal?.aborted) complete = true;
+  return { body: chunks.join(""), diagnostic: diagnosticChunks.join(""), complete, truncated: bytesRead >= maxBytes };
+}
+
+function boundedUsageFields(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const fields = new Set([
+    "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens", "reasoning_tokens",
+    "cache_read_input_tokens", "cache_creation_input_tokens", "cache_creation_tokens", "cache_creation_5m_tokens", "cache_creation_1h_tokens",
+    "prompt_cache_hit_tokens", "prompt_cache_miss_tokens", "cache_write_tokens", "cache_write_30m_tokens", "cache_write_12h_tokens",
+    "promptTokenCount", "candidatesTokenCount", "thoughtsTokenCount", "totalTokenCount", "cachedContentTokenCount",
+    "estimated", "usage_invalid", "cache_write_invalid", "ephemeral_5m_input_tokens", "ephemeral_1h_input_tokens", "ttl_30m_tokens", "ttl_12h_tokens",
+  ]);
+  const nested = new Set(["prompt_tokens_details", "input_tokens_details", "completion_tokens_details", "output_tokens_details", "cache_creation", "cache_write_tokens_details"]);
+  const copy = (source, depth = 0) => {
+    const target = {};
+    let invalid = false;
+    for (const [key, item] of Object.entries(source)) {
+      if (fields.has(key)) {
+        if (item === null || ["number", "boolean"].includes(typeof item) || typeof item === "string" && item.length <= 128) target[key] = item;
+        else invalid = true;
+      } else if (nested.has(key)) {
+        if (depth < 2 && item && typeof item === "object" && !Array.isArray(item)) {
+          const child = copy(item, depth + 1);
+          target[key] = child;
+          // An invalid nested projection invalidates every parent usage group,
+          // so hasInvalidUsageCounters() cannot price invalid counters as known
+          // numbers. Explicit upstream `usage_invalid:false` does not win over
+          // evidence discovered inside nested details.
+          if (child.usage_invalid) invalid = true;
+        } else invalid = true;
+      }
+    }
+    if (invalid) target.usage_invalid = true;
+    return target;
+  };
+  return copy(value);
+}
+
+function accountingEvidence(value) {
+  const project = source => {
+    if (!source || typeof source !== "object" || Array.isArray(source)) return undefined;
+    const result = {};
+    for (const key of ["usage", "usageMetadata"]) {
+      const usage = boundedUsageFields(source[key]);
+      if (usage) result[key] = usage;
+    }
+    if (typeof source.service_tier === "string" && source.service_tier.length <= 128) result.service_tier = source.service_tier;
+    return result;
+  };
+  const result = project(value);
+  if (!result) return null;
+  const response = project(value.response);
+  if (response) result.response = response;
+  const error = value.error && typeof value.error === "object" && !Array.isArray(value.error) ? value.error : value;
+  const scalar = value => typeof value === "string" && /^[a-z][a-z0-9_]{0,127}$/.test(value) ? value : undefined;
+  const detail = value => value && typeof value === "object" && scalar(value.error_code) ? { error_code: scalar(value.error_code) } : null;
+  result.error = {};
+  for (const key of ["code", "error_code"]) if (scalar(error[key])) result.error[key] = error[key];
+  if (Array.isArray(error.details)) result.error.details = error.details.slice(0, 32).map(detail).filter(Boolean);
+  else if (detail(error.details)) result.error.details = detail(error.details);
+  return result;
 }
 
 /**
@@ -54,9 +135,11 @@ export function errorResponse(statusCode, message, diagnostics = {}, retryAfterS
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "x-request-id, x-should-retry, Retry-After",
     "x-request-id": body.error.request_id,
   };
-  if (Number.isFinite(retryAfterSec) && retryAfterSec > 0 && (statusCode === 429 || statusCode === 503)) {
+  if (NON_RETRYABLE_ROUTER_CODES.has(body.error.code)) headers["x-should-retry"] = "false";
+  else if (Number.isFinite(retryAfterSec) && retryAfterSec > 0 && (statusCode === 429 || statusCode === 503)) {
     headers["Retry-After"] = String(Math.ceil(retryAfterSec));
   }
   return new Response(JSON.stringify(body), { status: statusCode, headers });
@@ -98,12 +181,15 @@ export function withLocationGateHint(message) {
  * @param {object} [executor] - Optional executor with parseError() override for provider-specific parsing
  * @returns {Promise<{statusCode: number, message: string, type?: string, param?: string, code?: string|number, request_id?: string, resetsAtMs?: number}>}
  */
-export async function parseUpstreamError(response, executor = null) {
-  let bodyText = "";
-  try {
-    bodyText = await readBoundedErrorBody(response);
-  } catch {
-    bodyText = "";
+export async function parseUpstreamError(response, executor = null, onResponseBody = null, { signal } = {}) {
+  const capture = await readBoundedErrorBody(response, onResponseBody ? MAX_UPSTREAM_ACCOUNTING_BYTES : MAX_UPSTREAM_ERROR_BYTES, signal);
+  const bodyText = capture.diagnostic;
+  if (onResponseBody) {
+    let parsed;
+    try { parsed = JSON.parse(capture.body); } catch {}
+    const object = parsed && typeof parsed === "object" && !Array.isArray(parsed);
+    const uncertain = capture.truncated === true || (!object && (!capture.complete || /^\s*\{/.test(capture.body))) || Array.isArray(parsed);
+    onResponseBody(object ? accountingEvidence(parsed) : null, { complete: capture.complete, uncertain });
   }
   const generic = parseUpstreamErrorBody(response, bodyText);
   const { message, ...diagnostics } = generic;

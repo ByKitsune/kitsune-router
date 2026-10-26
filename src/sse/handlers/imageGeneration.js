@@ -13,7 +13,8 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
-import { saveRequestUsage } from "@/lib/usageDb.js";
+import { randomUUID } from "node:crypto";
+import { enqueueRequestUsage } from "@/lib/usageDb.js";
 import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
@@ -26,24 +27,27 @@ const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui"]);
 // their tokens were missing from usage history, provider/model statistics
 // and request counts. Only exact integer counts are recorded — no
 // fabricated 0/0 rows.
-function recordImageRequestUsage({ provider, model, connectionId, apiKey, endpoint, usage }) {
-  if (!usage || typeof usage !== "object") return;
+function recordImageRequestUsage({ provider, model, connectionId, apiKey, endpoint, eventId, timestamp, usage, status = "success" }) {
+  if (!usage || typeof usage !== "object" || usage.estimated === true) return;
   const promptTokens = usage.prompt_tokens;
   const completionTokens = usage.completion_tokens;
   if (!Number.isSafeInteger(promptTokens) || promptTokens < 0 ||
-      !Number.isSafeInteger(completionTokens) || completionTokens < 0) {
+      !Number.isSafeInteger(completionTokens) || completionTokens < 0 ||
+      promptTokens + completionTokens === 0) {
     return;
   }
 
-  saveRequestUsage({
+  return enqueueRequestUsage({
+    eventId,
+    timestamp,
     provider,
     model,
     connectionId: connectionId || undefined,
     apiKey: apiKey || undefined,
     endpoint: endpoint || null,
-    tokens: usage,
-    status: "success",
-  }).catch(() => {});
+    tokens: structuredClone(usage),
+    status,
+  });
 }
 
 /**
@@ -82,11 +86,15 @@ export async function handleImageGeneration(request) {
       const comboStrategies = settings.comboStrategies || {};
       const comboStrategy = comboStrategies[modelStr]?.fallbackStrategy || settings.comboStrategy || "fallback";
       const comboStickyLimit = settings.comboStickyRoundRobinLimit;
+      let usageFailureResponse;
       log.info("IMAGE", `Combo "${modelStr}" with ${comboModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
       return handleComboChat({
         body,
         models: comboModels,
-        handleSingleModel: (b, m) => handleSingleModelImage(b, m, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname }),
+        handleSingleModel: (b, m) => usageFailureResponse || handleSingleModelImage(b, m, {
+          wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname, clientSignal: request.signal,
+          onUsageAcceptanceFailure: response => { usageFailureResponse = response; },
+        }),
         log,
         comboName: modelStr,
         comboStrategy,
@@ -94,11 +102,13 @@ export async function handleImageGeneration(request) {
       });
     }
 
-    return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname });
+    return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint: url.pathname, clientSignal: request.signal });
   });
 }
 
-async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint } = {}) {
+async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, apiKey, endpoint, onUsageAcceptanceFailure, clientSignal } = {}) {
+  const cancelled = () => errorResponse(499, "Client closed request");
+  if (clientSignal?.aborted) return cancelled();
   const modelInfo = await getModelInfo(modelStr);
   if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
 
@@ -106,14 +116,14 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
 
   // noAuth providers — no credential needed
   if (NO_AUTH_PROVIDERS.has(provider)) {
+    const eventId = randomUUID();
+    const timestamp = new Date().toISOString();
     const result = await handleImageGenerationCore({
-      body,
-      modelInfo: { provider, model },
-      credentials: null,
-      binaryOutput,
+      body, modelInfo: { provider, model }, credentials: null, binaryOutput, clientSignal,
+      onUsage: (usage, terminal = {}) => recordImageRequestUsage({ provider, model, apiKey, endpoint, eventId, timestamp, usage, status: terminal.status }),
     });
-    if (result.success) return result.response;
-    return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "Image generation failed");
+    if (result.localFailure) onUsageAcceptanceFailure?.(result.response);
+    return result.response;
   }
 
   // Credentialed providers — fallback loop
@@ -136,7 +146,22 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    if (clientSignal?.aborted) return cancelled();
+    let refreshedCredentials;
+    try { refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: clientSignal }); }
+    catch (error) {
+      if (clientSignal?.aborted) return cancelled();
+      if (error?.code === "STALE_CONNECTION_WRITE") {
+        const response = errorResponse(503, "Credentials changed during refresh", { code: error.code });
+        onUsageAcceptanceFailure?.(response);
+        return response;
+      }
+      throw error;
+    }
+    if (clientSignal?.aborted) return cancelled();
+    const usageEventId = randomUUID();
+    const usageTimestamp = new Date().toISOString();
+    let usageAcceptance;
 
     const result = await handleImageGenerationCore({
       body,
@@ -144,29 +169,55 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       credentials: refreshedCredentials,
       streamToClient: wantsStream,
       binaryOutput,
+      clientSignal,
       onCredentialsRefreshed: async (newCreds) => {
-        await updateProviderCredentials(credentials.connectionId, {
+        const committed = await updateProviderCredentials(credentials.connectionId, {
           accessToken: newCreds.accessToken,
           refreshToken: newCreds.refreshToken,
           providerSpecificData: newCreds.providerSpecificData,
           testStatus: "active"
-        });
+        }, { expected: refreshedCredentials._writeFence });
+        if (committed === false) throw Object.assign(new Error("Credentials changed during refresh"), { code: "STALE_CONNECTION_WRITE" });
       },
-      onUsage: (usage) => {
-        recordImageRequestUsage({
-          provider,
-          model,
-          connectionId: credentials.connectionId,
-          apiKey,
-          endpoint,
-          usage,
-        });
+      onUsage: (usage, terminal = {}) => {
+        if (!usageAcceptance) {
+          const pending = recordImageRequestUsage({
+            provider,
+            model,
+            connectionId: credentials.connectionId,
+            apiKey,
+            endpoint,
+            eventId: usageEventId,
+            timestamp: usageTimestamp,
+            usage,
+            status: clientSignal?.aborted ? "aborted" : terminal.status || "success",
+          });
+          if (pending) {
+            usageAcceptance = pending.catch(() => {
+              log.error("IMAGE", "Durable usage acceptance failed");
+              throw Object.assign(new Error("Usage accounting could not be accepted"), { code: "usage_acceptance_failed" });
+            });
+            usageAcceptance.catch(() => {});
+          }
+        }
+        return usageAcceptance;
       },
       onRequestSuccess: async () => {
         await clearAccountError(credentials.connectionId, credentials, model);
       }
     });
 
+    if (usageAcceptance) {
+      try { await usageAcceptance; }
+      catch {
+        await result.response?.body?.cancel().catch(() => {});
+        const response = errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Usage accounting could not be accepted", { code: "usage_acceptance_failed" });
+        onUsageAcceptanceFailure?.(response);
+        return response;
+      }
+    }
+    if (result.localFailure) { onUsageAcceptanceFailure?.(result.response); return result.response; }
+    if (clientSignal?.aborted || result.status === 499) return cancelled();
     if (result.success) return result.response;
 
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);

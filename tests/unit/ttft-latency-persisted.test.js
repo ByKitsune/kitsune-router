@@ -40,7 +40,10 @@ describe("latency is persisted, not just printed", () => {
   it("the value flows from the streaming handler that computes it", () => {
     const handler = read("open-sse/handlers/chatCore/streamingHandler.js");
     // It must be passed to the persistence call, not only to the log line.
-    expect(handler).toMatch(/saveUsageStats\(\{[^}]*latency[^}]*\}\)/);
+    expect(handler).toMatch(/await acceptUsageRecord\(\{[^}]*latency: usageLatency[^}]*\}\)/);
+    expect(handler).toMatch(/const receipt = await saveUsageRecord\(options\)/);
+    const detail = read("open-sse/handlers/chatCore/requestDetail.js");
+    expect(detail).toMatch(/export function saveUsageRecord\(options\)\s*\{\s*return persistUsageStats\(options, enqueueRequestUsage\)/);
   });
 
   it("saveUsageStats forwards it and stays backward compatible", () => {

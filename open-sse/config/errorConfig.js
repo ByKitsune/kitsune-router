@@ -31,6 +31,7 @@ export const DEFAULT_ERROR_MESSAGES = {
 };
 
 export const FALLBACK_SCOPE = { ACCOUNT: "account", COMBO: "combo" };
+export const NON_RETRYABLE_ROUTER_CODES = new Set(["usage_acceptance_failed", "usage_accounting_uncertain"]);
 export const NONFINAL_CHAT_FINISH_REASONS = new Set([null, undefined, "in_progress", "incomplete"]);
 
 // Exponential backoff config for rate limits

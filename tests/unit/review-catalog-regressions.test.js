@@ -6,12 +6,12 @@ import { PROVIDER_MODELS } from "../../open-sse/config/providerModels.js";
 const mocks = vi.hoisted(() => ({
   getProviderConnections: vi.fn(), getCombos: vi.fn(), getCustomModels: vi.fn(),
   getModelAliases: vi.fn(), getDisabledModels: vi.fn(), live: vi.fn(),
-  saved: {}, getAll: vi.fn(), write: vi.fn(() => { throw Error("Unexpected DB write"); }),
+  saved: {}, adapter: null, getAdapter: vi.fn(), read: vi.fn(), getAll: vi.fn(), write: vi.fn(() => { throw Error("Unexpected DB write"); }),
 }));
 vi.mock("@/lib/localDb", () => mocks);
 vi.mock("@/lib/disabledModelsDb", () => mocks);
-vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: mocks.getAll, clear: mocks.write }) }));
-vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter: mocks.write }));
+vi.mock("../../src/lib/db/helpers/kvStore.js", () => ({ makeKv: () => ({ getAll: mocks.getAll, set: mocks.write, setMany: mocks.write, remove: mocks.write, clear: mocks.write }) }));
+vi.mock("../../src/lib/db/driver.js", () => ({ getAdapter: mocks.getAdapter }));
 vi.mock("@/sse/services/tokenRefresh", () => ({ updateProviderCredentials: mocks.write }));
 vi.mock("@/lib/network/connectionProxy", () => ({ resolveConnectionProxyConfig: vi.fn() }));
 vi.mock("@/shared/utils/providerLiveModels", () => ({ fetchProviderLiveModels: mocks.live }));
@@ -30,6 +30,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.saved = {};
   mocks.getAll.mockImplementation(async () => mocks.saved);
+  mocks.read.mockImplementation((sql, keys) => {
+    expect([["cacheRevision:pricing"], ["cacheRevision:nodes", "cacheRevision:pricing"]]).toContainEqual(keys);
+    expect(sql).toBe(`SELECT key, value FROM _meta WHERE key IN (${keys.map(() => "?").join(",")})`);
+    return keys.map(key => ({ key, value: "0" }));
+  });
+  mocks.adapter = { all: mocks.read, run: mocks.write, exec: mocks.write, transaction: mocks.write, pragma: mocks.write, close: vi.fn() };
+  mocks.getAdapter.mockResolvedValue(mocks.adapter);
   mocks.getProviderConnections.mockResolvedValue([{ provider: "openai" }]);
   mocks.getCombos.mockResolvedValue([]);
   mocks.getCustomModels.mockResolvedValue([]);
@@ -38,10 +45,23 @@ beforeEach(() => {
   mocks.live.mockResolvedValue(null);
   vi.stubGlobal("fetch", vi.fn(() => { throw Error("Unexpected network request"); }));
 });
-afterEach(() => { expect(mocks.write).not.toHaveBeenCalled(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  try {
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    mocks.adapter.close();
+    vi.unstubAllGlobals();
+  }
+});
 const connect = provider => mocks.getProviderConnections.mockResolvedValue([{ provider }]);
 
 describe("review P2: saved reasoning tariff", () => {
+  afterEach(() => {
+    expect(mocks.getAdapter).toHaveBeenCalled();
+    expect(mocks.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?,?)", ["cacheRevision:nodes", "cacheRevision:pricing"]);
+    expect(mocks.read).toHaveBeenCalledWith("SELECT key, value FROM _meta WHERE key IN (?)", ["cacheRevision:pricing"]);
+  });
   it.each([[undefined, 99], [0, 0], [7, 7]])("uses saved output unless reasoning is explicitly distinct (%s)", async (reasoning, expected) => {
     const model = "gpt-6-astra";
     mocks.saved = { openai: { [model]: { input: 9, output: 99, ...(reasoning === undefined ? {} : { reasoning }) } } };

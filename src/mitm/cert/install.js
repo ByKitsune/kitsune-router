@@ -83,40 +83,46 @@ function checkCertInstalledWindows(certPath) {
 /**
  * Install SSL certificate to system trust store
  */
-async function installCert(sudoPassword, certPath) {
+async function installCert(sudoPassword, certPath, { check = () => {} } = {}) {
+  check();
   if (!fs.existsSync(certPath)) {
     throw new Error(`Certificate file not found: ${certPath}`);
   }
 
   const isInstalled = await checkCertInstalled(certPath);
+  check();
   if (isInstalled) {
     log("🔐 Cert: already trusted ✅");
     return;
   }
 
   if (IS_WIN) {
-    await installCertWindows(certPath);
+    await installCertWindows(certPath, check);
   } else if (IS_MAC) {
-    await installCertMac(sudoPassword, certPath);
+    await installCertMac(sudoPassword, certPath, check);
   } else {
-    await installCertLinux(sudoPassword, certPath);
+    await installCertLinux(sudoPassword, certPath, check);
   }
+  check();
 }
 
-async function installCertMac(sudoPassword, certPath) {
+async function installCertMac(sudoPassword, certPath, check) {
   // Remove all old certs with same name first to avoid duplicate/stale cert conflict
   const deleteOld = `security delete-certificate -c "ZenRouter MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
   const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
+  check();
   try {
     await execWithPassword(`${deleteOld} && ${install}`, sudoPassword);
+    check();
     log("🔐 Cert: ✅ installed to system keychain");
   } catch (error) {
+    check();
     const msg = error.message?.includes("canceled") ? "User canceled authorization" : "Certificate install failed";
     throw new Error(msg);
   }
 }
 
-async function installCertWindows(certPath) {
+async function installCertWindows(certPath, check) {
   // Auto-elevate via UAC popup if not admin (zero popup if already admin).
   // Delete any stale cert with same CN before adding to avoid duplicates.
   const script = `
@@ -124,10 +130,13 @@ async function installCertWindows(certPath) {
     $exit = & certutil -addstore Root ${quotePs(certPath)} 2>&1
     if ($LASTEXITCODE -ne 0) { throw "certutil exit $LASTEXITCODE" }
   `;
+  check();
   try {
     await runElevatedPowerShell(script);
+    check();
     log("🔐 Cert: ✅ installed to Windows Root store");
   } catch (e) {
+    check();
     throw new Error(`Failed to install certificate: ${e.message}`);
   }
 }
@@ -223,11 +232,13 @@ async function updateNssDatabases(certPath, action = 'add') {
   });
 }
 
-async function installCertLinux(sudoPassword, certPath) {
+async function installCertLinux(sudoPassword, certPath, check) {
+  check();
   if (!isSudoAvailable()) {
     log(`🔐 Cert: cannot install to system store without sudo — trust this file on clients: ${certPath}`);
     // Still try to update user NSS DBs even if no sudo!
     await updateNssDatabases(certPath, 'add');
+    check();
     return;
   }
   
@@ -239,9 +250,12 @@ async function installCertLinux(sudoPassword, certPath) {
   
   try {
     await execWithPassword(cmd, sudoPassword);
+    check();
     await updateNssDatabases(certPath, 'add');
+    check();
     log(`🔐 Cert: ✅ installed to Linux trust store (${config.dir}) and user browser databases`);
   } catch (error) {
+    check();
     throw new Error(`Certificate install failed: ${error.message}`);
   }
 }

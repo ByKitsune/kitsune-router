@@ -1,117 +1,72 @@
-/**
- * Stream-to-JSON Converter
- * Converts Responses API SSE stream to single JSON response
- * Used when client requests non-streaming but provider forces streaming (e.g., Codex)
- */
 import { getResponseServiceTier } from "../providers/serviceTiers.js";
+import { consumeSSEStream, parseSSEEvent, streamEventPayload, isValidStreamIndex, SSE_LIMITS, SSE_COMPLETION_GRACE_MS } from "../utils/sse.js";
+import { extractResponseError } from "../translator/concerns/responseError.js";
 
-/**
- * Process a single SSE message and update state accordingly.
- */
-function processSSEMessage(msg, state) {
-  if (!msg.trim()) return;
+const EMPTY_USAGE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
-  const eventMatch = msg.match(/^event:\s*(.+)$/m);
-  const dataMatch = msg.match(/^data:\s*(.+)$/m);
-  if (!dataMatch) return;
-
-  let eventType = eventMatch?.[1].trim();
-  const dataStr = dataMatch[1].trim();
-  if (dataStr === "[DONE]") return;
-
-  let parsed;
-  try { parsed = JSON.parse(dataStr); }
-  catch { return; }
-  state.serviceTier = getResponseServiceTier(parsed) ?? state.serviceTier;
-  eventType ||= parsed.type;
-  if (["response.completed", "response.done", "response.incomplete", "response.failed"].includes(eventType)) {
-    const response = parsed.response || {};
-    state.responseId = response.id ?? state.responseId;
-    state.created = response.created_at ?? state.created;
-    state.model = response.model ?? state.model;
-    state.incomplete_details = response.incomplete_details;
-    if (response.usage) state.usage = { ...response.usage };
-    if (Array.isArray(response.output)) {
-      state.items = new Map(response.output.map((item, index) => [index, item]));
-    }
-  }
-
-  if (eventType === "response.created") {
-    state.responseId = parsed.response?.id || state.responseId;
-    state.created = parsed.response?.created_at || state.created;
-  } else if (eventType === "response.output_item.done") {
-    state.items.set(parsed.output_index ?? 0, parsed.item);
-  } else if (["response.completed", "response.done", "response.incomplete"].includes(eventType) && state.status !== "failed") {
-    state.status = eventType === "response.incomplete" ? "incomplete" : "completed";
-  } else if (eventType === "response.failed" || eventType === "error") {
-    state.status = "failed";
-    state.error = parsed.response?.error || parsed.error || { message: parsed.message || "Upstream Responses stream failed" };
-  }
-}
-
-const EMPTY_RESPONSE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
-
-/**
- * Convert Responses API SSE stream to single JSON response
- * @param {ReadableStream} stream - SSE stream from provider
- * @returns {Promise<Object>} Final JSON response in Responses API format
- */
-export async function convertResponsesStreamToJson(stream) {
-  if (!stream || typeof stream.getReader !== "function") {
-    return { id: `resp_${Date.now()}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "failed", output: [], usage: { ...EMPTY_RESPONSE } };
-  }
-
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  const state = {
-    responseId: "",
-    created: Math.floor(Date.now() / 1000),
-    status: "in_progress",
-    usage: { ...EMPTY_RESPONSE },
-    items: new Map()
+export async function convertResponsesStreamToJson(stream, { signal, onAbort } = {}) {
+  let response = { id: `resp_${Date.now()}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "in_progress" };
+  let usage = null;
+  let serviceTier;
+  let terminal = false;
+  let completionDeadline = null;
+  let failure = null;
+  let items = new Map();
+  const fail = (message, error = null) => {
+    failure ||= error || { type: "stream_error", code: "stream_disconnected", message };
+    response.status = "failed";
   };
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const messages = buffer.split("\n\n");
-      buffer = messages.pop() || "";
-
-      for (const msg of messages) {
-        processSSEMessage(msg, state);
+  const processEvent = event => {
+    const parsed = streamEventPayload(event, parseSSEEvent(event));
+    if (event.data.trim() === "[DONE]") {
+      if (!terminal) fail("Responses stream closed before a terminal event");
+      return false;
+    }
+    const type = event.event || parsed.type;
+    serviceTier = getResponseServiceTier(parsed) ?? serviceTier;
+    const error = extractResponseError(parsed);
+    if (parsed.response && typeof parsed.response === "object") {
+      const snapshot = parsed.response;
+      response = { ...response, ...snapshot };
+      if (snapshot.usage) usage = snapshot.usage;
+      if (Array.isArray(snapshot.output)) {
+        if (snapshot.output.length > SSE_LIMITS.outputItems) throw new RangeError("Upstream Responses output exceeds limit");
+        items = new Map(snapshot.output.map((item, index) => [index, item]));
       }
     }
-
-    // Flush remaining buffer (last event may not end with \n\n)
-    if (buffer.trim()) {
-      processSSEMessage(buffer, state);
+    if (parsed.usage) usage = parsed.usage;
+    if (error) { fail("Upstream Responses stream failed", error.error); return false; }
+    for (const field of ["output_index", "content_index", "summary_index"]) {
+      if (parsed[field] !== undefined && !isValidStreamIndex(parsed[field])) throw new RangeError("Invalid upstream Responses output index");
     }
-  } finally {
-    reader.releaseLock();
+    if (type === "response.output_item.done") items.set(parsed.output_index ?? 0, parsed.item);
+    if (["response.completed", "response.done", "response.incomplete"].includes(type)) {
+      terminal = true;
+      response.status = type === "response.incomplete" ? "incomplete" : "completed";
+      if (parsed.response?.usage) return false;
+      completionDeadline ??= Date.now() + SSE_COMPLETION_GRACE_MS;
+    }
+    if (terminal && (parsed.usage || parsed.response?.usage)) return false;
+    return true;
+  };
+  if (!stream?.getReader) fail("Missing upstream Responses stream");
+  else {
+    try {
+      await consumeSSEStream(stream, processEvent, { signal, deadline: () => completionDeadline });
+      if (!terminal && !failure) fail("Responses stream closed before a terminal event");
+    } catch (error) {
+      if (signal?.aborted) {
+        await onAbort?.({ ...(usage ? { usage } : {}), ...(serviceTier ? { service_tier: serviceTier } : {}) });
+        throw signal.reason || error;
+      }
+      fail(error instanceof RangeError ? error.message : "Invalid upstream Responses stream");
+    }
   }
-
-  // Build output array from accumulated items (ordered by index)
-  const output = [];
-  const maxIndex = state.items.size > 0 ? Math.max(...state.items.keys()) : -1;
-  for (let i = 0; i <= maxIndex; i++) {
-    output.push(state.items.get(i) || { type: "message", content: [], role: "assistant" });
-  }
-
   return {
-    id: state.responseId || `resp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    object: "response",
-    created_at: state.created,
-    status: state.status || "completed",
-    ...(state.error ? { error: state.error } : {}),
-    ...(state.model !== undefined ? { model: state.model } : {}),
-    ...(state.serviceTier ? { service_tier: state.serviceTier } : {}),
-    ...(state.incomplete_details ? { incomplete_details: state.incomplete_details } : {}),
-    output,
-    usage: state.usage
+    ...response, status: failure ? "failed" : response.status,
+    ...(failure ? { error: failure } : {}),
+    ...(serviceTier ? { service_tier: serviceTier } : {}),
+    output: [...items.entries()].sort((left, right) => left[0] - right[0]).map(([, item]) => item),
+    usage: usage || { ...EMPTY_USAGE },
   };
 }

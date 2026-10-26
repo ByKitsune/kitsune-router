@@ -31,6 +31,7 @@ export function normalizeClaudeInputSchema(rawSchema) {
       schema.properties = {};
     }
     if (Object.keys(schema.properties).length === 0) {
+      schema.properties = { ...schema.properties };
       for (const branch of branches) {
         if (branch && typeof branch === "object" && branch.properties && typeof branch.properties === "object") {
           Object.assign(schema.properties, branch.properties);
@@ -202,7 +203,7 @@ export function openaiToClaudeRequest(model, body, stream, credentials = null, p
       // Pass-through built-in tools (e.g. web_search_20250305) without prefix or conversion
       const toolType = tool.type;
       if (toolType && toolType !== OPENAI_BLOCK.FUNCTION) {
-        result.tools.push(tool);
+        result.tools.push({ ...tool });
         continue;
       }
 
@@ -305,7 +306,8 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
         blocks.push({ type: CLAUDE_BLOCK.TEXT, text: msg.content });
       }
     } else if (Array.isArray(msg.content)) {
-      for (const part of msg.content) {
+      for (const rawPart of msg.content) {
+        const part = normalizeMediaPart(rawPart) || rawPart;
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
           blocks.push({ type: CLAUDE_BLOCK.TEXT, text: part.text });
         } else if (part.type === CLAUDE_BLOCK.TOOL_RESULT) {

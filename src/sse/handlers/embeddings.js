@@ -12,7 +12,8 @@ import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
-import { saveRequestUsage } from "@/lib/usageDb.js";
+import { randomUUID } from "node:crypto";
+import { enqueueRequestUsage } from "@/lib/usageDb.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
@@ -23,7 +24,7 @@ function exactEmbeddingUsage(raw) {
   const completionTokens = raw.completion_tokens ?? raw.output_tokens ?? 0;
   const totalTokens = raw.total_tokens;
   if (!Number.isSafeInteger(promptTokens) || promptTokens <= 0 || completionTokens !== 0 || totalTokens !== promptTokens) return null;
-  return { prompt_tokens: promptTokens, completion_tokens: 0, total_tokens: totalTokens };
+  return { ...structuredClone(raw), prompt_tokens: promptTokens, completion_tokens: 0, total_tokens: totalTokens };
 }
 
 /**
@@ -135,10 +136,13 @@ async function handleAdmittedEmbeddings(request, body, apiKey) {
       refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: request.signal });
     } catch (error) {
       if (request.signal?.aborted) return cancelled();
+      if (error?.code === "STALE_CONNECTION_WRITE") return errorResponse(503, "Credentials changed during refresh", { code: error.code });
       throw error;
     }
     if (request.signal?.aborted) return cancelled();
 
+    const usageEventId = randomUUID();
+    const usageTimestamp = new Date().toISOString();
     const result = await handleEmbeddingsCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
@@ -146,33 +150,39 @@ async function handleAdmittedEmbeddings(request, body, apiKey) {
       clientSignal: request.signal,
       log,
       onCredentialsRefreshed: async (newCreds) => {
-        await updateProviderCredentials(credentials.connectionId, {
+        const committed = await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,
           existingProviderSpecificData: credentials.providerSpecificData,
           testStatus: "active"
-        });
+        }, { expected: refreshedCredentials._writeFence });
+        if (committed === false) throw Object.assign(new Error("Credentials changed during refresh"), { code: "STALE_CONNECTION_WRITE" });
       },
       onRequestSuccess: async () => {
         await clearAccountError(credentials.connectionId, credentials, model);
       }
     });
-    if (request.signal?.aborted || result.status === 499) return cancelled();
-
-    if (result.success) {
-      const usage = exactEmbeddingUsage(result.usage);
-      if (usage) {
-        saveRequestUsage({
+    const usage = exactEmbeddingUsage(result.usage);
+    if (usage) {
+      try {
+        await enqueueRequestUsage({
+          eventId: usageEventId,
+          timestamp: usageTimestamp,
           provider,
           model,
           connectionId: credentials.connectionId,
           apiKey,
           endpoint: url.pathname,
           tokens: usage,
-          status: "success",
-        }).catch(() => {});
+          status: request.signal?.aborted || result.status === 499 ? "aborted" : result.success ? "success" : "error",
+        });
+      } catch {
+        log.error("EMBEDDINGS", "Durable usage acceptance failed");
+        await result.response?.body?.cancel().catch(() => {});
+        return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Usage accounting could not be accepted", { code: "usage_acceptance_failed" });
       }
-      return result.response;
     }
+    if (request.signal?.aborted || result.status === 499) return cancelled();
+    if (result.success || result.localFailure) return result.response;
 
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import vm from "node:vm";
 
 // Resolve repo-root paths relative to this test file (CWD-independent).
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -248,51 +249,56 @@ describe("AUDIT-004: Atomic lock file for MITM startup", () => {
 // ============================================================
 // AUDIT-001 (#1965): Race condition in retry tracking
 // ============================================================
+function restartFixture() {
+  const source = fs.readFileSync(path.resolve(repoRoot, "src/mitm/manager.js"), "utf8");
+  const lifecycleStart = source.indexOf('const helperLifecycle = globalThis[Symbol.for("zenrouter.helper.lifecycle")]');
+  const scopeStart = source.indexOf('const mitmScope = helperLifecycle.scope("mitm")', lifecycleStart);
+  const restartStart = source.indexOf("function scheduleMitmRestart(apiKey)");
+  const restartEnd = source.indexOf("\n}\n", restartStart) + 2;
+  expect(lifecycleStart).toBeGreaterThan(-1);
+  expect(scopeStart).toBeGreaterThan(lifecycleStart);
+  expect(restartStart).toBeGreaterThan(scopeStart);
+  expect(restartEnd).toBeGreaterThan(restartStart);
+  const context = vm.createContext({
+    setTimeout, clearTimeout, Promise, Date, Symbol, Map, Set,
+    MITM_RESTART_RESET_MS: 60000, MITM_MAX_RESTARTS: 5, MITM_RESTART_DELAYS_MS: [1],
+    _getSettings: async () => ({ mitmEnabled: false }), getCachedPassword: () => "fixture",
+    loadEncryptedPassword: async () => "fixture", IS_WIN: false,
+    startServer: vi.fn(async () => {}), err: vi.fn(),
+  });
+  vm.runInContext(`${source.slice(lifecycleStart, scopeStart)}\nconst mitmScope = helperLifecycle.scope("mitm");\nmitmScope.data.restartCount = 0;\nmitmScope.data.lastStartTime = Date.now();\n${source.slice(restartStart, restartEnd)}\nglobalThis.fixture = { helperLifecycle, mitmScope, scheduleMitmRestart };`, context);
+  return { ...context.fixture, errors: context.err, start: context.startServer };
+}
+
 describe("AUDIT-001: Synchronous restart guard", () => {
-  it("mitmIsRestarting should be set before first await expression", () => {
-    const source = fs.readFileSync(
-      path.resolve(repoRoot, "src/mitm/manager.js"),
-      "utf-8"
-    );
-
-    const funcStart = source.indexOf("async function scheduleMitmRestart");
-    expect(funcStart).toBeGreaterThan(-1);
-
-    const funcBody = source.substring(funcStart, funcStart + 2000);
-
-    const guardCheckIdx = funcBody.indexOf("if (mitmIsRestarting) return;");
-    expect(guardCheckIdx).toBeGreaterThan(-1);
-
-    const afterGuard = funcBody.substring(guardCheckIdx);
-
-    // Strip line comments to avoid matching "await" in comment text
-    const noComments = afterGuard.replace(/\/\/.*$/gm, "");
-
-    // Find the first actual await expression
-    const firstAwaitIdx = noComments.search(/\bawait\s+/);
-    expect(firstAwaitIdx).toBeGreaterThan(-1);
-
-    // Find mitmIsRestarting = true
-    const setFlagIdx = noComments.indexOf("mitmIsRestarting = true");
-
-    expect(setFlagIdx).toBeGreaterThan(-1);
-    expect(firstAwaitIdx).toBeGreaterThan(-1);
-    expect(setFlagIdx).toBeLessThan(firstAwaitIdx);
+  it("mitmIsRestarting should be set before first await expression", async () => {
+    const fixture = restartFixture();
+    let release;
+    fixture.helperLifecycle.delay = () => new Promise(resolve => { release = resolve; });
+    const first = fixture.scheduleMitmRestart("fixture-key");
+    expect(fixture.mitmScope.pending.get("restart")).toBe(first);
+    expect(fixture.scheduleMitmRestart("duplicate-key")).toBe(first);
+    for (let turn = 0; turn < 4; turn++) await Promise.resolve();
+    expect(fixture.scheduleMitmRestart("while-delayed")).toBe(first);
+    expect(fixture.mitmScope.data.restartCount).toBe(1);
+    release();
+    await first;
+    expect(fixture.mitmScope.pending.has("restart")).toBe(false);
+    expect(fixture.start).not.toHaveBeenCalled();
   });
 
-  it("mitmIsRestarting should be reset on max-restarts early return", () => {
-    const source = fs.readFileSync(
-      path.resolve(repoRoot, "src/mitm/manager.js"),
-      "utf-8"
-    );
-
-    const funcStart = source.indexOf("async function scheduleMitmRestart");
-    const funcBody = source.substring(funcStart, funcStart + 2000);
-
-    const maxRestartsIdx = funcBody.indexOf("Max restart attempts reached");
-    expect(maxRestartsIdx).toBeGreaterThan(-1);
-
-    const afterMax = funcBody.substring(maxRestartsIdx, maxRestartsIdx + 200);
-    expect(afterMax).toContain("mitmIsRestarting = false");
+  it("mitmIsRestarting should be reset on max-restarts early return", async () => {
+    const fixture = restartFixture();
+    fixture.mitmScope.data.restartCount = 5;
+    const first = fixture.scheduleMitmRestart("fixture-key");
+    expect(fixture.mitmScope.pending.get("restart")).toBe(first);
+    await first;
+    expect(fixture.errors).toHaveBeenCalledWith("Max restart attempts reached. Giving up.");
+    expect(fixture.mitmScope.pending.has("restart")).toBe(false);
+    const next = fixture.scheduleMitmRestart("next-key");
+    expect(next).not.toBe(first);
+    await next;
+    expect(fixture.mitmScope.pending.has("restart")).toBe(false);
+    expect(fixture.start).not.toHaveBeenCalled();
   });
 });

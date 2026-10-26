@@ -3,9 +3,8 @@ import { needsTranslation } from "../../translator/index.js";
 import { createSSETransformStreamWithLogger, createPassthroughStreamWithLogger } from "../../utils/stream.js";
 import { pipeWithDisconnect } from "../../utils/streamHandler.js";
 import { PROVIDERS } from "../../config/providers.js";
-import { STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
-import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamHelpers.js";
-import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
+import { STREAM_STALL_TIMEOUT_MS, STREAM_FIRST_CHUNK_TIMEOUT_MS } from "../../config/runtimeConfig.js";
+import { buildRequestDetail, extractRequestConfig, saveUsageRecord, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
 import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
@@ -42,32 +41,29 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, reqLogger,
   return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap, targetFormat, wireToolNames, responseModel);
 }
 
+export async function acceptUsageRecord(options) {
+  try {
+    const receipt = await saveUsageRecord(options);
+    if (receipt?.accepted === false) throw new Error("Usage was not accepted");
+    return receipt;
+  } catch {
+    throw Object.assign(new Error("Usage accounting could not be accepted"), { code: "usage_acceptance_failed", status: 503 });
+  }
+}
+
 function withAbortRecording(streamController, record) {
   let recorded = false;
-  const fire = (reason) => {
-    if (recorded) return;
+  let acceptance;
+  const settleAbort = reason => {
+    if (recorded) return acceptance;
     recorded = true;
-    try {
-      record(reason);
-    } catch (error) {
-      console.error("[Stream] Failed to record aborted stream:", error?.message || error);
-    }
+    acceptance = Promise.resolve().then(() => record(reason || "client_closed"));
+    return acceptance;
   };
-
-  return {
-    ...streamController,
-    handleComplete: () => {
-      recorded = true;
-      streamController.handleComplete();
-    },
-    handleDisconnect: (reason) => {
-      fire(reason || "client_closed");
-      streamController.handleDisconnect(reason);
-    },
-    handleError: (error) => {
-      fire(error?.name === "AbortError" ? "aborted" : (error?.message || "error"));
-      streamController.handleError(error);
-    },
+  return { ...streamController, settleAbort,
+    handleComplete() { recorded = true; streamController.handleComplete(); },
+    handleDisconnect(reason) { streamController.handleDisconnect(reason); },
+    handleError(error) { streamController.handleError(error); },
   };
 }
 
@@ -85,38 +81,68 @@ function isStreamableUpstreamContentType(contentType, targetFormat) {
   return (UPSTREAM_STREAM_CONTENT_TYPES[targetFormat] || []).some(type => contentType.includes(type));
 }
 
+async function inspectJsonStream(response, signal) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let prefix = "";
+  let timer;
+  const onAbort = () => { void reader.cancel(signal.reason).catch(() => {}); };
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Upstream stream prefix timeout")), STREAM_FIRST_CHUNK_TIMEOUT_MS); });
+    while (prefix.length < 65536) {
+      if (signal?.aborted) throw signal.reason || new Error("aborted");
+      const { done, value } = await Promise.race([reader.read(), deadline]);
+      if (done) break;
+      if (signal?.aborted) throw signal.reason || new Error("aborted");
+      chunks.push(value);
+      prefix += decoder.decode(value.subarray(0, 65536 - prefix.length), { stream: true });
+      const text = prefix.trimStart();
+      if (/^(?:data:|event:|:)/.test(text)) {
+        let index = 0;
+        return new ReadableStream({
+          async pull(controller) {
+            try {
+              if (index < chunks.length) { const chunk = chunks[index]; chunks[index++] = null; controller.enqueue(chunk); return; }
+              const result = await reader.read();
+              if (result.done) { reader.releaseLock(); controller.close(); }
+              else controller.enqueue(result.value);
+            } catch (error) { try { reader.releaseLock(); } catch {} controller.error(error); }
+          },
+          async cancel(reason) { try { await reader.cancel(reason); } finally { reader.releaseLock(); } },
+        });
+      }
+      if (text && !["data:", "event:"].some(field => field.startsWith(text))) break;
+    }
+    await reader.cancel().catch(() => {}); reader.releaseLock(); return null;
+  } catch (error) {
+    await reader.cancel(error).catch(() => {}); reader.releaseLock(); throw error;
+  } finally { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); }
+}
+
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
 export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, onStreamAborted, streamDetailId, pxpipe, reqTag, log }) {
-  if (onRequestSuccess) {
-    Promise.resolve()
-      .then(onRequestSuccess)
-      .catch(err => {
-        console.error("[ChatCore] onRequestSuccess failed:", err?.message || err);
-      });
-  }
-
-  // When upstream returns HTML/text instead of SSE (e.g. Cloudflare 5xx error
-  // page), piping it through the SSE transform stream causes Next.js
-  // "failed to pipe response" and crashes the chat router. Read the body,
-  // pull a short human-readable message from the <title>, sanitize it, and
-  // return a clean JSON error instead. The message is stripped of HTML tags
-  // and clamped so untrusted upstream text never reaches the client verbatim
-  // (the UI may render error.message as HTML).
-  const upstreamContentType = (providerResponse.headers.get('content-type') || '').toLowerCase();
+  const upstreamContentType = (providerResponse.headers.get("content-type") || "").toLowerCase();
   if (upstreamContentType && !isStreamableUpstreamContentType(upstreamContentType, targetFormat)) {
-    const bodyText = await providerResponse.text().catch(() => '');
-    const titleMatch = bodyText.match(/<title>([^<]+)<\/title>/i);
-    const sanitizedTitle = (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').trim().slice(0, 160);
-    const shortMsg = sanitizedTitle
-      || (bodyText.length < 200 ? bodyText.replace(/<[^>]*>/g, '').trim().slice(0, 160) : `Upstream returned non-SSE response (${upstreamContentType})`);
-    const status = providerResponse.status || 502;
-    if (log?.errorLine) log.errorLine(reqTag, "✗", `BLOCKED ${status} · ${provider}/${model} · non-SSE (${upstreamContentType})\n    ${shortMsg}`);
-    else console.warn(`[STREAM] ${provider} | ${model} | blocked pipe: ${shortMsg} [${status}]`);
-    streamController?.handleError?.(new Error(`upstream non-SSE: ${status}`));
-    return createErrorResult(status >= 400 ? status : 502, shortMsg);
+    await providerResponse.body?.cancel().catch(() => {});
+    const status = providerResponse.status >= 400 ? providerResponse.status : 502;
+    streamController?.handleError?.(new Error("Upstream returned a non-streaming response"));
+    return createErrorResult(status, "Upstream returned an unsupported streaming content type");
   }
+  if (upstreamContentType.includes("application/json")) {
+    let streamBody;
+    try { streamBody = await inspectJsonStream(providerResponse, streamController?.signal); }
+    catch { streamController?.handleError?.(new Error("Invalid upstream streaming response")); return createErrorResult(502, "Invalid upstream streaming response"); }
+    if (!streamBody) {
+      streamController?.handleError?.(new Error("Upstream returned JSON for a streaming request"));
+      return createErrorResult(502, "Upstream returned JSON instead of a streaming response");
+    }
+    providerResponse = new Response(streamBody, { status: providerResponse.status, headers: providerResponse.headers });
+  }
+  if (onRequestSuccess) Promise.resolve().then(onRequestSuccess).catch(() => console.error("[ChatCore] onRequestSuccess failed"));
 
   const wireBody = finalBody || translatedBody || body;
   const wireToolNames = toolNameMap?.size > 0
@@ -124,12 +150,10 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     : null;
   const transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel: clientRawRequest?.body?.model });
 
-  // Responses passthrough: synthesize response.failed + [DONE] if the stream aborts/stalls before a terminal event
-  const isResponsesPassthrough = sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI_RESPONSES;
-  const onAbortTerminal = isResponsesPassthrough ? buildAbortedResponsesTerminalBytes : null;
+  const onAbortTerminal = transformStream.abortTerminalBytes;
   const stallTimeoutMs = PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS;
   const recordingController = onStreamAborted
-    ? withAbortRecording(streamController, (reason) => onStreamAborted(transformStream.getStreamSnapshot?.() || null, reason))
+    ? withAbortRecording(streamController, (reason) => onStreamAborted(transformStream.getStreamSnapshot?.({ includeBufferedUsage: true }) || null, reason))
     : streamController;
   const transformedBody = pipeWithDisconnect(
     providerResponse,
@@ -165,14 +189,21 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
 /**
  * Build onStreamComplete callback for streaming usage tracking.
  */
-export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, onStreamFailed, serviceTier }) {
+export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, onStreamFailed, serviceTier, usageEventId = crypto.randomUUID(), usageTimestamp = new Date().toISOString() }) {
   const streamDetailId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-  // Terminal accounting may precede transport EOF; completion and abort share one claim.
   let persistenceClaimed = false;
-
-  const onStreamComplete = (contentObj, usage, ttftAt, streamMeta, firstTokenAt) => {
-    if (persistenceClaimed) return;
+  let persistencePromise;
+  const claim = record => {
+    if (persistenceClaimed) return persistencePromise;
     persistenceClaimed = true;
+    let resolve;
+    let reject;
+    persistencePromise = new Promise((accepted, failed) => { resolve = accepted; reject = failed; });
+    try { Promise.resolve(record()).then(resolve, reject); } catch (error) { reject(error); }
+    return persistencePromise;
+  };
+
+  const onStreamComplete = (contentObj, usage, ttftAt, streamMeta, firstTokenAt) => claim(async () => {
     const latency = {
       ttft: ttftAt ? ttftAt - requestStartTime : Date.now() - requestStartTime,
       total: Date.now() - requestStartTime
@@ -204,7 +235,6 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       try {
         onStreamFailed({ error: streamError, status: streamMeta?.status || 502 });
       } catch (err) {
-        // Accounting must never break the response path.
         console.error("[ChatCore] onStreamFailed failed:", err?.message || err);
       }
     }
@@ -234,16 +264,14 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       ttft: Number.isFinite(firstTokenAt) ? firstTokenAt - requestStartTime : null,
     };
     // Persist measured usage before the terminal summary.
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true, serviceTier: tierAccounting });
+    await acceptUsageRecord({ provider, model, tokens: usage, connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, latency: usageLatency, label: "STREAM USAGE", silent: true, serviceTier: tierAccounting });
     if (log?.line) {
       const summary = formatDoneLine({ usage, latency });
       log.line(reqTag, failed ? "!" : "📊", failed ? summary.replace(/^DONE/, `FAILED ${streamMeta?.status || 502}`) : summary);
     }
-  };
+  });
 
-  const onStreamAborted = (snapshot, reason) => {
-    if (persistenceClaimed) return;
-    persistenceClaimed = true;
+  const onStreamAborted = (snapshot, reason) => claim(async () => {
     const latency = {
       ttft: snapshot?.ttftAt ? snapshot.ttftAt - requestStartTime : Date.now() - requestStartTime,
       total: Date.now() - requestStartTime
@@ -271,9 +299,9 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
       console.error("[RequestDetail] Failed to update aborted stream:", err.message);
     });
 
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, label: "STREAM USAGE (aborted)", silent: true, serviceTier: tierAccounting });
+    await acceptUsageRecord({ provider, model, tokens: usage, connectionId, apiKey, eventId: usageEventId, timestamp: usageTimestamp, endpoint: clientRawRequest?.endpoint, label: "STREAM USAGE (aborted)", silent: true, serviceTier: tierAccounting });
     if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
-  };
+  });
 
   return { onStreamComplete, onStreamAborted, streamDetailId };
 }
