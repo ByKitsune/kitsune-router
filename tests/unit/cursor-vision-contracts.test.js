@@ -261,7 +261,7 @@ describe("Cursor security regression boundaries", () => {
 
   it.each([false, true])("honors tool_choice none at native declaration and precheck boundaries (stream=%s)", async (stream) => {
     const executor = new CursorExecutor();
-    const precheck = Buffer.from("00000000331231084d7a0f707265636865636b2d6e6174697665d2021b0a097a656e726f75746572120e636170747572655f73637265656e", "hex");
+    const precheck = Buffer.from("00000000371235084d7a0f707265636865636b2d6e6174697665d2021f0a0d6b697473756e65726f75746572120e636170747572655f73637265656e", "hex");
     const sent = stubNativeFrames(executor, [precheck, AGENT_SUCCESS]);
     const body = translateRequest(FORMATS.OPENAI, FORMATS.CURSOR, MODEL, { tool_choice: "none", tools: tools(), messages: [{ role: "user", content: "Do not use tools." }] }, stream, credentials, "cursor");
     const result = await executor.execute({ model: MODEL, body, stream, credentials });
@@ -379,6 +379,7 @@ describe("Cursor native MCP handoff and transport policy", () => {
     const run = child(readProto(written[0].subarray(5)), 1);
     const declared = repeated(child(run, 4), 1);
     expect(declared.map((tool) => fieldText(tool, 1))).toEqual(["capture_screen"]);
+    expect(declared.map((tool) => fieldText(tool, 4))).toEqual(["kitsunerouter"]);
 
     // The next API request carries actual client execution results, not a fake
     // result on the closed run. Its images must remain attached to these IDs.
@@ -395,11 +396,14 @@ describe("Cursor native MCP handoff and transport policy", () => {
   });
 
   it.each([
-    ["capture_screen", "00000000331231084d7a0f707265636865636b2d6e6174697665d2021b0a097a656e726f75746572120e636170747572655f73637265656e", true],
-    ["not_declared", "0000000031122f084d7a0f707265636865636b2d6e6174697665d202190a097a656e726f75746572120c6e6f745f6465636c61726564", false],
-  ])("answers native MCP allowlist precheck only for a client-declared tool (%s)", async (_name, hex, allowed) => {
+    ["kitsunerouter", "capture_screen", "00000000371235084d7a0f707265636865636b2d6e6174697665d2021f0a0d6b697473756e65726f75746572120e636170747572655f73637265656e", true],
+    ["kitsunerouter", "not_declared", "00000000351233084d7a0f707265636865636b2d6e6174697665d2021d0a0d6b697473756e65726f75746572120c6e6f745f6465636c61726564", false],
+    ["zenrouter", "capture_screen", "00000000331231084d7a0f707265636865636b2d6e6174697665d2021b0a097a656e726f75746572120e636170747572655f73637265656e", false],
+  ])("answers native MCP allowlist precheck only for a client-declared tool (%s/%s)", async (_provider, _name, hex, allowed) => {
     // ExecServerMessage.mcp_allowlist_precheck_args=42 -> provider_identifier=1,
     // tool_name=2. ExecClientMessage.mcp_allowlist_precheck_result=42 -> allowlisted=1.
+    // The local provider identity must match the advertised tool definition;
+    // knowing a declared tool's name under another provider is not permission.
     const executor = new CursorExecutor();
     const written = [];
     const queue = [Buffer.from("00000000161214085a7a0e636f6e746578742d6e61746976655200", "hex"), Buffer.from(hex, "hex"), AGENT_SUCCESS];

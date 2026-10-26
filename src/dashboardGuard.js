@@ -5,7 +5,7 @@ import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
 import { buildErrorBody } from "open-sse/utils/error.js";
 
-const CLI_TOKEN_HEADER = "x-zen-cli-token";
+const CLI_TOKEN_HEADER = "x-kitsune-router-cli-token";
 const CLI_TOKEN_SALT = "zen-cli-auth";
 
 let cachedCliToken = null;
@@ -132,16 +132,16 @@ function isLoopbackPeer(request) {
   // Only trust peer IP when custom-server.js has validated it via peer token.
   // Host header is spoofable and cannot be used for security decisions.
   if (!hasTrustedPeerHeaders(request)) return false;
-  return isLoopbackHostname(request.headers.get("x-zen-real-ip"));
+  return isLoopbackHostname(request.headers.get("x-kitsune-router-real-ip"));
 }
 
 export function isLocalRequest(request) {
   // Stamped by custom-server.js when forwarding headers exist: request came through
   // a reverse proxy, so the loopback socket is the proxy hop, not the end-user.
-  if (request.headers.get("x-zen-via-proxy")) return false;
+  if (request.headers.get("x-kitsune-router-via-proxy")) return false;
   // Only trust peer IP when custom-server.js has validated it via peer token.
   if (!hasTrustedPeerHeaders(request)) return false;
-  if (!isLoopbackHostname(request.headers.get("x-zen-real-ip"))) return false;
+  if (!isLoopbackHostname(request.headers.get("x-kitsune-router-real-ip"))) return false;
   const origin = request.headers.get("origin");
   if (origin) {
     try {

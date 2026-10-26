@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## Kitsune Router 1.0.0 — propuesta, pendiente de verificar/publicar
+
+**Your models. Your routes.** Mantenimiento/patrocinio de [ByKitsune](https://bykitsune.com), sin cuenta ni orden obligatorio. Destinos: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, comando `kitsune-router`, proveedor `kitsunerouter`, imagen `ghcr.io/bykitsune/kitsune-router`.
+
+Detén escritores y respalda todo. Migración verificada `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, originales conservados, sin sobrescribir destinos; `DATA_DIR` explícito manda. Conserva secretos/auth/sales/certificados. Variables `KITSUNE_ROUTER_*`, cabeceras `x-kitsune-router-*`; `/v1/*` y 20128 permanecen.
+
+Registro/propiedad de nombres, npm, acceso a imágenes, SHA final y publicación siguen pendientes. [Borrador](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Cambios técnicos](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+
+> **Archivo:** lo siguiente conserva nombres, artefactos, URLs y pruebas ZenRouter originales. No son publicaciones Kitsune 0.x ni verifican la fuente actual. Usa [instalación actual](/es/getting-started/installation/), no comandos históricos. El trabajo Unreleased siguiente se registró antes de esta propuesta.
+
 ## Sin publicar — conciliación de octubre
 
 - Corrige la recursión entre el wrapper fetch de Next.js y el transporte del gateway; recupera chat, renovación OAuth, uso y catálogo sin cambiar las políticas de cuentas o proxy.

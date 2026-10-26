@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 
 const globalKeys = [
-  Symbol.for("zenrouter.db.importState"), "_dbAdapter", "_pendingRequests", "_lastErrorProvider",
+  Symbol.for("kitsunerouter.db.importState"), "_dbAdapter", "_pendingRequests", "_lastErrorProvider",
   "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers",
 ];
 const shutdownEvents = ["beforeExit", "exit", "SIGINT", "SIGTERM"];

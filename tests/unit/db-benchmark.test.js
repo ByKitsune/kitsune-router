@@ -31,7 +31,7 @@ async function bench(label, fn) {
 
 beforeAll(async () => {
   // SQLite setup
-  tempSqlite = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-bench-sqlite-"));
+  tempSqlite = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-bench-sqlite-"));
   process.env.DATA_DIR = tempSqlite;
   vi.resetModules();
   sqliteDb = await import("@/lib/db/index.js");
@@ -40,7 +40,7 @@ beforeAll(async () => {
   // Lowdb setup — direct lowdb usage (mimics legacy behavior).
   // lowdb was dropped from dependencies after the SQLite migration; skip the
   // legacy comparison when it is not installed instead of failing the suite.
-  tempLowdb = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-bench-lowdb-"));
+  tempLowdb = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-bench-lowdb-"));
   try {
     const { Low } = await import("lowdb");
     const { JSONFile } = await import("lowdb/node");

@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.8.7 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.8.7` is a focused Claude-provider reliability release. It fixes a header flag that broke **every** `claude` request, restores the stream terminator that OpenAI-compatible clients need, and closes a translator gap that failed Zed tool round-trips.
 
 ---

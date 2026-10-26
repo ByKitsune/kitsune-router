@@ -31,7 +31,7 @@ function installNextFetch(workAsyncStorage = new AsyncLocalStorage()) {
   // in production. Bound re-entry so the broken code fails without flooding
   // the runner with thousands of PromiseRejectCallback stack overflows.
   const downstream = vi.fn((url, options) => {
-    if (downstream.mock.calls.length > 3) throw new Error("Next fetch re-entered ZenRouter transport");
+    if (downstream.mock.calls.length > 3) throw new Error("Next fetch re-entered Kitsune Router transport");
     return patchedFetch(url, options);
   });
   globalThis.fetch = downstream;
@@ -77,7 +77,7 @@ afterAll(async () => {
   globalThis.fetch = nativeFetch;
 });
 
-describe("Next.js fetch wrapping the process-wide ZenRouter transport", () => {
+describe("Next.js fetch wrapping the process-wide Kitsune Router transport", () => {
   it("sends background global fetch through each wrapper once and keeps connection pooling", async () => {
     const target = await serve();
     const downstream = installNextFetch();

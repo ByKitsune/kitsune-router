@@ -1,5 +1,15 @@
 # Nhật ký thay đổi
 
+## Kitsune Router 1.0.0 — đề xuất, chờ xác minh/phát hành
+
+**Your models. Your routes.** [ByKitsune](https://bykitsune.com) duy trì/tài trợ, không bắt buộc account/thứ tự provider. Đích: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, lệnh `kitsune-router`, provider `kitsunerouter`, image `ghcr.io/bykitsune/kitsune-router`.
+
+Dừng writer, backup toàn bộ. Di chuyển kiểm tra `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, giữ gốc, không ghi đè đích; `DATA_DIR` tường minh ưu tiên. Giữ secret/auth/salt/chứng chỉ tin cậy. Biến `KITSUNE_ROUTER_*`, header `x-kitsune-router-*`; `/v1/*` và 20128 không đổi.
+
+Namespace, quyền npm/GHCR, xác minh SHA cuối và xuất bản còn chờ. [Bản nháp](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+
+> **Lưu trữ lịch sử:** phần sau giữ tên, hiện vật, URL và bằng chứng ZenRouter gốc; không phải phát hành Kitsune 0.x hay xác minh nguồn hiện tại. Dùng [cài đặt mới](/vi/getting-started/installation/), không lệnh nâng cấp cũ. Công việc Unreleased bên dưới được ghi trước đề xuất đổi thương hiệu.
+
 ## Chưa phát hành — đối soát tháng Mười
 
 - Sửa lời gọi đệ quy giữa fetch của Next.js và lớp truyền tải gateway; khôi phục chat, làm mới OAuth, usage và danh mục mà không đổi chính sách tài khoản hoặc proxy.

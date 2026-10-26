@@ -1962,7 +1962,7 @@
       "added_model_rows": 0,
       "remaining_gaps": [
         "Standalone cache-creation fee is not published; source cache_creation=input is not an independently verified billing dimension.",
-        "The max/none suffixes are ZenRouter aliases, not separate official API models."
+        "The max/none suffixes are Kitsune Router aliases, not separate official API models."
       ]
     },
     {

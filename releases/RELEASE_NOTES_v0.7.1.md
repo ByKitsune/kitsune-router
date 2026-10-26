@@ -1,5 +1,7 @@
 # ZenRouter v0.7.1 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.7.1` is a targeted patch: it fixes a total Antigravity outage where every account failed with `403 PERMISSION_DENIED` on the shared free-tier project.
 
 ## Fix

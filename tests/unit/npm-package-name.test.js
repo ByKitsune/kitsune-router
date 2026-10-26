@@ -1,9 +1,9 @@
 // npm package-name drift — recurring defect #1 in this codebase.
 //
-// The package is published as the SCOPED name `@joyccn/zenrouter`. The bare
-// `zenrouter` is unclaimed: `npm view zenrouter` returns 404 and
-// https://registry.npmjs.org/zenrouter/latest is Not found. Two places still used
-// the bare name and both failed silently:
+// The rebranded package is the SCOPED name `@bykitsune/router`, while the
+// executable is `kitsune-router`. Do not confuse either with an unscoped npm
+// package. The original regression used the bare `zenrouter` package instead of
+// `@joyccn/zenrouter`, and both update paths failed silently:
 //
 //   - src/app/api/version/route.js fetched .../zenrouter/latest, so /api/version
 //     always answered `latestVersion: null` and the dashboard could never report
@@ -22,20 +22,38 @@ import { APP_CONFIG, NPM_PACKAGE_NAME, UPDATER_CONFIG } from "../../src/shared/c
 const ROOT = new URL("../..", import.meta.url).pathname;
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
-// Matches an install/run command that names the UNCLAIMED bare package.
-// The negative lookahead keeps the scoped form (@joyccn/zenrouter) from matching.
-const BARE_INSTALL = /(?:npx|npm\s+(?:i|install)\s+-g)\s+zenrouter(?![a-zA-Z@/-])/;
+// Check both current bare spellings and the historical bare name. A package
+// version suffix is still an incorrect bare install, not an exemption.
+const BARE_INSTALL = /(?:npx|npm\s+(?:i|install)\s+-g)\s+(?:kitsune-router|kitsunerouter|zenrouter)(?=@|[^a-zA-Z0-9_/-]|$)/;
 
 describe("the npm package identity is the scoped name", () => {
   it("exports the scoped package name", () => {
-    expect(NPM_PACKAGE_NAME).toBe("@joyccn/zenrouter");
+    expect(NPM_PACKAGE_NAME).toBe("@bykitsune/router");
   });
 
   it("matches the name in the published CLI package", () => {
-    // The root package is the private app ("zenrouter-app"); the artifact
-    // published to npm as @joyccn/zenrouter is the CLI package in cli/.
+    // The root package is the private app ("kitsune-router-app"); the artifact
+    // published to npm as @bykitsune/router is the CLI package in cli/.
     expect(JSON.parse(read("cli/package.json")).name).toBe(NPM_PACKAGE_NAME);
     expect(JSON.parse(read("package.json")).name).not.toBe(NPM_PACKAGE_NAME);
+  });
+
+  it("keeps the executable distinct from the scoped package in both manifest and lock metadata", () => {
+    const pkg = JSON.parse(read("cli/package.json"));
+    const lock = JSON.parse(read("cli/package-lock.json"));
+    expect(pkg.bin).toEqual({ "kitsune-router": "./cli.js" });
+    expect(lock.name).toBe(NPM_PACKAGE_NAME);
+    expect(lock.packages[""].name).toBe(NPM_PACKAGE_NAME);
+    expect(lock.packages[""].bin).toEqual({ "kitsune-router": "cli.js" });
+  });
+
+  it("identifies the product, organization and CLI source repository consistently", () => {
+    const pkg = JSON.parse(read("cli/package.json"));
+    expect(APP_CONFIG).toMatchObject({ name: "Kitsune Router", organization: "ByKitsune" });
+    expect(pkg.author).toBe("ByKitsune");
+    expect(pkg.repository.url).toBe("https://github.com/ByKitsune/kitsune-router.git");
+    expect(pkg.homepage).toBe("https://github.com/ByKitsune/kitsune-router#readme");
+    expect(pkg.bugs).toBe("https://github.com/ByKitsune/kitsune-router/issues");
   });
 
   it("builds the updater commands from that name", () => {
@@ -44,7 +62,7 @@ describe("the npm package identity is the scoped name", () => {
     expect(UPDATER_CONFIG.installCmdLatest).toContain(`@latest`);
     expect(UPDATER_CONFIG.installCmdLatest).toContain(NPM_PACKAGE_NAME);
     // The bare name must not survive in any command the updater would execute.
-    expect(UPDATER_CONFIG.installCmd).not.toMatch(/npm i -g zenrouter(\s|$)/);
+    expect(UPDATER_CONFIG.installCmd).not.toMatch(BARE_INSTALL);
   });
 
   it("does not bake the version into the install commands", () => {
@@ -103,8 +121,10 @@ describe("no advertised command names the unclaimed package", () => {
     // the rendered string must both be the scoped form or the lookup silently
     // falls through to English.
     const dict = JSON.parse(read("public/i18n/literals/id.json"));
-    expect(dict).toHaveProperty("npx @joyccn/zenrouter");
-    expect(dict).toHaveProperty("npm install -g @joyccn/zenrouter");
+    expect(dict).toHaveProperty("npx @bykitsune/router");
+    expect(dict).toHaveProperty("npm install -g @bykitsune/router");
+    expect(dict).not.toHaveProperty("npx kitsunerouter");
+    expect(dict).not.toHaveProperty("npx kitsune-router");
     expect(dict).not.toHaveProperty("npx zenrouter");
   });
 });

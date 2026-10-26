@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "zenrouter.cliToolEndpointPresets";
+const STORAGE_KEY = "kitsunerouter.cliToolEndpointPresets";
 
 function maskApiKey(apiKey) {
   if (!apiKey) return "No API key";

@@ -3,22 +3,19 @@
 // and after every UI write.
 import fs from "fs";
 import path from "path";
-import os from "os";
+import { randomUUID } from "node:crypto";
 import { getDbImportGeneration } from "./db/helpers/importGeneration.js";
-
-const DATA_DIR = process.env.DATA_DIR
-  || (process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "zenrouter")
-    : path.join(os.homedir(), ".zenrouter"));
+import { DATA_DIR } from "./dataDir.js";
 
 const CACHE_FILE = path.join(DATA_DIR, "mitm", "aliases.json");
 
 function writeAtomic(data) {
   const dir = path.dirname(CACHE_FILE);
-  fs.mkdirSync(dir, { recursive: true });
-  const tmp = `${CACHE_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
-  fs.renameSync(tmp, CACHE_FILE);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const tmp = `${CACHE_FILE}.${randomUUID()}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), { flag: "wx", mode: 0o600 });
+  try { fs.renameSync(tmp, CACHE_FILE); }
+  finally { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); }
 }
 
 // Sync entire mitmAlias map from DB → JSON file

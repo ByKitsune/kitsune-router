@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/shared/utils/cn";
 
 export default function Input({
@@ -15,12 +16,18 @@ export default function Input({
   required = false,
   className,
   inputClassName,
+  id,
+  "aria-describedby": describedBy,
+  "aria-invalid": invalid,
   ...props
 }) {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const descriptionId = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && (
-        <label className="text-sm font-medium text-text-main">
+        <label htmlFor={inputId} className="text-sm font-medium text-text-main">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -32,11 +39,15 @@ export default function Input({
           </div>
         )}
         <input
+          id={inputId}
           type={type}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
           disabled={disabled}
+          required={required}
+          aria-invalid={error ? true : invalid}
+          aria-describedby={[describedBy, descriptionId].filter(Boolean).join(" ") || undefined}
           className={cn(
             "w-full py-2.5 px-3 text-sm text-text-main bg-surface-2 rounded-[10px]",
             "border border-transparent placeholder-text-muted/70",
@@ -52,13 +63,13 @@ export default function Input({
         />
       </div>
       {error && (
-        <p className="text-xs text-red-500 flex items-center gap-1">
+        <p id={`${inputId}-error`} role="alert" className="text-xs text-red-500 flex items-center gap-1">
           <span className="material-symbols-outlined text-[14px]">error</span>
           {error}
         </p>
       )}
       {hint && !error && (
-        <p className="text-xs text-text-muted">{hint}</p>
+        <p id={`${inputId}-hint`} className="text-xs text-text-muted">{hint}</p>
       )}
     </div>
   );

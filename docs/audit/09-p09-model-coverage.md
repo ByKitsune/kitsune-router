@@ -1,5 +1,7 @@
 # P09 — Model coverage report (empirical)
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 **Date:** 2026-10-16 · **Target:** production gateway 0.9.7 on `127.0.0.1:20128` (read-only probes)
 **Rule followed:** every row below comes from a real request with `max_tokens: 1000`. No model was called with a small cap, per the audit's explicit warning that small values produce false negatives on reasoning models.
 

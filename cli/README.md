@@ -1,49 +1,67 @@
-# 🌿 ZenRouter CLI (`@joyccn/zenrouter`)
+# Kitsune Router CLI
 
-> Serene AI Gateway & Intelligent Multi-Provider Routing Engine CLI Launcher
+**Your models. Your routes.** A provider-neutral AI gateway maintained and
+sponsored by [ByKitsune](https://bykitsune.com/).
 
-Official CLI package for running, configuring, and managing **ZenRouter** on macOS, Linux, and Windows.
+The public package is `@bykitsune/router`; its executable is `kitsune-router`.
+The first rebranded release is **1.0.0**, pending verified publication. Historical
+0.x packages were published as ZenRouter, not as this new scoped package.
 
-- **GitHub Repository**: [https://github.com/ZenRouter/ZenRouter](https://github.com/ZenRouter/ZenRouter)
-- **Web Dashboard**: [https://router.bykitsune.org](https://router.bykitsune.org)
+## Install and start
 
----
+Requires **Node.js >=22.19.0**. After the package has been published:
 
-## Current release: 0.9.13
-
-Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Changelog](https://github.com/ZenRouter/ZenRouter/blob/master/CHANGELOG.md) · [Technical details](https://github.com/ZenRouter/ZenRouter/blob/master/docs/CHANGELOG_v0.9.13.md) · [Release notes](https://github.com/ZenRouter/ZenRouter/blob/master/releases/RELEASE_NOTES_v0.9.13.md).
-
-## ⚡ Installation & Usage
-
-Requires **Node.js >=22.19.0**. The package is `@joyccn/zenrouter`; the command remains `zenrouter`. Pinned examples apply after publication, which is separate from documentation preparation. This release repairs thinking probes and adds independent OpenAI/Codex processing-speed controls. Fast/Ultrafast can cost more and require supported models/accounts; an expired or invalidated OAuth refresh token still requires reauthorization.
-
-### Run instantly with NPX:
-```bash
-npx @joyccn/zenrouter@0.9.13
+```sh
+npx @bykitsune/router@1.0.0
+# Or install once:
+npm install -g @bykitsune/router@1.0.0
+kitsune-router
 ```
 
-### Install globally:
-```bash
-npm install -g @joyccn/zenrouter@0.9.13
-zenrouter
-```
+Open `http://localhost:20128/dashboard`, connect the providers you choose, and
+generate a gateway key. No ByKitsune account or hosted API purchase is required.
+Provider availability, account permissions, terms, and charges still apply.
 
----
-
-## 🛠️ CLI Commands & Options
+## Launcher options
 
 ```text
-Usage: zenrouter [options] [command]
+Usage: kitsune-router [options]
 
-Options:
-  -v, --version         output the current version
-  -p, --port <number>   specify server port (default: 20128)
-  -d, --data-dir <dir>  specify persistent database directory (default: ~/.zenrouter)
-  --no-open             do not automatically open the browser dashboard on launch
-  -h, --help            display help for command
+  -p, --port <port>   Server port (default: 20128)
+  -H, --host <host>   Bind address (default: 0.0.0.0)
+  -n, --no-browser    Do not open the browser automatically
+  -l, --log           Show server logs
+  -t, --tray          Run in the system tray where supported
+  --skip-update      Skip the update check
+  -h, --help         Show help
+  -v, --version      Show version
+
+Commands:
+  xai video --help   See asynchronous xAI video job options
 ```
 
----
+The launcher binds all interfaces by default. Use `--host 127.0.0.1` for local-only
+access and configure strong authentication before exposing it remotely.
+Use an absolute `DATA_DIR` environment variable for a custom state location;
+there is no `--data-dir`, `--no-open`, `start`, `stop`, or `status` subcommand.
 
-## 📄 License
-MIT License &copy; 2026 Joy and ZenRouter Contributors.
+## Existing installations
+
+Stop the old gateway and helpers, then back up the whole old data directory.
+First startup discovers supported legacy state and copies it into
+`~/.kitsune-router` (Windows: `%APPDATA%/kitsune-router`) if no target exists.
+Database, runtime secrets, machine identity, auth keys and existing certificates
+stay together. Originals remain available for rollback; busy, damaged or
+ambiguous state fails closed. An explicit `DATA_DIR` remains authoritative.
+
+Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)
+before upgrading. Do not share data directories or secret values in issues.
+
+## Source and license
+
+- [Repository and source setup](https://github.com/ByKitsune/kitsune-router)
+- [Release notes](https://github.com/ByKitsune/kitsune-router/releases)
+- [Issues](https://github.com/ByKitsune/kitsune-router/issues)
+
+MIT licensed. Existing upstream copyright and attribution notices remain in
+`LICENSE`; ByKitsune sponsorship does not replace historical authorship.

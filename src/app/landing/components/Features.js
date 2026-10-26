@@ -1,133 +1,59 @@
-"use client";
-
-const FEATURES = [
-  { 
-    icon: "link", 
-    title: "Unified Endpoint", 
-    desc: "Access all providers via a single standard API URL.", 
-    colors: {
-      border: "hover:border-blue-500/50",
-      bg: "hover:bg-blue-500/5",
-      iconBg: "bg-blue-500/10",
-      iconText: "text-blue-500",
-      titleHover: "group-hover:text-blue-400"
-    }
-  },
-  { 
-    icon: "bolt", 
-    title: "Easy Setup", 
-    desc: "Get up and running in minutes with npx command.", 
-    colors: {
-      border: "hover:border-orange-500/50",
-      bg: "hover:bg-orange-500/5",
-      iconBg: "bg-orange-500/10",
-      iconText: "text-orange-500",
-      titleHover: "group-hover:text-orange-400"
-    }
-  },
-  { 
-    icon: "shield_with_heart", 
-    title: "Model Fallback", 
-    desc: "Automatically switch providers on failure or high latency.", 
-    colors: {
-      border: "hover:border-rose-500/50",
-      bg: "hover:bg-rose-500/5",
-      iconBg: "bg-rose-500/10",
-      iconText: "text-rose-500",
-      titleHover: "group-hover:text-rose-400"
-    }
-  },
-  { 
-    icon: "monitoring", 
-    title: "Usage Tracking", 
-    desc: "Detailed analytics and cost monitoring across all models.", 
-    colors: {
-      border: "hover:border-purple-500/50",
-      bg: "hover:bg-purple-500/5",
-      iconBg: "bg-purple-500/10",
-      iconText: "text-purple-500",
-      titleHover: "group-hover:text-purple-400"
-    }
-  },
-  { 
-    icon: "key", 
-    title: "OAuth & API Keys", 
-    desc: "Securely manage credentials in one vault.", 
-    colors: {
-      border: "hover:border-amber-500/50",
-      bg: "hover:bg-amber-500/5",
-      iconBg: "bg-amber-500/10",
-      iconText: "text-amber-500",
-      titleHover: "group-hover:text-amber-400"
-    }
-  },
-  { 
-    icon: "cloud_sync", 
-    title: "Cloud Sync", 
-    desc: "Sync your configurations across devices instantly.", 
-    colors: {
-      border: "hover:border-sky-500/50",
-      bg: "hover:bg-sky-500/5",
-      iconBg: "bg-sky-500/10",
-      iconText: "text-sky-500",
-      titleHover: "group-hover:text-sky-400"
-    }
-  },
-  { 
-    icon: "terminal", 
-    title: "CLI Support", 
-    desc: "Works with Claude Code, Codex, Cline, Cursor, and more.", 
-    colors: {
-      border: "hover:border-emerald-500/50",
-      bg: "hover:bg-emerald-500/5",
-      iconBg: "bg-emerald-500/10",
-      iconText: "text-emerald-500",
-      titleHover: "group-hover:text-emerald-400"
-    }
-  },
-  { 
-    icon: "dashboard", 
-    title: "Dashboard", 
-    desc: "Visual dashboard for real-time traffic analysis.", 
-    colors: {
-      border: "hover:border-fuchsia-500/50",
-      bg: "hover:bg-fuchsia-500/5",
-      iconBg: "bg-fuchsia-500/10",
-      iconText: "text-fuchsia-500",
-      titleHover: "group-hover:text-fuchsia-400"
-    }
-  },
-];
+import Link from "next/link";
+import styles from "../landing.module.css";
 
 export default function Features() {
   return (
-    <section className="py-24 px-6" id="features">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features</h2>
-          <p className="text-gray-400 max-w-xl text-lg">
-            Everything you need to manage your AI infrastructure in one place, built for scale.
-          </p>
+    <section id="controls" className={styles.controlsSection} aria-labelledby="controls-heading">
+      <div className={styles.container}>
+        <div className={styles.controlsHeading}>
+          <h2 id="controls-heading" className={styles.sectionHeading} data-reveal>Controls,<br />not guesswork.</h2>
+          <p className={styles.body} data-reveal>See what you configured and what your gateway recorded. No account with a particular provider is required.</p>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {FEATURES.map((feature) => (
-            <div 
-              key={feature.title}
-              className={`p-6 rounded-xl bg-[#23180f] border border-[#3a2f27] ${feature.colors.border} ${feature.colors.bg} transition-all duration-300 group`}
-            >
-              <div className={`w-10 h-10 rounded-lg ${feature.colors.iconBg} flex items-center justify-center mb-4 ${feature.colors.iconText} group-hover:scale-110 transition-transform duration-300`}>
-                <span className="material-symbols-outlined">{feature.icon}</span>
-              </div>
-              <h3 className={`text-lg font-bold mb-2 ${feature.colors.titleHover} transition-colors`}>
-                {feature.title}
-              </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{feature.desc}</p>
+        <div className={styles.comboRow}>
+          <figure className={styles.productPanel} data-ui="combo-configuration" data-reveal>
+            <figcaption className={styles.panelHeader}><strong>Combo &amp; fallback</strong><span>Configuration example</span></figcaption>
+            <div className={styles.panelBody}>
+              <dl className={styles.comboSettings}>
+                <div><dt>Combo name</dt><dd><code>my-route</code></dd></div>
+                <div><dt>Strategy</dt><dd>Fallback in order</dd></div>
+              </dl>
+              <ol className={styles.comboOrder} aria-label="Illustrative model priority">
+                <li><span>First choice</span><code>claude-sonnet-4-6</code><strong>Anthropic</strong></li>
+                <li><span>Next choice</span><code>gemini-2.5-flash</code><strong>Google</strong></li>
+                <li><span>Next choice</span><code>gpt-5-mini</code><strong>OpenAI</strong></li>
+              </ol>
+              <p className={styles.panelNote}>An example order, not a recommendation. Choose models available to your own accounts.</p>
             </div>
-          ))}
+          </figure>
+          <div className={styles.featureCopy}>
+            <h3 data-reveal>Your order. <br />Your conditions.</h3>
+            <p data-reveal style={{ "--reveal-delay": "60ms" }}>Use ordered fallback or a rotation strategy. Manage account priority and model capability adapters in the dashboard.</p>
+            <Link className={styles.textLink} href="/dashboard/combos" data-reveal style={{ "--reveal-delay": "120ms" }}>Configure model combos</Link>
+          </div>
+        </div>
+        <div className={styles.usageRow}>
+          <div className={styles.featureCopy}>
+            <h3 data-reveal>A record you can read.</h3>
+            <p data-reveal style={{ "--reveal-delay": "60ms" }}>Inspect request history, token usage and available quota information. Cost estimates are shown when pricing and usage data are known.</p>
+            <p data-reveal style={{ "--reveal-delay": "120ms" }}>Missing data stays unknown. An estimate is not your provider’s invoice.</p>
+            <Link className={styles.textLink} href="/dashboard/usage" data-reveal style={{ "--reveal-delay": "180ms" }}>Open usage &amp; logs</Link>
+          </div>
+          <figure className={styles.productPanel} data-ui="usage-empty-state" data-reveal>
+            <figcaption className={styles.panelHeader}><strong>Usage &amp; request logs</strong><span>Empty-state preview</span></figcaption>
+            <div className={styles.panelBody}>
+              <dl className={styles.emptyMetrics}>
+                <div><dt>Token usage</dt><dd>Not recorded</dd></div>
+                <div><dt>Cost estimate</dt><dd>Unknown</dd></div>
+              </dl>
+              <div className={styles.emptyState}>
+                <strong>No requests recorded</strong>
+                <p>Your own request history appears here after you start using the gateway.</p>
+              </div>
+              <p className={styles.panelNote}>This is a product preview, not live traffic or a benchmark.</p>
+            </div>
+          </figure>
         </div>
       </div>
     </section>
   );
 }
-

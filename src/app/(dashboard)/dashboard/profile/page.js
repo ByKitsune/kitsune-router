@@ -57,7 +57,7 @@ export default function ProfilePage() {
   const [ssoTypeTab, setSsoTypeTab] = useState("saml");
   const [samlForm, setSamlForm] = useState({
     samlEntryPoint: "",
-    samlIssuer: "urn:zenrouter:sp",
+    samlIssuer: "urn:kitsunerouter:sp",
     samlCert: "",
     samlLoginLabel: "Sign in with SAML SSO",
     samlAttributeEmail: "email",
@@ -97,7 +97,7 @@ export default function ProfilePage() {
         setSsoTypeTab(data?.ssoType || "saml");
         setSamlForm({
           samlEntryPoint: data?.samlEntryPoint || "",
-          samlIssuer: data?.samlIssuer || "urn:zenrouter:sp",
+          samlIssuer: data?.samlIssuer || "urn:kitsunerouter:sp",
           samlCert: data?.samlCert || "",
           samlLoginLabel: data?.samlLoginLabel || "Sign in with SAML SSO",
           samlAttributeEmail: data?.samlAttributeEmail || "email",
@@ -529,7 +529,7 @@ export default function ProfilePage() {
         setSamlForm((prev) => ({
           ...prev,
           samlEntryPoint: ssoUrl || prev.samlEntryPoint,
-          samlIssuer: prev.samlIssuer || "urn:zenrouter:sp",
+          samlIssuer: prev.samlIssuer || "urn:kitsunerouter:sp",
           samlCert: certStr || prev.samlCert,
         }));
 
@@ -568,7 +568,7 @@ export default function ProfilePage() {
         authMode: targetAuthMode,
         ssoType: "saml",
         samlEntryPoint: samlForm.samlEntryPoint.trim(),
-        samlIssuer: samlForm.samlIssuer.trim() || "urn:zenrouter:sp",
+        samlIssuer: samlForm.samlIssuer.trim() || "urn:kitsunerouter:sp",
         samlCert: samlForm.samlCert.trim(),
         samlLoginLabel: samlForm.samlLoginLabel.trim() || "Sign in with SAML SSO",
         samlAttributeEmail: samlForm.samlAttributeEmail.trim() || "email",
@@ -671,7 +671,7 @@ export default function ProfilePage() {
     setDbStatus({ type: "", message: "" });
     try {
       const res = await fetch("/api/settings/database", {
-        headers: { "x-zen-password": password },
+        headers: { "x-kitsune-router-password": password },
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -685,7 +685,7 @@ export default function ProfilePage() {
       const anchor = document.createElement("a");
       const stamp = new Date().toISOString().replace(/[.:]/g, "-");
       anchor.href = url;
-      anchor.download = `zenrouter-backup-${stamp}.json`;
+      anchor.download = `kitsunerouter-backup-${stamp}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -763,7 +763,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
         // Full reload on purpose: session cookie cleared, drop the RSC cache.
-        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+        // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
         window.location.assign("/login");
       }
     } catch (err) {
@@ -811,7 +811,7 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-bg border border-border gap-2">
               <div>
                 <p className="font-medium text-sm sm:text-base">Database Location</p>
-                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.zenrouter/db/data.sqlite</p>
+                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.kitsune-router/db/data.sqlite</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -1099,7 +1099,7 @@ export default function ProfilePage() {
                             </li>
                             <li>
                               <b>SP Entity ID / Audience URI:</b>{" "}
-                              <code className="bg-bg px-1 py-0.5 rounded break-all">{samlForm.samlIssuer || "urn:zenrouter:sp"}</code>
+                              <code className="bg-bg px-1 py-0.5 rounded break-all">{samlForm.samlIssuer || "urn:kitsunerouter:sp"}</code>
                             </li>
                             <li>
                               <b>NameID Format:</b>{" "}
@@ -1116,7 +1116,7 @@ export default function ProfilePage() {
                             <ol className="list-decimal pl-4 text-text-muted space-y-1">
                               <li>Applications → <b>Add application</b> → Select <b>Add custom SAML 2.0 application</b>.</li>
                               <li>Set <b>Application ACS URL</b> to <code className="text-text-main font-mono">{samlAcsUrl}</code>.</li>
-                              <li>Set <b>Application SAML audience</b> to <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:zenrouter:sp"}</code>.</li>
+                              <li>Set <b>Application SAML audience</b> to <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:kitsunerouter:sp"}</code>.</li>
                               <li>Under <i>Attribute mappings</i>, map <code className="text-text-main font-mono">Subject</code> or <code className="text-text-main font-mono">email</code> to <code className="text-text-main font-mono">${`{user:email}`}</code>.</li>
                               <li>Download <b>IAM Identity Center SAML metadata XML</b> file and use 1-Click Import below!</li>
                             </ol>
@@ -1129,7 +1129,7 @@ export default function ProfilePage() {
                             <ol className="list-decimal pl-4 text-text-muted space-y-1">
                               <li>Enterprise Applications → <b>New application</b> → <b>Create your own application</b>.</li>
                               <li>Select <b>Single sign-on</b> → <b>SAML</b>.</li>
-                              <li><b>Identifier (Entity ID):</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:zenrouter:sp"}</code></li>
+                              <li><b>Identifier (Entity ID):</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:kitsunerouter:sp"}</code></li>
                               <li><b>Reply URL (ACS):</b> <code className="text-text-main font-mono">{samlAcsUrl}</code></li>
                               <li>Download <b>Federation Metadata XML</b> and import or copy X.509 Certificate.</li>
                             </ol>
@@ -1142,7 +1142,7 @@ export default function ProfilePage() {
                             <ol className="list-decimal pl-4 text-text-muted space-y-1">
                               <li>Applications → <b>Create App Integration</b> → Select <b>SAML 2.0</b>.</li>
                               <li><b>Single Sign-On URL:</b> <code className="text-text-main font-mono">{samlAcsUrl}</code></li>
-                              <li><b>Audience URI (SP Entity ID):</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:zenrouter:sp"}</code></li>
+                              <li><b>Audience URI (SP Entity ID):</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:kitsunerouter:sp"}</code></li>
                               <li>Name ID format: <i>EmailAddress</i>.</li>
                               <li>Download Identity Provider metadata XML or copy the X.509 cert.</li>
                             </ol>
@@ -1154,7 +1154,7 @@ export default function ProfilePage() {
                             </p>
                             <ol className="list-decimal pl-4 text-text-muted space-y-1">
                               <li>Clients → <b>Create client</b> → Select <b>SAML</b>.</li>
-                              <li><b>Client ID:</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:zenrouter:sp"}</code></li>
+                              <li><b>Client ID:</b> <code className="text-text-main font-mono">{samlForm.samlIssuer || "urn:kitsunerouter:sp"}</code></li>
                               <li><b>Master SAML Processing URL:</b> <code className="text-text-main font-mono">{samlAcsUrl}</code></li>
                               <li>Export SAML Descriptor XML or copy IDP Certificate PEM.</li>
                             </ol>
@@ -1202,7 +1202,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-2">
                       <label className="font-medium text-sm sm:text-base">SP Entity ID / Audience (samlIssuer)</label>
                       <Input
-                        placeholder="urn:zenrouter:sp"
+                        placeholder="urn:kitsunerouter:sp"
                         value={samlForm.samlIssuer}
                         onChange={(e) => updateSamlForm("samlIssuer", e.target.value)}
                         disabled={loading || samlLoading}
@@ -1301,7 +1301,7 @@ export default function ProfilePage() {
                         href={samlMetadataUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        download="zenrouter-sp-metadata.xml"
+                        download="kitsunerouter-sp-metadata.xml"
                         className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                       >
                         <span className="material-symbols-outlined text-[16px]">download</span>
@@ -1350,7 +1350,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-2">
                       <label className="font-medium text-sm sm:text-base">Issuer URL</label>
                       <Input
-                        placeholder="https://auth.example.com/application/o/zenrouter/"
+                        placeholder="https://auth.example.com/application/o/kitsunerouter/"
                         value={oidcForm.oidcIssuerUrl}
                         onChange={(e) => updateOidcForm("oidcIssuerUrl", e.target.value)}
                         disabled={loading || oidcLoading}
@@ -1360,7 +1360,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-2">
                       <label className="font-medium text-sm sm:text-base">Client ID</label>
                       <Input
-                        placeholder="zenrouter-dashboard"
+                        placeholder="kitsunerouter-dashboard"
                         value={oidcForm.oidcClientId}
                         onChange={(e) => updateOidcForm("oidcClientId", e.target.value)}
                         disabled={loading || oidcLoading}

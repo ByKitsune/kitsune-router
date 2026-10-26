@@ -3,7 +3,7 @@ const LOGGING_ENABLED = typeof process !== "undefined" && process.env?.ENABLE_RE
 const MAX_ITEMS = 1000;
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_RECORD_BYTES = 16 * 1024;
-const state = globalThis[Symbol.for("zenrouter.requestLogQueue")] ||= {
+const state = globalThis[Symbol.for("kitsunerouter.requestLogQueue")] ||= {
   items: [], bytes: 0, pending: null, modules: null, scheduled: false, stopped: false,
   accepted: 0, written: 0, dropped: 0, errors: 0, sequence: 0,
 };

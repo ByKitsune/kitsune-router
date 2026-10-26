@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 function runtimeInstallRequests() {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-runtime-pins-"));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune-router-runtime-pins-"));
   tempDirs.push(dataDir);
   const fixtureModule = { exports: {} };
   const calls = [];
@@ -24,8 +24,9 @@ function runtimeInstallRequests() {
     exports: fixtureModule.exports,
     __dirname: path.join(dataDir, "hooks"),
     console,
-    process: { env: { DATA_DIR: dataDir }, platform: process.platform, arch: process.arch, versions: process.versions, report: process.report },
+    process: { env: { HOME: dataDir, DATA_DIR: dataDir }, platform: process.platform, arch: process.arch, versions: process.versions, report: process.report },
     require(name) {
+      if (name === "./dataDirectory") return { resolveDataDirectory: () => dataDir };
       if (name === "child_process") return {
         spawnSync(command, args) { calls.push({ command, args }); return { status: 0, stdout: "", stderr: "" }; },
       };

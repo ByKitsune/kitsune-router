@@ -50,7 +50,7 @@ export function getClientIp(request) {
   // Trusted only when custom-server.js proves it stamped the header from the TCP socket;
   // otherwise a client could rotate the value to escape its own lockout bucket.
   if (hasTrustedPeerHeaders(request)) {
-    const realIp = request.headers.get("x-zen-real-ip");
+    const realIp = request.headers.get("x-kitsune-router-real-ip");
     if (realIp) return realIp;
   }
   // Behind a trusted reverse proxy that overwrites XFF with the real client IP.

@@ -42,7 +42,7 @@ export const CLAUDE_API_HEADERS = {
 
 // Full Claude CLI fingerprint — required by providers that gate on client identity (e.g. agentrouter).
 // Versions and beta flags are sourced from open-sse/config/clientVersions.js so a single bump
-// propagates everywhere; OS/Arch come from runtime so zenrouter passes host detection.
+// propagates everywhere; OS/Arch come from runtime so kitsunerouter passes host detection.
 export const CLAUDE_CLI_SPOOF_HEADERS = {
   "Anthropic-Version": ANTHROPIC_API_VERSION,
   "Anthropic-Beta": [

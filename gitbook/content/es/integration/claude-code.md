@@ -1,109 +1,19 @@
 # Integración con Claude Code
 
-Integra ZenRouter con Claude Code CLI para enrutar tus solicitudes de la API de Anthropic a través del sistema de enrutamiento inteligente de ZenRouter.
+Inicia Kitsune Router, conecta un upstream permitido y crea/copia una clave del gateway. Elige una ruta Messages; `my-route` es un combo que debes crear. No requiere cuenta ByKitsune.
 
-## Requisitos previos
+## Entorno cliente
 
-- Claude Code CLI instalado
-- ZenRouter ejecutándose localmente o endpoint en la nube configurado
-- API key del dashboard de ZenRouter
-
-## Configuración
-
-### 1. Configurar variables de entorno
-
-Establece las siguientes variables de entorno en tu archivo de configuración del shell (`~/.bashrc`, `~/.zshrc`, o `~/.bash_profile`):
-
-```bash
-# Base URL for ZenRouter
-export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
-
-# Optional: Set default models for aliases
-export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="cc/claude-sonnet-4-5-20250929"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="cc/claude-haiku-4-5-20251001"
-```
-
-### 2. Recargar la configuración del shell
-
-```bash
-source ~/.zshrc  # o ~/.bashrc
-```
-
-### 3. Verificar la configuración
-
-Verifica que las variables de entorno estén configuradas correctamente:
-
-```bash
-echo $ANTHROPIC_BASE_URL
-```
-
-## Aliases de modelos
-
-Claude Code soporta los siguientes aliases de modelos que mapean a modelos de ZenRouter:
-
-| Alias | Modelo | Variable de entorno |
-|-------|-------|---------------------|
-| `opus` | Claude Opus 4.5 | `ANTHROPIC_DEFAULT_OPUS_MODEL` |
-| `sonnet` | Claude Sonnet 4.5 | `ANTHROPIC_DEFAULT_SONNET_MODEL` |
-| `haiku` | Claude Haiku 4.5 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` |
-
-## Ejemplos de uso
-
-### Usando aliases de modelos
-
-```bash
-# Usar modelo Opus
-claude --model opus "Explain quantum computing"
-
-# Usar modelo Sonnet
-claude --model sonnet "Write a Python function"
-
-# Usar modelo Haiku
-claude --model haiku "Quick code review"
-```
-
-### Usando nombres completos de modelos
-
-```bash
-claude --model cc/claude-opus-4-5-20251101 "Your prompt here"
-```
-
-## Archivo de configuración
-
-Claude Code almacena su configuración en `~/.claude/settings.json`. Puedes editar este archivo manualmente si es necesario:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "defaultModel": "sonnet"
-}
-```
-
-## Solución de problemas
-
-### Problemas de conexión
-
-Si encuentras errores de conexión:
-
-1. Verifica que ZenRouter esté corriendo: `curl http://localhost:20128/health`
-2. Verifica que las variables de entorno estén configuradas correctamente
-3. Asegúrate de que ningún firewall esté bloqueando el puerto 20128
-
-### Modelo no encontrado
-
-Si obtienes errores de "modelo no encontrado":
-
-1. Verifica que el nombre del modelo coincida con tu configuración de ZenRouter
-2. Verifica que la conexión del proveedor esté activa en el dashboard de ZenRouter
-3. Asegúrate de que el modelo esté disponible en tus proveedores conectados
-
-## Endpoint en la nube
-
-Para usar el endpoint en la nube de ZenRouter en lugar de localhost:
+Claude Code añade `/v1/messages`: usa el origen **sin `/v1`**.
 
 ```bash
 export ANTHROPIC_BASE_URL="http://localhost:20128"
+export ANTHROPIC_AUTH_TOKEN="$KITSUNE_ROUTER_API_KEY"
+claude --model my-route
 ```
 
-Asegúrate de haber configurado tu API key en el dashboard en la nube de ZenRouter.
+La variable contiene una clave del gateway emitida, no un refresh token upstream, y no crea claves. Prueba en una sesión y conserva tu configuración existente.
+
+El preset modifica `env` en `~/.claude/settings.json`, no campos superiores inventados `baseUrl`/`defaultModel`. Revisa/respalda antes. Claude Desktop es otro producto; esto no es una receta universal para él.
+
+Health `/api/health` y catálogo autenticado `/v1/models` no prueban herramientas, documentos o permisos. Remoto: tu origen HTTPS sin `/v1`, no un servicio Kitsune incluido. [Referencia](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).

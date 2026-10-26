@@ -2,6 +2,24 @@
 data/
 **/data/
 **/db.json
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.sqlite-journal
+**/secrets.json
+**/secrets.env
+**/machine-id
+**/.runtime-secrets.lock
+**/.kitsune-router-migration.lock
+**/.kitsune-router-migration-incomplete
+**/.kitsune-router/
+**/.zenrouter/
+**/.9router/
+**/.sqljs-owner/
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
 
 # Development
 src/
@@ -19,6 +37,11 @@ CLIProxyAPI/
 !README.md
 .gitignore
 .env*
+**/.env*
+.npmrc
+**/.npmrc
+.ssh/
+.aws/
 jsconfig.json
 eslint.config.mjs
 postcss.config.mjs
@@ -28,4 +51,7 @@ tsconfig.json
 # Build artifacts that shouldn't be published
 .next/cache/
 .next/standalone/data/
-
+cli/.build-home/
+.data/
+verification/
+.verification/

@@ -63,15 +63,50 @@ function createSpinner(text) {
 }
 
 const pkg = require("./package.json");
+const args = process.argv.slice(2);
+const APP_NAME = "kitsune-router";
+const videoCommand = args[0] === "xai" && args[1] === "video";
+// Informational commands never migrate state, install dependencies or create
+// secrets. They must work even when the old gateway is still running.
+if (!videoCommand && args.some(arg => arg === "--version" || arg === "-v")) {
+  console.log(pkg.version);
+  process.exit(0);
+}
+if (!videoCommand && args.some(arg => arg === "--help" || arg === "-h")) {
+  console.log(`Usage: ${APP_NAME} [options]
+
+Options:
+  -p, --port <port>   Port to run the server (default: 20128)
+  -H, --host <host>   Host to bind (default: 0.0.0.0)
+  -n, --no-browser    Don't open browser automatically
+  -l, --log           Show server logs (default: hidden)
+  -t, --tray          Run in system tray mode (background)
+  --skip-update      Skip auto-update check
+  -h, --help         Show this help message
+  -v, --version      Show version
+
+Commands:
+  xai video --prompt "..." --output video.mp4
+                     Generate a Grok Imagine video via the running gateway
+                     (see: ${APP_NAME} xai video --help)`);
+  process.exit(0);
+}
+const { resolveDataDirectory } = require("./hooks/dataDirectory");
+// Resolve/migrate before runtime warm-up or secret generation can create an
+// empty destination. Migration failures are fatal, not a fresh-install fallback.
+try { process.env.DATA_DIR = resolveDataDirectory(); }
+catch (error) {
+  console.error(`[kitsune-router] State migration stopped: ${error.message}`);
+  process.exit(1);
+}
 const { ensureSqliteRuntime, buildEnvWithRuntime } = require("./hooks/sqliteRuntime");
 const { buildSecretsEnv, getSecretsPath } = require("./hooks/runtimeSecrets");
 const { resolveHeapFlags } = require("./hooks/nodeFlags");
 const { ensureTrayRuntime } = require("./hooks/trayRuntime");
-const args = process.argv.slice(2);
 
-// Subcommands (`zenrouter xai video …`) run against an already-running gateway
+// Subcommands (`kitsune-router xai video …`) run against an already-running gateway
 // and bypass the launcher flow (no runtime self-heal, no server spawn).
-if (args[0] === "xai" && args[1] === "video") {
+if (videoCommand) {
   const { run } = require("./src/cli/commands/xaiVideo");
   run(args.slice(2))
     .then((code) => process.exit(code))
@@ -82,7 +117,7 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
-// Self-heal SQLite runtime deps (sql.js + better-sqlite3) into ~/.zenrouter/runtime
+// Self-heal SQLite runtime deps (sql.js + better-sqlite3) into ~/.kitsune-router/runtime
 // so the server can resolve them via NODE_PATH. Best-effort — sql.js is required,
 // better-sqlite3 is optional. Logs to stderr only on failure.
 try { ensureSqliteRuntime({ silent: true }); } catch {}
@@ -95,11 +130,31 @@ try { ensureTrayRuntime({ silent: true }); } catch {}
 // immediately with no manual .env editing. See hooks/runtimeSecrets.js for why
 // the secret cannot live inside the package.
 let secretsEnv = {};
-try { secretsEnv = buildSecretsEnv(process.env); } catch {}
+try { secretsEnv = buildSecretsEnv(process.env); }
+catch (error) {
+  console.error(`[kitsune-router] Runtime secrets setup stopped: ${error.message}`);
+  process.exit(1);
+}
+
+// Preserve a previously opted-in, recognized startup record. This only edits
+// files with backups; it never loads launchd, runs VBS or invokes systemctl.
+try {
+  const manifest = path.join(process.env.DATA_DIR, ".migration.json");
+  if (process.env.KITSUNE_ROUTER_MIGRATION !== "skip" && fs.existsSync(manifest)) {
+    const metadata = JSON.parse(fs.readFileSync(manifest, "utf8"));
+    const sourceName = path.basename(metadata.source || "").replace(/^\./, "");
+    if (["zenrouter", "9router"].includes(sourceName)) {
+      const { migrateLegacyAutoStart } = require("./src/cli/tray/autostart");
+      const migration = migrateLegacyAutoStart(__filename, { sourceName });
+      for (const warning of migration.warnings) console.warn(`[kitsune-router] ${warning}`);
+    }
+  }
+} catch (error) {
+  console.warn(`[kitsune-router] Auto-start migration needs review: ${error.message}`);
+}
 
 // Configuration constants
-const APP_NAME = pkg.name; // Use from package.json
-const INSTALL_CMD_LATEST = `npm i -g ${APP_NAME}@latest --prefer-online`;
+const INSTALL_CMD_LATEST = `npm i -g ${pkg.name}@latest --prefer-online`;
 
 const DEFAULT_PORT = 20128;
 const DEFAULT_HOST = "0.0.0.0";
@@ -119,10 +174,15 @@ function getDisplayHost() {
   return host === DEFAULT_HOST ? "localhost" : host;
 }
 const MAX_PORT_ATTEMPTS = 10;
-// Identifiers for killAllAppProcesses - only kill zenrouter specifically
-const PROCESS_IDENTIFIERS = [
-  'zenrouter'  // Only package name - avoid killing other apps
-];
+// Never treat every next-server/cli.js/node process as ours. Match the actual
+// installation or stable package/binary path, with both Node and Bun runtimes.
+function isAppCommand(command) {
+  const normalized = command.toLowerCase().replaceAll("\\", "/");
+  const installation = __dirname.toLowerCase().replaceAll("\\", "/");
+  return /(?:node|bun)(?:\.exe)?(?:[\s"/]|$)/.test(normalized)
+    && (normalized.includes(`${installation}/cli.js`) || normalized.includes(`${installation}/app/`) || /\/@bykitsune\/router\//.test(normalized) || /\/kitsune-router(?:[\s"]|\/)/.test(normalized))
+    && /(?:cli|server)\.js|kitsune-router(?:[\s"]|$)/.test(normalized);
+}
 
 // Parse arguments
 let port = DEFAULT_PORT;
@@ -148,29 +208,6 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === "--tray" || args[i] === "-t") {
     trayMode = true;
     process.env.TRAY_MODE = "1";
-  } else if (args[i] === "--help" || args[i] === "-h") {
-    console.log(`
-Usage: ${APP_NAME} [options]
-
-Options:
-  -p, --port <port>   Port to run the server (default: ${DEFAULT_PORT})
-  -H, --host <host>   Host to bind (default: ${DEFAULT_HOST})
-  -n, --no-browser    Don't open browser automatically
-  -l, --log           Show server logs (default: hidden)
-  -t, --tray          Run in system tray mode (background)
-  --skip-update       Skip auto-update check
-  -h, --help          Show this help message
-  -v, --version       Show version
-
-Commands:
-  xai video --prompt "..." --output video.mp4
-                      Generate a Grok Imagine video via the running gateway
-                      (see: ${APP_NAME} xai video --help)
-`);
-    process.exit(0);
-  } else if (args[i] === "--version" || args[i] === "-v") {
-    console.log(pkg.version);
-    process.exit(0);
   }
 }
 
@@ -196,17 +233,15 @@ function compareVersions(a, b) {
 
 // Get app data dir (matches app/src/lib/dataDir.js convention)
 function getAppDataDir() {
-  return process.platform === "win32"
-    ? path.join(process.env.APPDATA || "", "zenrouter")
-    : path.join(os.homedir(), ".zenrouter");
+  return process.env.DATA_DIR;
 }
 
 // Kill PID from file (best-effort, removes file after)
 function killByPidFile(pidFile) {
   try {
     if (!fs.existsSync(pidFile)) return;
-    const pid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
-    if (!pid) return;
+    const pid = Number(fs.readFileSync(pidFile, "utf8").trim());
+    if (!Number.isSafeInteger(pid) || pid <= 1 || pid === process.pid) return;
     try {
       if (process.platform === "win32") {
         execSync(`taskkill /F /T /PID ${pid}`, { stdio: "ignore", windowsHide: true, timeout: 3000 });
@@ -256,7 +291,7 @@ function killCloudflaredByAppPort(appPort) {
   return pids;
 }
 
-// Kill all zenrouter processes
+// Kill Kitsune Router processes only.
 function killAllAppProcesses(appPort) {
   return new Promise((resolve) => {
     try {
@@ -275,7 +310,7 @@ function killAllAppProcesses(appPort) {
       if (platform === "win32") {
         // Windows: use WMI to get full CommandLine (tasklist /V doesn't include it)
         try {
-          const psCmd = `powershell -NonInteractive -WindowStyle Hidden -Command "Get-WmiObject Win32_Process -Filter 'Name=\\"node.exe\\"' | Select-Object ProcessId,CommandLine | ConvertTo-Csv -NoTypeInformation"`;
+          const psCmd = `powershell -NonInteractive -WindowStyle Hidden -Command "Get-WmiObject Win32_Process -Filter 'Name=\\"node.exe\\" OR Name=\\"bun.exe\\"' | Select-Object ProcessId,CommandLine | ConvertTo-Csv -NoTypeInformation"`;
           const output = execSync(psCmd, {
             encoding: "utf8",
             windowsHide: true,
@@ -283,12 +318,8 @@ function killAllAppProcesses(appPort) {
           });
           const lines = output.split("\n").slice(1).filter(l => l.trim());
           lines.forEach(line => {
-            // Whitelist: real node process running zenrouter/cli.js, or next-server.
-            // Avoids killing editors/grep/strace/cursor that just have "zenrouter" in cmdline.
             const cmd = line.toLowerCase();
-            const isAppProcess =
-              (cmd.includes("node") && cmd.includes("zenrouter") && (cmd.includes("cli.js") || cmd.includes("\\zenrouter") || cmd.includes("/zenrouter")))
-              || cmd.includes("next-server");
+            const isAppProcess = isAppCommand(cmd);
             if (isAppProcess) {
               const match = line.match(/^"(\d+)"/);
               if (match && match[1] && match[1] !== process.pid.toString()) {
@@ -306,7 +337,7 @@ function killAllAppProcesses(appPort) {
         // candidate is additionally verified against /proc/<pid>/cmdline
         // before any signal is sent.
         try {
-          const output = execSync('ps -ww -o pid=,args= 2>/dev/null', {
+          const output = execSync('ps -ww -eo pid=,args= 2>/dev/null', {
             encoding: 'utf8',
             timeout: 5000
           });
@@ -317,21 +348,15 @@ function killAllAppProcesses(appPort) {
             if (!m) return;
             const pid = m[1];
             if (!pid || pid === process.pid.toString()) return;
-            // Whitelist: real node process running zenrouter/cli.js, or next-server.
-            // Avoids killing grep/strace/editors/cursor that incidentally match "zenrouter".
             const cmd = m[2].toLowerCase();
-            const isAppProcess =
-              (cmd.includes("node") && cmd.includes("zenrouter") && (cmd.includes("cli.js") || cmd.includes("/zenrouter")))
-              || cmd.includes("next-server");
+            const isAppProcess = isAppCommand(cmd);
             if (!isAppProcess) return;
             if (platform !== "win32" && process.platform === "linux") {
               // Verify the pid still belongs to that command: /proc is ground
               // truth, the ps snapshot may be stale or wrapped.
               try {
                 const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").toLowerCase();
-                const verified =
-                  (cmdline.includes("node") && cmdline.includes("zenrouter") && (cmdline.includes("cli.js") || cmdline.includes("/zenrouter")))
-                  || cmdline.includes("next-server");
+                const verified = isAppCommand(cmdline);
                 if (!verified) return;
               } catch {
                 return; // pid gone or unreadable — never kill on doubt
@@ -430,8 +455,8 @@ function killProxyByPidFile() {
   try {
     const pidFile = path.join(getAppDataDir(), "mitm", ".mitm.pid");
     if (!fs.existsSync(pidFile)) return;
-    const pid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
-    if (!pid) return;
+    const pid = Number(fs.readFileSync(pidFile, "utf8").trim());
+    if (!Number.isSafeInteger(pid) || pid <= 1 || pid === process.pid) return;
 
     if (process.platform === "win32") {
       // Graceful first (lets server cleanup hosts), then force
@@ -858,7 +883,7 @@ function startServer(updatePromise) {
             process.on("SIGHUP", () => {});
 
             console.log(`\n⏳ Switching to tray mode... (icon already visible in menu bar)`);
-            console.log(`🔔 ZenRouter is running in tray (PID: ${process.pid})`);
+            console.log(`🔔 Kitsune Router is running in tray (PID: ${process.pid})`);
             console.log(`   Server: http://${displayHost}:${port}`);
             console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
 
@@ -877,7 +902,7 @@ function startServer(updatePromise) {
           });
           bgProcess.unref();
 
-          console.log(`🔔 ZenRouter is now running in background (PID: ${bgProcess.pid})`);
+          console.log(`🔔 Kitsune Router is now running in background (PID: ${bgProcess.pid})`);
           console.log(`   Server: http://${displayHost}:${port}`);
           console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
 
@@ -921,11 +946,7 @@ function startServer(updatePromise) {
   }
 
   function disableMitmInDatabase() {
-    const dataDir = process.env.DATA_DIR || (
-      process.platform === "win32"
-        ? path.join(process.env.APPDATA || os.homedir(), "zenrouter")
-        : path.join(os.homedir(), ".zenrouter")
-    );
+    const dataDir = getAppDataDir();
 
     // 1. Legacy db.json
     try {
@@ -983,7 +1004,7 @@ function startServer(updatePromise) {
         console.error("--- End crash log ---\n");
       }
       disableMitmInDatabase();
-      process.env.ZENROUTER_DISABLE_MITM = "1";
+      process.env.KITSUNE_ROUTER_DISABLE_MITM = "1";
       restartCount = 0;
       server = spawnServer();
       attachServerEvents();

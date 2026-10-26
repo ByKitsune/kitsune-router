@@ -1,136 +1,22 @@
-# Tích hợp OpenAI Codex CLI
+# Tích hợp Codex CLI
 
-Tích hợp ZenRouter với OpenAI Codex CLI để định tuyến request API OpenAI qua hệ thống routing thông minh của ZenRouter.
+Lệnh `kitsune-router`, khóa provider **`kitsunerouter`**. Kết nối upstream hợp lệ và tạo/sao chép khóa gateway; không cấp thuê bao Codex/OpenAI hay mọi tính năng.
 
-## Yêu cầu
+## Cấu hình
 
-- OpenAI Codex CLI đã cài đặt
-- ZenRouter đang chạy cục bộ hoặc cloud endpoint đã cấu hình
-- API key từ ZenRouter dashboard
+Gộp vào `~/.codex/config.toml`, không `config.json`:
 
-## Setup
+```toml
+model_provider = "kitsunerouter"
+model = "my-route"
 
-### 1. Cấu hình biến môi trường
-
-Đặt các biến môi trường sau trong file cấu hình shell (`~/.bashrc`, `~/.zshrc`, hoặc `~/.bash_profile`):
-
-```bash
-# Base URL for ZenRouter
-export OPENAI_BASE_URL="http://localhost:20128/v1"
-
-# API Key from ZenRouter dashboard
-export OPENAI_API_KEY="your-zenrouter-api-key"
+[model_providers.kitsunerouter]
+name = "Kitsune Router"
+base_url = "http://localhost:20128/v1"
+wire_api = "responses"
+env_key = "KITSUNE_ROUTER_API_KEY"
 ```
 
-### 2. Reload Shell Configuration
+Tạo combo `my-route` trước hoặc thay ID model bật chính xác. Biến riêng chứa khóa gateway đã cấp, không tạo khóa. Preset có thể ghi header Authorization tĩnh: xem file là secret, giữ phần khác, không thay toàn bộ thư mục cấu hình.
 
-```bash
-source ~/.zshrc  # or ~/.bashrc
-```
-
-### 3. Xác minh Cấu hình
-
-Kiểm tra các biến môi trường đã set đúng:
-
-```bash
-echo $OPENAI_BASE_URL
-echo $OPENAI_API_KEY
-```
-
-## Model có sẵn
-
-ZenRouter cung cấp các model Codex sau:
-
-| Model ID | Mô tả |
-|----------|-------------|
-| `cx/gpt-5.2-codex` | GPT-5.2 Codex - Phiên bản mới nhất |
-| `cx/gpt-5.1-codex-max` | GPT-5.1 Codex Max - Extended context |
-
-## Ví dụ Sử dụng
-
-### Sử dụng Cơ bản
-
-```bash
-# Use GPT-5.2 Codex
-codex --model cx/gpt-5.2-codex "Write a function to sort an array"
-
-# Use GPT-5.1 Codex Max
-codex --model cx/gpt-5.1-codex-max "Explain this complex algorithm"
-```
-
-### Tạo Code
-
-```bash
-codex --model cx/gpt-5.2-codex "Create a REST API endpoint for user authentication"
-```
-
-### Giải thích Code
-
-```bash
-codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js)"
-```
-
-## File Cấu hình
-
-Bạn cũng có thể cấu hình Codex CLI qua file cấu hình. Tạo hoặc sửa `~/.codex/config.json`:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "apiKey": "your-zenrouter-api-key",
-  "defaultModel": "cx/gpt-5.2-codex"
-}
-```
-
-## Troubleshooting
-
-### Lỗi Xác thực
-
-Nếu gặp lỗi xác thực:
-
-1. Xác minh API key đúng trong ZenRouter dashboard
-2. Kiểm tra biến môi trường `OPENAI_API_KEY` đã set
-3. Đảm bảo API key chưa hết hạn
-
-### Lỗi Connection
-
-Nếu gặp lỗi kết nối:
-
-1. Xác minh ZenRouter đang chạy: `curl http://localhost:20128/health`
-2. Kiểm tra biến môi trường đã set đúng
-3. Đảm bảo không firewall nào chặn port 20128
-
-### Model không khả dụng
-
-Nếu gặp lỗi "model not available":
-
-1. Xác minh tên model khớp với cấu hình ZenRouter
-2. Kiểm tra kết nối provider OpenAI đang hoạt động trong ZenRouter dashboard
-3. Đảm bảo model có sẵn trong các provider đã kết nối
-
-## Cloud Endpoint
-
-Để dùng ZenRouter cloud endpoint thay vì localhost:
-
-```bash
-export OPENAI_BASE_URL="http://localhost:20128"
-```
-
-Đảm bảo bạn đã cấu hình API key trong ZenRouter cloud dashboard.
-
-## Cấu hình Nâng cao
-
-### Custom Timeout
-
-```bash
-export OPENAI_TIMEOUT=60  # seconds
-```
-
-### Debug Mode
-
-Bật debug mode để xem logs request/response chi tiết:
-
-```bash
-export CODEX_DEBUG=true
-codex --model cx/gpt-5.2-codex "Your prompt"
-```
+Kiểm tra `/api/health`, `/v1/models` có auth rồi `codex --model my-route`. Remote dùng HTTPS `/v1` riêng, localhost không phải cloud. Catalog không chứng minh quyền, tốc độ hay billing; tài liệu/tham số không hỗ trợ có thể bị từ chối. [Tích hợp](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) · [Tốc độ](https://github.com/ByKitsune/kitsune-router/blob/master/docs/PROCESSING-SPEED.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).

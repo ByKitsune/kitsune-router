@@ -1,9 +1,9 @@
 {
-  "name": "zenrouter-tests",
-  "version": "0.9.13",
+  "name": "kitsune-router-tests",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Unit tests for zenrouter embeddings endpoint",
+  "description": "Regression and compatibility tests for the Kitsune Router provider-neutral AI gateway",
   "scripts": {
     "pretest": "node ../scripts/check-installed-dependencies.mjs .. .",
     "test": "vitest run --config vitest.config.js --reporter=verbose",

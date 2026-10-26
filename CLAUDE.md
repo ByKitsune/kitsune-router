@@ -4,19 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ZenRouter (`zenrouter-app`) — a local AI routing gateway + Next.js dashboard. It exposes compatible endpoints under `/v1/*` and routes traffic across upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh and quota/usage tracking. Legacy cloud-sync fields remain, but the sync implementation was removed.
+Kitsune Router (`kitsune-router-app`) — a local AI routing gateway + Next.js dashboard. It exposes compatible endpoints under `/v1/*` and routes traffic across upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh and quota/usage tracking. Legacy cloud-sync fields remain, but the sync implementation was removed.
 
-Two published artifacts live in this one repo:
-- The **dashboard + gateway** (root `package.json`, `zenrouter-app`) — the Next.js server that does the actual routing.
-- The **CLI launcher** (`cli/`, published as `@joyccn/zenrouter`, binary `zenrouter`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
+Two artifact types live in this one repo; publication of the rebranded packages is pending:
+- The **dashboard + gateway** (root `package.json`, `kitsune-router-app`) — the Next.js server that does the actual routing.
+- The **CLI launcher** (`cli/`, published as `@bykitsune/router`, binary `kitsune-router`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
 
 The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the provider-agnostic routing/translation engine), `cli/` (the launcher package), and `tests/`.
+
+### Identity and migration contract
+
+- **Kitsune Router — Your models. Your routes.** Maintained/sponsored by [ByKitsune](https://bykitsune.com); provider-neutral and local-first, with no mandatory ByKitsune account or preferred provider order.
+- Target repository: `https://github.com/ByKitsune/kitsune-router`; npm `@bykitsune/router`; executable `kitsune-router`; canonical image `ghcr.io/bykitsune/kitsune-router`. **Client provider keys are `kitsunerouter`**, not the hyphenated executable or a bare JavaScript identifier with a hyphen.
+- **1.0.0 is the proposed first breaking rebrand release.** Final SHA-bound verification, external namespace ownership/registration, npm authorization and publication/readback remain separate gates. Do not relabel immutable 0.x npm/images/releases as historical Kitsune artifacts or quote a pre-change test count as current proof.
+- Read `docs/MIGRATION.md` before changing state initialization. `cli/hooks/dataDirectory.js` resolves `DATA_DIR` authoritatively; otherwise it can migrate stopped `~/.zenrouter`/`~/.9router` state to `~/.kitsune-router` (`%APPDATA%` on Windows). Keep originals, native Node/Bun SQLite-consistent snapshots, copied-file verification, destination lock/incomplete-marker refusal, secrets/auth/certificates and no-overwrite behavior. Never replace derivation salts, an existing SAML issuer or trusted root just to rename it. Fresh SAML uses `urn:kitsunerouter:sp`; existing implicit legacy entity IDs are preserved.
+- New project environment names use `KITSUNE_ROUTER_*`, extension headers `x-kitsune-router-*`. Unprefixed operator secrets keep their values; standard `/v1/*` and port 20128 are unchanged. Old binary/provider-key aliases are not required. Historical audit paths, hashes, upstream product identities and legal notices are provenance, not branding bugs.
 
 ## Commands
 
 Dashboard/gateway (run from repo root):
+
+The source server (`next dev`, source production/standalone) is not the CLI launcher's secret-provisioning path. `JWT_SECRET` must be a strong value of at least 32 characters or dashboard login fails. The initialization below is for a **fresh** source install with POSIX shell/OpenSSL. On upgrades, retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR`; use `docs/MIGRATION.md` rather than generating replacements. Keep `.env` private/uncommitted and replace other public example defaults only for a fresh installation.
 ```bash
-cp .env.example .env
+umask 077
+cp -n .env.example .env
+if ! grep -q '^JWT_SECRET=.' .env; then
+  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
+fi
+chmod 600 .env
 npm ci
 npm run check:deps
 PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
@@ -76,9 +91,9 @@ Two authoritative docs already exist — read them before working in these areas
 - Add a provider: copy `providers/REGISTRY_TEMPLATE.js`, add models to `config/providerModels.js`. Only add an executor for non-OpenAI-compatible upstreams.
 
 ### Persistence
-State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a runtime-specific adapter fallback chain (`driver.js`): Bun uses `bun:sqlite`; Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5). Pure-JS `sql.js` requires explicit `ZENROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive single-process ownership of `DATA_DIR`; mixed writers fail closed. A stale `.sqljs-owner` directory requires operator review after confirming no owner remains. `better-sqlite3` stays optional so installation can succeed without build tools.
+State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a runtime-specific adapter fallback chain (`driver.js`): Bun uses `bun:sqlite`; Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5). Pure-JS `sql.js` requires explicit `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive single-process ownership of `DATA_DIR`; mixed writers fail closed. A stale `.sqljs-owner` directory requires operator review after confirming no owner remains. `better-sqlite3` stays optional so installation can succeed without build tools.
 - `src/lib/localDb.js` is a **backward-compat shim** re-exporting `src/lib/db/index.js`. New code should import from `@/lib/db/index.js`; per-entity logic lives in `src/lib/db/repos/*`. Schema/migrations in `src/lib/db/migrations/`.
-- DB file location resolves via `src/lib/db/paths.js` (`DATA_DIR`, else `~/.zenrouter/`).
+- DB file location resolves via `src/lib/db/paths.js` (`DATA_DIR`, else `~/.kitsune-router/`).
 - Usage/request logs use the same SQLite repository layer and absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database.
 - Full database import bypasses ordinary repository mutations. The process-local `src/lib/db/helpers/importGeneration.js` still advances only after commit; persisted scope revisions additionally fence native SQLite workers and dependent caches. Rollbacks retain warmed references. Preserve refresh of MITM aliases and connection/project/quota state, and do not claim success if post-commit alias synchronization failed.
 - Usage acceptance (`enqueueRequestUsage`) freezes tokens, recorded time, resolved pricing and delivered-tier costs into a bounded durable outbox. Projection commits history, daily totals, lifetime count and outbox removal together using a unique event ID. `saveRequestUsage` additionally waits for history visibility. Retain one ID per incurred routed attempt, reuse it on terminal retries and surface failed acceptance; request/detail/file logs are best-effort telemetry, not a billing ledger.
@@ -91,7 +106,7 @@ Final-provider-body hooks, after translation/native preparation and before dispa
 
 - Plain JavaScript (ESM), no TypeScript. `@/*` path alias → `src/*` (`jsconfig.json`).
 - `custom-server.js` derives client IP from the TCP socket, accepting only a valid rightmost `X-Forwarded-For` address appended by a loopback reverse proxy. A lone `X-Real-IP` is not trusted. Preserve the proxy marker even when its address is rejected; proxy traffic must not gain loopback-only privileges.
-- Security-sensitive env: `JWT_SECRET` (session cookie), `INITIAL_PASSWORD` (default `12345678` — must override), `API_KEY_SECRET`, `MACHINE_ID_SALT`. Full env contract in `.env.example` and ARCHITECTURE.md's env matrix.
+- Security-sensitive env: `JWT_SECRET` (session cookie), `INITIAL_PASSWORD` (set a strong value before exposure), `API_KEY_SECRET`, `MACHINE_ID_SALT`. Full env contract in `.env.example` and ARCHITECTURE.md's env matrix. Back up the whole private `DATA_DIR`, not just a database export, and do not claim all stored provider keys are encrypted at rest.
 - Server-side provider probes and model catalogs must use `fetchPublic` or, only after `isLocalRequest`, `fetchTrustedLocal`. A separate DNS check followed by global `fetch` is not safe. Preserve metadata denial, pinned DNS, redirect checks, cancellation and bounded body reads. Image retrieval has its own engine-side public IP policy in `open-sse/config/mediaConfig.js`; it must not import the app layer.
 - The MITM certificate API is asynchronous and uses WebCrypto plus `@peculiar/x509`, not `node-forge`. Await root loading and leaf generation. Existing PKCS#1/PKCS#8 keys and unexpired trusted roots must remain usable without trust-store changes; test only with temporary certificate directories.
 - OpenCode configuration writes use `src/shared/utils/opencodeConfig.js` for JSONC-preserving, serialized atomic updates. Parse/read errors must never become an empty replacement config. Preserve user model/agent settings and use disposable HOME/XDG directories in tests; coexisting `.json`/`.jsonc` files require the operator to resolve the ambiguity.

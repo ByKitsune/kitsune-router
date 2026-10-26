@@ -1,166 +1,35 @@
-# Welcome to ZenRouter
+# Welcome to Kitsune Router
 
-**Current release: 0.9.10 (2026-10-16).** [Read the changelog](/en/changelog/) for changes, verification limits and upgrade requirements. Requires Node.js >=22.19.0; catalog entries do not guarantee account entitlement or live availability.
+**Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com). Choose your own upstream accounts, models and fallback order. No ByKitsune account, hosted API purchase or preferred provider is required. Requests still go to the upstreams you configure; local-first does not mean offline inference.
 
-**Use Claude, Codex, Gemini for FREE • Ultra-cheap alternatives from $0.20/1M tokens**
+## Release status
 
-ZenRouter is an AI model router that maximizes your subscription value and minimizes costs through intelligent routing and automatic fallback.
+**1.0.0 is the proposed first breaking rebrand release, pending final verification and publication.** Namespace registration/ownership, npm authorization, registry visibility and actual artifacts still require confirmation. Targets:
 
----
+| Surface | Identity |
+| --- | --- |
+| Repository | [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router) |
+| npm | `@bykitsune/router` |
+| Command | `kitsune-router` |
+| Client provider key | `kitsunerouter` |
+| Canonical image | `ghcr.io/bykitsune/kitsune-router` |
 
-## What is ZenRouter?
+Historical 0.x records remain ZenRouter artifacts with original provenance, not Kitsune publications. See the [release draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) and [changelog](/en/changelog/). Dated pass counts do not verify the current tree.
 
-ZenRouter is a smart proxy that sits between your coding tools (Cursor, Cline, Claude Desktop) and AI providers. It automatically routes requests to the best available model based on quota, cost, and availability.
+## What the gateway does
 
-**Stop wasting money:**
-- ❌ Subscription quota expires unused every month
-- ❌ Rate limits stop you mid-coding
-- ❌ Expensive APIs ($20-50/month per provider)
-- ❌ Manual switching between providers
+- Compatible Chat, Responses, Messages, Gemini and Ollama surfaces with route-specific translation limits.
+- Configurable model combos and account fallback, with cancellation, quota/reset and error handling.
+- Local SQLite configuration and usage, plus private secrets/auth/certificate state.
+- Optional token-saving controls. Savings depend on workload, not a promised percentage.
+- Usage and known/unknown cost visibility. Estimates are not invoices, and unknown is not free.
 
-**Start maximizing value:**
-- ✅ **Maximize Subscriptions** - Track and use every bit of Claude Code, Codex, Gemini quota
-- ✅ **FREE Available** - Access iFlow, Qwen, Kiro models via CLI
-- ✅ **Ultra-Cheap Backup** - GLM ($0.6/1M), MiniMax M2.1 ($0.20/1M)
-- ✅ **Smart Fallback** - Subscription → Cheap → Free, automatic switching
+No unlimited quota, free-forever upstream service, zero downtime or universal model entitlement is guaranteed. Provider terms, regions and prices remain applicable. Legacy cloud sync is removed; remote access is an operator-managed deployment, not a bundled hosted endpoint.
 
----
+## Start here
 
-## Key Features
+- [Quick start](/en/getting-started/quick-start/) · [Installation](/en/getting-started/installation/)
+- [Integrations](/en/integration/other-tools/) · [Combos](/en/features/combos/) · [Usage](/en/features/quota-tracking/)
+- [Migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) · [Operations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md)
 
-### 🔄 Smart 3-Tier Fallback
-
-```
-Setup once, never stop coding:
-
-Tier 1 (SUBSCRIPTION): Claude Code → Codex → Gemini
-  ↓ quota exhausted
-Tier 2 (CHEAP): GLM-4.7 → MiniMax M2.1 → Kimi
-  ↓ budget limit
-Tier 3 (FREE): iFlow → Qwen → Kiro
-
-→ Automatic switching, zero downtime!
-```
-
-### 📊 Quota Tracking
-
-- Real-time token consumption per provider
-- Reset countdown (5-hour, daily, weekly, monthly)
-- Cost estimation for paid tiers
-- Monthly spending reports
-
-### 🎯 Universal CLI Support
-
-Works with any tool that supports custom OpenAI endpoints:
-
-✅ **Cursor** • **Cline** • **Claude Desktop** • **Codex** • **RooCode** • **Continue** • **Any OpenAI-compatible tool**
-
-### 💰 Cost Optimization
-
-**Real example (100M tokens/month):**
-```
-60M via Gemini CLI: $0 (free tier)
-30M via Claude Code: $0 (subscription you already have)
-8M via GLM: $4.80
-2M via MiniMax: $0.40
-Total: $5.20/month vs $2000 on ChatGPT API!
-```
-
----
-
-## Why Choose ZenRouter?
-
-### Maximize Subscriptions
-
-Already paying for Claude Code ($20-100/month) or Codex ($20-200/month)? Get full value:
-
-- Track quota usage in real-time
-- Auto-switch when quota resets (5-hour, weekly)
-- Use every token before it expires
-- Gemini CLI: 180K completions/month **FREE**
-
-### Ultra-Cheap Backup
-
-When subscription quota runs out, pay pennies:
-
-| Provider | Cost per 1M tokens | Reset |
-|----------|-------------------|-------|
-| **GLM-4.7** | $0.60 input / $2.20 output | Daily 10:00 AM |
-| **MiniMax M2.1** | $0.20 input / $1.00 output | 5-hour rolling |
-| **Kimi K2** | $9/month (10M tokens) | Monthly |
-
-**~90% cheaper than ChatGPT API ($20/1M)!**
-
-### Free Forever Fallback
-
-Emergency backup when everything else is quota-limited:
-
-- **iFlow**: 8 models (Kimi K2, Qwen3 Coder Plus, GLM 4.7, MiniMax M2)
-- **Qwen**: 3 models (Qwen3 Coder Plus/Flash, Vision)
-- **Kiro**: Claude Sonnet 4.5, Haiku 4.5 (AWS Builder ID)
-
----
-
-## Quick Start
-
-Get started in 2 minutes:
-
-```bash
-# Install globally
-npm install -g @joyccn/zenrouter@0.9.10
-
-# Start (dashboard opens automatically)
-zenrouter
-```
-
-🎉 **Dashboard opens** → Connect providers → Start coding!
-
-**Use in your CLI tool:**
-
-```
-Endpoint: http://localhost:20128/v1
-API Key: [from dashboard]
-Model: cc/claude-opus-4-5-20251101
-```
-
-[→ Full Getting Started Guide](getting-started.md)
-
----
-
-## Use Cases
-
-### For Individual Developers
-
-- Maximize your Claude Code/Codex subscription
-- Use Gemini CLI free tier (180K/month)
-- Fallback to ultra-cheap models ($0.20/1M)
-- Code 24/7 without rate limits
-
-### For Teams
-
-- Deploy on VPS/Cloud for shared access
-- Track team spending in real-time
-- Set budget limits per tier
-- Centralized provider management
-
-### For Mobile/Remote Coding
-
-- Use cloud deployment (http://localhost:20128)
-- Access from iPad, phone, anywhere
-- No localhost limitations
-- Cloudflare edge network (300+ locations)
-
----
-
-## What's Next?
-
-- [Getting Started](getting-started.md) - Install and configure in 5 minutes
-- [Installation Guide](getting-started/installation.md) - Detailed setup instructions
-- [Features](features/) - Explore all capabilities
-- [FAQ](faq.md) - Common questions
-
----
-
-<div align="center">
-  <sub>Built with ❤️ for developers maximizing AI value</sub>
-</div>
+MIT licensed; upstream notices and ZenRouter/9Router contributor credit remain in the repository's [LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE) and [README](https://github.com/ByKitsune/kitsune-router#maintainers-acknowledgments-and-license).

@@ -1,149 +1,23 @@
 # Cursor Integration
 
-Integrate ZenRouter with Cursor IDE to route your AI requests through ZenRouter's intelligent routing system.
+Use Cursor's custom OpenAI-compatible endpoint controls where supported by your installed version. This routes selected requests to Kitsune Router; it does not turn a provider connection into a Cursor subscription or enable every hosted editor feature.
 
-## Prerequisites
+## Configure
 
-- Cursor IDE installed
-- Cursor Pro account (required for custom API endpoints)
-- ZenRouter cloud endpoint configured
-- API key from ZenRouter dashboard
+1. Start the gateway and connect an upstream you may use.
+2. Create/copy a gateway key and choose an enabled model or your own combo from `/v1/models`.
+3. In Cursor's supported custom API settings, set:
 
-## ⚠️ Important Notes
-
-> **Cloud Endpoint Required**: Cursor routes requests through its own server and does not support localhost endpoints. You must use the ZenRouter cloud endpoint: `http://localhost:20128`
-
-> **Cursor Pro Required**: This feature requires a Cursor Pro account to use custom API endpoints.
-
-## Setup
-
-### 1. Open Cursor Settings
-
-1. Open Cursor IDE
-2. Go to **Settings** (Cmd/Ctrl + ,)
-3. Navigate to **Models** section
-
-### 2. Enable OpenAI API
-
-1. Find the **OpenAI API key** option
-2. Enable the toggle to activate custom API configuration
-
-### 3. Configure Base URL
-
-Set the base URL to ZenRouter cloud endpoint:
-
-```
-http://localhost:20128
+```text
+Base URL: http://localhost:20128/v1
+API key: an issued gateway key
+Model: an exact enabled model ID or configured combo
 ```
 
-**Steps:**
-1. In the Models settings, locate the **Base URL** field
-2. Enter: `http://localhost:20128`
-3. Click **Save**
+Review the dashboard preset if available; do not replace unrelated settings. If the tool asks for a custom provider identifier, use `kitsunerouter`, not the executable `kitsune-router`. UI labels vary by version.
 
-### 4. Add API Key
+## Network and capability limits
 
-1. In the **API Key** field, enter your ZenRouter API key
-2. You can find your API key in the ZenRouter dashboard under **Settings → API Keys**
-3. Click **Save**
+A feature executed on the editor's hosted servers cannot reach your computer's localhost. If you intentionally deploy remotely, use your authenticated HTTPS endpoint, not a claimed bundled Kitsune cloud URL. Do not expose an unauthenticated dashboard to work around access.
 
-### 5. Add Custom Model
-
-1. Click **View All Models** button
-2. Click **Add Custom Model**
-3. Enter the model name from your ZenRouter configuration (e.g., `gpt-4`, `claude-opus-4-5`, etc.)
-4. Click **Add**
-
-### 6. Select Model
-
-1. In the Cursor chat interface, click the model selector dropdown
-2. Choose your custom model from the list
-3. Start using ZenRouter with Cursor!
-
-## Configuration Example
-
-Your Cursor settings should look like this:
-
-```
-OpenAI API: ✓ Enabled
-Base URL: http://localhost:20128
-API Key: sk-zenrouter-xxxxxxxxxxxxx
-Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
-```
-
-## Available Models
-
-You can use any model configured in your ZenRouter dashboard. Common examples:
-
-| Model Name | Provider | Description |
-|------------|----------|-------------|
-| `gpt-4` | OpenAI | GPT-4 Turbo |
-| `gpt-4o` | OpenAI | GPT-4 Optimized |
-| `claude-opus-4-5` | Anthropic | Claude Opus 4.5 |
-| `claude-sonnet-4-5` | Anthropic | Claude Sonnet 4.5 |
-| `gemini-2.0-flash` | Google | Gemini 2.0 Flash |
-
-## Usage
-
-### Chat Interface
-
-1. Open Cursor chat (Cmd/Ctrl + L)
-2. Select your model from the dropdown
-3. Start chatting with AI through ZenRouter
-
-### Inline Code Generation
-
-1. Select code in your editor
-2. Press Cmd/Ctrl + K
-3. Enter your prompt
-4. Cursor will use ZenRouter to generate code
-
-### Code Explanation
-
-1. Select code in your editor
-2. Press Cmd/Ctrl + L
-3. Ask "Explain this code"
-4. Get AI-powered explanations through ZenRouter
-
-## Troubleshooting
-
-### "Invalid API Key" Error
-
-1. Verify your API key in ZenRouter dashboard
-2. Make sure you copied the entire key including the `sk-zenrouter-` prefix
-3. Check that the API key has not expired
-4. Try regenerating a new API key
-
-### "Model Not Found" Error
-
-1. Verify the model name matches exactly with your ZenRouter configuration
-2. Check that the provider connection is active in ZenRouter dashboard
-3. Ensure the model is available in your connected providers
-4. Try using the full model name (e.g., `openai/gpt-4` instead of `gpt-4`)
-
-### Connection Issues
-
-1. Verify you are using the cloud endpoint: `http://localhost:20128`
-2. Check your internet connection
-3. Ensure ZenRouter cloud service is operational
-4. Try disabling VPN or proxy if enabled
-
-### Localhost Not Working
-
-> **Remember**: Cursor does not support localhost endpoints. You must use the cloud endpoint `http://localhost:20128`. If you need to use a local ZenRouter instance, consider using a tunneling service like ngrok to expose your local endpoint.
-
-## Cloud Endpoint Setup
-
-If you're running ZenRouter locally and want to use it with Cursor:
-
-1. Enable cloud endpoint in ZenRouter settings
-2. Configure your cloud endpoint URL in ZenRouter dashboard
-3. Use the cloud URL in Cursor settings
-4. Ensure your local ZenRouter instance is accessible from the internet
-
-## Best Practices
-
-1. **Use Model Aliases**: Create short aliases for frequently used models in ZenRouter
-2. **Monitor Usage**: Check ZenRouter dashboard for usage statistics and costs
-3. **Rotate API Keys**: Regularly rotate your API keys for security
-4. **Test Models**: Try different models to find the best one for your use case
+Tool, vision, structured-output and document support depend on the selected route and client wire. Check actual errors/capabilities rather than assuming the largest context or every model feature. See [other tools](/en/integration/other-tools/), [troubleshooting](/en/troubleshooting/) and [migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).

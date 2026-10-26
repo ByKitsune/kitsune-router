@@ -1,66 +1,57 @@
-"use client";
+import Link from "next/link";
+import styles from "../landing.module.css";
 
 export default function HowItWorks() {
   return (
-    <section className="py-24 border-y border-[#232f42] bg-[#141b24]/40" id="how-it-works">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">How ZenRouter Works</h2>
-          <p className="text-gray-400 max-w-xl text-lg">
-            Traffic flows serenely from your local editor or terminal through our intelligent routing and token-saving engine to the optimal provider.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Connection line */}
-          <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-[2px] bg-gradient-to-r from-slate-700 via-[#5D87B8] to-slate-700 -z-10"></div>
-          
-          {/* Step 1: CLI & SDKs */}
-          <div className="flex flex-col gap-6 relative group">
-            <div className="w-24 h-24 rounded-2xl bg-[#10151f] border border-[#233044] flex items-center justify-center shadow-xl group-hover:border-slate-500 transition-colors z-10 mx-auto md:mx-0">
-              <span className="material-symbols-outlined text-4xl text-gray-300">terminal</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-2 text-white">1. Developer Tools</h3>
-              <p className="text-sm text-gray-400">
-                Claude Code, Cursor, Codex, Cline, and Copilot connect to a unified local OpenAI-compatible endpoint.
-              </p>
-            </div>
+    <section id="routing" className={`${styles.container} ${styles.section} ${styles.routingSection}`} aria-labelledby="routing-heading">
+      <div className={styles.routingIntro}>
+        <h2 id="routing-heading" className={styles.sectionHeading} data-reveal>Keep your tools.<br />Choose the route.</h2>
+        <p className={styles.body} data-reveal>
+          Point a compatible client at your gateway. Change the providers behind it without reconfiguring every tool.
+        </p>
+        <dl className={styles.explanationList}>
+          <div data-reveal>
+            <dt>Connect your accounts</dt>
+            <dd>Use API keys or supported sign-in flows. You decide which providers this installation can use.</dd>
           </div>
-
-          {/* Step 2: ZenRouter Hub */}
-          <div className="flex flex-col gap-6 relative group md:items-center md:text-center">
-            <div className="w-24 h-24 rounded-2xl bg-[#10151f] border-2 border-[#5D87B8] flex items-center justify-center shadow-[0_0_30px_rgba(93,135,184,0.25)] z-10 mx-auto">
-              <span className="material-symbols-outlined text-4xl text-[#5D87B8] animate-pulse">alt_route</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-2 text-[#7b9fc8]">2. ZenRouter Engine</h3>
-              <p className="text-sm text-gray-400">
-                RTK token-killer cuts redundant noise (-40%), validates health, and switches routes seamlessly on quota exhaustion.
-              </p>
-            </div>
+          <div data-reveal>
+            <dt>Set the fallback order</dt>
+            <dd>Build a model combo and choose its strategy. Availability and capability still depend on the upstream provider.</dd>
           </div>
-
-          {/* Step 3: AI Providers */}
-          <div className="flex flex-col gap-6 relative group md:items-end md:text-right">
-            <div className="w-24 h-24 rounded-2xl bg-[#10151f] border border-[#233044] flex items-center justify-center shadow-xl group-hover:border-slate-500 transition-colors z-10 mx-auto md:mx-0">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="w-6 h-6 rounded bg-emerald-500/30 border border-emerald-500/40"></div>
-                <div className="w-6 h-6 rounded bg-amber-500/30 border border-amber-500/40"></div>
-                <div className="w-6 h-6 rounded bg-blue-500/30 border border-blue-500/40"></div>
-                <div className="w-6 h-6 rounded bg-[#E85D3F]/30 border border-[#E85D3F]/40"></div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-2 text-white">3. Upstream AI Providers</h3>
-              <p className="text-sm text-gray-400">
-                Requests are processed with real-time SSE streaming across Claude, OpenAI, Gemini, Antigravity, Groq, and more.
-              </p>
-            </div>
+          <div data-reveal>
+            <dt>Keep the client address</dt>
+            <dd>Supported OpenAI- and Anthropic-compatible requests enter through the same gateway.</dd>
           </div>
+        </dl>
+      </div>
+      <div className={styles.endpointStage} data-reveal>
+        <figure className={styles.productPanel} data-ui="endpoint-configuration">
+          <figcaption className={styles.panelHeader}>
+            <strong>Endpoint &amp; key</strong>
+            <span>Setup preview</span>
+          </figcaption>
+          <div className={styles.panelBody}>
+            <div className={styles.endpointAddress}>
+              <span>Local API base URL</span>
+              <code>http://localhost:20128/v1</code>
+            </div>
+            <dl className={styles.settingsList}>
+              <div><dt>Router API key</dt><dd>Generate in your dashboard</dd></div>
+              <div><dt>Provider credentials</dt><dd>Managed on your installation</dd></div>
+              <div><dt>Client model</dt><dd><code>my-route</code></dd></div>
+            </dl>
+            <p className={styles.panelNote}>Create a combo named <code>my-route</code>, then use that name in your client.</p>
+            <Link className={styles.panelLink} href="/dashboard/endpoint">Configure your endpoint</Link>
+          </div>
+        </figure>
+        <div className={styles.compatibilityNote}>
+          <p>Bring the client you already use.</p>
+          <ul aria-label="Examples of supported client integrations">
+            <li>OpenCode</li><li>Codex</li><li>Claude Code</li><li>Cline</li><li>Cursor</li>
+          </ul>
+          <p className={styles.smallNote}>Integration steps and supported features vary by client and model.</p>
         </div>
       </div>
     </section>
   );
 }
-

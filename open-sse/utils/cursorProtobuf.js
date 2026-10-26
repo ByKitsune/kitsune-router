@@ -896,7 +896,7 @@ export function extractTextFromResponse(payload) {
 // RunRequest path (executors/cursor.js) to advertise MCP tools and to
 // decode/answer server-initiated tool calls.
 
-export const AGENT_TOOL_PROVIDER = "zenrouter";
+export const AGENT_TOOL_PROVIDER = "kitsunerouter";
 
 export function validateAgentRequestControls(body) {
   const unsupported = CURSOR_UNSUPPORTED_GENERATION_PARAMS.find((param) => body?.[param] !== undefined);

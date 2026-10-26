@@ -1,5 +1,15 @@
 # 変更履歴
 
+## Kitsune Router 1.0.0 — 提案、検証・公開待ち
+
+**Your models. Your routes.** [ByKitsune](https://bykitsune.com) が保守・支援し、アカウント・プロバイダー順序は強制しません。対象 `ByKitsune/kitsune-router`、npm `@bykitsune/router`、コマンド `kitsune-router`、キー `kitsunerouter`、image `ghcr.io/bykitsune/kitsune-router`。
+
+writer 停止・全体保存後、`~/.zenrouter`/`~/.9router` → `~/.kitsune-router` を検証コピーし、原本保持・既存 target 上書き拒否。明示 `DATA_DIR` 優先。秘密/auth/ソルト/信頼証明書を維持。変数 `KITSUNE_ROUTER_*`、ヘッダー `x-kitsune-router-*`、`/v1/*` と 20128 は不変です。
+
+名前空間、npm/GHCR 権限、最終 SHA 検証・公開は未完了。[草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [技術履歴](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+
+> **歴史資料：** 以下は当時の ZenRouter 名称・成果物・URL・検証を保持します。Kitsune 0.x 公開や現行ソースの検証ではありません。[現行インストール](/ja/getting-started/installation/) を使い、旧更新コマンドを使わないでください。下の Unreleased 作業はリブランド提案以前の記録です。
+
 ## 未リリース — 10月の整合性修正
 
 - Next.js の fetch ラッパーとゲートウェイ転送層の再帰呼び出しを修正し、チャット・OAuth 更新・使用量・一覧取得を復旧します。アカウントやプロキシの方針は変更しません。

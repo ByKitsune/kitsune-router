@@ -1,56 +1,68 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import PropTypes from "prop-types";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/utils/cn";
-import { APP_CONFIG, UPDATER_CONFIG } from "@/shared/constants/config";
+import { APP_CONFIG, BRAND, UPDATER_CONFIG } from "@/shared/constants/config";
 import { MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
-import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
-import Button from "./Button";
-import { ConfirmModal } from "./Modal";
 
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
 const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
 // Combined entry: webSearch + webFetch share one page at /dashboard/media-providers/web
-const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
+const COMBINED_WEB_ITEM = { id: "web", label: "Web fetch & search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
 
 const navItems = [
-  { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "vpn_key" },
+  { href: "/dashboard/endpoint", label: "Endpoint & key", icon: "vpn_key" },
   { href: "/dashboard/providers", label: "Providers", icon: "deployed_code" },
   // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
-  { href: "/dashboard/combos", label: "Combo & Vision Adapter", icon: "layers" },
+  { href: "/dashboard/combos", label: "Combos & adapters", icon: "layers" },
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
-  { href: "/dashboard/quota", label: "Quota Tracker", icon: "donut_small" },
-  { href: "/dashboard/token-saver", label: "Token Saver", icon: "tune" },
+  { href: "/dashboard/quota", label: "Quota tracker", icon: "donut_small" },
+  { href: "/dashboard/token-saver", label: "Token saver", icon: "tune" },
   // { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
-  { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "code" },
+  { href: "/dashboard/cli-tools", label: "CLI tools", icon: "code" },
 ];
 
 const debugItems = [
-  { href: "/dashboard/console-log", label: "Console Log", icon: "terminal" },
+  { href: "/dashboard/console-log", label: "Console log", icon: "terminal" },
   { href: "/dashboard/translator", label: "Translator", icon: "translate" },
 ];
 
 const systemItems = [
-  { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
+  { href: "/dashboard/proxy-pools", label: "Proxy pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
 ];
 
 export default function Sidebar({ onClose }) {
   const pathname = usePathname();
-  const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(() => pathname.startsWith("/dashboard/media-providers"));
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [shutdownCountdown, setShutdownCountdown] = useState(0);
   const [enableTranslator, setEnableTranslator] = useState(false);
-  const { copied, copy } = useCopyToClipboard(2000);
+  const [copyFeedback, setCopyFeedback] = useState("");
+  const mediaId = useId();
+  const updateTitleId = useId();
+  const updateDialog = useRef(null);
+  const shutdownTimer = useRef(null);
+  const copyingCommand = useRef(false);
 
   const INSTALL_CMD = UPDATER_CONFIG.installCmdLatest;
+
+  useEffect(() => () => clearInterval(shutdownTimer.current), []);
+
+  useEffect(() => {
+    const dialog = updateDialog.current;
+    if (!dialog) return;
+    if ((showUpdateModal || isUpdating || isDisconnected) && !dialog.open) dialog.showModal();
+    if (!showUpdateModal && !isUpdating && !isDisconnected && dialog.open) dialog.close();
+    if (isUpdating && !showUpdateModal) dialog.querySelector("h2")?.focus();
+  }, [showUpdateModal, isUpdating, isDisconnected]);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -77,20 +89,37 @@ export default function Sidebar({ onClose }) {
   // Open manual update panel (no countdown yet — user must click Copy to trigger shutdown)
   const handleUpdate = () => {
     setShowUpdateModal(false);
+    setCopyFeedback("");
     setIsUpdating(true);
   };
 
-  // Triggered by Copy button inside ManualUpdatePanel: copy + countdown + shutdown
+  const copyCommand = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(INSTALL_CMD);
+      setCopyFeedback("Install command copied.");
+      return true;
+    } catch {
+      setCopyFeedback("Could not copy. Select the install command and copy it manually. The server is still running.");
+      return false;
+    }
+  };
+
+  // Do not stop the server if the command could not actually be copied.
   const handleCopyAndShutdown = async () => {
-    try { await navigator.clipboard.writeText(INSTALL_CMD); } catch { /* clipboard blocked */ }
-    copy(INSTALL_CMD);
+    if (shutdownTimer.current || copyingCommand.current) return;
+    copyingCommand.current = true;
+    const didCopy = await copyCommand();
+    copyingCommand.current = false;
+    if (!didCopy) return;
     let remaining = UPDATER_CONFIG.shutdownCountdownSec;
     setShutdownCountdown(remaining);
-    const timer = setInterval(() => {
+    shutdownTimer.current = setInterval(() => {
       remaining -= 1;
       setShutdownCountdown(remaining);
       if (remaining <= 0) {
-        clearInterval(timer);
+        clearInterval(shutdownTimer.current);
+        shutdownTimer.current = null;
         fetch("/api/version/shutdown", { method: "POST" }).catch(() => {});
         setIsDisconnected(true);
       }
@@ -98,6 +127,8 @@ export default function Sidebar({ onClose }) {
   };
 
   const handleCancelUpdate = () => {
+    if (shutdownCountdown > 0) return;
+    setShowUpdateModal(false);
     setIsUpdating(false);
     setShutdownCountdown(0);
   };
@@ -108,68 +139,62 @@ export default function Sidebar({ onClose }) {
 
   return (
     <>
-      <aside className="flex w-72 flex-col border-r border-border-subtle bg-vibrancy backdrop-blur-xl transition-colors duration-300 min-h-full">
-        {/* Traffic lights */}
-        <div className="flex items-center gap-2 px-6 pt-5 pb-2">
-          <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
-          <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
-          <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
-        </div>
-
-        {/* Logo */}
-        <div className="px-6 py-4 flex flex-col gap-2">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="flex items-center justify-center size-9 rounded-[10px] bg-surface-2 border border-border p-1.5 shadow-[var(--shadow-warm)] group-hover:scale-105 transition-transform">
-              <Image src="/icons/logo.svg" alt="ZenRouter Logo" width={24} height={24} className="w-full h-full object-contain" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold tracking-tight text-text-main">
-                {APP_CONFIG.name}
-              </h1>
-              <span className="text-xs text-text-muted">v{APP_CONFIG.version}</span>
-            </div>
-          </Link>
+      <aside className="flex h-full w-72 max-w-[calc(100vw-24px)] flex-col bg-sidebar text-text-main">
+        <div className="flex shrink-0 flex-col gap-4 px-5 pb-4 pt-6">
+          <div className="flex items-center justify-between gap-2">
+            <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-2.5">
+              <Image src="/icons/logo.svg" alt="" width={38} height={38} className="shrink-0" />
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-base font-bold tracking-[-0.035em]">{APP_CONFIG.name}</span>
+                <span className="text-xs text-text-muted">Your routing workspace</span>
+              </div>
+            </Link>
+            {onClose && (
+              <button type="button" onClick={onClose} aria-label="Close navigation" className="flex size-10 shrink-0 items-center justify-center text-text-muted hover:bg-surface-2 hover:text-text-main">
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">close</span>
+              </button>
+            )}
+          </div>
           {updateInfo && (
-            <div className="flex flex-col gap-1.5 rounded p-1 -m-1">
-              <span className="text-xs font-semibold text-green-600 dark:text-amber-500">
-                ↑ New version available: v{updateInfo.latestVersion}
-              </span>
-              <div className="flex items-center gap-2">
+            <div className="bg-surface-2 p-3">
+              <p className="text-xs font-semibold leading-5">Update available: v{updateInfo.latestVersion}</p>
+              <div className="mt-1 flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setShowUpdateModal(true)}
-                  className="px-2 py-1 rounded bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                  className="min-h-10 text-xs font-bold text-primary underline underline-offset-4"
                 >
-                  Update now
+                  Update options
                 </button>
                 <button
-                  onClick={() => copy(INSTALL_CMD)}
-                  title="Copy install command"
-                  className="flex-1 text-left hover:opacity-80 transition-opacity cursor-pointer min-w-0"
+                  type="button"
+                  onClick={copyCommand}
+                  className="min-h-10 text-xs font-semibold underline underline-offset-4"
                 >
-                  <code className="block text-[10px] text-brand-600/80 dark:text-brand-300 font-mono truncate">
-                    {copied ? "✓ copied!" : INSTALL_CMD}
-                  </code>
+                  Copy command
                 </button>
               </div>
+              {!isUpdating && <p className="text-xs leading-5 text-text-muted" role="status">{copyFeedback}</p>}
             </div>
           )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+        <nav aria-label="Dashboard navigation" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2 custom-scrollbar">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
+              aria-current={isActive(item.href) ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                 isActive(item.href)
-                  ? "bg-primary/10 text-primary font-medium"
+                  ? "bg-surface-3 text-text-main font-semibold"
                   : "text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
               <span
+                aria-hidden="true"
                 className={cn(
                   "material-symbols-outlined text-[19px] transition-colors",
                   isActive(item.href) ? "text-primary" : "group-hover:text-primary"
@@ -177,80 +202,85 @@ export default function Sidebar({ onClose }) {
               >
                 {item.icon}
               </span>
-              <span className="text-[13px]">{item.label}</span>
+              <span className="text-[13px] leading-5">{item.label}</span>
             </Link>
           ))}
 
           {/* System section */}
           <div className="pt-3 mt-2 space-y-0.5">
-            <p className="px-4 text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-2">
-              System
+            <p className="mb-2 px-3 text-xs font-semibold text-text-muted">
+              Workspace
             </p>
 
             {/* Media Providers accordion */}
             <button
+              type="button"
+              aria-expanded={mediaOpen}
+              aria-controls={mediaId}
               onClick={() => setMediaOpen((v) => !v)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "group flex min-h-10 w-full items-center gap-3 rounded-sm px-3 py-2",
                 pathname.startsWith("/dashboard/media-providers")
-                  ? "bg-primary/10 text-primary font-medium"
+                  ? "bg-surface-3 text-text-main font-semibold"
                   : "text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
-              <span className={cn("material-symbols-outlined text-[19px] transition-colors", pathname.startsWith("/dashboard/media-providers") ? "text-primary" : "group-hover:text-primary")}>perm_media</span>
-              <span className="text-[13px] flex-1 text-left">Media Providers</span>
-              <span className="material-symbols-outlined text-[14px] transition-transform" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <span aria-hidden="true" className={cn("material-symbols-outlined text-[19px]", pathname.startsWith("/dashboard/media-providers") ? "text-primary" : "group-hover:text-primary")}>perm_media</span>
+              <span className="text-[13px] flex-1 text-left">Media providers</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
                 expand_more
               </span>
             </button>
-            {mediaOpen && (
-              <div className="pl-4">
-                {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
+            <div id={mediaId} className="pl-4" hidden={!mediaOpen}>
+              {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
                   <Link
                     key={kind.id}
                     href={`/dashboard/media-providers/${kind.id}`}
                     onClick={onClose}
+                    aria-current={pathname.startsWith(`/dashboard/media-providers/${kind.id}`) ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                      "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                       pathname.startsWith(`/dashboard/media-providers/${kind.id}`)
-                        ? "bg-primary/10 text-primary font-medium"
+                        ? "bg-surface-3 text-text-main font-semibold"
                         : "text-text-muted hover:bg-surface-2 hover:text-text-main"
                     )}
                   >
-                    <span className="material-symbols-outlined text-[16px]">{kind.icon}</span>
-                    <span className="text-sm">{kind.label}</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{kind.icon}</span>
+                    <span className="text-[13px]">{kind.label}</span>
                   </Link>
-                ))}
-                <Link
+              ))}
+              <Link
                   key={COMBINED_WEB_ITEM.id}
                   href={COMBINED_WEB_ITEM.href}
                   onClick={onClose}
+                  aria-current={pathname.startsWith(COMBINED_WEB_ITEM.href) ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                    "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                     pathname.startsWith(COMBINED_WEB_ITEM.href)
-                      ? "bg-primary/10 text-primary font-medium"
+                      ? "bg-surface-3 text-text-main font-semibold"
                       : "text-text-muted hover:bg-surface-2 hover:text-text-main"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[16px]">{COMBINED_WEB_ITEM.icon}</span>
-                  <span className="text-sm">{COMBINED_WEB_ITEM.label}</span>
-                </Link>
-              </div>
-            )}
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{COMBINED_WEB_ITEM.icon}</span>
+                  <span className="text-[13px]">{COMBINED_WEB_ITEM.label}</span>
+              </Link>
+            </div>
 
             {systemItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
+                aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                  "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                   isActive(item.href)
-                    ? "bg-primary/10 text-primary font-medium"
+                    ? "bg-surface-3 text-text-main font-semibold"
                     : "text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "material-symbols-outlined text-[19px] transition-colors",
                     isActive(item.href) ? "text-primary" : "group-hover:text-primary"
@@ -270,14 +300,16 @@ export default function Sidebar({ onClose }) {
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
+                  aria-current={isActive(item.href) ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                    "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                     isActive(item.href)
-                      ? "bg-primary/10 text-primary font-medium"
+                      ? "bg-surface-3 text-text-main font-semibold"
                       : "text-text-muted hover:bg-surface-2 hover:text-text-main"
                   )}
                 >
                   <span
+                    aria-hidden="true"
                     className={cn(
                       "material-symbols-outlined text-[19px] transition-colors",
                       isActive(item.href) ? "text-primary" : "group-hover:text-primary"
@@ -294,14 +326,16 @@ export default function Sidebar({ onClose }) {
             <Link
               href="/dashboard/profile"
               onClick={onClose}
+              aria-current={isActive("/dashboard/profile") ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "group flex min-h-10 items-center gap-3 rounded-sm px-3 py-2",
                 isActive("/dashboard/profile")
-                  ? "bg-primary/10 text-primary font-medium"
+                  ? "bg-surface-3 text-text-main font-semibold"
                   : "text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
               <span
+                aria-hidden="true"
                 className={cn(
                   "material-symbols-outlined text-[19px] transition-colors",
                   isActive("/dashboard/profile") ? "text-primary" : "group-hover:text-primary"
@@ -313,48 +347,42 @@ export default function Sidebar({ onClose }) {
             </Link>
           </div>
         </nav>
-
+        <div className="shrink-0 px-6 pb-5 pt-4 text-xs leading-6 text-text-muted">
+          <div className="flex items-center justify-between gap-3"><span>v{APP_CONFIG.version}</span><a href={BRAND.docsUrl} className="inline-flex min-h-8 items-center font-semibold hover:underline underline-offset-4">Documentation</a></div>
+          <p>Maintained by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a></p>
+        </div>
       </aside>
 
-      {/* Update Confirmation Modal */}
-      <ConfirmModal
-        isOpen={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-        onConfirm={handleUpdate}
-        title="Update ZenRouter"
-        message={`Show install command for v${updateInfo?.latestVersion || ""}? You can copy it and shutdown to install manually.`}
-        confirmText="Show Command"
-        cancelText="Cancel"
-        variant="primary"
-      />
-
-      {/* Disconnected / Updating Overlay */}
-      {(isDisconnected || isUpdating) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          {isUpdating ? (
-            <ManualUpdatePanel
-              latestVersion={updateInfo?.latestVersion}
-              installCmd={INSTALL_CMD}
-              copied={copied}
-              onCopyAndShutdown={handleCopyAndShutdown}
-              onCancel={handleCancelUpdate}
-              countdown={shutdownCountdown}
-              isDisconnected={isDisconnected}
-            />
-          ) : (
-            <div className="text-center p-8">
-              <div className="flex items-center justify-center size-16 rounded-full bg-red-500/20 text-red-500 mx-auto mb-4">
-                <span className="material-symbols-outlined text-[32px]">power_off</span>
-              </div>
-              <h2 className="text-xl font-semibold text-white mb-2">Server Disconnected</h2>
-              <p className="text-text-muted mb-6">The proxy server has been stopped.</p>
-              <Button variant="secondary" onClick={() => globalThis.location.reload()}>
-                Reload Page
-              </Button>
+      <dialog
+        ref={updateDialog}
+        aria-labelledby={updateTitleId}
+        className="m-auto max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] max-w-lg overflow-y-auto overscroll-contain border-0 bg-surface p-6 text-text-main backdrop:bg-black/50 backdrop:overflow-hidden backdrop:overscroll-contain sm:p-8"
+        onCancel={(event) => { if (shutdownCountdown > 0) event.preventDefault(); }}
+        onClose={() => { setShowUpdateModal(false); setIsUpdating(false); }}
+      >
+        {showUpdateModal ? (
+          <div>
+            <h2 id={updateTitleId} className="text-2xl font-semibold tracking-tight">Update {BRAND.name}</h2>
+            <p className="mt-4 text-sm leading-7">Show the install command for v{updateInfo?.latestVersion}? The next panel lets you copy the command and stop the server before installing it manually.</p>
+            <p className="mt-3 text-sm leading-7 text-text-muted">Updating interrupts active connections. Finish your work first.</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" autoFocus onClick={handleCancelUpdate} className="min-h-11 bg-surface-2 px-5 text-sm font-semibold">Cancel</button>
+              <button type="button" onClick={handleUpdate} className="min-h-11 bg-brand-500 px-5 text-sm font-semibold text-white dark:text-bg">Show command</button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <ManualUpdatePanel
+            titleId={updateTitleId}
+            latestVersion={updateInfo?.latestVersion}
+            installCmd={INSTALL_CMD}
+            copyFeedback={copyFeedback}
+            onCopyAndShutdown={handleCopyAndShutdown}
+            onCancel={handleCancelUpdate}
+            countdown={shutdownCountdown}
+            isDisconnected={isDisconnected}
+          />
+        )}
+      </dialog>
     </>
   );
 }
@@ -363,49 +391,41 @@ Sidebar.propTypes = {
   onClose: PropTypes.func,
 };
 
-function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdown, onCancel, countdown, isDisconnected }) {
+function ManualUpdatePanel({ titleId, latestVersion, installCmd, copyFeedback, onCopyAndShutdown, onCancel, countdown, isDisconnected }) {
   const isCountingDown = countdown > 0;
   return (
-    <div className="w-full max-w-lg rounded-xl bg-neutral-900/95 border border-white/10 p-6 text-white">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center justify-center size-11 rounded-full bg-amber-500/20 text-amber-400">
-          <span className="material-symbols-outlined text-[24px]">content_copy</span>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold">Update ZenRouter{latestVersion ? ` to v${latestVersion}` : ""}</h2>
-          <p className="text-xs text-white/60">
-            {isDisconnected
-              ? "Server stopped. Paste the command into a terminal to install."
-              : isCountingDown
-                ? `Command copied. Server will stop in ${countdown}s...`
-                : "Click the button below to copy the install command and shutdown."}
-          </p>
-        </div>
-      </div>
+    <div className="w-full">
+      <h2 id={titleId} tabIndex={-1} className="text-2xl font-semibold tracking-tight">Update {BRAND.name}{latestVersion ? ` to v${latestVersion}` : ""}</h2>
+      <p className="mt-4 text-sm leading-6 text-text-muted" role="status">
+        {isDisconnected
+          ? "Shutdown requested. If the gateway is still running, stop it before installing."
+          : isCountingDown
+            ? `Command copied. Server will stop in ${countdown}s...`
+            : "Copy the install command before stopping the server."}
+      </p>
 
-      <p className="text-sm text-white/80 mb-2">Install command:</p>
-      <div className="w-full px-3 py-2 rounded bg-white/5 mb-4">
-        <code className="text-xs font-mono text-amber-400 break-all">{installCmd}</code>
+      <p className="mb-3 mt-6 text-sm font-semibold">Install command</p>
+      <div className="mb-4 w-full bg-surface-2 px-4 py-4">
+        <code className="break-all font-mono text-sm">{installCmd}</code>
       </div>
+      <p className="mb-4 text-sm leading-6 text-text-muted" role="status">{copyFeedback}</p>
 
-      <ol className="text-xs text-white/70 space-y-1 list-decimal list-inside mb-4">
-        <li>Click <strong>Copy & Shutdown</strong> below.</li>
+      <ol className="mb-6 list-decimal space-y-2 pl-5 text-sm leading-6">
+        <li>Choose <strong>Copy &amp; shut down</strong> below.</li>
         <li>Paste the command into your terminal and press Enter.</li>
-        <li>Run <code className="px-1 rounded bg-white/10 text-green-400">zenrouter</code> again after install.</li>
+        <li>Run <code className="font-mono">{BRAND.binary}</code> again after installation.</li>
       </ol>
 
       {isDisconnected ? (
-        <Button variant="secondary" fullWidth onClick={() => globalThis.location.reload()}>
-          Reload Page
-        </Button>
+        <button type="button" className="min-h-11 w-full bg-surface-2 px-5 text-sm font-semibold" onClick={() => globalThis.location.reload()}>Reload page</button>
       ) : (
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={onCancel} disabled={isCountingDown}>
+          <button type="button" className="min-h-11 bg-surface-2 px-5 text-sm font-semibold disabled:opacity-60" onClick={onCancel} disabled={isCountingDown}>
             Cancel
-          </Button>
-          <Button variant="primary" fullWidth onClick={onCopyAndShutdown} disabled={isCountingDown}>
-            {copied ? "✓ Copied — shutting down..." : isCountingDown ? `Shutting down in ${countdown}s` : "Copy & Shutdown"}
-          </Button>
+          </button>
+          <button type="button" className="min-h-11 flex-1 bg-brand-500 px-5 text-sm font-semibold text-white dark:text-bg disabled:opacity-60" onClick={onCopyAndShutdown} disabled={isCountingDown}>
+            {isCountingDown ? `Stopping in ${countdown}s` : "Copy & shut down"}
+          </button>
         </div>
       )}
     </div>
@@ -413,9 +433,10 @@ function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdow
 }
 
 ManualUpdatePanel.propTypes = {
+  titleId: PropTypes.string.isRequired,
   latestVersion: PropTypes.string,
   installCmd: PropTypes.string.isRequired,
-  copied: PropTypes.bool,
+  copyFeedback: PropTypes.string,
   onCopyAndShutdown: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   countdown: PropTypes.number,

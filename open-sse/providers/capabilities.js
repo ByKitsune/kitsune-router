@@ -675,11 +675,11 @@ function stripVariantSuffix(model) {
  * @param {{ getModalities: Function, getLimits: Function } | null} source
  */
 export function setCatalogSource(source) {
-  globalThis.__zenCatalogSource = source;
+  globalThis.__kitsuneRouterCatalogSource = source;
 }
 
 function getCatalogSource() {
-  return globalThis.__zenCatalogSource ?? null;
+  return globalThis.__kitsuneRouterCatalogSource ?? null;
 }
 
 // Fill missing exact facts; explicit table flags and ceilings remain authoritative.

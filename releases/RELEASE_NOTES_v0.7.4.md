@@ -1,5 +1,7 @@
 # ZenRouter v0.7.4 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.7.4` introduces official support for Anthropic's newly launched **Claude Opus 5.5** (`claude-opus-5-5`), updates CLI and IDE spoofing signatures across all supported clients, resolves upstream 9Router issues, and fixes critical stream stall and timeout cleanup bugs that previously caused orphaned background requests, runaway loops, and 0-token spam.
 
 ---

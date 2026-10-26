@@ -108,7 +108,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/mitm"))
     return {
       title: "MITM Proxy",
-      description: "Intercept CLI tool traffic and route through ZenRouter",
+      description: "Intercept CLI tool traffic and route through Kitsune Router",
       icon: "security",
       breadcrumbs: [],
     };
@@ -136,7 +136,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/skills"))
     return {
       title: "Agent Skills",
-      description: "Copy a link and paste to your AI to use ZenRouter — no install needed",
+      description: "Copy a link and paste to your AI to use Kitsune Router — no install needed",
       icon: "extension",
       breadcrumbs: [],
     };
@@ -219,7 +219,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
       if (res.ok) {
         // Full reload on purpose: the session cookie was cleared, so every
         // cached RSC payload for the authenticated tree must be discarded.
-        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+        // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
         window.location.assign("/login");
       }
     } catch (err) {
@@ -228,13 +228,15 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
   };
 
   return (
-    <header className="shrink-0 flex items-center justify-between gap-3 px-4 lg:px-8 pt-3 pb-2 border-b border-border-subtle bg-surface/60 backdrop-blur-xl lg:bg-transparent lg:backdrop-blur-none z-20">
+    <header className="shrink-0 flex items-center justify-between gap-3 px-4 lg:px-8 py-3 bg-surface lg:bg-bg z-20">
       {/* Mobile menu button */}
       <div className="flex items-center gap-3 lg:hidden shrink-0">
         {showMenuButton && (
           <button
+            type="button"
             onClick={onMenuClick}
-            className="text-text-main hover:text-primary transition-colors"
+            aria-label="Open navigation"
+            className="size-11 flex items-center justify-center text-text-main hover:text-primary transition-colors"
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
@@ -339,6 +341,7 @@ function HeaderSearch() {
         search
       </span>
       <input
+        aria-label={placeholder || "Search this page"}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}

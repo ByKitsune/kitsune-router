@@ -19,7 +19,7 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
   const [message, setMessage] = useState(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [apiKeyDraft, setSelectedApiKey] = useState("");
-  const selectedApiKey = apiKeyDraft && apiKeyDraft !== "sk_zenrouter" && apiKeyDraft !== "sk_9router"
+  const selectedApiKey = apiKeyDraft && apiKeyDraft !== "sk_kitsunerouter" && apiKeyDraft !== "sk_9router"
     ? apiKeyDraft
     : (apiKeys?.[0]?.key || apiKeyDraft);
   const [selectedModel, setSelectedModel] = useState("");
@@ -116,10 +116,10 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
     setApplying(true);
     setMessage(null);
     try {
-      // Use selected key, fallback to first active dashboard key if available, otherwise sk_zenrouter
-      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_zenrouter" && selectedApiKey !== "sk_9router")
+      // Use selected key, fallback to first active dashboard key if available, otherwise sk_kitsunerouter
+      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_kitsunerouter" && selectedApiKey !== "sk_9router")
         ? selectedApiKey
-        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_zenrouter" : selectedApiKey));
+        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_kitsunerouter" : selectedApiKey));
       const res = await fetch("/api/cli-tools/codex-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,21 +177,21 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
   };
 
   const getManualConfigs = () => {
-    const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_zenrouter" && selectedApiKey !== "sk_9router")
+    const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_kitsunerouter" && selectedApiKey !== "sk_9router")
       ? selectedApiKey
-      : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_zenrouter" : "<API_KEY_FROM_DASHBOARD>"));
+      : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_kitsunerouter" : "<API_KEY_FROM_DASHBOARD>"));
     const effectiveSubagentModel = subagentModel || selectedModel;
 
-    const configContent = `# ZenRouter Configuration for Codex CLI
+    const configContent = `# Kitsune Router Configuration for Codex CLI
 model = "${selectedModel}"
-model_provider = "zenrouter"
+model_provider = "kitsunerouter"
 
-[model_providers.zenrouter]
-name = "ZenRouter"
+[model_providers.kitsunerouter]
+name = "Kitsune Router"
 base_url = "${getEffectiveBaseUrl()}"
 wire_api = "responses"
 
-[model_providers.zenrouter.http_headers]
+[model_providers.kitsunerouter.http_headers]
 Authorization = "Bearer ${keyToUse}"
 
 [agents]
@@ -242,7 +242,7 @@ default_subagent_model = "${effectiveSubagentModel}"
                   <span className="material-symbols-outlined text-yellow-500">warning</span>
                   <div className="flex-1">
                     <p className="font-medium text-yellow-600 dark:text-yellow-400">Codex CLI not detected locally</p>
-                    <p className="text-sm text-text-muted">Manual configuration is still available if zenrouter is deployed on a remote server.</p>
+                    <p className="text-sm text-text-muted">Manual configuration is still available if kitsunerouter is deployed on a remote server.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">

@@ -109,7 +109,7 @@ rl.on("line", (line) => {
 `.trimStart();
 
 function ensureClientToolsScript() {
-  const scriptPath = path.join(os.tmpdir(), "zenrouter-devin-client-tools.mjs");
+  const scriptPath = path.join(os.tmpdir(), "kitsunerouter-devin-client-tools.mjs");
   // Always rewrite so script upgrades land without a process restart.
   fs.writeFileSync(scriptPath, CLIENT_TOOLS_MCP_SCRIPT);
   return scriptPath;
@@ -417,7 +417,7 @@ export class DevinCliExecutor extends BaseExecutor {
         // (fs/shell/search) so the model can actually perform tasks. Override to
         // `summarizer` (no tools, text-only) via CLI_DEVIN_AGENT_TYPE for a safer,
         // tool-less mode. WARNING: the default agent can run shell commands and
-        // modify the filesystem on the host running zenrouter — only expose locally.
+        // modify the filesystem on the host running kitsunerouter — only expose locally.
         const agentType = process.env.CLI_DEVIN_AGENT_TYPE?.trim();
         const acpArgs = ["acp"];
         if (agentType) acpArgs.push("--agent-type", agentType);
@@ -623,7 +623,7 @@ export class DevinCliExecutor extends BaseExecutor {
               if (msg.result?.protocolVersion !== ACP_PROTOCOL_VERSION) {
                 finish(
                   `Devin ACP: unsupported protocol version ${JSON.stringify(msg.result?.protocolVersion)}; ` +
-                  `ZenRouter supports ACP protocol version ${ACP_PROTOCOL_VERSION}. ` +
+                  `Kitsune Router supports ACP protocol version ${ACP_PROTOCOL_VERSION}. ` +
                   `Use a Devin CLI agent that supports this version.`
                 );
                 return;
@@ -802,7 +802,7 @@ export class DevinCliExecutor extends BaseExecutor {
         // ── Send initialize ───────────────────────────────────────────────
         sendRpc("initialize", {
           protocolVersion: ACP_PROTOCOL_VERSION,
-          clientInfo: { name: "zenrouter", version: "1.0" },
+          clientInfo: { name: "kitsunerouter", version: "1.0" },
           clientCapabilities: {},
         });
       },

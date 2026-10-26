@@ -183,7 +183,7 @@ export default function APIPageClient({ machineId }) {
           if (cancelled) return;
           setRequireApiKey(data.requireApiKey || false);
           setRequireLogin(data.requireLogin !== false);
-          setHasPassword(data.hasPassword || false);
+          setHasPassword(data.usesDefaultPassword === false || data.hasPassword === true);
           setTunnelDashboardAccess(data.tunnelDashboardAccess || false);
         }
         if (statusRes.ok) {
@@ -782,8 +782,9 @@ export default function APIPageClient({ machineId }) {
             }`}>Tunnel</span>
             {tunnelEnabled && !tunnelLoading && tunnelReachable ? (
               <>
-                <Input value={`${tunnelPublicUrl || tunnelUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
+                <Input aria-label="Tunnel API endpoint" value={`${tunnelPublicUrl || tunnelUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
                 <button
+                  aria-label="Copy tunnel API endpoint"
                   onClick={() => copy(`${tunnelPublicUrl || tunnelUrl}/v1`, "tunnel_url")}
                   className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors shrink-0"
                 >
@@ -874,8 +875,9 @@ export default function APIPageClient({ machineId }) {
             }`}>Tailscale</span>
             {tsEnabled && !tsLoading && tsReachable ? (
               <>
-                <Input value={`${tsUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
+                <Input aria-label="Tailscale API endpoint" value={`${tsUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
                 <button
+                  aria-label="Copy Tailscale API endpoint"
                   onClick={() => copy(`${tsUrl}/v1`, "ts_url")}
                   className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors shrink-0"
                 >
@@ -945,7 +947,6 @@ export default function APIPageClient({ machineId }) {
                   }
                   handleOpenTsModal();
                 }}
-                className="bg-linear-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white!"
               >
                 Enable
               </Button>
@@ -992,6 +993,7 @@ export default function APIPageClient({ machineId }) {
         {(tunnelEnabled || tsEnabled) && (
           <div className="mt-4 pt-4 border-t border-border flex items-center gap-3">
             <Toggle
+              aria-label="Allow dashboard access via tunnel"
               checked={tunnelDashboardAccess}
               onChange={() => handleTunnelDashboardAccess(!tunnelDashboardAccess)}
             />
@@ -1023,6 +1025,7 @@ export default function APIPageClient({ machineId }) {
             </p>
           </div>
           <Toggle
+            aria-label="Require API key"
             checked={requireApiKey}
             onChange={() => handleRequireApiKey(!requireApiKey)}
           />
@@ -1059,6 +1062,7 @@ export default function APIPageClient({ machineId }) {
                       {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
                     </code>
                     <button
+                      aria-label={`${visibleKeys.has(key.id) ? "Hide" : "Show"} API key ${key.name}`}
                       onClick={() => toggleKeyVisibility(key.id)}
                       className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-all"
                       title={visibleKeys.has(key.id) ? "Hide key" : "Show key"}
@@ -1068,6 +1072,7 @@ export default function APIPageClient({ machineId }) {
                       </span>
                     </button>
                     <button
+                      aria-label={`Copy API key ${key.name}`}
                       onClick={() => copy(key.key, key.id)}
                       className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-all"
                     >
@@ -1085,6 +1090,7 @@ export default function APIPageClient({ machineId }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Toggle
+                    aria-label={`Enable API key ${key.name}`}
                     size="sm"
                     checked={key.isActive ?? true}
                     onChange={(checked) => {
@@ -1104,6 +1110,7 @@ export default function APIPageClient({ machineId }) {
                     title={key.isActive ? "Pause key" : "Resume key"}
                   />
                   <button
+                    aria-label={`Delete API key ${key.name}`}
                     onClick={() => handleDeleteKey(key.id)}
                     className="p-2 hover:bg-red-500/10 rounded text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                   >
@@ -1200,7 +1207,7 @@ export default function APIPageClient({ machineId }) {
                   Cloudflare Tunnel
                 </p>
                 <p className="text-sm text-text-muted">
-                  Expose your local ZenRouter to the internet. No port forwarding, no static IP needed. Share endpoint URL with your team or use it in Cursor, Cline, and other AI tools from anywhere.
+                  Expose your local Kitsune Router to the internet. No port forwarding, no static IP needed. Share endpoint URL with your team or use it in Cursor, Cline, and other AI tools from anywhere.
                 </p>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 /**
  * OAuth Callback Page Content
@@ -87,8 +88,10 @@ function CallbackContent() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg">
-      <div className="text-center p-8 max-w-md">
+    <div className="min-h-dvh flex items-center justify-center bg-bg text-text-main">
+      <main className="text-center p-8 max-w-md" aria-live="polite">
+        <Image src="/icons/logo.svg" width={56} height={56} alt="" className="mx-auto mb-4" />
+        <p className="mb-6 text-sm font-semibold">Kitsune Router</p>
         {status === "processing" && (
           <>
             <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -125,7 +128,7 @@ function CallbackContent() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

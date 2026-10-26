@@ -1,127 +1,15 @@
-# Roo AI 助手集成
+# Roo 集成
 
-将 ZenRouter 与 Roo AI 助手集成,通过统一界面访问多个 AI 模型。
+使用当前 Roo 版本支持的 OpenAI-compatible 模式。Kitsune Router 提供路由/转换，不提供上游订阅或所有功能保证。
 
-## 前置要求
-
-- 已安装 Roo AI 助手
-- 来自 [仪表盘](http://localhost:20128/dashboard) 的 ZenRouter API key
-- ZenRouter 正在运行(本地或云端)
-
-## 配置步骤
-
-### 1. 打开 Roo 设置
-
-启动 Roo AI 助手并打开设置面板。
-
-### 2. 配置 API Provider
-
-1. 进入 **API Provider** 设置
-2. 选择 **Ollama** 作为 provider 类型
-3. 配置以下设置:
-
-**本地 ZenRouter:**
-```
+```text
 Base URL: http://localhost:20128/v1
-API Key: your-api-key-from-dashboard
+API key: 已签发的 Kitsune Router 网关 key
+Model: 准确启用模型 ID 或已创建组合
 ```
 
-**云端 ZenRouter:**
-```
-Base URL: http://localhost:20128/v1
-API Key: your-api-key-from-dashboard
-```
+先启动网关、连接有权使用的提供商并创建 key。`my-route` 只有创建为组合后可用。从认证的 `/v1/models` 查看实际目录。
 
-### 3. 选择模型
+审阅预设并保留其他设置。提供商标识是 **`kitsunerouter`**，执行命令是 **`kitsune-router`**；不要把上游 OAuth 秘密放入示例或 issue。
 
-从可用的 ZenRouter 模型中选择:
-
-**Claude 模型:**
-- `cc/claude-opus-4-5-20251101` - 最强
-- `cc/claude-sonnet-4-20250514` - 平衡
-- `cc/claude-haiku-4-20250514` - 快速
-
-**DeepSeek 模型:**
-- `cx/deepseek-chat` - 通用
-- `cx/deepseek-reasoner` - 复杂推理
-
-**GLM 模型:**
-- `glm/glm-4-plus` - 高级
-- `glm/glm-4-flash` - 快速响应
-
-### 4. 测试连接
-
-发送测试消息验证集成:
-
-```
-Hello! Can you confirm you're connected through ZenRouter?
-```
-
-## 使用示例
-
-### 基础聊天
-```
-向 Roo 提问: "Explain quantum computing in simple terms"
-模型: cc/claude-sonnet-4-20250514
-```
-
-### 代码生成
-```
-向 Roo 提问: "Write a Python function to calculate Fibonacci numbers"
-模型: cx/deepseek-chat
-```
-
-### 复杂推理
-```
-向 Roo 提问: "Analyze the trade-offs between microservices and monolithic architecture"
-模型: cx/deepseek-reasoner
-```
-
-## 模型选择建议
-
-- **快速任务**:使用 `cc/claude-haiku-4-20250514` 或 `glm/glm-4-flash`
-- **均衡性能**:使用 `cc/claude-sonnet-4-20250514` 或 `cx/deepseek-chat`
-- **复杂推理**:使用 `cc/claude-opus-4-5-20251101` 或 `cx/deepseek-reasoner`
-- **成本优化**:使用 DeepSeek 或 GLM 模型
-
-## 故障排除
-
-### 连接失败
-- 确认 ZenRouter 正在运行:`curl http://localhost:20128/health`
-- 检查 API key 是否正确
-- 确保 Base URL 末尾包含 `/v1`
-
-### 模型不可用
-- 检查模型名是否完全匹配(大小写敏感)
-- 确认 ZenRouter 套餐中已启用该模型
-- 尝试列表中的其他模型
-
-### 响应缓慢
-- 切换到更快的模型(haiku、flash)
-- 检查网络连接
-- 查看 ZenRouter 日志排查问题
-
-## 高级配置
-
-### 自定义模型别名
-
-可在 Roo 设置中为常用模型创建快捷别名:
-
-```
-别名: "fast" → cc/claude-haiku-4-20250514
-别名: "smart" → cc/claude-opus-4-5-20251101
-别名: "code" → cx/deepseek-chat
-```
-
-### 多个配置文件
-
-为不同场景设置不同配置:
-- **开发**:DeepSeek 模型用于编码
-- **写作**:Claude 模型用于内容创作
-- **研究**:Reasoner 模型用于分析
-
-## 下一步
-
-- [配置 Cursor](cursor.md) 进行 IDE 集成
-- [设置 Continue](continue.md) 用于 VSCode
-- [探索 CLI 用法](../cli/basic-usage.md)
+健康检查 `/api/health` 不证明实时推理；单独测试工具/媒体并遵守重试/取消规则。远程须使用自己的认证 HTTPS，没有默认 Kitsune 云端点。见 [其他工具](/zh-CN/integration/other-tools/)、[排查](/zh-CN/troubleshooting/) 和 [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。

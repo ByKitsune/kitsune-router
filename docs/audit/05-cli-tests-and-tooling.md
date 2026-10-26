@@ -1,5 +1,7 @@
 # 05 — CLI package, tests, scripts & release tooling
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Audit date 2026-10-13 · commit `2c61f4f1` · verified by static reading only (no deps installed).
 
 ## 1. The CLI package (`cli/`)
@@ -200,4 +202,3 @@ The CLI build also compiles the dashboard and MITM runtime. Reject bundled state
 The selective upstream batch adds behavior coverage in `gitlab-pat-ssrf-guard.test.js`, `proactive-token-refresh.test.js` and `github-embeddings-contract.test.js`. Existing combo, response-accounting and usage-overlay tests cover the remaining fixes. Refresh tests retain the real policy-aware lower cache; deferred persistence barriers are synthetic, not evidence that synchronous SQLite writes normally take seconds.
 
 Source and packaged smokes are separate from Vitest. The source run exercised actual HTTP refresh and SQLite persistence; the packaged run exercised the public APIs, authenticated management routes, local MCP and token statistics. The `0.9.11` manifest on an unpublished local tarball does not make it the immutable published `0.9.11` release.
-

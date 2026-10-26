@@ -2,12 +2,12 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync, execSync } = require("child_process");
 
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
 const rootDir = path.resolve(appDir, "..");
-const cliAppDir = process.env.ZENROUTER_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
+const cliAppDir = process.env.KITSUNE_ROUTER_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const buildHomeDir = path.join(cliDir, ".build-home");
 const buildDistDirName = ".next-cli-build";
 const buildDistDir = path.join(appDir, buildDistDirName);
@@ -19,8 +19,29 @@ const EXCLUDE_PATTERNS = [
   "detect-libc",    // Sharp dependency
   path.basename(buildHomeDir), // Generated build HOME can contain identity, database, and telemetry state
   ".env",           // Environment files
-  ".env.local",
-  ".env.*.local",
+  ".env.*",
+  ".npmrc",         // May contain registry credentials
+  ".git",
+  ".kitsune-router",
+  ".zenrouter",     // Legacy state must never be published
+  ".9router",
+  ".sqljs-owner",
+  ".runtime-secrets.lock",
+  ".kitsune-router-migration.lock",
+  ".kitsune-router-migration-incomplete",
+  "secrets.json",
+  "secrets.env",
+  "machine-id",
+  "db.json",
+  "*.sqlite",
+  "*.sqlite-wal",
+  "*.sqlite-shm",
+  "*.sqlite-journal",
+  "*.key",
+  "*.pem",
+  "*.p12",
+  "*.pfx",
+  "*.pid",
   "*.log",          // Log files
   "tmp",            // Temp files
   ".DS_Store",      // macOS files
@@ -85,23 +106,23 @@ function copyRecursive(src, dest) {
 function resolveStandaloneBuild(appDir, buildDistDir) {
   const legacyStandaloneRoot = path.join(appDir, ".next", "standalone");
   const resolvedStandaloneRoot = path.join(buildDistDir, "standalone");
-  let standaloneRoot = fs.existsSync(resolvedStandaloneRoot)
+  const standaloneRoot = fs.existsSync(resolvedStandaloneRoot)
     ? resolvedStandaloneRoot
     : legacyStandaloneRoot;
 
   // Next.js 16 nests standalone output under the project name when
-  // NEXT_TRACING_ROOT_MODE=workspace, e.g. standalone/zenrouter/server.js.
+  // NEXT_TRACING_ROOT_MODE=workspace, e.g. standalone/kitsune-router/server.js.
   const pkgName = path.basename(appDir);
   const nestedRoot = path.join(standaloneRoot, pkgName);
+  let standaloneApp = standaloneRoot;
   if (fs.existsSync(path.join(nestedRoot, "server.js")) && !fs.existsSync(path.join(standaloneRoot, "server.js"))) {
     console.log(`ℹ️  Detected nested standalone output: ${pkgName}/`);
-    standaloneRoot = nestedRoot;
+    standaloneApp = nestedRoot;
+  } else if (!fs.existsSync(path.join(standaloneRoot, "server.js"))) {
+    standaloneApp = path.join(standaloneRoot, "app");
   }
 
-  const standaloneApp = fs.existsSync(path.join(standaloneRoot, "server.js"))
-    ? standaloneRoot
-    : path.join(standaloneRoot, "app");
-  if (!fs.existsSync(standaloneApp)) {
+  if (!fs.existsSync(path.join(standaloneApp, "server.js"))) {
     throw new Error(
       "Next.js standalone build not found under .next/standalone; " +
       "expected either .next/standalone/server.js or .next/standalone/app/",
@@ -115,7 +136,8 @@ function copyStandaloneBuild(appDir, buildDistDir, cliAppDir) {
   const { standaloneApp, standaloneRoot } = resolveStandaloneBuild(appDir, buildDistDir);
   copyRecursive(standaloneApp, cliAppDir);
 
-  // Older nested-app layout stores traced node_modules at standalone root.
+  // Nested workspace/legacy layouts may keep hoisted modules at the trace
+  // container root, beside the project folder. Preserve that module closure too.
   const standaloneNodeModules = path.join(standaloneRoot, "node_modules");
   if (standaloneApp !== standaloneRoot && fs.existsSync(standaloneNodeModules)) {
     copyRecursive(standaloneNodeModules, path.join(cliAppDir, "node_modules"));
@@ -149,25 +171,25 @@ function assertRequiredApiArtifacts(cliAppDir) {
   }
 }
 
-function buildCliPackage() {
-  console.log("📦 Building ZenRouter CLI package with Next.js...\n");
+async function buildCliPackage() {
+  console.log("📦 Building Kitsune Router CLI package with Next.js...\n");
+
+  // Verify every manifest/lock before building. Packaging must never silently
+  // rewrite release source to reconcile a stale CLI version.
+  console.log("0️⃣  Checking release version and package identities...");
+  const cliPkg = JSON.parse(fs.readFileSync(path.join(cliDir, "package.json"), "utf8"));
+  execFileSync(process.execPath, [path.join(appDir, "scripts", "check-release-version.mjs"), `v${cliPkg.version}`], {
+    cwd: appDir,
+    stdio: "inherit",
+  });
+  const { assertNoRuntimeState, copyStandaloneRuntimeAssets, STANDALONE_RUNTIME_FILES } = await import("../../scripts/copy-standalone-assets.mjs");
+  for (const name of STANDALONE_RUNTIME_FILES) {
+    if (!fs.existsSync(path.join(appDir, name))) throw new Error(`Required runtime source missing: ${name}`);
+  }
 
   fs.mkdirSync(buildHomeDir, { recursive: true });
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Roaming"), { recursive: true });
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Local"), { recursive: true });
-
-  // Step 0: Sync version from app/cli/package.json to app/package.json
-  console.log("0️⃣  Syncing version to app/package.json...");
-  const cliPkg = JSON.parse(fs.readFileSync(path.join(cliDir, "package.json"), "utf8"));
-  const appPkgPath = path.join(appDir, "package.json");
-  const appPkg = JSON.parse(fs.readFileSync(appPkgPath, "utf8"));
-  if (appPkg.version !== cliPkg.version) {
-    appPkg.version = cliPkg.version;
-    fs.writeFileSync(appPkgPath, JSON.stringify(appPkg, null, 2) + "\n");
-    console.log(`✅ Version synced: ${cliPkg.version}\n`);
-  } else {
-    console.log(`✅ Version already synced: ${cliPkg.version}\n`);
-  }
 
   // Step 1: Build app with Next.js (workspace tracing root → traced node_modules in standalone).
   console.log("1️⃣  Building Next.js app...");
@@ -181,6 +203,12 @@ function buildCliPackage() {
         USERPROFILE: buildHomeDir,
         APPDATA: path.join(buildHomeDir, "AppData", "Roaming"),
         LOCALAPPDATA: path.join(buildHomeDir, "AppData", "Local"),
+        DATA_DIR: path.join(buildHomeDir, "data"),
+        XDG_CONFIG_HOME: path.join(buildHomeDir, ".config"),
+        XDG_DATA_HOME: path.join(buildHomeDir, ".local", "share"),
+        XDG_CACHE_HOME: path.join(buildHomeDir, ".cache"),
+        XDG_STATE_HOME: path.join(buildHomeDir, ".local", "state"),
+        KITSUNE_ROUTER_MIGRATION: "skip",
         NEXT_DIST_DIR: buildDistDirName,
         NEXT_TRACING_ROOT_MODE: "workspace",
       }
@@ -211,18 +239,10 @@ function buildCliPackage() {
   }
   console.log("✅ Copied standalone build\n");
 
-  for (const name of ["custom-server.js", "shutdown-lifecycle.cjs"]) {
-    const source = path.join(appDir, name);
-    if (!fs.existsSync(source)) {
-      console.error(`❌ ${name} not found — refusing an incomplete server bundle`);
-      process.exit(1);
-    }
-    fs.copyFileSync(source, path.join(cliAppDir, name));
-    console.log(`✅ Copied ${name}\n`);
-  }
+  copyStandaloneRuntimeAssets({ projectRoot: appDir, standaloneDir: cliAppDir });
 
   // Step 3b: Ensure sql.js (pure JS fallback) bundled in app/cli/app/node_modules.
-  // Strip better-sqlite3 (native) — it lives in ~/.zenrouter/runtime to avoid
+  // Strip better-sqlite3 (native) — it lives in ~/.kitsune-router/runtime to avoid
   // Windows EBUSY during global CLI updates. node:sqlite (Node ≥22.5) is also
   // available as a no-install middle tier.
   console.log("3️⃣ b Configuring SQLite drivers...");
@@ -253,7 +273,7 @@ function buildCliPackage() {
   const betterDir = path.join(cliAppDir, "node_modules", "better-sqlite3");
   if (fs.existsSync(betterDir)) {
     fs.rmSync(betterDir, { recursive: true, force: true });
-    console.log("✅ Stripped better-sqlite3 (lives in ~/.zenrouter/runtime)");
+    console.log("✅ Stripped better-sqlite3 (lives in ~/.kitsune-router/runtime)");
   }
   console.log("");
 
@@ -299,17 +319,6 @@ function buildCliPackage() {
   assertRequiredApiArtifacts(cliAppDir);
   console.log("✅ Copied complete server artifacts\n");
 
-  // Step 7: Copy MITM server files (not bundled by Next.js standalone)
-  console.log("7️⃣  Copying MITM server files...");
-  const mitmSrc = path.join(appDir, "src", "mitm");
-  const mitmDest = path.join(cliAppDir, "src", "mitm");
-  if (fs.existsSync(mitmSrc)) {
-    copyRecursive(mitmSrc, mitmDest);
-    console.log("✅ Copied MITM files\n");
-  } else {
-    console.log("⏭️  No MITM files found\n");
-  }
-
   // Step 7b: Copy standalone updater (headless Node process for install progress)
   console.log("7️⃣ b Copying updater files...");
   const updaterSrc = path.join(appDir, "src", "lib", "updater");
@@ -331,6 +340,9 @@ function buildCliPackage() {
     process.exit(1);
   }
 
+  assertNoRuntimeState(cliAppDir);
+  assertNoRuntimeState(path.join(cliDir, "hooks"));
+  assertNoRuntimeState(path.join(cliDir, "src"));
   console.log("✨ CLI package build completed!");
   console.log(`📁 Output: ${cliAppDir}`);
 
@@ -350,5 +362,8 @@ module.exports = {
 };
 
 if (require.main === module) {
-  buildCliPackage();
+  buildCliPackage().catch(error => {
+    console.error("❌ CLI package build failed:", error.message);
+    process.exit(1);
+  });
 }

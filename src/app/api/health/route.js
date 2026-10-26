@@ -5,8 +5,8 @@
 // "healthy" even while the database was unreachable or accounts were locked in
 // cooldown. An operator could not tell a working gateway from a broken one.
 //
-// Security: this endpoint is reachable through the public tunnel
-// (router.bykitsune.org → 127.0.0.1:20128), so it must never expose account emails,
+// Security: this endpoint can be reachable on public deployments, including
+// through reverse proxies or tunnels, so it must never expose account emails,
 // token material, API keys, provider ids or prompt content. It reports COUNTS
 // and booleans only. Per-connection diagnostics stay in the authenticated
 // dashboard API.

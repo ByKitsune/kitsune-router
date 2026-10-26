@@ -1,166 +1,23 @@
-# Chào mừng đến với ZenRouter
+# Chào mừng đến với Kitsune Router
 
-**Phiên bản hiện tại: 0.9.10 (2026-10-16).** Xem [nhật ký thay đổi](/vi/changelog/) để biết các sửa đổi, giới hạn kiểm chứng và yêu cầu nâng cấp. Yêu cầu Node.js >=22.19.0; mục danh mục không bảo đảm quyền truy cập của tài khoản hay khả năng phục vụ thực tế.
+**Your models. Your routes.** Gateway AI ưu tiên cục bộ, trung lập giữa nhà cung cấp, do [ByKitsune](https://bykitsune.com) duy trì/tài trợ. Bạn chọn mô hình, tài khoản và thứ tự dự phòng; không bắt buộc tài khoản ByKitsune hay mua API hosted. Yêu cầu vẫn gửi tới upstream đã cấu hình, không phải suy luận offline.
 
-**Dùng Claude, Codex, Gemini MIỄN PHÍ • Lựa chọn siêu rẻ từ $0.20/1M tokens**
+## Trạng thái phát hành
 
-ZenRouter là bộ định tuyến mô hình AI giúp tối đa hóa giá trị subscription và giảm chi phí thông qua định tuyến thông minh và fallback tự động.
+**1.0.0 là đề xuất bản đổi thương hiệu đầu tiên có thay đổi không tương thích; chờ xác minh và phát hành.** Cần xác nhận đăng ký/quyền sở hữu namespace, quyền npm, truy cập registry và hiện vật.
 
----
+| Thành phần | Định danh |
+| --- | --- |
+| Kho mã | [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router) |
+| npm | `@bykitsune/router` |
+| Lệnh | `kitsune-router` |
+| Khóa provider của công cụ | `kitsunerouter` |
+| Image chuẩn | `ghcr.io/bykitsune/kitsune-router` |
 
-## ZenRouter là gì?
+Hồ sơ 0.x giữ hiện vật và bằng chứng ZenRouter gốc, không phải xuất bản Kitsune hồi tố. [Thay đổi](/vi/changelog/) · [Bản nháp](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md).
 
-ZenRouter là một proxy thông minh nằm giữa các công cụ lập trình của bạn (Cursor, Cline, Claude Desktop) và các nhà cung cấp AI. Nó tự động định tuyến request đến model tốt nhất hiện có dựa trên quota, chi phí và tính khả dụng.
+## Khả năng và giới hạn
 
-**Đừng lãng phí tiền:**
-- ❌ Quota subscription hết hạn mỗi tháng mà không dùng đến
-- ❌ Rate limit chặn bạn đang lập trình
-- ❌ API đắt đỏ ($20-50/tháng cho mỗi provider)
-- ❌ Chuyển đổi provider thủ công
+Chuyển đổi giao thức theo giới hạn từng route, combo/tài khoản tùy chọn, SQLite cục bộ và nén tùy chọn. Không đảm bảo hạn mức vô tận, tỷ lệ tiết kiệm cố định hoặc hoạt động liên tục. Ước tính không phải hóa đơn; chưa rõ không phải miễn phí. Đồng bộ cũ đã bỏ; truy cập từ xa là dịch vụ HTTPS có xác thực do bạn quản lý.
 
-**Bắt đầu tối đa hóa giá trị:**
-- ✅ **Tối đa Subscription** - Theo dõi và dùng từng chút quota của Claude Code, Codex, Gemini
-- ✅ **MIỄN PHÍ** - Truy cập model iFlow, Qwen, Kiro qua CLI
-- ✅ **Backup siêu rẻ** - GLM ($0.6/1M), MiniMax M2.1 ($0.20/1M)
-- ✅ **Smart Fallback** - Subscription → Cheap → Free, chuyển đổi tự động
-
----
-
-## Tính năng chính
-
-### 🔄 Smart 3-Tier Fallback
-
-```
-Setup once, never stop coding:
-
-Tier 1 (SUBSCRIPTION): Claude Code → Codex → Gemini
-  ↓ quota exhausted
-Tier 2 (CHEAP): GLM-4.7 → MiniMax M2.1 → Kimi
-  ↓ budget limit
-Tier 3 (FREE): iFlow → Qwen → Kiro
-
-→ Automatic switching, zero downtime!
-```
-
-### 📊 Theo dõi Quota
-
-- Tiêu thụ token thời gian thực cho mỗi provider
-- Đếm ngược reset (5 giờ, hàng ngày, hàng tuần, hàng tháng)
-- Ước tính chi phí cho tier trả phí
-- Báo cáo chi tiêu hàng tháng
-
-### 🎯 Hỗ trợ CLI Toàn diện
-
-Hoạt động với mọi công cụ hỗ trợ custom OpenAI endpoint:
-
-✅ **Cursor** • **Cline** • **Claude Desktop** • **Codex** • **RooCode** • **Continue** • **Bất kỳ tool nào tương thích OpenAI**
-
-### 💰 Tối ưu Chi phí
-
-**Ví dụ thực tế (100M tokens/tháng):**
-```
-60M qua Gemini CLI: $0 (free tier)
-30M qua Claude Code: $0 (subscription đã có)
-8M qua GLM: $4.80
-2M qua MiniMax: $0.40
-Tổng: $5.20/tháng so với $2000 trên ChatGPT API!
-```
-
----
-
-## Tại sao chọn ZenRouter?
-
-### Tối đa hóa Subscription
-
-Đã trả tiền cho Claude Code ($20-100/tháng) hoặc Codex ($20-200/tháng)? Nhận giá trị đầy đủ:
-
-- Theo dõi sử dụng quota thời gian thực
-- Tự động chuyển khi quota reset (5 giờ, hàng tuần)
-- Dùng hết mọi token trước khi hết hạn
-- Gemini CLI: 180K completions/tháng **MIỄN PHÍ**
-
-### Backup Siêu Rẻ
-
-Khi quota subscription hết, trả vài xu:
-
-| Provider | Giá per 1M tokens | Reset |
-|----------|-------------------|-------|
-| **GLM-4.7** | $0.60 input / $2.20 output | Hàng ngày 10:00 AM |
-| **MiniMax M2.1** | $0.20 input / $1.00 output | 5 giờ rolling |
-| **Kimi K2** | $9/tháng (10M tokens) | Hàng tháng |
-
-**~90% rẻ hơn ChatGPT API ($20/1M)!**
-
-### Fallback Miễn phí Mãi mãi
-
-Backup khẩn cấp khi mọi thứ khác đều bị giới hạn quota:
-
-- **iFlow**: 8 models (Kimi K2, Qwen3 Coder Plus, GLM 4.7, MiniMax M2)
-- **Qwen**: 3 models (Qwen3 Coder Plus/Flash, Vision)
-- **Kiro**: Claude Sonnet 4.5, Haiku 4.5 (AWS Builder ID)
-
----
-
-## Bắt đầu nhanh
-
-Bắt đầu trong 2 phút:
-
-```bash
-# Install globally
-npm install -g @joyccn/zenrouter@0.9.10
-
-# Start (dashboard opens automatically)
-zenrouter
-```
-
-🎉 **Dashboard mở** → Kết nối provider → Bắt đầu code!
-
-**Dùng trong CLI tool:**
-
-```
-Endpoint: http://localhost:20128/v1
-API Key: [from dashboard]
-Model: cc/claude-opus-4-5-20251101
-```
-
-[→ Hướng dẫn Bắt đầu đầy đủ](getting-started.md)
-
----
-
-## Trường hợp sử dụng
-
-### Cho Developer cá nhân
-
-- Tối đa hóa subscription Claude Code/Codex
-- Dùng Gemini CLI free tier (180K/tháng)
-- Fallback sang model siêu rẻ ($0.20/1M)
-- Code 24/7 không bị rate limit
-
-### Cho Team
-
-- Triển khai trên VPS/Cloud để chia sẻ truy cập
-- Theo dõi chi tiêu team thời gian thực
-- Đặt giới hạn ngân sách cho mỗi tier
-- Quản lý provider tập trung
-
-### Cho Mobile/Remote Coding
-
-- Dùng cloud deployment (http://localhost:20128)
-- Truy cập từ iPad, điện thoại, mọi nơi
-- Không bị giới hạn localhost
-- Mạng Cloudflare edge (300+ vị trí)
-
----
-
-## Tiếp theo là gì?
-
-- [Bắt đầu](getting-started.md) - Cài đặt và cấu hình trong 5 phút
-- [Hướng dẫn cài đặt](getting-started/installation.md) - Hướng dẫn setup chi tiết
-- [Tính năng](features/) - Khám phá mọi khả năng
-- [FAQ](faq.md) - Các câu hỏi thường gặp
-
----
-
-<div align="center">
-  <sub>Built with ❤️ for developers maximizing AI value</sub>
-</div>
+[Bắt đầu](/vi/getting-started/quick-start/) · [Cài đặt](/vi/getting-started/installation/) · [Tích hợp](/vi/integration/other-tools/) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Giữ giấy phép MIT, thông báo bản quyền và công lao ZenRouter/9Router: [LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE).

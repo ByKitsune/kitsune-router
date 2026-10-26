@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.5.63 — Hardened Security, Unified Translator Parity, Antigravity Strike-Fallback & Resilience Pool
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter **v0.5.63** pools critical upstream fixes and major stability enhancements: hardened SSRF & redirect protection, robust Antigravity strike-based quota fallback, Claude foreign tool ID dropping, Gemini 3.8 Flash catalog addition, Gemini thought signatures preservation, and automated Groq usage tracking.
 
 ---

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useNotificationStore } from "@/store/notificationStore";
 import Sidebar from "../Sidebar";
@@ -8,60 +8,52 @@ import Header from "../Header";
 import PasswordOnboardingModal from "../PasswordOnboardingModal";
 
 function getToastStyle(type) {
-  if (type === "success") {
-    return {
-      wrapper: "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400",
-      icon: "check_circle",
-    };
-  }
-  if (type === "error") {
-    return {
-      wrapper: "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
-      icon: "error",
-    };
-  }
-  if (type === "warning") {
-    return {
-      wrapper: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-      icon: "warning",
-    };
-  }
-  return {
-    wrapper: "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    icon: "info",
-  };
+  if (type === "success") return { border: "border-green-700 dark:border-green-400", icon: "check_circle", color: "text-green-700 dark:text-green-400" };
+  if (type === "error") return { border: "border-red-700 dark:border-red-300", icon: "error", color: "text-red-700 dark:text-red-300" };
+  if (type === "warning") return { border: "border-amber-700 dark:border-amber-300", icon: "warning", color: "text-amber-700 dark:text-amber-300" };
+  return { border: "border-primary", icon: "info", color: "text-primary" };
 }
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const drawer = useRef(null);
+  const drawerId = useId();
   const pathname = usePathname();
   const notifications = useNotificationStore((state) => state.notifications);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const isChat = pathname === "/dashboard/basic-chat";
+
+  useEffect(() => {
+    const dialog = drawer.current;
+    if (!dialog) return;
+    if (sidebarOpen && !dialog.open) dialog.showModal();
+    if (!sidebarOpen && dialog.open) dialog.close();
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = (event) => { if (event.matches) setSidebarOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-bg">
-      <div className="fixed top-4 right-4 z-[80] flex w-[min(92vw,380px)] flex-col gap-2">
-        {notifications.map((n) => {
-          const style = getToastStyle(n.type);
+    <div className="flex h-dvh w-full overflow-hidden bg-bg text-text-main">
+      <a href="#dashboard-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[90] focus:bg-surface focus:px-5 focus:py-3 focus:font-semibold">Skip to content</a>
+      <div aria-label="Notifications" className="fixed right-4 top-4 z-[80] flex w-[min(92vw,380px)] flex-col gap-3">
+        {notifications.map((notification) => {
+          const style = getToastStyle(notification.type);
           return (
-            <div
-              key={n.id}
-              className={`rounded-lg border px-3 py-2 shadow-lg backdrop-blur-sm ${style.wrapper}`}
-            >
-              <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-[18px] leading-5">{style.icon}</span>
+            <div key={notification.id} role={notification.type === "error" ? "alert" : "status"} aria-atomic="true" className={`border-l-4 bg-surface px-4 py-3 text-text-main shadow-elevated ${style.border}`}>
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className={`material-symbols-outlined text-xl leading-6 ${style.color}`}>{style.icon}</span>
                 <div className="min-w-0 flex-1">
-                  {n.title ? <p className="text-xs font-semibold mb-0.5">{n.title}</p> : null}
-                  <p className="text-xs whitespace-pre-wrap break-words">{n.message}</p>
+                  {notification.title ? <p className="mb-1 text-sm font-semibold">{notification.title}</p> : null}
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6">{notification.message}</p>
                 </div>
-                {n.dismissible ? (
-                  <button
-                    type="button"
-                    onClick={() => removeNotification(n.id)}
-                    className="text-current/70 hover:text-current"
-                    aria-label="Dismiss notification"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
+                {notification.dismissible ? (
+                  <button type="button" onClick={() => removeNotification(notification.id)} className="-mr-2 -mt-1 flex size-9 shrink-0 items-center justify-center text-text-muted hover:bg-surface-2 hover:text-text-main" aria-label="Dismiss notification">
+                    <span aria-hidden="true" className="material-symbols-outlined text-lg">close</span>
                   </button>
                 ) : null}
               </div>
@@ -69,39 +61,30 @@ export default function DashboardLayout({ children }) {
           );
         })}
       </div>
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
 
-      {/* Sidebar - Desktop */}
-      <div className="hidden lg:flex">
-        <Sidebar />
-      </div>
-
-      {/* Sidebar - Mobile */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 transform lg:hidden transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <div className="hidden shrink-0 lg:flex"><Sidebar /></div>
+      <dialog
+        ref={drawer}
+        id={drawerId}
+        aria-label="Dashboard navigation"
+        className="m-0 h-dvh max-h-none w-72 max-w-[calc(100vw-24px)] overflow-visible overscroll-contain border-0 bg-sidebar p-0 text-text-main backdrop:bg-black/50 backdrop:overflow-hidden backdrop:overscroll-contain"
+        onClose={() => setSidebarOpen(false)}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
-      </div>
+        {sidebarOpen && <Sidebar onClose={() => setSidebarOpen(false)} />}
+      </dialog>
 
-      {/* Main content */}
-      <main className="flex flex-col flex-1 h-full min-w-0 relative transition-colors duration-300 isolate">
-        {/* Faint grid background */}
-        <div className="landing-grid absolute inset-0 pointer-events-none -z-10" aria-hidden="true" />
-        <Header key={pathname} onMenuClick={() => setSidebarOpen(true)} />
-        <div className={`flex-1 overflow-y-auto custom-scrollbar ${pathname === "/dashboard/basic-chat" ? "" : "p-6 lg:p-10"} ${pathname === "/dashboard/basic-chat" ? "flex flex-col overflow-hidden" : ""}`}>
-          <div className={`${pathname === "/dashboard/basic-chat" ? "flex-1 w-full h-full flex flex-col" : "max-w-7xl mx-auto"}`}>{children}</div>
+      <div className="relative flex h-full min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-center bg-surface">
+          <button type="button" aria-label="Open navigation" aria-controls={drawerId} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)} className="ml-3 flex min-h-11 shrink-0 items-center gap-2 px-2 text-sm font-semibold lg:hidden">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" /></svg>
+            <span className="sr-only sm:not-sr-only">Menu</span>
+          </button>
+          <div className="min-w-0 flex-1"><Header key={pathname} showMenuButton={false} /></div>
         </div>
-      </main>
-
-      {/* Onboarding Password Prompt */}
+        <main id="dashboard-content" tabIndex={-1} className={`min-h-0 flex-1 custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto p-4 sm:p-6 lg:p-8"}`}>
+          <div className={isChat ? "flex h-full w-full flex-1 flex-col" : "mx-auto max-w-7xl"}>{children}</div>
+        </main>
+      </div>
       <PasswordOnboardingModal />
     </div>
   );

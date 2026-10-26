@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.9.0 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.9.0` is a major milestone release delivering a comprehensive audit and precision alignment across **Claude Code, OpenAI Codex, Google Antigravity & Gemini CLI, xAI Grok, and all pooled OAuth / API-key providers**. It incorporates verified first-party specifications, adds the latest 2026 flagship models (**Claude Sonnet 5.5, GPT-6.1 Sol, Grok 4.7/4.3**), introduces native **long-context / tiered pricing calculation**, fixes critical protocol and role asymmetries on Google Antigravity, and establishes the passive foundation for **Gemini 4 Argon** (1M output tokens).
 
 ---

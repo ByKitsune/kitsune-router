@@ -1,5 +1,7 @@
 # GPT-5.6 Codex Reasoning Overrides Implementation Plan
 
+> **Kitsune Router archive:** this dated ZenRouter plan preserves its original targets/commands; it is not an instruction to publish or a fresh support/verification matrix. See [current docs](../../INSTALLATION.md), [reasoning policy](../../REASONING-BUDGETS.md) and [migration](../../MIGRATION.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Preserve Codex-advertised Max and Ultra overrides for GPT-5.6 Sol and Terra, preserve Max for Luna, and convert Luna Ultra to Max without changing Kiro or generic OpenAI-format behavior.
@@ -282,7 +284,7 @@ git commit -m "feat(codex): forward GPT-5.6 max and ultra efforts"
 
 **Interfaces:**
 - Consumes: completed Tasks 1-3.
-- Produces: verified branch pushed to `origin` and a pull request targeting `ZenRouter/ZenRouter:master`.
+- Produces: verified branch pushed to `origin` and a pull request targeting `ZenRouter/ZenRouter:master` (historical target).
 
 - [ ] **Step 1: Run all focused regression tests**
 

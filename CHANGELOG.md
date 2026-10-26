@@ -1,9 +1,38 @@
-# Changelog
+# Kitsune Router changelog
 
-All notable changes to ZenRouter (fork of 9Router) will be documented in this file.
+Notable changes to Kitsune Router, the ByKitsune-maintained continuation of ZenRouter and its 9Router lineage, are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional Commits.
 
+**History boundary:** 0.x entries retain their original ZenRouter names, package records, release URLs, evidence paths and dated verification. They are not Kitsune publications or proof about the current source. Use the [current installation guide](docs/INSTALLATION.md) and [migration guide](docs/MIGRATION.md), not archived upgrade commands.
+
+## [1.0.0] — Proposed, pending verification and publication
+
+First breaking rebrand release: **Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), with neutral multi-provider routing and no mandatory ByKitsune account or provider ordering.
+
+### Breaking identity changes
+
+- Target GitHub repository: `ByKitsune/kitsune-router`; npm package: `@bykitsune/router`; executable: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`.
+- New external-tool provider key: `kitsunerouter`, distinct from the hyphenated executable. Re-apply presets without discarding unrelated client settings; old binary/provider-key aliases are not required.
+- Project-specific environment names use `KITSUNE_ROUTER_*`; extension headers use `x-kitsune-router-*`. Standard `/v1/*`, `/v1beta/*` and port **20128** remain unchanged.
+
+### State preservation
+
+- Before opening runtime state, discover a stopped legacy `~/.zenrouter` or `~/.9router` installation and migrate to `~/.kitsune-router` (corresponding `%APPDATA%` paths on Windows). Explicit `DATA_DIR` stays authoritative.
+- Keep originals, verify copied files and a SQLite-consistent snapshot, and refuse busy, unsafe, ambiguous or damaged state and existing destination overwrite. Preserve secrets, auth keys, machine identity and certificates; runtime caches are regenerated.
+- Keep encryption derivation constants and existing trusted certificate roots. Renaming a product is not permission to break stored credentials or replace installed trust.
+- Keep a destination lock/incomplete marker until migration publication is verified; preserve original state and support native Node/Bun SQLite snapshots without unsafe raw-file fallback. Recognize legacy-prefixed operator settings only at startup, with explicit current names taking precedence and no imported process-only peer-proof token.
+- Retain an existing implicit legacy SAML entity ID when no custom issuer was stored; use `urn:kitsunerouter:sp` only for fresh installations.
+
+### Documentation and release limits
+
+- Reconcile installation, Docker, integration and multilingual docs; remove unqualified unlimited-access, fixed-savings and free-forever promises. Preserve historical evidence and upstream copyright attribution.
+- Make fresh source recipes provision a private strong `JWT_SECRET` once; `next dev` is not the launcher's generator. Upgrades keep effective existing secrets and absolute state paths rather than rotating them for a brand change.
+- Final source/tag verification, namespace registration/ownership, npm publishing authorization, registry visibility and artifact readback remain **pending**. This documentation does not certify a release or a current passing suite. Pre-change verification is not rebrand verification.
+- See [release draft](releases/RELEASE_NOTES_v1.0.0.md), [technical changelog](docs/CHANGELOG_v1.0.0.md), [migration](docs/MIGRATION.md) and [rebranding checklist](docs/REBRANDING.md).
+
 ## [Unreleased]
+
+The source work below predates the rebrand release proposal. Dated counts and legacy identities describe the original implementation checks; they do not certify the renamed source or imply publication.
 
 ### Next.js upstream transport recursion fix
 

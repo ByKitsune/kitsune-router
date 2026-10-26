@@ -10,10 +10,10 @@ const dirs = [];
 const sha = "a".repeat(40);
 const version = "0.9.7";
 const integrity = bytes => "sha512-" + createHash("sha512").update(bytes).digest("base64");
-const tarball = `joyccn-zenrouter-${version}-${sha}.tgz`;
+const tarball = `bykitsune-router-${version}-${sha}.tgz`;
 const artifactName = `npm-release-${version}-${sha}`;
 const bytes = Buffer.from("original build with random Next BUILD_ID");
-const env = { GITHUB_REPOSITORY: "ZenRouter/ZenRouter", GITHUB_RUN_ID: "12", GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v0.9.7" };
+const env = { GITHUB_REPOSITORY: "ByKitsune/kitsune-router", GITHUB_RUN_ID: "12", GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v0.9.7" };
 const run = { id: 12, workflow_id: 3, path: ".github/workflows/release.yml", head_sha: sha, head_branch: "v0.9.7", event: "workflow_dispatch" };
 function fixture(options = {}) {
   const dir = mkdtempSync(resolve(tmpdir(), "release-recovery-")); dirs.push(dir);
@@ -72,7 +72,7 @@ describe("immutable original npm tarball recovery", () => {
     const original = f.command;
     f.command = (cmd, args, opts) => args.some(a => a.includes("/runs/12/artifacts?")) ? JSON.stringify([{ artifacts: [] }]) : original(cmd, args, opts);
     expect((await prepare(f)).recovered).toBe(true);
-    expect(f.calls.some(c => c.includes("repos/ZenRouter/ZenRouter/actions/runs/11"))).toBe(true);
+    expect(f.calls.some(c => c.includes("repos/ByKitsune/kitsune-router/actions/runs/11"))).toBe(true);
   });
   it("rejects an artifact from a different source SHA", async () => {
     const f = fixture({ wrongSHA: true }); const original = f.command;

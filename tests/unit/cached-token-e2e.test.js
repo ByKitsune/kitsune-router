@@ -24,7 +24,7 @@ beforeAll(async () => {
   originalListeners = new Map(["beforeExit", "SIGINT", "SIGTERM"].map((event) => [event, process.rawListeners(event)]));
   originalEmit = process.emit;
   for (const key of fixtureGlobals) delete global[key];
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-cached-e2e-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-cached-e2e-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
   db = await import("@/lib/db/index.js");

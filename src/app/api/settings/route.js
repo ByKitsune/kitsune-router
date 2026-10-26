@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { usesDefaultPassword } from "@/lib/auth/dashboardSession";
 import { getSettings, updateSettings } from "@/lib/localDb";
 import { applyOutboundProxyEnv } from "@/lib/network/outboundProxy";
 import { resetComboRotation } from "open-sse/services/combo.js";
@@ -114,7 +115,8 @@ export async function GET() {
       enableRequestLogsDefined: process.env.ENABLE_REQUEST_LOGS !== undefined,
       observabilityEnabled: resolveObservabilityEnabled(safeSettings),
       enableTranslator,
-      hasPassword: !!password
+      hasPassword: !!password,
+      usesDefaultPassword: usesDefaultPassword(settings),
     }, { headers: SETTINGS_RESPONSE_HEADERS });
   } catch (error) {
     console.log("Error getting settings:", error);

@@ -74,10 +74,10 @@ const readConfig = async () => {
   }
 };
 
-// Check if config has ZenRouter settings
-const hasZenRouterConfig = (config) => {
+// Check if config has Kitsune Router settings
+const hasKitsuneRouterConfig = (config) => {
   if (!config) return false;
-  return config.includes("model_provider = \"zenrouter\"") || config.includes("[model_providers.zenrouter]");
+  return config.includes("model_provider = \"kitsunerouter\"") || config.includes("[model_providers.kitsunerouter]");
 };
 
 // GET - Check codex CLI and read current settings
@@ -98,7 +98,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasZenRouter: hasZenRouterConfig(config),
+      hasKitsuneRouter: hasKitsuneRouterConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {
@@ -107,7 +107,7 @@ export async function GET() {
   }
 }
 
-// POST - Update ZenRouter settings (merge with existing config)
+// POST - Update Kitsune Router settings (merge with existing config)
 export async function POST(request) {
   try {
     let { baseUrl, apiKey, model, subagentModel } = await request.json();
@@ -116,7 +116,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "baseUrl and model are required" }, { status: 400 });
     }
 
-    if (!apiKey || apiKey === "sk_zenrouter" || apiKey === "sk_9router") {
+    if (!apiKey || apiKey === "sk_kitsunerouter" || apiKey === "sk_9router") {
       try {
         const { getApiKeys } = await import("@/lib/db/repos/apiKeysRepo.js");
         const keys = await getApiKeys();
@@ -124,10 +124,10 @@ export async function POST(request) {
         if (active?.length > 0) {
           apiKey = active[0].key;
         } else {
-          apiKey = apiKey || "sk_zenrouter";
+          apiKey = apiKey || "sk_kitsunerouter";
         }
       } catch {
-        apiKey = apiKey || "sk_zenrouter";
+        apiKey = apiKey || "sk_kitsunerouter";
       }
     }
     const codexDir = getCodexDir();
@@ -142,14 +142,14 @@ export async function POST(request) {
     const existingConfig = await readExistingConfig(configPath, (raw) => parsedToWritable(parseTOML(raw)));
     const parsed = existingConfig ?? {};
 
-    // Update only ZenRouter related fields (api_key goes to auth.json, not config.toml)
+    // Update only Kitsune Router related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
-    parsed.model_provider = "zenrouter";
+    parsed.model_provider = "kitsunerouter";
 
     // Custom providers ignore auth.json - the key must travel as a static header
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    setNestedSection(parsed, "model_providers.zenrouter", {
-      name: "ZenRouter",
+    setNestedSection(parsed, "model_providers.kitsunerouter", {
+      name: "Kitsune Router",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
       http_headers: { Authorization: `Bearer ${apiKey}` },
@@ -180,7 +180,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove ZenRouter settings only (keep other settings)
+// DELETE - Remove Kitsune Router settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();
@@ -200,14 +200,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove ZenRouter related root fields only if they point to zenrouter
-    if (parsed.model_provider === "zenrouter") {
+    // Remove Kitsune Router related root fields only if they point to kitsunerouter
+    if (parsed.model_provider === "kitsunerouter") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove zenrouter provider section
-    deleteNestedSection(parsed, "model_providers.zenrouter");
+    // Remove kitsunerouter provider section
+    deleteNestedSection(parsed, "model_providers.kitsunerouter");
 
     // Remove subagent configuration (both the current key and the legacy role form)
     deleteNestedSection(parsed, "agents.default_subagent_model");
@@ -232,7 +232,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "ZenRouter settings removed successfully",
+      message: "Kitsune Router settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting codex settings:", error);

@@ -6,8 +6,8 @@ import { hasValidCliToken, hasValidToken } from "@/dashboardGuard";
 import { releaseConnection } from "@/sse/services/tokenRefresh";
 import { setCachedPassword } from "@/mitm/manager";
 
-const CLI_TOKEN_HEADER = "x-zen-cli-token";
-const PASSWORD_HEADER = "x-zen-password";
+const CLI_TOKEN_HEADER = "x-kitsune-router-cli-token";
+const PASSWORD_HEADER = "x-kitsune-router-password";
 
 function extractApiKey(request) {
   const authHeader = request.headers.get("Authorization");

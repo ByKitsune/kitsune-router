@@ -5,7 +5,7 @@ const [id, mode, stdout = "0", stderr = "0"] = process.argv.slice(2);
 if (!/^[a-z0-9-]{1,80}$/.test(id || "") || !["output", "follow"].includes(mode)) throw new Error("Invalid reader request");
 const offsets = [stdout, stderr].map(Number);
 if (offsets.some((offset) => !Number.isSafeInteger(offset) || offset < 0)) throw new Error("Invalid byte offsets");
-const dir = `/root/zenrouter-worker-mesh/jobs/${id}`;
+const dir = `/root/kitsune-router-worker-mesh/jobs/${id}`;
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const frame = (value) => new Promise((accept, reject) => process.stdout.write(`${JSON.stringify(value)}\n`, (error) => error ? reject(error) : accept()));
 async function emit() {

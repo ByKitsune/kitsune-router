@@ -33,7 +33,7 @@ beforeEach(async () => {
   previousGlobals = new Map(
     fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)])
   );
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-performance-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-performance-"));
   process.env.DATA_DIR = dataDir;
   vi.resetModules();
   for (const key of fixtureGlobals) delete global[key];
@@ -72,11 +72,11 @@ afterEach(async () => {
   }
 });
 
-// ZenRouter port of upstream PR #3629 perf tests, hardened for Zen's diverged
+// Kitsune Router port of upstream PR #3629 perf tests, hardened for Zen's diverged
 // implementations (2s TTL raw settings cache, object-identity usage dedup,
 // arg-less GET /v1/models).
 
-describe("Performance Optimizations (ZenRouter hardened port of #3629)", () => {
+describe("Performance Optimizations (Kitsune Router hardened port of #3629)", () => {
 
   describe("Settings Repository raw TTL cache", () => {
     it("returns equal values on consecutive reads within TTL", async () => {

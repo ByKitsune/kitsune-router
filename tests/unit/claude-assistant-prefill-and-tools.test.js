@@ -70,7 +70,7 @@ describe.each([
     const out = run([
       { role: "user", content: "Start" },
       { role: "assistant", content: "Partial answer" },
-    ], { "x-zenrouter-assistant-prefill": "preserve" });
+    ], { "x-kitsune-router-assistant-prefill": "preserve" });
 
     expect(out.messages).toHaveLength(2);
     expect(out.messages.at(-1).role).toBe("assistant");

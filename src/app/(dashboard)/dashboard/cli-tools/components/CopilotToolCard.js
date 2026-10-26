@@ -104,7 +104,7 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
   useEffect(() => {
     let cancelled = false;
     if (status?.config && Array.isArray(status.config) && selectedModels.length === 0) {
-      const entry = status.config.find((e) => e.name === "ZenRouter");
+      const entry = status.config.find((e) => e.name === "Kitsune Router");
       if (entry?.models?.length > 0) {
         const nextModels = entry.models.map((m) => m.id);
         (async () => {
@@ -117,9 +117,9 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
 
   const saveModels = async (models) => {
     try {
-      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_zenrouter" && selectedApiKey !== "sk_9router")
+      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_kitsunerouter" && selectedApiKey !== "sk_9router")
         ? selectedApiKey
-        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_zenrouter" : selectedApiKey));
+        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_kitsunerouter" : selectedApiKey));
       await fetch("/api/cli-tools/copilot-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,7 +134,7 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
 
   const getConfigStatus = () => {
     if (!status) return null;
-    if (!status.hasZenRouter) return "not_configured";
+    if (!status.hasKitsuneRouter) return "not_configured";
     const url = status.currentUrl || "";
     return matchKnownEndpoint(url, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
@@ -154,9 +154,9 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
     setApplying(true);
     setMessage(null);
     try {
-      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_zenrouter" && selectedApiKey !== "sk_9router")
+      const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_kitsunerouter" && selectedApiKey !== "sk_9router")
         ? selectedApiKey
-        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_zenrouter" : selectedApiKey));
+        : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_kitsunerouter" : selectedApiKey));
       const res = await fetch("/api/cli-tools/copilot-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -199,16 +199,16 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
   };
 
   const getManualConfigs = () => {
-    const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_zenrouter" && selectedApiKey !== "sk_9router")
+    const keyToUse = (selectedApiKey && selectedApiKey.trim() && selectedApiKey !== "sk_kitsunerouter" && selectedApiKey !== "sk_9router")
       ? selectedApiKey
-      : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_zenrouter" : "<API_KEY_FROM_DASHBOARD>"));
+      : (apiKeys?.length > 0 ? apiKeys[0].key : (!cloudEnabled ? "sk_kitsunerouter" : "<API_KEY_FROM_DASHBOARD>"));
     const effectiveBaseUrl = getEffectiveBaseUrl();
     const modelsToShow = selectedModels.length > 0 ? selectedModels : ["provider/model-id"];
 
     return [{
       filename: "~/Library/Application Support/Code/User/chatLanguageModels.json",
       content: JSON.stringify([{
-        name: "ZenRouter",
+        name: "Kitsune Router",
         vendor: "azure",
         apiKey: keyToUse,
         models: modelsToShow.map((id) => ({
@@ -321,7 +321,7 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={selectedModels.length === 0} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status?.hasZenRouter} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status?.hasKitsuneRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} disabled={selectedModels.length === 0}>

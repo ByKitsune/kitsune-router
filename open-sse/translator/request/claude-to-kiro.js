@@ -11,7 +11,7 @@
  * repairs partial parallel calls, and flattens compacted structured references
  * that can no longer be represented safely.
  *
- * It also handles the zenrouter-synthetic `-agentic` / `-thinking` suffixes and
+ * It also handles the kitsunerouter-synthetic `-agentic` / `-thinking` suffixes and
  * the `<thinking_mode>enabled</thinking_mode>` reasoning trigger, matching
  * buildKiroPayload.
  */

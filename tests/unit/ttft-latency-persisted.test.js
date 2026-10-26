@@ -83,10 +83,10 @@ describe("metrics exposes the latency series", () => {
   const metrics = read("src/app/api/metrics/route.js");
 
   it("emits a Prometheus gauge with quantile labels", () => {
-    expect(metrics).toMatch(/zenrouter_ttft_ms/);
+    expect(metrics).toMatch(/kitsunerouter_ttft_ms/);
     expect(metrics).toMatch(/quantile="0\.5"/);
     expect(metrics).toMatch(/quantile="0\.9"/);
-    expect(metrics).toMatch(/# TYPE zenrouter_ttft_ms gauge/);
+    expect(metrics).toMatch(/# TYPE kitsunerouter_ttft_ms gauge/);
   });
 
   it("is gated on having samples, so a scrape never records a fake 0", () => {
@@ -94,6 +94,6 @@ describe("metrics exposes the latency series", () => {
   });
 
   it("publishes the sample count alongside", () => {
-    expect(metrics).toMatch(/zenrouter_ttft_samples_total/);
+    expect(metrics).toMatch(/kitsunerouter_ttft_samples_total/);
   });
 });

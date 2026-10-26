@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.9.5 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.9.5` is a major milestone release delivering a comprehensive audit across core translation pipelines, real-time distributed compute mesh architecture, upstream 9Router cherry-picks, root-cause resolution for thinking block omission, universal 1M context window alignment with `models.dev`, and dynamic reasoning budget auto-adjustment.
 
 ---

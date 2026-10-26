@@ -99,7 +99,7 @@ async function showSettingsMenu(breadcrumb = []) {
 
 /**
  * Reset authMode to "password" via API. Used when OIDC is misconfigured
- * and user is locked out of dashboard. CLI bypasses auth via x-zen-cli-token.
+ * and user is locked out of dashboard. CLI bypasses auth via x-kitsune-router-cli-token.
  */
 async function resetAuthMode() {
   const ok = await confirm("Reset auth mode to PASSWORD (disable OIDC)?");

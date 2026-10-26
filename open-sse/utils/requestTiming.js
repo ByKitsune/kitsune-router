@@ -1,11 +1,11 @@
 import { performance } from "node:perf_hooks";
 
-const key = Symbol.for("zenrouter.request.timings");
+const key = Symbol.for("kitsunerouter.request.timings");
 const samples = globalThis[key] ??= new Map();
 const MAX_SAMPLES = 256;
 
 export function recordRequestPhase(phase, milliseconds) {
-  if (process.env.ZENROUTER_REQUEST_TIMING !== "1" || !Number.isFinite(milliseconds) || milliseconds < 0) return;
+  if (process.env.KITSUNE_ROUTER_REQUEST_TIMING !== "1" || !Number.isFinite(milliseconds) || milliseconds < 0) return;
   let entry = samples.get(phase);
   if (!entry) {
     if (samples.size >= 32) return;
@@ -20,7 +20,7 @@ export function recordRequestPhase(phase, milliseconds) {
 }
 
 export function startRequestPhase(phase) {
-  if (process.env.ZENROUTER_REQUEST_TIMING !== "1") return () => {};
+  if (process.env.KITSUNE_ROUTER_REQUEST_TIMING !== "1") return () => {};
   const started = performance.now();
   let stopped = false;
   return () => {

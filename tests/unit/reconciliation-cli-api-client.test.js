@@ -18,7 +18,7 @@ let sockets;
 
 beforeEach(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), "reconciliation-cli-home-"));
-  const dataDir = path.join(home, ".zenrouter");
+  const dataDir = path.join(home, ".kitsune-router");
   fs.mkdirSync(path.join(dataDir, "auth"), { recursive: true });
   fs.writeFileSync(path.join(dataDir, "machine-id"), MACHINE_ID);
   fs.writeFileSync(path.join(dataDir, "auth", "cli-secret"), CLI_SECRET, { mode: 0o600 });
@@ -101,8 +101,9 @@ function loadClient(port, { onResponse = () => {}, timeoutMs } = {}) {
     exports: fixtureModule.exports,
     Buffer,
     Promise: ObservedPromise,
-    process: { env: { HOME: home, DATA_DIR: path.join(home, ".zenrouter") }, platform: process.platform },
+    process: { env: { HOME: home, DATA_DIR: path.join(home, ".kitsune-router") }, platform: process.platform },
     require(name) {
+      if (name === "../../../hooks/dataDirectory") return { resolveDataDirectory: () => path.join(home, ".kitsune-router") };
       if (name === "http") return transport;
       if (name === "node:os") return { ...os, homedir: () => home };
       if (name === "node-machine-id") return { machineIdSync() { throw new Error("Host machine ID access forbidden"); } };
@@ -170,9 +171,9 @@ describe("reconciliation G06: actual CLI API client response lifecycle (#4832)",
     expect(fixture.settlements).toHaveLength(1);
     expect(fixture.timeoutBudgets).toEqual([30000]);
     expect(seen).toMatchObject({ method: "GET", url: "/api/providers", headers: { "content-type": "application/json" } });
-    expect(seen.headers["x-zen-cli-token"]).toBe("658f6080f5e9bc03");
+    expect(seen.headers["x-kitsune-router-cli-token"]).toBe("658f6080f5e9bc03");
     expect(seen.headers.authorization).toBeUndefined();
-    expect(fs.readFileSync(path.join(home, ".zenrouter", "auth", "cli-secret"), "utf8")).toBe(CLI_SECRET);
+    expect(fs.readFileSync(path.join(home, ".kitsune-router", "auth", "cli-secret"), "utf8")).toBe(CLI_SECRET);
   });
 
   it.each([

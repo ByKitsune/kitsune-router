@@ -31,26 +31,26 @@ const readConfig = async () => {
   }
 };
 
-const hasZenRouterConfig = (config) => {
+const hasKitsuneRouterConfig = (config) => {
   if (!Array.isArray(config)) return false;
-  return config.some((entry) => entry.name === "ZenRouter");
+  return config.some((entry) => entry.name === "Kitsune Router");
 };
 
-const getZenRouterEntry = (config) => {
+const getKitsuneRouterEntry = (config) => {
   if (!Array.isArray(config)) return null;
-  return config.find((entry) => entry.name === "ZenRouter") || null;
+  return config.find((entry) => entry.name === "Kitsune Router") || null;
 };
 
 // GET - Read current copilot config
 export async function GET() {
   try {
     const config = await readConfig();
-    const entry = getZenRouterEntry(config);
+    const entry = getKitsuneRouterEntry(config);
 
     return NextResponse.json({
       installed: true,
       config,
-      hasZenRouter: hasZenRouterConfig(config),
+      hasKitsuneRouter: hasKitsuneRouterConfig(config),
       configPath: getConfigPath(),
       currentModel: entry?.models?.[0]?.id || null,
       currentUrl: entry?.models?.[0]?.url || null,
@@ -61,7 +61,7 @@ export async function GET() {
   }
 }
 
-// POST - Apply ZenRouter config to chatLanguageModels.json
+// POST - Apply Kitsune Router config to chatLanguageModels.json
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, models } = await request.json();
@@ -83,19 +83,19 @@ export async function POST(request) {
     const config = existingConfig ?? [];
 
     let keyToUse = apiKey;
-    if (!keyToUse || keyToUse === "sk_zenrouter" || keyToUse === "sk_9router") {
+    if (!keyToUse || keyToUse === "sk_kitsunerouter" || keyToUse === "sk_9router") {
       try {
         const { getApiKeys } = await import("@/lib/db/repos/apiKeysRepo.js");
         const keys = await getApiKeys();
         const active = keys?.filter(k => k.isActive);
-        keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_zenrouter");
+        keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_kitsunerouter");
       } catch {
-        keyToUse = keyToUse || "sk_zenrouter";
+        keyToUse = keyToUse || "sk_kitsunerouter";
       }
     }
     const endpointUrl = `${baseUrl}/chat/completions#models.ai.azure.com`;
     const newEntry = {
-      name: "ZenRouter",
+      name: "Kitsune Router",
       vendor: "azure",
       apiKey: keyToUse,
       models: models.map((id) => ({
@@ -109,8 +109,8 @@ export async function POST(request) {
       })),
     };
 
-    // Replace existing ZenRouter entry or append
-    const idx = config.findIndex((e) => e.name === "ZenRouter");
+    // Replace existing Kitsune Router entry or append
+    const idx = config.findIndex((e) => e.name === "Kitsune Router");
     if (idx >= 0) {
       config[idx] = newEntry;
     } else {
@@ -136,7 +136,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove ZenRouter entry from chatLanguageModels.json
+// DELETE - Remove Kitsune Router entry from chatLanguageModels.json
 export async function DELETE() {
   try {
     const configPath = getConfigPath();
@@ -153,12 +153,12 @@ export async function DELETE() {
       throw error;
     }
 
-    config = config.filter((e) => e.name !== "ZenRouter");
+    config = config.filter((e) => e.name !== "Kitsune Router");
     await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
     return NextResponse.json({
       success: true,
-      message: "ZenRouter removed from Copilot config",
+      message: "Kitsune Router removed from Copilot config",
     });
   } catch (error) {
     console.log("Error resetting copilot settings:", error);

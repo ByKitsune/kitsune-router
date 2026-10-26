@@ -1,5 +1,7 @@
 # Antigravity: "User location is not supported for the API use"
 
+Catatan Kitsune Router: diagnosis ini bukan janji akses gratis, izin akun, atau verifikasi live terbaru. Ikuti wilayah dan ketentuan resmi Google; jangan memakai pergantian IP/akun untuk menghindari pembatasan. Lihat [operasi aman](OPERATIONS.md), [status rilis](CHANGELOG_v1.0.0.md) dan [migrasi](MIGRATION.md).
+
 ## Gejala
 
 Request ke model Gemini via provider Antigravity gagal dengan:
@@ -10,11 +12,11 @@ Request ke model Gemini via provider Antigravity gagal dengan:
 
 Ciri khas: **semua model Gemini mati, model Claude di akun Antigravity yang sama tetap jalan normal.**
 
-## Akar masalah (bukan bug ZenRouter)
+## Akar masalah (bukan bug Kitsune Router)
 
 Error ini dibuat oleh backend **Google Cloud Code Assist** (`daily-cloudcode-pa.googleapis.com`),
-bukan oleh ZenRouter/9Router — tidak ada baris kode di repo ini yang menghasilkan string tersebut.
-Google mengevaluasi "user location" dari **egress IP server tempat ZenRouter berjalan**
+bukan oleh Kitsune Router/9Router — tidak ada baris kode di repo ini yang menghasilkan string tersebut.
+Google mengevaluasi "user location" dari **egress IP server tempat Kitsune Router berjalan**
 (ditambah sinyal akun), bukan dari isi request. Tier gratis Antigravity (`daily-*`)
 memberlakukan **regional allowlist sendiri yang lebih ketat** dari Gemini API biasa.
 
@@ -34,18 +36,18 @@ Bukti:
    - Resmi berhasil → kemungkinan bentuk request (laporkan ke maintainer dengan log
      `Trajectory ID` / `TraceID` dari error).
 
-## Workaround (urut dari paling manjur)
+## Pilihan penanganan (hanya sesuai izin dan kebijakan upstream)
 
-1. **Proxy/VPN khusus koneksi Antigravity** dengan egress di region supported (SG/US).
-   ZenRouter mendukung proxy per-connection: isi `connectionProxyEnabled` +
+1. **Tinjau jaringan koneksi Antigravity** bersama dokumentasi/dukungan Google. Jika organisasi Anda memang berhak memakai layanan dari jaringan yang disetujui, konfigurasi proxy per-koneksi dapat digunakan untuk jaringan tersebut; ini bukan cara memperoleh hak regional baru.
+   Kitsune Router mendukung proxy per-connection: isi `connectionProxyEnabled` +
    `connectionProxyUrl` di `providerSpecificData` koneksi tersebut. Traffic chat,
    refresh token, dan provisioning `loadCodeAssist` semuanya lewat proxy ini.
-2. **Pakai model Claude** di akun Antigravity yang sama — tidak terdampak gate ini.
+2. **Pilih rute lain yang memang diizinkan** untuk akun/region Anda. Keberhasilan Claude pada satu akun bukan jaminan akses umum atau hak untuk melewati gate Gemini.
 3. Matikan **mode TUN** pada VPN, dan/atau **disable IPv6** egress ke range Google
    (keduanya ada laporan sukses di forum).
 4. Coba jaringan lain (tethering HP) untuk memastikan diagnosis IP.
 
-## Yang ZenRouter lakukan untuk error ini
+## Yang Kitsune Router lakukan untuk error ini
 
 - **Akun tidak di-lock.** Error 400 tanpa rule khusus diklasifikasikan fail-fast:
   `shouldFallback: false, cooldownMs: 0` (`open-sse/services/accountFallback.js`).
@@ -59,7 +61,7 @@ Bukti:
   `open-sse/utils/error.js`) supaya klien (Hermes/dll) menampilkan langkah perbaikan,
   bukan sekadar "malformed".
 
-## Yang TIDAK bisa diperbaiki dari sisi ZenRouter
+## Yang TIDAK bisa diperbaiki dari sisi Kitsune Router
 
 - Melewati allowlist regional Google (keputusan server-side per IP/akun).
 - Menambah "param location" ke request — parameter seperti itu tidak ada di

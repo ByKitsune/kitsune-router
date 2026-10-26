@@ -1,136 +1,22 @@
-# Integración con OpenAI Codex CLI
+# Integración con Codex CLI
 
-Integra ZenRouter con OpenAI Codex CLI para enrutar tus solicitudes de la API de OpenAI a través del sistema de enrutamiento inteligente de ZenRouter.
-
-## Requisitos previos
-
-- OpenAI Codex CLI instalado
-- ZenRouter ejecutándose localmente o endpoint en la nube configurado
-- API key del dashboard de ZenRouter
+Comando `kitsune-router`; clave de proveedor **`kitsunerouter`**. Conecta un upstream elegible y crea/copia una clave del gateway. No concede suscripción Codex/OpenAI ni todas sus funciones.
 
 ## Configuración
 
-### 1. Configurar variables de entorno
+Combina con `~/.codex/config.toml`, no `config.json`:
 
-Establece las siguientes variables de entorno en tu archivo de configuración del shell (`~/.bashrc`, `~/.zshrc`, o `~/.bash_profile`):
+```toml
+model_provider = "kitsunerouter"
+model = "my-route"
 
-```bash
-# Base URL for ZenRouter
-export OPENAI_BASE_URL="http://localhost:20128/v1"
-
-# API Key from ZenRouter dashboard
-export OPENAI_API_KEY="your-zenrouter-api-key"
+[model_providers.kitsunerouter]
+name = "Kitsune Router"
+base_url = "http://localhost:20128/v1"
+wire_api = "responses"
+env_key = "KITSUNE_ROUTER_API_KEY"
 ```
 
-### 2. Recargar la configuración del shell
+Crea `my-route` primero o usa un ID habilitado exacto. La variable privada contiene una clave emitida, no la crea. El preset del dashboard puede escribir Authorization estática: trata el archivo como secreto, conserva lo demás y no reemplaces el directorio completo.
 
-```bash
-source ~/.zshrc  # o ~/.bashrc
-```
-
-### 3. Verificar la configuración
-
-Verifica que las variables de entorno estén configuradas correctamente:
-
-```bash
-echo $OPENAI_BASE_URL
-echo $OPENAI_API_KEY
-```
-
-## Modelos disponibles
-
-ZenRouter proporciona los siguientes modelos de Codex:
-
-| ID del modelo | Descripción |
-|----------|-------------|
-| `cx/gpt-5.2-codex` | GPT-5.2 Codex - Última versión |
-| `cx/gpt-5.1-codex-max` | GPT-5.1 Codex Max - Contexto extendido |
-
-## Ejemplos de uso
-
-### Uso básico
-
-```bash
-# Usar GPT-5.2 Codex
-codex --model cx/gpt-5.2-codex "Write a function to sort an array"
-
-# Usar GPT-5.1 Codex Max
-codex --model cx/gpt-5.1-codex-max "Explain this complex algorithm"
-```
-
-### Generación de código
-
-```bash
-codex --model cx/gpt-5.2-codex "Create a REST API endpoint for user authentication"
-```
-
-### Explicación de código
-
-```bash
-codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js)"
-```
-
-## Archivo de configuración
-
-También puedes configurar Codex CLI usando un archivo de configuración. Crea o edita `~/.codex/config.json`:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "apiKey": "your-zenrouter-api-key",
-  "defaultModel": "cx/gpt-5.2-codex"
-}
-```
-
-## Solución de problemas
-
-### Errores de autenticación
-
-Si encuentras errores de autenticación:
-
-1. Verifica que tu API key sea correcta en el dashboard de ZenRouter
-2. Verifica que la variable de entorno `OPENAI_API_KEY` esté configurada
-3. Asegúrate de que la API key no haya expirado
-
-### Problemas de conexión
-
-Si encuentras errores de conexión:
-
-1. Verifica que ZenRouter esté corriendo: `curl http://localhost:20128/health`
-2. Verifica que las variables de entorno estén configuradas correctamente
-3. Asegúrate de que ningún firewall esté bloqueando el puerto 20128
-
-### Modelo no disponible
-
-Si obtienes errores de "modelo no disponible":
-
-1. Verifica que el nombre del modelo coincida con tu configuración de ZenRouter
-2. Verifica que la conexión del proveedor de OpenAI esté activa en el dashboard de ZenRouter
-3. Asegúrate de que el modelo esté disponible en tus proveedores conectados
-
-## Endpoint en la nube
-
-Para usar el endpoint en la nube de ZenRouter en lugar de localhost:
-
-```bash
-export OPENAI_BASE_URL="http://localhost:20128"
-```
-
-Asegúrate de haber configurado tu API key en el dashboard en la nube de ZenRouter.
-
-## Configuración avanzada
-
-### Timeout personalizado
-
-```bash
-export OPENAI_TIMEOUT=60  # segundos
-```
-
-### Modo debug
-
-Habilita el modo debug para ver logs detallados de request/response:
-
-```bash
-export CODEX_DEBUG=true
-codex --model cx/gpt-5.2-codex "Your prompt"
-```
+Verifica `/api/health` y `/v1/models` autenticado, luego `codex --model my-route`. Remoto significa tu HTTPS `/v1`, no localhost como nube. Catálogo no prueba permisos, velocidad o facturación; controles/documentos no soportados pueden rechazarse. [Referencia](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) · [Velocidad](https://github.com/ByKitsune/kitsune-router/blob/master/docs/PROCESSING-SPEED.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).

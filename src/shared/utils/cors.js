@@ -18,7 +18,7 @@
 //   idempotency-key   retry-safe client retries
 //   anthropic-beta    Claude beta flags (1M context, interleaving)
 //   anthropic-version Anthropic API versioning
-//   x-zen-*           provenance headers set by the client SDKs
+//   x-stainless-*     client SDK runtime metadata
 // `*` is intentionally NOT included.
 export const API_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

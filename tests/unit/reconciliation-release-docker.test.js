@@ -8,7 +8,7 @@ const root = resolve(import.meta.dirname, "../..");
 const directories = [];
 const sha = "a".repeat(40);
 const digest = `sha256:${"b".repeat(64)}`;
-const images = ["ghcr.io/zenrouter/zenrouter", "joyccn/zenrouter"];
+const images = ["ghcr.io/bykitsune/kitsune-router", "bykitsune/kitsune-router"];
 afterEach(() => { for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 function fixture(mode, scenario = "existing") {
@@ -40,13 +40,13 @@ if (args[2] !== 'inspect') throw Error('Unexpected Docker mutation');
 const ref = args[3];
 const latest = ref.endsWith(':latest');
 if (scenario === 'auth') { console.error('401 Unauthorized: manifest unknown'); process.exit(1); }
-if (!latest && !ref.includes('@') && (scenario === 'missing' || (scenario === 'partial' && ref.startsWith('joyccn/')))) { console.error('manifest unknown'); process.exit(1); }
-const observed = (scenario === 'conflict' && ref.startsWith('joyccn/')) || (scenario === 'latest-conflict' && latest) ? 'sha256:'+'c'.repeat(64) : digest;
+if (!latest && !ref.includes('@') && (scenario === 'missing' || (scenario === 'partial' && ref.startsWith('bykitsune/')))) { console.error('manifest unknown'); process.exit(1); }
+const observed = (scenario === 'conflict' && ref.startsWith('bykitsune/')) || (scenario === 'latest-conflict' && latest) ? 'sha256:'+'c'.repeat(64) : digest;
 if (args.at(-1) === '{{json .Manifest}}') {
   console.log(JSON.stringify({ schemaVersion: 2, mediaType: 'application/vnd.oci.image.index.v1+json', digest: observed, manifests: [{digest: 'sha256:'+'d'.repeat(64), platform: {os:'linux',architecture:'amd64'}}, {digest: 'sha256:'+'e'.repeat(64), platform: {os:'unknown',architecture:'unknown'}, annotations: {'vnd.docker.reference.type':'attestation-manifest'}}] }));
 } else if (args.at(-1) === '{{json .Image}}') {
   const version = latest && scenario === 'newer' ? '0.9.8' : latest && scenario === 'latest-conflict' ? '0.9.7' : latest && !state.tagged.includes(ref) ? '0.9.6' : '0.9.7';
-  const config = { architecture:'amd64', os:'linux', config:{Labels:{'org.opencontainers.image.version':version, 'org.opencontainers.image.revision': scenario === 'wrong-sha' ? 'f'.repeat(40) : 'a'.repeat(40), 'org.opencontainers.image.source': scenario === 'wrong-source' ? 'https://github.com/untrusted/repo' : 'https://github.com/ZenRouter/ZenRouter'}}};
+  const config = { architecture:'amd64', os:'linux', config:{Labels:{'org.opencontainers.image.version':version, 'org.opencontainers.image.revision': scenario === 'wrong-sha' ? 'f'.repeat(40) : 'a'.repeat(40), 'org.opencontainers.image.source': scenario === 'wrong-source' ? 'https://github.com/untrusted/repo' : 'https://github.com/ByKitsune/kitsune-router'}}};
   console.log(JSON.stringify(scenario === 'multiplatform' ? {'linux/amd64':config} : config));
 } else if (args.at(-1) === '{{json .Provenance}}') {
   console.log(JSON.stringify(scenario === 'no-provenance' ? null : {SLSA:{buildType:'https://mobyproject.org/buildkit@v1'}}));
@@ -58,7 +58,7 @@ if (args.at(-1) === '{{json .Manifest}}') {
   const args = [resolve(root, "scripts/release-publication-helpers.mjs"), mode, "0.9.7", ...(mode === "docker-prepare" ? [] : [digest]), ...images];
   const result = spawnSync(process.execPath, args, {
     cwd: dir, encoding: "utf8", timeout: 5000,
-    env: { PATH: `${dir}:${process.env.PATH}`, HOME: dir, GITHUB_OUTPUT: output, GITHUB_REPOSITORY: "ZenRouter/ZenRouter", GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v0.9.7", FIXTURE_LOG: log, FIXTURE_STATE: state, SCENARIO: scenario },
+    env: { PATH: `${dir}:${process.env.PATH}`, HOME: dir, GITHUB_OUTPUT: output, GITHUB_REPOSITORY: "ByKitsune/kitsune-router", GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v0.9.7", FIXTURE_LOG: log, FIXTURE_STATE: state, SCENARIO: scenario },
   });
   return { result, output: readFileSync(output, "utf8"), calls: readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line)), state: JSON.parse(readFileSync(state, "utf8")) };
 }
@@ -75,7 +75,7 @@ describe("Docker immutable version reconciliation through the real CLI", () => {
     const f = fixture("docker-prepare", "missing");
     expect(f.result.status, f.result.stderr).toBe(0);
     const outputs = Object.fromEntries(f.output.trim().split("\n").map(line => line.split("=")));
-    expect(outputs.context).toBe("https://github.com/ZenRouter/ZenRouter.git#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    expect(outputs.context).toBe("https://github.com/ByKitsune/kitsune-router.git#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   });
 
   it.each(["existing", "multiplatform"])("reuses the original %s digest without a build or tag write", scenario => {
@@ -87,10 +87,16 @@ describe("Docker immutable version reconciliation through the real CLI", () => {
     expect(f.calls.filter(c => c.at(-1) === "{{json .Image}}").every(c => c[3].endsWith(`@${digest}`))).toBe(true);
   });
 
-  it.each(["partial", "conflict", "wrong-sha", "wrong-source", "auth"])("fails closed on %s rather than overwriting or rebuilding a version", scenario => {
+  it.each([
+    ["partial", /Partial immutable Docker publication/],
+    ["conflict", /Conflicting immutable Docker version digests/],
+    ["wrong-sha", /Immutable Docker source SHA mismatch/],
+    ["wrong-source", /Immutable Docker source repository mismatch/],
+    ["auth", /401 Unauthorized/],
+  ])("fails closed on %s rather than overwriting or rebuilding a version", (scenario, reason) => {
     const f = fixture("docker-prepare", scenario);
     expect(f.result.status).not.toBe(0);
-    expect(f.result.stderr).not.toContain("Unknown release publication command");
+    expect(f.result.stderr).toMatch(reason);
     expect(f.output).toBe("");
     expect(f.state.tagged).toEqual([]);
   });

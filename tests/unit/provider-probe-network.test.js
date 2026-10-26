@@ -63,7 +63,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   for (const name of ["HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy"]) vi.stubEnv(name, "");
-  vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-probe-peer");
+  vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-probe-peer");
   received = [];
   transport.lookups = [];
   lookup = vi.spyOn(dns.promises, "lookup").mockImplementation(async (host) => [{ address: host === "private.example" ? "127.0.0.1" : "93.184.216.34", family: 4 }]);
@@ -78,7 +78,7 @@ afterAll(async () => {
 
 function headers(local) {
   return { "content-type": "application/json", ...(local ? {
-    "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": "fixture-probe-peer",
+    "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": "fixture-probe-peer",
   } : {}) };
 }
 function probe(url, type = TYPES[0], local = false) {

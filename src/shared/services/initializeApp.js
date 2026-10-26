@@ -82,7 +82,7 @@ export function stopApplicationStartup() {
   }
   shutdownAllManaged();
   killCloudflared();
-  const helperDrain = globalThis[Symbol.for("zenrouter.helper.lifecycle")]?.stop();
+  const helperDrain = globalThis[Symbol.for("kitsunerouter.helper.lifecycle")]?.stop();
   g.stopPromise = (async () => {
     while (g.pending.size) await Promise.allSettled([...g.pending.values()]);
     await helperDrain;
@@ -99,7 +99,7 @@ async function cleanupApplication() {
 
 function registerApplicationCleanup() {
   if (g.signalHandlersRegistered) return;
-  if (process.env.ZENROUTER_MANAGED_SHUTDOWN === "1") {
+  if (process.env.KITSUNE_ROUTER_MANAGED_SHUTDOWN === "1") {
     registerShutdownHook("application-schedulers", 10, cleanupApplication);
   } else {
     const exit = () => {
@@ -157,7 +157,7 @@ async function runHeavyStartup() {
 
   if (settings.tunnelEnabled) runOwnedTask("cloudflared", ensureCloudflared).catch(() => {});
 
-  if (settings.mitmEnabled && process.env.ZENROUTER_DISABLE_MITM !== "1") {
+  if (settings.mitmEnabled && process.env.KITSUNE_ROUTER_DISABLE_MITM !== "1") {
     // Sync mitmAlias DB → JSON cache so standalone MITM server can read it.
     runOwnedTask("mitm-aliases", syncMitmAliasCache).catch(() => {});
     runOwnedTask("mitm", () => autoStartMitm(settings)).catch(() => {});
@@ -205,7 +205,7 @@ async function autoStartMitm(settings) {
     const activeKey = keys.find(k => k.isActive !== false);
 
     console.log("[InitApp] MITM was enabled, auto-starting...");
-    await startMitm(activeKey?.key || "sk_zenrouter", password);
+    await startMitm(activeKey?.key || "sk_kitsunerouter", password);
     if (!canStartWork()) return;
     console.log("[InitApp] MITM auto-started");
     try {

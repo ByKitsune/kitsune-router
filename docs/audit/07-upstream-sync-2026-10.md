@@ -1,5 +1,7 @@
 # 07 — Upstream sync analysis: decolua/9router (1–13 Oct 2026) → Zen
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Analysis date: 2026-10-13 · Zen base: v0.9.7 (2026-10-06) · commit `2c61f4f1`
 Upstream state in window: **273 issues+PRs created**, 46 commits on master
 (`v0.5.95` 1 Oct → `v0.5.99` 8 Oct; master quiet 9–13 Oct, PR flow continues to 13 Oct).
@@ -187,4 +189,3 @@ Public Gemini API IDs do not establish the authenticated Cloud Code IDs or raw q
 Regressions failed before the corresponding fixes, then passed through real handlers, disposable SQLite and calibrated HTTP transports. A source smoke adopted persisted same-refresh-token credentials without OAuth traffic and served 20 concurrent refresh callers through one synthetic HTTP exchange.
 
 The actual locally packed runtime passed 23 HTTP scenarios through 46 fixture requests. Coverage includes Messages/Responses and SSE, account health, concurrent OAuth/Copilot refresh, embedding scalar/batch input, authenticated PAT rejection, redirect/error confidentiality, local MCP and live usage windows. Denied native quota lookups remain recorded by the egress guard; no real provider or production state is used. See [the updated test workflow](05-cli-tests-and-tooling.md#6-current-verification-workflow-2026-10-18) for the complete suite and baseline commands.
-

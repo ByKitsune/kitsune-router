@@ -1,5 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import dataDirectory from "./cli/hooks/dataDirectory.js";
+
+// Must precede config capture; this helper performs no state-directory I/O.
+dataDirectory.migrateLegacyEnvironment(process.env);
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 // CLI bundling needs workspace root so tracing includes hoisted node_modules (slim ~50MB).
@@ -7,7 +11,8 @@ const projectRoot = dirname(fileURLToPath(import.meta.url));
 const tracingRoot = process.env.NEXT_TRACING_ROOT_MODE === "workspace"
   ? join(projectRoot, "..")
   : projectRoot;
-const proxyClientMaxBodySize = process.env.ZENROUTER_PROXY_CLIENT_MAX_BODY_SIZE || process.env.NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
+// NINEROUTER_* is a migration-only alias; new configurations use KITSUNE_ROUTER_*.
+const proxyClientMaxBodySize = process.env.KITSUNE_ROUTER_PROXY_CLIENT_MAX_BODY_SIZE || process.env.NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -28,10 +33,16 @@ const nextConfig = {
   },
   outputFileTracingRoot: tracingRoot,
   outputFileTracingIncludes: {
-    "/*": ["./src/mitm/**/*"]
+    "/*": ["./src/mitm/**/*", "./cli/hooks/*.js", "./branding/identity.mjs", "./src/shared/constants/mitmToolHosts.js", "./open-sse/config/clientVersions.js", "./node_modules/next/dist/lib/metadata/**/*"]
   },
   outputFileTracingExcludes: {
-    "*": ["./gitbook/**/*"]
+    "*": [
+      "./gitbook/**/*", "./.verification/**/*", "./verification/**/*",
+      "./cli/.build-home/**/*", "./cli/app/**/*", "./data/**/*", "./.data/**/*",
+      "./.kitsune-router/**/*", "./.zenrouter/**/*", "./.9router/**/*", // Never trace legacy private state.
+      "./.env", "./.env.*", "./**/*.sqlite", "./**/*.sqlite-wal", "./**/*.sqlite-shm",
+      "./**/secrets.json", "./**/secrets.env", "./**/machine-id", "./**/.npmrc",
+    ]
   },
   images: {
     unoptimized: true
@@ -63,23 +74,19 @@ const nextConfig = {
     return config;
   },
   async headers() {
-    // NOTE: ZenRouter previously had NO CSP, so prod relied on proxy-injected
-    // `Content-Security-Policy-Report-Only: connect-src 'none'` which is Report-Only
-    // (does not block by itself) but if proxy sends enforcing `Content-Security-Policy:
-    // connect-src 'none'` it WILL block. Remove that at proxy (nginx add_header,
-    // Cloudflare Transform Rules). This header below is the correct enforcing policy.
-    // Baseline security headers. Zen binds 127.0.0.1 but is published through a
-    // Cloudflare tunnel (router.bykitsune.org → 127.0.0.1:20128), so responses do reach
-    // the public internet and the hardening applies.
+    // Browsers apply every enforcing CSP, including policies injected by a proxy.
+    // Keep proxy policies aligned with the application: connect-src 'none' at the
+    // proxy still blocks requests even when this application policy allows them.
+    // Baseline security headers apply to local and public deployments, including
+    // installations exposed through a reverse proxy or tunnel.
     //   - X-Content-Type-Options stops MIME sniffing (a JSON error body must
     //     never be interpreted as HTML/script).
     //   - X-Frame-Options + frame-ancestors block clickjacking of the dashboard.
     //   - Referrer-Policy keeps a dashboard URL (which may carry a query) out of
     //     third-party Referer headers.
     //   - Permissions-Policy denies device APIs the dashboard never uses.
-    // HSTS is only meaningful over HTTPS; the tunnel terminates TLS upstream, so
-    // it is sent for the tunnel hostname while a plain-HTTP loopback request is
-    // unaffected (browsers ignore HSTS on http://).
+    // HSTS is only meaningful over HTTPS, including when a proxy terminates TLS.
+    // Plain-HTTP loopback requests are unaffected (browsers ignore HSTS on http://).
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "SAMEORIGIN" },

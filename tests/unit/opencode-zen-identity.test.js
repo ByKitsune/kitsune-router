@@ -14,7 +14,7 @@ import {
 //     (bare "opencode" or foreign UAs get 403 FreeTierError / 426).
 //   - x-opencode-session must be ses_ + 12 hex timestamp digits + 14 Base62
 //     chars (raw UUIDs / foreign session formats get 403 FreeTierError).
-// ZenRouter previously sent bare "opencode" and ses_<32hex> everywhere.
+// The pre-rebrand ZenRouter client sent bare "opencode" and ses_<32hex> everywhere.
 describe("OpenCode Zen identity compliance (#4101)", () => {
   beforeEach(() => {
     _resetOpencodeSessionCache();

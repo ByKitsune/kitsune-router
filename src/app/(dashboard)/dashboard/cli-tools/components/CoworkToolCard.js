@@ -165,7 +165,7 @@ export default function CoworkToolCard({
     if (!status?.installed) return null;
     const url = status?.cowork?.baseUrl;
     if (!url) return "not_configured";
-    return status.hasZenRouter ? "configured" : "other";
+    return status.hasKitsuneRouter ? "configured" : "other";
   };
 
   const configStatus = getConfigStatus();
@@ -183,7 +183,7 @@ export default function CoworkToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_zenrouter" : null);
+        || (!cloudEnabled ? "sk_kitsunerouter" : null);
 
       const res = await fetch(ENDPOINT, {
         method: "POST",
@@ -281,7 +281,7 @@ export default function CoworkToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_zenrouter" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_kitsunerouter" : "<API_KEY_FROM_DASHBOARD>");
 
     const modelsToShow = selectedModels.length > 0 ? selectedModels : ["provider/model-id"];
     const cfg = {
@@ -549,7 +549,7 @@ export default function CoworkToolCard({
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={selectedModels.length === 0} loading={applying} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasZenRouter} loading={restoring} className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasKitsuneRouter} loading={restoring} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto">

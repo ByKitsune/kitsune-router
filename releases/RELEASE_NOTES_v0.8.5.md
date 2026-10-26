@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.8.5 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.8.5` is a major performance, accuracy, and ecosystem release featuring support for the latest **September 2026** models (OpenAI GPT-6 Astra/Sol/Luna, Z.ai GLM-5.3, Qwen 3.8, DeepSeek V4.1 Flash), enhanced Google Search grounding via Antigravity, multi-reference image generation & editing, exact prompt caching detection, accurate token cost calculation, and critical security hardening.
 
 ---

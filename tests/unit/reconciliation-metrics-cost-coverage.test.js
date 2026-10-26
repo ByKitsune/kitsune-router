@@ -36,7 +36,7 @@ beforeEach(async () => {
     DATA_DIR: join(directory, "data"), HOME: directory, TMPDIR: directory, TZ: "UTC",
     RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0",
     MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1",
-    ZENROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
+    KITSUNE_ROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
     ENABLE_REQUEST_LOGS: "false", OBSERVABILITY_ENABLED: "false",
   })) vi.stubEnv(key, value);
   for (const key of fixtureGlobals) delete global[key];

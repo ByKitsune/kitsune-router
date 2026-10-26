@@ -1,5 +1,15 @@
 # Changelog
 
+## Kitsune Router 1.0.0 — proposed, pending verification/publication
+
+**Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), with no required account or provider order. Targets: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, executable `kitsune-router`, provider key `kitsunerouter`, canonical image `ghcr.io/bykitsune/kitsune-router`.
+
+Stop old writers and back up all state before migration. Default startup can verify/copy `~/.zenrouter` or `~/.9router` to `~/.kitsune-router`, preserving originals and refusing existing destination overwrite. Explicit `DATA_DIR` stays authoritative. Preserve secrets, auth, crypto derivation inputs and trusted certificates. Project settings become `KITSUNE_ROUTER_*`, extension headers `x-kitsune-router-*`; standard `/v1/*` and port 20128 stay stable.
+
+Namespace registration/ownership, npm authorization, registry access, final SHA-bound tests/builds and actual publication remain pending. [Release draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Technical changelog](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+
+> **Archive boundary:** entries below preserve the original ZenRouter names, artifacts, URLs and dated test claims. They are not retroactive Kitsune 0.x publications or verification of the renamed source. Use [current installation](/en/getting-started/installation/), not archived upgrade commands. The preceding Unreleased source work was recorded before the rebrand proposal.
+
 ## Unreleased — October reconciliation
 
 - Fix recursive calls between Next.js's fetch wrapper and the gateway transport, restoring chat, OAuth refresh, usage and catalog requests without changing account/proxy policy.

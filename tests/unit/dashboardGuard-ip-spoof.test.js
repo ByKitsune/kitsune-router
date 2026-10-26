@@ -1,16 +1,13 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isLocalRequest } from "../../src/dashboardGuard.js";
 
-beforeAll(() => {
+beforeEach(() => {
   // Peer-token must match what custom-server.js stamps at boot.
-  process.env.ZENROUTER_PEER_TOKEN = "fingerprint";
-  process.env.NINEROUTER_PEER_TOKEN = "fingerprint";
+  vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fingerprint");
+  vi.stubEnv("NINEROUTER_PEER_TOKEN", undefined);
 });
 
-afterEach(() => {
-  // Tests must not leak state — never delete the env var here, vitest workers
-  // are reused across files and we want all sibling tests to see the same token.
-});
+afterEach(() => vi.unstubAllEnvs());
 
 describe("isLocalRequest — IP spoofing defense (#3496)", () => {
   it("rejects dev-mode Host spoofing when peer headers are absent", () => {
@@ -22,16 +19,16 @@ describe("isLocalRequest — IP spoofing defense (#3496)", () => {
 
   it("trusts peer token + loopback IP stamped by custom-server", () => {
     const headers = new Headers();
-    headers.set("x-zen-real-ip", "127.0.0.1");
-    headers.set("x-zen-peer-token", "fingerprint");
+    headers.set("x-kitsune-router-real-ip", "127.0.0.1");
+    headers.set("x-kitsune-router-peer-token", "fingerprint");
     headers.set("origin", "http://localhost:20128");
     expect(isLocalRequest({ headers })).toBe(true);
   });
 
   it("rejects even with peer token when real IP is non-loopback", () => {
     const headers = new Headers();
-    headers.set("x-zen-real-ip", "8.8.8.8");
-    headers.set("x-zen-peer-token", "fingerprint");
+    headers.set("x-kitsune-router-real-ip", "8.8.8.8");
+    headers.set("x-kitsune-router-peer-token", "fingerprint");
     expect(isLocalRequest({ headers })).toBe(false);
   });
 });

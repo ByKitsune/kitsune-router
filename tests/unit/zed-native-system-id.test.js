@@ -68,7 +68,7 @@ describe("Zed native system ID lookup", () => {
   });
 
   beforeEach(async () => {
-    fixture.home = await mkdtemp(join(tmpdir(), "zenrouter-zed-native-"));
+    fixture.home = await mkdtemp(join(tmpdir(), "kitsunerouter-zed-native-"));
     fixture.cliCalls = [];
     fixture.cliValue = null;
     vi.stubEnv("LOCALAPPDATA", join(fixture.home, "AppData", "Local"));

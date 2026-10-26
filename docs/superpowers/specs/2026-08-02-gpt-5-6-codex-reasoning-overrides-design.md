@@ -1,5 +1,7 @@
 # GPT-5.6 Codex Reasoning Overrides Design
 
+> **Kitsune Router archive:** this dated ZenRouter design preserves its original terminology; it is not a fresh support/verification matrix. See [current docs](../../INSTALLATION.md), [reasoning policy](../../REASONING-BUDGETS.md) and [migration](../../MIGRATION.md).
+
 ## Goal
 
 Expose and preserve the reasoning levels currently advertised by the OpenAI

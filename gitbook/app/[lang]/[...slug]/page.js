@@ -4,6 +4,9 @@ import { extractHeadings } from "@/utils/markdown";
 import { loadContent, getAllSlugs } from "@/lib/content";
 import { LANG_CODES, isValidLang, DEFAULT_LANG } from "@/constants/languages";
 import { notFound } from "next/navigation";
+import { createDocsMetadata } from "@/lib/metadata.mjs";
+import { getDocumentSummary } from "@/lib/search.mjs";
+import { docsHref } from "@/lib/urls.mjs";
 
 export const dynamicParams = false;
 
@@ -19,6 +22,15 @@ export async function generateStaticParams() {
   return params;
 }
 
+export async function generateMetadata({ params }) {
+  const { lang, slug } = await params;
+  if (!isValidLang(lang)) notFound();
+  const content = loadContent(lang, slug);
+  if (!content) notFound();
+  const { title, description } = getDocumentSummary(content);
+  return createDocsMetadata({ title, description, lang, pathname: docsHref(lang, slug.join("/")) });
+}
+
 export default async function DocPage({ params }) {
   const { lang, slug } = await params;
   if (!isValidLang(lang)) notFound();
@@ -30,7 +42,7 @@ export default async function DocPage({ params }) {
 
   return (
     <DocsLayout headings={headings} lang={lang}>
-      <DocsContent content={content} />
+      <DocsContent content={content} lang={lang} slug={slug.join("/")} />
     </DocsLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "material-symbols/outlined.css";
 import "./globals.css";
@@ -7,30 +7,46 @@ import "@/lib/network/initOutboundProxy"; // Auto-initialize outbound proxy env
 import "@/shared/services/bootstrap"; // Auto-run initializeApp (watchdog, auto-resume tunnel)
 import { initConsoleLogCapture } from "@/lib/consoleLogBuffer";
 import { RuntimeI18nProvider } from "@/i18n/RuntimeI18nProvider";
+import { BRAND } from "../../branding/identity.mjs";
 
 // Hook console immediately at module load time (server-side only, runs once)
 initConsoleLogCapture();
 
-const inter = Inter({
+const productFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-kitsune",
 });
 
+const metadataBase = new URL(process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:20128");
+
 export const metadata = {
-  title: "ZenRouter - Serene AI Gateway & Intelligent Routing Engine",
-  description: "Cultivate, prune, and route all your AI models from a single unified gateway.",
+  metadataBase,
+  title: { default: `${BRAND.name} — ${BRAND.tagline}`, template: `%s | ${BRAND.name}` },
+  description: BRAND.summary,
+  applicationName: BRAND.name,
+  authors: [{ name: BRAND.organization, url: BRAND.sponsorUrl }],
+  creator: BRAND.organization,
+  publisher: BRAND.organization,
+  openGraph: {
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: BRAND.summary,
+    siteName: BRAND.name,
+    type: "website",
+    images: [{ url: "/brand/social-card.png", width: 1200, height: 630, alt: `${BRAND.name} — ${BRAND.description}` }],
+  },
+  twitter: { card: "summary_large_image", title: BRAND.name, description: BRAND.summary, images: ["/brand/social-card.png"] },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
     ],
     shortcut: "/favicon.svg",
-    apple: "/icons/icon-192.svg",
+    apple: "/icons/apple-touch-icon.png",
   },
 };
 
 export const viewport = {
-  themeColor: "#141414",
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#fffefa" }, { media: "(prefers-color-scheme: dark)", color: "#211c19" }],
 };
 
 export default function RootLayout({ children }) {
@@ -51,13 +67,13 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${productFont.variable} font-sans antialiased`}>
         <ThemeProvider>
           <RuntimeI18nProvider>
             {children}
           </RuntimeI18nProvider>
         </ThemeProvider>
-        <GoogleAnalytics gaId={"G-LC959F603F"} />
+        {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID} />}
       </body>
     </html>
   );

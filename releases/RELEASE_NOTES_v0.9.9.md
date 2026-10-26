@@ -1,5 +1,7 @@
 # ZenRouter 0.9.9 release notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 **2026-10-15** · Previous **published** release: **0.9.7** · Requires **Node.js >=22.19.0**.
 
 > **If you are upgrading from 0.9.7, this release also contains 0.9.8.** The 0.9.8 batch

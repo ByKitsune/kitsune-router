@@ -1,5 +1,7 @@
 # Thinking probe and processing-speed follow-up
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Base: `41074b570c9e2c8d769aecdd9e9167af59678450` (0.9.12).
 Research date: **2026-10-19**. Evidence directory:
 `/tmp/opencode/zen-thinking-speed-20261019/`.

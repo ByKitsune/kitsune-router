@@ -7,7 +7,7 @@ const REQUEST_EXPIRATION_MS = SAML_STATE_MAX_AGE_SECONDS * 1000;
 const MAX_PENDING_REQUESTS = 4096;
 // Shared by separately bundled routes and HMR reloads, not by separate processes.
 // Multi-process deployments require sticky routing for the start and ACS requests.
-const requestCacheKey = Symbol.for("zenrouter.saml.pendingRequests");
+const requestCacheKey = Symbol.for("kitsunerouter.saml.pendingRequests");
 const pendingRequests = globalThis[requestCacheKey] ||= new Map();
 
 function prunePendingRequests() {
@@ -20,7 +20,7 @@ function prunePendingRequests() {
 function scopedRequestKey(settings, origin, requestId) {
   const scope = createHash("sha256").update(JSON.stringify([
     origin,
-    settings?.samlIssuer || "urn:zenrouter:sp",
+    settings?.samlIssuer || "urn:kitsunerouter:sp",
     settings?.samlEntryPoint || "https://example.com/sso",
     formatX509Certificate(settings?.samlCert || ""),
   ])).digest("hex");
@@ -147,7 +147,7 @@ export function createSamlInstance(settings, origin, { cacheProvider, generateUn
   const callbackUrl = `${origin}/api/auth/saml/acs`;
   return new SAML({
     entryPoint: settings?.samlEntryPoint || "https://example.com/sso",
-    issuer: settings?.samlIssuer || "urn:zenrouter:sp",
+    issuer: settings?.samlIssuer || "urn:kitsunerouter:sp",
     idpCert: cert,
     cert: cert,
     callbackUrl: callbackUrl,

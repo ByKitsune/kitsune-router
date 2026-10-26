@@ -11,7 +11,9 @@
 // The version used in that case is single-sourced from
 // open-sse/config/clientVersions.js (ANTIGRAVITY_IDE_VERSION).
 
-import { ANTIGRAVITY_IDE_VERSION } from "../../open-sse/config/clientVersions.js";
+// Node >=22.19 supports synchronously requiring this no-top-level-await ESM
+// constants module. Keep this raw MITM entry CommonJS for standalone require().
+const { ANTIGRAVITY_IDE_VERSION } = require("../../open-sse/config/clientVersions.js");
 
 const ANTIGRAVITY_MITM_VERSION_OVERRIDE_ENABLED =
   process.env.MITM_ANTIGRAVITY_VERSION_OVERRIDE === "true";

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-const states = globalThis[Symbol.for("zenrouter.db.usageOutbox")] ||= new WeakMap();
+const states = globalThis[Symbol.for("kitsunerouter.db.usageOutbox")] ||= new WeakMap();
 const MAX_EVENTS = 100_000;
 const MAX_BYTES = 128 * 1024 * 1024;
 const BATCH_SIZE = 20;

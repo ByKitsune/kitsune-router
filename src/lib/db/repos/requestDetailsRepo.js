@@ -72,7 +72,7 @@ async function getObservabilityConfig() {
   return cachedConfig;
 }
 
-const queues = globalThis[Symbol.for("zenrouter.db.detailQueues")] ||= new WeakMap();
+const queues = globalThis[Symbol.for("kitsunerouter.db.detailQueues")] ||= new WeakMap();
 const MAX_BUFFER_RECORDS = 1000;
 const MAX_BUFFER_BYTES = 2 * 1024 * 1024;
 
@@ -92,7 +92,7 @@ function queueFor(db) {
 
 function sanitizeHeaders(headers) {
   if (!headers || typeof headers !== "object") return {};
-  const sensitive = /authorization|api.?key|cookie|token|credential|secret/i;
+  const sensitive = /authorization|api.?key|cookie|token|credential|secret|password|passwd/i;
   return Object.fromEntries(Object.entries(headers).filter(([key]) => !sensitive.test(key)));
 }
 

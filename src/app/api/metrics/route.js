@@ -66,9 +66,9 @@ export async function GET(request) {
   }
 
   const lines = [];
-  lines.push(line("zenrouter_up", 1, null, "1 when the metrics endpoint is serving", "gauge"));
-  lines.push(line("zenrouter_info", 1, { version: APP_CONFIG.version }, "Build information", "gauge"));
-  lines.push(line("zenrouter_uptime_seconds", Math.floor((Date.now() - startedAt) / 1000), null, "Process uptime", "gauge"));
+  lines.push(line("kitsunerouter_up", 1, null, "1 when the metrics endpoint is serving", "gauge"));
+  lines.push(line("kitsunerouter_info", 1, { version: APP_CONFIG.version }, "Build information", "gauge"));
+  lines.push(line("kitsunerouter_uptime_seconds", Math.floor((Date.now() - startedAt) / 1000), null, "Process uptime", "gauge"));
 
   let stats = null;
   try {
@@ -78,7 +78,7 @@ export async function GET(request) {
     // gauge and uptime still answer "is the process alive".
   }
 
-  lines.push(line("zenrouter_metrics_scrape_ok", stats ? 1 : 0, null, "1 when usage stats were read successfully", "gauge"));
+  lines.push(line("kitsunerouter_metrics_scrape_ok", stats ? 1 : 0, null, "1 when usage stats were read successfully", "gauge"));
 
   if (stats) {
     // Aggregate totals only.
@@ -89,12 +89,12 @@ export async function GET(request) {
     // Preserve existing sample names for dashboards. Despite their legacy
     // `_total` suffix these are rolling 24h gauges, not monotonic counters:
     // retention, window expiry and DB imports can reduce them. Do not rate().
-    lines.push(line("zenrouter_requests_total", stats.totalRequests || 0, null, "Usage records in the rolling 24h window (legacy gauge name)", "gauge"));
-    lines.push(line("zenrouter_prompt_tokens_total", stats.totalPromptTokens || 0, null, "Prompt tokens in the rolling 24h window", "gauge"));
-    lines.push(line("zenrouter_completion_tokens_total", stats.totalCompletionTokens || 0, null, "Completion tokens in the rolling 24h window", "gauge"));
-    lines.push(line("zenrouter_cached_tokens_total", stats.totalCachedTokens || 0, null, "Cached prompt tokens in the rolling 24h window", "gauge"));
+    lines.push(line("kitsunerouter_requests_total", stats.totalRequests || 0, null, "Usage records in the rolling 24h window (legacy gauge name)", "gauge"));
+    lines.push(line("kitsunerouter_prompt_tokens_total", stats.totalPromptTokens || 0, null, "Prompt tokens in the rolling 24h window", "gauge"));
+    lines.push(line("kitsunerouter_completion_tokens_total", stats.totalCompletionTokens || 0, null, "Completion tokens in the rolling 24h window", "gauge"));
+    lines.push(line("kitsunerouter_cached_tokens_total", stats.totalCachedTokens || 0, null, "Cached prompt tokens in the rolling 24h window", "gauge"));
     if (stats.totalCost !== null) {
-      lines.push(line("zenrouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the rolling 24h window", "gauge"));
+      lines.push(line("kitsunerouter_cost_usd_total", round(stats.totalCost, 6), null, "Reported cost in the rolling 24h window", "gauge"));
     }
 
     // Per-model request counts. The model id is already published in the
@@ -110,10 +110,10 @@ export async function GET(request) {
       modelCounts.set(model, (modelCounts.get(model) || 0) + (Number(row?.requests) || 0));
     }
     if (modelCounts.size) {
-      lines.push("# HELP zenrouter_model_requests_total Usage records in the rolling 24h window, by public catalog model");
-      lines.push("# TYPE zenrouter_model_requests_total gauge");
+      lines.push("# HELP kitsunerouter_model_requests_total Usage records in the rolling 24h window, by public catalog model");
+      lines.push("# TYPE kitsunerouter_model_requests_total gauge");
       for (const [model, count] of [...modelCounts].slice(0, 200)) {
-        lines.push(`zenrouter_model_requests_total{model="${escapeLabel(model)}"} ${count}`);
+        lines.push(`kitsunerouter_model_requests_total{model="${escapeLabel(model)}"} ${count}`);
       }
     }
 
@@ -122,20 +122,20 @@ export async function GET(request) {
     // never records a misleading 0 for "no measurements yet".
     if (stats.latency?.samples > 0) {
       const l = stats.latency;
-      lines.push("# HELP zenrouter_ttft_ms Time to first token, over recorded samples in the rolling 24h window");
-      lines.push("# TYPE zenrouter_ttft_ms gauge");
-      if (Number.isFinite(l.ttftMedianMs)) lines.push(`zenrouter_ttft_ms{quantile="0.5"} ${l.ttftMedianMs}`);
-      if (Number.isFinite(l.ttftP90Ms)) lines.push(`zenrouter_ttft_ms{quantile="0.9"} ${l.ttftP90Ms}`);
-      if (Number.isFinite(l.ttftMinMs)) lines.push(`zenrouter_ttft_ms{quantile="0"} ${l.ttftMinMs}`);
-      if (Number.isFinite(l.ttftMaxMs)) lines.push(`zenrouter_ttft_ms{quantile="1"} ${l.ttftMaxMs}`);
-      if (Number.isFinite(l.ttftMeanMs)) lines.push(`zenrouter_ttft_ms{quantile="mean"} ${l.ttftMeanMs}`);
-      lines.push(line("zenrouter_ttft_samples_total", l.samples, null, "Measured TTFT samples in the rolling 24h window", "gauge"));
+      lines.push("# HELP kitsunerouter_ttft_ms Time to first token, over recorded samples in the rolling 24h window");
+      lines.push("# TYPE kitsunerouter_ttft_ms gauge");
+      if (Number.isFinite(l.ttftMedianMs)) lines.push(`kitsunerouter_ttft_ms{quantile="0.5"} ${l.ttftMedianMs}`);
+      if (Number.isFinite(l.ttftP90Ms)) lines.push(`kitsunerouter_ttft_ms{quantile="0.9"} ${l.ttftP90Ms}`);
+      if (Number.isFinite(l.ttftMinMs)) lines.push(`kitsunerouter_ttft_ms{quantile="0"} ${l.ttftMinMs}`);
+      if (Number.isFinite(l.ttftMaxMs)) lines.push(`kitsunerouter_ttft_ms{quantile="1"} ${l.ttftMaxMs}`);
+      if (Number.isFinite(l.ttftMeanMs)) lines.push(`kitsunerouter_ttft_ms{quantile="mean"} ${l.ttftMeanMs}`);
+      lines.push(line("kitsunerouter_ttft_samples_total", l.samples, null, "Measured TTFT samples in the rolling 24h window", "gauge"));
     }
 
     // In-flight work: lets an operator see a stuck queue without the dashboard.
     if (Array.isArray(stats.activeRequests)) {
       const inflight = stats.activeRequests.reduce((n, r) => n + (Number(r?.count) || 0), 0);
-      lines.push(line("zenrouter_requests_in_flight", inflight, null, "Requests currently being served", "gauge"));
+      lines.push(line("kitsunerouter_requests_in_flight", inflight, null, "Requests currently being served", "gauge"));
     }
   }
 
@@ -144,44 +144,44 @@ export async function GET(request) {
   // retention. Not durable across restarts; never backfilled from usage rows.
   const failures = getRequestFailureCounts();
   if (Object.keys(failures).length) {
-    lines.push("# HELP zenrouter_failures_total Terminal FAILED request-log events since process start (not persisted), by HTTP status");
-    lines.push("# TYPE zenrouter_failures_total counter");
+    lines.push("# HELP kitsunerouter_failures_total Terminal FAILED request-log events since process start (not persisted), by HTTP status");
+    lines.push("# TYPE kitsunerouter_failures_total counter");
     for (const status of Object.keys(failures).sort()) {
-      lines.push(`zenrouter_failures_total{status="${status}"} ${failures[status]}`);
+      lines.push(`kitsunerouter_failures_total{status="${status}"} ${failures[status]}`);
     }
   }
 
   for (const metrics of getRequestPhaseMetrics()) {
     const labels = { phase: metrics.phase };
-    lines.push(line("zenrouter_request_phase_samples_total", metrics.count, labels));
-    lines.push(line("zenrouter_request_phase_milliseconds_total", round(metrics.totalMs, 6), labels));
-    lines.push(line("zenrouter_request_phase_window_samples", metrics.windowSamples, labels));
+    lines.push(line("kitsunerouter_request_phase_samples_total", metrics.count, labels));
+    lines.push(line("kitsunerouter_request_phase_milliseconds_total", round(metrics.totalMs, 6), labels));
+    lines.push(line("kitsunerouter_request_phase_window_samples", metrics.windowSamples, labels));
     for (const quantile of ["p50", "p95", "p99"]) {
-      lines.push(line("zenrouter_request_phase_milliseconds", round(metrics[quantile], 6), { ...labels, quantile }));
+      lines.push(line("kitsunerouter_request_phase_milliseconds", round(metrics[quantile], 6), { ...labels, quantile }));
     }
   }
 
   for (const [name, metrics] of Object.entries(getDbCacheMetrics())) {
     for (const field of ["hits", "misses", "loads", "loadErrors", "coalesced", "evictions", "invalidations", "rejected", "entries", "bytes", "pending"]) {
-      if (Number.isFinite(metrics[field])) lines.push(line(`zenrouter_config_cache_${field}`, metrics[field], { cache: name }));
+      if (Number.isFinite(metrics[field])) lines.push(line(`kitsunerouter_config_cache_${field}`, metrics[field], { cache: name }));
     }
   }
   const queues = await Promise.allSettled([getUsageQueueMetrics(), getRequestDetailQueueMetrics()]);
   for (const [index, result] of queues.entries()) {
     const queue = index === 0 ? "usage" : "details";
-    lines.push(line("zenrouter_background_queue_metrics_ok", result.status === "fulfilled" ? 1 : 0, { queue }));
+    lines.push(line("kitsunerouter_background_queue_metrics_ok", result.status === "fulfilled" ? 1 : 0, { queue }));
     if (result.status === "fulfilled") {
       for (const field of ["depth", "bytes", "accepting", "accepted", "projected", "duplicates", "rejected", "errors", "written", "dropped", "retries"]) {
-        if (Number.isFinite(result.value[field])) lines.push(line(`zenrouter_background_queue_${field}`, result.value[field], { queue }));
+        if (Number.isFinite(result.value[field])) lines.push(line(`kitsunerouter_background_queue_${field}`, result.value[field], { queue }));
       }
     }
   }
   for (const [field, value] of Object.entries(getRequestLogQueueMetrics())) {
-    if (Number.isFinite(value)) lines.push(line(`zenrouter_background_queue_${field}`, value, { queue: "files" }));
+    if (Number.isFinite(value)) lines.push(line(`kitsunerouter_background_queue_${field}`, value, { queue: "files" }));
   }
   const pools = getUpstreamPoolStats();
   for (const field of ["active", "queued", "livePools", "created", "poolHits", "requests", "completed", "failed", "cancelled", "rejected", "connectionsCreated", "disposalErrors"]) {
-    if (Number.isFinite(pools[field])) lines.push(line(`zenrouter_upstream_pool_${field}`, pools[field]));
+    if (Number.isFinite(pools[field])) lines.push(line(`kitsunerouter_upstream_pool_${field}`, pools[field]));
   }
 
   return new NextResponse(`${lines.join("\n")}\n`, {

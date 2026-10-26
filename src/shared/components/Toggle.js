@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/shared/utils/cn";
 
 export default function Toggle({
@@ -10,7 +11,11 @@ export default function Toggle({
   disabled = false,
   size = "md",
   className,
+  "aria-label": ariaLabel,
+  "aria-labelledby": labelledBy,
 }) {
+  const labelId = useId();
+  const descriptionId = useId();
   const sizes = {
     sm: { track: "w-8 h-4", thumb: "size-3", translate: "translate-x-4" },
     md: { track: "w-11 h-6", thumb: "size-5", translate: "translate-x-5" },
@@ -33,6 +38,9 @@ export default function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={ariaLabel}
+        aria-labelledby={labelledBy || (label && !ariaLabel ? labelId : undefined)}
+        aria-describedby={description ? descriptionId : undefined}
         disabled={disabled}
         onClick={handleClick}
         className={cn(
@@ -57,10 +65,10 @@ export default function Toggle({
       {(label || description) && (
         <div className="flex flex-col">
           {label && (
-            <span className="text-sm font-medium text-text-main">{label}</span>
+            <span id={labelId} className="text-sm font-medium text-text-main">{label}</span>
           )}
           {description && (
-            <span className="text-xs text-text-muted">{description}</span>
+            <span id={descriptionId} className="text-xs text-text-muted">{description}</span>
           )}
         </div>
       )}

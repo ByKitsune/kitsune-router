@@ -49,7 +49,7 @@ async function childWrite(code, dataDir = directory) {
   `;
   const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
     env: { PATH: process.env.PATH, HOME: dataDir, DATA_DIR: dataDir, TMPDIR: process.env.TMPDIR,
-      MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1", ZENROUTER_DISABLE_MITM: "1" },
+      MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1", KITSUNE_ROUTER_DISABLE_MITM: "1" },
     stdio: ["ignore", "pipe", "pipe", "ipc"], timeout: 10_000, killSignal: "SIGKILL",
   });
   let stderr = "", result;

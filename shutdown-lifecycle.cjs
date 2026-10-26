@@ -1,4 +1,4 @@
-const key = Symbol.for("zenrouter.shutdown.lifecycle");
+const key = Symbol.for("kitsunerouter.shutdown.lifecycle");
 const state = globalThis[key] ??= {
   hooks: new Map(),
   draining: false,

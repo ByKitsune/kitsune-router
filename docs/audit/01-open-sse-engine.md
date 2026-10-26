@@ -1,5 +1,7 @@
 # Audit 01 — `open-sse/` engine map
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Read-only structural audit of `/root/ZenRouter/open-sse` — the provider-agnostic
 routing/translation engine (plain JavaScript ESM, no TypeScript, 392 `.js` files
 + 10 `.toml` custom filters).

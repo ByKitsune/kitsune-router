@@ -1,5 +1,7 @@
 # ZenRouter v0.8.0 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.8.0` is a full-ecosystem refresh: every supported provider's models, pricing, and capabilities were re-verified against official sources at the **23 September 2026** snapshot, plus a second round of upstream 9Router cross-check fixes (models, security, streaming) and a new session-sticky routing strategy.
 
 ---

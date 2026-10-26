@@ -26,7 +26,7 @@ beforeEach(async () => {
   previousGlobals = new Map(
     fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)])
   );
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-custom-model-capabilities-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-custom-model-capabilities-"));
   process.env.DATA_DIR = dataDir;
   vi.resetModules();
   for (const key of fixtureGlobals) delete global[key];

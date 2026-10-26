@@ -1,5 +1,9 @@
 # open-sse
 
+Part of **Kitsune Router**, maintained by **ByKitsune**. Project identity is
+defined in `branding/identity.mjs`; preserve upstream protocol identities,
+historical evidence paths, and migration-only cryptographic inputs.
+
 Provider-agnostic SSE engine: a supported client request → provider execution (LLM chat, image, embedding, tts, stt, search), returned in the client's format. Some modules depend on the app's persistence/logging aliases; this is not an independently installable package.
 
 ## Request lifecycle (chat)

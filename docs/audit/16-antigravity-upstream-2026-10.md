@@ -1,5 +1,7 @@
 # Antigravity selective upstream reconciliation — 2026-10-21
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 ## Scope and provenance
 
 This is a local source change, not a release, deployment or model-entitlement

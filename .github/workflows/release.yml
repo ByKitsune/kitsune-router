@@ -6,7 +6,7 @@ on:
       tag:
         description: "Stable release tag (must match all package versions)"
         required: true
-        default: "v0.9.13"
+        default: "v1.0.0"
 
 permissions:
   contents: write
@@ -26,10 +26,10 @@ jobs:
       RUN_E2E: "0"
       RUN_LIVE_TESTS: "0"
       MODEL_CATALOG_SYNC: "off"
-      ZENROUTER_DISABLE_MITM: "1"
+      KITSUNE_ROUTER_DISABLE_MITM: "1"
       NEXT_TELEMETRY_DISABLED: "1"
       JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
-      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
+      KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
     steps:
       - name: Checkout exact release tag
         uses: actions/checkout@v7
@@ -57,6 +57,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           test -n "$NPM_TOKEN" || { printf '%s\n' 'NPM_TOKEN is required; refusing a release without npm publication.'; exit 1; }
+          test "$GITHUB_REPOSITORY" = "ByKitsune/kitsune-router"
           node scripts/check-release-version.mjs "$RELEASE_TAG"
           test -f "releases/RELEASE_NOTES_${RELEASE_TAG}.md"
           test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
@@ -97,7 +98,7 @@ jobs:
         run: |
           npm run cli:pack
           node scripts/check-release-version.mjs "$RELEASE_TAG"
-          mv "joyccn-zenrouter-${RELEASE_TAG#v}.tgz" "$TARBALL_FILE"
+          mv "bykitsune-router-${RELEASE_TAG#v}.tgz" "$TARBALL_FILE"
 
       - name: Persist original tarball before immutable npm publication
         if: steps.tarball.outputs.build == 'true'
@@ -127,14 +128,14 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
-          name: "🌿 ZenRouter ${{ inputs.tag }}"
+          name: "Kitsune Router ${{ inputs.tag }}"
           draft: false
           prerelease: false
           make_latest: ${{ steps.latest.outputs.github }}
           fail_on_unmatched_files: true
           body_path: releases/RELEASE_NOTES_${{ inputs.tag }}.md
           files: |
-            joyccn-zenrouter-*.tgz
+            bykitsune-router-*.tgz
             install.sh
             docker-compose.yml
         env:

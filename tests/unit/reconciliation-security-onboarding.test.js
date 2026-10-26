@@ -6,11 +6,11 @@ import { NextRequest } from "next/server";
 
 const shutdownEvents = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
 const globalKeys = [
-  Symbol.for("zenrouter.db.importState"),
+  Symbol.for("kitsunerouter.db.importState"),
   "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter",
   "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers",
 ];
-const envKeys = ["HOME", "DATA_DIR", "JWT_SECRET", "ZENROUTER_PEER_TOKEN", "NINEROUTER_PEER_TOKEN"];
+const envKeys = ["HOME", "DATA_DIR", "JWT_SECRET", "KITSUNE_ROUTER_PEER_TOKEN", "NINEROUTER_PEER_TOKEN"];
 const actions = [
   { pathname: "/api/headroom/restart", method: "POST" },
   { pathname: "/api/headroom/extras", method: "POST" },
@@ -38,8 +38,8 @@ beforeEach(async () => {
   process.env.HOME = path.join(root, "home");
   process.env.DATA_DIR = path.join(root, "data");
   process.env.JWT_SECRET = "reconciliation-only-synthetic-jwt-secret-20261021";
-  process.env.ZENROUTER_PEER_TOKEN = PEER_TOKEN;
-  process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
+  process.env.KITSUNE_ROUTER_PEER_TOKEN = PEER_TOKEN;
+  delete process.env.NINEROUTER_PEER_TOKEN;
   fs.mkdirSync(process.env.HOME, { mode: 0o700 });
   fs.mkdirSync(path.join(process.env.DATA_DIR, "auth"), { recursive: true, mode: 0o700 });
   fs.writeFileSync(path.join(process.env.DATA_DIR, "machine-id"), "synthetic-machine-id", { mode: 0o600 });
@@ -88,8 +88,8 @@ function request(action, headers = {}) {
 
 function localHeaders(extra = {}) {
   return {
-    "x-zen-peer-token": PEER_TOKEN,
-    "x-zen-real-ip": "127.0.0.1",
+    "x-kitsune-router-peer-token": PEER_TOKEN,
+    "x-kitsune-router-real-ip": "127.0.0.1",
     origin: "http://localhost:20128",
     ...extra,
   };
@@ -109,7 +109,7 @@ describe("Headroom host actions use the real local-only guard", () => {
 
   it.each(actions)("denies reverse-proxied loopback $method $pathname", async action => {
     await db.updateSettings({ requireLogin: false });
-    const response = await guard.proxy(request(action, localHeaders({ "x-zen-via-proxy": "1" })));
+    const response = await guard.proxy(request(action, localHeaders({ "x-kitsune-router-via-proxy": "1" })));
     expect(response.status).toBe(403);
   });
 
@@ -126,7 +126,7 @@ describe("Headroom host actions use the real local-only guard", () => {
   });
 
   it.each(actions)("allows CLI-authorized $method $pathname", async action => {
-    const response = await guard.proxy(request(action, { "x-zen-cli-token": cliToken }));
+    const response = await guard.proxy(request(action, { "x-kitsune-router-cli-token": cliToken }));
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 

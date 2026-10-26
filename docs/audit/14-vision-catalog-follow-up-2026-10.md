@@ -1,5 +1,7 @@
 # Vision, catalog and audit follow-up
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Base: `145240272931c14435e400aa7772ef743570d2ab`.
 
 This follow-up preserves Zen's provider-specific transport, native media and

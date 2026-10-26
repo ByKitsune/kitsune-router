@@ -6,7 +6,10 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const PACKAGE = "@joyccn/zenrouter";
+const PACKAGE = "@bykitsune/router";
+// JavaScript's `$` also matches before a trailing newline. Publication IDs must
+// match the complete string, never a prefix that can inject paths or outputs.
+const exactMatch = (value, pattern) => typeof value === "string" && pattern.exec(value)?.[0] === value;
 export function command(cmd, args, options = {}) {
   const timeout = options.timeout ?? Number(process.env.RELEASE_COMMAND_TIMEOUT_MS ?? 120000);
   assert(Number.isSafeInteger(timeout) && timeout > 0 && timeout <= 1800000, "Invalid release command timeout (1–1800000 ms required)");
@@ -14,17 +17,18 @@ export function command(cmd, args, options = {}) {
   // registry write is ambiguous and must be reconciled by readback on a rerun.
   return execFileSync(cmd, args, { encoding: "utf8", maxBuffer: 512 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], ...options, timeout, killSignal: "SIGKILL" });
 }
-const stable = version => assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version), "Invalid stable version");
+const stable = version => assert(exactMatch(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/), "Invalid stable version");
 
 export function isolateVerification(env = process.env) {
   assert(env.RUNNER_TEMP && resolve(env.RUNNER_TEMP) === env.RUNNER_TEMP, "Absolute RUNNER_TEMP required for state isolation");
-  const home = resolve(env.RUNNER_TEMP, "zenrouter-home");
+  const home = resolve(env.RUNNER_TEMP, "kitsune-router-home");
   const isolated = {
-    HOME: home, DATA_DIR: resolve(env.RUNNER_TEMP, "zenrouter-data"),
+    HOME: home, DATA_DIR: resolve(env.RUNNER_TEMP, "kitsune-router-data"),
     XDG_CONFIG_HOME: resolve(home, ".config"), XDG_DATA_HOME: resolve(home, ".local/share"),
     XDG_CACHE_HOME: resolve(home, ".cache"), XDG_STATE_HOME: resolve(home, ".local/state"),
     RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0", MODEL_CATALOG_SYNC: "off",
-    DISABLE_BACKGROUND_TOKEN_REFRESH: "1", ZENROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
+    DISABLE_BACKGROUND_TOKEN_REFRESH: "1", KITSUNE_ROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
+    KITSUNE_ROUTER_MIGRATION: "skip",
   };
   for (const path of [home, isolated.DATA_DIR, isolated.XDG_CONFIG_HOME, isolated.XDG_DATA_HOME, isolated.XDG_CACHE_HOME, isolated.XDG_STATE_HOME]) mkdirSync(path, { recursive: true });
   for (const [key, value] of Object.entries(isolated)) {
@@ -34,7 +38,7 @@ export function isolateVerification(env = process.env) {
 }
 
 export function verifySource({ cwd = process.cwd(), env = process.env, command: run = command } = {}) {
-  assert(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA), "Invalid verification source SHA");
+  assert(exactMatch(env.GITHUB_SHA, /^[a-f0-9]{40}$/), "Invalid verification source SHA");
   assert(typeof env.GITHUB_REF === "string" && env.GITHUB_REF.startsWith("refs/"), "Missing verification source ref");
   const directory = resolve(cwd, "verification", env.GITHUB_SHA);
   mkdirSync(directory, { recursive: true });
@@ -44,6 +48,7 @@ export function verifySource({ cwd = process.cwd(), env = process.env, command: 
   rmSync(report, { force: true });
   const execute = (cmd, args, extra = {}) => run(cmd, args, { cwd, env: { ...env, NODE_ENV: "test" }, timeout: 1800000, stdio: "inherit", ...extra });
   assert.equal(run("git", ["rev-parse", "HEAD"], { cwd, env }).trim(), env.GITHUB_SHA, "Verification checkout SHA mismatch");
+  execute("npm", ["run", "check:brand"]);
   execute("npm", ["run", "lint", "--", "--max-warnings=0"]);
   execute("npm", ["test", "--", "--maxWorkers=2", "--reporter=default", "--reporter=json", `--outputFile=${report}`]);
   execute("node", ["tests/__baseline__/verify-no-regression.mjs", report]);
@@ -65,7 +70,7 @@ export function npmArtifact(version, run = command) {
   try {
     const value = JSON.parse(run("npm", ["view", `${PACKAGE}@${version}`, "version", "dist.integrity", "--json", "--prefer-online"]));
     assert.equal(value.version, version, "Registry version mismatch");
-    assert(/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(value["dist.integrity"]), "Missing registry integrity");
+    assert(exactMatch(value["dist.integrity"], /^sha512-[A-Za-z0-9+/]+={0,2}$/), "Missing registry integrity");
     return value;
   } catch (error) {
     // Only an explicit registry E404 means unpublished. Auth/network/parse errors abort.
@@ -83,11 +88,11 @@ export function verifyIntegrity(path, published) {
 }
 export async function prepareTarball(version, { cwd = process.cwd(), env = process.env, command: run = command } = {}) {
   stable(version);
-  assert(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA), "Invalid source SHA");
+  assert(exactMatch(env.GITHUB_SHA, /^[a-f0-9]{40}$/), "Invalid source SHA");
   assert.equal(env.GITHUB_REF, `refs/tags/v${version}`, "Wrong release ref");
   const repo = env.GITHUB_REPOSITORY;
-  assert(/^[\w.-]+\/[\w.-]+$/.test(repo), "Invalid repository");
-  const file = `joyccn-zenrouter-${version}-${env.GITHUB_SHA}.tgz`;
+  assert(exactMatch(repo, /^[\w.-]+\/[\w.-]+$/), "Invalid repository");
+  const file = `bykitsune-router-${version}-${env.GITHUB_SHA}.tgz`;
   const name = `npm-release-${version}-${env.GITHUB_SHA}`;
   const api = path => JSON.parse(run("gh", ["api", path]));
   const pages = path => JSON.parse(run("gh", ["api", "--paginate", "--slurp", path]));
@@ -185,7 +190,7 @@ export function dockerLatest(image, repo, run = command) {
     if (version === "latest") {
       const revision = labels["org.opencontainers.image.revision"];
       assert.equal(labels["org.opencontainers.image.source"], `https://github.com/${repo}`, "Untrusted legacy image source");
-      assert(/^[a-f0-9]{40}$/.test(revision), "Invalid legacy image source revision");
+      assert(exactMatch(revision, /^[a-f0-9]{40}$/), "Invalid legacy image source revision");
       const source = JSON.parse(run("gh", ["api", `repos/${repo}/contents/package.json?ref=${revision}`]));
       assert.equal(source.encoding, "base64", "Invalid source package encoding");
       version = JSON.parse(Buffer.from(source.content, "base64").toString("utf8")).version;
@@ -203,7 +208,7 @@ function dockerConfigs(value) {
   assert(configs.length && configs.every(config => config?.config), "Invalid Docker platform configuration");
   return configs;
 }
-const validDigest = digest => assert(typeof digest === "string" && /^sha256:[a-f0-9]{64}$/.test(digest), "Invalid Docker immutable digest");
+const validDigest = digest => assert(exactMatch(digest, /^sha256:[a-f0-9]{64}$/), "Invalid Docker immutable digest");
 const missingManifest = error => error.code !== "ETIMEDOUT" && !error.signal && /manifest unknown/i.test(String(error.stderr)) && !/unauthorized|denied|401|403/i.test(String(error.stderr));
 function dockerManifest(ref, run) {
   const value = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", ref, "--format", "{{json .Manifest}}"]));
@@ -212,10 +217,10 @@ function dockerManifest(ref, run) {
 }
 function dockerSource(version, images, env) {
   stable(version);
-  assert(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA), "Invalid Docker source SHA");
+  assert(exactMatch(env.GITHUB_SHA, /^[a-f0-9]{40}$/), "Invalid Docker source SHA");
   assert.equal(env.GITHUB_REF, `refs/tags/v${version}`, "Wrong Docker release ref");
-  assert(/^[\w.-]+\/[\w.-]+$/.test(env.GITHUB_REPOSITORY), "Invalid Docker source repository");
-  assert(images.length && new Set(images).size === images.length && images.every(image => /^[a-z0-9][a-z0-9./_-]*$/.test(image)), "Invalid Docker image repositories");
+  assert(exactMatch(env.GITHUB_REPOSITORY, /^[\w.-]+\/[\w.-]+$/), "Invalid Docker source repository");
+  assert(images.length && new Set(images).size === images.length && images.every(image => exactMatch(image, /^[a-z0-9][a-z0-9./_-]*$/)), "Invalid Docker image repositories");
 }
 function verifyDockerConfig(image, digest, version, env, run) {
   const config = JSON.parse(run("docker", ["buildx", "imagetools", "inspect", `${image}@${digest}`, "--format", "{{json .Image}}"]));

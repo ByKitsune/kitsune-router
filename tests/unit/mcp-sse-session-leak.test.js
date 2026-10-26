@@ -26,7 +26,7 @@ describe("mcp sse session leak fix (#3527)", () => {
 
     const request = {
       signal: controller.signal,
-      headers: new Headers({ "x-zen-cli-token": "dummy" }),
+      headers: new Headers({ "x-kitsune-router-cli-token": "dummy" }),
     };
 
     const response = await GET(request, { params: Promise.resolve({ plugin: "known" }) });

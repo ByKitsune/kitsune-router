@@ -1,109 +1,23 @@
 # Claude Code Integration
 
-Integrate ZenRouter with Claude Code CLI to route your Anthropic API requests through ZenRouter's intelligent routing system.
+Start Kitsune Router, connect a permitted upstream, create/copy a gateway API key and choose a Messages-capable model or combo. No ByKitsune account is required. `my-route` below is a combo you must create, not a bundled model.
 
-## Prerequisites
+## Configure the client
 
-- Claude Code CLI installed
-- ZenRouter running locally or cloud endpoint configured
-- API key from ZenRouter dashboard
-
-## Setup
-
-### 1. Configure Environment Variables
-
-Set the following environment variables in your shell configuration file (`~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
-
-```bash
-# Base URL for ZenRouter
-export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
-
-# Optional: Set default models for aliases
-export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="cc/claude-sonnet-4-5-20250929"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="cc/claude-haiku-4-5-20251001"
-```
-
-### 2. Reload Shell Configuration
-
-```bash
-source ~/.zshrc  # or ~/.bashrc
-```
-
-### 3. Verify Configuration
-
-Check that the environment variables are set correctly:
-
-```bash
-echo $ANTHROPIC_BASE_URL
-```
-
-## Model Aliases
-
-Claude Code supports the following model aliases that map to ZenRouter models:
-
-| Alias | Model | Environment Variable |
-|-------|-------|---------------------|
-| `opus` | Claude Opus 4.5 | `ANTHROPIC_DEFAULT_OPUS_MODEL` |
-| `sonnet` | Claude Sonnet 4.5 | `ANTHROPIC_DEFAULT_SONNET_MODEL` |
-| `haiku` | Claude Haiku 4.5 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` |
-
-## Usage Examples
-
-### Using Model Aliases
-
-```bash
-# Use Opus model
-claude --model opus "Explain quantum computing"
-
-# Use Sonnet model
-claude --model sonnet "Write a Python function"
-
-# Use Haiku model
-claude --model haiku "Quick code review"
-```
-
-### Using Full Model Names
-
-```bash
-claude --model cc/claude-opus-4-5-20251101 "Your prompt here"
-```
-
-## Settings File
-
-Claude Code stores its configuration in `~/.claude/settings.json`. You can manually edit this file if needed:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "defaultModel": "sonnet"
-}
-```
-
-## Troubleshooting
-
-### Connection Issues
-
-If you encounter connection errors:
-
-1. Verify ZenRouter is running: `curl http://localhost:20128/health`
-2. Check environment variables are set correctly
-3. Ensure no firewall is blocking port 20128
-
-### Model Not Found
-
-If you get "model not found" errors:
-
-1. Verify the model name matches your ZenRouter configuration
-2. Check that the provider connection is active in ZenRouter dashboard
-3. Ensure the model is available in your connected providers
-
-## Cloud Endpoint
-
-To use ZenRouter cloud endpoint instead of localhost:
+Claude Code appends `/v1/messages`, so use the origin **without a trailing `/v1`**:
 
 ```bash
 export ANTHROPIC_BASE_URL="http://localhost:20128"
+export ANTHROPIC_AUTH_TOKEN="$KITSUNE_ROUTER_API_KEY"
+claude --model my-route
 ```
 
-Make sure you have configured your API key in the ZenRouter cloud dashboard.
+`KITSUNE_ROUTER_API_KEY` holds an issued gateway key in your private client environment. It is not a server setting that creates one and must not contain an upstream OAuth refresh token. Preserve any existing shell/client settings; scope variables to the session when testing.
+
+## Dashboard preset and limits
+
+Review the Claude Code preset's edits in `~/.claude/settings.json`. The preset writes environment values under `env`, not invented top-level `baseUrl`/`defaultModel` fields. Back up and preserve unrelated settings. Claude Desktop is a separate application; this is not a universal desktop configuration recipe.
+
+Use `http://localhost:20128/api/health` to inspect gateway health and authenticated `/v1/models` for routes. A model listing does not establish tools/media/document support or account entitlement. For remote access, use your operator-managed HTTPS origin, without `/v1`; there is no default hosted Kitsune service.
+
+See [integration reference](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) and [migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Review current client documentation if your installed version differs.

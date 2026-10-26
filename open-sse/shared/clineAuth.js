@@ -19,10 +19,10 @@ export function buildClineHeaders(token, extraHeaders = {}) {
   const headers = {
     "HTTP-Referer": "https://cline.bot",
     "X-Title": "Cline",
-    "User-Agent": `ZenRouter/${APP_VERSION}`,
+    "User-Agent": `Kitsune Router/${APP_VERSION}`,
     "X-PLATFORM": process.platform || "unknown",
     "X-PLATFORM-VERSION": process.version || "unknown",
-    "X-CLIENT-TYPE": "zenrouter",
+    "X-CLIENT-TYPE": "kitsunerouter",
     "X-CLIENT-VERSION": APP_VERSION,
     "X-CORE-VERSION": APP_VERSION,
     "X-IS-MULTIROOT": "false",

@@ -24,13 +24,36 @@ coverage
 # Runtime data and logs
 data
 logs
+.data
+verification
+.verification
+**/.kitsune-router
+**/.zenrouter
+**/.9router
+**/.sqljs-owner
+**/db.json
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.sqlite-journal
+**/secrets.json
+**/secrets.env
+**/machine-id
+**/.runtime-secrets.lock
+**/.kitsune-router-migration.lock
+**/.kitsune-router-migration-incomplete
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
 
 # Local env files (inject at runtime via --env-file or -e)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+**/.env*
+.npmrc
+**/.npmrc
+.ssh
+.aws
 
 # Debug logs
 npm-debug.log*

@@ -1,28 +1,30 @@
+import { BRAND } from "../../branding/identity.mjs";
+
 export default function manifest() {
   return {
-    name: 'ZenRouter - Serene AI Gateway & Intelligent Routing Engine',
-    short_name: 'ZenRouter',
-    description: 'Serene AI Gateway & Intelligent Routing Engine. Cultivate, prune, and route all your AI models from a single unified gateway.',
+    id: '/kitsune-router',
+    name: BRAND.name,
+    short_name: BRAND.name,
+    description: BRAND.summary,
     start_url: '/',
     display: 'standalone',
-    background_color: '#12161f',
-    theme_color: '#12161f',
-    orientation: 'portrait-primary',
+    background_color: '#fffefa',
+    theme_color: '#a63f23',
     icons: [
       {
-        src: '/icons/icon-192.svg',
+        src: '/icons/icon-192.png',
         sizes: '192x192',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
       {
-        src: '/icons/icon-512.svg',
+        src: '/icons/icon-512.png',
         sizes: '512x512',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
       {
-        src: '/icons/icon-512.svg',
+        src: '/icons/icon-512.png',
         sizes: '512x512',
-        type: 'image/svg+xml',
+        type: 'image/png',
         purpose: 'maskable',
       },
     ],

@@ -23,7 +23,7 @@ function runFixture({ files = envFiles, fromTests = false, explicit = false } = 
   const fileContents = [
     "RECONCILIATION_ENV_FILE_MARKER=synthetic-file-marker", "VITE_RECONCILIATION_ENV_FILE_MARKER=synthetic-vite-file-marker",
     `DATA_DIR=${fileDataDir}`, "RUN_REAL=1", "RUN_E2E=1", "RUN_LIVE_TESTS=1", "AG_CACHE_TEST=1",
-    "MODEL_CATALOG_SYNC=on", "JWT_SECRET=synthetic-file-jwt-never-a-real-credential", "ZENROUTER_PEER_TOKEN=synthetic-file-peer-token",
+    "MODEL_CATALOG_SYNC=on", "JWT_SECRET=synthetic-file-jwt-never-a-real-credential", "KITSUNE_ROUTER_PEER_TOKEN=synthetic-file-peer-token",
   ].join("\n") + "\n";
   for (const file of files) writeFileSync(resolve(directory, file), fileContents);
   const evidence = resolve(directory, "observed.json");
@@ -44,7 +44,7 @@ it('discovers the fixture and records its actual environment without starting pr
       agCacheTest: process.env.AG_CACHE_TEST ?? null,
       catalogSync: process.env.MODEL_CATALOG_SYNC ?? null,
       jwt: process.env.JWT_SECRET ?? null,
-      peer: process.env.ZENROUTER_PEER_TOKEN ?? null,
+      peer: process.env.KITSUNE_ROUTER_PEER_TOKEN ?? null,
     },
     viteMarker: import.meta.env.VITE_RECONCILIATION_ENV_FILE_MARKER ?? null,
   }));
@@ -62,7 +62,7 @@ it('discovers the fixture and records its actual environment without starting pr
   if (explicit) Object.assign(env, {
     RECONCILIATION_ENV_FILE_MARKER: "explicit-synthetic-process-marker", DATA_DIR: resolve(directory, "explicit-data"),
     RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0", MODEL_CATALOG_SYNC: "off",
-    JWT_SECRET: "explicit-synthetic-process-jwt", ZENROUTER_PEER_TOKEN: "explicit-synthetic-process-peer",
+    JWT_SECRET: "explicit-synthetic-process-jwt", KITSUNE_ROUTER_PEER_TOKEN: "explicit-synthetic-process-peer",
   });
   const report = resolve(directory, "vitest.json");
   const result = spawnSync(process.execPath, [

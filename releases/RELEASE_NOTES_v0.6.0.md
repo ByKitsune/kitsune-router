@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.6.0 — Full Dependabot Remediation, Web Fetch Providers, Theme Pre-Hydration & Complete Localization
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter **v0.6.0** is a major milestone release delivering zero-vulnerability security hardening, native Ollama Cloud web fetch capability, instant pre-hydration theme loading, CLI custom key preset management, and a complete, brand-sanitized Indonesian localization.
 
 ---

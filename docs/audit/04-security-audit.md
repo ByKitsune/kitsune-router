@@ -1,5 +1,7 @@
 # 04 — Security audit
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Audited: 2026-10-13 · commit `2c61f4f1` · method: static reading, every finding in this
 document was verified against the source in this session (file:line references given).
 Security is this repo's stated top review priority (CLAUDE.md).

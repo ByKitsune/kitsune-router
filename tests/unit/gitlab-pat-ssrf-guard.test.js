@@ -58,7 +58,7 @@ let lookup;
 let errorLog;
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-gitlab-pat-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-gitlab-pat-"));
   vi.stubEnv("DATA_DIR", tempDir);
   delete global._dbAdapter;
   server = http.createServer((request, response) => {
@@ -115,7 +115,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   vi.stubEnv("DATA_DIR", tempDir);
-  vi.stubEnv("ZENROUTER_PEER_TOKEN", PEER_TOKEN);
+  vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", PEER_TOKEN);
   for (const name of ["HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy"]) {
     vi.stubEnv(name, "");
   }
@@ -150,7 +150,7 @@ function patRequest(baseUrl, { local = false, headers = {} } = {}) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(local ? { "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": PEER_TOKEN } : {}),
+      ...(local ? { "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": PEER_TOKEN } : {}),
       ...headers,
     },
     body: JSON.stringify({ token: `  ${PAT}  `, baseUrl }),
@@ -252,10 +252,10 @@ describe("GitLab PAT trusted-local exception", () => {
 
   it.each([
     { host: "localhost", "x-forwarded-for": "127.0.0.1", "x-real-ip": "127.0.0.1" },
-    { "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": "forged-peer", host: "localhost" },
-    { "x-zen-real-ip": "203.0.113.8", "x-zen-peer-token": PEER_TOKEN, host: "localhost" },
-    { "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": PEER_TOKEN, "x-zen-via-proxy": "1" },
-    { "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": PEER_TOKEN, origin: "https://remote.example" },
+    { "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": "forged-peer", host: "localhost" },
+    { "x-kitsune-router-real-ip": "203.0.113.8", "x-kitsune-router-peer-token": PEER_TOKEN, host: "localhost" },
+    { "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": PEER_TOKEN, "x-kitsune-router-via-proxy": "1" },
+    { "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": PEER_TOKEN, origin: "https://remote.example" },
   ])("does not grant local access from spoofed or proxied peer evidence %#", async (headers) => {
     const response = await POST(patRequest(`http://private.example:${server.address().port}`, { headers }));
     expect(response.status).toBe(400);

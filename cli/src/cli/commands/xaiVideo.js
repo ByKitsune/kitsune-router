@@ -1,6 +1,6 @@
 /**
- * `zenrouter xai video` — generate a Grok Imagine video through the local
- * zenrouter gateway and save the result as an MP4 file.
+ * `kitsune-router xai video` — generate a Grok Imagine video through the local
+ * Kitsune Router gateway and save the result as an MP4 file.
  *
  * Flow: POST /v1/videos/generations → poll GET /v1/videos/{request_id}
  * until done/failed/timeout → download video.url → atomic rename.
@@ -23,9 +23,9 @@ const TERMINAL_STATUSES = new Set(["done", "failed", "completed", "error", "expi
 const FAILED_STATUSES = new Set(["failed", "error", "expired", "cancelled"]);
 
 const HELP = `
-Usage: zenrouter xai video --prompt "..." [options]
+Usage: kitsune-router xai video --prompt "..." [options]
 
-Generate a Grok Imagine video via your local zenrouter gateway
+Generate a Grok Imagine video via your local Kitsune Router gateway
 (requires a connected xAI account — Grok Build OAuth or API key).
 
 Options:
@@ -39,7 +39,7 @@ Options:
   --timeout <seconds>     Max wait for the job (default: ${DEFAULT_TIMEOUT_SEC})
   --port <port>           Gateway port (default: ${DEFAULT_PORT})
   --host <host>           Gateway host (default: ${DEFAULT_HOST})
-  --api-key <key>         zenrouter API key (or env ZENROUTER_API_KEY / NINE_ROUTER_API_KEY)
+  --api-key <key>         Kitsune Router API key (or env KITSUNE_ROUTER_API_KEY)
   -h, --help              Show this help
 `;
 
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     timeoutSec: DEFAULT_TIMEOUT_SEC,
     port: DEFAULT_PORT,
     host: DEFAULT_HOST,
-    apiKey: process.env.ZENROUTER_API_KEY || process.env.NINE_ROUTER_API_KEY || null,
+    apiKey: process.env.KITSUNE_ROUTER_API_KEY || process.env.NINE_ROUTER_API_KEY || null,
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -258,7 +258,7 @@ async function run(argv) {
     }
 
     const requestId = create.body.request_id;
-    const connectionId = create.headers["x-zenrouter-connection-id"] || null;
+    const connectionId = create.headers["x-kitsune-router-connection-id"] || null;
     console.log(`📋 Job accepted: ${requestId}`);
 
     let lastLine = "";

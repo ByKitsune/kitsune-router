@@ -50,8 +50,8 @@ function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v,
 const stripSlash = (url) => (url || "").replace(/\/+$/, "");
 
 const endpoints = createStore({
-  storageKey: "zenrouter.cliToolEndpointPresets",
-  changeEvent: "zenrouter:endpoint-presets-changed",
+  storageKey: "kitsunerouter.cliToolEndpointPresets",
+  changeEvent: "kitsunerouter:endpoint-presets-changed",
   itemField: "baseUrl",
   normalize: stripSlash,
   defaultName: (url) => {
@@ -60,8 +60,8 @@ const endpoints = createStore({
 });
 
 const apiKeys = createStore({
-  storageKey: "zenrouter.cliToolApiKeyPresets",
-  changeEvent: "zenrouter:api-key-presets-changed",
+  storageKey: "kitsunerouter.cliToolApiKeyPresets",
+  changeEvent: "kitsunerouter:api-key-presets-changed",
   itemField: "key",
 });
 

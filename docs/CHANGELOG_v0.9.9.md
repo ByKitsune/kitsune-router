@@ -1,5 +1,7 @@
 # ZenRouter 0.9.9 technical changelog
 
+> **Kitsune Router archive:** this dated ZenRouter record keeps its original names, artifacts and evidence; it is not current installation or verification guidance. See [current docs](INSTALLATION.md) and [migration](MIGRATION.md).
+
 Release date: **2026-10-15** · Previous **published** release: **0.9.7**.
 
 > **Note on 0.9.8.** The 0.9.8 batch (20 changes, documented in

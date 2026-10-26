@@ -1,76 +1,61 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { BRAND } from "../../../../branding/identity.mjs";
+import styles from "../landing.module.css";
+
+const links = [
+  { label: "Routing", href: "#routing" },
+  { label: "Setup", href: "#setup" },
+  { label: "Docs", href: BRAND.docsUrl },
+  { label: "Source", href: BRAND.repository },
+];
 
 export default function Navigation() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
   return (
-    <nav className="fixed top-0 z-50 w-full bg-[#141414]/90 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+    <header className={styles.header}>
+      <div className={`${styles.container} ${styles.navRow}`}>
+        <Link href="/landing" className={styles.wordmark} aria-label={`${BRAND.name} home`}>
+          <Image src="/icons/logo.svg" alt="" width={38} height={38} />
+          <span>{BRAND.name}</span>
+        </Link>
+        <nav className={styles.desktopNav} aria-label="Main navigation">
+          {links.map((link) => <a key={link.label} href={link.href}>{link.label}</a>)}
+          <Link href="/dashboard">Dashboard</Link>
+        </nav>
         <button
+          ref={menuButton}
           type="button"
-          className="flex items-center gap-3 cursor-pointer bg-transparent border-none p-0"
-          onClick={() => router.push("/")}
-          aria-label="Navigate to home"
+          className={styles.menuButton}
+          aria-expanded={menuOpen}
+          aria-controls="landing-mobile-menu"
+          onClick={() => setMenuOpen((open) => !open)}
         >
-          <div className="size-8 rounded-lg bg-[#1f1f1f] border border-white/10 flex items-center justify-center p-1.5 shadow-sm">
-            <Image src="/icons/logo.svg" alt="ZenRouter Logo" width={22} height={22} className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-white text-xl font-bold tracking-tight">ZenRouter</h2>
+          {menuOpen ? "Close" : "Menu"}
         </button>
-
-        {/* Desktop menu */}
-        <div className="hidden md:flex items-center gap-8">
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#features">Features</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#how-it-works">How it Works</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://github.com/ZenRouter/ZenRouter#readme" target="_blank" rel="noopener noreferrer">Docs</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors flex items-center gap-1" href="https://github.com/ZenRouter/ZenRouter" target="_blank" rel="noopener noreferrer">
-            GitHub <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-          </a>
-        </div>
-
-        {/* CTA + Mobile menu */}
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push("/dashboard")}
-            className="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 bg-[#4B72A4] hover:bg-[#3c5e8c] transition-all text-white text-sm font-semibold shadow-[0_0_15px_rgba(75,114,164,0.4)] hover:shadow-[0_0_20px_rgba(75,114,164,0.6)] cursor-pointer"
-          >
-            Get Started
-          </button>
-          <button 
-            className="md:hidden text-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <span className="material-symbols-outlined">{mobileMenuOpen ? "close" : "menu"}</span>
-          </button>
-        </div>
       </div>
-
-      {/* Mobile menu dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#232f42] bg-[#10151f]/95 backdrop-blur-md">
-          <div className="flex flex-col gap-4 p-6">
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it Works</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://github.com/ZenRouter/ZenRouter#readme" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)}>Docs</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://github.com/ZenRouter/ZenRouter" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)}>GitHub</a>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                router.push("/dashboard");
-              }}
-              className="h-9 rounded-lg bg-[#4B72A4] hover:bg-[#3c5e8c] text-white text-sm font-semibold cursor-pointer"
-            >
-              Get Started
-            </button>
-          </div>
-        </div>
-      )}
-    </nav>
+      <nav id="landing-mobile-menu" className={styles.mobileNav} aria-label="Mobile navigation" hidden={!menuOpen}>
+        {links.map((link) => (
+          <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</a>
+        ))}
+        <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Open dashboard</Link>
+      </nav>
+    </header>
   );
 }
-

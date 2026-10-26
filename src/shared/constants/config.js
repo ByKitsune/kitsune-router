@@ -1,21 +1,16 @@
 import pkg from "../../../package.json" with { type: "json" };
+import { BRAND } from "../../../branding/identity.mjs";
+export { BRAND };
 
-// The package's real npm identity.
-//
-// This was previously the bare string "zenrouter", which is UNCLAIMED — npm
-// returns 404 for it. Two user-visible consequences, both reproduced:
-//   - /api/version fetched https://registry.npmjs.org/zenrouter/latest and always
-//     answered latestVersion: null, so the dashboard could never report an update.
-//   - the updater's `npm i -g zenrouter` (bare) would fail with 404 instead of installing.
-// Exported from here so the version route and the updater share one value rather
-// than repeating the literal (src/app/api/version/route.js used to hardcode its own
-// copy, which is how the two could drift apart again).
-export const NPM_PACKAGE_NAME = "@joyccn/zenrouter";
+// One identity for registry lookup, launcher updates and install instructions.
+export const NPM_PACKAGE_NAME = BRAND.npmPackage;
 
 // App configuration
 export const APP_CONFIG = {
-  name: "ZenRouter",
-  description: "Serene AI Gateway & Intelligent Routing Engine",
+  name: BRAND.name,
+  description: BRAND.description,
+  tagline: BRAND.tagline,
+  organization: BRAND.organization,
   version: pkg.version,
 };
 

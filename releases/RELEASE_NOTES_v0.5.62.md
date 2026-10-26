@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.5.62 — Enhanced Cache Anchoring, Session Continuity & PAT/Bulk Import Sync
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter **v0.5.62** delivers universal prompt cache breakpoint anchoring across all Anthropic-compatible workloads, expanded session continuity headers for modern AI agents (OpenCode 2, NaraCLI, Cline, Roo), and robust provider dashboard synchronization when adding PAT (Personal Access Tokens) and API keys.
 
 ---

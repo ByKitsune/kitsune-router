@@ -20,27 +20,27 @@ vi.mock("../../src/shared/services/quotaAutoPing.js", () => ({ stopQuotaAutoPing
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
-  delete globalThis[Symbol.for("zenrouter.runtime.lifecycle")];
-  delete globalThis[Symbol.for("zenrouter.shutdown.lifecycle")];
-  delete globalThis[Symbol.for("zenrouter.db.lifecycle")];
-  vi.stubEnv("ZENROUTER_MANAGED_SHUTDOWN", "1");
+  delete globalThis[Symbol.for("kitsunerouter.runtime.lifecycle")];
+  delete globalThis[Symbol.for("kitsunerouter.shutdown.lifecycle")];
+  delete globalThis[Symbol.for("kitsunerouter.db.lifecycle")];
+  vi.stubEnv("KITSUNE_ROUTER_MANAGED_SHUTDOWN", "1");
 });
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("managed runtime integration", () => {
   it("leaves direct adapter ownership unchanged without the managed entry", async () => {
-    vi.stubEnv("ZENROUTER_MANAGED_SHUTDOWN", "");
+    vi.stubEnv("KITSUNE_ROUTER_MANAGED_SHUTDOWN", "");
     const { installRuntimeLifecycle } = await import("../../src/lib/runtimeLifecycle.js");
     expect(installRuntimeLifecycle()).toBe(false);
-    expect(globalThis[Symbol.for("zenrouter.db.lifecycle")].managed).toBe(false);
+    expect(globalThis[Symbol.for("kitsunerouter.db.lifecycle")].managed).toBe(false);
   });
 
   it("registers once, surrenders adapter exits and drains accounting before pools/database", async () => {
     const { installRuntimeLifecycle } = await import("../../src/lib/runtimeLifecycle.js");
     expect(installRuntimeLifecycle()).toBe(true);
     expect(installRuntimeLifecycle()).toBe(false);
-    expect(globalThis[Symbol.for("zenrouter.db.lifecycle")].managed).toBe(true);
-    const hooks = [...globalThis[Symbol.for("zenrouter.shutdown.lifecycle")].hooks.values()].sort((a, b) => a.phase - b.phase);
+    expect(globalThis[Symbol.for("kitsunerouter.db.lifecycle")].managed).toBe(true);
+    const hooks = [...globalThis[Symbol.for("kitsunerouter.shutdown.lifecycle")].hooks.values()].sort((a, b) => a.phase - b.phase);
     expect(hooks.map(hook => hook.phase)).toEqual([10, 30, 40, 50, 60]);
     const deadline = Date.now() + 1000;
     for (const hook of hooks) await hook.callback({ deadline, remainingMs: 900 });
@@ -54,7 +54,7 @@ describe("managed runtime integration", () => {
   it("rejects an undrained authoritative queue but does not promote log failures to billing failures", async () => {
     const { installRuntimeLifecycle } = await import("../../src/lib/runtimeLifecycle.js");
     installRuntimeLifecycle();
-    const hooks = globalThis[Symbol.for("zenrouter.shutdown.lifecycle")].hooks;
+    const hooks = globalThis[Symbol.for("kitsunerouter.shutdown.lifecycle")].hooks;
     calls.usage.mockResolvedValueOnce({ drained: false });
     await expect(hooks.get("durable-usage").callback({ deadline: Date.now() + 500 })).rejects.toThrow("USAGE_SHUTDOWN_NOT_DRAINED");
     calls.details.mockRejectedValueOnce(new Error("log unavailable"));

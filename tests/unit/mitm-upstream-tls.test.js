@@ -14,7 +14,7 @@ const runner = fileURLToPath(new URL("../helpers/mitm-upstream-tls.cjs", import.
 let directory;
 
 beforeAll(async () => {
-  directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-upstream-tls-"));
+  directory = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-upstream-tls-"));
   const ca = await authority();
   const pair = await keyPair();
   const certificate = await leaf(ca, "upstream.test", { pair, serialNumber: "02" });

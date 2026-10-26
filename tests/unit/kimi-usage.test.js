@@ -81,7 +81,7 @@ describe("getUsageForProvider(kimi) auth selection", () => {
     expect(opts.method).toBe("GET");
     expect(opts.headers.Authorization).toBe("Bearer tok-abc");
     expect(opts.headers["x-api-key"]).toBeUndefined();
-    expect(opts.headers["X-Msh-Platform"]).toBe("zenrouter");
+    expect(opts.headers["X-Msh-Platform"]).toBe("kitsunerouter");
     expect(opts.headers["X-Msh-Device-Id"]).toBe("stable-device-1");
     expect(opts.headers["X-Msh-Version"]).toBeTruthy();
   });

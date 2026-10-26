@@ -41,7 +41,7 @@ function sseSource(lines) {
 }
 
 // 9Router #4104: an upstream can end an HTTP-200 stream with a failure INSIDE
-// the event body (Responses response.failed). ZenRouter recorded those as
+// the event body (Responses response.failed). Kitsune Router recorded those as
 // "success" in requestDetails/dashboard because completion never looked at
 // the terminal event. The stream must now report failed + error.
 describe("in-stream failure is not logged as success (#4104)", () => {

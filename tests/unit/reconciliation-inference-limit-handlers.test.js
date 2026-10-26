@@ -246,7 +246,7 @@ describe("shared inference admission and response semantics", () => {
     expect(mocks.getProviderCredentials.mock.calls[0][2]).toBe(lockScope);
     expect(mocks.markAccountUnavailable).toHaveBeenCalledWith(account.connectionId, 401, "fixture auth expired", provider, lockScope);
     if (index >= 5) {
-      expect(response.headers.get("x-zenrouter-connection-id")).toBe("fallback-fixture-account");
+      expect(response.headers.get("x-kitsune-router-connection-id")).toBe("fallback-fixture-account");
       expect(core.mock.calls[1][0].idempotencyKey).toBe("fixture-idempotency");
     }
   });
@@ -343,8 +343,8 @@ describe("shared inference admission and response semantics", () => {
 
   it("uses the trusted peer IP, not spoofed forwarding headers, when API keys are optional", async () => {
     mocks.getSettings.mockResolvedValue({ requireApiKey: false });
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "peer-fixture-not-a-credential");
-    const peer = { "x-zen-peer-token": "peer-fixture-not-a-credential", "x-zen-real-ip": "198.51.100.10" };
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "peer-fixture-not-a-credential");
+    const peer = { "x-kitsune-router-peer-token": "peer-fixture-not-a-credential", "x-kitsune-router-real-ip": "198.51.100.10" };
     expect((await endpoints[3].call({ key: null, headers: peer })).headers.get("x-ratelimit-remaining")).toBe("7");
     vi.setSystemTime(START + 1000);
     expect((await endpoints[4].call({ key: null, headers: { ...peer, "x-forwarded-for": "203.0.113.2" } })).headers.get("x-ratelimit-remaining")).toBe("6");
@@ -355,7 +355,7 @@ describe("shared inference admission and response semantics", () => {
   it("does not let unauthenticated clients rotate spoofed peer/XFF identities", async () => {
     mocks.getSettings.mockResolvedValue({ requireApiKey: false });
     for (let i = 0; i < 2; i++) {
-      const response = await endpoints[i].call({ key: null, headers: { "x-zen-real-ip": `198.51.100.${i}`, "x-forwarded-for": `203.0.113.${i}` } });
+      const response = await endpoints[i].call({ key: null, headers: { "x-kitsune-router-real-ip": `198.51.100.${i}`, "x-forwarded-for": `203.0.113.${i}` } });
       expect(response.headers.get("x-ratelimit-remaining")).toBe(String(7 - i));
     }
     expect((await endpoints[2].call({ key: null })).status).toBe(429);

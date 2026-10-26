@@ -160,7 +160,7 @@ export default function NewProviderPage() {
               value={formData.apiKey}
               onChange={(e) => handleChange("apiKey", e.target.value)}
               error={errors.apiKey}
-              hint="Your API key is stored in this ZenRouter instance's local database."
+              hint="Your API key is stored in this Kitsune Router instance's local database."
               required
             />
           )}

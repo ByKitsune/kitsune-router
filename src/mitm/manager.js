@@ -17,11 +17,11 @@ const { DATA_DIR, MITM_DIR } = require("./paths");
 const { log, err } = require("./logger");
 const { LSOF_BIN } = require("./config");
 
-const helperLifecycle = globalThis[Symbol.for("zenrouter.helper.lifecycle")] ??= {
+const helperLifecycle = globalThis[Symbol.for("kitsunerouter.helper.lifecycle")] ??= {
   draining: false,
   scopes: new Map(),
   isStopping() {
-    return this.draining || globalThis[Symbol.for("zenrouter.shutdown.lifecycle")]?.draining === true;
+    return this.draining || globalThis[Symbol.for("kitsunerouter.shutdown.lifecycle")]?.draining === true;
   },
   scope(name) {
     if (!this.scopes.has(name)) this.scopes.set(name, { generation: 0, pending: new Map(), wakes: new Set(), children: new Map(), data: {} });
@@ -175,7 +175,7 @@ function resolveBundledServerPath() {
 }
 
 // Copy bundled server.js into DATA_DIR so MITM doesn't lock node_modules
-// (prevents EBUSY on `npm i -g zenrouter@latest` while MITM is running).
+// (prevents EBUSY on `npm i -g @bykitsune/router@latest` while MITM is running).
 function ensureRuntimeServer(bundledPath) {
   if (helperLifecycle.isStopping()) return bundledPath;
   try {
@@ -827,7 +827,7 @@ async function runStartServer(apiKey, sudoPassword, forceKillPort443, check) {
     let effectiveServerPath = SERVER_PATH;
     if (!effectiveServerPath || !fs.existsSync(effectiveServerPath)) {
       effectiveServerPath = ensureRuntimeServer(resolveBundledServerPath());
-      if (!effectiveServerPath || !fs.existsSync(effectiveServerPath)) throw new Error(`MITM server.js not found at ${effectiveServerPath}. Reinstall zenrouter.`);
+      if (!effectiveServerPath || !fs.existsSync(effectiveServerPath)) throw new Error(`MITM server.js not found at ${effectiveServerPath}. Reinstall kitsunerouter.`);
     }
     const mitmRouterBase = await resolveMitmRouterBaseUrl();
     check();

@@ -10,7 +10,7 @@ let previousAdapter;
 let previousListeners;
 
 beforeEach(async () => {
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-ttft-schema-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-ttft-schema-"));
   vi.stubEnv("DATA_DIR", dataDir);
   previousAdapter = Object.getOwnPropertyDescriptor(global, "_dbAdapter");
   previousListeners = new Map(shutdownEvents.map((event) => [event, process.rawListeners(event)]));
@@ -35,7 +35,7 @@ afterEach(async () => {
     vi.unstubAllEnvs();
     vi.resetModules();
     const resolved = await realpath(dataDir);
-    if (dirname(resolved) !== await realpath(tmpdir()) || !resolved.includes("zenrouter-ttft-schema-")) {
+    if (dirname(resolved) !== await realpath(tmpdir()) || !resolved.includes("kitsunerouter-ttft-schema-")) {
       throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
     }
     await rm(resolved, { recursive: true, force: true });

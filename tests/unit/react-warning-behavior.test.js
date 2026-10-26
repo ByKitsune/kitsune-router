@@ -81,7 +81,7 @@ const tool = { name: "fixture", defaultModels: [{ alias: "main", envKey: "ANTHRO
 const baseProps = { tool, isExpanded: true, onToggle() {}, baseUrl: "http://127.0.0.1:20128", apiKeys: [], activeProviders: [], modelMappings: {}, hasActiveProviders: true, onModelMappingChange() {} };
 
 function config(model, token = "fixture-key") {
-  return `model = "${model}"\nmodel_provider = "zenrouter"\n[model_providers.zenrouter]\nbase_url = "http://127.0.0.1:20128/v1"\n[model_providers.zenrouter.http_headers]\nAuthorization = "Bearer ${token}"\n[agents]\ndefault_subagent_model = "fixture/subagent"\n`;
+  return `model = "${model}"\nmodel_provider = "kitsunerouter"\n[model_providers.kitsunerouter]\nbase_url = "http://127.0.0.1:20128/v1"\n[model_providers.kitsunerouter.http_headers]\nAuthorization = "Bearer ${token}"\n[agents]\ndefault_subagent_model = "fixture/subagent"\n`;
 }
 
 describe("React warning cleanup behavior", () => {
@@ -110,7 +110,7 @@ describe("React warning cleanup behavior", () => {
 
   it("uses the first dashboard key when Codex config contains a placeholder", () => {
     const card = fixture(prefix + "CodexToolCard.js");
-    const tree = card.render({ ...baseProps, apiKeys: [{ key: "fixture-dashboard-key" }], initialStatus: { installed: true, config: config("fixture/saved", "sk_zenrouter") } });
+    const tree = card.render({ ...baseProps, apiKeys: [{ key: "fixture-dashboard-key" }], initialStatus: { installed: true, config: config("fixture/saved", "sk_kitsunerouter") } });
     expect(widget(tree, "ApiKeySelect").props.value).toBe("fixture-dashboard-key");
   });
 

@@ -2,7 +2,7 @@
  * Regression tests for the "JWT_SECRET environment variable is required"
  * startup/login failure reported by users installing via `npm i -g`.
  *
- * Root cause (reproduced against the published @joyccn/zenrouter@0.8.7):
+ * Root cause (reproduced against the historical @joyccn/zenrouter@0.8.7):
  *   - The dashboard signs its session cookie with JWT_SECRET, and
  *     src/lib/auth/dashboardSession.js deliberately has NO fallback (a known
  *     default would let anyone forge a session).
@@ -89,11 +89,17 @@ describe("runtimeSecrets — generate and persist per-install secrets", () => {
     expect(out.JWT_SECRET.length).toBeGreaterThanOrEqual(32);
   });
 
-  it("recovers from a corrupt secrets file instead of throwing", () => {
+  it("fails closed on a corrupt secrets file without replacing keys or original bytes", () => {
     fs.mkdirSync(tmpDir, { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, "secrets.json"), "{not valid json");
-    const out = secrets.ensureRuntimeSecrets({ DATA_DIR: tmpDir }, { silent: true });
-    expect(out.JWT_SECRET.length).toBeGreaterThanOrEqual(32);
+    const file = path.join(tmpDir, "secrets.json");
+    const original = Buffer.from("{not valid json");
+    fs.writeFileSync(file, original, { mode: 0o600 });
+    const inode = fs.statSync(file).ino;
+    expect(() => secrets.ensureRuntimeSecrets({ DATA_DIR: tmpDir }, { silent: true }))
+      .toThrow(/Cannot read existing runtime secrets; refusing to replace keys/);
+    expect(fs.readFileSync(file)).toEqual(original);
+    expect(fs.statSync(file).ino).toBe(inode);
+    expect(fs.readdirSync(tmpDir)).toEqual(["secrets.json"]);
   });
 
   it("buildSecretsEnv only returns keys the caller did not already set validly", () => {
@@ -152,8 +158,12 @@ describe("CLI + postinstall wiring", () => {
 
   it("Docker entrypoint provisions secrets without requiring an env_file", () => {
     const dockerfile = fs.readFileSync(new URL("../../Dockerfile", import.meta.url), "utf8");
-    expect(dockerfile).toContain("secrets.env");
-    expect(dockerfile).toContain("/dev/urandom");
+    expect(dockerfile).toContain('CMD ["node", "--require", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]');
+    expect(dockerfile).toContain('exec su-exec node "$@"');
+    expect(dockerfile).not.toContain('. "$SECRETS_FILE"');
+    const preload = fs.readFileSync(new URL("../../cli/hooks/containerEntrypoint.js", import.meta.url), "utf8");
+    expect(preload).toContain('require("./runtimeSecrets")');
+    expect(preload).toContain("Object.assign(process.env, ensureRuntimeSecrets(process.env))");
     const compose = fs.readFileSync(new URL("../../docker-compose.yml", import.meta.url), "utf8");
     // `required: false` keeps `docker compose up` working with no .env present.
     expect(compose).toContain("required: false");

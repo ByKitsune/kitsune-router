@@ -1,14 +1,14 @@
 import { configureDbLifecycle } from "./db/helpers/adapterLifecycle.js";
 import { registerShutdownHook } from "./shutdownLifecycle.js";
 
-const state = globalThis[Symbol.for("zenrouter.runtime.lifecycle")] ??= { installed: false };
+const state = globalThis[Symbol.for("kitsunerouter.runtime.lifecycle")] ??= { installed: false };
 
 export function installRuntimeLifecycle() {
-  if (process.env.ZENROUTER_MANAGED_SHUTDOWN !== "1" || state.installed) return false;
+  if (process.env.KITSUNE_ROUTER_MANAGED_SHUTDOWN !== "1" || state.installed) return false;
   configureDbLifecycle({ managed: true });
   state.installed = true;
   registerShutdownHook("runtime-schedulers", 10, async () => {
-    const helpers = globalThis[Symbol.for("zenrouter.helper.lifecycle")];
+    const helpers = globalThis[Symbol.for("kitsunerouter.helper.lifecycle")];
     const helperDrain = helpers?.stop();
     helperDrain?.catch(() => {});
     const [{ stopBackgroundTokenRefresh }, { stopModelCatalogSync }, { stopQuotaAutoPing }] = await Promise.all([

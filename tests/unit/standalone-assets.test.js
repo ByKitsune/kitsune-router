@@ -11,7 +11,7 @@ afterEach(() => {
   for (const directory of fixtures.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 function createBuildFixture(distDir) {
-  const projectRoot = mkdtempSync(join(tmpdir(), "zenrouter-standalone-assets-"));
+  const projectRoot = mkdtempSync(join(tmpdir(), "kitsunerouter-standalone-assets-"));
   const buildRoot = join(projectRoot, distDir);
   fixtures.push(projectRoot);
   mkdirSync(join(buildRoot, "standalone"), { recursive: true });

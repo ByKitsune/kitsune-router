@@ -99,7 +99,7 @@ export const CLAUDE_MIN_THINKING_BUDGET = 1024;
 // (384000 for deepseek-v4-pro, 1000000 elsewhere), so every output-cap
 // spelling is clamped to it (9router #4691).
 export const COMMANDCODE_MAX_OUTPUT_TOKENS = 200000;
-export const TOKEN_SAVER_HEADER = "x-zenrouter-token-saver";
+export const TOKEN_SAVER_HEADER = "x-kitsune-router-token-saver";
 
 // Retry config for 429 responses (legacy - kept for backward compatibility)
 export const RETRY_CONFIG = {

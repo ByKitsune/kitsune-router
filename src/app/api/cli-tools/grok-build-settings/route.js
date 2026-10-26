@@ -70,7 +70,7 @@ const normalizeSubagentModels = (value) => {
   return result;
 };
 
-const hasZenRouterConfig = (settings) => Boolean(settings?.model?.base_url);
+const hasKitsuneRouterConfig = (settings) => Boolean(settings?.model?.base_url);
 
 export async function GET() {
   try {
@@ -87,7 +87,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasZenRouter: hasZenRouterConfig(settings),
+      hasKitsuneRouter: hasKitsuneRouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {
@@ -107,14 +107,14 @@ export async function POST(request) {
     await fs.mkdir(getGrokDir(), { recursive: true });
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     let keyToUse = apiKey;
-    if (!keyToUse || keyToUse === "sk_zenrouter" || keyToUse === "sk_9router") {
+    if (!keyToUse || keyToUse === "sk_kitsunerouter" || keyToUse === "sk_9router") {
       try {
         const { getApiKeys } = await import("@/lib/db/repos/apiKeysRepo.js");
         const keys = await getApiKeys();
         const active = keys?.filter(k => k.isActive);
-        keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_zenrouter");
+        keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_kitsunerouter");
       } catch {
-        keyToUse = keyToUse || "sk_zenrouter";
+        keyToUse = keyToUse || "sk_kitsunerouter";
       }
     }
     const toml = applyGrokBuildConfig(await readConfigToml(), {
@@ -130,7 +130,7 @@ export async function POST(request) {
       success: true,
       message: "Grok Build settings applied successfully!",
       configPath: getGrokConfigPath(),
-      modelSlot: "zenrouter",
+      modelSlot: "kitsunerouter",
     });
   } catch (error) {
     console.log("Error updating grok-build settings:", error);
@@ -154,7 +154,7 @@ export async function DELETE() {
     await fs.writeFile(configPath, resetGrokBuildConfig(toml));
     return NextResponse.json({
       success: true,
-      message: "zenrouter model slots removed from Grok Build",
+      message: "kitsunerouter model slots removed from Grok Build",
     });
   } catch (error) {
     console.log("Error resetting grok-build settings:", error);

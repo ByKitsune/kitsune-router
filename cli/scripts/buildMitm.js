@@ -1,6 +1,7 @@
 const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
+const { isBuiltin } = require("node:module");
 
 // ── Build config ─────────────────────────────────────────
 const BUILD_CONFIG = {
@@ -12,11 +13,11 @@ const BUILD_CONFIG = {
 
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
-const cliAppDir = process.env.ZENROUTER_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
+const cliAppDir = process.env.KITSUNE_ROUTER_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const cliMitmDir = path.join(cliAppDir, "src", "mitm");
 // Bundle everything — no externals. This keeps MITM runtime self-contained so
 // it can be copied to DATA_DIR/runtime/ and spawned from there (escapes
-// node_modules file locks that block `npm i -g zenrouter@latest` on Windows).
+// node_modules file locks that block `npm i -g @bykitsune/router@latest` on Windows).
 const EXTERNALS = [];
 const ENTRIES = ["server.js"];
 
@@ -36,16 +37,30 @@ async function buildEntry(entry) {
   const steps = [];
 
   if (BUILD_CONFIG.bundle) {
-    await esbuild.build({
+    const result = await esbuild.build({
+      absWorkingDir: appDir,
       entryPoints: [path.join(mitmSrc, entry)],
       bundle: true,
       minify: BUILD_CONFIG.minify,
       platform: "node",
+      format: "cjs",
       target: "node22",
       external: EXTERNALS,
       plugins: [buildPlugin],
       outfile: output,
+      metafile: true,
     });
+    const dataDirectory = path.join(cliDir, "hooks", "dataDirectory.js");
+    if (!Object.keys(result.metafile.inputs).some(input => path.resolve(appDir, input) === dataDirectory)) {
+      throw new Error("MITM bundle is missing the shared data-directory module");
+    }
+    for (const artifact of Object.values(result.metafile.outputs)) {
+      for (const dependency of artifact.imports) {
+        if (dependency.external && !isBuiltin(dependency.path)) {
+          throw new Error(`MITM bundle is not relocatable: external dependency ${dependency.path}`);
+        }
+      }
+    }
     steps.push("bundled");
     if (BUILD_CONFIG.minify) steps.push("minified");
   }

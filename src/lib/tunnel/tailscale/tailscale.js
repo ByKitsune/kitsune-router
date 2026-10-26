@@ -483,7 +483,7 @@ export function isDaemonAlive() {
  * Start tailscaled.
  * - With sudoPassword: TUN mode (root) → Funnel TLS works
  * - Without: userspace-networking fallback (no sudo, but Funnel TLS unstable)
- * State always lives in ~/.zenrouter/tailscale/ via --statedir.
+ * State always lives in ~/.kitsune-router/tailscale/ via --statedir.
  */
 export function startDaemonWithPassword(sudoPassword, parentCheck = () => {}) {
   return lifecycle.run(scope, "daemon", async assert => {

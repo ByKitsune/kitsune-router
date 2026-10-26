@@ -11,7 +11,7 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { canAccessLocalOnlyRoute } from "@/dashboardGuard";
 
 const APP_PORT = UPDATER_CONFIG.appPort;
-const CLI_TOKEN_HEADER = "x-zen-cli-token";
+const CLI_TOKEN_HEADER = "x-kitsune-router-cli-token";
 const CLI_TOKEN_SALT = "zen-cli-auth";
 const LOCAL_MCP_PREFIX = `http://localhost:${APP_PORT}/api/mcp/`;
 
@@ -262,7 +262,7 @@ export async function GET(request) {
       ? config.inferenceModels.map((m) => (typeof m === "string" ? m : m?.name)).filter(Boolean)
       : [];
     const managedMcp = Array.isArray(config?.managedMcpServers) ? config.managedMcpServers : [];
-    const hasZenRouter = !!(config?.inferenceProvider === PROVIDER && baseUrl);
+    const hasKitsuneRouter = !!(config?.inferenceProvider === PROVIDER && baseUrl);
 
     // Active local plugins = managedMcp entries whose URL points at our inline bridge.
     const stdioNames = new Set(LOCAL_STDIO_PLUGINS.map((p) => p.name));
@@ -283,7 +283,7 @@ export async function GET(request) {
         inferenceGatewayBaseUrl: baseUrl,
         inferenceModels: models.map((name) => ({ name })),
       } : null,
-      hasZenRouter,
+      hasKitsuneRouter,
       configPath,
       cowork: {
         appliedId,

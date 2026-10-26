@@ -17,7 +17,7 @@ the thinking control. It stores a provider default. An explicit request's
 | Fast | `service_tier: "fast"`; `priority` is an accepted alias | `service_tier: "priority"` |
 | Ultrafast | `service_tier: "ultrafast"`, Responses endpoint only | `service_tier: "ultrafast"`, subject to account/model permission |
 
-Omitting `service_tier` first allows the saved Zen provider default to apply.
+Omitting `service_tier` first allows the saved Kitsune Router provider default to apply.
 Auto is not a guarantee of Standard billing. Choose **Standard** to opt out of a
 paid default. Speed does not create a new model ID, lower reasoning effort or
 grant permission to exceed model limits.
@@ -29,11 +29,11 @@ one selection also does not validate a later, different selection.
 
 ### Request examples
 
-Use a Zen API key, not the upstream account's OAuth token:
+Use an issued Kitsune Router API key, not the upstream account's OAuth token. `KITSUNE_ROUTER_API_KEY` is a client-side environment variable containing that key:
 
 ```bash
 curl http://localhost:20128/v1/responses \
-  -H "Authorization: Bearer $ZENROUTER_API_KEY" \
+  -H "Authorization: Bearer $KITSUNE_ROUTER_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "codex/gpt-6.1-sol",
@@ -68,7 +68,7 @@ itself prove that the upstream delivered the requested speed tier.
   must not be presented as confirmed premium delivery or used to invent an
   invoice. Operator pricing overrides remain separate from upstream charges.
 
-**Estimator policy (unreleased source, reviewed 2026-10-21):** Zen records
+**Estimator policy (unreleased source, reviewed 2026-10-21):** Kitsune Router records
 requested and actual tiers separately. Pricing supports independent complete
 `service_tiers` quotes (`fast`, `ultrafast`, `flex`, `scale`) and retains saved
 operator zero/unknown overrides. Published native OpenAI API quotes are included
@@ -99,9 +99,9 @@ reasoning high while exposing independent speed variants:
 {
   "$schema": "https://opencode.ai/config.json",
   "providers": {
-    "zen": {
-      "name": "ZenRouter",
-      "env": ["ZENROUTER_API_KEY"],
+    "kitsunerouter": {
+      "name": "Kitsune Router",
+      "env": ["KITSUNE_ROUTER_API_KEY"],
       "package": "@opencode/ai/providers/openai-compatible/responses",
       "settings": {
         "baseURL": "http://localhost:20128/v1",
@@ -126,7 +126,7 @@ reasoning high while exposing independent speed variants:
 Select a variant for the session or run:
 
 ```bash
-opencode run --model zen/sol#ultrafast "Explain this function"
+opencode run --model kitsunerouter/sol#ultrafast "Explain this function"
 ```
 
 The V2 root model default does not retain a variant. Its native Responses
@@ -137,6 +137,8 @@ service. Preserve unrelated configuration and never put upstream OAuth secrets
 in this file.
 
 ## Sources
+
+These dated protocol/pricing references are not a fresh live-provider verification or a claim that Kitsune Router 1.0.0 is published. See [release status](CHANGELOG_v1.0.0.md) and [migration](MIGRATION.md).
 
 - [OpenAI Fast](https://developers.openai.com/api/docs/guides/fast-mode),
   [Ultrafast](https://developers.openai.com/api/docs/guides/ultrafast-mode),

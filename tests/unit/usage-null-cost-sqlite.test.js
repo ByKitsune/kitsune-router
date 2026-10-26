@@ -54,7 +54,7 @@ beforeEach(async () => {
   originalAdapter = global._dbAdapter;
   originalEmit = process.emit;
   originalListeners = new Map(shutdownEvents.map((event) => [event, new Set(process.listeners(event))]));
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-usage-null-cost-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-usage-null-cost-"));
   process.env.DATA_DIR = join(dataDir, "data");
   process.env.TMPDIR = dataDir;
   process.env.JWT_SECRET = "synthetic-null-cost-jwt-secret-32-bytes-minimum";
@@ -348,10 +348,10 @@ describe("SQLite usage consumers preserve unknown cost", () => {
     }));
     expect(response.status).toBe(200);
     const text = await response.text();
-    expect(text).toMatch(/^zenrouter_requests_total 1$/m);
-    expect(text).toMatch(/^zenrouter_prompt_tokens_total 1000$/m);
-    expect(text).toMatch(/^zenrouter_completion_tokens_total 500$/m);
-    if (cost === null) expect(text).not.toMatch(/^zenrouter_cost_usd_total /m);
-    else expect(text).toContain(`zenrouter_cost_usd_total ${cost}\n`);
+    expect(text).toMatch(/^kitsunerouter_requests_total 1$/m);
+    expect(text).toMatch(/^kitsunerouter_prompt_tokens_total 1000$/m);
+    expect(text).toMatch(/^kitsunerouter_completion_tokens_total 500$/m);
+    if (cost === null) expect(text).not.toMatch(/^kitsunerouter_cost_usd_total /m);
+    else expect(text).toContain(`kitsunerouter_cost_usd_total ${cost}\n`);
   });
 });

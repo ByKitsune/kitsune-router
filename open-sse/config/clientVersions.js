@@ -1,5 +1,5 @@
 // Single source of truth for upstream client versions, user-agents, and
-// editor/CLI fingerprints that zenrouter spoofs in outbound requests.
+// editor/CLI fingerprints that kitsunerouter spoofs in outbound requests.
 //
 // Why this exists: previously each provider scattered its User-Agent,
 // editor-version, client_version, and plugin-version strings across
@@ -231,7 +231,7 @@ export const GROK_CLI_USER_AGENT =
   `grok-pager/${GROK_CLI_VERSION} grok-shell/${GROK_CLI_VERSION} (linux; x86_64)`;
 // xAI discovery-time UA — not pinned to a specific version (xAI does
 // not gate on user-agent for api.x.ai).
-export const XAI_USER_AGENT = "grok-cli/zenrouter";
+export const XAI_USER_AGENT = "grok-cli/kitsunerouter";
 
 // ─── Kimchi ────────────────────────────────────────────────────────────
 // Public CLI v1.17.0 (2026-10-20); tagged source uses kimchi/<release>.
@@ -248,7 +248,7 @@ export const COMMAND_CODE_USER_AGENT = "cli";
 // 1.24.4 (stable channel, 2026-10-20). x-zed-version header fallback when the client
 // does not provide appVersion via providerSpecificData.
 export const ZED_VERSION = "1.24.4";
-export const ZED_USER_AGENT = "zenrouter/zed";
+export const ZED_USER_AGENT = "kitsunerouter/zed";
 export const ZED_DEFAULT_APP_VERSION = ZED_VERSION;
 
 // ─── iFlow ─────────────────────────────────────────────────────────────

@@ -16,8 +16,8 @@ describe("resolveHeapFlags (#3365)", () => {
   });
 
   it("honors an explicit cap and zero disables the injected flag", () => {
-    expect(resolveHeapFlags({ ZENROUTER_MAX_OLD_SPACE_SIZE: "384" })).toEqual(["--max-old-space-size=384"]);
-    expect(resolveHeapFlags({ ZENROUTER_MAX_OLD_SPACE_SIZE: "0" })).toEqual([]);
+    expect(resolveHeapFlags({ KITSUNE_ROUTER_MAX_OLD_SPACE_SIZE: "384" })).toEqual(["--max-old-space-size=384"]);
+    expect(resolveHeapFlags({ KITSUNE_ROUTER_MAX_OLD_SPACE_SIZE: "0" })).toEqual([]);
     expect(resolveHeapFlags({ NINEROUTER_MAX_OLD_SPACE_SIZE: "384" })).toEqual(["--max-old-space-size=384"]);
     expect(resolveHeapFlags({ NINEROUTER_MAX_OLD_SPACE_SIZE: "0" })).toEqual([]);
   });
@@ -28,7 +28,7 @@ describe("resolveHeapFlags (#3365)", () => {
   });
 
   it("falls back to the default for invalid values", () => {
-    expect(resolveHeapFlags({ ZENROUTER_MAX_OLD_SPACE_SIZE: "not-a-number" })).toEqual([defaultFlag]);
+    expect(resolveHeapFlags({ KITSUNE_ROUTER_MAX_OLD_SPACE_SIZE: "not-a-number" })).toEqual([defaultFlag]);
     expect(warning).toHaveBeenCalledOnce();
   });
 });

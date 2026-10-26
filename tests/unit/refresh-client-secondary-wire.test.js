@@ -161,7 +161,7 @@ describe("secondary release identities at their outbound boundaries", () => {
     const request = lastRequest();
     expect(request.url).toBe("https://cloud.zed.dev/completions");
     expect(request.headers.get("x-zed-version")).toBe(expected);
-    expect(request.headers.get("user-agent")).toBe("zenrouter/zed");
+    expect(request.headers.get("user-agent")).toBe("kitsunerouter/zed");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-llm-token");
   });
 

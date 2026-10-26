@@ -5,8 +5,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const REMOTE = "/root/zenrouter-worker-mesh";
-const STATE = join(homedir(), ".local", "share", "zenrouter-worker-mesh");
+const REMOTE = "/root/kitsune-router-worker-mesh";
+const STATE = join(homedir(), ".local", "share", "kitsune-router-worker-mesh");
 const BINARY = process.env.WORKER_MESH_MUTAGEN || join(STATE, "tools", process.platform === "win32" ? "mutagen.exe" : "mutagen");
 const NODES = { node1: { alias: "zen-mesh-node1", address: "159.223.88.62" }, node2: { alias: "zen-mesh-node2", address: "157.230.34.190" } };
 const SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ForwardAgent=no", "-o", "ConnectTimeout=12", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3"];
@@ -35,7 +35,7 @@ function ssh(name, command, options = {}) { const target = trusted(name); return
 function mutagen(args) { if (!existsSync(BINARY)) throw new Error(`Install Mutagen 0.18.1 with agents archive alongside it at ${BINARY}, or set WORKER_MESH_MUTAGEN. Verify official SHA256SUMS before extraction.`); mkdirSync(STATE, { recursive: true }); return run(BINARY, args, { env }); }
 function sessions() { return JSON.parse(mutagen(["sync", "list", "--template", "{{ json . }}"])); }
 function session(name) {
-  const matches = sessions().filter((entry) => entry.name === `zenrouter-${name}`);
+  const matches = sessions().filter((entry) => entry.name === `kitsunerouter-${name}`);
   if (matches.length > 1) throw new Error(`Duplicate session name for ${name}`);
   const entry = matches[0];
   if (entry && (entry.alpha.protocol !== "local" || resolve(entry.alpha.path) !== ROOT || entry.beta.protocol !== "ssh" || entry.beta.host !== trusted(name).alias || entry.beta.path !== `${REMOTE}/workspace` || entry.mode !== "two-way-safe" || entry.hash !== "sha256" || entry.symlink?.mode !== "ignore" || entry.ignore?.vcs !== true || ![undefined, "mutagen"].includes(entry.ignore?.syntax) || JSON.stringify(entry.ignore?.paths) !== JSON.stringify(IGNORES) || entry.beta.permissions?.defaultFileMode !== "0600" || entry.beta.permissions?.defaultDirectoryMode !== "0700")) {
@@ -52,7 +52,7 @@ function flush() {
   for (const name of Object.keys(NODES)) { if (!session(name)) throw new Error(`Missing session for ${name}; run create`); }
   // Star only: no worker-to-worker session. Two passes carry remote edits through
   // the local hub without adding a cycle. Divergent edits remain conflicts.
-  for (let pass = 0; pass < 2; pass++) for (const name of Object.keys(NODES)) mutagen(["sync", "flush", `zenrouter-${name}`]);
+  for (let pass = 0; pass < 2; pass++) for (const name of Object.keys(NODES)) mutagen(["sync", "flush", `kitsunerouter-${name}`]);
   assertSafe(sessions());
 }
 function uploadRunner(name) {
@@ -67,14 +67,14 @@ try {
     case "create":
       for (const key of Object.keys(NODES)) {
         uploadRunner(key);
-        if (session(key)) { mutagen(["sync", "resume", `zenrouter-${key}`]); continue; }
-        console.log(mutagen(["sync", "create", ROOT, `${trusted(key).alias}:${REMOTE}/workspace`, "--name", `zenrouter-${key}`, "--no-global-configuration", "--mode", "two-way-safe", "--hash", "sha256", "--symlink-mode", "ignore", "--ignore-syntax", "mutagen", "--ignore-vcs", "--watch-polling-interval", "2", "--default-file-mode-beta", "0600", "--default-directory-mode-beta", "0700", ...IGNORES.flatMap((pattern) => ["--ignore", pattern])]));
+        if (session(key)) { mutagen(["sync", "resume", `kitsunerouter-${key}`]); continue; }
+        console.log(mutagen(["sync", "create", ROOT, `${trusted(key).alias}:${REMOTE}/workspace`, "--name", `kitsunerouter-${key}`, "--no-global-configuration", "--mode", "two-way-safe", "--hash", "sha256", "--symlink-mode", "ignore", "--ignore-syntax", "mutagen", "--ignore-vcs", "--watch-polling-interval", "2", "--default-file-mode-beta", "0600", "--default-directory-mode-beta", "0700", ...IGNORES.flatMap((pattern) => ["--ignore", pattern])]));
       }
       flush(); console.log("Mesh created and flushed; no public network listener."); break;
     case "status": console.log(mutagen(["sync", "list", "--long"])); break;
     case "conflicts": console.log(JSON.stringify(sessions().map((entry) => ({ name: entry.name, conflicts: entry.conflicts || [], lastError: entry.lastError, alpha: entry.alpha?.scanProblems, beta: entry.beta?.scanProblems })), null, 2)); break;
     case "flush": flush(); console.log("Both star sessions flushed twice without reported conflicts/errors."); break;
-    case "stop": for (const key of Object.keys(NODES)) if (session(key)) mutagen(["sync", "pause", `zenrouter-${key}`]); console.log("Paused; archives retained. create resumes safely."); break;
+    case "stop": for (const key of Object.keys(NODES)) if (session(key)) mutagen(["sync", "pause", `kitsunerouter-${key}`]); console.log("Paused; archives retained. create resumes safely."); break;
     case "resources": for (const key of Object.keys(NODES)) console.log(key, ssh(key, "printf 'cpus='; getconf _NPROCESSORS_ONLN; free -m; df -h /root; node --version; npm --version; uname -sm")); break;
     case "job": {
       node(name);

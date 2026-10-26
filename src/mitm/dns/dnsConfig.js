@@ -13,8 +13,8 @@ const { runElevatedPowerShell, isAdmin } = require("../winElevated.js");
  * If anything fails mid-way, restore from `.bak`. Same-volume renames are atomic on NTFS.
  */
 function atomicWriteHostsWin(target, originalContent, newContent) {
-  const tmpNew = `${target}.zenrouter.new`;
-  const tmpBak = `${target}.zenrouter.bak`;
+  const tmpNew = `${target}.kitsunerouter.new`;
+  const tmpBak = `${target}.kitsunerouter.bak`;
   try {
     fs.writeFileSync(tmpNew, newContent, "utf8");
     try { fs.unlinkSync(tmpBak); } catch { /* none */ }
@@ -98,7 +98,7 @@ function writeHostsUnix(content, sudoPassword) {
   return new Promise((resolve, reject) => {
     const tmpFile = path.join(
       os.tmpdir(),
-      `zenrouter-hosts-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.tmp`
+      `kitsunerouter-hosts-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.tmp`
     );
     try {
       fs.writeFileSync(tmpFile, content, { mode: 0o644 });

@@ -14,7 +14,7 @@ let originalEmit;
 let tempDir;
 
 async function setupDb() {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-model-routing-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-model-routing-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
 

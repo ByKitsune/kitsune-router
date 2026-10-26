@@ -13,6 +13,8 @@
 # testing
 /coverage
 /verification/
+/.verification/
+/.taste-skill/
 
 # next.js
 /.next/
@@ -52,6 +54,13 @@ source/*
 .cursor/*
 docs/*
 !docs/ARCHITECTURE.md
+!docs/REBRANDING.md
+!docs/MIGRATION.md
+!docs/BRAND.md
+!docs/INSTALLATION.md
+!docs/INTEGRATIONS.md
+!docs/OPERATIONS.md
+!docs/CHANGELOG_v1.0.0.md
 !docs/antigravity-location-error.md
 !docs/CHANGELOG_v0.9.5.md
 !docs/CHANGELOG_v0.9.6.md

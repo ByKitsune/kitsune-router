@@ -8,47 +8,47 @@
 .fonts-loaded .material-symbols-outlined { opacity: 1; transition: opacity .12s ease-out; }
 
 /* ============================================================
-   ZENROUTER palette — Zen Slate Blue & Vermilion Sun Accent
-   Calm, organic, modern aesthetic with robust dark mode
+   Kitsune Router — ByKitsune paper, ink and ember
+   Provider-neutral controls with paired light/dark contrast
    ============================================================ */
 :root {
-  /* Brand scale (Zen Slate / Indigo Blue - centered on #4B72A4) */
-  --color-brand-50: #f4f7fb;
-  --color-brand-100: #e8eef6;
-  --color-brand-200: #d4e0ee;
-  --color-brand-300: #b0c6df;
-  --color-brand-400: #7b9fc8;
-  --color-brand-500: #4B72A4;
-  --color-brand-600: #3c5e8c;
-  --color-brand-700: #324c71;
-  --color-brand-800: #2b405e;
-  --color-brand-900: #26364e;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-brand-50: #fff5ef;
+  --color-brand-100: #fbe5d8;
+  --color-brand-200: #f3c5ab;
+  --color-brand-300: #e69e7b;
+  --color-brand-400: #d77852;
+  --color-brand-500: #a63f23;
+  --color-brand-600: #92351e;
+  --color-brand-700: #7b2e1d;
+  --color-brand-800: #65291d;
+  --color-brand-900: #50251c;
 
-  /* Vermilion Sun Accent (Vibrant Organic Red-Orange) */
-  --color-accent-sun: #FF3B1D;
-  --color-accent-sun-hover: #E03014;
+  /* Family ember accent */
+  --color-accent-sun: #a63f23;
+  --color-accent-sun-hover: #92351e;
 
-  /* Primary (ZENROUTER main brand blue) */
+  /* Interactive accent */
   --color-primary: var(--color-brand-500);
   --color-primary-hover: var(--color-brand-600);
+  --color-on-primary: #fffefa;
 
-  /* Surfaces & backgrounds (light - serene paper & morning mist) */
-  --color-bg: #FAF8F5;
-  --color-bg-alt: #F3EFE8;
-  --color-surface: #ffffff;
-  --color-surface-2: #F0ECE4;
-  --color-surface-3: #e2e8f0;
-  --color-sidebar: rgba(250, 248, 245, 0.92);
+  --color-bg: #fffefa;
+  --color-bg-alt: #f7f6f1;
+  --color-surface: #fffefa;
+  --color-surface-2: #f1eee6;
+  --color-surface-3: #ebe7de;
+  --color-sidebar: #f7f6f1;
 
   /* Borders */
-  --color-border: #e2e8f0;
-  --color-border-subtle: #edf2f7;
+  --color-border: #d9cfc3;
+  --color-border-subtle: #e8e0d5;
 
   /* Text */
-  --color-text: #0f172a;
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-subtle: #94a3b8;
+  --color-text: #30241d;
+  --color-text-main: #30241d;
+  --color-text-muted: #685647;
+  --color-text-subtle: #796452;
 
   /* Status */
   --color-danger: #ef4444;
@@ -57,70 +57,63 @@
   --color-info: #3B82F6;
 
   /* Radius */
-  --radius-brand: 10px;
-  --radius-brand-lg: 14px;
+  --radius-brand: 8px;
+  --radius-brand-lg: 12px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.04);
-  --shadow-warm: 0 2px 12px -2px rgba(75, 114, 164, 0.18);
-  --shadow-elevated: 0 12px 28px -4px rgba(30, 41, 59, 0.06);
-  --shadow-elev:
-    inset 0 1px 0 0 rgba(255,255,255,0.8),
-    0 1px 2px rgba(15,23,42,0.04),
-    0 12px 36px -8px rgba(15,23,42,0.10);
-  --shadow-focus: 0 0 0 3px rgba(75, 114, 164, 0.20);
+  --shadow-soft: none;
+  --shadow-warm: none;
+  --shadow-elevated: 0 12px 28px -4px rgba(48,36,29,0.12);
+  --shadow-elev: none;
+  --shadow-focus: 0 0 0 3px rgba(166,63,35,0.24);
 
   color-scheme: light;
 }
 
 .dark {
-  /* Brand scale (dark) - vibrant Slate Blue */
-  --color-brand-50: #f4f7fb;
-  --color-brand-100: #e8eef6;
-  --color-brand-200: #d4e0ee;
-  --color-brand-300: #b0c6df;
-  --color-brand-400: #7b9fc8;
-  --color-brand-500: #5D87B8;
-  --color-brand-600: #4B72A4;
-  --color-brand-700: #3c5e8c;
-  --color-brand-800: #2b405e;
-  --color-brand-900: #1b283b;
+  --color-brand-50: #fff5ef;
+  --color-brand-100: #fbe5d8;
+  --color-brand-200: #f3c5ab;
+  --color-brand-300: #e69e7b;
+  --color-brand-400: #df9877;
+  --color-brand-500: #d9825e;
+  --color-brand-600: #a94e32;
+  --color-brand-700: #813c29;
+  --color-brand-800: #5c3025;
+  --color-brand-900: #3e271f;
 
-  --color-accent-sun: #FF4D2D;
-  --color-accent-sun-hover: #FF3B1D;
+  --color-accent-sun: #df9877;
+  --color-accent-sun-hover: #f3c5ab;
 
-  --color-primary: #5D87B8;
-  --color-primary-hover: #7b9fc8;
+  --color-primary: #df9877;
+  --color-primary-hover: #f3c5ab;
+  --color-on-primary: #211c19;
 
-  /* Surfaces (dark - Claude-style matte charcoal black) */
-  --color-bg: #141414;
-  --color-bg-alt: #1a1a1a;
-  --color-surface: #1f1f1f;
-  --color-surface-2: #262626;
-  --color-surface-3: #303030;
-  --color-sidebar: rgba(20, 20, 20, 0.94);
+  --color-bg: #211c19;
+  --color-bg-alt: #28211d;
+  --color-surface: #2d2520;
+  --color-surface-2: #372d26;
+  --color-surface-3: #44372e;
+  --color-sidebar: #28211d;
 
-  --color-border: #2c2c2c;
-  --color-border-subtle: #222222;
+  --color-border: #544437;
+  --color-border-subtle: #40342b;
 
-  --color-text: #f3f3f3;
-  --color-text-main: #f3f3f3;
-  --color-text-muted: #9e9e9e;
-  --color-text-subtle: #686868;
+  --color-text: #fcf8f1;
+  --color-text-main: #fcf8f1;
+  --color-text-muted: #d2bfaa;
+  --color-text-subtle: #b7a38e;
 
   --color-danger: #ef4444;
   --color-success: #22c55e;
   --color-warning: #fbbf24;
   --color-info: #60a5fa;
 
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.45);
-  --shadow-warm: 0 2px 12px -2px rgba(0, 0, 0, 0.4);
+  --shadow-soft: none;
+  --shadow-warm: none;
   --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.65);
-  --shadow-elev:
-    inset 0 1px 0 0 rgba(255,255,255,0.06),
-    0 1px 2px rgba(0,0,0,0.5),
-    0 16px 48px -8px rgba(0,0,0,0.70);
-  --shadow-focus: 0 0 0 3px rgba(255, 59, 29, 0.22);
+  --shadow-elev: none;
+  --shadow-focus: 0 0 0 3px rgba(223,152,119,0.28);
 
   color-scheme: dark;
 }
@@ -178,18 +171,18 @@ select {
   --color-info: var(--color-info);
 
   /* Static fallbacks (explicit per-mode usage if needed) */
-  --color-bg-light: #FAF8F5;
-  --color-bg-dark: #141414;
-  --color-surface-light: #ffffff;
-  --color-surface-dark: #1f1f1f;
-  --color-sidebar-light: #FAF8F5;
-  --color-sidebar-dark: #161616;
-  --color-border-light: #e2e8f0;
-  --color-border-dark: #2c2c2c;
-  --color-text-main-light: #0f172a;
-  --color-text-main-dark: #f3f3f3;
-  --color-text-muted-light: #64748b;
-  --color-text-muted-dark: #9e9e9e;
+  --color-bg-light: #fffefa;
+  --color-bg-dark: #211c19;
+  --color-surface-light: #fffefa;
+  --color-surface-dark: #2d2520;
+  --color-sidebar-light: #f7f6f1;
+  --color-sidebar-dark: #28211d;
+  --color-border-light: #d9cfc3;
+  --color-border-dark: #544437;
+  --color-text-main-light: #30241d;
+  --color-text-main-dark: #fcf8f1;
+  --color-text-muted-light: #685647;
+  --color-text-muted-dark: #d2bfaa;
 
   /* Radius */
   --radius-brand: var(--radius-brand);
@@ -202,12 +195,13 @@ select {
   --shadow-elev: var(--shadow-elev);
   --shadow-focus: var(--shadow-focus);
 
-  /* Font - Inter primary, Apple system fallback */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  /* Resolve the Next font variable on body, where its generated class lives. */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 /* Base */
 body {
+  --font-sans: var(--font-kitsune, 'Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-main);
   font-family: var(--font-sans);
@@ -215,14 +209,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
 /* Selection - brand-tinted */
 ::selection {
-  background-color: rgba(75, 114, 164, 0.25);
-  color: var(--color-primary);
+  background-color: var(--color-brand-100);
+  color: var(--color-text-main);
 }
 .dark ::selection {
-  background-color: rgba(93, 135, 184, 0.35);
-  color: #b0c6df;
+  background-color: var(--color-brand-800);
+  color: var(--color-text-main);
 }
 
 /* iOS keyboard accent */
@@ -248,19 +252,19 @@ input, textarea {
 /* Thin horizontal scrollbar - brand colored */
 .scroll-thin-x {
   scrollbar-width: thin;
-  scrollbar-color: rgba(75, 114, 164, 0.55) transparent;
+  scrollbar-color: var(--color-text-subtle) transparent;
 }
 .dark .scroll-thin-x {
-  scrollbar-color: rgba(93, 135, 184, 0.55) transparent;
+  scrollbar-color: var(--color-text-subtle) transparent;
 }
 .scroll-thin-x::-webkit-scrollbar { height: 3px; }
 .scroll-thin-x::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(75, 114, 164, 0.55);
+  background: var(--color-text-subtle);
   border-radius: 3px;
 }
 .dark .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(93, 135, 184, 0.55);
+  background: var(--color-text-subtle);
 }
 
 /* Global thin mac-like scrollbars (overrides clunky Windows/Linux default) */
@@ -308,17 +312,15 @@ input, textarea {
 
 /* Hero gradient (compat) */
 .bg-hero-gradient {
-  background: linear-gradient(180deg, var(--color-bg-alt) 0%, var(--color-bg) 100%);
+  background: var(--color-bg-alt);
 }
 
 /* macOS Vibrancy */
 .bg-vibrancy {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-sidebar);
 }
 .dark .bg-vibrancy {
-  background: rgba(22, 22, 22, 0.85);
+  background: var(--color-sidebar);
 }
 
 /* macOS Traffic Lights */
@@ -392,17 +394,7 @@ button:disabled,
 }
 .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-@keyframes border-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 59, 29, 0.3), 0 0 10px rgba(255, 59, 29, 0.2);
-    border-color: rgba(255, 59, 29, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 10px rgba(255, 59, 29, 0.5), 0 0 20px rgba(255, 59, 29, 0.3);
-    border-color: rgba(255, 59, 29, 0.8);
-  }
-}
-.animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
+.animate-border-glow { border-color: var(--color-primary); }
 
 @keyframes slideInFromRight {
   from { transform: translateX(100%); opacity: 0; }
@@ -426,120 +418,54 @@ button:disabled,
 }
 .animate-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
 
-/* CTA shimmer + glow pulse */
-@keyframes ctaShimmer {
-  0% { transform: translateX(-120%) skewX(-20deg); }
-  100% { transform: translateX(220%) skewX(-20deg); }
-}
-@keyframes ctaGlowPulse {
-  0%, 100% { box-shadow: 0 8px 24px -8px rgba(255, 59, 29, 0.45), 0 0 0 0 rgba(255, 59, 29, 0.5); }
-  50% { box-shadow: 0 12px 32px -8px rgba(255, 59, 29, 0.6), 0 0 0 8px rgba(255, 59, 29, 0); }
-}
+/* Primary actions keep feedback local to the press; no ambient glow. */
 .btn-cta {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  animation: ctaGlowPulse 2.4s ease-in-out infinite;
+  transition: transform 160ms ease-out;
 }
 .btn-cta::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-  animation: ctaShimmer 2.8s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
+  content: none;
 }
 .btn-cta > * { position: relative; z-index: 2; }
 
 /* Dot Grid Background Pattern */
 .dot-grid-bg {
   background-color: var(--color-bg);
-  background-image:
-    radial-gradient(circle at 15% 20%, rgba(75, 114, 164, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 59, 29, 0.08) 0%, transparent 40%);
+  background-image: none;
 }
 .dark .dot-grid-bg {
-  background-image:
-    radial-gradient(circle at 15% 20%, rgba(93, 135, 184, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 77, 45, 0.12) 0%, transparent 40%);
+  background-image: none;
 }
 
 /* Landing-style faint grid overlay (use absolute pos inside relative parent) */
 .landing-grid {
-  background-image:
-    linear-gradient(to right, var(--color-accent) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-accent) 1px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.08;
+  background-image: none;
 }
 .dark .landing-grid {
   opacity: 0.04;
 }
 
-/* Topology: router card pulse (no flying rings) + electric edge beam */
-@keyframes topology-router-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 8px #fde047,
-      0 0 20px color-mix(in srgb, var(--color-primary) 65%, transparent),
-      0 0 32px rgba(34, 211, 238, 0.4),
-      inset 0 0 10px rgba(253, 224, 71, 0.3);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow:
-      0 0 14px #fef08a,
-      0 0 28px #facc15,
-      0 0 44px rgba(34, 211, 238, 0.6),
-      inset 0 0 14px rgba(255, 255, 255, 0.25);
-  }
-}
-@keyframes topology-router-icon-shake {
-  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px #fde047); }
-  25% { transform: rotate(-5deg) scale(1.08); filter: drop-shadow(0 0 6px #facc15); }
-  75% { transform: rotate(5deg) scale(1.08); filter: drop-shadow(0 0 6px #22d3ee); }
-}
-@keyframes topology-router-label-flicker {
-  0%, 100% { text-shadow: 0 0 6px #fde047, 0 0 12px #22d3ee; }
-  50% { text-shadow: 0 0 10px #fff, 0 0 18px #facc15; }
-}
+/* Routing activity remains visible without rapid flashing or GPU filters. */
 @keyframes topology-edge-dash {
   to { stroke-dashoffset: -36; }
 }
-@keyframes topology-edge-flicker {
-  0%, 100% { opacity: 0.85; }
-  40% { opacity: 1; }
-  55% { opacity: 0.55; }
-  70% { opacity: 1; }
-}
 .topology-router-core {
-  animation: topology-router-pulse 0.75s ease-in-out infinite;
-  border-color: #fde047 !important;
+  border-color: var(--color-primary) !important;
 }
 .topology-router-icon {
-  animation: topology-router-icon-shake 0.45s ease-in-out infinite;
+  color: var(--color-primary);
 }
 .topology-router-label {
-  animation: topology-router-label-flicker 0.7s ease-in-out infinite;
+  color: var(--color-text-main);
 }
 .topology-router-badge {
-  box-shadow: 0 0 10px #fde047, 0 0 16px rgba(34, 211, 238, 0.6);
+  background: var(--color-surface-2);
 }
 .topology-edge-kame {
   stroke-dasharray: 8 6;
-  animation: topology-edge-dash 0.22s linear infinite;
-}
-.topology-edge-halo {
-  animation: topology-edge-flicker 0.18s steps(2) infinite;
-}
-.topology-edge-plasma {
-  stroke-dasharray: 14 10;
-  animation: topology-edge-dash 0.18s linear infinite, topology-edge-flicker 0.22s steps(3) infinite;
+  animation: topology-edge-dash 1.2s linear infinite;
 }
 
 /* React Flow controls: match app theme */
@@ -565,4 +491,3 @@ button:disabled,
 .react-flow-controls-custom button:hover {
   background: var(--color-bg-alt);
 }
-

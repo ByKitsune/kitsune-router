@@ -8,13 +8,13 @@ import vm from "node:vm";
 
 const io = vi.hoisted(() => ({
   manager: null, directory: "", children: [], admin: true, sudo: false, elevated: vi.fn(),
-  exec: vi.fn(), execAsync: vi.fn(), execSync: vi.fn(), spawn: vi.fn(),
+  exec: vi.fn(), execFile: vi.fn(), execAsync: vi.fn(), execSync: vi.fn(), spawn: vi.fn(),
   fetch: vi.fn(), get: vi.fn(), request: vi.fn(), dns: vi.fn(), osDns: vi.fn(),
   settings: vi.fn(), update: vi.fn(), addDns: vi.fn(), removeDns: vi.fn(), removeAll: vi.fn(), removeSync: vi.fn(),
   generate: vi.fn(), trust: vi.fn(), install: vi.fn(), uninstall: vi.fn(), passwordCommand: vi.fn(),
   port: vi.fn(), usage: vi.fn(), details: vi.fn(), logs: vi.fn(), pools: vi.fn(), close: vi.fn(), catalog: vi.fn(),
 }));
-vi.mock("child_process", () => ({ exec: io.exec, execSync: io.execSync, spawn: io.spawn }));
+vi.mock("child_process", () => ({ exec: io.exec, execFile: io.execFile, execSync: io.execSync, spawn: io.spawn }));
 vi.mock("https", () => ({ default: { get: io.get, request: io.request } }));
 vi.mock("@/lib/dataDir.js", () => ({ get DATA_DIR() { return io.directory; } }));
 vi.mock("@/lib/localDb", () => ({ getSettings: io.settings, updateSettings: io.update }));
@@ -36,7 +36,7 @@ vi.mock("../../src/sse/services/backgroundTokenRefresh.js", () => ({ stopBackgro
 const require = createRequire(import.meta.url);
 const fs = require("node:fs");
 const source = fs.readFileSync(new URL("../../src/mitm/manager.js", import.meta.url), "utf8");
-const key = Symbol.for("zenrouter.helper.lifecycle");
+const key = Symbol.for("kitsunerouter.helper.lifecycle");
 let lifecycle, shutdown, raw, releases, expectedStopError;
 
 function held() {
@@ -106,18 +106,43 @@ function loadManager({ platform = "linux", cert = null } = {}) {
 function loadCert(platform) {
   const fixtureModule = { exports: {} };
   const filename = path.join(io.directory, "mitm", "rootCA.crt");
+  const certificateBytes = fs.readFileSync(filename, "utf8");
+  const home = path.join(io.directory, "home");
+  const nssDirectory = path.join(home, ".pki", "nssdb");
+  fs.mkdirSync(nssDirectory, { recursive: true });
+  const absent = () => { throw Object.assign(new Error("Synthetic certificate path absent"), { code: "ENOENT" }); };
   const context = vm.createContext({
     module: fixtureModule, Buffer, process: { platform },
     require(name) {
       if (name === "fs") return {
         existsSync: value => value === filename || value === "/usr/local/share/ca-certificates",
-        readFileSync: value => { if (value !== filename) throw new Error("Unexpected certificate read"); return fs.readFileSync(filename, "utf8"); },
+        readFileSync: value => { if (value !== filename) throw new Error("Unexpected certificate read"); return certificateBytes; },
+        // Never inspect the actual host trust store or browser profile. The one
+        // user NSS database is disposable and every system anchor is absent.
+        lstatSync: value => value === filename ? fs.lstatSync(filename) : absent(),
+        statSync: value => value === nssDirectory ? fs.statSync(nssDirectory) : absent(),
+        readdirSync: () => absent(),
       };
-      if (name === "child_process") return { exec: io.exec };
+      if (name === "path") return path;
+      if (name === "os") return { homedir: () => home };
+      if (name === "child_process") return { execFile: io.execFile };
       if (name === "../dns/dnsConfig.js") return { execWithPassword: io.passwordCommand, isSudoAvailable: () => io.sudo };
       if (name === "../winElevated.js") return { runElevatedPowerShell: io.elevated, quotePs: value => `'${value}'` };
       if (name === "../logger") return { log: vi.fn(), err: vi.fn() };
-      if (name === "crypto") return require("node:crypto");
+      if (name === "crypto") return {
+        ...require("node:crypto"),
+        // These are lifecycle races, not a certificate-codec test. Only our
+        // exact synthetic bytes parse as a recognized CA; real X509 identity
+        // and trust-store matching are covered by the certificate suites.
+        X509Certificate: class {
+          constructor(bytes) {
+            if (Buffer.from(bytes).toString("utf8") !== certificateBytes) throw new Error("Unexpected certificate bytes");
+            this.subject = "CN=Kitsune Router MITM Root CA\nO=Synthetic lifecycle fixture";
+            this.ca = true;
+            this.fingerprint = Array(20).fill("AB").join(":");
+          }
+        },
+      };
       throw new Error(`Unexpected certificate dependency ${name}`);
     },
   });
@@ -161,16 +186,19 @@ beforeEach(async () => {
   vi.resetAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-01-01T12:00:00Z"));
-  vi.stubEnv("ZENROUTER_MANAGED_SHUTDOWN", "1");
+  vi.stubEnv("KITSUNE_ROUTER_MANAGED_SHUTDOWN", "1");
   vi.spyOn(process, "kill").mockImplementation(() => true);
   delete globalThis[key];
-  delete globalThis[Symbol.for("zenrouter.runtime.lifecycle")];
-  delete globalThis[Symbol.for("zenrouter.db.lifecycle")];
+  delete globalThis[Symbol.for("kitsunerouter.runtime.lifecycle")];
+  delete globalThis[Symbol.for("kitsunerouter.db.lifecycle")];
   io.children = [];
   io.admin = true; io.sudo = false;
   delete globalThis.__mitmSudoPassword;
   releases = []; expectedStopError = null;
   io.directory = fs.mkdtempSync(path.join(os.tmpdir(), "zhd-"));
+  vi.stubEnv("HOME", path.join(io.directory, "home"));
+  vi.stubEnv("DATA_DIR", io.directory);
+  fs.mkdirSync(process.env.HOME);
   fs.mkdirSync(path.join(io.directory, "mitm"));
   fs.writeFileSync(path.join(io.directory, "server.js"), "synthetic fixture, never executed");
   fs.writeFileSync(path.join(io.directory, "mitm", "rootCA.crt"), "synthetic cert, never trusted");
@@ -180,6 +208,11 @@ beforeEach(async () => {
   io.settings.mockResolvedValue({ mitmEnabled: true, dnsToolEnabled: { first: true, second: true } });
   io.update.mockResolvedValue({});
   io.exec.mockImplementation((_command, _options, callback) => { queueMicrotask(() => callback(null, "", "")); return new EventEmitter(); });
+  io.execFile.mockImplementation((command, args, _options, callback) => {
+    if (!["security", "powershell.exe", "certutil"].includes(command)) throw new Error(`Unexpected certificate command ${command}`);
+    queueMicrotask(() => callback(command === "certutil" && args.includes("-A") ? null : new Error("Synthetic trust entry absent"), "", ""));
+    return new EventEmitter();
+  });
   io.execAsync.mockImplementation(async command => {
     if (/which tailscale/.test(command)) return { stdout: "/synthetic/tailscale", stderr: "" };
     if (/funnel status/.test(command)) return { stdout: JSON.stringify({ AllowFunnel: { "synthetic:443": true } }), stderr: "" };
@@ -220,7 +253,7 @@ beforeEach(async () => {
   raw = loadManager(); io.manager = raw.manager;
   lifecycle = raw.manager.getHelperLifecycle();
   shutdown = await import("../../src/lib/shutdownLifecycle.js");
-  const state = globalThis[Symbol.for("zenrouter.shutdown.lifecycle")];
+  const state = globalThis[Symbol.for("kitsunerouter.shutdown.lifecycle")];
   state.hooks.clear(); state.draining = false; state.pending = null;
 });
 
@@ -557,7 +590,7 @@ describe("raw CommonJS MITM helper descendants", () => {
   });
 
   it("keeps ordinary direct-CJS startup and unexpected restart working without managed shutdown", async () => {
-    vi.stubEnv("ZENROUTER_MANAGED_SHUTDOWN", "");
+    vi.stubEnv("KITSUNE_ROUTER_MANAGED_SHUTDOWN", "");
     const value = await startMitm();
     raw.manager.setCachedPassword("synthetic-password");
     value.emit("exit", 1); value.emit("close", 1);
@@ -755,9 +788,11 @@ describe("reviewed helper lifecycle races", () => {
   it.each(["darwin", "win32"])("passes cancellation into the real %s certificate installer after its held trust check", async platform => {
     const gate = held(); const cert = loadCert(platform);
     raw = loadManager({ platform, cert }); io.manager = raw.manager;
-    io.exec.mockImplementation((_command, _options, callback) => { gate.promise.then(() => callback(new Error("untrusted"), "", "")); return new EventEmitter(); });
+    io.execFile.mockImplementation((_command, _args, _options, callback) => { gate.promise.then(() => callback(new Error("untrusted"), "", "")); return new EventEmitter(); });
     const active = raw.manager.trustCert("synthetic-password"); active.catch(() => {});
-    await microtasks(); expect(io.exec).toHaveBeenCalledTimes(1);
+    await microtasks(); expect(io.execFile).toHaveBeenCalledTimes(1);
+    expect(io.execFile.mock.calls[0][0]).toBe(platform === "darwin" ? "security" : "powershell.exe");
+    expect(io.execFile.mock.calls[0][2].shell).toBeUndefined();
     const stop = lifecycle.stop(); gate.resolve();
     await expect(active).rejects.toMatchObject({ code: "HELPER_STOPPED" }); await stop;
     expect(io.passwordCommand).not.toHaveBeenCalled(); expect(io.elevated).not.toHaveBeenCalled();
@@ -766,15 +801,15 @@ describe("reviewed helper lifecycle races", () => {
   it("passes startup cancellation into the installer's second internal trust check", async () => {
     const gate = held(); const cert = loadCert("darwin");
     raw = loadManager({ platform: "darwin", cert }); io.manager = raw.manager;
-    const normal = io.exec.getMockImplementation(); let trustChecks = 0;
-    io.exec.mockImplementation((command, options, callback) => {
-      if (/security find-certificate/.test(command)) {
+    const normal = io.execFile.getMockImplementation(); let trustChecks = 0;
+    io.execFile.mockImplementation((command, args, options, callback) => {
+      if (command === "security" && args[0] === "find-certificate") {
         trustChecks++;
         if (trustChecks === 2) gate.promise.then(() => callback(new Error("untrusted"), "", ""));
         else queueMicrotask(() => callback(new Error("untrusted"), "", ""));
         return new EventEmitter();
       }
-      return normal(command, options, callback);
+      return normal(command, args, options, callback);
     });
     const active = raw.manager.startServer("synthetic-key"); active.catch(() => {});
     await microtasks(); await vi.advanceTimersByTimeAsync(500);
@@ -792,12 +827,20 @@ describe("reviewed helper lifecycle races", () => {
     const stop = lifecycle.stop(); gate.resolve();
     await expect(active).rejects.toMatchObject({ code: "HELPER_STOPPED" }); await stop;
     expect(io.exec).not.toHaveBeenCalled();
+    expect(io.execFile).not.toHaveBeenCalled();
   });
 
   it("preserves ordinary two-argument certificate installation without lifecycle guards", async () => {
     const cert = loadCert("linux");
-    await expect(cert.installCert("synthetic-password", path.join(io.directory, "mitm", "rootCA.crt"))).resolves.toBeUndefined();
-    expect(io.exec).toHaveBeenCalledTimes(1);
+    const filename = path.join(io.directory, "mitm", "rootCA.crt");
+    const database = `sql:${path.join(io.directory, "home", ".pki", "nssdb")}`;
+    await expect(cert.installCert("synthetic-password", filename)).resolves.toBeUndefined();
+    expect(io.execFile.mock.calls.map(([command, args]) => [command, args])).toEqual([
+      ["certutil", ["-d", database, "-L", "-n", "Kitsune Router MITM Root CA", "-a"]],
+      ["certutil", ["-d", database, "-A", "-t", "C,,", "-n", "Kitsune Router MITM Root CA", "-i", filename]],
+    ]);
+    expect(io.execFile.mock.calls.every(([, , options]) => options.shell === undefined && options.timeout === 10000)).toBe(true);
+    expect(io.exec).not.toHaveBeenCalled();
   });
 
   it("awaits authorized non-root terminal DNS cleanup before the database phase", async () => {

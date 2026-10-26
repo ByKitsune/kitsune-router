@@ -23,7 +23,7 @@ const {
 const tempDirs = [];
 
 function createTempDir() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-cli-build-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-cli-build-"));
   tempDirs.push(tempDir);
   return tempDir;
 }
@@ -53,14 +53,14 @@ afterEach(() => {
 describe("CLI build server artifacts", () => {
   it("excludes traced build HOME state while retaining executable server artifacts", () => {
     const root = createTempDir();
-    const appDir = path.join(root, "zenrouter");
+    const appDir = path.join(root, "kitsunerouter");
     const buildDistDir = path.join(appDir, ".next-cli-build");
-    const standaloneDir = path.join(buildDistDir, "standalone", "zenrouter");
+    const standaloneDir = path.join(buildDistDir, "standalone", "kitsunerouter");
     const cliAppDir = path.join(root, "cli-app");
     writeFixture(standaloneDir, "server.js", "standalone server");
     writeFixture(standaloneDir, ".next-cli-build/server/app/api/v1/messages/route.js", "messages runtime");
-    writeFixture(standaloneDir, "cli/.build-home/.zenrouter/machine-id", "build identity");
-    writeFixture(standaloneDir, "cli/.build-home/.zenrouter/db/data.sqlite", "build database");
+    writeFixture(standaloneDir, "cli/.build-home/.kitsune-router/machine-id", "build identity");
+    writeFixture(standaloneDir, "cli/.build-home/.kitsune-router/db/data.sqlite", "build database");
     writeFixture(standaloneDir, "cli/.build-home/.config/nextjs-nodejs/config.json", "build settings");
 
     copyStandaloneBuild(appDir, buildDistDir, cliAppDir);
@@ -82,7 +82,7 @@ describe("CLI build server artifacts", () => {
   ]) {
     it(`merges complete API routes and provider chunks for the ${name} layout`, () => {
       const root = createTempDir();
-      const appDir = path.join(root, "zenrouter");
+      const appDir = path.join(root, "kitsunerouter");
       const buildDistDir = path.join(appDir, ".next-cli-build");
       const cliAppDir = path.join(root, "cli-app");
       const standaloneDir = standalonePath(appDir, buildDistDir);

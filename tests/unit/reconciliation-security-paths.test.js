@@ -38,7 +38,7 @@ function runWithPermissiveUmask(body) {
       HOME: root,
       DATA_DIR: process.env.DATA_DIR,
       RUN_LIVE_TESTS: "0", RUN_REAL: "0", RUN_E2E: "0",
-      DISABLE_BACKGROUND_TOKEN_REFRESH: "1", ZENROUTER_DISABLE_MITM: "1", DISABLE_MITM_BYPASS: "1",
+      DISABLE_BACKGROUND_TOKEN_REFRESH: "1", KITSUNE_ROUTER_DISABLE_MITM: "1", DISABLE_MITM_BYPASS: "1",
     },
     encoding: "utf8",
   }));
@@ -114,12 +114,16 @@ describe.skipIf(process.platform === "win32")("private database filesystem bound
 
   it("rejects a database-directory symlink without modifying the target directory", async () => {
     const { ensureDirs, DB_DIR } = await import("@/lib/db/paths.js");
+    // Resolving DATA_DIR is lazy: the fixture must create the symlink's parent,
+    // not rely on importing paths.js to initialize application directories.
+    fs.mkdirSync(path.dirname(DB_DIR), { recursive: true, mode: 0o700 });
     const target = path.join(root, "target-directory");
     fs.mkdirSync(target, { mode: 0o755 });
     fs.chmodSync(target, 0o755);
     fs.symlinkSync(target, DB_DIR);
 
     expect(() => ensureDirs()).toThrow();
+    expect(fs.lstatSync(DB_DIR).isSymbolicLink()).toBe(true);
     expect(fs.readdirSync(target)).toEqual([]);
     expect(fs.statSync(target).mode & 0o777).toBe(0o755);
   });
@@ -172,6 +176,6 @@ describe.skipIf(process.platform === "win32")("private database filesystem bound
     const { ensureDirs } = await import("@/lib/db/paths.js");
 
     expect(() => ensureDirs()).toThrow();
-    expect(fs.existsSync(path.join(root, ".zenrouter", "db"))).toBe(false);
+    expect(fs.existsSync(path.join(root, ".kitsune-router", "db"))).toBe(false);
   });
 });
