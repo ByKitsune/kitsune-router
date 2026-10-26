@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
-import { getAdapter } from "../driver.js";
+import { getAdapter, getAdapterSync } from "../driver.js";
+import { getScopedCache } from "../helpers/scopedCache.js";
+import { bumpScopeRevisions } from "../helpers/cacheRevisions.js";
 
 function rowToKey(row) {
   if (!row) return null;
@@ -13,10 +15,12 @@ function rowToKey(row) {
   };
 }
 
-const apiKeyCache = new Map();
+function keyCache(db) {
+  return getScopedCache(db, "apiKeys", { maxEntries: 512, maxBytes: 256 * 1024, ttlMs: 30_000 });
+}
 
 export function invalidateApiKeyCache() {
-  apiKeyCache.clear();
+  try { keyCache(getAdapterSync()).invalidate(); } catch {}
 }
 
 export async function getApiKeys() {
@@ -44,11 +48,12 @@ export async function createApiKey(name, machineId) {
     isActive: true,
     createdAt: new Date().toISOString(),
   };
-  db.run(
-    `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
-    [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, apiKey.createdAt]
-  );
-  apiKeyCache.set(apiKey.key, true);
+  db.transaction(() => {
+    db.run(`INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, apiKey.createdAt]);
+    bumpScopeRevisions(db, ["apiKeys"]);
+  });
+  invalidateApiKeyCache();
   return apiKey;
 }
 
@@ -58,33 +63,32 @@ export async function updateApiKey(id, data) {
   db.transaction(() => {
     const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
     if (!row) return;
-    const merged = { ...rowToKey(row), ...data };
-    db.run(
-      `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ? WHERE id = ?`,
-      [merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0, id]
-    );
+    const merged = { ...rowToKey(row), ...data, id };
+    db.run(`UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ? WHERE id = ?`,
+      [merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0, id]);
+    bumpScopeRevisions(db, ["apiKeys"]);
     result = merged;
   });
-  invalidateApiKeyCache();
+  if (result) invalidateApiKeyCache();
   return result;
 }
 
 export async function deleteApiKey(id) {
   const db = await getAdapter();
-  const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
-  invalidateApiKeyCache();
-  return (res?.changes ?? 0) > 0;
+  let removed = false;
+  db.transaction(() => {
+    removed = (db.run(`DELETE FROM apiKeys WHERE id = ?`, [id])?.changes ?? 0) > 0;
+    if (removed) bumpScopeRevisions(db, ["apiKeys"]);
+  });
+  if (removed) invalidateApiKeyCache();
+  return removed;
 }
 
 export async function validateApiKey(key) {
-  if (!key) return false;
-  if (apiKeyCache.has(key)) {
-    return apiKeyCache.get(key);
-  }
+  if (typeof key !== "string" || !key || key.length > 4096) return false;
   const db = await getAdapter();
-  const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
-  const isValid = !!(row && (row.isActive === 1 || row.isActive === true));
-  // Never retain attacker-controlled invalid credentials in the process cache.
-  if (isValid) apiKeyCache.set(key, true);
-  return isValid;
+  return keyCache(db).get(["apiKeys", "validate-active", key], ["apiKeys"], () => {
+    const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
+    return !!(row && (row.isActive === 1 || row.isActive === true));
+  }, { retain: value => value === true });
 }

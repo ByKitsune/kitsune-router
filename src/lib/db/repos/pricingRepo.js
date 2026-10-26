@@ -1,20 +1,22 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
+import { getScopedCache, readScopeRevision } from "../helpers/scopedCache.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId, getProviderIdentityTokens } from "open-sse/providers/identity.js";
 import { getCustomPricingProvider, PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
 import { getTimeOfUsePricing, parsePricingTimestamp } from "open-sse/config/timeOfUsePricing.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
-let cache = { value: null, expiresAt: 0 };
+let cache = { value: null, expiresAt: 0, revision: null };
 
 export function invalidatePricingCache() {
-  cache = { value: null, expiresAt: 0 };
+  cache = { value: null, expiresAt: 0, revision: null };
 }
 
 export async function getSavedPricing() {
-  return await pricingKv.getAll();
+  const db = await getAdapter();
+  return getScopedCache(db, "savedPricing", { ttlMs: CACHE_TTL_MS }).get(["pricing", "internal", "saved"], ["pricing"], () => pricingKv.getAll());
 }
 
 // Shared display/billing merge: choose one saved row, exact token first. Missing
@@ -64,14 +66,16 @@ function mergeQuote(defaults, saved) {
 }
 
 export async function getPricing() {
+  const db = await getAdapter();
+  const revision = readScopeRevision(db, ["pricing", "nodes"]);
   const now = Date.now();
-  if (cache.value && cache.expiresAt > now) return cache.value;
+  if (cache.value && cache.expiresAt > now && cache.revision === revision) return cache.value;
 
   const pendingCache = cache;
   const userPricing = await getSavedPricing();
   const { PROVIDER_PRICING, getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
   // An import or pricing write may have committed while this snapshot loaded.
-  if (cache !== pendingCache) return getPricing();
+  if (cache !== pendingCache || readScopeRevision(db, ["pricing", "nodes"]) !== revision) return getPricing();
   const providers = new Set([...Object.keys(PROVIDER_PRICING), ...Object.keys(userPricing)]);
   const entries = [];
   for (const provider of providers) {
@@ -86,25 +90,29 @@ export async function getPricing() {
     ]))]);
   }
   const merged = Object.fromEntries(entries);
-  cache = { value: merged, expiresAt: now + CACHE_TTL_MS };
+  cache = { value: merged, expiresAt: now + CACHE_TTL_MS, revision };
   return merged;
 }
 
 export async function getPricingForModel(provider, model, options = {}) {
   if (!model) return null;
-  const userPricing = await getSavedPricing();
-  const [{ getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { getReviewedModelMetadata }] = await Promise.all([
-    import("open-sse/providers/pricing.js"), import("open-sse/providers/metadata/reviewed.js"),
-  ]);
-  let node;
-  if (/^(?:openai|anthropic)-compatible-/.test(provider || "")) {
-    const { getProviderNodeById } = await import("./nodesRepo.js");
-    node = await getProviderNodeById(provider);
+  const db = await getAdapter();
+  for (;;) {
+    const revision = readScopeRevision(db, ["pricing", "nodes"]);
+    const userPricing = await getSavedPricing();
+    const [{ getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { getReviewedModelMetadata }, { stripThinkingSuffix }] = await Promise.all([
+      import("open-sse/providers/pricing.js"), import("open-sse/providers/metadata/reviewed.js"), import("open-sse/translator/concerns/thinkingUnified.js"),
+    ]);
+    let node;
+    if (/^(?:openai|anthropic)-compatible-/.test(provider || "")) {
+      const { getProviderNodeById } = await import("./nodesRepo.js");
+      node = await getProviderNodeById(provider);
+    }
+    if (readScopeRevision(db, ["pricing", "nodes"]) !== revision) continue;
+    return resolveModelPricing(userPricing, provider, model,
+      defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
   }
-  const { stripThinkingSuffix } = await import("open-sse/translator/concerns/thinkingUnified.js");
-  return resolveModelPricing(userPricing, provider, model,
-    defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
-    (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
 }
 
 function hasLiteralQuote(providerPrices, modelPrices, provider, model) {

@@ -53,9 +53,13 @@ async function tryNodeSqlite() {
 
 async function trySqlJs() {
   try {
+    if (process.env.ZENROUTER_SQLJS_SINGLE_PROCESS !== "true") {
+      throw Object.assign(new Error("sql.js requires ZENROUTER_SQLJS_SINGLE_PROCESS=true and exclusive single-process DATA_DIR ownership; use a native SQLite driver for workers"), { code: "SQLJS_SINGLE_PROCESS_REQUIRED" });
+    }
     const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
     return await createSqlJsAdapter(DATA_FILE);
   } catch (e) {
+    if (e.code === "SQLJS_SINGLE_PROCESS_REQUIRED" || e.code === "SQLJS_EXCLUSIVE_OWNER") throw e;
     stopOnCorruption(e);
     console.warn(`[DB] sql.js unavailable: ${e.message}`);
     return null;
@@ -64,6 +68,10 @@ async function trySqlJs() {
 
 async function initAdapter() {
   ensureDirs();
+  const { existsSync } = await import("node:fs");
+  if (existsSync(`${DATA_FILE}.sqljs-owner`)) {
+    throw Object.assign(new Error("[DB] sql.js exclusive owner exists; refuse native/sql.js mixed writers"), { code: "SQLJS_EXCLUSIVE_OWNER" });
+  }
   // Order per runtime:
   //   Bun:  bun:sqlite → sql.js
   //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
@@ -79,14 +87,33 @@ async function initAdapter() {
   }
 
   const { runMigrationOnce } = await import("./migrate.js");
-  await runMigrationOnce(adapter);
-  return adapter;
+  try {
+    await runMigrationOnce(adapter);
+    const { initializeUsagePersistence } = await import("./repos/usageRepo.js");
+    initializeUsagePersistence(adapter);
+    return adapter;
+  } catch (error) {
+    adapter.close();
+    throw error;
+  }
 }
 
 export async function getAdapter() {
   if (state.instance) return state.instance;
   if (!state.initPromise) state.initPromise = initAdapter().then((a) => { state.instance = a; return a; });
   return state.initPromise;
+}
+
+export { configureDbLifecycle } from "./helpers/adapterLifecycle.js";
+
+export async function closeDb() {
+  const adapter = state.instance || (state.initPromise ? await state.initPromise : null);
+  if (!adapter) return;
+  adapter.checkpoint?.();
+  adapter.flushDurable?.();
+  await adapter.close();
+  state.instance = null;
+  state.initPromise = null;
 }
 
 export function getAdapterSync() {

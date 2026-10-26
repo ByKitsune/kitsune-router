@@ -1,6 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
+import { getScopedCache } from "../helpers/scopedCache.js";
+import { bumpScopeRevisions, invalidateCommittedScopes } from "../helpers/cacheRevisions.js";
+
+export function invalidateNodeCache(db) {
+  if (db) invalidateCommittedScopes(db, ["nodes"]);
+}
 
 function rowToNode(row) {
   if (!row) return null;
@@ -40,32 +46,26 @@ function upsert(db, n) {
 
 export async function getProviderNodes(filter = {}) {
   const db = await getAdapter();
-  const where = [];
-  const params = [];
-  if (filter.type) { where.push("type = ?"); params.push(filter.type); }
-  const sql = `SELECT * FROM providerNodes${where.length ? ` WHERE ${where.join(" AND ")}` : ""}`;
-  return db.all(sql, params).map(rowToNode);
+  const type = filter.type || null;
+  return getScopedCache(db, "nodes").get(["providerNodes", "internal", "list", type], ["nodes"], () =>
+    db.all(`SELECT * FROM providerNodes${type ? " WHERE type = ?" : ""}`, type ? [type] : []).map(rowToNode));
 }
 
 export async function getProviderNodeById(id) {
   const db = await getAdapter();
-  return rowToNode(db.get(`SELECT * FROM providerNodes WHERE id = ?`, [id]));
+  return getScopedCache(db, "nodes").get(["providerNodes", "internal", "id", id], ["nodes"], () =>
+    rowToNode(db.get(`SELECT * FROM providerNodes WHERE id = ?`, [id])));
 }
 
 export async function createProviderNode(data) {
   const db = await getAdapter();
   const now = new Date().toISOString();
   const node = {
-    id: data.id || uuidv4(),
-    type: data.type,
-    name: data.name,
-    prefix: data.prefix,
-    apiType: data.apiType,
-    baseUrl: data.baseUrl,
-    createdAt: now,
-    updatedAt: now,
+    id: data.id || uuidv4(), type: data.type, name: data.name, prefix: data.prefix,
+    apiType: data.apiType, baseUrl: data.baseUrl, createdAt: now, updatedAt: now,
   };
-  upsert(db, node);
+  db.transaction(() => { upsert(db, node); bumpScopeRevisions(db, ["nodes"]); });
+  invalidateNodeCache(db);
   return node;
 }
 
@@ -75,10 +75,11 @@ export async function updateProviderNode(id, data) {
   db.transaction(() => {
     const row = db.get(`SELECT * FROM providerNodes WHERE id = ?`, [id]);
     if (!row) return;
-    const merged = { ...rowToNode(row), ...data, updatedAt: new Date().toISOString() };
-    upsert(db, merged);
-    result = merged;
+    result = { ...rowToNode(row), ...data, id, updatedAt: new Date().toISOString() };
+    upsert(db, result);
+    bumpScopeRevisions(db, ["nodes"]);
   });
+  if (result) invalidateNodeCache(db);
   return result;
 }
 
@@ -90,7 +91,9 @@ export async function deleteProviderNode(id) {
     if (!row) return;
     removed = rowToNode(row);
     db.run(`DELETE FROM providerNodes WHERE id = ?`, [id]);
+    bumpScopeRevisions(db, ["nodes"]);
   });
+  if (removed) invalidateNodeCache(db);
   return removed;
 }
 

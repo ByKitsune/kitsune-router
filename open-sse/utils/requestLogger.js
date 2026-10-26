@@ -1,82 +1,35 @@
-// Check if running in Node.js environment (has fs module)
 const isNode = typeof process !== "undefined" && process.versions?.node && typeof window === "undefined";
+const LOGGING_ENABLED = typeof process !== "undefined" && process.env?.ENABLE_REQUEST_LOGS === "true";
+const MAX_ITEMS = 1000;
+const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_RECORD_BYTES = 16 * 1024;
+const state = globalThis[Symbol.for("zenrouter.requestLogQueue")] ||= {
+  items: [], bytes: 0, pending: null, modules: null, scheduled: false, stopped: false,
+  accepted: 0, written: 0, dropped: 0, errors: 0, sequence: 0,
+};
 
-// Check if logging is enabled via environment variable (default: false)
-const LOGGING_ENABLED = typeof process !== "undefined" && process.env?.ENABLE_REQUEST_LOGS === 'true';
-
-let fs = null;
-let path = null;
-let LOGS_DIR = null;
-
-// Lazy load Node.js modules (avoid top-level await)
-async function ensureNodeModules() {
-  if (!isNode || !LOGGING_ENABLED || fs) return;
-  try {
-    fs = await import("fs");
-    path = await import("path");
-    LOGS_DIR = path.join(typeof process !== "undefined" && process.cwd ? process.cwd() : ".", "logs");
-  } catch {
-    // Running in non-Node environment (Worker, Browser, etc.)
-  }
+async function modules() {
+  return state.modules ||= Promise.all([import("node:fs/promises"), import("node:path")]);
 }
 
-// Format timestamp for folder name: 20251228_143045_123
-function formatTimestamp(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const y = date.getFullYear();
-  const m = pad(date.getMonth() + 1);
-  const d = pad(date.getDate());
-  const h = pad(date.getHours());
-  const min = pad(date.getMinutes());
-  const s = pad(date.getSeconds());
-  const ms = String(date.getMilliseconds()).padStart(3, "0");
-  return `${y}${m}${d}_${h}${min}${s}_${ms}`;
+function safeSegment(value) {
+  return String(value || "unknown").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80);
 }
 
-// Create log session folder: {sourceFormat}_{targetFormat}_{model}_{timestamp}
-async function createLogSession(sourceFormat, targetFormat, model) {
-  await ensureNodeModules();
-  if (!fs || !LOGS_DIR) return null;
-  
-  try {
-    if (!fs.existsSync(LOGS_DIR)) {
-      fs.mkdirSync(LOGS_DIR, { recursive: true });
-    }
-    
-    const timestamp = formatTimestamp();
-    const safeModel = (model || "unknown").replace(/[/:]/g, "-");
-    const folderName = `${sourceFormat}_${targetFormat}_${safeModel}_${timestamp}`;
-    const sessionPath = path.join(LOGS_DIR, folderName);
-    
-    fs.mkdirSync(sessionPath, { recursive: true });
-    
-    return sessionPath;
-  } catch (err) {
-    console.log("[LOG] Failed to create log session:", err.message);
-    return null;
-  }
+function safeUrl(value) {
+  try { const url = new URL(value); return `${url.protocol}//${url.host}${url.pathname}`.slice(0, 512); }
+  catch { return "[REDACTED]"; }
 }
 
-// Write JSON file
-function writeJsonFile(sessionPath, filename, data) {
-  if (!fs || !sessionPath) return;
-  
-  try {
-    const filePath = path.join(sessionPath, filename);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.log(`[LOG] Failed to write ${filename}:`, err.message);
-  }
-}
-
-// Mask sensitive data in headers
 export function maskSensitiveHeaders(headers) {
   if (!headers) return {};
   const masked = {};
-  const sensitiveKeys = ["authorization", "api-key", "apikey", "cookie", "token", "credential", "secret"];
   const entries = typeof headers.entries === "function" ? headers.entries() : Object.entries(headers);
+  let count = 0;
   for (const [key, value] of entries) {
-    masked[key] = sensitiveKeys.some((part) => key.toLowerCase().includes(part)) ? "[REDACTED]" : value;
+    if (count++ >= 40) break;
+    const name = String(key).slice(0, 100);
+    masked[name] = /authorization|api.?key|cookie|token|credential|secret/i.test(String(key)) ? "[REDACTED]" : String(value).slice(0, 256);
   }
   return masked;
 }
@@ -87,171 +40,97 @@ export function safePayloadMetadata(value) {
   return { present: true, type: Array.isArray(value) ? "array" : typeof value };
 }
 
-function safeChunkMetadata(chunk) {
-  return JSON.stringify({ size: typeof chunk === "string" || chunk instanceof Uint8Array ? chunk.length : 0 }) + "\n";
-}
-
-// No-op logger when logging is disabled
-function createNoOpLogger() {
-  return {
-    sessionPath: null,
-    logClientRawRequest() {},
-    logRawRequest() {},
-    logOpenAIRequest() {},
-    logTargetRequest() {},
-    logProviderResponse() {},
-    appendProviderChunk() {},
-    appendOpenAIChunk() {},
-    logConvertedResponse() {},
-    appendConvertedChunk() {},
-    logError() {}
-  };
-}
-
-/**
- * Create a new log session and return logger functions
- * @param {string} sourceFormat - Source format from client (claude, openai, etc.)
- * @param {string} targetFormat - Target format to provider (antigravity, gemini-cli, etc.)
- * @param {string} model - Model name
- * @returns {Promise<object>} Promise that resolves to logger object with methods to log each stage
- */
-export async function createRequestLogger(sourceFormat, targetFormat, model) {
-  // Return no-op logger if logging is disabled
-  if (!LOGGING_ENABLED) {
-    return createNoOpLogger();
+function enqueue(session, filename, data, append = false) {
+  if (!isNode || !LOGGING_ENABLED || state.stopped) return false;
+  const body = typeof data === "string" ? data : JSON.stringify({ timestamp: new Date().toISOString(), ...data }, null, 2);
+  const bytes = Buffer.byteLength(body);
+  if (bytes > MAX_RECORD_BYTES || state.items.length >= MAX_ITEMS || state.bytes + bytes > MAX_BYTES) { state.dropped++; return false; }
+  state.items.push({ session, filename, body, append, bytes });
+  state.bytes += bytes;
+  state.accepted++;
+  if (!state.scheduled && !state.pending) {
+    state.scheduled = true;
+    setImmediate(() => { state.scheduled = false; drainBatch().catch(() => {}); });
   }
-  
-  // Wait for session to be created before returning logger
-  const sessionPath = await createLogSession(sourceFormat, targetFormat, model);
-  
-  return {
-    get sessionPath() { return sessionPath; },
-    
-    // 1. Log client raw request (before any conversion)
-    logClientRawRequest(endpoint, body, headers = {}) {
-      writeJsonFile(sessionPath, "1_req_client.json", {
-        timestamp: new Date().toISOString(),
-        endpoint,
-        headers: maskSensitiveHeaders(headers),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 2. Log raw request from client (after initial conversion like responsesApi)
-    logRawRequest(body, headers = {}) {
-      writeJsonFile(sessionPath, "2_req_source.json", {
-        timestamp: new Date().toISOString(),
-        headers: maskSensitiveHeaders(headers),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 3. Log OpenAI intermediate format (source → openai)
-    logOpenAIRequest(body) {
-      writeJsonFile(sessionPath, "3_req_openai.json", {
-        timestamp: new Date().toISOString(),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 4. Log target format request (openai → target)
-    logTargetRequest(url, headers, body) {
-      writeJsonFile(sessionPath, "4_req_target.json", {
-        timestamp: new Date().toISOString(),
-        url,
-        headers: maskSensitiveHeaders(headers),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 5. Log provider response (for non-streaming or error)
-    logProviderResponse(status, statusText, headers, body) {
-      const filename = "5_res_provider.json";
-      writeJsonFile(sessionPath, filename, {
-        timestamp: new Date().toISOString(),
-        status,
-        statusText,
-        headers: maskSensitiveHeaders(headers),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 5. Append streaming chunk to provider response
-    appendProviderChunk(chunk) {
-      if (!fs || !sessionPath) return;
+  return true;
+}
+
+async function drainBatch() {
+  if (state.pending) return state.pending;
+  state.pending = (async () => {
+    const [fs, path] = await modules();
+    const batch = state.items.slice(0, 50);
+    for (const item of batch) {
       try {
-        const filePath = path.join(sessionPath, "5_res_provider.txt");
-        fs.appendFileSync(filePath, safeChunkMetadata(chunk));
-      } catch (err) {
-        // Ignore append errors
-      }
-    },
-    
-    // 6. Append OpenAI intermediate chunks (target → openai)
-    appendOpenAIChunk(chunk) {
-      if (!fs || !sessionPath) return;
-      try {
-        const filePath = path.join(sessionPath, "6_res_openai.txt");
-        fs.appendFileSync(filePath, safeChunkMetadata(chunk));
-      } catch (err) {
-        // Ignore append errors
-      }
-    },
-    
-    // 7. Log converted response to client (for non-streaming)
-    logConvertedResponse(body) {
-      writeJsonFile(sessionPath, "7_res_client.json", {
-        timestamp: new Date().toISOString(),
-        body: safePayloadMetadata(body)
-      });
-    },
-    
-    // 7. Append streaming chunk to converted response
-    appendConvertedChunk(chunk) {
-      if (!fs || !sessionPath) return;
-      try {
-        const filePath = path.join(sessionPath, "7_res_client.txt");
-        fs.appendFileSync(filePath, safeChunkMetadata(chunk));
-      } catch (err) {
-        // Ignore append errors
-      }
-    },
-    
-    // 6. Log error
-    logError(error) {
-      writeJsonFile(sessionPath, "6_error.json", {
-        timestamp: new Date().toISOString(),
-        errorType: error?.name || "Error"
-      });
+        const directory = path.join(process.cwd(), "logs", item.session);
+        await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+        await fs.writeFile(path.join(directory, item.filename), item.body, { flag: item.append ? "a" : "w", mode: 0o600 });
+        state.written++;
+      } catch { state.errors++; state.dropped++; }
+      state.items.shift();
+      state.bytes -= item.bytes;
     }
+  })();
+  try { await state.pending; }
+  catch {
+    state.errors++;
+    state.dropped += state.items.length;
+    state.items = [];
+    state.bytes = 0;
+    state.modules = null;
+  } finally {
+    state.pending = null;
+    if (state.items.length) {
+      state.scheduled = true;
+      setImmediate(() => { state.scheduled = false; drainBatch().catch(() => {}); });
+    }
+  }
+}
+
+export function getRequestLogQueueMetrics() {
+  return { depth: state.items.length, bytes: state.bytes, accepted: state.accepted, written: state.written, dropped: state.dropped, errors: state.errors };
+}
+
+export async function flushRequestLogs({ deadline = Date.now() + 5000, stop = false } = {}) {
+  if (stop) state.stopped = true;
+  while (state.items.length && Date.now() < deadline) {
+    const wait = Math.max(0, deadline - Date.now());
+    let timer;
+    await Promise.race([drainBatch(), new Promise(resolve => { timer = setTimeout(resolve, wait); })]);
+    clearTimeout(timer);
+  }
+  return { ...getRequestLogQueueMetrics(), drained: state.items.length === 0 };
+}
+
+function noOpLogger() {
+  return {
+    sessionPath: null, logClientRawRequest() {}, logRawRequest() {}, logOpenAIRequest() {}, logTargetRequest() {},
+    logProviderResponse() {}, appendProviderChunk() {}, appendOpenAIChunk() {}, logConvertedResponse() {}, appendConvertedChunk() {}, logError() {},
   };
 }
 
-// Legacy functions for backward compatibility
+export async function createRequestLogger(sourceFormat, targetFormat, model) {
+  if (!isNode || !LOGGING_ENABLED) return noOpLogger();
+  const session = `${safeSegment(sourceFormat)}_${safeSegment(targetFormat)}_${safeSegment(model)}_${Date.now()}_${process.pid}_${state.sequence++}`;
+  const json = (file, data) => enqueue(session, file, data);
+  const chunk = (file, value) => enqueue(session, file, JSON.stringify({ size: typeof value === "string" || value instanceof Uint8Array ? value.length : 0 }) + "\n", true);
+  return {
+    sessionPath: `${process.cwd()}/logs/${session}`,
+    logClientRawRequest(endpoint, body, headers = {}) { json("1_req_client.json", { endpoint: String(endpoint || "").split("?")[0].slice(0, 256), headers: maskSensitiveHeaders(headers), body: safePayloadMetadata(body) }); },
+    logRawRequest(body, headers = {}) { json("2_req_source.json", { headers: maskSensitiveHeaders(headers), body: safePayloadMetadata(body) }); },
+    logOpenAIRequest(body) { json("3_req_openai.json", { body: safePayloadMetadata(body) }); },
+    logTargetRequest(url, headers, body) { json("4_req_target.json", { url: safeUrl(url), headers: maskSensitiveHeaders(headers), body: safePayloadMetadata(body) }); },
+    logProviderResponse(status, statusText, headers, body) { json("5_res_provider.json", { status, statusText: typeof statusText === "string" ? statusText.slice(0, 80) : "", headers: maskSensitiveHeaders(headers), body: safePayloadMetadata(body) }); },
+    appendProviderChunk(value) { chunk("5_res_provider.txt", value); },
+    appendOpenAIChunk(value) { chunk("6_res_openai.txt", value); },
+    logConvertedResponse(body) { json("7_res_client.json", { body: safePayloadMetadata(body) }); },
+    appendConvertedChunk(value) { chunk("7_res_client.txt", value); },
+    logError(error) { json("6_error.json", { errorType: safeSegment(error?.name || "Error") }); },
+  };
+}
+
 export function logRequest() {}
 export function logResponse() {}
-export function logError(provider, { error, url, model, requestBody }) {
-  if (!fs || !LOGS_DIR) return;
-  
-  try {
-    if (!fs.existsSync(LOGS_DIR)) {
-      fs.mkdirSync(LOGS_DIR, { recursive: true });
-    }
-    
-    const date = new Date().toISOString().split("T")[0];
-    const logPath = path.join(LOGS_DIR, `${provider}-${date}.log`);
-    
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      type: "error",
-      provider,
-      model,
-      url,
-      errorType: error?.name || "Error"
-    };
-    
-    fs.appendFileSync(logPath, JSON.stringify(logEntry) + "\n");
-  } catch (err) {
-    console.log("[LOG] Failed to write error log:", err.message);
-  }
+export function logError(provider, { error, url, model } = {}) {
+  enqueue("errors", `${safeSegment(provider)}-${new Date().toISOString().slice(0, 10)}.log`, JSON.stringify({ timestamp: new Date().toISOString(), type: "error", provider: safeSegment(provider), model: safeSegment(model), url: safeUrl(url), errorType: safeSegment(error?.name || "Error") }) + "\n", true);
 }

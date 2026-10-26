@@ -3,7 +3,7 @@
 // pre-change safety backup in migrate.js: when the stored version is lower,
 // one lightweight DB backup is taken before applying schema changes. Forgetting
 // to bump only skips that backup — it does NOT break the additive auto-sync.
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const PRAGMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -106,9 +106,33 @@ export const TABLES = {
     primaryKey: "PRIMARY KEY (scope, key)",
     indexes: ["CREATE INDEX IF NOT EXISTS idx_kv_scope ON kv(scope)"],
   },
+  connectionRuntime: {
+    columns: {
+      connectionId: "TEXT PRIMARY KEY",
+      provider: "TEXT NOT NULL",
+      data: "TEXT NOT NULL",
+      updatedAt: "TEXT NOT NULL",
+    },
+    indexes: ["CREATE INDEX IF NOT EXISTS idx_cr_provider ON connectionRuntime(provider)"],
+  },
+  usageOutbox: {
+    columns: {
+      eventId: "TEXT PRIMARY KEY",
+      payload: "TEXT NOT NULL",
+      bytes: "INTEGER NOT NULL",
+      acceptedAt: "INTEGER NOT NULL",
+      attempts: "INTEGER NOT NULL DEFAULT 0",
+      nextAttemptAt: "INTEGER NOT NULL DEFAULT 0",
+      leaseOwner: "TEXT",
+      leaseUntil: "INTEGER NOT NULL DEFAULT 0",
+      lastError: "TEXT",
+    },
+    indexes: ["CREATE INDEX IF NOT EXISTS idx_uo_ready ON usageOutbox(nextAttemptAt, leaseUntil, acceptedAt)"],
+  },
   usageHistory: {
     columns: {
       id: "INTEGER PRIMARY KEY AUTOINCREMENT",
+      eventId: "TEXT",
       timestamp: "TEXT NOT NULL",
       provider: "TEXT",
       model: "TEXT",
@@ -121,9 +145,6 @@ export const TABLES = {
       status: "TEXT",
       tokens: "TEXT",
       meta: "TEXT",
-      // Milliseconds. Nullable on purpose: a failed request has no TTFT, and a
-      // pre-existing row predates the column. NULL means "not measured", which is
-      // different from 0 ("measured instantly").
       ttftMs: "INTEGER",
       totalMs: "INTEGER",
     },

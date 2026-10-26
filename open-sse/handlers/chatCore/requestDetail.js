@@ -1,4 +1,4 @@
-import { saveRequestUsage } from "@/lib/usageDb.js";
+import { saveRequestUsage, enqueueRequestUsage } from "@/lib/usageDb.js";
 import { COLORS } from "../../utils/stream.js";
 import { canonicalizeUsage, extractUsage } from "../../utils/usageTracking.js";
 import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
@@ -68,7 +68,7 @@ export function formatDoneLine({ usage, latency }) {
   return `DONE ${latency?.total ?? 0}ms${ttftStr} · ${inStr} · OUT ${outTok}`;
 }
 
-export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, latency = null, label = "USAGE", silent = false, serviceTier = null }) {
+function persistUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, eventId, timestamp, latency = null, label = "USAGE", silent = false, serviceTier = null }, persist) {
   if (!tokens || typeof tokens !== "object") return;
 
   // Canonicalize before the zero gate: malformed real usage must not disappear
@@ -90,18 +90,29 @@ export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, 
   // cached/cache-creation tokens survive to cost calc + stats. See canonicalizeUsage.
   // usageHistory persists tokens as JSON, unlike arbitrary top-level fields.
   // Keep the tier provenance there so billing never loses it at the DB boundary.
-  Object.assign(normalized, getServiceTierAccounting(provider, serviceTier));
+  Object.assign(normalized, getServiceTierAccounting(provider, serviceTier || tokens));
 
-  saveRequestUsage({
+  const persistence = persist({
+    eventId,
     provider: provider || "unknown",
     model: model || "unknown",
     tokens: normalized,
-    timestamp: new Date().toISOString(),
+    timestamp: timestamp || new Date().toISOString(),
     connectionId: connectionId || undefined,
     apiKey: apiKey || undefined,
     endpoint: endpoint || null,
     // Optional. Persisted as ttftMs/totalMs so latency becomes queryable instead
     // of existing only as a log line. Omitted callers leave both columns NULL.
     ...(latency ? { latency } : {}),
-  }).catch(() => {});
+  });
+  persistence.catch(error => console.error("[USAGE] Persistence failed:", error?.code || error?.name || "Error"));
+  return persistence;
+}
+
+export function saveUsageStats(options) {
+  return persistUsageStats(options, saveRequestUsage);
+}
+
+export function saveUsageRecord(options) {
+  return persistUsageStats(options, enqueueRequestUsage);
 }

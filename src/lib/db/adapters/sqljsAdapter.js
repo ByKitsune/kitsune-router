@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import initSqlJs from "sql.js";
 import { PRAGMA_SQL } from "../schema.js";
+import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
 
 let SQL = null;
 
@@ -13,10 +14,17 @@ async function loadSql() {
 
 export async function createSqlJsAdapter(filePath) {
   const SQLLib = await loadSql();
-  const buf = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
-  const db = new SQLLib.Database(buf);
-  db.exec(PRAGMA_SQL);
-  // Schema is created/synced by migrate.js after adapter init
+  const lockPath = `${filePath}.sqljs-owner`;
+  try { fs.mkdirSync(lockPath, { mode: 0o700 }); }
+  catch (cause) {
+    throw Object.assign(new Error("[sql.js] Exclusive owner unavailable; a live or crashed sql.js owner must be resolved before opening", { cause }), { code: "SQLJS_EXCLUSIVE_OWNER" });
+  }
+  let db;
+  try {
+    const buf = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
+    db = new SQLLib.Database(buf);
+    db.exec(PRAGMA_SQL);
+  } catch (error) { fs.rmdirSync(lockPath); throw error; }
 
   let dirty = false;
   let saveTimer = null;
@@ -71,6 +79,10 @@ export async function createSqlJsAdapter(filePath) {
 
     try {
       fs.renameSync(tmpPath, filePath);
+      if (process.platform !== "win32") {
+        const directory = fs.openSync(dir, fs.constants.O_RDONLY);
+        try { fs.fsyncSync(directory); } finally { fs.closeSync(directory); }
+      }
     } catch (err) {
       try { fs.unlinkSync(tmpPath); } catch { /* nothing to clean up */ }
       throw err;
@@ -80,7 +92,7 @@ export async function createSqlJsAdapter(filePath) {
 
   function scheduleSave() {
     dirty = true;
-    if (saveTimer) clearTimeout(saveTimer);
+    if (saveTimer) return;
     saveTimer = setTimeout(() => {
       saveTimer = null;
       if (dirty) {
@@ -150,26 +162,21 @@ export async function createSqlJsAdapter(filePath) {
     }
   }
 
-  function gracefulClose() {
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    if (dirty) {
-      try { persist(); } catch (e) { console.error("[sqljs] shutdown flush failed:", e); }
-    }
-    try { db.close(); } catch {}
+  let closed = false;
+  function flushDurable() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (dirty) persist();
   }
 
   function close() {
-    gracefulClose();
+    if (closed) return;
+    flushDurable();
+    releaseShutdown();
+    db.close();
+    fs.rmdirSync(lockPath);
+    closed = true;
   }
 
-  // Flush on shutdown
-  const onShutdown = () => gracefulClose();
-  process.once("beforeExit", onShutdown);
-  process.once("SIGINT", () => { onShutdown(); process.exit(0); });
-  process.once("SIGTERM", () => { onShutdown(); process.exit(0); });
-
-  return { driver: "sql.js", run, get, all, exec, transaction, close, raw: db };
+  const releaseShutdown = registerAdapterShutdown(close);
+  return { driver: "sql.js", singleProcessOnly: true, run, get, all, exec, transaction, flushDurable, close, raw: db };
 }

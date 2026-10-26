@@ -8,6 +8,7 @@ import { makeBackupDir, backupFile, backupDbLite, pruneOldBackups } from "./back
 import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
 import { assertDatabaseIntegrity } from "./integrity.js";
+import durableUsageMigration from "./migrations/002-durable-usage.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -309,6 +310,7 @@ export async function runMigrationOnce(adapter) {
   const initialize = () => {
     runVersionedMigrations(adapter);
     syncSchemaFromTables(adapter);
+    adapter.transaction(() => durableUsageMigration.up(adapter));
     setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
     if (importLegacy) {
       importLegacyMain(adapter, legacyMain);

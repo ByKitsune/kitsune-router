@@ -6,10 +6,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 let tempDir;
 const originalDataDir = process.env.DATA_DIR;
+const originalSingleProcess = process.env.ZENROUTER_SQLJS_SINGLE_PROCESS;
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-chain-"));
   process.env.DATA_DIR = tempDir;
+  process.env.ZENROUTER_SQLJS_SINGLE_PROCESS = "true";
   delete global._dbAdapter;
   vi.resetModules();
 });
@@ -20,6 +22,8 @@ afterEach(() => {
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
   if (originalDataDir === undefined) delete process.env.DATA_DIR;
   else process.env.DATA_DIR = originalDataDir;
+  if (originalSingleProcess === undefined) delete process.env.ZENROUTER_SQLJS_SINGLE_PROCESS;
+  else process.env.ZENROUTER_SQLJS_SINGLE_PROCESS = originalSingleProcess;
 });
 
 describe("Driver fallback chain", () => {
@@ -55,5 +59,13 @@ describe("Driver fallback chain", () => {
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();
     expect(db.driver).toBe("sql.js");
+  });
+
+  it("fails closed without the explicit sql.js single-process contract", async () => {
+    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => { throw new Error("simulated unavailable"); });
+    vi.doMock("@/lib/db/adapters/nodeSqliteAdapter.js", () => { throw new Error("simulated unavailable"); });
+    delete process.env.ZENROUTER_SQLJS_SINGLE_PROCESS;
+    const { getAdapter } = await import("@/lib/db/driver.js");
+    await expect(getAdapter()).rejects.toMatchObject({ code: "SQLJS_SINGLE_PROCESS_REQUIRED" });
   });
 });
