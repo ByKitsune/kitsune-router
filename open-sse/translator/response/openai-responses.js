@@ -69,6 +69,7 @@ export function openaiToOpenAIResponsesResponse(chunk, state = {}) {
   state.funcItemDone ??= {};
   state.funcArgsBuf ??= {};
   state.toolOutputIndexes ??= {};
+  if (state.completedSent) return [];
 
   if (!chunk) {
     return flushEvents(state);
@@ -192,19 +193,8 @@ export function openaiToOpenAIResponsesResponse(chunk, state = {}) {
     for (const i in state.msgItemAdded) closeMessage(state, emit, i);
     closeReasoning(state, emit);
     for (const i in state.funcCallIds) closeToolCall(state, emit, i);
-    // Upstreams report usage either on the finish chunk itself or on a trailing chunk
-    // whose `choices` array is empty (OpenAI does the latter). Emitting
-    // response.completed here would freeze the payload before that trailing chunk is
-    // parsed, so when usage is not known yet we leave completion to flushEvents(),
-    // which runs once the upstream stream ends and by then has seen every chunk.
-    //
-    // That only holds on the direct openai:openai-responses route. When this converter
-    // runs as the second hop of a pivot (Claude/Gemini/Kiro upstream), translateResponse()
-    // drops the terminal null chunk before reaching us — the first hop returns null for
-    // it, leaving nothing to iterate — so flushEvents() is never called and deferring
-    // would swallow the terminal event entirely. Keep the old behaviour there.
-    const flushReachesUs = state.targetFormat === FORMATS.OPENAI;
-    if (responseUsage || !flushReachesUs) sendCompleted(state, emit);
+    // Every leg receives EOF, so pivots can wait for a separate usage trailer too.
+    if (responseUsage) sendCompleted(state, emit);
     else state.completionPending = true;
   }
 
@@ -218,7 +208,7 @@ function startReasoning(state, emit, idx) {
     state.nextOutputIndex = state.reasoningIndex + 1;
     state.reasoningId = `rs_${state.responseId}_${state.reasoningIndex}`;
     state.reasoningDone = false;
-    state.reasoningBuf = "";
+    state.reasoningBuf = [];
     
     emit("response.output_item.added", {
       type: "response.output_item.added",
@@ -239,7 +229,8 @@ function startReasoning(state, emit, idx) {
 
 function emitReasoningDelta(state, emit, text) {
   if (!text) return;
-  state.reasoningBuf += text;
+  if (!Array.isArray(state.reasoningBuf)) state.reasoningBuf = state.reasoningBuf ? [state.reasoningBuf] : [];
+  state.reasoningBuf.push(text);
   emit("response.reasoning_summary_text.delta", {
     type: "response.reasoning_summary_text.delta",
     item_id: state.reasoningId,
@@ -252,13 +243,15 @@ function emitReasoningDelta(state, emit, text) {
 function closeReasoning(state, emit) {
   if (state.reasoningId && !state.reasoningDone) {
     state.reasoningDone = true;
+    const text = Array.isArray(state.reasoningBuf) ? state.reasoningBuf.join("") : state.reasoningBuf || "";
+    state.reasoningBuf = [];
     
     emit("response.reasoning_summary_text.done", {
       type: "response.reasoning_summary_text.done",
       item_id: state.reasoningId,
       output_index: state.reasoningIndex,
       summary_index: 0,
-      text: state.reasoningBuf
+      text
     });
 
     emit("response.reasoning_summary_part.done", {
@@ -266,14 +259,14 @@ function closeReasoning(state, emit) {
       item_id: state.reasoningId,
       output_index: state.reasoningIndex,
       summary_index: 0,
-      part: { type: RESPONSES_ITEM.SUMMARY_TEXT, text: state.reasoningBuf }
+      part: { type: RESPONSES_ITEM.SUMMARY_TEXT, text }
     });
 
     const item = {
       id: state.reasoningId,
       type: RESPONSES_ITEM.REASONING,
       status: "completed",
-      summary: [{ type: RESPONSES_ITEM.SUMMARY_TEXT, text: state.reasoningBuf }]
+      summary: [{ type: RESPONSES_ITEM.SUMMARY_TEXT, text }]
     };
 
     emit("response.output_item.done", {
@@ -294,7 +287,7 @@ function emitTextContent(state, emit, idx, content, refusal = false) {
     state.msgItemAdded[idx] = true;
     state.msgItemDone[idx] = false;
     state.msgContentAdded[idx] = false;
-    state.msgTextBuf[idx] = "";
+    state.msgTextBuf[idx] = [];
     state.msgRefusal ??= {};
     state.msgRefusal[idx] = refusal;
     const msgId = `msg_${state.responseId}_${state.msgOutputIndexes[idx]}`;
@@ -328,14 +321,14 @@ function emitTextContent(state, emit, idx, content, refusal = false) {
     ...(!refusal ? { logprobs: [] } : {})
   });
 
-  if (!state.msgTextBuf[idx]) state.msgTextBuf[idx] = "";
-  state.msgTextBuf[idx] += content;
+  (state.msgTextBuf[idx] ??= []).push(content);
 }
 
 function closeMessage(state, emit, idx) {
   if (state.msgItemAdded[idx] && !state.msgItemDone[idx]) {
     state.msgItemDone[idx] = true;
-    const fullText = state.msgTextBuf[idx] || "";
+    const fullText = Array.isArray(state.msgTextBuf[idx]) ? state.msgTextBuf[idx].join("") : state.msgTextBuf[idx] || "";
+    delete state.msgTextBuf[idx];
     const outputIndex = state.msgOutputIndexes[idx];
     const msgId = `msg_${state.responseId}_${outputIndex}`;
 
@@ -533,7 +526,7 @@ function sendCompleted(state, emit) {
 }
 
 function flushEvents(state) {
-  if (state.completedSent) return [];
+  if (state.completedSent || state.responseErrorSent || !state.responsesFinishReason) return [];
   
   const events = [];
   const nextSeq = () => ++state.seq;
@@ -612,28 +605,7 @@ function completeResponseTool(tool, state, item = {}) {
  * This is for when Codex returns data and we need to send it to an OpenAI-compatible client
  */
 export function openaiResponsesToOpenAIResponse(chunk, state) {
-  if (!chunk) {
-    // Flush: send final chunk with finish_reason
-    if (state.finishReasonSent || !state.started) return null;
-
-    const finishReason = computeFinishReason(state);
-
-    state.finishReasonSent = true;
-    state.finishReason = finishReason;
-
-    const finalChunk = buildChunk(
-      { id: state.chatId || `chatcmpl-${Date.now()}`, created: state.created || Math.floor(Date.now() / 1000), model: state.model || MODEL_FALLBACK },
-      {},
-      finishReason
-    );
-
-    if (state.usage && typeof state.usage === "object") {
-      finalChunk.usage = state.usage;
-    }
-    if (state.serviceTier) finalChunk.service_tier = state.serviceTier;
-
-    return finalChunk;
-  }
+  if (!chunk) return null;
 
   // Handle different event types from Responses API
   const eventType = chunk.type || chunk.event;

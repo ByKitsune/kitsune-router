@@ -6,9 +6,10 @@ import { ROLE } from "../schema/index.js";
 // be reconciled; structured/contradictory carriers need an explicit diagnostic.
 export function normalizeChatReasoningAliases(body) {
   if (!Array.isArray(body?.messages) || Object.hasOwn(body, "input")) return body;
-  let changed = false;
-  const messages = body.messages.map((message, index) => {
-    if (message?.role !== ROLE.ASSISTANT) return message;
+  let messages;
+  for (let index = 0; index < body.messages.length; index++) {
+    const message = body.messages[index];
+    if (message?.role !== ROLE.ASSISTANT) continue;
     const canonical = message.reasoning_content;
     const alias = message.reasoning;
     let param;
@@ -21,11 +22,11 @@ export function normalizeChatReasoningAliases(body) {
       error.param = `messages.${index}.${param}`;
       throw error;
     }
-    if (!Object.hasOwn(message, "reasoning")) return message;
-    changed = true;
+    if (!Object.hasOwn(message, "reasoning")) continue;
     const { reasoning, ...normalized } = message;
     if (!canonical && alias) normalized.reasoning_content = alias;
-    return normalized;
-  });
-  return changed ? { ...body, messages } : body;
+    messages ??= body.messages.slice();
+    messages[index] = normalized;
+  }
+  return messages ? { ...body, messages } : body;
 }

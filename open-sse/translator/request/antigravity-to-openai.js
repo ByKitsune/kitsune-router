@@ -5,6 +5,7 @@ import { normalizeMediaPart } from "../concerns/multimodal.js";
 import { convertGeminiFunctionResponseContent, copyGeminiRequestControls, geminiSchemaToJSONSchema, collapseGeminiParts } from "../formats/gemini.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
 import { budgetToEffort } from "../concerns/thinking.js";
+import { geminiToolHistory } from "../concerns/geminiToolHistory.js";
 
 // Convert Antigravity request to OpenAI format
 // Antigravity body: { project, model, userAgent, requestType, requestId, request: { contents, systemInstruction, tools, toolConfig, generationConfig, sessionId } }
@@ -49,8 +50,9 @@ export function antigravityToOpenAIRequest(model, body, stream) {
 
   // Convert contents to messages
   if (req.contents && Array.isArray(req.contents)) {
+    const toolIds = geminiToolHistory(req.contents);
     for (const content of req.contents) {
-      const converted = convertContent(content);
+      const converted = convertContent(content, toolIds);
       if (converted) {
         if (Array.isArray(converted)) {
           result.messages.push(...converted);
@@ -86,7 +88,7 @@ export function antigravityToOpenAIRequest(model, body, stream) {
 
 // Convert Antigravity content to OpenAI message
 // Handles: text, thought, thoughtSignature, functionCall, functionResponse, inlineData
-function convertContent(content) {
+function convertContent(content, toolIds) {
   const role = content.role === GEMINI_ROLE.MODEL ? ROLE.ASSISTANT : content.role === GEMINI_ROLE.USER ? ROLE.USER : content.role;
 
   if (!content.parts || !Array.isArray(content.parts)) {
@@ -128,8 +130,7 @@ function convertContent(content) {
     // Function call
     if (part.functionCall) {
       toolCalls.push({
-        // Deterministic id from name so the matching functionResponse pairs correctly.
-        id: part.functionCall.id || `call_${part.functionCall.name}`,
+        id: toolIds.get(part),
         type: OPENAI_BLOCK.FUNCTION,
         function: {
           name: part.functionCall.name,
@@ -142,7 +143,7 @@ function convertContent(content) {
     if (part.functionResponse) {
       toolResults.push({
         role: ROLE.TOOL,
-        tool_call_id: part.functionResponse.id || `call_${part.functionResponse.name}`,
+        tool_call_id: toolIds.get(part),
         content: convertGeminiFunctionResponseContent(part.functionResponse),
         ...(Object.hasOwn(part.functionResponse.response || {}, "error") ? { is_error: part.functionResponse.response.error != null && part.functionResponse.response.error !== false } : {})
       });

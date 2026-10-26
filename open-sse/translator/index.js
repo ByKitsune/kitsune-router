@@ -8,11 +8,14 @@ import { stripUnsupportedChatExtensions, validateSupportedParams } from "./conce
 import { applyThinking, captureThinking } from "./concerns/thinkingUnified.js";
 import { getThinkingContext, setThinkingContext } from "./concerns/thinking.js";
 import { captureSessionId } from "../utils/sessionManager.js";
-import { AntigravityExecutor } from "../executors/antigravity.js";
 import { PROVIDERS } from "../providers/index.js";
 import { ROLE, GEMINI_ROLE } from "./schema/roles.js";
 import { extractResponseError, responseErrorToClient } from "./concerns/responseError.js";
 import { lowerKimiDeferredTools } from "./concerns/deferredTools.js";
+import { ownRequestBody } from "./concerns/requestOwnership.js";
+import { rejectUnsupportedTranslationMedia } from "./concerns/requestMedia.js";
+import { unsupportedResponseMedia } from "./concerns/responseMedia.js";
+import { compressGeminiToolNames } from "./concerns/geminiToolNames.js";
 
 // Registry for translators. Lazy-init guards against circular-import order:
 // translator modules call register() (side-effect) before this module's body runs.
@@ -67,10 +70,12 @@ function detectClientLastRole(body) {
   return role === ROLE.ASSISTANT || role === GEMINI_ROLE.MODEL ? ROLE.ASSISTANT : undefined;
 }
 
-// Translate request: source -> openai -> target
-export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null, capabilities = null) {
+// Borrowed input is isolated before preparation; owned input is a private mutable attempt.
+export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null, capabilities = null, requestContext = null) {
   ensureInitialized();
+  body = ownRequestBody(body, requestContext);
   validateSupportedParams(provider, model, body, targetFormat);
+  rejectUnsupportedTranslationMedia(body, sourceFormat, targetFormat);
   const responsesSource = sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX;
   const responsesTarget = targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX;
   if (responsesSource && !responsesTarget) {
@@ -100,16 +105,18 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
       throw error;
     }
   }
-  let result = provider === "kimi" && targetFormat === FORMATS.CLAUDE
-    ? lowerKimiDeferredTools(body) : body;
-  // Role the client actually ended on, before any translator drops an emptied turn.
   const clientLastRole = detectClientLastRole(body);
+  let result = provider === "kimi" && targetFormat === FORMATS.CLAUDE
+    ? lowerKimiDeferredTools(body, { ownership: "owned" }) : body;
   // Capture thinking intent from the original (pre-translation) body, before any
   // format conversion strips/renames the fields. Applied after translation.
   const thinkingIntent = captureThinking(result);
+  const sourceThinkingContext = getThinkingContext(result);
 
   // Compress tool names > 64 chars to prevent provider INVALID_ARGUMENT rejection (#3622)
-  const { body: compressedBody, toolNameMap: compressedMap } = compressToolNames(sourceFormat, result);
+  const googleSource = [FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY].includes(sourceFormat);
+  const { body: compressedBody, toolNameMap: compressedMap } = googleSource
+    ? compressGeminiToolNames(result) : compressToolNames(sourceFormat, result);
   result = compressedBody;
   if (compressedMap?.size > 0) {
     result._toolNameMap = compressedMap;
@@ -185,6 +192,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   const kiroThinkingMappedByTranslator =
     targetFormat === FORMATS.KIRO &&
     (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.CLAUDE);
+  if (sourceThinkingContext) setThinkingContext(result, sourceThinkingContext);
   if (!kiroThinkingMappedByTranslator) {
     applyThinking(targetFormat, model, result, provider, thinkingIntent, capabilities);
   }
@@ -193,7 +201,6 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   // Always normalize to clean OpenAI format when target is OpenAI
   // This handles hybrid requests (e.g., OpenAI messages + Claude tools)
   if (targetFormat === FORMATS.OPENAI) {
-    result = { ...result };
     result = filterToOpenAIFormat(result, {
       preserveCacheControl: !!PROVIDERS[provider]?.quirks?.preserveCacheControl,
       preserveDeveloperRole: provider === "openai" || !!PROVIDERS[provider]?.quirks?.preserveDeveloperRole,
@@ -233,7 +240,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     const apiKey = credentials?.accessToken || credentials?.apiKey || null;
     if (apiKey?.includes("sk-ant-oat")) {
       const { body: cloakedBody, toolNameMap } = cloakClaudeTools(result);
-      result = cloakedBody;
+      result = ownRequestBody(cloakedBody);
       if (toolNameMap?.size > 0) {
         if (result._toolNameMap) {
           const merged = new Map(result._toolNameMap);
@@ -249,97 +256,42 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     }
   }
 
-  // Antigravity cloaking disabled
-  // if (provider === FORMATS.ANTIGRAVITY && body.userAgent !== FORMATS.ANTIGRAVITY) {
-  //   const { cloakedBody, toolNameMap } = AntigravityExecutor.cloakTools(result);
-  //   result = cloakedBody;
-  //   if (toolNameMap?.size > 0) {
-  //     result._toolNameMap = toolNameMap;
-  //   }
-  // }
-
   if (thinkingContext) setThinkingContext(result, thinkingContext);
   return result;
 }
 
 // Translate response chunk: target -> openai -> source
-export function translateResponse(targetFormat, sourceFormat, chunk, state) {
+export function translateResponse(targetFormat, sourceFormat, chunk, state = initState(sourceFormat)) {
   ensureInitialized();
+  const restore = value => sourceFormat === FORMATS.CLAUDE
+    ? decloakStreamChunk(value, state?.toolNameMap) : decloakOpenAIChunk(value, state?.toolNameMap);
+  if (sourceFormat === targetFormat) return [restore(chunk)];
   if (state?.responseErrorSent) return [];
-  // If same format, return as-is — except the tool name may still be cloaked or compressed:
-  // translateRequest() suffixes client tools for OAuth-cloaked Claude providers and compresses
-  // long tool names for Gemini/Vertex/OpenAI, so streamed tool_use blocks must be decloaked here.
-  if (sourceFormat === targetFormat) {
-    if (sourceFormat === FORMATS.CLAUDE) {
-      return [decloakStreamChunk(chunk, state?.toolNameMap)];
-    }
-    if (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      return [decloakOpenAIChunk(chunk, state?.toolNameMap)];
-    }
-    return [chunk];
-  }
-  const failure = extractResponseError(chunk);
+  state.targetFormat ??= targetFormat;
+  state.sourceFormat ??= sourceFormat;
+  const failure = extractResponseError(chunk) || unsupportedResponseMedia(targetFormat, sourceFormat, chunk);
   if (failure) {
-    if (state) state.responseErrorSent = true;
+    state.responseErrorSent = true;
     return [responseErrorToClient(sourceFormat, failure, state)];
   }
-
-
-  let results = [chunk];
-  let openaiResults = null; // Store OpenAI intermediate results
-
-  // Direct route: if a response translator is registered for this exact
-  // target:source pair, use it instead of pivoting through OpenAI. Mirrors the
-  // request-side direct route (e.g. kiro:claude — KiroExecutor already emits
-  // OpenAI-shaped chunks, so this converts them straight to Claude SSE).
-  const directFn = responseRegistry.get(`${targetFormat}:${sourceFormat}`);
-  if (directFn) {
-    const converted = directFn(chunk, state);
-    return converted ? (Array.isArray(converted) ? converted : [converted]) : [];
+  const list = converted => converted ? (Array.isArray(converted) ? converted : [converted]) : [];
+  const direct = responseRegistry.get(`${targetFormat}:${sourceFormat}`);
+  if (direct) {
+    const results = list(direct(chunk, state));
+    return state.toolNameMap?.size ? results.map(restore) : results;
   }
 
-  // Step 1: target -> openai (if target is not openai)
-  if (targetFormat !== FORMATS.OPENAI) {
-    const toOpenAI = responseRegistry.get(`${targetFormat}:${FORMATS.OPENAI}`);
-    if (toOpenAI) {
-      results = [];
-      const converted = toOpenAI(chunk, state);
-      if (converted) {
-        results = Array.isArray(converted) ? converted : [converted];
-        openaiResults = results; // Store OpenAI intermediate
-      }
-    }
+  const toOpenAI = responseRegistry.get(`${targetFormat}:${FORMATS.OPENAI}`);
+  const fromOpenAI = responseRegistry.get(`${FORMATS.OPENAI}:${sourceFormat}`);
+  const intermediate = toOpenAI ? list(toOpenAI(chunk, state)) : [chunk];
+  let results = intermediate;
+  if (fromOpenAI) {
+    results = [];
+    for (const value of intermediate) results.push(...list(fromOpenAI(value, state)));
+    if (chunk === null) results.push(...list(fromOpenAI(null, state)));
   }
-
-  // Step 2: openai -> source (if source is not openai)
-  if (sourceFormat !== FORMATS.OPENAI) {
-    const fromOpenAI = responseRegistry.get(`${FORMATS.OPENAI}:${sourceFormat}`);
-    if (fromOpenAI) {
-      const finalResults = [];
-      for (const r of results) {
-        const converted = fromOpenAI(r, state);
-        if (converted) {
-          finalResults.push(...(Array.isArray(converted) ? converted : [converted]));
-        }
-      }
-      results = finalResults;
-    }
-  }
-
-  // Attach OpenAI intermediate results for logging
-  if (openaiResults && sourceFormat !== FORMATS.OPENAI && targetFormat !== FORMATS.OPENAI) {
-    results._openaiIntermediate = openaiResults;
-  }
-
-  // Decloak tool names on final translated chunks if toolNameMap was used
-  if (state?.toolNameMap?.size > 0) {
-    if (sourceFormat === FORMATS.CLAUDE) {
-      results = results.map((r) => decloakStreamChunk(r, state.toolNameMap));
-    } else if (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      results = results.map((r) => decloakOpenAIChunk(r, state.toolNameMap));
-    }
-  }
-
+  if (state?.toolNameMap?.size) results = results.map(restore);
+  if (toOpenAI && fromOpenAI && intermediate.length) results._openaiIntermediate = intermediate;
   return results;
 }
 
@@ -379,7 +331,7 @@ export function initState(sourceFormat) {
       msgItemDone: {},
       reasoningId: "",
       reasoningIndex: -1,
-      reasoningBuf: "",
+      reasoningBuf: [],
       reasoningPartAdded: false,
       reasoningDone: false,
       inThinking: false,

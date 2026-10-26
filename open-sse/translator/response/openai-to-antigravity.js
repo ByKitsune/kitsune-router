@@ -58,7 +58,7 @@ export function openaiToAntigravityResponse(chunk, state) {
   const delta = choice.delta || {};
   let finishReason = choice.finish_reason;
   const completeUsage = typeof chunk.usage?.prompt_tokens === "number" && typeof chunk.usage?.completion_tokens === "number";
-  if (finishReason && !flushing && !completeUsage && state.targetFormat === FORMATS.OPENAI) {
+  if (finishReason && !flushing && !completeUsage) {
     state._geminiFinishPending = finishReason;
     finishReason = null;
   }

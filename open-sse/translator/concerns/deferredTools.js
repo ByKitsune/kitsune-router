@@ -1,10 +1,11 @@
 import { CLAUDE_BLOCK, CLAUDE_TOOL_DEFINITION, OPENAI_BLOCK } from "../schema/index.js";
+import { ownRequestBody } from "./requestOwnership.js";
 
 const record = value => value !== null && typeof value === "object" && !Array.isArray(value);
 // Kimi-specific adaptation of PR #4612, d41355f573372e9814451e51685252c80b023def.
 // Run before ordinary tool-name compression and final Claude preparation. A
 // beta block is removed only after its actual definition is validated/owned.
-export function lowerKimiDeferredTools(body) {
+export function lowerKimiDeferredTools(body, context = null) {
   if (!Array.isArray(body?.messages)) return body;
   const definitions = [];
   for (const [messageIndex, message] of body.messages.entries()) {
@@ -32,14 +33,12 @@ export function lowerKimiDeferredTools(body) {
     error.param = "tools";
     throw error;
   }
-  // Final preparation mutates nested cache markers/turns. Own the entire
-  // affected attempt so a later account/provider can replay the source body.
-  const result = structuredClone(body);
+  const result = ownRequestBody(body, context);
   const tools = Array.isArray(result.tools) ? result.tools : [];
   const names = new Set(tools.map(tool => tool?.name || tool?.function?.name));
   for (const definition of definitions) {
     if (names.has(definition.name)) continue;
-    tools.push(structuredClone(definition));
+    tools.push(ownRequestBody(definition));
     names.add(definition.name);
   }
   result.tools = tools;

@@ -92,31 +92,28 @@ describe("Responses screenshot tool output (#4517)", () => {
     ] }] }, false);
     expect(result.messages.flatMap((msg) => msg.content).find((block) => block.type === "tool_result").content).toEqual(native);
   });
-  it("preserves opaque file references and embedded PDFs through paired Claude outputs", () => {
+  it("rejects opaque image IDs across protocols and keeps embedded PDFs in typed paired outputs", () => {
+    const unresolved = body([{ type: "input_image", file_id: "file_screenshot" }]);
+    for (const target of [FORMATS.CLAUDE, FORMATS.OPENAI]) {
+      expect(() => translate(target, unresolved)).toThrow(expect.objectContaining({ code: "unsupported_parameter" }));
+    }
     const output = [
-      { type: "input_text", text: "File references and PDF" },
-      { type: "input_image", file_id: "file_screenshot" },
-      { type: "input_file", file_id: "file_document" },
+      { type: "input_text", text: "Embedded PDF" },
       { type: "input_file", filename: "capture.pdf", file_data: "data:application/pdf;base64,cGRm" },
     ];
     const result = translate(FORMATS.CLAUDE, body(output));
-    const tool = result.messages.flatMap((msg) => msg.content).find((block) => block.type === "tool_result");
+    const tool = result.messages.flatMap(msg => msg.content).find(block => block.type === "tool_result");
     expect(tool.tool_use_id).toBe("call_screenshot");
     expect(tool.content).toEqual([
-      { type: "text", text: output[0].text },
-      { type: "text", text: JSON.stringify(output[1]) },
-      { type: "text", text: JSON.stringify(output[2]) },
+      { type: "text", text: "Embedded PDF" },
       { type: "document", source: { type: "base64", media_type: "application/pdf", data: "cGRm" } },
     ]);
     const chat = translate(FORMATS.OPENAI, body(output));
-    const chatTool = chat.messages.find((msg) => msg.role === "tool");
-    expect(chatTool.tool_call_id).toBe("call_screenshot");
-    expect(chatTool.content).toContain("file_screenshot");
-    expect(chatTool.content).toContain("file_document");
-    expect(chatTool.content).not.toContain("cGRm");
-    const files = chat.messages.flatMap((msg) => Array.isArray(msg.content) ? msg.content : [])
-      .filter((part) => part.type === "file");
+    expect(chat.messages.find(msg => msg.role === "tool")).toMatchObject({ tool_call_id: "call_screenshot", content: `${TOOL_ERROR_PREFIX}Embedded PDF` });
+    const files = chat.messages.flatMap(msg => Array.isArray(msg.content) ? msg.content : []).filter(part => part.type === "file");
     expect(files).toEqual([{ type: "file", file: { filename: "capture.pdf", file_data: "data:application/pdf;base64,cGRm" } }]);
+    expect(() => translate(FORMATS.CLAUDE, body([{ type: "input_file", file_id: "file_document" }]))).toThrow(expect.objectContaining({ code: "unsupported_parameter" }));
+    expect(unresolved.input[1].output).toEqual([{ type: "input_image", file_id: "file_screenshot" }]);
   });
   it("normalizes nested OpenAI tool_result content without changing strings", () => {
     const result = openaiToClaudeRequest("claude-sonnet-4", { messages: [

@@ -44,10 +44,25 @@ export function geminiToOpenAIResponse(chunk, state) {
   
   // Handle Antigravity wrapper
   const response = chunk.response || chunk;
-  if (!response || !response.candidates?.[0]) return null;
+  if (!response) return null;
+  const usageMeta = response.usageMetadata || chunk.usageMetadata;
+  const geminiUsage = toOpenAIUsage(usageMeta, "gemini");
+  if (geminiUsage) state.usage = geminiUsage;
+  const candidate = response.candidates?.[0];
+  if (!candidate) {
+    if (state.collectNativeResponse) {
+      const previous = state.nativeResponse?.response || state.nativeResponse || {};
+      const native = { ...previous, ...response };
+      state.nativeResponse = chunk.response ? { ...state.nativeResponse, ...chunk, response: native } : native;
+    }
+    if (!geminiUsage) return null;
+    const trailer = buildChunk(chunkMeta(state), {}, null);
+    trailer.choices = [];
+    trailer.usage = geminiUsage;
+    return trailer;
+  }
 
   const results = [];
-  const candidate = response.candidates[0];
   const content = candidate.content;
   if (state.collectNativeResponse) {
     const previous = state.nativeResponse?.response || state.nativeResponse || {};
@@ -78,6 +93,11 @@ export function geminiToOpenAIResponse(chunk, state) {
       const inlineData = part.inlineData || part.inline_data;
       if (inlineData?.data) {
         const mimeType = inlineData.mimeType || inlineData.mime_type || DEFAULT_IMAGE_MIME;
+        if (!mimeType.toLowerCase().startsWith("image/")) {
+          const error = new Error("Unsupported non-image Gemini output on a Chat protocol route");
+          error.code = "unsupported_response_media";
+          throw error;
+        }
         const image = { type: OPENAI_BLOCK.IMAGE_URL, index: state.geminiImageIndex ?? 0,
           image_url: { url: encodeDataUri(mimeType, inlineData.data) },
           ...(hasThoughtSig ? { extra_content: { google: { thought_signature: hasThoughtSig } } } : {}) };
@@ -130,11 +150,6 @@ export function geminiToOpenAIResponse(chunk, state) {
     }
   }
 
-  // Usage metadata - extract before finish reason so we can include it
-  const usageMeta = response.usageMetadata || chunk.usageMetadata;
-  const geminiUsage = toOpenAIUsage(usageMeta, "gemini");
-  if (geminiUsage) state.usage = geminiUsage;
-
   // Finish reason - include usage in final chunk
   if (candidate.finishReason) {
     let finishReason = toOpenAIFinish(candidate.finishReason, "gemini");
@@ -145,8 +160,8 @@ export function geminiToOpenAIResponse(chunk, state) {
     const finalChunk = buildChunk(chunkMeta(state), {}, finishReason);
     
     // Include usage in final chunk for downstream translators
-    if (state.usage) {
-      finalChunk.usage = state.usage;
+    if (geminiUsage) {
+      finalChunk.usage = geminiUsage;
     }
     
     results.push(finalChunk);

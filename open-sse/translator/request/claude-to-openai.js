@@ -89,7 +89,7 @@ export function claudeToOpenAIRequest(model, body, stream) {
 
   // Fix missing tool responses - OpenAI requires every tool_call to have a response.
   // Local variant: scans contiguous tool replies + inserts "[No response received]"
-  // (distinct from the global immediate-next check in concerns/toolCall, runs on the openai leg).
+  // (the source-aware repair also checks contiguous results in concerns/toolCall).
   fixMissingToolResponsesOpenAI(result.messages);
 
   // Tools

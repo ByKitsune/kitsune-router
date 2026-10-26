@@ -83,7 +83,8 @@ export function ensureToolCallIds(body, { sanitizeIds = true } = {}) {
       for (let j = 0; j < msg.tool_calls.length; j++) {
         const tc = msg.tool_calls[j];
         if (tc === null || typeof tc !== "object") continue;
-        tc.id = normalizeId(tc.id, i, j, tc.function?.name);
+        const id = normalizeId(tc.id, i, j, tc.function?.name);
+        if (tc.id !== id) tc.id = id;
         if (!tc.type) {
           tc.type = "function";
         }
@@ -98,7 +99,8 @@ export function ensureToolCallIds(body, { sanitizeIds = true } = {}) {
     // Validate tool_call_id in tool messages (role: "tool")
     if (msg.role === "tool") {
       if (typeof msg.tool_call_id === "string" && msg.tool_call_id) {
-        msg.tool_call_id = normalizeId(msg.tool_call_id, i, 0);
+        const id = normalizeId(msg.tool_call_id, i, 0);
+        if (msg.tool_call_id !== id) msg.tool_call_id = id;
         const queued = pendingToolCallIds.indexOf(msg.tool_call_id);
         if (queued >= 0) pendingToolCallIds.splice(queued, 1);
       } else {
@@ -111,12 +113,13 @@ export function ensureToolCallIds(body, { sanitizeIds = true } = {}) {
       for (let k = 0; k < msg.content.length; k++) {
         const block = msg.content[k];
         if (block === null || typeof block !== "object") continue;
-        if (sanitizeIds && block.type === "tool_use" && block.id) {
-          block.id = normalizeId(block.id, i, k, block.name);
+        if (sanitizeIds && block.type === CLAUDE_BLOCK.TOOL_USE && block.id) {
+          const id = normalizeId(block.id, i, k, block.name);
+          if (block.id !== id) block.id = id;
         }
-        // Validate tool_use_id in tool_result blocks
-        if (sanitizeIds && block.type === "tool_result" && block.tool_use_id) {
-          block.tool_use_id = normalizeId(block.tool_use_id, i, k);
+        if (sanitizeIds && block.type === CLAUDE_BLOCK.TOOL_RESULT && block.tool_use_id) {
+          const id = normalizeId(block.tool_use_id, i, k);
+          if (block.tool_use_id !== id) block.tool_use_id = id;
         }
       }
     }
@@ -127,7 +130,7 @@ export function ensureToolCallIds(body, { sanitizeIds = true } = {}) {
 
 // Get tool_call ids from assistant message (OpenAI format: tool_calls, Claude format: tool_use in content)
 export function getToolCallIds(msg) {
-  if (msg.role !== "assistant") return [];
+  if (msg?.role !== ROLE.ASSISTANT) return [];
 
   const ids = [];
 
@@ -173,37 +176,50 @@ export function hasToolResults(msg, toolCallIds) {
   return false;
 }
 
-// Fix missing tool responses - insert empty tool_result if assistant has tool_use but next message has no tool_result
+// Reconcile every call against the contiguous result run, preserving supplied replies.
 export function fixMissingToolResponses(body) {
-  if (!body.messages || !Array.isArray(body.messages)) return body;
-
-  const newMessages = [];
-
-  for (let i = 0; i < body.messages.length; i++) {
-    const msg = body.messages[i];
-    const nextMsg = body.messages[i + 1];
-
-    newMessages.push(msg);
-
-    // Check if this is assistant with tool_calls/tool_use
-    const toolCallIds = getToolCallIds(msg);
-    if (toolCallIds.length === 0) continue;
-
-    // Check if next message has tool_result
-    if (nextMsg && !hasToolResults(nextMsg, toolCallIds)) {
-      // Insert tool responses for each tool_call
-      for (const id of toolCallIds) {
-        // OpenAI format: role = "tool"
-        newMessages.push({
-          role: "tool",
-          tool_call_id: id,
-          content: ""
-        });
+  if (!Array.isArray(body?.messages)) return body;
+  const messages = body.messages;
+  let repaired;
+  let copiedUntil = 0;
+  for (let i = 0; i < messages.length; i++) {
+    const ids = getToolCallIds(messages[i]);
+    if (!ids.length || i + 1 === messages.length) continue;
+    const pending = [...ids];
+    let end = i + 1;
+    for (; end < messages.length; end++) {
+      const message = messages[end];
+      const results = message?.role === ROLE.TOOL ? [message.tool_call_id]
+        : message?.role === ROLE.USER && Array.isArray(message.content)
+          ? message.content.filter(block => block?.type === CLAUDE_BLOCK.TOOL_RESULT).map(block => block.tool_use_id) : [];
+      if (!results.length) break;
+      for (const id of results) {
+        const index = pending.findIndex(candidate => candidate === id || splitToolCallId(candidate).rawId === splitToolCallId(id).rawId);
+        if (index >= 0) pending.splice(index, 1);
       }
     }
+    if (pending.length) {
+      repaired ??= [];
+      for (let index = copiedUntil; index < end; index++) repaired.push(messages[index]);
+      copiedUntil = end;
+      if (Array.isArray(messages[i]?.content) && !messages[i].tool_calls) {
+        const content = pending.map(id => ({ type: CLAUDE_BLOCK.TOOL_RESULT, tool_use_id: id, content: "" }));
+        const last = repaired.at(-1);
+        if (end > i + 1 && last?.role === ROLE.USER && Array.isArray(last.content)) {
+          const results = last.content.filter(block => block?.type === CLAUDE_BLOCK.TOOL_RESULT);
+          const other = last.content.filter(block => block?.type !== CLAUDE_BLOCK.TOOL_RESULT);
+          repaired[repaired.length - 1] = { ...last, content: [...results, ...content, ...other] };
+        } else repaired.push({ role: ROLE.USER, content });
+      } else {
+        for (const id of pending) repaired.push({ role: ROLE.TOOL, tool_call_id: id, content: "" });
+      }
+    }
+    i = end - 1;
   }
-
-  body.messages = newMessages;
+  if (repaired) {
+    for (let index = copiedUntil; index < messages.length; index++) repaired.push(messages[index]);
+    body.messages = repaired;
+  }
   return body;
 }
 
