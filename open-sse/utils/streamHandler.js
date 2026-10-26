@@ -1,397 +1,279 @@
-// Stream handler with disconnect detection - shared for all providers
 import { STREAM_STALL_TIMEOUT_MS, STREAM_FIRST_CHUNK_TIMEOUT_MS, SSE_KEEPALIVE_MS } from "../config/runtimeConfig.js";
 import { FORMATS } from "../translator/formats.js";
-import { dbg, isDebugEnabled } from "./debugLog.js";
+import { dbg } from "./debugLog.js";
 
-// Shared text encoder for keepalive payloads
 const keepaliveEncoder = new TextEncoder();
-
-// Pre-encoded ping payloads
 const CLAUDE_PING_BYTES = keepaliveEncoder.encode("event: ping\ndata: {}\n\n");
 const OPENAI_PING_BYTES = keepaliveEncoder.encode(": ping\n\n");
 
-function getKeepaliveBytes(sourceFormat) {
-  if (sourceFormat === FORMATS.CLAUDE) {
-    return CLAUDE_PING_BYTES;
-  }
-  return OPENAI_PING_BYTES;
-}
-
-// Get HH:MM:SS timestamp
-function getTimeString() {
-  return new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-/**
- * Create stream controller with abort and disconnect detection
- * @param {object} options
- * @param {function} options.onDisconnect - Callback when client disconnects
- * @param {object} options.log - Logger instance
- * @param {string} options.provider - Provider name
- * @param {string} options.model - Model name
- */
 export function createStreamController({ onDisconnect, onError, log, provider, model, reqTag = "" } = {}) {
   const abortController = new AbortController();
   const startTime = Date.now();
   let disconnected = false;
-  let abortTimeout = null;
   let streamError = null;
-
-  // Only abnormal terminations are logged; normal completion is covered by "📊 done".
-  // isError uses errorLine (always shown, ignores LOG_LEVEL) so failures survive quiet levels.
-  const logStream = (symbol, status, isError = false) => {
-    const duration = Date.now() - startTime;
-    const emit = isError ? log?.errorLine : log?.line;
-    if (emit) emit(reqTag, symbol, `${status} · ${provider}/${model} · ${duration}ms`);
-    else console.log(`[${getTimeString()}] ${symbol} ${provider}/${model} · ${status} · ${duration}ms`);
-  };
-
   return {
-    signal: abortController.signal,
-    startTime,
-
+    signal: abortController.signal, startTime,
     isConnected: () => !disconnected,
     getError: () => streamError,
-
-    // Call when client disconnects
-    handleDisconnect: (reason = "client_closed") => {
-      if (disconnected) return;
+    handleDisconnect(reason = "client_closed") {
+      if (disconnected) { abortController.abort(reason); return; }
       disconnected = true;
-
-      // Debug-only: Responses API has no [DONE] sentinel, so codex/droid close the
-      // socket on every completed request. "📊 done" is the authoritative outcome line.
-      dbg("CTRL", `${provider}/${model} | disconnect=${reason} | dur=${Date.now() - startTime}ms`);
-
-      if (abortTimeout) {
-        clearTimeout(abortTimeout);
-        abortTimeout = null;
-      }
-
-      // Immediately abort upstream to prevent orphan billing / background hangs
-      abortController.abort(new Error(reason));
-
+      dbg("CTRL", `${provider}/${model} | disconnect | dur=${Date.now() - startTime}ms`);
+      abortController.abort(reason instanceof Error ? reason : new Error(String(reason)));
       onDisconnect?.({ reason, duration: Date.now() - startTime });
     },
-
-    // Call when stream completes normally (no line here — "📊 done" is authoritative)
-    handleComplete: () => {
-      if (disconnected) return;
-      disconnected = true;
-
-      if (abortTimeout) {
-        clearTimeout(abortTimeout);
-        abortTimeout = null;
-      }
-    },
-
-    // Call on error
-    handleError: (error) => {
+    handleComplete() { disconnected = true; },
+    handleError(error) {
       if (disconnected) return;
       disconnected = true;
       streamError = error;
-
-      if (abortTimeout) {
-        clearTimeout(abortTimeout);
-        abortTimeout = null;
-      }
-
       abortController.abort(error);
-
-      if (error?.name === "AbortError") {
-        logStream("⚡", "ABORTED");
-        return;
+      if (error?.name !== "AbortError") {
+        log?.errorLine?.(reqTag, "✗", `ERROR · ${provider}/${model}`);
+        onError?.(error);
       }
-
-      logStream("✗", `ERROR: ${error?.message || error}${error?.stack ? `\n    ${error.stack}` : ""}`, true);
-      onError?.(error);
     },
-
-    abort: (err) => {
-      if (err) streamError = err;
-      abortController.abort(err);
-    }
+    abort(error) {
+      disconnected = true;
+      if (error) streamError = error;
+      abortController.abort(error);
+    },
   };
 }
 
-/**
- * Create transform stream with disconnect detection and keepalive heartbeat
- * Wraps existing transform stream and adds abort & ping capability.
- *
- * Stall detection lives in pipeWithDisconnect (tied to upstream byte
- * activity). When the upstream model is silent for long stretches
- * (e.g. reasoning thinking, prompt prefill), an optional keepalive timer
- * emits periodic SSE pings (`event: ping` for Claude, `: ping` for OpenAI)
- * to prevent proxy timeouts and client stall warnings.
- */
 export function createDisconnectAwareStream(
-  transformStream,
-  streamController,
-  onAbortTerminal = null,
-  keepaliveMs = SSE_KEEPALIVE_MS,
-  sourceFormat = null
+  transformStream, streamController, onAbortTerminal = null,
+  keepaliveMs = SSE_KEEPALIVE_MS, sourceFormat = null, lifecycle = {},
 ) {
   const reader = transformStream.readable.getReader();
-  const writer = transformStream.writable.getWriter();
+  const writer = transformStream.writable?.getWriter();
+  const pingBytes = sourceFormat === FORMATS.CLAUDE ? CLAUDE_PING_BYTES : OPENAI_PING_BYTES;
+  let output;
+  let ended = false;
+  let reading = false;
   let terminalEmitted = false;
-  let keepaliveTimer = null;
+  let keepaliveTimer;
+  let cleanupPromise;
   let lastActivityAt = Date.now();
-  const pingBytes = getKeepaliveBytes(sourceFormat);
-
-  const clearKeepalive = () => {
-    if (keepaliveTimer) {
-      clearInterval(keepaliveTimer);
-      keepaliveTimer = null;
-    }
+  let atEventBoundary = true;
+  let suffix = "";
+  const boundaryDecoder = new TextDecoder();
+  const setDemand = () => lifecycle.onDemand?.(!ended && output.desiredSize > 0);
+  const notifyAbort = () => {
+    lifecycle.onAbort?.(streamController.signal?.reason);
+    if (!streamController.getError?.() || streamController.getError()?.name === "AbortError") streamController.handleDisconnect(streamController.signal?.reason || "aborted");
   };
-
-  // Emit a synthesized terminal payload (e.g. Responses response.failed + [DONE]) once
-  const emitTerminal = (controller) => {
+  const cleanup = reason => {
+    if (cleanupPromise) return cleanupPromise;
+    clearInterval(keepaliveTimer);
+    streamController.signal?.removeEventListener("abort", onSignalAbort);
+    const tasks = [
+      Promise.resolve().then(() => reader.cancel(reason)),
+      Promise.resolve().then(() => writer?.abort(reason)),
+      Promise.resolve().then(() => lifecycle.cancel?.(reason)),
+    ];
+    cleanupPromise = Promise.allSettled(tasks).then(() => {
+      try { reader.releaseLock(); } catch {}
+      try { writer?.releaseLock?.(); } catch {}
+      transformStream.dispose?.(reason);
+      lifecycle.onCleanup?.();
+    });
+    return cleanupPromise;
+  };
+  const emitTerminal = () => {
     if (terminalEmitted || !onAbortTerminal) return;
     terminalEmitted = true;
     try {
       const bytes = onAbortTerminal();
-      if (bytes) controller.enqueue(bytes);
-    } catch { /* best-effort terminal */ }
+      if (bytes) output.enqueue(bytes);
+    } catch {}
   };
-
+  const closeOnError = (error, wasConnected = streamController.isConnected(), serialize = true) => {
+    if (ended) return;
+    ended = true;
+    clearInterval(keepaliveTimer);
+    streamController.signal?.removeEventListener("abort", onSignalAbort);
+    const message = error?.message || "";
+    const code = error?.code || error?.cause?.code;
+    const networkClose = error?.name === "AbortError" || /aborted|socket hang up|ECONNRESET|ETIMEDOUT|EPIPE/.test(message) || code === "UND_ERR_SOCKET";
+    try {
+      if (onAbortTerminal || !wasConnected || networkClose) { if (serialize) emitTerminal(); output.close(); }
+      else output.error(error);
+    } finally {
+      if (wasConnected) streamController.handleError(error);
+      setDemand();
+      void cleanup(error);
+    }
+  };
+  const onSignalAbort = () => {
+    if (transformStream.isTerminal?.()) return;
+    notifyAbort();
+    closeOnError(streamController.signal.reason || new Error("aborted"), false, Boolean(streamController.getError?.()));
+  };
   return new ReadableStream({
     start(controller) {
-      if (keepaliveMs > 0) {
-        keepaliveTimer = setInterval(() => {
-          if (!streamController.isConnected()) {
-            clearKeepalive();
+      output = controller;
+      streamController.signal?.addEventListener("abort", onSignalAbort, { once: true });
+      if (streamController.signal?.aborted) { onSignalAbort(); return; }
+      setDemand();
+      if (keepaliveMs > 0) keepaliveTimer = setInterval(() => {
+        if (ended) return;
+        if (!streamController.isConnected() && !transformStream.isTerminal?.()) { closeOnError(streamController.getError?.() || new Error("aborted"), false); return; }
+        if (!transformStream.isTerminal?.() && output.desiredSize > 0 && atEventBoundary && Date.now() - lastActivityAt >= keepaliveMs) {
+          output.enqueue(pingBytes);
+          lastActivityAt = Date.now();
+          setDemand();
+        }
+      }, Math.min(keepaliveMs, 1000));
+    },
+    pull(controller) {
+      if (ended) return;
+      if (!streamController.isConnected() && !transformStream.isTerminal?.()) { closeOnError(streamController.getError?.() || new Error("aborted"), false); return; }
+      setDemand();
+      if (reading) return;
+      reading = true;
+      void (async () => {
+        try {
+          const { done, value } = await reader.read();
+          if (ended) return;
+          lastActivityAt = Date.now();
+          if (done) {
+            ended = true;
+            clearInterval(keepaliveTimer);
+            streamController.signal?.removeEventListener("abort", onSignalAbort);
+            streamController.handleComplete();
+            setDemand();
+            await cleanup();
+            controller.close();
             return;
           }
-          const elapsed = Date.now() - lastActivityAt;
-          if (elapsed >= keepaliveMs) {
-            try {
-              controller.enqueue(pingBytes);
-              lastActivityAt = Date.now();
-            } catch {
-              clearKeepalive();
-            }
-          }
-        }, Math.min(keepaliveMs, 1000));
-      }
+          const text = boundaryDecoder.decode(value, { stream: true });
+          suffix = (suffix + text.slice(-4)).slice(-4);
+          atEventBoundary = /(?:\r\n\r\n|\n\n|\r\r)$/.test(suffix);
+          reading = false;
+          controller.enqueue(value);
+          setDemand();
+        } catch (error) { reading = false; closeOnError(error); }
+      })();
     },
-
-    async pull(controller) {
-      if (!streamController.isConnected()) {
-        clearKeepalive();
-        const err = streamController.getError?.();
-        if (err && !onAbortTerminal) {
-          try {
-            emitTerminal(controller);
-            controller.error(err);
-          } catch {}
-          return;
-        }
-        emitTerminal(controller);
-        controller.close();
-        return;
-      }
-
-      try {
-        const { done, value } = await reader.read();
-        lastActivityAt = Date.now();
-
-        if (done) {
-          clearKeepalive();
-          streamController.handleComplete();
-          controller.close();
-          return;
-        }
-        controller.enqueue(value);
-      } catch (error) {
-        clearKeepalive();
-        const wasConnected = streamController.isConnected();
-        // Controller already closed = downstream ended; not an upstream error, skip noisy log.
-        const msg0 = error?.message || "";
-        const isControllerClosed = msg0.includes("already closed") || msg0.includes("Invalid state");
-        if (!isControllerClosed) streamController.handleError(error);
-        reader.cancel().catch(() => {});
-        writer.abort().catch(() => {});
-
-        // Treat network resets / socket hang up / abort as graceful close
-        const msg = error?.message || "";
-        const code = error?.code || error?.cause?.code || "";
-        const isNetworkClose =
-          error.name === "AbortError" ||
-          msg.includes("aborted") ||
-          msg.includes("socket hang up") ||
-          msg.includes("ECONNRESET") ||
-          msg.includes("ETIMEDOUT") ||
-          msg.includes("EPIPE") ||
-          code === "ECONNRESET" ||
-          code === "ETIMEDOUT" ||
-          code === "EPIPE" ||
-          code === "UND_ERR_SOCKET";
-
-        // Graceful close on network/abort, or when a structured terminal is available
-        // (Responses passthrough prefers response.failed + [DONE] over a raw transport error)
-        try {
-          if (!wasConnected || isNetworkClose || onAbortTerminal) {
-            emitTerminal(controller);
-            controller.close();
-          } else {
-            controller.error(error);
-          }
-        } catch (e) { /* already closed or cancelled */ }
-      }
-    },
-
     cancel(reason) {
-      clearKeepalive();
-      streamController.handleDisconnect(reason || "cancelled");
-      reader.cancel();
-      writer.abort();
-    }
-  });
-}
-
-/**
- * Pipe provider response through transform with disconnect detection and keepalive.
- *
- * Stall watchdog tracks raw upstream byte activity, not transform output.
- * Reasoning models (Claude thinking via Kiro, etc.) can produce zero SSE
- * output for long stretches while partial EventStream frames keep arriving.
- * Measuring stall on the transform output caused false stalls and the
- * "failed to pipe response" error in Next.
- *
- * Any upstream chunk resets the timer. If no bytes arrive for
- * STREAM_STALL_TIMEOUT_MS, abort the underlying fetch via the controller.
- *
- * @param {Response} providerResponse - Response from provider
- * @param {TransformStream} transformStream - Transform stream for SSE
- * @param {object} streamController - Stream controller from createStreamController
- * @param {function|null} onAbortTerminal - Optional abort terminal serializer
- * @param {number} stallTimeoutMs - Stall timeout in ms
- * @param {number} firstChunkTimeoutMs - TTFT timeout in ms
- * @param {number} keepaliveMs - Keepalive ping interval in ms (0 = disabled)
- * @param {string} sourceFormat - Client source format (e.g. "claude", "openai")
- */
-export function pipeWithDisconnect(
-  providerResponse,
-  transformStream,
-  streamController,
-  onAbortTerminal = null,
-  stallTimeoutMs = STREAM_STALL_TIMEOUT_MS,
-  firstChunkTimeoutMs = STREAM_FIRST_CHUNK_TIMEOUT_MS,
-  keepaliveMs = SSE_KEEPALIVE_MS,
-  sourceFormat = null
-) {
-  let stallTimer = null;
-  let chunkCount = 0;
-  let totalBytes = 0;
-  let lastChunkAt = Date.now();
-  // Human-readable abort cause for the terminal payload. Defaults to a generic
-  // upstream loss; the stall watchdog overwrites it with the specific timeout
-  // so aborted Responses passthrough streams carry the real cause (upstream
-  // 9router #4072: undistinguishable "stream closed" terminal bytes).
-  let abortMessage = "upstream connection lost";
-  const t0 = Date.now();
-  const tag = "STREAM";
-  const clearStall = () => {
-    if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
-  };
-  const cancelUpstream = (err) => {
-    clearStall();
-    if (providerResponse?.body && !providerResponse.body.locked) {
-      try { providerResponse.body.cancel(err).catch(() => {}); } catch {}
-    }
-    if (transformStream?.writable && !transformStream.writable.locked) {
-      try { transformStream.writable.abort(err).catch(() => {}); } catch {}
-    }
-  };
-
-  const armStall = () => {
-    clearStall();
-    const currentTimeout = chunkCount === 0 ? firstChunkTimeoutMs : stallTimeoutMs;
-    stallTimer = setTimeout(() => {
-      stallTimer = null;
-      const isTtft = chunkCount === 0;
-      const reason = isTtft ? `TTFT timeout (${firstChunkTimeoutMs}ms)` : `stream stall timeout (${stallTimeoutMs}ms)`;
-      abortMessage = reason;
-      dbg(tag, `STALL TIMEOUT | isTtft=${isTtft} | chunks=${chunkCount} | bytes=${totalBytes} | sinceLast=${Date.now() - lastChunkAt}ms`);
-      const timeoutError = new Error(reason);
-      cancelUpstream(timeoutError);
-      streamController.handleError?.(timeoutError);
-      streamController.abort?.(timeoutError);
-    }, currentTimeout);
-  };
-
-  // Immediate upstream cancellation when caller's signal aborts
-  const onSignalAbort = () => {
-    const reason = streamController.signal?.reason || new Error("aborted");
-    cancelUpstream(reason);
-  };
-  if (streamController?.signal) {
-    if (streamController.signal.aborted) {
-      onSignalAbort();
-    } else {
-      streamController.signal.addEventListener("abort", onSignalAbort, { once: true });
-    }
-  }
-
-  // Wrap controller so every termination path clears the stall timer and aborts upstream.
-  // Without this, abort/cancel/downstream-error paths leave the timer armed
-  // and a stale abort could fire after the request has already ended.
-  const wrappedController = {
-    signal: streamController.signal,
-    startTime: streamController.startTime,
-    isConnected: () => streamController.isConnected(),
-    getError: () => streamController.getError?.(),
-    handleComplete: () => {
-      dbg(tag, `complete | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`);
-      clearStall();
-      streamController.handleComplete();
-    },
-    handleError: (e) => {
-      dbg(tag, `error: ${e?.message} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`);
-      cancelUpstream(e);
-      streamController.handleError(e);
-    },
-    handleDisconnect: (r) => {
-      dbg(tag, `disconnect: ${r} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`);
-      cancelUpstream(new Error(r));
-      streamController.handleDisconnect(r);
-    },
-    abort: (err) => {
-      cancelUpstream(err || new Error("aborted"));
-      streamController.abort?.(err);
-    }
-  };
-
-  armStall();
-  dbg(tag, `pipe start | stallTimeout=${stallTimeoutMs}ms`);
-
-  const upstreamTap = new TransformStream({
-    transform(chunk, controller) {
-      chunkCount++;
-      const sz = chunk?.byteLength || chunk?.length || 0;
-      totalBytes += sz;
-      const now = Date.now();
-      const gap = now - lastChunkAt;
-      lastChunkAt = now;
-      if (isDebugEnabled && (chunkCount <= 5 || chunkCount % 20 === 0 || gap > 5000)) {
-        dbg(tag, `chunk #${chunkCount} | size=${sz}B | gap=${gap}ms | total=${totalBytes}B`);
+      if (!ended) {
+        ended = true;
+        clearInterval(keepaliveTimer);
+        streamController.signal?.removeEventListener("abort", onSignalAbort);
+        if (transformStream.isTerminal?.()) streamController.handleComplete();
+        streamController.handleDisconnect(reason || "cancelled");
       }
-      armStall();
-      controller.enqueue(chunk);
+      setDemand();
+      return cleanup(reason);
     },
-    flush() { dbg(tag, `upstream EOF | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); }
-  });
-
-  const transformedBody = providerResponse.body
-    .pipeThrough(upstreamTap)
-    .pipeThrough(transformStream);
-
-  return createDisconnectAwareStream(
-    { readable: transformedBody, writable: { getWriter: () => ({ abort: () => Promise.resolve() }) } },
-    wrappedController,
-    onAbortTerminal ? () => onAbortTerminal(abortMessage) : null,
-    keepaliveMs,
-    sourceFormat
-  );
+  }, { highWaterMark: 1 });
 }
 
+export function pipeWithDisconnect(
+  providerResponse, transformStream, streamController, onAbortTerminal = null,
+  stallTimeoutMs = STREAM_STALL_TIMEOUT_MS, firstChunkTimeoutMs = STREAM_FIRST_CHUNK_TIMEOUT_MS,
+  keepaliveMs = SSE_KEEPALIVE_MS, sourceFormat = null,
+) {
+  const upstream = providerResponse.body.getReader();
+  const writer = transformStream.writable.getWriter();
+  let stallTimer;
+  let stallRemaining = 0;
+  let stallArmedAt = 0;
+  let stopped = false;
+  let upstreamReading = false;
+  let demand = true;
+  let demandWaiters = [];
+  let chunkCount = 0;
+  let abortMessage = "upstream connection lost";
+  let cancellation;
+  let writerAbort;
+  let upstreamEOF = false;
+  let removeTerminalListener;
+  const clearStall = () => {
+    if (stallTimer) stallRemaining = Math.max(0, stallRemaining - (Date.now() - stallArmedAt));
+    clearTimeout(stallTimer);
+    stallTimer = null;
+  };
+  const wakeDemand = () => { const waiters = demandWaiters; demandWaiters = []; for (const resolve of waiters) resolve(); };
+  const cancelUpstream = reason => cancellation ??= Promise.resolve().then(() => upstream.cancel(reason)).catch(() => {});
+  const stop = (reason, terminal = false) => {
+    stopped = true;
+    clearStall();
+    wakeDemand();
+    void cancelUpstream(reason);
+    if (!terminal) writerAbort ??= writer.abort(reason).catch(() => {});
+  };
+  const onSignalAbort = () => {
+    const reason = streamController.signal.reason || new Error("aborted");
+    abortMessage = reason?.message || "upstream connection lost";
+    stop(reason);
+  };
+  const armStall = () => {
+    if (stopped || !upstreamReading || !demand) { clearStall(); return; }
+    if (stallTimer) return;
+    const timeout = chunkCount === 0 ? firstChunkTimeoutMs : stallTimeoutMs;
+    if (!(timeout > 0)) return;
+    stallArmedAt = Date.now();
+    stallTimer = setTimeout(() => {
+      abortMessage = chunkCount === 0 ? `TTFT timeout (${firstChunkTimeoutMs}ms)` : `stream stall timeout (${stallTimeoutMs}ms)`;
+      const error = new Error(abortMessage);
+      streamController.handleError(error);
+      stop(error);
+    }, stallRemaining);
+  };
+  streamController.signal?.addEventListener("abort", onSignalAbort, { once: true });
+  removeTerminalListener = transformStream.onTerminal?.(() => {
+    streamController.handleComplete();
+    stop(undefined, true);
+  });
+  const pump = async () => {
+    try {
+      if (streamController.signal?.aborted) { onSignalAbort(); return; }
+      while (!stopped) {
+        while (!demand && !stopped) await new Promise(resolve => demandWaiters.push(resolve));
+        if (stopped) break;
+        await writer.ready;
+        if (stopped) break;
+        upstreamReading = true;
+        stallRemaining = chunkCount === 0 ? firstChunkTimeoutMs : stallTimeoutMs;
+        armStall();
+        let result;
+        try { result = await upstream.read(); }
+        finally { upstreamReading = false; clearStall(); }
+        if (stopped) break;
+        if (result.done) { upstreamEOF = true; await writer.close(); break; }
+        chunkCount++;
+        await writer.write(result.value);
+      }
+    } catch (error) {
+      if (!stopped) {
+        abortMessage = error?.message || "upstream connection lost";
+        writerAbort ??= writer.abort(error).catch(() => {});
+      }
+    } finally {
+      stopped = true;
+      wakeDemand();
+      clearStall();
+      streamController.signal?.removeEventListener("abort", onSignalAbort);
+      removeTerminalListener?.();
+      if (!upstreamEOF) await cancelUpstream();
+      if (writerAbort) await writerAbort;
+      else if (!upstreamEOF && transformStream.isTerminal?.()) await writer.close().catch(() => {});
+      try { upstream.releaseLock(); } catch {}
+      try { writer.releaseLock(); } catch {}
+    }
+  };
+  const pumping = pump();
+  return createDisconnectAwareStream({
+    readable: transformStream.readable, dispose: reason => transformStream.dispose?.(reason),
+    isTerminal: () => transformStream.isTerminal?.(),
+  }, streamController, message => {
+    const terminal = transformStream.abortTerminalBytes || onAbortTerminal;
+    return terminal?.(message || abortMessage);
+  }, keepaliveMs, sourceFormat, {
+    onDemand(value) { demand = value; if (value) wakeDemand(); armStall(); },
+    async cancel(reason) { stop(reason, transformStream.isTerminal?.()); await pumping; },
+    onCleanup() { clearStall(); },
+  });
+}

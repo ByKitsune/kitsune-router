@@ -2,9 +2,9 @@ import { translateResponse, initState } from "../translator/index.js";
 import { FORMATS } from "../translator/formats.js";
 import { trackPendingRequest, appendRequestLog } from "@/lib/usageDb.js";
 import { extractUsage, mergeUsage, hasValidUsage, estimateUsage, logUsage, COLORS } from "./usageTracking.js";
-import { parseSSELine, hasValuableContent, hasSemanticContent, normalizeResponseIdentity, formatSSE } from "./streamHelpers.js";
-import { getOpenAIResponsesEventName, isOpenAIResponsesTerminalEvent, formatIncompleteOpenAIResponsesStreamFailure } from "./responsesStreamHelpers.js";
-import { dbg, isDebugEnabled } from "./debugLog.js";
+import { hasValuableContent, hasSemanticContent, normalizeResponseIdentity, formatSSE } from "./streamHelpers.js";
+import { isOpenAIResponsesTerminalEvent } from "./responsesStreamHelpers.js";
+import { createSSEParser, parseSSEEvent, streamEventPayload, createEventTransform, SSE_COMPLETION_GRACE_MS } from "./sse.js";
 import { extractReasoningText, captureResponsesReasoning } from "../translator/concerns/reasoning.js";
 import { normalizeTypedContent } from "../translator/concerns/typedContent.js";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
@@ -13,38 +13,19 @@ import { restoreOpenAIToolNameDeltas } from "./toolCompressor.js";
 import { sanitizeClientError } from "./clientErrors.js";
 import { extractResponseError, responseErrorToClient } from "../translator/concerns/responseError.js";
 import { getResponseServiceTier } from "../providers/serviceTiers.js";
-
 import { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER } from "./sseConstants.js";
 
-export { COLORS, formatSSE };
-export { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER };
+export { COLORS, formatSSE, SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER };
 
-// sharedEncoder is stateless — safe to share across streams
 const sharedEncoder = new TextEncoder();
+const responsesFormat = format => format === FORMATS.OPENAI_RESPONSES || format === FORMATS.CODEX;
+const failedReasons = new Set(["network_error", "error", "server_error", "timeout"]);
+const googleFormats = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX]);
 
-// A truthy finish_reason tells an OpenAI client the turn is over.
-const hasOpenAITerminal = (chunk) => !!chunk?.choices?.[0]?.finish_reason;
-
-function normalizeEmptyFinishReasons(chunk) {
-  if (!Array.isArray(chunk?.choices)) return false;
-  let changed = false;
-  for (const choice of chunk.choices) {
-    if (choice?.finish_reason !== "") continue;
-    choice.finish_reason = null;
-    changed = true;
-  }
-  return changed;
-}
-
-// Terminal chunk for a stream whose upstream ended without one (#4079, #4080).
-// "network_error" maps to a deliberate client-side error instead of presenting a truncated reply.
 function buildAbortedOpenAITerminal(model) {
   return {
-    id: `chatcmpl-${Date.now()}`,
-    object: "chat.completion.chunk",
-    created: Math.floor(Date.now() / 1000),
-    ...(model ? { model } : {}),
-    choices: [{ index: 0, delta: {}, finish_reason: "network_error" }]
+    id: `chatcmpl-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000),
+    ...(model ? { model } : {}), choices: [{ index: 0, delta: {}, finish_reason: "network_error" }],
   };
 }
 
@@ -52,92 +33,93 @@ export function buildAbortedOpenAITerminalBytes(model) {
   return sharedEncoder.encode(`data: ${JSON.stringify(buildAbortedOpenAITerminal(model))}\n\n${SSE_DONE}`);
 }
 
+function isTerminalPayload(chunk, format, event = null) {
+  if (format === FORMATS.OPENAI) return chunk?.choices?.some(choice => Boolean(choice?.finish_reason));
+  if (responsesFormat(format)) return isOpenAIResponsesTerminalEvent(event, chunk);
+  if (format === FORMATS.CLAUDE) return (event || chunk?.type) === "message_stop";
+  if (googleFormats.has(format)) return (chunk?.candidates || chunk?.response?.candidates)?.some(candidate => Boolean(candidate?.finishReason));
+  return format === FORMATS.OLLAMA && chunk?.done === true;
+}
 
 function accumulateToolCalls(store, parsed) {
-  const calls = parsed?.choices?.[0]?.delta?.tool_calls;
-  if (Array.isArray(calls)) {
-    for (const call of calls) {
-      const index = call.index ?? 0;
-      const entry = store.get(index) || { id: null, name: "", arguments: "" };
+  if (Array.isArray(parsed?.choices)) {
+    for (const choice of parsed.choices) for (const call of choice.delta?.tool_calls || []) {
+      const key = `chat:${choice.index ?? 0}:${call.index ?? 0}`;
+      const entry = store.get(key) || { id: null, names: [], arguments: [] };
       if (call.id) entry.id = call.id;
-      if (call.function?.name) entry.name += call.function.name;
-      if (call.function?.arguments) entry.arguments += call.function.arguments;
-      store.set(index, entry);
+      if (call.function?.name) entry.names.push(call.function.name);
+      if (call.function?.arguments) entry.arguments.push(call.function.arguments);
+      store.set(key, entry);
     }
     return;
   }
-
+  const key = `native:${parsed?.index ?? 0}`;
   const block = parsed?.content_block;
-  if (block?.type === "tool_use") {
-    const index = parsed.index ?? 0;
-    const entry = store.get(index) || { id: null, name: "", arguments: "" };
+  if (block?.type === CLAUDE_BLOCK.TOOL_USE) {
+    const entry = store.get(key) || { id: null, names: [], arguments: [] };
     entry.id = block.id || entry.id;
-    entry.name += block.name || "";
-    store.set(index, entry);
-    return;
-  }
-
-  const delta = parsed?.delta;
-  if (delta?.type === "input_json_delta" && typeof delta.partial_json === "string") {
-    const index = parsed.index ?? 0;
-    const entry = store.get(index) || { id: null, name: "", arguments: "" };
-    entry.arguments += delta.partial_json;
-    store.set(index, entry);
+    if (block.name) entry.names.push(block.name);
+    store.set(key, entry);
+  } else if (typeof parsed?.delta?.partial_json === "string") {
+    const entry = store.get(key) || { id: null, names: [], arguments: [] };
+    entry.arguments.push(parsed.delta.partial_json);
+    store.set(key, entry);
   }
 }
 
-/**
- * Stream modes
- */
-const STREAM_MODE = {
-  TRANSLATE: "translate",    // Full translation between formats
-  PASSTHROUGH: "passthrough" // No translation, normalize output, extract usage
-};
-
-// Upper bound on the deferred response.completed wait: a chat->responses stream
-// that saw finish_reason without usage must not hold the client's terminal event
-// forever when the upstream stalls with no usage trailer and no [DONE].
-const PENDING_COMPLETION_FLUSH_MS = 3000;
-
-/**
- * Create unified SSE transform stream
- * @param {object} options
- * @param {string} options.mode - Stream mode: translate, passthrough
- * @param {string} options.targetFormat - Provider format (for translate mode)
- * @param {string} options.sourceFormat - Client format (for translate mode)
- * @param {string} options.provider - Provider name
- * @param {object} options.reqLogger - Request logger instance
- * @param {string} options.model - Model name
- * @param {string} options.connectionId - Connection ID for usage tracking
- * @param {object} options.body - Request body (for input token estimation)
- * @param {function} options.onStreamComplete - Callback when stream completes (content, usage)
- * @param {string} options.apiKey - API key for usage tracking
- */
 export function createSSEStream(options = {}) {
   const {
-    mode = STREAM_MODE.TRANSLATE,
-    sourceFormat = FORMATS.OPENAI,
-    targetFormat = sourceFormat,
-    provider = null,
-    reqLogger = null,
-    toolNameMap = null,
-    wireToolNames = null,
-    customToolNames = null,
-    model = null,
-    connectionId = null,
-    body = null,
-    onStreamComplete = null,
-    apiKey = null,
-    responseModel = null
+    mode = "translate", sourceFormat = FORMATS.OPENAI, targetFormat = sourceFormat,
+    provider = null, reqLogger = null, toolNameMap = null, wireToolNames = null,
+    customToolNames = null, model = null, connectionId = null, body = null,
+    onStreamComplete = null, apiKey = null, responseModel = null,
   } = options;
-
-  let buffer = "";
+  const passthrough = mode === "passthrough" || sourceFormat === targetFormat;
+  const state = mode === "translate" ? {
+    ...initState(sourceFormat), provider, toolNameMap,
+    customToolNames: new Set(Array.from(customToolNames || [], name => toolNameMap?.get(name) || name)),
+    model, targetFormat, sourceFormat, responseModel,
+  } : null;
+  if (state) state.declaredToolNames = new Set((body?.tools || []).flatMap(tool => tool.functionDeclarations?.map(fn => fn.name) || [tool.function?.name || tool.name]).filter(Boolean));
+  const parser = createSSEParser({ mode: targetFormat === FORMATS.OLLAMA ? "ndjson" : "sse" });
+  const responseIdentity = {};
+  const toolNameDeltas = { names: new Map(), frames: [] };
+  const declaredWireNames = toolNameMap?.size > 0 ? new Set([...toolNameMap.keys(), ...(wireToolNames || [])]) : null;
+  const contentChunks = [];
+  const thinkingChunks = [];
+  const toolCallStore = new Map();
+  const terminalListeners = new Set();
   let usage = null;
   let actualServiceTier = null;
-  // Keep raw accounting separate from translator state (which may be normalized
-  // for a client). Complete provider snapshots replace older counters, even zero;
-  // Anthropic's split/cumulative events still merge field by field.
-  const captureUsage = (chunk) => {
+  let totalContentLength = 0;
+  let ttftAt = null;
+  let firstTokenAt = null;
+  let lastChunkAt = null;
+  let responsesReasoningState;
+  let inputTerminalSeen = false;
+  let chatInputSeen = false;
+  let clientTerminalSeen = false;
+  let streamDoneSent = false;
+  let finalized = false;
+  let disposed = false;
+  let finished = false;
+  let streamFailed = false;
+  let streamErrorMessage = null;
+  let streamErrorStatus = 502;
+  let completionTimer = null;
+  let completionDeadline = null;
+  let processing = false;
+  let deferredNative = null;
+  const deferredClientTerminals = new Map();
+  const finishedChoices = new Set();
+  const upstreamChoices = new Set();
+  const upstreamFinishedChoices = new Set();
+  const allChatChoicesFinished = () => upstreamFinishedChoices.size >= Math.max(upstreamChoices.size,
+    Number.isSafeInteger(body?.n) && body.n > 0 ? body.n : 1);
+
+  const discardPendingTools = () => { toolNameDeltas.names.clear(); toolNameDeltas.frames = []; };
+  const clearCompletionTimer = () => { clearTimeout(completionTimer); completionTimer = null; };
+  const captureUsage = chunk => {
     actualServiceTier = getResponseServiceTier(chunk) ?? actualServiceTier;
     const extracted = extractUsage(chunk);
     if (!extracted) return;
@@ -145,649 +127,378 @@ export function createSSEStream(options = {}) {
     const complete = chunk?.usageMetadata || chunk?.response?.usageMetadata ||
       (raw && (raw.prompt_tokens !== undefined || raw.input_tokens !== undefined) &&
         (raw.completion_tokens !== undefined || raw.output_tokens !== undefined));
-    usage = complete ? extracted
-      : chunk?.type === "message_delta" && chunk.delta?.stop_reason
-        ? { ...usage, ...extracted }
-        : mergeUsage(usage, extracted);
+    usage = complete ? extracted : chunk?.type === "message_delta" && chunk.delta?.stop_reason
+      ? { ...usage, ...extracted } : mergeUsage(usage, extracted);
   };
-
-  // Per-stream decoder with stream:true to correctly handle multi-byte chars split across chunks
-  const decoder = new TextDecoder("utf-8", { fatal: false });
-
-  const state = mode === STREAM_MODE.TRANSLATE
-    ? { ...initState(sourceFormat), provider, toolNameMap, customToolNames: new Set(Array.from(customToolNames || [], name => toolNameMap?.get(name) || name)), model, targetFormat, sourceFormat, responseModel }
-    : null;
-  if (state) state.declaredToolNames = new Set((body?.tools || []).flatMap(tool => tool.functionDeclarations?.map(fn => fn.name) || [tool.function?.name || tool.name]).filter(Boolean));
-  const toolNameDeltas = { names: new Map(), frames: [] };
-  const declaredWireNames = toolNameMap?.size > 0 ? new Set([...(toolNameMap.keys()), ...(wireToolNames || [])]) : null;
-  const discardPendingToolNames = () => {
-    toolNameDeltas.names.clear();
-    toolNameDeltas.frames = [];
-  };
-  const restoreToolNames = (chunk) => {
-    if (Array.isArray(chunk?.choices) && chunk.choices.some(choice => choice?.finish_reason &&
-        ["network_error", "error", "server_error", "timeout"].includes(choice.native_finish_reason || choice.finish_reason))) {
-      discardPendingToolNames();
+  const accumulateContent = (parsed, eventName) => {
+    const append = (text, thinking = false) => {
+      if (typeof text !== "string" || !text) return;
+      totalContentLength += text.length;
+      (thinking ? thinkingChunks : contentChunks).push(text);
+    };
+    for (const choice of parsed.choices || []) {
+      append(choice.delta?.content);
+      append(extractReasoningText(choice.delta), true);
     }
-    return restoreOpenAIToolNameDeltas(chunk, toolNameMap, toolNameDeltas, declaredWireNames)
-      .map(item => decloakStreamChunk(item, toolNameMap));
+    append(parsed.delta?.text);
+    append(parsed.delta?.thinking, true);
+    const block = parsed.content_block;
+    if (block?.type === CLAUDE_BLOCK.THINKING) append(block.thinking, true);
+    else if (block?.type === CLAUDE_BLOCK.TEXT) append(block.text);
+    for (const part of (parsed.candidates || parsed.response?.candidates)?.[0]?.content?.parts || []) append(part.text, part.thought === true);
+    append(parsed.message?.content);
+    append(parsed.message?.thinking, true);
+    const type = eventName || parsed.type;
+    if (type?.startsWith("response.")) {
+      append(captureResponsesReasoning({ event: type, data: parsed }, responsesReasoningState ??= {}), true);
+      if (type === "response.output_text.delta") append(parsed.delta);
+    }
   };
-  const publicChunk = (chunk) => {
+  const markFailed = (message, status = 502) => {
+    if (streamFailed) return;
+    streamFailed = true;
+    streamErrorStatus = status;
+    streamErrorMessage = sanitizeClientError({ message: message || "Upstream stream failed" }, { providerIds: [provider] }).message;
+  };
+  const publicChunk = (chunk, eventName = null) => {
     const data = chunk?.data && typeof chunk.data === "object" ? chunk.data : chunk;
-    const flat = data?.type === "error" && !data.error;
-    if (!data?.error && !data?.response?.error && !flat) return chunk;
-    const safe = flat ? {
-      ...sanitizeClientError(extractResponseError(data).error, { providerIds: [provider] }), type: "error",
-      ...(Number.isSafeInteger(data.sequence_number) ? { sequence_number: data.sequence_number } : {}),
-    } : { ...data };
-    if (data.error) safe.error = sanitizeClientError(data.error, { providerIds: [provider] });
-    if (data.response?.error) safe.response = { ...data.response, error: sanitizeClientError(data.response.error, { providerIds: [provider] }) };
+    const failure = extractResponseError(streamEventPayload({ event: eventName }, data));
+    if (!failure) return chunk;
+    let safe;
+    if (failure.flat) {
+      safe = { ...sanitizeClientError(failure.error, { providerIds: [provider] }), type: "error",
+        ...(Number.isSafeInteger(data.sequence_number) ? { sequence_number: data.sequence_number } : {}) };
+    } else {
+      safe = { ...data };
+      if (data.error) safe.error = sanitizeClientError(data.error, { providerIds: [provider] });
+      if (data.response?.error) safe.response = { ...data.response, error: sanitizeClientError(data.response.error, { providerIds: [provider] }) };
+    }
     return data === chunk ? safe : { ...chunk, data: safe };
   };
-  const responseIdentity = {};
-  const formatClientSSE = (chunk) => {
+  const formatClientSSE = (chunk, eventName = null) => {
     normalizeResponseIdentity(chunk, responseModel, responseIdentity);
-    return formatSSE(publicChunk(chunk), sourceFormat);
+    const safe = publicChunk(chunk, eventName);
+    return formatSSE(eventName ? { event: eventName, data: safe } : safe, sourceFormat);
   };
-
-  let totalContentLength = 0;
-  const contentChunks = [];
-  const thinkingChunks = [];
-  const toolCallStore = new Map();
-  let ttftAt = null;
-  let firstTokenAt = null;
-  let lastChunkAt = null;
-  let sseLineCount = 0;
-  let sseEmittedCount = 0;
-  const eventTypeCounts = {};
-
-  // Track Responses API event framing for same-format passthrough (codex)
-  let currentOpenAIResponsesEvent = null;
-  let openAIResponsesTerminalSeen = false;
-  let openAIResponsesDoneSent = false;
-  let streamDoneSent = false;  // track duplicate [DONE] across transform + flush
-  let passthroughFinishSeen = false;  // passthrough: duplicate finish chunks from upstream
-  let passthroughDoneSent = false;    // passthrough: upstream already sent [DONE]
-  let passthroughAtEventBoundary = true;
-  let clientTerminalSeen = false;
-  let finalized = false;
-  let completionFlushTimer = null;
-  let upstreamErrorTerminated = false;
-
-  const accumulateOpenAIContent = (parsed) => {
-    const delta = parsed?.choices?.[0]?.delta;
-    if (!delta) return;
-    if (typeof delta.content === "string" && delta.content) {
-      totalContentLength += delta.content.length;
-      contentChunks.push(delta.content);
-    }
-    const reasoning = extractReasoningText(delta);
-    if (reasoning) {
-      totalContentLength += reasoning.length;
-      thinkingChunks.push(reasoning);
-    }
-  };
-
-  let responsesReasoningState;
-  const accumulateProviderContent = (parsed) => {
-    if (!parsed) return;
-    accumulateOpenAIContent(parsed);
-    if (typeof parsed.delta?.text === "string" && parsed.delta.text) {
-      totalContentLength += parsed.delta.text.length;
-      contentChunks.push(parsed.delta.text);
-    }
-    if (typeof parsed.delta?.thinking === "string" && parsed.delta.thinking) {
-      totalContentLength += parsed.delta.thinking.length;
-      thinkingChunks.push(parsed.delta.thinking);
-    }
-    const block = parsed.content_block;
-    if (block?.type === CLAUDE_BLOCK.THINKING && typeof block.thinking === "string" && block.thinking) {
-      totalContentLength += block.thinking.length;
-      thinkingChunks.push(block.thinking);
-    } else if (block?.type === CLAUDE_BLOCK.TEXT && typeof block.text === "string" && block.text) {
-      totalContentLength += block.text.length;
-      contentChunks.push(block.text);
-    }
-    const parts = (parsed.candidates || parsed.response?.candidates)?.[0]?.content?.parts;
-    for (const part of parts || []) {
-      if (typeof part?.text !== "string" || !part.text) continue;
-      totalContentLength += part.text.length;
-      (part.thought === true ? thinkingChunks : contentChunks).push(part.text);
-    }
-    const type = parsed.type || currentOpenAIResponsesEvent;
-    if (type?.startsWith("response.")) {
-      const event = parsed.type ? parsed : { event: type, data: parsed };
-      const reasoning = captureResponsesReasoning(event, responsesReasoningState ??= {});
-      if (reasoning) {
-        totalContentLength += reasoning.length;
-        thinkingChunks.push(reasoning);
-      }
-      if (type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
-        totalContentLength += parsed.delta.length;
-        contentChunks.push(parsed.delta);
-      }
-    }
-  };
-
-  const captureFirstToken = (parsed, observedAt = lastChunkAt) => {
-    if (firstTokenAt === null && hasSemanticContent(parsed, currentOpenAIResponsesEvent)) firstTokenAt = observedAt;
-  };
-
-  // In-stream failure tracking (#4104): an upstream can end an HTTP-200 stream
-  // with a failure INSIDE the event body (Responses response.failed / error
-  // event). Without tracking, usage/logging records the request as "success".
-  let streamFailed = false;
-  let streamErrorMessage = null;
-  let streamErrorStatus = 502;
-  const markStreamFailed = (msg, status = 502) => {
-    if (streamFailed) return;
-    streamErrorStatus = status;
-    streamFailed = true;
-    if (typeof msg === "string" && msg.trim()) streamErrorMessage = msg.trim().slice(0, 500);
-  };
-  // Extract a human message from a failure-shaped chunk ({response.error} or {error}).
-  const extractStreamErrorMessage = (parsed, fallback) => {
-    const err = extractResponseError(parsed)?.error;
-    const msg = typeof err === "string" ? err : err?.message;
-    if (typeof msg === "string" && msg.trim()) return msg.trim().slice(0, 500);
-    return fallback;
-  };
-
-  // Error objects are terminal protocol events, not completion deltas. Handle
-  // them before format translators' choices/content guards can discard them.
-  const emitUpstreamError = (parsed, controller) => {
-    const failure = extractResponseError(parsed);
-    if (!failure || upstreamErrorTerminated) return false;
-    markStreamFailed(extractStreamErrorMessage(parsed, "upstream stream failed"), failure.status);
-    captureUsage(parsed);
-    const nativeResponses = (sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX)
-      && (targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX);
-    if (nativeResponses && (failure.response || failure.flat)) return false;
-    discardPendingToolNames();
-    upstreamErrorTerminated = true;
-    const output = formatClientSSE(responseErrorToClient(sourceFormat, failure, state));
-    reqLogger?.appendConvertedChunk?.(output);
-    controller.enqueue(sharedEncoder.encode(output));
-    sseEmittedCount++;
-    if (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      reqLogger?.appendConvertedChunk?.(SSE_DONE);
-      controller.enqueue(sharedEncoder.encode(SSE_DONE));
-      streamDoneSent = true;
-    }
-    finalizeStream();
-    trackPendingRequest(model, provider, connectionId, false);
-    controller.terminate();
-    return true;
-  };
-
-  // Usage/logging tail, callable from transform() as well as flush(): a client that
-  // closes right after the terminal event cancels the reader, and flush() never runs.
+  const getStreamSnapshot = () => ({
+    content: contentChunks.join(""), thinking: thinkingChunks.join(""),
+    usage: usage || state?.usage || (totalContentLength > 0 ? estimateUsage(body, totalContentLength, passthrough ? FORMATS.OPENAI : sourceFormat) : null),
+    ...(actualServiceTier ? { actualServiceTier } : {}), ttftAt,
+  });
   const finalizeStream = () => {
-    if (completionFlushTimer) { clearTimeout(completionFlushTimer); completionFlushTimer = null; }
+    clearCompletionTimer();
     if (finalized) return;
     finalized = true;
-
-    const isPassthrough = mode === STREAM_MODE.PASSTHROUGH;
-    let finalUsage = usage || state?.usage;
-
-    if (!finalUsage && totalContentLength > 0) {
-      finalUsage = estimateUsage(body, totalContentLength, isPassthrough ? FORMATS.OPENAI : sourceFormat);
-      if (isPassthrough) usage = finalUsage; else state.usage = finalUsage;
-    }
-
-    if (streamFailed) {
-      appendRequestLog({ model, provider, connectionId, tokens: finalUsage, status: `FAILED ${streamErrorStatus}` }).catch(() => {});
-    } else if (hasValidUsage(finalUsage)) {
-      logUsage(isPassthrough ? provider : (state?.provider || targetFormat), finalUsage, model, connectionId, apiKey);
-    } else {
-      appendRequestLog({ model, provider, connectionId, tokens: null, status: "200 OK" }).catch(() => { });
-    }
-
-    if (onStreamComplete) {
-      onStreamComplete({
-        content: contentChunks.join(""),
-        thinking: thinkingChunks.join(""),
-        toolCalls: [...toolCallStore.values()].filter((call) => call.name || call.arguments)
-      }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage, ...(actualServiceTier ? { actualServiceTier } : {}), ...(streamFailed ? { status: streamErrorStatus } : {}) }, firstTokenAt);
-    }
+    const snapshot = getStreamSnapshot();
+    const finalUsage = snapshot.usage;
+    if (streamFailed) appendRequestLog({ model, provider, connectionId, tokens: finalUsage, status: `FAILED ${streamErrorStatus}` }).catch(() => {});
+    else if (hasValidUsage(finalUsage)) logUsage(passthrough ? provider : (state?.provider || targetFormat), finalUsage, model, connectionId, apiKey);
+    else appendRequestLog({ model, provider, connectionId, tokens: null, status: "200 OK" }).catch(() => {});
+    onStreamComplete?.({ content: snapshot.content, thinking: snapshot.thinking,
+      toolCalls: [...toolCallStore.values()].map(call => ({ id: call.id, name: call.names.join(""), arguments: call.arguments.join("") })).filter(call => call.name || call.arguments),
+    }, finalUsage, ttftAt, { failed: streamFailed, error: streamErrorMessage,
+      ...(actualServiceTier ? { actualServiceTier } : {}), ...(streamFailed ? { status: streamErrorStatus } : {}),
+    }, firstTokenAt);
+    trackPendingRequest(model, provider, connectionId, false);
   };
-
-  // Emit the deferred response.completed now — at [DONE], or when the watchdog
-  // below gives up on a usage trailer that never arrives.
-  const flushPendingCompletion = (controller) => {
-    const completed = translateResponse(targetFormat, sourceFormat, null, state);
-    for (const item of completed || []) {
-      if (item === null || item === undefined) continue;
-      const output = formatClientSSE(item);
-      reqLogger?.appendConvertedChunk?.(output);
-      controller.enqueue(sharedEncoder.encode(output));
-      sseEmittedCount++;
-    }
+  const emit = (controller, text) => {
+    reqLogger?.appendConvertedChunk?.(text);
+    controller.enqueue(sharedEncoder.encode(text));
+  };
+  const emitDone = controller => {
+    if (streamDoneSent || !(sourceFormat === FORMATS.OPENAI || responsesFormat(sourceFormat))) return;
+    streamDoneSent = true;
+    emit(controller, SSE_DONE);
+  };
+  const finish = controller => {
+    if (finished || disposed) return;
     finalizeStream();
+    emitDone(controller);
+    finished = true;
+    clearCompletionTimer();
+    parser.reset();
+    discardPendingTools();
+    controller.terminate();
+    for (const listener of terminalListeners) { try { listener(); } catch {} }
+    terminalListeners.clear();
   };
-
-  // Snapshot partial output even when cancellation prevents TransformStream.flush.
-  const getStreamSnapshot = () => {
-    const seenUsage = usage || state?.usage;
-    const resolvedUsage = seenUsage
-      ? seenUsage
-      : (totalContentLength > 0
-          ? estimateUsage(body, totalContentLength, mode === STREAM_MODE.PASSTHROUGH ? FORMATS.OPENAI : sourceFormat)
-          : null);
-    return {
-      content: contentChunks.join(""),
-      thinking: thinkingChunks.join(""),
-      usage: resolvedUsage,
-      ...(actualServiceTier ? { actualServiceTier } : {}),
-      ttftAt,
-    };
-  };
-
-  const emitPassthroughChunk = (parsed, controller, bufferedTail = false, originalLine = null, accounted = false, rewritten = false) => {
-    let fieldsInjected = originalLine === null || rewritten;
-    // HTTP 200 does not make a native in-band failure successful.
-    if (parsed?.response?.status === "failed" || parsed?.type === "error") {
-      markStreamFailed(extractStreamErrorMessage(parsed, "upstream stream failed"));
-    }
-    const sanitized = publicChunk(parsed);
-    if (sanitized !== parsed) { parsed = sanitized; fieldsInjected = true; }
-    if (sourceFormat === FORMATS.OPENAI && normalizeEmptyFinishReasons(parsed)) fieldsInjected = true;
-    const idFixed = normalizeResponseIdentity(parsed, responseModel, responseIdentity);
-
-    // Queued frames retain the normal compatibility handling when released.
-    if (parsed.choices !== undefined) {
-      if (!parsed.object) { parsed.object = "chat.completion.chunk"; fieldsInjected = true; }
-      if (!parsed.created) { parsed.created = Math.floor(Date.now() / 1000); fieldsInjected = true; }
-    }
-    if (parsed.prompt_filter_results !== undefined) {
-      delete parsed.prompt_filter_results;
-      fieldsInjected = true;
-    }
-    if (Array.isArray(parsed.choices)) for (const choice of parsed.choices) {
-      if (choice.content_filter_results !== undefined) {
-        delete choice.content_filter_results;
-        fieldsInjected = true;
-      }
-      // Empty arrays prematurely end AI SDK reasoning tracking.
-      if (Array.isArray(choice.delta?.tool_calls) && choice.delta.tool_calls.length === 0) {
-        delete choice.delta.tool_calls;
-        fieldsInjected = true;
-      }
-      if (normalizeTypedContent(choice.delta)) fieldsInjected = true;
-    }
-    if (!hasValuableContent(parsed, sourceFormat)) return;
-
-    const delta = parsed.choices?.[0]?.delta;
-    if (delta && !bufferedTail) {
-      if (typeof delta.reasoning === "string" && delta.reasoning_content === undefined) {
-        delta.reasoning_content = delta.reasoning;
-        fieldsInjected = true;
-      } else if (typeof delta.reasoning_content === "string" && delta.reasoning === undefined) {
-        delta.reasoning = delta.reasoning_content;
-        fieldsInjected = true;
-      }
-    }
-    if (!accounted) {
-      accumulateProviderContent(parsed);
-      captureUsage(parsed);
-    }
-    accumulateToolCalls(toolCallStore, parsed);
-
-    const responsesTerminal = isOpenAIResponsesTerminalEvent(currentOpenAIResponsesEvent, parsed);
-    if (responsesTerminal) openAIResponsesTerminalSeen = true;
-    const isFinishChunk = parsed.choices?.[0]?.finish_reason;
-    if (isFinishChunk) clientTerminalSeen = true;
-    const nativeReason = parsed.choices?.[0]?.native_finish_reason;
-    if (isFinishChunk && nativeReason && ["network_error", "error", "server_error", "timeout"].includes(nativeReason) && totalContentLength === 0) {
-      controller.error(new Error(`Upstream stream failed: ${nativeReason}`));
-      return false;
-    }
-    if (isFinishChunk && passthroughFinishSeen) return;
-    if (isFinishChunk) passthroughFinishSeen = true;
-
-    // A buffered data line's original blank separator may already have passed.
-    // Replayed frames therefore carry complete SSE event boundaries.
-    const output = originalLine === null
-      ? `${passthroughAtEventBoundary ? "" : "\n"}data: ${JSON.stringify(parsed)}\n\n`
-      : idFixed || fieldsInjected ? `data: ${JSON.stringify(parsed)}\n`
-        : (originalLine.startsWith("data:") && !originalLine.startsWith("data: ") ? "data: " + originalLine.slice(5) : originalLine) + "\n";
-    reqLogger?.appendConvertedChunk?.(output);
-    controller.enqueue(sharedEncoder.encode(output));
-    passthroughAtEventBoundary = output.endsWith("\n\n");
-    if (responsesTerminal) finalizeStream();
-  };
-
-  const emitTranslatedChunk = (parsed, controller, openAIResponsesEventName = null) => {
-    accumulateToolCalls(toolCallStore, parsed);
-    if (targetFormat === FORMATS.OPENAI_RESPONSES && sourceFormat === FORMATS.OPENAI_RESPONSES && openAIResponsesEventName) {
-      const output = formatClientSSE({ event: openAIResponsesEventName, data: parsed });
-      reqLogger?.appendConvertedChunk?.(output);
-      controller.enqueue(sharedEncoder.encode(output));
-      currentOpenAIResponsesEvent = null;
-      sseEmittedCount++;
-      if (openAIResponsesTerminalSeen) finalizeStream();
+  const emitClientChunk = (item, controller, eventName = null, truncated = false, releaseTerminal = false) => {
+    if (item == null || (item.done === true && Object.keys(item).length === 1) || !hasValuableContent(item.data || item, sourceFormat)) return;
+    const data = item.data || item;
+    const terminal = isTerminalPayload(data, sourceFormat, item.event || eventName);
+    if (truncated && terminal && !extractResponseError(data)) return;
+    const deferredMessageDelta = chatInputSeen && sourceFormat === FORMATS.CLAUDE && data.type === "message_delta" && data.delta?.stop_reason;
+    if ((terminal || deferredMessageDelta) && chatInputSeen && sourceFormat !== FORMATS.OPENAI && !releaseTerminal && !extractResponseError(data)) {
+      deferredClientTerminals.set(deferredMessageDelta ? "message_delta" : "terminal", { item, eventName });
+      armCompletion(controller);
       return;
     }
-    currentOpenAIResponsesEvent = null;
+    if (Array.isArray(data.choices)) {
+      for (const choice of data.choices) {
+        if (choice.finish_reason === "") choice.finish_reason = null;
+        if (choice.finish_reason) {
+          const key = choice.index ?? 0;
+          if (finishedChoices.has(key)) choice.finish_reason = null;
+          else finishedChoices.add(key);
+        }
+        delete choice.content_filter_results;
+        if (Array.isArray(choice.delta?.tool_calls) && choice.delta.tool_calls.length === 0) delete choice.delta.tool_calls;
+        normalizeTypedContent(choice.delta);
+        const delta = choice.delta;
+        if (typeof delta?.reasoning === "string" && delta.reasoning_content === undefined) delta.reasoning_content = delta.reasoning;
+        else if (typeof delta?.reasoning_content === "string" && delta.reasoning === undefined) delta.reasoning = delta.reasoning_content;
+      }
+      data.object ||= "chat.completion.chunk";
+      data.created ||= Math.floor(Date.now() / 1000);
+    }
+    delete data.prompt_filter_results;
+    accumulateToolCalls(toolCallStore, data);
+    if (terminal) {
+      clientTerminalSeen = true;
+      if (sourceFormat !== FORMATS.OPENAI) finalizeStream();
+    }
+    emit(controller, formatClientSSE(item, eventName));
+  };
+  const translate = async (parsed, controller, eventName = null, truncated = false) => {
+    if (passthrough) { emitClientChunk(parsed, controller, eventName, truncated); return; }
     const translated = translateResponse(targetFormat, sourceFormat, parsed, state);
-    if (translated?._openaiIntermediate) for (const item of translated._openaiIntermediate) {
-      reqLogger?.appendOpenAIChunk?.(formatSSE(item, FORMATS.OPENAI));
-    }
+    if (translated?._openaiIntermediate) for (const item of translated._openaiIntermediate) reqLogger?.appendOpenAIChunk?.(formatSSE(item, FORMATS.OPENAI));
     for (const item of translated || []) {
-      if (item === null || item === undefined || !hasValuableContent(item, sourceFormat)) continue;
-      if (sourceFormat === FORMATS.OPENAI) normalizeEmptyFinishReasons(item);
-      if (sourceFormat === FORMATS.OPENAI && hasOpenAITerminal(item)) clientTerminalSeen = true;
-      // Responses consumers close at the terminal event, not transport EOF.
-      if (sourceFormat === FORMATS.OPENAI_RESPONSES && isOpenAIResponsesTerminalEvent(item.event, item.data || item)) finalizeStream();
-      const output = formatClientSSE(item);
-      reqLogger?.appendConvertedChunk?.(output);
-      controller.enqueue(sharedEncoder.encode(output));
-      sseEmittedCount++;
-    }
-    // Retain the bounded wait for Chat providers with no usage trailer/[DONE].
-    if (targetFormat === FORMATS.OPENAI && sourceFormat === FORMATS.OPENAI_RESPONSES &&
-        state?.completionPending && !state?.completedSent && !completionFlushTimer) {
-      completionFlushTimer = setTimeout(() => {
-        completionFlushTimer = null;
-        if (state?.completedSent) return;
-        try { flushPendingCompletion(controller); } catch { /* controller already closed */ }
-      }, PENDING_COMPLETION_FLUSH_MS);
+      await controller.ready();
+      if (disposed || finished) return;
+      emitClientChunk(item, controller, null, truncated);
     }
   };
-
-  const transformer = {
-    transform(chunk, controller, bufferedTail = false) {
-      if (!bufferedTail) {
-        lastChunkAt = Date.now();
-        if (!ttftAt) ttftAt = lastChunkAt;
-        const text = decoder.decode(chunk, { stream: true });
-        buffer += text;
-        reqLogger?.appendProviderChunk?.(text);
+  const restoreTools = parsed => restoreOpenAIToolNameDeltas(parsed, toolNameMap, toolNameDeltas, declaredWireNames)
+    .map(item => decloakStreamChunk(item, toolNameMap));
+  const flushTranslation = async (controller, truncated = false) => {
+    for (const parsed of restoreTools(null)) {
+      await controller.ready();
+      if (disposed || finished) return;
+      await translate(parsed, controller, null, truncated);
+    }
+    if (!passthrough) await translate(null, controller, null, truncated);
+  };
+  const fail = (message, controller, failure = null) => {
+    if (finished || disposed) return;
+    clearCompletionTimer();
+    deferredNative = null;
+    deferredClientTerminals.clear();
+    markFailed(message, failure?.status);
+    discardPendingTools();
+    if (sourceFormat === FORMATS.OPENAI && !failure) {
+      clientTerminalSeen = true;
+      finalizeStream();
+      emit(controller, formatClientSSE(buildAbortedOpenAITerminal(model)));
+    } else {
+      const info = failure || { error: { type: "stream_error", code: "stream_disconnected", message }, status: 502 };
+      const item = responseErrorToClient(sourceFormat, info, state);
+      finalizeStream();
+      emit(controller, formatClientSSE(item));
+      clientTerminalSeen = true;
+    }
+    finish(controller);
+  };
+  let completionWork = null;
+  const flushDeferred = controller => {
+    if (completionWork) return completionWork;
+    clearCompletionTimer();
+    completionWork = (async () => {
+      if (deferredNative) {
+        const { parsed, eventName } = deferredNative;
+        deferredNative = null;
+        const terminalChunk = !passthrough && !parsed.type && eventName ? { ...parsed, type: eventName } : parsed;
+        await controller.ready();
+        if (disposed || finished) return;
+        await translate(terminalChunk, controller, eventName);
+        if (!clientTerminalSeen) await flushTranslation(controller);
+      } else await flushTranslation(controller);
+      if (disposed || finished) return;
+      const terminals = [...deferredClientTerminals.values()];
+      deferredClientTerminals.clear();
+      for (const { item, eventName } of terminals) {
+        const data = item.data || item;
+        const actualUsage = usage || state?.usage;
+        if (actualUsage && responsesFormat(sourceFormat) && data.response) {
+          const normalized = actualUsage;
+          data.response.usage = { input_tokens: normalized.prompt_tokens ?? normalized.input_tokens ?? 0,
+            output_tokens: normalized.completion_tokens ?? normalized.output_tokens ?? 0,
+            total_tokens: normalized.total_tokens ?? (normalized.prompt_tokens || 0) + (normalized.completion_tokens || 0),
+            ...(normalized.prompt_tokens_details ? { input_tokens_details: normalized.prompt_tokens_details } : {}),
+            ...(normalized.completion_tokens_details ? { output_tokens_details: normalized.completion_tokens_details } : {}),
+            ...(normalized.cache_write_invalid ? { cache_write_invalid: true } : {}),
+            ...(normalized.usage_invalid ? { usage_invalid: true } : {}),
+          };
+        } else if (actualUsage && sourceFormat === FORMATS.CLAUDE && data.type === "message_delta") {
+          data.usage = state?.claudeUsage || state?.usage || data.usage;
+        }
+        await controller.ready();
+        if (disposed || finished) return;
+        emitClientChunk(item, controller, eventName, false, true);
       }
-
-      // Index-based extraction avoids intermediate split array (#3629)
-      let idx;
-      while ((idx = buffer.indexOf("\n")) !== -1) {
-        const line = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 1);
-        if (upstreamErrorTerminated) continue;
-        const trimmed = line.trim();
-        if (isDebugEnabled && trimmed) {
-          sseLineCount++;
-          if (trimmed.startsWith("event:")) {
-            const evt = trimmed.slice(6).trim();
-            eventTypeCounts[evt] = (eventTypeCounts[evt] || 0) + 1;
-          }
+      if (!clientTerminalSeen) return fail("Upstream stream closed without a finish reason", controller);
+      finish(controller);
+    })();
+    return completionWork;
+  };
+  const armCompletion = controller => {
+    if (chatInputSeen && !allChatChoicesFinished()) return;
+    completionDeadline ??= Date.now() + SSE_COMPLETION_GRACE_MS;
+    if (processing || completionTimer || completionWork || disposed || finished) return;
+    completionTimer = setTimeout(() => {
+      completionTimer = null;
+      if (!processing && !finished && !disposed) void flushDeferred(controller).catch(() => dispose());
+    }, Math.max(0, completionDeadline - Date.now()));
+  };
+  const handleEvent = async (event, controller) => {
+    if (finished || disposed) return;
+    let parsed;
+    try { parsed = streamEventPayload(event, parseSSEEvent(event)); }
+    catch { fail("Invalid upstream stream event", controller); return; }
+    if (event.data.trim() === "[DONE]") {
+      if (!inputTerminalSeen) {
+        await flushTranslation(controller, true);
+        fail("Upstream stream closed without a terminal event", controller);
+      } else await flushDeferred(controller);
+      return;
+    }
+    const eventName = event.event || parsed.type || null;
+    const accountingChunk = !parsed.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...parsed, type: event.event } : parsed;
+    captureUsage(accountingChunk);
+    if (state) {
+      const extracted = extractUsage(accountingChunk);
+      if (extracted) state.usage = mergeUsage(state.usage, extracted);
+    }
+    const failure = extractResponseError(parsed);
+    if (failure) {
+      if (responsesFormat(sourceFormat) && responsesFormat(targetFormat)) {
+        markFailed(failure.error.message, failure.status);
+        finalizeStream();
+        emit(controller, formatClientSSE(parsed, event.event));
+        clientTerminalSeen = true;
+        finish(controller);
+      } else fail(failure.error.message || "Upstream stream failed", controller, failure);
+      return;
+    }
+    if (parsed.choices?.some(choice => failedReasons.has(choice?.native_finish_reason || choice?.finish_reason))) {
+      fail("Upstream stream failed", controller);
+      return;
+    }
+    if (firstTokenAt === null && hasSemanticContent(accountingChunk, eventName)) firstTokenAt = lastChunkAt;
+    accumulateContent(accountingChunk, eventName);
+    for (const choice of parsed.choices || []) normalizeTypedContent(choice.delta);
+    const chatInput = Array.isArray(parsed.choices);
+    chatInputSeen ||= chatInput;
+    for (const choice of parsed.choices || []) {
+      const index = choice.index ?? 0;
+      upstreamChoices.add(index);
+      if (choice.finish_reason) upstreamFinishedChoices.add(index);
+    }
+    const nativeTerminal = chatInput ? allChatChoicesFinished() : isTerminalPayload(parsed, targetFormat, eventName);
+    if (chatInput || nativeTerminal) inputTerminalSeen = Boolean(nativeTerminal);
+    if (chatInput && !nativeTerminal) completionDeadline = null;
+    if (nativeTerminal && !chatInput && responsesFormat(targetFormat) && !parsed.response?.usage) {
+      deferredNative = { parsed, eventName: event.event };
+      armCompletion(controller);
+      return;
+    }
+    const translatorChunk = !passthrough && !parsed.type && event.event ? { ...parsed, type: event.event } : parsed;
+    for (const restored of restoreTools(translatorChunk)) {
+      await controller.ready();
+      if (disposed || finished) return;
+      await translate(restored, controller, passthrough ? event.event : null);
+    }
+    if (deferredNative && (parsed.usage || parsed.response?.usage)) { await flushDeferred(controller); return; }
+    if (nativeTerminal && !chatInput) {
+      if (!clientTerminalSeen) await flushTranslation(controller);
+      finish(controller);
+    } else if (inputTerminalSeen) {
+      const trailer = Array.isArray(parsed.choices) && parsed.choices.length === 0 && parsed.usage;
+      if (sourceFormat !== FORMATS.OPENAI && trailer && deferredClientTerminals.size) await flushDeferred(controller);
+      else armCompletion(controller);
+    }
+  };
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    clearCompletionTimer();
+    deferredNative = null;
+    deferredClientTerminals.clear();
+    discardPendingTools();
+    parser.reset();
+    terminalListeners.clear();
+  };
+  const sseStream = createEventTransform({
+    async transform(chunk, controller) {
+      if (finished || disposed) return;
+      lastChunkAt = Date.now();
+      ttftAt ??= lastChunkAt;
+      reqLogger?.appendProviderChunk?.(chunk);
+      processing = true;
+      clearCompletionTimer();
+      try {
+        for (const event of parser.feed(chunk)) {
+          await controller.ready();
+          if (finished || disposed) break;
+          await handleEvent(event, controller);
+          if (finished || disposed) break;
         }
-
-        // Capture Responses API event name to preserve framing in same-format passthrough
-        if (targetFormat === FORMATS.OPENAI_RESPONSES && trimmed.startsWith("event:")) {
-          currentOpenAIResponsesEvent = trimmed.slice(6).trim();
-        }
-
-        // Passthrough keeps native framing; restored Chat frames can arrive in
-        // batches after their complete openers become safe for strict clients.
-        if (mode === STREAM_MODE.PASSTHROUGH) {
-          const isDoneLine = trimmed.startsWith("data:") && trimmed.slice(5).trim() === "[DONE]";
-          if (isDoneLine && passthroughDoneSent) continue;
-          if (isDoneLine) {
-            for (const parsed of restoreToolNames(null)) {
-              if (emitPassthroughChunk(parsed, controller, false, null, true) === false) return;
-            }
-          } else if (trimmed.startsWith("data:")) {
-            try {
-              const parsed = JSON.parse(trimmed.slice(5).trim());
-              if (emitUpstreamError(parsed, controller)) continue;
-              captureFirstToken(parsed);
-              const bufferedNames = targetFormat === FORMATS.OPENAI && toolNameMap?.size > 0;
-              if (bufferedNames) {
-                for (const choice of parsed.choices || []) normalizeTypedContent(choice?.delta);
-                accumulateProviderContent(parsed);
-                captureUsage(parsed);
-              }
-              for (const restored of restoreToolNames(parsed)) {
-                const originalLine = !bufferedNames ? line : null;
-                if (emitPassthroughChunk(restored, controller, bufferedTail, originalLine, bufferedNames, restored !== parsed) === false) return;
-              }
-            } catch {
-              // Do not forward non-JSON provider errors/HTML as SSE payloads.
-            }
-            continue;
-          }
-          const output = line.startsWith("data:") && !line.startsWith("data: ")
-            ? "data: " + line.slice(5) + "\n" : line + "\n";
-          reqLogger?.appendConvertedChunk?.(output);
-          controller.enqueue(sharedEncoder.encode(output));
-          if (isDoneLine) passthroughDoneSent = true;
-          passthroughAtEventBoundary = output === "\n";
-          continue;
-        }
-
-        // Translate mode
-        if (!trimmed) continue;
-
-        let parsed = parseSSELine(trimmed, targetFormat);
-        if (!parsed) continue;
-        if (emitUpstreamError(parsed, controller)) continue;
-
-        // Responses API same-format passthrough: preserve event framing + track terminal state
-        const isOpenAIResponsesStream = targetFormat === FORMATS.OPENAI_RESPONSES;
-        const keepsOpenAIResponsesFormat = isOpenAIResponsesStream && sourceFormat === FORMATS.OPENAI_RESPONSES;
-        const openAIResponsesEventName = isOpenAIResponsesStream
-          ? getOpenAIResponsesEventName(currentOpenAIResponsesEvent, parsed)
-          : null;
-
-        if (isOpenAIResponsesStream && isOpenAIResponsesTerminalEvent(openAIResponsesEventName, parsed)) {
-          openAIResponsesTerminalSeen = true;
-        }
-
-        // In-stream failure on a translated Responses stream (#4104): a
-        // response.failed / error terminal event must not be logged as success.
-        if (isOpenAIResponsesStream && (openAIResponsesEventName === "response.failed" || openAIResponsesEventName === "error")) {
-          markStreamFailed(extractStreamErrorMessage(parsed, `upstream ${openAIResponsesEventName}`));
-        }
-
-        // For Ollama: done=true is the final chunk with finish_reason/usage, must translate
-        // For other formats: done=true is the [DONE] sentinel, skip
-        if (parsed && parsed.done && targetFormat !== FORMATS.OLLAMA) {
-          for (const restored of restoreToolNames(null)) emitTranslatedChunk(restored, controller);
-          // A direct Chat-to-Responses translation can defer response.completed
-          // while waiting for a usage trailer. [DONE] ends that opportunity even
-          // if the upstream keeps the HTTP connection open, so finish now.
-          if (targetFormat === FORMATS.OPENAI &&
-              ((sourceFormat === FORMATS.OPENAI_RESPONSES && state.completionPending && !state.completedSent) ||
-                state.claudeFinishPending || state._geminiFinishPending)) {
-            flushPendingCompletion(controller);
-          }
-
-          // Synthesize response.failed if the Responses stream never sent a terminal event
-          if (keepsOpenAIResponsesFormat && !openAIResponsesTerminalSeen) {
-            const failedOutput = formatIncompleteOpenAIResponsesStreamFailure();
-            reqLogger?.appendConvertedChunk?.(failedOutput);
-            controller.enqueue(sharedEncoder.encode(failedOutput));
-            openAIResponsesTerminalSeen = true;
-            sseEmittedCount++;
-          }
-
-          if (keepsOpenAIResponsesFormat && !streamDoneSent) {
-            const doneOutput = "data: [DONE]\n\n";
-            reqLogger?.appendConvertedChunk?.(doneOutput);
-            controller.enqueue(sharedEncoder.encode(doneOutput));
-            streamDoneSent = true;
-            openAIResponsesDoneSent = true;
-          }
-          continue;
-        }
-        if (Array.isArray(parsed?.choices)) {
-          for (const choice of parsed.choices) normalizeTypedContent(choice?.delta);
-        }
-
-
-        captureFirstToken(parsed);
-        accumulateProviderContent(parsed);
-        captureUsage(parsed);
-        const extracted = extractUsage(parsed);
-        if (extracted) state.usage = mergeUsage(state.usage, extracted);
-        for (const restored of restoreToolNames(parsed)) emitTranslatedChunk(restored, controller, openAIResponsesEventName);
+      } catch (error) { fail(error instanceof RangeError ? "Upstream stream event exceeds limit" : "Invalid upstream stream event", controller); }
+      finally {
+        processing = false;
+        if (inputTerminalSeen && !finished && !disposed) armCompletion(controller);
       }
     },
-
-    flush(controller) {
-      const evtSummary = Object.entries(eventTypeCounts).map(([k, v]) => `${k}=${v}`).join(",") || "none";
-      dbg("SSE", `flush | provider=${provider} | model=${model} | recvLines=${sseLineCount} | emitted=${sseEmittedCount} | events=[${evtSummary}]`);
-      trackPendingRequest(model, provider, connectionId, false);
+    async flush(controller) {
+      if (finished || disposed) return;
+      processing = true;
+      clearCompletionTimer();
       try {
-        const remaining = decoder.decode();
-        if (remaining) buffer += remaining;
-        if (upstreamErrorTerminated) { finalizeStream(); return; }
-        if (buffer.trim()) {
-          buffer += "\n";
-          transformer.transform(null, controller, true);
-          if (upstreamErrorTerminated) { finalizeStream(); return; }
+        for (const event of parser.end()) {
+          await controller.ready();
+          if (finished || disposed) return;
+          await handleEvent(event, controller);
+          if (finished || disposed) break;
         }
-
-        for (const parsed of restoreToolNames(null)) {
-          if (mode === STREAM_MODE.PASSTHROUGH) emitPassthroughChunk(parsed, controller, false, null, true);
-          else emitTranslatedChunk(parsed, controller);
-        }
-
-        if (mode === STREAM_MODE.PASSTHROUGH) {
-          if (!passthroughAtEventBoundary) {
-            reqLogger?.appendConvertedChunk?.("\n");
-            controller.enqueue(sharedEncoder.encode("\n"));
-            passthroughAtEventBoundary = true;
-          }
-
-          // Chat and Responses use [DONE]; native Messages/Google streams do not.
-          const needsDone = sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES;
-          if (sourceFormat === FORMATS.OPENAI && !clientTerminalSeen) {
-            const separator = passthroughAtEventBoundary ? "" : "\n";
-            const terminal = separator + formatClientSSE(buildAbortedOpenAITerminal(model));
-            reqLogger?.appendConvertedChunk?.(terminal);
-            controller.enqueue(sharedEncoder.encode(terminal));
-            passthroughAtEventBoundary = true;
-            clientTerminalSeen = true;
-          }
-
-          if (sourceFormat === FORMATS.OPENAI_RESPONSES && !openAIResponsesTerminalSeen) {
-            const failedOutput = formatIncompleteOpenAIResponsesStreamFailure();
-            reqLogger?.appendConvertedChunk?.(failedOutput);
-            controller.enqueue(sharedEncoder.encode(failedOutput));
-            openAIResponsesTerminalSeen = true;
-          }
-          if (!streamDoneSent && !passthroughDoneSent && needsDone) {
-            const separator = passthroughAtEventBoundary ? "" : "\n";
-            const doneOutput = separator + "data: [DONE]\n\n";
-            reqLogger?.appendConvertedChunk?.(doneOutput);
-            controller.enqueue(sharedEncoder.encode(doneOutput));
-            streamDoneSent = true;
-          }
-
-          finalizeStream();
-          return;
-        }
-
-
-        const flushed = translateResponse(targetFormat, sourceFormat, null, state);
-
-        if (flushed?._openaiIntermediate) {
-          for (const item of flushed._openaiIntermediate) {
-            const openaiOutput = formatSSE(item, FORMATS.OPENAI);
-            reqLogger?.appendOpenAIChunk?.(openaiOutput);
-          }
-        }
-
-        if (flushed?.length > 0) {
-          for (const item of flushed) {
-            if (item === null || item === undefined) continue;
-            if (sourceFormat === FORMATS.OPENAI && hasOpenAITerminal(item)) clientTerminalSeen = true;
-            const output = formatClientSSE(item);
-            reqLogger?.appendConvertedChunk?.(output);
-            controller.enqueue(sharedEncoder.encode(output));
-          }
-        }
-
-        // A translator's flush is a no-op when the upstream never sent its terminal
-        // event. Emit one, plus the sentinel the client expects (#4079).
-        if (sourceFormat === FORMATS.OPENAI && !clientTerminalSeen) {
-          const terminal = formatClientSSE(buildAbortedOpenAITerminal(model));
-          reqLogger?.appendConvertedChunk?.(terminal);
-          controller.enqueue(sharedEncoder.encode(terminal));
-          if (!streamDoneSent) {
-            reqLogger?.appendConvertedChunk?.(SSE_DONE);
-            controller.enqueue(sharedEncoder.encode(SSE_DONE));
-            streamDoneSent = true;
-          }
-          clientTerminalSeen = true;
-        }
-
-        // Synthesize response.failed if a Responses passthrough stream never reached a terminal event
-        const keepsOpenAIResponsesFormat = targetFormat === FORMATS.OPENAI_RESPONSES && sourceFormat === FORMATS.OPENAI_RESPONSES;
-        if (keepsOpenAIResponsesFormat && !openAIResponsesTerminalSeen) {
-          const failedOutput = formatIncompleteOpenAIResponsesStreamFailure();
-          reqLogger?.appendConvertedChunk?.(failedOutput);
-          controller.enqueue(sharedEncoder.encode(failedOutput));
-          openAIResponsesTerminalSeen = true;
-        }
-
-        const needsOpenAIDone = sourceFormat === FORMATS.OPENAI || keepsOpenAIResponsesFormat;
-        if (needsOpenAIDone && !openAIResponsesDoneSent && !streamDoneSent) {
-          const doneOutput = "data: [DONE]\n\n";
-          reqLogger?.appendConvertedChunk?.(doneOutput);
-          controller.enqueue(sharedEncoder.encode(doneOutput));
-          openAIResponsesDoneSent = true;
-          streamDoneSent = true;
-        }
-
-        finalizeStream();
-      } catch (error) {
-        console.log("Error in flush:", error);
-        finalizeStream();
-      }
-    }
-  };
-  const sseStream = new TransformStream(transformer);
-
+        if (finished || disposed) return;
+        if (!inputTerminalSeen) {
+          await flushTranslation(controller, true);
+          fail("Upstream stream closed without a terminal event", controller);
+        } else await flushDeferred(controller);
+      } finally { processing = false; }
+    },
+    cancel: dispose,
+  });
+  void sseStream.whenClosed.then(dispose);
   sseStream.getStreamSnapshot = getStreamSnapshot;
-  sseStream.abortTerminalBytes = sourceFormat === FORMATS.OPENAI
-    ? () => (clientTerminalSeen || streamDoneSent ? null : sharedEncoder.encode(formatClientSSE(buildAbortedOpenAITerminal(model)) + SSE_DONE))
-    : null;
+  sseStream.isTerminal = () => finished;
+  sseStream.onTerminal = listener => {
+    if (finished) listener(); else terminalListeners.add(listener);
+    return () => terminalListeners.delete(listener);
+  };
+  sseStream.dispose = dispose;
+  sseStream.abortTerminalBytes = message => {
+    if (finished || streamDoneSent) return null;
+    if (clientTerminalSeen && sourceFormat === FORMATS.OPENAI) { finalizeStream(); streamDoneSent = true; return sharedEncoder.encode(SSE_DONE); }
+    if (clientTerminalSeen) return null;
+    markFailed(message || "Upstream connection lost");
+    finalizeStream();
+    clientTerminalSeen = true;
+    const item = sourceFormat === FORMATS.OPENAI ? buildAbortedOpenAITerminal(model)
+      : responseErrorToClient(sourceFormat, { error: { type: "stream_error", code: "stream_disconnected", message: message || "stream closed before response.completed" } }, state);
+    const needsDone = sourceFormat === FORMATS.OPENAI || responsesFormat(sourceFormat);
+    streamDoneSent = needsDone;
+    return sharedEncoder.encode(formatClientSSE(item) + (needsDone ? SSE_DONE : ""));
+  };
   return sseStream;
 }
 
 export function createSSETransformStreamWithLogger(targetFormat, sourceFormat, provider = null, reqLogger = null, toolNameMap = null, model = null, connectionId = null, body = null, onStreamComplete = null, apiKey = null, customToolNames = null, responseModel = null, wireToolNames = null) {
-  return createSSEStream({
-    mode: STREAM_MODE.TRANSLATE,
-    targetFormat,
-    sourceFormat,
-    provider,
-    reqLogger,
-    toolNameMap,
-    wireToolNames,
-    customToolNames,
-    model,
-    connectionId,
-    body,
-    onStreamComplete,
-    apiKey,
-    responseModel
-  });
+  return createSSEStream({ mode: "translate", targetFormat, sourceFormat, provider, reqLogger, toolNameMap,
+    wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel });
 }
 
 export function createPassthroughStreamWithLogger(provider = null, reqLogger = null, model = null, connectionId = null, body = null, onStreamComplete = null, apiKey = null, toolNameMap = null, format = FORMATS.OPENAI, wireToolNames = null, responseModel = null) {
-  return createSSEStream({
-    mode: STREAM_MODE.PASSTHROUGH,
-    sourceFormat: format,
-    targetFormat: format,
-    toolNameMap,
-    wireToolNames,
-    provider,
-    reqLogger,
-    model,
-    connectionId,
-    body,
-    onStreamComplete,
-    apiKey,
-    responseModel
-  });
+  return createSSEStream({ mode: "passthrough", sourceFormat: format, targetFormat: format, provider, reqLogger,
+    toolNameMap, wireToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel });
 }

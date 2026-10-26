@@ -3,8 +3,7 @@ import { needsTranslation } from "../../translator/index.js";
 import { createSSETransformStreamWithLogger, createPassthroughStreamWithLogger } from "../../utils/stream.js";
 import { pipeWithDisconnect } from "../../utils/streamHandler.js";
 import { PROVIDERS } from "../../config/providers.js";
-import { STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
-import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamHelpers.js";
+import { STREAM_STALL_TIMEOUT_MS, STREAM_FIRST_CHUNK_TIMEOUT_MS } from "../../config/runtimeConfig.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
@@ -65,7 +64,7 @@ function withAbortRecording(streamController, record) {
       streamController.handleDisconnect(reason);
     },
     handleError: (error) => {
-      fire(error?.name === "AbortError" ? "aborted" : (error?.message || "error"));
+      if (error?.name === "AbortError") fire("aborted");
       streamController.handleError(error);
     },
   };
@@ -85,38 +84,85 @@ function isStreamableUpstreamContentType(contentType, targetFormat) {
   return (UPSTREAM_STREAM_CONTENT_TYPES[targetFormat] || []).some(type => contentType.includes(type));
 }
 
+async function inspectJsonStream(response, signal) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let prefix = "";
+  let timer;
+  const onAbort = () => { void reader.cancel(signal.reason).catch(() => {}); };
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Upstream stream prefix timeout")), STREAM_FIRST_CHUNK_TIMEOUT_MS); });
+    while (prefix.length < 65536) {
+      if (signal?.aborted) throw signal.reason || new Error("aborted");
+      const { done, value } = await Promise.race([reader.read(), deadline]);
+      if (done) break;
+      if (signal?.aborted) throw signal.reason || new Error("aborted");
+      chunks.push(value);
+      prefix += decoder.decode(value.subarray(0, 65536 - prefix.length), { stream: true });
+      const text = prefix.trimStart();
+      if (/^(?:data:|event:|:)/.test(text)) {
+        let index = 0;
+        return new ReadableStream({
+          async pull(controller) {
+            try {
+              if (index < chunks.length) {
+                const chunk = chunks[index];
+                chunks[index++] = null;
+                controller.enqueue(chunk);
+                return;
+              }
+              const result = await reader.read();
+              if (result.done) { reader.releaseLock(); controller.close(); }
+              else controller.enqueue(result.value);
+            } catch (error) { try { reader.releaseLock(); } catch {} controller.error(error); }
+          },
+          async cancel(reason) { try { await reader.cancel(reason); } finally { reader.releaseLock(); } },
+        });
+      }
+      if (text && !["data:", "event:"].some(field => field.startsWith(text))) break;
+    }
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+    return null;
+  } catch (error) {
+    await reader.cancel(error).catch(() => {});
+    reader.releaseLock();
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
 export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, onStreamAborted, streamDetailId, pxpipe, reqTag, log }) {
-  if (onRequestSuccess) {
-    Promise.resolve()
-      .then(onRequestSuccess)
-      .catch(err => {
-        console.error("[ChatCore] onRequestSuccess failed:", err?.message || err);
-      });
-  }
-
-  // When upstream returns HTML/text instead of SSE (e.g. Cloudflare 5xx error
-  // page), piping it through the SSE transform stream causes Next.js
-  // "failed to pipe response" and crashes the chat router. Read the body,
-  // pull a short human-readable message from the <title>, sanitize it, and
-  // return a clean JSON error instead. The message is stripped of HTML tags
-  // and clamped so untrusted upstream text never reaches the client verbatim
-  // (the UI may render error.message as HTML).
-  const upstreamContentType = (providerResponse.headers.get('content-type') || '').toLowerCase();
+  const upstreamContentType = (providerResponse.headers.get("content-type") || "").toLowerCase();
   if (upstreamContentType && !isStreamableUpstreamContentType(upstreamContentType, targetFormat)) {
-    const bodyText = await providerResponse.text().catch(() => '');
-    const titleMatch = bodyText.match(/<title>([^<]+)<\/title>/i);
-    const sanitizedTitle = (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').trim().slice(0, 160);
-    const shortMsg = sanitizedTitle
-      || (bodyText.length < 200 ? bodyText.replace(/<[^>]*>/g, '').trim().slice(0, 160) : `Upstream returned non-SSE response (${upstreamContentType})`);
-    const status = providerResponse.status || 502;
-    if (log?.errorLine) log.errorLine(reqTag, "✗", `BLOCKED ${status} · ${provider}/${model} · non-SSE (${upstreamContentType})\n    ${shortMsg}`);
-    else console.warn(`[STREAM] ${provider} | ${model} | blocked pipe: ${shortMsg} [${status}]`);
-    streamController?.handleError?.(new Error(`upstream non-SSE: ${status}`));
-    return createErrorResult(status >= 400 ? status : 502, shortMsg);
+    await providerResponse.body?.cancel().catch(() => {});
+    const status = providerResponse.status >= 400 ? providerResponse.status : 502;
+    streamController?.handleError?.(new Error("Upstream returned a non-streaming response"));
+    return createErrorResult(status, "Upstream returned an unsupported streaming content type");
   }
+  if (upstreamContentType.includes("application/json")) {
+    let streamBody;
+    try { streamBody = await inspectJsonStream(providerResponse, streamController?.signal); }
+    catch {
+      streamController?.handleError?.(new Error("Invalid upstream streaming response"));
+      return createErrorResult(502, "Invalid upstream streaming response");
+    }
+    if (!streamBody) {
+      streamController?.handleError?.(new Error("Upstream returned JSON for a streaming request"));
+      return createErrorResult(502, "Upstream returned JSON instead of a streaming response");
+    }
+    providerResponse = new Response(streamBody, { status: providerResponse.status, headers: providerResponse.headers });
+  }
+  if (onRequestSuccess) Promise.resolve().then(onRequestSuccess).catch(() => {
+    console.error("[ChatCore] onRequestSuccess failed");
+  });
 
   const wireBody = finalBody || translatedBody || body;
   const wireToolNames = toolNameMap?.size > 0
@@ -124,9 +170,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     : null;
   const transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, reqLogger, toolNameMap, wireToolNames, customToolNames, model, connectionId, body, onStreamComplete, apiKey, responseModel: clientRawRequest?.body?.model });
 
-  // Responses passthrough: synthesize response.failed + [DONE] if the stream aborts/stalls before a terminal event
-  const isResponsesPassthrough = sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI_RESPONSES;
-  const onAbortTerminal = isResponsesPassthrough ? buildAbortedResponsesTerminalBytes : null;
+  const onAbortTerminal = transformStream.abortTerminalBytes;
   const stallTimeoutMs = PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS;
   const recordingController = onStreamAborted
     ? withAbortRecording(streamController, (reason) => onStreamAborted(transformStream.getStreamSnapshot?.() || null, reason))

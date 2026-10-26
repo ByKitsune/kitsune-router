@@ -7,7 +7,7 @@ import { toOpenAIUsage } from "../../translator/concerns/usage.js";
 import { filterUsageForFormat } from "../../utils/usageTracking.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
-import { parseSSEToOpenAIResponse, createSSEAggregationState, responsesJsonToClaudeMessage } from "./sseToJsonHandler.js";
+import { convertSSEToOpenAIResponse, createSSEAggregationState, responsesJsonToClaudeMessage } from "./sseToJsonHandler.js";
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
 import { openaiResponsesObjectToCompletion } from "../../translator/response/openai-responses.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
@@ -194,25 +194,22 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   return responseBody;
 }
 
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, serviceTier }) {  trackDone();
-  const contentType = providerResponse.headers.get("content-type") || "";
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, serviceTier, signal }) {
+  trackDone();
+  const contentType = (providerResponse.headers.get("content-type") || "").toLowerCase();
   let responseBody;
 
-  if (contentType.includes("text/event-stream")) {
+  if (contentType.includes("text/event-stream") || (targetFormat === FORMATS.OLLAMA && contentType.includes("application/x-ndjson"))) {
     if (targetFormat === FORMATS.OPENAI_RESPONSES) {
-      // Responses-API SSE (e.g. OpenCode zen muse): aggregate via the
-      // Responses stream converter — the Chat-Completions chunk parser below
-      // would silently drop every response.output_text.delta event.
-      responseBody = await convertResponsesStreamToJson(providerResponse.body);
+      responseBody = await convertResponsesStreamToJson(providerResponse.body, { signal });
     } else {
-      const sseText = await providerResponse.text();
       const aggregationState = createSSEAggregationState(targetFormat, sourceFormat, model);
-      const parsed = parseSSEToOpenAIResponse(sseText, model, targetFormat, aggregationState);
+      const parsed = await convertSSEToOpenAIResponse(providerResponse.body, model, targetFormat, aggregationState, { signal });
       if (!parsed) {
         appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
         return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
       }
-      responseBody = aggregationState.nativeResponse || parsed;
+      responseBody = parsed.error ? parsed : aggregationState.nativeResponse || parsed;
     }
   } else {
     try {
