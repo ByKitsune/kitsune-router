@@ -63,6 +63,22 @@ export const SSE_KEEPALIVE_MS = envMs("SSE_KEEPALIVE_MS", 15 * 1000);
 // Fetch connect timeout: abort if upstream doesn't return response headers within this duration
 export const FETCH_CONNECT_TIMEOUT_MS = envMs("FETCH_CONNECT_TIMEOUT_MS", 60 * 1000);
 
+export const UPSTREAM_TRANSPORT_CONFIG = {
+  connectionsPerOrigin: envMs("UPSTREAM_CONNECTIONS_PER_ORIGIN", 50),
+  maxOriginsPerRoute: envMs("UPSTREAM_MAX_ORIGINS_PER_ROUTE", 32),
+  maxLivePools: envMs("UPSTREAM_MAX_LIVE_POOLS", 64),
+  maxProxyRoutes: envMs("UPSTREAM_MAX_PROXY_ROUTES", MEMORY_CONFIG.proxyDispatchersMaxSize),
+  maxQueuedPerOrigin: envMs("UPSTREAM_MAX_QUEUED_PER_ORIGIN", 256),
+  maxQueuedTotal: envMs("UPSTREAM_MAX_QUEUED_TOTAL", 2048),
+  keepAliveTimeoutMs: envMs("UPSTREAM_KEEP_ALIVE_TIMEOUT_MS", 30_000),
+  keepAliveMaxTimeoutMs: envMs("UPSTREAM_KEEP_ALIVE_MAX_TIMEOUT_MS", 60_000),
+  poolIdleTimeoutMs: envMs("UPSTREAM_POOL_IDLE_TIMEOUT_MS", 60_000),
+  connectTimeoutMs: envMs("UPSTREAM_CONNECT_TIMEOUT_MS", 10_000),
+  headersTimeoutMs: envMs("UPSTREAM_HEADERS_TIMEOUT_MS", STREAM_FIRST_CHUNK_TIMEOUT_MS),
+  bypassRequestTimeoutMs: envMs("UPSTREAM_BYPASS_REQUEST_TIMEOUT_MS", FETCH_CONNECT_TIMEOUT_MS),
+  closeTimeoutMs: envMs("UPSTREAM_CLOSE_TIMEOUT_MS", 10_000),
+};
+
 // Codex preheader error inspection must hand off quickly so SSE keepalives can start.
 export const CODEX_SSE_PEEK_TIMEOUT_MS = 1000;
 

@@ -2,6 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { SSE_DONE, SSE_HEADERS_NO_BUFFER } from "../utils/sseConstants.js";
 import { sseChunk } from "../utils/sse.js";
+import { proxyAwareFetch } from "../utils/proxyFetch.js";
 
 const PPLX_SSE_ENDPOINT = PROVIDERS["perplexity-web"].baseUrl;
 const PPLX_API_VERSION = "2.18";
@@ -131,6 +132,7 @@ async function* readPplxSseEvents(body, signal) {
     const tail = flush();
     if (tail && tail !== "done") yield tail;
   } finally {
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }
@@ -393,7 +395,8 @@ export class PerplexityWebExecutor extends BaseExecutor {
     super("perplexity-web", PROVIDERS["perplexity-web"]);
   }
 
-  async execute({ model, body, stream, credentials, signal, log }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
+    signal?.throwIfAborted();
     const messages = body?.messages;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       const errResp = new Response(JSON.stringify({
@@ -455,8 +458,9 @@ export class PerplexityWebExecutor extends BaseExecutor {
 
     let response;
     try {
-      response = await fetch(PPLX_SSE_ENDPOINT, fetchOptions);
+      response = await proxyAwareFetch(PPLX_SSE_ENDPOINT, fetchOptions, proxyOptions);
     } catch (err) {
+      signal?.throwIfAborted();
       log?.error?.("PPLX-WEB", `Fetch failed: ${err.message || String(err)}`);
       const errResp = new Response(JSON.stringify({
         error: { message: `Perplexity connection failed: ${err.message || String(err)}`, type: "upstream_error" },
@@ -465,6 +469,8 @@ export class PerplexityWebExecutor extends BaseExecutor {
     }
 
     if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      signal?.throwIfAborted();
       const status = response.status;
       let errMsg = `Perplexity returned HTTP ${status}`;
       if (status === 401 || status === 403) errMsg = "Perplexity auth failed — session cookie may be expired. Re-paste your __Secure-next-auth.session-token.";
