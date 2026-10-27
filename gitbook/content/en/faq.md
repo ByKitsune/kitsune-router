@@ -6,7 +6,7 @@ A provider-neutral, local-first AI gateway and dashboard, maintained/sponsored b
 
 ## Is 1.0.2 published?
 
-It is **authorized, with final SHA/tag, verification gates and npm/GHCR publication pending**. v1.0.1 remains at `74583402`: SSH/CI passed, but GHCR failed before login/push, npm publish failed with cause not yet known, and public npm readback was HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 stays at `390a6567`, without npm/GHCR after its migration-test failure. Tags do not move and are not registry artifacts. See [installation](/en/getting-started/installation/) and [changelog](/en/changelog/); 0.x history is unchanged.
+**Source is verified, publication is blocked.** Immutable `v1.0.2` / `65c8b97d` passed 9,041 tests with 100 skips and zero failed assertions/suites, strict lint and builds. npm publish was denied E403 requiring 2FA or a granular token with bypass 2fa enabled; public npm readback remained HTTP 404. The user will replace the token through GitHub's UI, but has not confirmed completion. GHCR source gates/login passed, then preflight stopped before build/push; no canonical image or GitHub Release 1.0.2 is established. Separate recovery keeps this tag/version unchanged. Earlier 1.0.1/1.0.0 failures retain their own evidence; **1.0.1's npm cause remains unknown**. See [installation](/en/getting-started/installation/) and [changelog](/en/changelog/); 0.x history is unchanged.
 
 ## Do I need a ByKitsune account or provider order?
 

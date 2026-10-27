@@ -1,6 +1,6 @@
 # ローカル配置
 
-画面と API は **20128** を共有し、既定 3000 ではありません。Node.js >=22.19.0、1.0.2 は最終 SHA/tag、検証ゲート・公開待ちです。旧タグは不変の試行記録で、registry 利用可能性の証明ではありません。[インストール](/ja/getting-started/installation/)。公開確認後 `kitsune-router`。
+画面と API は **20128** を共有し、既定 3000 ではありません。1.0.2 ソースは不変タグ `65c8b97d` で検証済み、registry 公開はブロック中です。[ソース手順](/ja/getting-started/installation/) を Node.js >=22.19.0 で使用してください。タグ/ローカル検証は registry 利用可能性の証明ではなく、公開/readback 確認後にパッケージの `kitsune-router` を使います。
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

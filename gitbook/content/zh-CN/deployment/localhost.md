@@ -1,6 +1,6 @@
 # 本地部署
 
-仪表盘和 API 共用 **20128**，不是 3000。Node.js >=22.19.0；1.0.2 待最终 SHA/标签、验证门槛和发布。两个旧标签是不可变尝试记录，不证明 registry 可用。见 [安装](/zh-CN/getting-started/installation/)，发布验证后运行 `kitsune-router`。
+仪表盘和 API 共用 **20128**，不是 3000。1.0.2 源码已在不可变标签 `65c8b97d` 验证，registry 发布受阻。先用 [源码安装](/zh-CN/getting-started/installation/)，要求 Node.js >=22.19.0。标签与本地测试不证明 registry 可用，发布/读回验证后再用包命令 `kitsune-router`。
 
 - 仪表盘：`http://localhost:20128/dashboard`
 - API 基址：`http://localhost:20128/v1`

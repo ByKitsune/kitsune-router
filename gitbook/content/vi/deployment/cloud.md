@@ -8,7 +8,7 @@ Node.js >=22.19.0, dependency khóa, build từ root theo [cài đặt](/vi/gett
 
 ## Container
 
-**1.0.2 chờ SHA/tag cuối, gate và xuất bản**. Hai lần thử cũ không có image GHCR chính thức: 1.0.1 lỗi trước login/push, 1.0.0 lỗi test di chuyển. Kiểm tra truy cập, digest và readback; tag/login không chứng minh xuất bản. Chỉ linux/amd64.
+**Nguồn 1.0.2 đã xác minh ở `65c8b97d`; xuất bản GHCR bị chặn.** Run `40469972099` qua gate/login rồi preflight phân loại sai manifest thiếu, dừng trước build/push. Readback xác thực HTTP 404 / `MANIFEST_UNKNOWN`. Recovery riêng giữ nguồn/phiên bản/tag, chưa có image chính thức. Ví dụ chỉ dùng sau xác minh digest/provenance/SBOM/readback. Chỉ linux/amd64; test khởi động lại local không chứng minh image công khai.
 
 ```yaml
 services:

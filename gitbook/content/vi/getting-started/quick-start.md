@@ -1,6 +1,6 @@
 # Bắt đầu nhanh
 
-**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. 1.0.2 chờ SHA/tag cuối, gate và npm/GHCR; cả hai tag cũ là lần thử bất biến, không chứng minh registry sẵn có. Dùng [nguồn](/vi/getting-started/installation/) trước. Chỉ sau xác minh xuất bản, với Node.js >=22.19.0:
+**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. **Nguồn 1.0.2 đã xác minh ở tag bất biến `65c8b97d`, xuất bản npm/GHCR bị chặn.** Dùng [mã nguồn](/vi/getting-started/installation/) và xem các blocker hiện tại. Lệnh dưới chỉ sau xuất bản/readback được xác minh, với Node.js >=22.19.0; tag/build local không chứng minh registry sẵn có.
 
 ```bash
 npx @bykitsune/router@1.0.2

@@ -1,6 +1,6 @@
 # Installation
 
-**Kitsune Router 1.0.2 is authorized; final SHA/tag, verification gates and npm/GHCR publication are pending.** The package is `@bykitsune/router`, not the bare command name. Requires **Node.js >=22.19.0**. Use source installation until publication and registry readback are verified.
+**Kitsune Router 1.0.2 source is verified at immutable tag `65c8b97d`; npm/GHCR publication is blocked.** Exact-source tests (9,041 passed, 100 skipped, zero failed assertions/suites), strict lint and app/docs builds passed. npm publish was denied E403 (2FA or granular token with bypass 2fa required); public readback is HTTP 404. GHCR stopped before build/push on a missing-manifest preflight error. Token replacement is user-managed and not confirmed; no canonical image or GitHub Release is established. The package is `@bykitsune/router`, not the bare command name; requires **Node.js >=22.19.0**. Use source installation until registry publication/readback succeed. [Evidence](/en/changelog/).
 
 Both old tags remain immutable. v1.0.1 at `74583402` passed SSH/CI, but its GHCR gate failed before login/push and npm publish failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 at `390a6567` did not publish npm/GHCR after its migration-test failure. See [release history](/en/changelog/); source tags are not registry artifacts.
 

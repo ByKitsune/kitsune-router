@@ -8,7 +8,7 @@ Gateway de IA local-first e neutro entre provedores, mantido e patrocinado pela 
 
 ## Publicação e instalação
 
-**1.0.2 é a próxima candidata autorizada; SHA/tag final, verificações e publicação npm/GHCR pendentes.** Repositório `ByKitsune/kitsune-router`, pacote `@bykitsune/router`, comando `kitsune-router`, imagem `ghcr.io/bykitsune/kitsune-router`. Use os comandos do pacote somente após publicação verificada; enquanto isso, use o código-fonte.
+**Fonte 1.0.2 verificada; publicação npm/GHCR bloqueada.** Tag imutável `65c8b97d`: 9.041 aprovados, 100 ignorados, zero falhas de testes/suites; lint estrito e builds app/docs passaram. npm publish recebeu E403 (2FA ou token granular com bypass 2fa); leitura pública HTTP 404. GHCR passou verificações/login, mas preflight parou antes de build/push por classificar mal um manifest ausente. O usuário substituirá o token no GitHub UI, ainda sem confirmação; recuperação separada não muda versão/tag. Sem artefato público ou GitHub Release estabelecidos. Pacote `@bykitsune/router`, comando `kitsune-router`; use comandos após publicação verificada ou fontes agora. [Estado 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 Os tags ficam imutáveis: `v1.0.1` em `74583402` passou SSH/CI, mas a verificação GHCR falhou antes de login/push, sem imagem canônica. npm publish falhou por causa ainda desconhecida; leitura pública HTTP 404 em 2026-10-27, sem GitHub Release. `v1.0.0` em `390a6567` não publicou npm/GHCR após falha no teste de migração. [Tentativa 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Candidata 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). O relógio de teste e os diagnósticos npm não mudam a ordem nem a política fail-closed em produção. Contagens antigas não verificam 1.0.2; histórico 0.x preservado.
 
@@ -65,7 +65,7 @@ Preserve `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/` e `mitm/`. Não
 
 Docker mantém volume/montagem no `DATA_DIR` efetivo: `/app/data` padrão ou caminho absoluto personalizado suportado; apenas linux/amd64. Em Linux restrito, pare/faça backup e mantenha o estado com `DATA_DIR` explícito sem mover, ou peça revisão privilegiada; não ignore permissões. Verifique a imagem; espelho opcional. [Instalação](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operação](../docs/OPERATIONS.md).
 
-Compressão depende da carga: não há economia fixa, cota ilimitada ou disponibilidade garantida. Estimativas não são faturas; preço desconhecido não é zero. Permissões, regiões e termos dos provedores continuam válidos. Não há serviço Kitsune hospedado padrão; a sincronização antiga foi removida. Esta revisão não certifica testes/build atuais. [Rascunho 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
+Compressão depende da carga: não há economia fixa, cota ilimitada ou disponibilidade garantida. Estimativas não são faturas; preço desconhecido não é zero. Permissões, regiões e termos dos provedores continuam válidos. Não há serviço Kitsune hospedado padrão; a sincronização antiga foi removida. Testes de fonte/artefatos locais não comprovam publicação. [Evidências 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 ## Créditos e licença
 

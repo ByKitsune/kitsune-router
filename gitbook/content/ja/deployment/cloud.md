@@ -8,7 +8,7 @@ Node.js >=22.19.0、固定依存、ルート build を [手順](/ja/getting-star
 
 ## コンテナー
 
-**1.0.2 は最終 SHA/tag、検証ゲート・公開待ち**。旧試行の正規 GHCR イメージはありません。1.0.1 は login/push 前、1.0.0 は移行テストで失敗しました。アクセス・digest・読戻しを確認し、タグや npm login を公開成功と扱わないでください。linux/amd64 のみです。
+**1.0.2 ソースは `65c8b97d` で検証済み、GHCR 公開はブロック中です。** Run `40469972099` は gate/login 成功後、欠落 manifest の誤判定により build/push 前に停止。認証読戻し HTTP 404 / `MANIFEST_UNKNOWN`。独立 recovery はソース/版/タグを変えず、正規イメージはまだありません。以下は digest/provenance/SBOM/readback 確認後のみ使用してください。linux/amd64 のみで、ローカル再起動検証は公開イメージの証拠ではありません。
 
 ```yaml
 services:

@@ -1,6 +1,6 @@
 # Instalación
 
-**Kitsune Router 1.0.2 está autorizada; SHA/tag final, controles y publicación npm/GHCR pendientes.** Paquete `@bykitsune/router`, no nombre bare; requiere **Node.js >=22.19.0**. v1.0.1 permanece en `74583402`: GHCR falló antes de login/push, npm publish falló con causa desconocida y lectura pública HTTP 404 el 2026-10-27; sin imagen canónica ni GitHub Release. v1.0.0 en `390a6567` no publicó npm/GHCR. Los tags no se mueven; usa fuentes hasta verificar publicación. [Historial](/es/changelog/).
+**Fuente 1.0.2 verificada en tag inmutable `65c8b97d`; publicación npm/GHCR bloqueada.** 9.041 aprobados, 100 omitidos, cero fallos de tests/suites; lint y builds pasaron. npm publish recibió E403 (2FA o token granular con bypass 2fa), lectura pública HTTP 404; GHCR paró antes de build/push por preflight de manifest ausente. Cambio de token en GitHub UI no confirmado; sin imagen canónica ni GitHub Release. Paquete `@bykitsune/router`, no nombre bare; requiere **Node.js >=22.19.0**. Usa fuentes hasta verificar publicación/readback. [Evidencia](/es/changelog/).
 
 ## Launcher después de publicar
 

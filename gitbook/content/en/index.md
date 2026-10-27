@@ -4,7 +4,7 @@
 
 ## Release status
 
-**1.0.2 is the authorized next candidate; final SHA/tag, verification gates and npm/GHCR publication are pending.** Use package/image commands only after publication and registry readback are verified; source installation is available meanwhile. Identities:
+**1.0.2 source is verified; npm/GHCR publication is blocked.** Immutable tag `65c8b97d` passed 9,041 tests with 100 skips and zero failed assertions/suites; strict lint and app/docs builds passed. npm publish received E403 requiring 2FA or a granular token with bypass 2fa enabled; public readback remained HTTP 404. GHCR gates/login passed, but preflight stopped before build/push on a misclassified missing manifest. User-managed token replacement is not confirmed; separate container recovery retains the same version/tag. No canonical image or GitHub Release is established. Use registry commands only after verified publication, or source installation now. Identities:
 
 | Surface | Identity |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 Tags stay immutable: v1.0.1 at `745834026a5a9f55dffce40c0ad01bf3106e8237` passed SSH/CI, but its GHCR gate failed before login/push (no canonical image), and npm publish failed with cause not yet known (public readback HTTP 404 on 2026-10-27; no GitHub Release). v1.0.0 at `390a65677c06a30084386d2a2adf8b0c48709281` did not publish npm/GHCR after its migration-test failure. The [1.0.2 follow-up](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) controls test timestamps and improves npm publish diagnostics without changing production ordering or fail-closed ownership policy. Old counts do not verify 1.0.2. [Changelog](/en/changelog/); original 0.x provenance is unchanged.
 
-[Documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) is available on the verified official Cloudflare account/project; it is not a final release or custom-domain/DNS change.
+[Documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) remains on earlier documentation; it has not been refreshed to this source and is not registry, production-deployment or custom-domain/DNS evidence.
 
 ## What the gateway does
 

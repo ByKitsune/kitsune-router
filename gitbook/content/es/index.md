@@ -4,7 +4,7 @@
 
 ## Estado de publicación
 
-**1.0.2 es la siguiente candidata autorizada; SHA/tag final, controles y publicación npm/GHCR pendientes.** Usa comandos de paquete/imagen solo tras verificar publicación y lectura del registro; mientras tanto están las fuentes.
+**Fuente 1.0.2 verificada; publicación npm/GHCR bloqueada.** Tag inmutable `65c8b97d`: 9.041 aprobados, 100 omitidos, cero fallos de tests/suites; lint estricto y builds pasaron. npm publish recibió E403 (2FA o token granular con bypass 2fa); lectura pública HTTP 404. GHCR pasó gate/login, pero preflight paró antes de build/push por un manifest ausente mal clasificado. Cambio de token por el usuario en GitHub UI aún no confirmado; recuperación separada sin cambiar versión/tag. Sin imagen canónica ni GitHub Release establecidos. Usa comandos del registro tras verificar publicación o fuentes ahora.
 
 | Superficie | Destino |
 | --- | --- |

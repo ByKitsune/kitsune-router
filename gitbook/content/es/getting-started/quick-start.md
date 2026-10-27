@@ -1,6 +1,6 @@
 # Inicio rápido
 
-**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. 1.0.2 espera SHA/tag final, controles y publicación npm/GHCR; los dos tags anteriores son intentos inmutables, no prueba de disponibilidad. Consulta [instalación](/es/getting-started/installation/) para fuentes. Solo tras verificar publicación, con Node.js >=22.19.0:
+**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. **Fuente 1.0.2 verificada en tag inmutable `65c8b97d`, publicación npm/GHCR bloqueada.** Consulta [instalación](/es/getting-started/installation/) para fuentes y bloqueos actuales. Los comandos siguientes solo tras publicación/readback verificados, con Node.js >=22.19.0; tag/build local no prueba disponibilidad.
 
 ```bash
 npx @bykitsune/router@1.0.2

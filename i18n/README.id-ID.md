@@ -8,7 +8,7 @@ Gateway AI local-first yang netral terhadap penyedia, dipelihara dan disponsori 
 
 ## Status rilis dan instalasi
 
-**1.0.2 adalah kandidat berikutnya yang diizinkan; SHA/tag akhir, gate dan publikasi npm/GHCR masih tertunda.** Repositori `ByKitsune/kitsune-router`, paket `@bykitsune/router`, perintah `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. Gunakan perintah paket setelah publikasi terverifikasi; sementara ini gunakan sumber.
+**Sumber 1.0.2 terverifikasi; publikasi npm/GHCR terblokir.** Tag tetap `65c8b97d`: 9.041 lulus, 100 dilewati, nol kegagalan tes/suite; lint ketat dan build app/docs lulus. npm publish ditolak E403 (2FA atau token granular dengan bypass 2fa); readback publik HTTP 404. Gate/login GHCR lulus, lalu preflight berhenti sebelum build/push karena salah mengenali manifest tidak ada. Pengguna akan mengganti token melalui GitHub UI, belum dikonfirmasi; recovery terpisah tidak mengubah versi/tag. Belum ada artefak publik atau GitHub Release yang terverifikasi. Paket `@bykitsune/router`, perintah `kitsune-router`; gunakan perintah setelah publikasi terverifikasi atau sumber sekarang. [Status 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 Tag tidak dipindahkan: `v1.0.1` di `74583402` lulus SSH/CI, tetapi gate GHCR gagal sebelum login/push, tanpa image kanonis. Perintah npm publish gagal, penyebab belum diketahui; readback publik HTTP 404 pada 2026-10-27, tanpa GitHub Release. `v1.0.0` di `390a6567` tidak menerbitkan npm/GHCR setelah tes migrasi gagal. [Percobaan 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Kandidat 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). Jam tes dan diagnostik npm tidak mengubah urutan atau penolakan ownership produksi. Jumlah tes lama bukan bukti 1.0.2; asal 0.x dipertahankan.
 
@@ -65,7 +65,7 @@ Simpan `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/`, dan `mitm/`. Jan
 
 Docker tetap memakai volume/mount pada `DATA_DIR` efektif: default `/app/data` atau path absolut kustom yang didukung; hanya linux/amd64. Pada Linux terbatas, hentikan/backup lalu pakai `DATA_DIR` eksplisit ke sumber tanpa relokasi atau minta tinjauan berhak akses; jangan abaikan izin. Verifikasi image; mirror opsional. [Instalasi](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operasi](../docs/OPERATIONS.md).
 
-Penghematan kompresi bergantung beban kerja. Tidak ada persentase tetap, kuota tak terbatas, atau jaminan selalu tersedia. Estimasi bukan tagihan; harga tidak diketahui bukan gratis. Izin, wilayah, dan ketentuan penyedia tetap berlaku. Tidak ada endpoint Kitsune terkelola bawaan; sinkronisasi lama sudah dihapus. Pembaruan dokumentasi ini tidak membuktikan tes/build terkini lulus. [Draf 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
+Penghematan kompresi bergantung beban kerja. Tidak ada persentase tetap, kuota tak terbatas, atau jaminan selalu tersedia. Estimasi bukan tagihan; harga tidak diketahui bukan gratis. Izin, wilayah, dan ketentuan penyedia tetap berlaku. Tidak ada endpoint Kitsune terkelola bawaan; sinkronisasi lama sudah dihapus. Gate sumber/artefak lokal tidak membuktikan publikasi registry. [Bukti 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 ## Kredit dan lisensi
 

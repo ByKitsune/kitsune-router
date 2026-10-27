@@ -1,10 +1,11 @@
 # Kitsune Router rebranding and migration
 
-Status: implementation candidate verified offline; final artifact gates and
-external namespace authorization remain separate. No release publication is
-implied by this document.
+Status: source 1.0.2 is verified and merged; registry publication is blocked by
+npm authorization and an identified GHCR preflight format mismatch. Source
+verification is not a claim that registry artifacts have been published.
 
-**Current publication candidate: 1.0.2.** The user elected to retain the failed
+**Selected immutable release source: 1.0.2 at
+`65c8b97d783becab3f1e1210d2ab9ce67992e13b`.** The user elected to retain the failed
 `v1.0.0` tag immutably, rather than moving a public tag after GitHub's non-root
 runner exposed an ownership-inspection limitation. The v1.0.0 npm/GHCR workflows
 stopped before either registry was written. Earlier 1.0.0 candidate evidence below
@@ -110,7 +111,11 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
   membership read returned 403; actual publishing permission remains a registry
   gate, not an inference from the username or secret's existence. The 1.0.1
   publish command failed; its verbose file listing obscured the terminal npm
-  reason, so no specific authentication/permission cause is asserted. Temporary
+  reason, so no cause is retroactively assigned to that attempt. Version 1.0.2
+  produced readable **E403** diagnostics: npm requires two-factor authentication
+  or a granular token configured for authorized non-interactive publication.
+  The owner selected direct replacement of the repository Actions `NPM_TOKEN`,
+  without disclosing its value here. Confirmation is still pending. Temporary
   credentials disclosed in chat must be revoked after use.
 - Cloudflare account and Pages reads now succeed through Composio CLI toolkit
   `cloudflare_api_key`, alias **ByKitsune**, against official account
@@ -222,3 +227,53 @@ promoting it. Those early branch pushes did not replace production services.
 - Version 1.0.2 requires its own final source SHA, complete gates, original
   publication tarball, registry readback, container digest/provenance/SBOM, and
   published-artifact smokes. Earlier pass counts cannot certify that revision.
+
+## Verified 1.0.2 source and blocked publication
+
+- Immutable tag `v1.0.2` points to `65c8b97d783becab3f1e1210d2ab9ce67992e13b`.
+  [PR #2](https://github.com/ByKitsune/kitsune-router/pull/2) merged to `master`
+  at `23375bf121e926f2d2b1330d3c2b8c124a639b40` after all checks passed.
+- Exact SSH gate: **9,041 tests passed, 100 skipped/todo, zero failed assertions
+  or suites**; strict lint, identity/baseline/provider/alias/OAuth/h2c checks,
+  root build, 18 docs tests, static export and CLI pack passed. Source report
+  SHA-256: `a892d4549459b8de6de8d97a8a3ad397e257733f543a02a23fcfa60a5f535840`.
+  [GitHub CI 40468830176](https://github.com/ByKitsune/kitsune-router/actions/runs/40468830176)
+  passed the same counts on PR merge SHA `641d13ef`, whose tree matches the
+  selected source. These are distinct source reports, not interchangeable SHAs.
+- Local tarball SHA-256
+  `9b98ba6a4bfdd92e6b3ad99d077f511e67ce921476048fce9c93fc44b1cfb4b2` passed
+  isolated install/help/version/video-help/runtime/upgrade checks. Originals and
+  keys were retained, secrets were `0600`, runtime exited gracefully. The local
+  container passed six start/restart scenarios across `/app/data` and custom
+  `/var/lib/kitsune-router`; image ID
+  `sha256:92aeda74d937e440bae4643523beaac9bc33addab1e9d5b18544c0ce6d0dfbec`.
+  These are local evidence, not registry artifacts.
+- Browser login and native-dialog focus return passed. At 390 px,
+  `scrollWidth` was 390; reduced motion had zero active animations. Rendered
+  desktop/light/dark/mobile screenshots were reviewed. Preview test processes
+  and smoke containers were stopped; no production service was changed.
+- [npm workflow 40469972263](https://github.com/ByKitsune/kitsune-router/actions/runs/40469972263)
+  passed source/docs/pack and saved original CI artifact **`12718343077`**,
+  tarball SHA-256
+  `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`.
+  npm rejected publication with E403 two-factor/granular-token policy; public
+  readback remained 404. GitHub Release creation was not reached. Recovery must
+  reuse those original bytes, not the independently built SSH tarball. The
+  recovered original CI bytes independently passed install/help/runtime/upgrade
+  smoke on SSH, with originals/keys retained, secrets `0600`, and graceful exit 0.
+- [GHCR workflow 40469972099](https://github.com/ByKitsune/kitsune-router/actions/runs/40469972099)
+  passed source verification and login, then stopped before build/push: Buildx
+  emitted `not found`, while the original guard accepts only `manifest unknown`.
+  A separate authenticated registry read returned grant HTTP 200 followed by
+  manifest HTTP 404 with structured **`MANIFEST_UNKNOWN`**; the authenticated
+  organization container inventory was empty. Generic 404s remain ambiguous.
+- The owner authorized a separate reviewed recovery workflow. Its tooling source
+  and immutable runtime source are checked out and verified separately; it
+  classifies absence only from authenticated structured registry evidence,
+  retains original digest/config/source/provenance/SBOM checks, and builds from
+  the full release commit. This changes release tooling, not the v1.0.2 tag or
+  runtime. Registry publication/readback remain pending until actually verified.
+  Focused registry/recovery checks include real annotated Git references and the
+  actual workflow validation shell; denied grants, unsafe refs, HTML/malformed
+  JSON, mixed registry error codes, oversized responses and digest mismatches are
+  rejected. No broad interpretation of Buildx `not found` is added.

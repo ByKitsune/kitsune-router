@@ -6,7 +6,7 @@ Gateway trung lập, local-first do [ByKitsune](https://bykitsune.com) duy trì/
 
 ## 1.0.2 đã phát hành?
 
-Đây là ứng viên được cho phép, **chờ SHA/tag cuối, các gate và xuất bản npm/GHCR**. v1.0.1 tại `74583402` qua SSH/CI, nhưng GHCR lỗi trước login/push, không image chính thức; npm publish lỗi chưa rõ nguyên nhân, readback công khai HTTP 404 ngày 2026-10-27, không GitHub Release. v1.0.0 giữ tại `390a6567`, không npm/GHCR. Không di chuyển tag và tag không là hiện vật registry. [Cài đặt](/vi/getting-started/installation/) · [Thay đổi](/vi/changelog/). Giữ lịch sử 0.x.
+**Nguồn đã xác minh, xuất bản bị chặn.** `v1.0.2` / `65c8b97d` qua 9.041 test, 100 skip, không lỗi assertion/suite, lint/build qua. npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback công khai HTTP 404. Người dùng sẽ thay token qua GitHub UI nhưng chưa xác nhận xong. GHCR qua gate/login rồi dừng ở preflight trước build/push; chưa có image chính thức/GitHub Release. Recovery riêng không đổi tag/phiên bản; nguyên nhân npm 1.0.1 vẫn chưa rõ. [Cài đặt](/vi/getting-started/installation/) · [Thay đổi](/vi/changelog/). Giữ lịch sử 0.x.
 
 ## Bắt buộc tài khoản/thứ tự?
 

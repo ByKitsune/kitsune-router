@@ -1,8 +1,12 @@
 # 更新日志
 
-## Kitsune Router 1.0.2 — 已授权候选版，最终 SHA/标签、门槛与发布待完成
+## Kitsune Router 1.0.2 — 源码已验证，发布受阻
 
-仅 mock 写入子进程的 `Date`，覆盖相同时间戳与相差 1 ms，保留真实 SQLite 写入/缓存读取及生产 priority/`updatedAt` 排序。两个时间戳场景均向父进程缓存呈现已提交的凭据和 active-state 更新。仅将 `npm publish` 日志降到 warning；pack 输出、精确 SHA/原始产物/来源保护不变。最终 1.0.2 数量、构建和 npm/GHCR 发布待完成，不沿用旧数量。[1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+不可变标签 **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**；PR #2 合并于 `23375bf1`。精确源码 SSH **9,041 通过、100 跳过、断言/套件零失败**；严格 lint、18 项 docs 测试/静态导出、app 构建和 pack 通过。CI `40468830176` 在相同源码树通过。本地 tarball 安装/运行/升级、六种容器重启及精确源码浏览器检查通过，但不是已发布产物。测试只 mock 子进程 `Date`，不改变生产排序；warning 仅影响 npm publish，不改变 pack。
+
+npm `40469972263` 门槛/docs/pack 通过，但 publish 被 **E403** 拒绝，要求 2FA 或启用 bypass 2fa 的 granular token；公开读回 HTTP 404。原始 CI 产物 `12718343077`，SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`，与本地 smoke 字节不同，其自身 smoke 待完成。用户 GitHub UI token 替换尚未确认；不得把新原因追溯到日志截断的 1.0.1。
+
+GHCR `40469972099` 门槛/登录通过，但 preflight 误分类 Buildx `not found`，在构建/推送前停止；认证读回 HTTP 404 / `MANIFEST_UNKNOWN`。独立恢复保留源码/版本/标签不变，其 CI/合并、执行、摘要/来源/SBOM/读回仍须单独证据。暂无规范镜像、GitHub Release 1.0.2 或生产部署，文档预览尚未更新。[1.0.2 证据](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
 
 ## Kitsune Router 1.0.1 — 不可变尝试，未建立发布成功
 

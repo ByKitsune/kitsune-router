@@ -1,8 +1,12 @@
 # 変更履歴
 
-## Kitsune Router 1.0.2 — 承認済み候補、最終 SHA/tag・検証ゲート・公開待ち
+## Kitsune Router 1.0.2 — ソース検証済み、公開ブロック中
 
-書込子プロセスの `Date` だけを mock し、同一時刻と 1 ms 差を実際の SQLite 書込・キャッシュ読取で検証します。本番 priority/`updatedAt` 順序は不変。両時刻シナリオで確定済みの資格情報・active-state 更新が親キャッシュに反映されました。`npm publish` だけ warning レベルにし、pack 出力と SHA/原本成果物/provenance 保護は不変です。最終 1.0.2 件数・ビルド・npm/GHCR 公開は未完了で、旧件数を流用しません。[1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+不変タグ **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**、PR #2 merge `23375bf1`。exact-source SSH は **9,041 成功、100 skip、assertion/suite 失敗ゼロ**、strict lint、18 docs tests/static export、app build、pack 成功。CI `40468830176` は同一ソースツリーで成功。ローカル tarball の install/runtime/upgrade、六つのコンテナ再起動と exact-source browser 検証は記録範囲で成功しました。mock は子 `Date` のみで本番順序は不変、warning logging は publish のみで pack 不変です。
+
+npm `40469972263` は gate/docs/pack 後 **E403**（2FA または bypass 2fa 有効の granular token が必要）、公開読戻し HTTP 404。原本 CI 成果物 `12718343077`、SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114` はローカル smoke の tarball と別バイトで、原本 smoke は未完了。利用者の GitHub UI token 交換は完了未確認、1.0.1 npm 原因は不明のままです。
+
+GHCR `40469972099` は gate/login 成功後、Buildx `not found` の誤判定で build/push 前に停止。認証読戻し HTTP 404 / `MANIFEST_UNKNOWN`。独立 recovery はソース/版/タグを変えず、CI/merge・実行・digest/provenance/SBOM/readback は別途証拠が必要です。正規イメージ、GitHub Release 1.0.2、production 配備は未確立、docs preview は未更新。[1.0.2 証拠](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
 
 ## Kitsune Router 1.0.1 — 不変の試行、公開成功は未確立
 

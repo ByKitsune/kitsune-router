@@ -6,7 +6,7 @@ Gateway neutral y local-first mantenido/patrocinado por [ByKitsune](https://byki
 
 ## ¿Ya está 1.0.2?
 
-Es la candidata autorizada, **pendiente de SHA/tag final, controles y publicación npm/GHCR**. v1.0.1 en `74583402` pasó SSH/CI, pero GHCR falló antes de login/push, sin imagen canónica; npm publish falló por causa aún desconocida, lectura pública HTTP 404 el 2026-10-27 y sin GitHub Release. v1.0.0 queda en `390a6567`, sin npm/GHCR. Tags inmutables, no artefactos del registro. [Instalación](/es/getting-started/installation/) · [Cambios](/es/changelog/). Historia 0.x intacta.
+**Fuente verificada, publicación bloqueada.** `v1.0.2` / `65c8b97d` pasó 9.041 tests, 100 omitidos, cero fallos de tests/suites, lint y builds. npm publish recibió E403 (2FA o token granular con bypass 2fa), lectura pública HTTP 404. El usuario cambiará el token en GitHub UI, aún no confirmado. GHCR pasó gates/login y paró antes de build/push por preflight; sin imagen canónica ni GitHub Release. Recuperación separada sin cambiar tag/versión; el error npm 1.0.1 sigue de causa desconocida. [Instalación](/es/getting-started/installation/) · [Cambios](/es/changelog/). Historia 0.x intacta.
 
 ## ¿Cuenta u orden obligatorio?
 

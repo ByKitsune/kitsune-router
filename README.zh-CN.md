@@ -8,11 +8,11 @@
 
 ## 发布状态
 
-**1.0.2 是用户已授权的下一候选版本，最终 SHA/标签、验证门槛和 npm/GHCR 发布尚待完成。** 仓库 `ByKitsune/kitsune-router`、包 `@bykitsune/router`、命令 `kitsune-router` 和规范镜像 `ghcr.io/bykitsune/kitsune-router` 不变。以下命令仅在发布并验证后适用，目前可用源码安装。
+**1.0.2 源码已验证，npm/GHCR 发布受阻。** 不可变标签 `v1.0.2` 固定于 `65c8b97d783becab3f1e1210d2ab9ce67992e13b`，9,041 项通过、100 跳过、断言及套件零失败；严格 lint 与 app/docs 构建通过。npm 发布被 E403 拒绝，要求双因素认证或启用 bypass 2fa 的 granular token，公开读回仍为 HTTP 404。GHCR 源码门槛/登录通过，但缺失 manifest 被误分类，在构建/推送前停止；尚无规范镜像或 GitHub Release。用户将自行在 GitHub UI 替换 token，尚未确认完成；独立容器恢复不改版本或标签。包 `@bykitsune/router`、命令 `kitsune-router` 不变，下方命令仍仅在发布验证后适用。见 [1.0.2 状态](releases/RELEASE_NOTES_v1.0.2.md)。
 
 旧标签均不移动：`v1.0.1` 固定于 `745834026a5a9f55dffce40c0ad01bf3106e8237`，SSH/CI 通过，但 GHCR 门槛在登录/推送前失败，未发布规范 1.0.1 镜像；npm 发布命令失败，原因尚未知，2026-10-27 公开读回为 HTTP 404，未创建 GitHub Release 1.0.1。`v1.0.0` 固定于 `390a65677c06a30084386d2a2adf8b0c48709281`，迁移测试失败后未发布 npm/GHCR。见 [1.0.1 尝试](releases/RELEASE_NOTES_v1.0.1.md) 与 [1.0.2 草案](releases/RELEASE_NOTES_v1.0.2.md)：接续确定性时钟测试和清晰 npm 诊断，不改变生产排序或所有权拒绝策略，也不沿用旧测试数量。0.x 来源保留。
 
-[文档预览](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) 位于已验证的官方 Cloudflare 账户/项目；它不是发布、生产部署或自定义域名/DNS 变更证明。
+[文档预览](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) 位于已验证的官方 Cloudflare 账户/项目，尚未更新到已验证 1.0.2 源码；它不是发布、生产部署或自定义域名/DNS 变更证明。
 
 ## 安装和启动
 
@@ -78,7 +78,7 @@ curl http://localhost:20128/v1/models \
 
 提供协议转换、多账户/模型回退、用量统计，以及可选 RTK/Headroom 等压缩功能。支持情况取决于具体传输与模型；无法表示的参数或文档可能明确拒绝。没有固定节省比例、无限免费额度或不中断运行的保证。成本估算不是账单；未知价格不等于免费，订阅积分不等于 API 美元费用。
 
-容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.2`，需先核实发布、访问和摘要；Docker Hub 只是可选镜像源。原生 Windows/macOS 迁移仍未验证。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [测试说明](tests/README.md)。本次文档更新不声称已验证当前测试或构建。
+容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.2`，尚未发布，需核实访问、摘要和读回；本地镜像测试不等于 GHCR 产物。Docker Hub 只是可选镜像源。原生 Windows/macOS 迁移仍未验证。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [验证记录](docs/CHANGELOG_v1.0.2.md)。
 
 ## 致谢与许可证
 

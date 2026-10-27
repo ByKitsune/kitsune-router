@@ -1,6 +1,6 @@
 # Quick Start
 
-**Your models. Your routes.** No ByKitsune account or required provider ordering. [Installation](/en/getting-started/installation/) covers source checkout and pending 1.0.2 final SHA/tag, verification and npm/GHCR publication. Both previous tags remain immutable attempt records, not registry-availability proof. Package commands below apply only after verified publication and require **Node.js >=22.19.0**.
+**Your models. Your routes.** No ByKitsune account or required provider ordering. **1.0.2 source is verified, but npm/GHCR publication is blocked**; the tag stays at `65c8b97d`. [Installation](/en/getting-started/installation/) covers source checkout and current blockers. Package commands below apply only after publication/readback succeed and require **Node.js >=22.19.0**. Tags and local builds are not registry-availability proof.
 
 ## 1. Start the gateway
 

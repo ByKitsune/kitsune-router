@@ -1,6 +1,6 @@
 # クイックスタート
 
-**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。1.0.2 は最終 SHA/tag、検証ゲート、npm/GHCR 公開待ちです。両旧タグは不変の試行記録で、registry 利用可能性の証明ではありません。[ソース手順](/ja/getting-started/installation/) を使い、公開確認後のみ Node.js >=22.19.0 で実行します。
+**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。**1.0.2 ソースは不変タグ `65c8b97d` で検証済み、npm/GHCR 公開はブロック中です。** [ソース手順](/ja/getting-started/installation/) と現在の障害を確認してください。以下は公開/readback 確認後のみ、Node.js >=22.19.0 で使用します。タグやローカル build は registry 利用可能性の証明ではありません。
 
 ```bash
 npx @bykitsune/router@1.0.2

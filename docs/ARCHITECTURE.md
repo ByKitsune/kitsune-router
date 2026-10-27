@@ -1,8 +1,8 @@
 # Kitsune Router Architecture
 
-_Architecture review: 2026-10-19; release guidance updated for the pending 1.0.2 candidate._
+_Architecture review: 2026-10-19; release guidance updated for source-verified 1.0.2 with publication blocked._
 
-**Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. The authorized 1.0.2 candidate awaits final SHA/tag, gates and npm/GHCR publication. Both v1.0.0 and v1.0.1 remain immutable attempt tags, not evidence of registry availability. Historical checks below retain their original scope and numeric data. See [release status](CHANGELOG_v1.0.2.md), [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
+**Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. Source 1.0.2 is verified at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`, but npm/GHCR publication is blocked. Separate recovery tooling does not bump the version or move the tag. Both previous attempt tags remain immutable. Historical architecture checks below retain their original scope and numeric data. See [release evidence](CHANGELOG_v1.0.2.md), [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
 
 ## Executive Summary
 
@@ -163,7 +163,7 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 
 Keep `secrets.json`, `machine-id`, `auth/` and `mitm/` together with SQLite. Encryption derivation constants and trusted root subjects/keys intentionally retain their original values. Runtime caches are regenerated, not migrated as active binaries. Containers keep the same volume/mount at effective `DATA_DIR`, default `/app/data` or a supported custom absolute path; rollback does not merge subsequent writes backwards. See [MIGRATION.md](MIGRATION.md) for operator controls and refusal handling.
 
-The process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Bounded Linux evidence does not certify general non-root support; native Windows/macOS migration remains unverified. See [current release notes](../releases/RELEASE_NOTES_v1.0.2.md) for the separate timestamp-controlled cache test and pending final gates; production ordering is unchanged.
+The process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Bounded Linux evidence does not certify general non-root support; native Windows/macOS migration remains unverified. See [current release notes](../releases/RELEASE_NOTES_v1.0.2.md) for the separate timestamp-controlled cache test, completed source gates and blocked publication; production ordering is unchanged.
 
 Startup recognizes legacy-prefixed operator settings at the migration boundary without rewriting environment files; explicit current names win. Process-only trusted-peer proof tokens are never imported. An existing implicit legacy SAML entity ID is persisted when no custom issuer was saved; fresh installations use `urn:kitsunerouter:sp`. Do not replace an existing IdP configuration to make its name look new.
 
