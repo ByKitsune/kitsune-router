@@ -1,6 +1,6 @@
 # クイックスタート
 
-**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。**1.0.2 ソースは不変タグ `65c8b97d` で検証済み、npm/GHCR 公開はブロック中です。** [ソース手順](/ja/getting-started/installation/) と現在の障害を確認してください。以下は公開/readback 確認後のみ、Node.js >=22.19.0 で使用します。タグやローカル build は registry 利用可能性の証明ではありません。
+**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。**1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm ブロック中です。** Runtime は `65c8b97d` のまま。[ソース手順](/ja/getting-started/installation/) か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下は **npm** 配布/readback 確認後のみ、Node.js >=22.19.0 で使用します。コンテナ配布は npm launcher の配布を意味しません。
 
 ```bash
 npx @bykitsune/router@1.0.2

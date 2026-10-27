@@ -6,7 +6,7 @@
 
 ## 1.0.2 は公開済み？
 
-**ソース検証済み、公開はブロック中です。** `v1.0.2` / `65c8b97d` は 9,041 成功、100 skip、assertion/suite 失敗ゼロ、lint/build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token）、公開読戻し HTTP 404。利用者が GitHub UI で token を交換する予定ですが完了未確認です。GHCR は gate/login 成功後 preflight で build/push 前に停止し、正規イメージ・GitHub Release は未確立。独立 recovery はタグ/版を変えず、1.0.1 npm 原因は依然不明です。[インストール](/ja/getting-started/installation/) · [履歴](/ja/changelog/)。0.x 歴史を保持します。
+**コンテナは配布済みですが private、npm はブロック中です。** Recovery `40485038668` が不変 runtime `65c8b97d` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功しました。所有者の Public 選択は完了未確認、匿名 grant は最新確認で HTTP 401。許可済み private アクセスかソースを使い、匿名 pull を前提にしないでください。npm は E403/公開読戻し HTTP 404、token 交換未確認。GitHub Release 1.0.2・production 配備はなく、旧タグと 1.0.1 npm 原因不明の証拠を維持します。[インストール](/ja/getting-started/installation/) · [証拠](/ja/changelog/)。
 
 ## 必須アカウントや順序は？
 

@@ -4,7 +4,7 @@
 
 ## Estado de publicación
 
-**Fuente 1.0.2 verificada; publicación npm/GHCR bloqueada.** Tag inmutable `65c8b97d`: 9.041 aprobados, 100 omitidos, cero fallos de tests/suites; lint estricto y builds pasaron. npm publish recibió E403 (2FA o token granular con bypass 2fa); lectura pública HTTP 404. GHCR pasó gate/login, pero preflight paró antes de build/push por un manifest ausente mal clasificado. Cambio de token por el usuario en GitHub UI aún no confirmado; recuperación separada sin cambiar versión/tag. Sin imagen canónica ni GitHub Release establecidos. Usa comandos del registro tras verificar publicación o fuentes ahora.
+**Contenedor 1.0.2 publicado en privado; pull anónimo pendiente; npm bloqueado.** Runtime inmutable `65c8b97d` (9.041 aprobados, 100 omitidos, cero fallos). Recovery `40485038668` publicó GHCR `1.0.2`/`latest`; lectura autenticada digest/proveniencia/SPDX y smoke independiente de la imagen publicada pasaron. El paquete sigue **private**: Public seleccionado pero no confirmado, grants anónimos HTTP 401. npm sigue E403/readback público HTTP 404, cambio de token no confirmado. Usa fuentes o acceso privado autorizado al contenedor; comandos npm solo tras publicación npm aceptada. Sin GitHub Release ni producción. [Evidencia](/es/changelog/).
 
 | Superficie | Destino |
 | --- | --- |

@@ -5,7 +5,7 @@ Recoge versión/SHA actual, `DATA_DIR` absoluto, ruta y error saneado. No borres
 ## Inicio y migración
 
 - Paquete ausente: fuente 1.0.2 verificada, pero npm publish recibió E403 (2FA o token granular con bypass 2fa), lectura pública HTTP 404. El usuario cambiará el secreto en GitHub UI, aún no confirmado; no compartas tokens. Usa [fuentes](/es/getting-started/installation/) hasta verificar publicación/readback. La causa npm 1.0.1 sigue desconocida.
-- Imagen GHCR ausente: gate/login 1.0.2 pasaron; preflight paró antes de build/push al clasificar mal un manifest ausente. Readback autenticado HTTP 404 / `MANIFEST_UNKNOWN`. Recuperación separada sin mover tag; consulta [operaciones](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). ID local no es digest GHCR.
+- Pull GHCR denegado/no encontrado: 1.0.2 está publicado con lectura autenticada/smoke pasados, pero el paquete sigue **private** a la última lectura; grants anónimos HTTP 401. Public seleccionado no está confirmado. Usa permiso de lectura privado o espera Public confirmado/readback anónimo; no confundas denegación enmascarada con publicación ausente. Fallos anteriores conservados en [operaciones](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). No compartas tokens.
 - Node antiguo: >=22.19.0; migración requiere snapshot SQLite nativo Node/Bun compatible, no copia cruda insegura.
 - Puerto ocupado: dashboard/API comparten 20128. Identifica y detén al dueño limpiamente, no `pkill`/`kill -9` amplios.
 - Estado vacío: revisa ruta/montaje `/app/data`; `DATA_DIR` explícito evita reubicación.

@@ -4,7 +4,7 @@
 
 ## 公開状況
 
-**1.0.2 ソース検証済み、npm/GHCR 公開はブロック中です。** 不変タグ `65c8b97d`：9,041 成功、100 skip、assertion/suite 失敗ゼロ、strict lint と app/docs build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token が必要）、公開読戻しは HTTP 404。GHCR は gate/login 後、欠落 manifest の誤判定で build/push 前に停止。利用者の GitHub UI token 交換は完了未確認、独立 recovery は版・タグを変えません。正規イメージ・GitHub Release は未確立です。registry コマンドは公開確認後のみ、当面はソースを利用してください。
+**1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm はブロック中です。** 不変 runtime `65c8b97d`（9,041 成功、100 skip、失敗ゼロ）。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功。最新確認は **private**、所有者の Public 選択は完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換未確認です。ソースか許可済み private コンテナを利用し、npm コマンドは npm 配布確認後のみ使用してください。GitHub Release・production 配備なし。[証拠](/ja/changelog/)。
 
 | 対象 | 識別子 |
 | --- | --- |

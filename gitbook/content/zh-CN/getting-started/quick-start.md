@@ -1,6 +1,6 @@
 # 快速开始
 
-**Your models. Your routes.** 无需 ByKitsune 账户或固定顺序。**1.0.2 源码已在不可变标签 `65c8b97d` 验证，npm/GHCR 发布受阻。** 先用 [源码安装](/zh-CN/getting-started/installation/) 并查看当前阻塞；下列命令仅发布/读回验证后适用，要求 Node.js >=22.19.0。标签及本地构建不证明 registry 可用。
+**Your models. Your routes.** 无需 ByKitsune 账户或固定顺序。**1.0.2 容器已私有发布，匿名拉取待确认，npm 受阻。** Runtime 固定于 `65c8b97d`。先用 [源码](/zh-CN/getting-started/installation/) 或 [获授权私有容器](/zh-CN/deployment/cloud/)；下列命令仅 **npm** 发布/读回成功后适用，要求 Node.js >=22.19.0。容器发布不等于 npm 启动器已发布。
 
 ```bash
 npx @bykitsune/router@1.0.2

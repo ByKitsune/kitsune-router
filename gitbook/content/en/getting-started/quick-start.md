@@ -1,6 +1,6 @@
 # Quick Start
 
-**Your models. Your routes.** No ByKitsune account or required provider ordering. **1.0.2 source is verified, but npm/GHCR publication is blocked**; the tag stays at `65c8b97d`. [Installation](/en/getting-started/installation/) covers source checkout and current blockers. Package commands below apply only after publication/readback succeed and require **Node.js >=22.19.0**. Tags and local builds are not registry-availability proof.
+**Your models. Your routes.** No ByKitsune account or required provider ordering. **1.0.2 container is published privately; anonymous pulls are pending and npm is blocked.** Runtime tag stays `65c8b97d`. Use [source installation](/en/getting-started/installation/) or authorized [private container access](/en/deployment/cloud/). Package commands below apply only after **npm** publication/readback succeeds and require **Node.js >=22.19.0**; container publication does not publish the npm launcher.
 
 ## 1. Start the gateway
 

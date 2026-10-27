@@ -1,6 +1,6 @@
-# Kitsune Router 1.0.2 technical changelog — source verified; publication blocked
+# Kitsune Router 1.0.2 technical changelog — private container published; npm blocked
 
-**Status: source verified at immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; npm/GHCR publication blocked.** PR #2 merged at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Recovery tooling is separately authorized with no version bump, tag move or production deployment. [Release notes](../releases/RELEASE_NOTES_v1.0.2.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
+**Status: immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` is source verified and published to GHCR, currently private; anonymous pulls remain pending and npm is blocked.** PR #2 merged at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Recovery tooling is separate from runtime source; no version bump, tag move or production deployment occurred. [Release notes](../releases/RELEASE_NOTES_v1.0.2.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
 
 ## Deterministic timestamp coverage, not a production ordering change
 
@@ -57,18 +57,39 @@ Do not claim E401, E403 or a two-factor-policy cause without the final error. So
 | Local container restart matrix | Six scenarios: default `/app/data` and custom `/var/lib/kitsune-router`, each with fresh JWT / CLI JSON / legacy ENV secrets; all keys retained at mode 0600 across restarts |
 | Exact-source browser checks | Login; Escape restored Create Key trigger focus; viewport/scroll width 390/390 px; zero active animations under reduced motion |
 | Original npm CI artifact | `12718343077`, tarball SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114` |
-| Retained original CI tarball smoke | Independently passed install/help/runtime/upgrade, originals and keys retained, secrets 0600, graceful exit 0; not proof of registry acceptance |
+| Retained original CI tarball smoke | Independently passed install/help/version/runtime/upgrade, originals and keys retained, secrets 0600, graceful exit 0; not proof of npm registry acceptance |
 | npm publication / public readback | E403 denied; subsequent public readback HTTP 404 |
-| Canonical GHCR 1.0.2 | Preflight stopped before build/push; no published digest/SBOM/readback |
+| Canonical GHCR 1.0.2 | Published by recovery `40485038668`; authenticated digest/provenance/SPDX readback verified, package private |
+| Published-image runtime smoke | Registry config `af6416b6`; all 16 compressed-layer digests/rootfs diff hashes verified before SSH load; six real start/restart scenarios healthy at 1.0.2, keys stable and secrets 0600 |
+| Anonymous pull | Grants HTTP 401 at last read; Public visibility change selected but not confirmed |
 | GitHub Release 1.0.2 | Not created; the existing Create GitHub Release step was not reached |
 | Production deployment / native Windows/macOS migration | Not performed / unverified |
 
-## Known publication blockers; separate recovery tooling
+## npm blocker and container-recovery history
 
 [npm workflow 40469972263](https://github.com/ByKitsune/kitsune-router/actions/runs/40469972263) passed the exact-source gate/docs build/pack, then received **E403**: `Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.` The user will replace a limited granular `NPM_TOKEN` directly in GitHub's Actions-secret UI; completion is not confirmed. Do not request or echo the credential. Accepted publication, original-tarball identity/provenance and public registry readback remain blocked, not successful.
 
 [GHCR workflow 40469972099](https://github.com/ByKitsune/kitsune-router/actions/runs/40469972099) passed all source gates and login, then its immutable-tag preflight stopped on Buildx `ERROR: ghcr.io/bykitsune/kitsune-router:1.0.2: not found`. The guard recognized only `manifest unknown`; **no image build or push ran**. An authenticated official-owner read separately returned grant HTTP 200, then manifest HTTP 404 with JSON error code `MANIFEST_UNKNOWN`; inventory was empty. This distinguishes a missing manifest from denied access; it is not proof of publication.
 
-The authorized recovery PR introduces structured registry checks and a separate `container-recovery.yml` tooling workflow. It keeps release source pinned to **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`** while reviewing/testing tooling separately; no version bump or tag move is needed. Tooling CI/merge, recovery execution, digest/provenance/SBOM and registry readback still require their own evidence. See [operations](OPERATIONS.md#publication-recovery-without-moving-the-tag) and the main-owned [rebranding ledger](REBRANDING.md).
+The separate `container-recovery.yml` workflow keeps release source pinned to **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`** while reviewing/testing tooling independently. The first recovery [40483141695](https://github.com/ByKitsune/kitsune-router/actions/runs/40483141695) failed before registry work because caller `GITHUB_SHA` identified tooling, not runtime. PR #4 merged at **`802c61bfcf3c6e23efc6643ce429b7f188caeeaa`**, using explicit API source verification rather than an environment substitution. This did not move the runtime tag or change version 1.0.2. Tooling regression counts are not the runtime suite's counts.
 
-No costly test/build or live-provider call was run for this documentation update. The existing docs preview has not been refreshed to this source. Recorded source checks and local artifacts do not establish registry availability, provider entitlement, invoice parity or production deployment.
+## Successful GHCR publication and authenticated readback
+
+[Recovery 40485038668](https://github.com/ByKitsune/kitsune-router/actions/runs/40485038668) ran tooling `802c61bf` against immutable runtime `65c8b97d`. The runtime gate passed **9,041 tests, 100 skipped, zero failures**, report SHA-256 **`a60b94b1e850d7cf8c10d96a170d8113c4dd3580e67a58ae486663e240842f3e`**. Build/push, revision labels, SLSA v1/SPDX verification and `latest` promotion succeeded. Independent authenticated readback confirmed:
+
+| Object | Verified value |
+| --- | --- |
+| `1.0.2` index | `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b` |
+| `latest` index | Same digest; versioned artifact not overwritten |
+| linux/amd64 manifest | `sha256:1f9cec174a74843909030fd86612ea6aba9e53233c61fbd13dc19ac9fcd3339d` |
+| Config / image ID | `sha256:af6416b66810127f938479f8bf837ab338fd857ba366dfbaeef66a9f9ba04f51` |
+| Revision label | `65c8b97d783becab3f1e1210d2ab9ce67992e13b`, not tooling `802c61bf` |
+| GitHub package | [kitsune-router](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router), ID `16308407`, visibility **private** |
+
+SLSA v1 `buildDefinition.resolvedDependencies` and `externalParameters.configSource` bind the exact Git URI `#65c8b97d783becab3f1e1210d2ab9ce67992e13b` and matching SHA-1 digest; SPDX was checked for the same platform subject. These are published registry objects, distinct from the earlier local image ID and both npm tarballs.
+
+The **published** image was independently loaded on approved SSH infrastructure using a repository-scoped ephemeral grant, after verification of all 16 compressed-layer digests and rootfs diff hashes. Config `sha256:af6416b66810127f938479f8bf837ab338fd857ba366dfbaeef66a9f9ba04f51` passed six real start/restart scenarios: default `/app/data` and custom `/var/lib/kitsune-router`, each with fresh JWT / CLI JSON / legacy ENV secrets. All were healthy at 1.0.2, keys stable and secrets mode 0600. This is separate from earlier local image `92aeda74` and both npm tarballs; it is not production deployment.
+
+The owner selected a Public visibility change, but completion is not confirmed and anonymous grants still return **HTTP 401** at the last read. The official REST API lacks the required package-visibility write, so the owner must complete it in GitHub's package-settings UI and then verify unauthenticated access. Authorized private pulls can use the recorded digest; successful published-image smoke does not establish anonymous availability. npm `NPM_TOKEN` replacement is likewise not confirmed; no OTP or two-factor-policy change is requested. See [operations](OPERATIONS.md#publication-recovery-without-moving-the-tag) and the main-owned [rebranding ledger](REBRANDING.md).
+
+No costly test/build or live-provider call was run for this documentation update. The existing docs preview still serves `74583402` / deployment `d3544c04`, not this source. Authenticated container publication does not establish anonymous access, npm availability, provider entitlement, invoice parity or production deployment. The existing Create GitHub Release step was not reached after npm failed; no GitHub Release 1.0.2 was created.

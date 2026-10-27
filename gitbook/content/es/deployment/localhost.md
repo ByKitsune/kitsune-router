@@ -1,6 +1,6 @@
 # Despliegue local
 
-Dashboard y API comparten **20128**, no 3000. Fuente 1.0.2 verificada en tag inmutable `65c8b97d`, publicación bloqueada. Usa [fuentes](/es/getting-started/installation/) con Node.js >=22.19.0 hasta verificar registro/readback. Tag/build local no prueba disponibilidad. Tras verificar publicación, ejecuta `kitsune-router`.
+Dashboard y API comparten **20128**, no 3000. Runtime 1.0.2 sigue `65c8b97d`; contenedor publicado **en privado**, acceso anónimo pendiente y npm bloqueado. Usa [fuentes](/es/getting-started/installation/) con Node.js >=22.19.0 o [contenedor privado autorizado](/es/deployment/cloud/). El launcher de abajo solo tras publicación/readback npm.
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

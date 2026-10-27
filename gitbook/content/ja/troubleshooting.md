@@ -5,7 +5,7 @@
 ## 起動と移行
 
 - パッケージなし：1.0.2 ソース検証済みですが npm publish は E403（2FA または bypass 2fa 有効の granular token）、公開読戻し HTTP 404。利用者の GitHub UI での secret 交換は完了未確認です。token を共有せず、公開/readback 確認までは [ソース](/ja/getting-started/installation/) を使用してください。1.0.1 npm 原因は依然不明です。
-- GHCR イメージなし：1.0.2 gate/login は成功、欠落 manifest の preflight 誤判定で build/push 前に停止しました。認証読戻し HTTP 404 / `MANIFEST_UNKNOWN`。独立 recovery はタグを動かしません。[運用](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag) を参照し、ローカル image ID を GHCR digest と扱わないでください。
+- GHCR pull 拒否/見つからない：1.0.2 は配布済みで認証読戻し/smoke に成功しましたが、最新確認では **private**、匿名 grant HTTP 401。所有者の Public 選択は完了未確認です。許可済み private 読取権限を使うか、Public 設定と匿名読戻しを待ち、権限拒否を未配布と扱わないでください。以前の preflight/context 失敗は [運用](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag) に保持。token を共有しないでください。
 - 古い Node：>=22.19.0。移行は対応 Node/Bun の native SQLite snapshot が必要で、安全でない raw copy はしません。
 - 使用中ポート：API/画面は 20128。所有者を調べ正常停止し、広範な `pkill`/`kill -9` を避けます。
 - 空の状態：絶対パスと `/app/data` mount を先に確認。明示 `DATA_DIR` は自動移動しません。

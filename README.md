@@ -10,9 +10,9 @@ Kitsune Router connects coding tools, agents and SDKs to the providers **you cho
 
 ## Release status
 
-**1.0.2 source is verified; npm/GHCR publication is blocked.** Immutable tag `v1.0.2` is `65c8b97d783becab3f1e1210d2ab9ce67992e13b`: **9,041 tests passed, 100 skipped, zero failed assertions/suites**, strict lint and app/docs builds passed. npm publish was denied with E403 requiring two-factor authentication or a granular token with bypass 2fa enabled; public readback remained HTTP 404. GHCR source gates/login passed, but preflight stopped before build/push on a misclassified missing manifest. No canonical 1.0.2 image or GitHub Release is available from these runs. [Evidence and recovery status](releases/RELEASE_NOTES_v1.0.2.md).
+**1.0.2 container published; anonymous pulls pending; npm blocked.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. The [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) is still **private** at last read: the owner selected making it Public but has not confirmed completion, and anonymous grants return HTTP 401. npm remains unavailable after E403; user-managed token replacement is not confirmed. No GitHub Release 1.0.2 or production deployment occurred. [Distribution evidence](releases/RELEASE_NOTES_v1.0.2.md).
 
-GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm target: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image target: `ghcr.io/bykitsune/kitsune-router`. Registry commands below apply **after verified publication**; use a source checkout now. Token replacement is user-managed through GitHub's UI and not yet confirmed; separate container recovery keeps version/tag 1.0.2 unchanged.
+GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm target: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`. npm commands below apply **only after npm publication/readback succeeds**. For now, use source installation or authorized private container access; anonymous pulls must wait for confirmed Public visibility. Recovery tooling did not bump the version or move the tag.
 
 **Previous tags stay immutable.** [v1.0.1](releases/RELEASE_NOTES_v1.0.1.md) remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: SSH/CI passed, but the GHCR gate failed before login/push and npm's publish command failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. [v1.0.0](releases/RELEASE_NOTES_v1.0.0.md) remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Source tags are not registry artifacts.
 
@@ -25,7 +25,7 @@ Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-rou
 Requires **Node.js >=22.19.0** for the launcher.
 
 ```bash
-# After 1.0.2 is published and verified:
+# Only after npm 1.0.2 is published and verified:
 npx @bykitsune/router@1.0.2
 
 # Or install the launcher globally:
@@ -65,7 +65,7 @@ Review `.env` before startup: use a writable **absolute** state path and fresh p
 
 ### Containers
 
-The publication workflow targets **linux/amd64 only**. After verifying the image exists and you have access:
+The published image targets **linux/amd64 only**. It currently requires authorized private GHCR access; use the command after authenticating with package-read permission, or after Public visibility and anonymous access are confirmed. See [Docker](DOCKER.md) for the verified digest pin.
 
 ```bash
 docker run -d --name kitsune-router \
@@ -102,7 +102,7 @@ Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the datab
 - [Tests and verification boundaries](tests/README.md) · [Contributor/agent guidance](CLAUDE.md)
 - [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 
-The [release evidence](docs/CHANGELOG_v1.0.2.md) distinguishes exact-source gates, locally smoke-tested artifacts and the original CI tarball. Published artifact readback remains required; local checks do not establish registry availability.
+The [release evidence](docs/CHANGELOG_v1.0.2.md) separates runtime source, recovery tooling, both npm tarballs and the published image. Authenticated GHCR readback/smoke passed; anonymous pulls and npm acceptance remain separate unmet gates.
 
 **Languages:** [简体中文](README.zh-CN.md) · [Español](i18n/README.es.md) · [فارسی](i18n/README.fa_IR.md) · [Français](i18n/README.fr.md) · [Indonesia](i18n/README.id-ID.md) · [日本語](i18n/README.ja-JP.md) · [Português](i18n/README.pt-BR.md) · [Русский](i18n/README.ru.md) · [ไทย](i18n/README.th.md) · [Tiếng Việt](i18n/README.vi.md)
 

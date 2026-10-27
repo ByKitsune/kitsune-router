@@ -1,6 +1,6 @@
 # Localhost Deployment
 
-Dashboard and API share port **20128**, not a separate default at 3000. **1.0.2 source is verified at immutable `65c8b97d`, but registry publication is blocked.** Use [source installation](/en/getting-started/installation/) with Node.js >=22.19.0 until package publication/readback succeed. Source tags and local tests do not establish registry availability.
+Dashboard and API share port **20128**, not a separate default at 3000. Runtime 1.0.2 stays at `65c8b97d`. The container is published **privately**, anonymous access pending; npm is still blocked. Use [source installation](/en/getting-started/installation/) with Node.js >=22.19.0 or authorized [private container access](/en/deployment/cloud/). The launcher command below applies only after npm publication/readback succeeds.
 
 ```bash
 # Only after package publication:

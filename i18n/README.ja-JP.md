@@ -8,7 +8,7 @@
 
 ## リリース状況とインストール
 
-**1.0.2 ソース検証済み、npm/GHCR 公開はブロック中です。** 不変タグ `65c8b97d`：9,041 成功、100 skip、assertion/suite 失敗ゼロ、strict lint と app/docs build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token が必要）、公開読戻しは HTTP 404。GHCR は gate/login 成功後、欠落 manifest の誤判定で build/push 前に停止しました。利用者が GitHub UI で token を交換する予定ですが完了未確認です。独立 recovery は版・タグを変更しません。公開パッケージ・正規イメージ・GitHub Release は未確立です。パッケージ `@bykitsune/router`、コマンド `kitsune-router` は公開確認後のみ使用し、当面はソースを利用してください。[1.0.2 状況](../releases/RELEASE_NOTES_v1.0.2.md)。
+**1.0.2 コンテナは private で配布済み、匿名 pull は未確認、npm はブロック中です。** 不変ソース `65c8b97d`：9,041 成功、100 skip、失敗ゼロ。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功しました。最新確認では **private** のまま：所有者は Public 変更を選びましたが完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換も未確認です。npm コマンドは npm 配布確認後のみ使用し、当面はソースか許可済み private コンテナアクセスを利用してください。GitHub Release・production 配備なし。[1.0.2 証拠](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)。
 
 旧タグは移動しません。`v1.0.1` は `74583402` で SSH/CI に成功しましたが、GHCR ゲートは login/push 前に失敗し、正規イメージは未公開です。npm publish も失敗し原因は未確定、2026-10-27 の公開読戻しは HTTP 404、GitHub Release も未作成です。`v1.0.0` は `390a6567` に固定され、移行テスト失敗後 npm/GHCR 未公開です。[1.0.1 記録](../releases/RELEASE_NOTES_v1.0.1.md) · [1.0.2 草案](../releases/RELEASE_NOTES_v1.0.2.md)。テスト用時計と npm 診断の改善は本番の並び順・所有権拒否を変えません。旧件数は新版の証拠ではなく、0.x 出典も保持します。
 

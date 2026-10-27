@@ -1,12 +1,12 @@
 # Nhật ký thay đổi
 
-## Kitsune Router 1.0.2 — nguồn đã xác minh; xuất bản bị chặn
+## Kitsune Router 1.0.2 — container private đã xuất bản; pull ẩn danh chờ; npm bị chặn
 
 Tag bất biến **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**, PR #2 merge `23375bf1`. SSH nguồn chính xác: **9.041 qua, 100 skip, không lỗi assertion/suite**; lint nghiêm ngặt, 18 docs tests/export tĩnh, app build và pack qua. CI `40468830176` xanh trên cây nguồn khớp tag. Smoke tarball local, sáu tình huống restart container và browser nguồn chính xác qua trong phạm vi ghi nhận. Chỉ mock child `Date`, không đổi thứ tự production; warning log chỉ cho npm publish, không pack.
 
-npm `40469972263` qua gate/docs/pack rồi publish bị **E403** (cần 2FA hoặc granular token bật bypass 2fa), readback HTTP 404. Hiện vật CI gốc `12718343077`, SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`, khác byte tarball local đã smoke; smoke riêng còn chờ. Người dùng thay token qua GitHub UI chưa xác nhận; nguyên nhân npm 1.0.1 vẫn chưa rõ.
+npm `40469972263` qua gate/docs/pack rồi publish bị **E403** (cần 2FA hoặc granular token bật bypass 2fa), readback HTTP 404. Hiện vật CI gốc `12718343077`, SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`, khác byte tarball local; cả hai độc lập qua help/version/runtime/upgrade smoke, giữ trạng thái/khóa gốc, secrets 0600 và thoát 0. Người dùng thay token qua GitHub UI chưa xác nhận; nguyên nhân npm 1.0.1 vẫn chưa rõ.
 
-GHCR `40469972099` qua gate/login rồi preflight phân loại sai Buildx `not found`, dừng trước build/push; readback xác thực HTTP 404 / `MANIFEST_UNKNOWN`. Recovery riêng giữ nguồn/phiên bản/tag; CI/merge, thực thi, digest/provenance/SBOM/readback cần bằng chứng riêng. Chưa có image chính thức, GitHub Release 1.0.2 hay triển khai production; preview docs chưa cập nhật. [Bằng chứng 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+GHCR cũ `40469972099` lỗi trước build/push; recovery đầu `40483141695` lỗi trước registry do context `GITHUB_SHA`. PR #4 merge `802c61bf` dùng xác minh nguồn API tường minh. Recovery thành công **`40485038668`** dùng tooling đó xuất bản runtime không đổi `65c8b97d`, gate 9.041/100 skip/không lỗi, labels/SLSA v1/SPDX và promote `latest` qua. Readback xác thực độc lập xác nhận index hai tag **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**. Image đã xuất bản `af6416b6` qua kiểm tra 16 lớp/rootfs và sáu start/restart SSH thật, khỏe ở 1.0.2, khóa ổn định/0600. Gói vẫn **private**, chọn Public chưa xác nhận, grant ẩn danh HTTP 401. npm bị chặn; không GitHub Release/production, preview chưa cập nhật. Giữ lỗi cũ và định danh tooling/runtime/hiện vật tách biệt. [Bằng chứng 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
 
 ## Kitsune Router 1.0.1 — lần thử bất biến; chưa xác lập xuất bản
 

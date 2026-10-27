@@ -1,12 +1,12 @@
 # 更新日志
 
-## Kitsune Router 1.0.2 — 源码已验证，发布受阻
+## Kitsune Router 1.0.2 — 私有容器已发布，匿名访问待确认，npm 受阻
 
 不可变标签 **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**；PR #2 合并于 `23375bf1`。精确源码 SSH **9,041 通过、100 跳过、断言/套件零失败**；严格 lint、18 项 docs 测试/静态导出、app 构建和 pack 通过。CI `40468830176` 在相同源码树通过。本地 tarball 安装/运行/升级、六种容器重启及精确源码浏览器检查通过，但不是已发布产物。测试只 mock 子进程 `Date`，不改变生产排序；warning 仅影响 npm publish，不改变 pack。
 
-npm `40469972263` 门槛/docs/pack 通过，但 publish 被 **E403** 拒绝，要求 2FA 或启用 bypass 2fa 的 granular token；公开读回 HTTP 404。原始 CI 产物 `12718343077`，SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`，与本地 smoke 字节不同，其自身 smoke 待完成。用户 GitHub UI token 替换尚未确认；不得把新原因追溯到日志截断的 1.0.1。
+npm `40469972263` 门槛/docs/pack 通过，但 publish 被 **E403** 拒绝，要求 2FA 或启用 bypass 2fa 的 granular token；公开读回 HTTP 404。原始 CI 产物 `12718343077`，SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`，与本地 tarball 字节不同；两者独立 help/version/runtime/upgrade smoke 均通过，原状态/密钥保留，秘密 0600，优雅退出 0。用户 GitHub UI token 替换未确认，不追溯认定 1.0.1 错误原因。
 
-GHCR `40469972099` 门槛/登录通过，但 preflight 误分类 Buildx `not found`，在构建/推送前停止；认证读回 HTTP 404 / `MANIFEST_UNKNOWN`。独立恢复保留源码/版本/标签不变，其 CI/合并、执行、摘要/来源/SBOM/读回仍须单独证据。暂无规范镜像、GitHub Release 1.0.2 或生产部署，文档预览尚未更新。[1.0.2 证据](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+早期 GHCR `40469972099` 在构建/推送前失败，首次恢复 `40483141695` 因调用者 `GITHUB_SHA` context 在 registry 前停止。PR #4 合并于 `802c61bf`，采用明确 API 源码验证。成功恢复 **`40485038668`** 用该 tooling 发布不变 runtime `65c8b97d`，门槛 9,041/100 跳过/零失败，labels/SLSA v1/SPDX 验证及 `latest` 提升通过。独立认证读回确认 `1.0.2`/`latest` 索引 **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**。已发布镜像 `af6416b6` 经 16 层/rootfs 校验及六种真实 SSH start/restart 场景通过，健康版本 1.0.2、密钥稳定/0600。包仍 **private**，Public 选择未确认，匿名 grant HTTP 401。npm 受阻；无 GitHub Release/生产部署，预览未更新。早期失败、tooling/runtime 和各产物身份保持分离。[1.0.2 证据](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
 
 ## Kitsune Router 1.0.1 — 不可变尝试，未建立发布成功
 
