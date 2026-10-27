@@ -5,7 +5,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { GHCR_IMAGE, inspectGhcrManifest } from "../../scripts/ghcr-registry.mjs";
-import { recoverContainer, registryVerifiedCommand, validateRecoverySource } from "../../scripts/recover-container-release.mjs";
+import { recoverContainer, registryVerifiedCommand, validateRecoverySource, verifyRecoverySource } from "../../scripts/recover-container-release.mjs";
 import { dockerLatest } from "../../scripts/release-publication-helpers.mjs";
 
 const env = { GHCR_USERNAME: "fixture-user", GHCR_TOKEN: "synthetic-not-a-real-registry-token" };
@@ -138,6 +138,19 @@ describe("separate immutable source and reviewed tooling boundaries", () => {
   it("validates both exact SHAs and all source package versions", () => {
     expect(validateRecoverySource(sourceFixture())).toMatchObject({ version: "1.0.2", sourceSha: sha, toolingSha, tag: "v1.0.2" });
   });
+  it("passes source context directly to the immutable gate without overwriting tooling GITHUB values", async () => {
+    const fixture = sourceFixture();
+    const verifySource = vi.fn(() => "source-evidence-directory");
+    const load = vi.fn(async () => ({ verifySource }));
+    expect(await verifyRecoverySource({ ...fixture, load })).toBe("source-evidence-directory");
+    expect(load.mock.calls[0][0]).toBe(new URL("scripts/release-publication-helpers.mjs", "file://" + fixture.source + "/").href);
+    const options = verifySource.mock.calls[0][0];
+    expect(options.cwd).toBe(fixture.source);
+    expect(options.env).toMatchObject({ GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v1.0.2" });
+    expect(fixture.env.GITHUB_SHA).toBe(toolingSha);
+    expect(fixture.env.GITHUB_REF).toBe("refs/heads/master");
+    expect(options.command).toBe(fixture.command);
+  });
   it.each([
     { GITHUB_REPOSITORY: "untrusted/repo" }, { GITHUB_REF: "refs/heads/feature" },
     { GITHUB_SHA: "short" }, { RECOVERY_SOURCE_SHA: "short" }, { RECOVERY_TAG: "v1.0.2\n" },
@@ -182,7 +195,8 @@ describe("separate immutable source and reviewed tooling boundaries", () => {
     expect(workflow).toContain("ref: ${{ github.sha }}");
     expect(workflow).toContain("ref: refs/tags/${{ inputs.tag }}");
     expect(workflow).toContain("context: ${{ steps.immutable.outputs.context }}");
-    expect(workflow).toContain("GITHUB_SHA: ${{ inputs.source_sha }}");
+    expect(workflow).toContain("run: node release-tools/scripts/recover-container-release.mjs source-gate");
+    expect(workflow).not.toContain("GITHUB_SHA: ${{ inputs.source_sha }}");
     expect(workflow).toContain("provenance: mode=min");
     expect(workflow).toContain("sbom: true");
     expect(workflow).not.toContain("verification/${{ inputs.source_sha }}");
@@ -216,5 +230,37 @@ describe("separate immutable source and reviewed tooling boundaries", () => {
     expect(run({ GITHUB_REF: "refs/heads/unreviewed" }).status).not.toBe(0);
     writeFileSync(resolve(fixture.source, "package.json"), "{}");
     expect(run({}).status).not.toBe(0);
+  });
+  it("executes the actual source-gate workflow command while GitHub defaults still identify tooling", () => {
+    const fixture = sourceFixture();
+    const tooling = resolve(fixture.env.GITHUB_WORKSPACE, "release-tools");
+    mkdirSync(resolve(tooling, "scripts"), { recursive: true });
+    mkdirSync(resolve(fixture.source, "scripts"));
+    for (const file of ["ghcr-registry.mjs", "recover-container-release.mjs", "release-publication-helpers.mjs", "check-release-version.mjs"]) copyFileSync(resolve(import.meta.dirname, "../../scripts", file), resolve(tooling, "scripts", file));
+    writeFileSync(resolve(fixture.source, "scripts/release-publication-helpers.mjs"), `
+      import assert from "node:assert/strict";
+      import { execFileSync } from "node:child_process";
+      export function verifySource({ cwd, env }) {
+        assert.equal(env.GITHUB_SHA, execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim());
+        assert.equal(env.GITHUB_REF, "refs/tags/v1.0.2");
+        assert.notEqual(process.env.GITHUB_SHA, env.GITHUB_SHA);
+        assert.equal(process.env.GITHUB_REF, "refs/heads/master");
+        return cwd + "/verification/" + env.GITHUB_SHA;
+      }
+    `);
+    const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    const initialize = directory => {
+      git(directory, "init", "--quiet");git(directory, "add", ".");
+      git(directory, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture");
+      return git(directory, "rev-parse", "HEAD");
+    };
+    const sourceSha = initialize(fixture.source);git(fixture.source, "tag", "v1.0.2");
+    const toolingSha = initialize(tooling);
+    const workflow = readFileSync(resolve(import.meta.dirname, "../../.github/workflows/container-recovery.yml"), "utf8");
+    const script = workflow.split("      - name: Verify exact immutable release source with its original gates\n")[1].split("\n\n")[0].replace(/^        run: /, "");
+    const env = { PATH: process.env.PATH, HOME: fixture.env.GITHUB_WORKSPACE, GITHUB_REPOSITORY: "ByKitsune/kitsune-router", GITHUB_WORKSPACE: fixture.env.GITHUB_WORKSPACE, GITHUB_REF: "refs/heads/master", GITHUB_SHA: toolingSha, RECOVERY_SOURCE_SHA: sourceSha, RECOVERY_TAG: "v1.0.2", RUNNER_TEMP: fixture.env.GITHUB_WORKSPACE };
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", script], { cwd: fixture.env.GITHUB_WORKSPACE, env, encoding: "utf8", timeout: 8000 });
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({ verificationDirectory: resolve(fixture.source, "verification", sourceSha) });
   });
 });

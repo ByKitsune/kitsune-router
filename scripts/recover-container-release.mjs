@@ -27,6 +27,17 @@ export function validateRecoverySource({ env = process.env, command: run = comma
   return { version, source, tooling, toolingSha: env.GITHUB_SHA, sourceSha: env.RECOVERY_SOURCE_SHA, tag: env.RECOVERY_TAG };
 }
 
+export async function verifyRecoverySource({ env = process.env, command: run = command, load = url => import(url) } = {}) {
+  const validated = validateRecoverySource({ env, command: run });
+  const sourceModule = pathToFileURL(resolve(validated.source, "scripts/release-publication-helpers.mjs")).href;
+  const { verifySource } = await load(sourceModule);
+  assert.equal(typeof verifySource, "function", "Immutable source verification gate is missing");
+  // GitHub reserves its default GITHUB_* environment values. Pass a distinct
+  // validated source context to the source's original gate instead of relying
+  // on a workflow env override or changing the tooling process environment.
+  return verifySource({ cwd: validated.source, env: { ...env, GITHUB_SHA: validated.sourceSha, GITHUB_REF: `refs/tags/${validated.tag}` }, command: run });
+}
+
 export function registryVerifiedCommand({ command: run = command, env = process.env, registryScript = resolve(import.meta.dirname, "ghcr-registry.mjs") } = {}) {
   return (executable, args, options = {}) => {
     if (executable !== "docker" || args[0] !== "buildx" || args[1] !== "imagetools" || args[2] !== "inspect") return run(executable, args, options);
@@ -73,7 +84,9 @@ export function recoverContainer(mode, { env = process.env, command: run = comma
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const result = recoverContainer(process.argv[2]);
+  const result = process.argv[2] === "source-gate"
+    ? { verificationDirectory: await verifyRecoverySource() }
+    : recoverContainer(process.argv[2]);
   for (const [key, value] of Object.entries(result)) {
     assert(!/[\r\n]/.test(String(value)), "Unsafe recovery output");
     if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);

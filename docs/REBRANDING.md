@@ -277,3 +277,13 @@ promoting it. Those early branch pushes did not replace production services.
   actual workflow validation shell; denied grants, unsafe refs, HTML/malformed
   JSON, mixed registry error codes, oversized responses and digest mismatches are
   rejected. No broad interpretation of Buildx `not found` is added.
+
+Recovery tooling PR #3 merged at
+`487d7934a4bea92bb046382ee39dc474dc8f7711` after **9,084 passing tests,
+100 skipped/todo, zero failures**, strict lint/build, 18 docs tests and export.
+Those tooling results are separate from the runtime tag's 9,041-case gate.
+Its first dispatch, `40483141695`, stopped before registry access because the
+source gate received the reserved GitHub tooling SHA despite a step environment
+override. The follow-up passes a validated source context directly to the
+immutable source's original `verifySource` API; it does not change the source
+tag, weaken the SHA assertion or rely on overriding GitHub's default variables.

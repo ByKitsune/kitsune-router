@@ -35,7 +35,7 @@ The **local tarball and original CI tarball are different bytes**. Each was inde
 - The user will replace the limited granular `NPM_TOKEN` Actions secret directly through GitHub's UI; completion has **not been confirmed**. No credential belongs in chat, source or logs. Accepted publication, original-artifact provenance and public registry readback are still required afterward.
 - [GHCR workflow 40469972099](https://github.com/ByKitsune/kitsune-router/actions/runs/40469972099) passed all source gates and registry login. Preflight then stopped on Buildx `ERROR: ghcr.io/bykitsune/kitsune-router:1.0.2: not found`, because the old guard recognized only `manifest unknown`. **No build/push was reached.** An authenticated owner read independently received grant HTTP 200 and manifest HTTP 404 with structured `MANIFEST_UNKNOWN`; package inventory was empty.
 - The authorized separate container-recovery workflow uses corrected registry classification while retaining source **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**. Version/tag remain 1.0.2; tooling CI/merge, recovery execution and canonical digest/provenance/SBOM/readback are separate gates, not completed publication. See [operations](../docs/OPERATIONS.md#publication-recovery-without-moving-the-tag).
-- No GitHub Release 1.0.2 was created; the release workflow has no Create Release step. The existing documentation preview has **not** been refreshed to this tag; it is not publication or production evidence.
+- No GitHub Release 1.0.2 was created; the workflow's existing Create GitHub Release step was not reached after npm failed. The existing documentation preview has **not** been refreshed to this tag; it is not publication or production evidence.
 
 ## Previous attempts — tags stay immutable
 

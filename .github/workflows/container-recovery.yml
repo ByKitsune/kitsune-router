@@ -60,11 +60,7 @@ jobs:
           npm --prefix tests ci
 
       - name: Verify exact immutable release source with its original gates
-        working-directory: release-source
-        env:
-          GITHUB_SHA: ${{ inputs.source_sha }}
-          GITHUB_REF: refs/tags/${{ inputs.tag }}
-        run: node scripts/release-publication-helpers.mjs verify-source
+        run: node release-tools/scripts/recover-container-release.mjs source-gate
 
       - uses: docker/setup-buildx-action@v4
 
