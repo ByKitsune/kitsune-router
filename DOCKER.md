@@ -2,9 +2,9 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-The canonical image target is **`ghcr.io/bykitsune/kitsune-router`**. **1.0.1 is the next candidate, pending final tag/SHA verification and publication**; confirm registry access and the version digest before using these commands. Docker Hub `bykitsune/kitsune-router` is only an optional mirror if separately published and verified, not an assumed public fallback. The workflow targets **linux/amd64**, not native ARM64/multi-architecture.
+The canonical image target is **`ghcr.io/bykitsune/kitsune-router:1.0.2`**. **Final SHA/tag, verification gates and publication are pending**; confirm registry access and the version digest before using these commands. Docker Hub `bykitsune/kitsune-router` is only an optional mirror if separately published and verified, not an assumed public fallback. The workflow targets **linux/amd64**, not native ARM64/multi-architecture.
 
-The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root ownership scan, before npm/GHCR publication; a source tag is not an available image. v1.0.1 isolates synthetic process inventories in regression tests and adds denial coverage; **the production hook is not relaxed** and same-UID unreadable ownership still fails closed. Scoped native non-root evidence is not general support or final-source verification. See [release draft](releases/RELEASE_NOTES_v1.0.1.md).
+`v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
 ## Run
 
@@ -18,7 +18,7 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.1
+  ghcr.io/bykitsune/kitsune-router:1.0.2
 ```
 
 Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. A ByKitsune account is not required.
@@ -26,7 +26,7 @@ Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhos
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     restart: unless-stopped
     ports:

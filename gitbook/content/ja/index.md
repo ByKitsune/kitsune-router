@@ -4,7 +4,7 @@
 
 ## 公開状況
 
-**1.0.1 が次の候補で、最終 tag/SHA 検証・公開待ちです。** GitHub リポジトリは確認済み。npm は `bykitsune` 認証・Actions 更新済みですが、公開権限と成果物の証明ではありません。
+**1.0.2 が承認済みの次期候補で、最終 SHA/tag、検証ゲート、npm/GHCR 公開は未完了です。** パッケージ・イメージのコマンドは公開と registry 読戻しの確認後に使用し、それまではソースを利用してください。
 
 | 対象 | 識別子 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | ツールのプロバイダーキー | `kitsunerouter` |
 | 正規イメージ | `ghcr.io/bykitsune/kitsune-router` |
 
-`v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、non-root 所有権 scan の workflow 失敗で npm/GHCR は未公開です。旧候補の 9,029 件成功は 1.0.1 の証明ではありません。後続は合成プロセス分離テストとモバイル key 行修正で、本番の fail-closed は不変。[履歴](/ja/changelog/) · [1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)。0.x 出典は保持します。
+旧タグは不変です。`v1.0.1` は `74583402` で SSH/CI に成功しましたが、GHCR は login/push 前のゲートで失敗し正規イメージは未公開。npm publish も失敗、原因は未確定、2026-10-27 の公開読戻しは HTTP 404、GitHub Release も未作成です。`v1.0.0` は `390a6567` で移行テスト失敗後 npm/GHCR 未公開です。1.0.2 はテスト時刻と npm 公開診断の改善で、本番の順序・fail-closed 所有権検査は不変。旧件数は新版を検証しません。[履歴](/ja/changelog/) · [1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md)。0.x 出典を保持します。
 
 ## 機能と制限
 

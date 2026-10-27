@@ -4,7 +4,7 @@
 
 ## Trạng thái phát hành
 
-**1.0.1 là ứng viên tiếp theo đã chọn, chờ tag/SHA cuối và phát hành.** Kho GitHub đã xác nhận; npm xác thực là `bykitsune` và Actions cập nhật credential, nhưng quyền xuất bản, registry và hiện vật chưa được chứng minh.
+**1.0.2 là ứng viên tiếp theo được cho phép; SHA/tag cuối, các gate và xuất bản npm/GHCR còn chờ.** Chỉ dùng lệnh gói/image sau khi xác minh xuất bản và readback; hiện có thể cài từ mã nguồn.
 
 | Thành phần | Định danh |
 | --- | --- |
@@ -14,7 +14,7 @@
 | Khóa provider của công cụ | `kitsunerouter` |
 | Image chuẩn | `ghcr.io/bykitsune/kitsune-router` |
 
-`v1.0.0` giữ nguyên tại `390a65677c06a30084386d2a2adf8b0c48709281`: workflow lỗi ownership non-root, không xuất bản npm/GHCR 1.0.0. 9.029 test cũ không xác minh 1.0.1. Bản tiếp theo cô lập inventory tiến trình tổng hợp trong test và sửa wrap key mobile; production vẫn fail-closed. [Thay đổi](/vi/changelog/) · [Bản nháp 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). Giữ lịch sử 0.x.
+Giữ tag bất biến: `v1.0.1` tại `74583402` qua SSH/CI, nhưng GHCR lỗi trước login/push nên không có image chính thức; npm publish lỗi, chưa rõ nguyên nhân, readback công khai HTTP 404 ngày 2026-10-27 và không GitHub Release. `v1.0.0` tại `390a6567` không có npm/GHCR sau lỗi test di chuyển. 1.0.2 kiểm soát thời gian test và cải thiện chẩn đoán npm, không đổi thứ tự hoặc ownership fail-closed production. Số cũ không xác minh bản mới. [Thay đổi](/vi/changelog/) · [Bản nháp 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md). Giữ lịch sử 0.x.
 
 ## Khả năng và giới hạn
 

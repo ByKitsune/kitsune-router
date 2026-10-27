@@ -1,6 +1,6 @@
 # ローカル配置
 
-画面と API は **20128** を共有し、既定 3000 ではありません。Node.js >=22.19.0、1.0.1 は最終検証・公開待ちで v1.0.0 は npm/GHCR 未公開。[インストール](/ja/getting-started/installation/)。公開後 `kitsune-router`。
+画面と API は **20128** を共有し、既定 3000 ではありません。Node.js >=22.19.0、1.0.2 は最終 SHA/tag、検証ゲート・公開待ちです。旧タグは不変の試行記録で、registry 利用可能性の証明ではありません。[インストール](/ja/getting-started/installation/)。公開確認後 `kitsune-router`。
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

@@ -4,7 +4,7 @@
 
 ## 起動と移行
 
-- パッケージなし：1.0.1 公開待ち、v1.0.0 は npm/GHCR 未公開です。npm login は公開権限の証明ではありません。`@bykitsune/router` を確認し、先に [ソース](/ja/getting-started/installation/) を使います。
+- パッケージなし：1.0.2 公開待ちです。1.0.1 npm publish は原因未確定の失敗で、2026-10-27 公開読戻しは HTTP 404。タグや login は公開証明ではありません。`@bykitsune/router` を確認し、先に [ソース](/ja/getting-started/installation/) を使います。
 - 古い Node：>=22.19.0。移行は対応 Node/Bun の native SQLite snapshot が必要で、安全でない raw copy はしません。
 - 使用中ポート：API/画面は 20128。所有者を調べ正常停止し、広範な `pkill`/`kill -9` を避けます。
 - 空の状態：絶対パスと `/app/data` mount を先に確認。明示 `DATA_DIR` は自動移動しません。

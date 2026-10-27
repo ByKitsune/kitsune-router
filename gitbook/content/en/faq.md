@@ -4,9 +4,9 @@
 
 A provider-neutral, local-first AI gateway and dashboard, maintained/sponsored by [ByKitsune](https://bykitsune.com). **Your models. Your routes.** It continues ZenRouter/9Router; requests go to your configured upstreams, not automatically to ByKitsune.
 
-## Is 1.0.1 published?
+## Is 1.0.2 published?
 
-It is the **selected next candidate, pending final tag/SHA verification and publication**. v1.0.0 remains at `390a65677c06a30084386d2a2adf8b0c48709281`; its workflow failed on the non-root ownership scan and npm/GHCR 1.0.0 were not published. GitHub is confirmed and npm authenticates as `bykitsune`, but permission/publication/readback are separate gates. See [installation](/en/getting-started/installation/) and [changelog](/en/changelog/). Original 0.x history is unchanged.
+It is **authorized, with final SHA/tag, verification gates and npm/GHCR publication pending**. v1.0.1 remains at `74583402`: SSH/CI passed, but GHCR failed before login/push, npm publish failed with cause not yet known, and public npm readback was HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 stays at `390a6567`, without npm/GHCR after its migration-test failure. Tags do not move and are not registry artifacts. See [installation](/en/getting-started/installation/) and [changelog](/en/changelog/); 0.x history is unchanged.
 
 ## Do I need a ByKitsune account or provider order?
 

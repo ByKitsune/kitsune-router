@@ -4,9 +4,9 @@
 
 Gateway neutral y local-first mantenido/patrocinado por [ByKitsune](https://bykitsune.com), continuación de ZenRouter/9Router. **Your models. Your routes.** Usa tus upstreams, no envía automáticamente al patrocinador.
 
-## ¿Ya está 1.0.1?
+## ¿Ya está 1.0.2?
 
-Es la siguiente candidata, **pendiente de tag/SHA final y publicación**. v1.0.0 sigue en `390a65677c06a30084386d2a2adf8b0c48709281` sin npm/GHCR tras el fallo de ownership. GitHub confirmado y npm autentica como `bykitsune`, pero permiso/publicación/readback son otras verificaciones. [Instalación](/es/getting-started/installation/) · [Cambios](/es/changelog/). Historia 0.x intacta.
+Es la candidata autorizada, **pendiente de SHA/tag final, controles y publicación npm/GHCR**. v1.0.1 en `74583402` pasó SSH/CI, pero GHCR falló antes de login/push, sin imagen canónica; npm publish falló por causa aún desconocida, lectura pública HTTP 404 el 2026-10-27 y sin GitHub Release. v1.0.0 queda en `390a6567`, sin npm/GHCR. Tags inmutables, no artefactos del registro. [Instalación](/es/getting-started/installation/) · [Cambios](/es/changelog/). Historia 0.x intacta.
 
 ## ¿Cuenta u orden obligatorio?
 

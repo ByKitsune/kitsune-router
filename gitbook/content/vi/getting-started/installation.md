@@ -1,13 +1,13 @@
 # Cài đặt
 
-**Kitsune Router 1.0.1 chờ tag/SHA cuối và phát hành.** Kho đã xác nhận; npm xác thực `bykitsune` chưa chứng minh quyền xuất bản hay hiện vật. Tag v1.0.0 giữ nguyên, không có npm/GHCR sau lỗi ownership non-root. Gói `@bykitsune/router`, không tên lệnh bare. Yêu cầu **Node.js >=22.19.0**.
+**Kitsune Router 1.0.2 được cho phép; SHA/tag cuối, các gate và xuất bản npm/GHCR còn chờ.** Gói `@bykitsune/router`, không tên lệnh bare; yêu cầu **Node.js >=22.19.0**. v1.0.1 tại `74583402`: GHCR lỗi trước login/push, npm publish lỗi chưa rõ nguyên nhân, readback công khai HTTP 404 ngày 2026-10-27; không image chính thức hay GitHub Release. v1.0.0 tại `390a6567` không có npm/GHCR. Không di chuyển tag; dùng mã nguồn trước khi xác minh xuất bản. [Lịch sử](/vi/changelog/).
 
 ## Launcher sau khi phát hành
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 # Hoặc:
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 

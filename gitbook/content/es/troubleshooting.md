@@ -4,7 +4,7 @@ Recoge versión/SHA actual, `DATA_DIR` absoluto, ruta y error saneado. No borres
 
 ## Inicio y migración
 
-- Paquete ausente: 1.0.1 pendiente; el tag v1.0.0 no publicó npm/GHCR. Login npm no prueba permiso de publicación. Verifica `@bykitsune/router` y usa [fuentes](/es/getting-started/installation/) mientras tanto.
+- Paquete ausente: 1.0.2 pendiente. npm publish 1.0.1 falló con causa aún desconocida; lectura pública HTTP 404 el 2026-10-27. Tag/login no prueba publicación. Verifica `@bykitsune/router` y usa [fuentes](/es/getting-started/installation/) mientras tanto.
 - Node antiguo: >=22.19.0; migración requiere snapshot SQLite nativo Node/Bun compatible, no copia cruda insegura.
 - Puerto ocupado: dashboard/API comparten 20128. Identifica y detén al dueño limpiamente, no `pkill`/`kill -9` amplios.
 - Estado vacío: revisa ruta/montaje `/app/data`; `DATA_DIR` explícito evita reubicación.

@@ -1,13 +1,13 @@
 # インストール
 
-**Kitsune Router 1.0.1 は最終 tag/SHA 検証・公開待ちです。** リポジトリは確認済み、npm `bykitsune` 認証は公開権限・成果物の証明ではありません。v1.0.0 タグは固定で、non-root ownership 失敗後 npm/GHCR 未公開。パッケージは `@bykitsune/router`、必要環境 **Node.js >=22.19.0**。
+**Kitsune Router 1.0.2 は承認済みで、最終 SHA/tag、検証ゲート、npm/GHCR 公開は未完了です。** パッケージは `@bykitsune/router`、必要環境 **Node.js >=22.19.0**。v1.0.1 は `74583402` に固定され、GHCR は login/push 前に失敗、npm publish も原因未確定の失敗、2026-10-27 公開読戻しは HTTP 404、正規イメージ・GitHub Release はありません。v1.0.0 は `390a6567` に固定され npm/GHCR 未公開。公開確認まではソースを利用し、[履歴](/ja/changelog/) を参照してください。
 
 ## 公開後のランチャー
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 # または:
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 

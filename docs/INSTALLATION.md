@@ -4,26 +4,26 @@
 
 ## Availability
 
-**1.0.1 is the selected next release candidate, pending final tag/SHA verification and publication.** The confirmed repository is `https://github.com/ByKitsune/kitsune-router`; package `@bykitsune/router`, executable `kitsune-router`, and canonical container `ghcr.io/bykitsune/kitsune-router` retain their names. npm authenticates as `bykitsune` and Actions credentials were updated, but package-publishing permission, registry visibility and artifact readback still require verification.
+**1.0.2 is the authorized next candidate; final SHA/tag, verification gates and npm/GHCR publication are pending.** Repository `https://github.com/ByKitsune/kitsune-router`, package `@bykitsune/router`, executable `kitsune-router` and canonical container `ghcr.io/bykitsune/kitsune-router` retain their names. Use the registry commands only after verified publication; source installation is available meanwhile.
 
-The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root process-ownership scan; **no npm 1.0.0 package or canonical GHCR 1.0.0 image was published**. Use the pending [1.0.1 instructions](../releases/RELEASE_NOTES_v1.0.1.md), not that attempted tag's archived install examples. Existing 0.x artifacts remain original ZenRouter records.
+`v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR gate failed before login/push; npm publish failed with cause not yet known and public readback HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. `v1.0.0` remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Neither tag moves. See [1.0.2 status](../releases/RELEASE_NOTES_v1.0.2.md), not archived attempt commands. Original 0.x artifacts are unchanged.
 
 ## Launcher (after publication)
 
 Use **Node.js >=22.19.0** and its supported npm. Check `node --version` first.
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 
-The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.1 --host 127.0.0.1` after publication. Inspect supported options with `kitsune-router --help`.
+The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.2 --host 127.0.0.1` after publication. Inspect supported options with `kitsune-router --help`.
 
 The package name and binary differ. Update/uninstall the **scoped package**, not a nonexistent bare `kitsune-router` npm package:
 
@@ -80,6 +80,6 @@ Defaults: `~/.kitsune-router` on macOS/Linux and `%APPDATA%\kitsune-router` on W
 
 For ZenRouter/9Router, stop the source and its helpers and back up the entire directory. First startup can discover `~/.zenrouter` or `~/.9router`, verify a consistent snapshot and copied files, then create the new directory without deleting originals. Existing destinations are never merged/overwritten. See [MIGRATION.md](MIGRATION.md) for source selection, skip controls, certificate/key preservation and rollback.
 
-The 1.0.1 ownership-scan follow-up changes regression isolation/denial coverage, **not production permission policy**. Unreadable native/same-UID ownership still fails closed. On restricted Linux, stop/back up the old state and select it with explicit `DATA_DIR` to keep it in place without relocation, or obtain privileged review. Do not blindly ignore permission errors. Scoped native evidence is recorded in the [release draft](../releases/RELEASE_NOTES_v1.0.1.md), but general non-root support and final tag-bound verification are not certified.
+Production migration permission policy is unchanged: unreadable native/same-UID ownership still fails closed. On restricted Linux, stop/back up the old state and select it with explicit `DATA_DIR` to keep it in place without relocation, or obtain privileged review. Do not ignore permission errors. Bounded Linux evidence is not general non-root support; native Windows/macOS migration remains unverified. See [current release notes](../releases/RELEASE_NOTES_v1.0.2.md) for the separate test-only clock fix and pending final gates.
 
 For containers use [DOCKER.md](../DOCKER.md), keep the same volume mounted at the effective absolute `DATA_DIR` (`/app/data` by default or a supported custom path), and verify the canonical image/version before pulling. Remote access requires authenticated HTTPS and a reviewed proxy/firewall policy. See [integrations](INTEGRATIONS.md) and [operations](OPERATIONS.md).

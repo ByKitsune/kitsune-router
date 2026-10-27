@@ -138,7 +138,7 @@ in this file.
 
 ## Sources
 
-These dated protocol/pricing references are not a fresh live-provider verification or a claim that Kitsune Router 1.0.1 is published. See [release status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md).
+These dated protocol/pricing references are not a fresh live-provider verification or a claim that Kitsune Router 1.0.2 is published. See [release status](CHANGELOG_v1.0.2.md) and [migration](MIGRATION.md).
 
 - [OpenAI Fast](https://developers.openai.com/api/docs/guides/fast-mode),
   [Ultrafast](https://developers.openai.com/api/docs/guides/ultrafast-mode),

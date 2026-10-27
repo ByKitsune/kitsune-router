@@ -4,7 +4,7 @@ Thu thập version/SHA hiện tại, `DATA_DIR` tuyệt đối, route và lỗi 
 
 ## Startup và di chuyển
 
-- Không có gói: 1.0.1 chờ xuất bản, tag v1.0.0 không có npm/GHCR. Login npm không chứng minh quyền publish. Kiểm tra `@bykitsune/router` và dùng [nguồn](/vi/getting-started/installation/) trước.
+- Không có gói: 1.0.2 chờ xuất bản. npm publish 1.0.1 lỗi chưa rõ nguyên nhân; readback công khai HTTP 404 ngày 2026-10-27. Tag/login không chứng minh xuất bản. Kiểm tra `@bykitsune/router` và dùng [nguồn](/vi/getting-started/installation/) trước.
 - Node cũ: >=22.19.0; migration cần snapshot SQLite native Node/Bun hỗ trợ, không raw-copy không an toàn.
 - Cổng bận: API/dashboard cùng 20128. Xác định chủ và dừng nhẹ nhàng, không `pkill`/`kill -9` diện rộng.
 - Trạng thái trống: kiểm tra path/mount `/app/data`; `DATA_DIR` rõ ràng không được tự chuyển.

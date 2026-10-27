@@ -5,12 +5,12 @@
 - Repository: [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router)
 - Canonical image target: **`ghcr.io/bykitsune/kitsune-router`**
 - CLI package target: **`@bykitsune/router`**, command **`kitsune-router`**
-- **Release status:** 1.0.1 is the next candidate, pending final tag/SHA verification and publication. npm authenticates as `bykitsune` and Actions credentials were updated, but publishing permission, registry access and artifacts still require verification. A Docker Hub mirror is optional, not guaranteed.
+- **Release status:** 1.0.2 is authorized; final SHA/tag, verification gates and npm/GHCR publication are pending. Verify registry access, digests and readback before use. A Docker Hub mirror is optional, not guaranteed.
 - Publication platform: **linux/amd64 only**. The image supplies its own Node runtime; the launcher requires Node.js >=22.19.0.
 
-The v1.0.0 tag is retained at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root process-ownership scan; no npm package or canonical GHCR image for 1.0.0 was published. v1.0.1 is the follow-up, not a moved/rebuilt v1.0.0 tag.
+`v1.0.1` stays at `745834026a5a9f55dffce40c0ad01bf3106e8237`. Its GHCR gate failed before login/push, so no canonical 1.0.1 image was published. npm's publish command failed with cause not yet known; public readback was HTTP 404 on 2026-10-27. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Tags are not registry artifacts and will not be moved.
 
-The follow-up uses a deterministic process-isolated regression harness with denial coverage; production migration ownership checks remain fail-closed, including unreadable same-UID state. Scoped native non-root evidence does not establish general support; final tag-bound verification is pending. Restricted operators must stop/back up state and keep it at explicit `DATA_DIR` without relocation, or seek privileged review—not ignore permission errors.
+The 1.0.2 follow-up controls timestamp-sensitive cache tests and improves npm failure diagnostics without changing production priority ordering or fail-closed migration ownership checks. Bounded Linux evidence is not general non-root support; native Windows/macOS migration is unverified. Restricted operators must stop/back up state and keep it at explicit `DATA_DIR` without relocation, or seek privileged review—not ignore permission errors.
 
 After publication, with a strong `INITIAL_PASSWORD` set in your private environment:
 
@@ -21,7 +21,7 @@ docker run -d --name kitsune-router \
   -v kitsune-router-data:/app/data \
   -e DATA_DIR=/app/data -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.1
+  ghcr.io/bykitsune/kitsune-router:1.0.2
 ```
 
 Open `http://localhost:20128/dashboard`, connect your chosen provider, create/copy a gateway API key, and use `http://localhost:20128/v1` in clients. No ByKitsune account, paid hosted service or prescribed provider order is required. Upstream account terms, costs, quotas and availability still apply.
@@ -40,6 +40,6 @@ Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/mast
 
 ## Security and verification limits
 
-Use authenticated HTTPS for remote access, keep secrets out of source/logs and choose a strong initial password. Compression has no guaranteed savings; cost estimates are not invoices; model listings and synthetic tests do not establish entitlement or live service availability. This page does not certify a current build, OS-image scan or registry publication. See the [release draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md).
+Use authenticated HTTPS for remote access, keep secrets out of source/logs and choose a strong initial password. Compression has no guaranteed savings; cost estimates are not invoices; model listings and synthetic tests do not establish entitlement or live service availability. This page does not certify a current build, OS-image scan or registry publication. See the [release candidate](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
 
 MIT licensed; upstream copyright notices remain in [LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE).

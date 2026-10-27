@@ -1,8 +1,14 @@
 # Registro de cambios
 
-## Kitsune Router 1.0.1 — candidata, tag/SHA final y publicación pendientes
+## Kitsune Router 1.0.2 — candidata autorizada; SHA/tag final, controles y publicación pendientes
 
-Harness aislado de procesos sintéticos y denegaciones; **producción sigue fail-closed ante propiedad same-UID ilegible**. Hay evidencia limitada de regresiones y smoke UID 65534, no soporte non-root general. Filas móviles y tests/builds del tag final siguen pendientes; no heredan cifras antiguas. npm `bykitsune` y Actions actualizado no prueban permiso/publicación. [Borrador 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Detalles](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+Controla solo `Date` del hijo escritor para probar timestamps iguales y separados por 1 ms con escrituras SQLite y caché reales; no cambia orden de producción. Ambos escenarios mostraron al caché padre las actualizaciones confirmadas de credenciales y estado activo. Diagnóstico de `npm publish` a nivel warning, sin cambiar pack ni protecciones SHA/artefacto original/proveniencia. Los resultados finales 1.0.2 y npm/GHCR siguen pendientes. [Borrador 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Detalles](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+
+## Kitsune Router 1.0.1 — intento inmutable; publicación no establecida
+
+Tag `v1.0.1` en **`745834026a5a9f55dffce40c0ad01bf3106e8237`**; PR #1 fusionado a master `ce752a9f`. SSH: **9.039 aprobados, 100 omitidos, cero fallos**; CI `40463259397` pasó. GHCR `40465152324`: **9.038 aprobados, uno falló** en `db-scoped-cache:216`, antes de login/push; no imagen canónica 1.0.1 publicada.
+
+npm `40465152995` pasó gate exacto/docs build/pack, pero publish falló con causa aún desconocida por salida truncada. Artefacto original `12716498091`, tarball SHA-256 `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`; lectura pública HTTP 404 el 2026-10-27. No GitHub Release 1.0.1. [Registro](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). Las **58 pruebas de migración incluyen ocho denegaciones**; producción sigue fail-closed, Linux UID 65534 no certifica non-root general y Windows/macOS nativos no están verificados. ByKitsune PR #6 fusionado en `73a14982`, sin despliegue de producción. No reutilizar cifras como pruebas de 1.0.2.
 
 ## Kitsune Router 1.0.0 — intento conservado; npm/GHCR no publicados
 
@@ -12,7 +18,7 @@ Tag inmutable `v1.0.0` en `390a65677c06a30084386d2a2adf8b0c48709281`. Falló el 
 
 Detén escritores y respalda todo. Migración verificada `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, originales conservados, sin sobrescribir destinos; `DATA_DIR` explícito manda. Conserva secretos/auth/sales/certificados. Variables `KITSUNE_ROUTER_*`, cabeceras `x-kitsune-router-*`; `/v1/*` y 20128 permanecen.
 
-El intento fallido no publicó npm/GHCR. Conserva tag/evidencia y verifica el seguimiento como 1.0.1. [Intento](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Detalles históricos](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+El intento fallido no publicó npm/GHCR. Conserva tag, alcance y evidencia; el seguimiento actual 1.0.2 sigue pendiente. [Intento](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Detalles históricos](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
 > **Archivo:** lo siguiente conserva nombres, artefactos, URLs y pruebas ZenRouter originales. No son publicaciones Kitsune 0.x ni verifican la fuente actual. Usa [instalación actual](/es/getting-started/installation/), no comandos históricos. El trabajo Unreleased siguiente se registró antes de esta propuesta.
 

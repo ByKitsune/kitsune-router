@@ -1,8 +1,14 @@
 # 更新日志
 
-## Kitsune Router 1.0.1 — 候选版，待最终标签/SHA 验证与发布
+## Kitsune Router 1.0.2 — 已授权候选版，最终 SHA/标签、门槛与发布待完成
 
-接续合成进程隔离回归 harness 与拒绝用例，**生产不可读 same-UID 所有权仍 fail-closed**。已有局部回归/限定 UID 65534 原生 smoke 记录，不等于普遍非 root 支持。移动端与最终标签测试/构建仍待完成，不沿用旧数量。npm `bykitsune` 认证与 Actions 更新不证明发布权限。[1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md)。
+仅 mock 写入子进程的 `Date`，覆盖相同时间戳与相差 1 ms，保留真实 SQLite 写入/缓存读取及生产 priority/`updatedAt` 排序。两个时间戳场景均向父进程缓存呈现已提交的凭据和 active-state 更新。仅将 `npm publish` 日志降到 warning；pack 输出、精确 SHA/原始产物/来源保护不变。最终 1.0.2 数量、构建和 npm/GHCR 发布待完成，不沿用旧数量。[1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+
+## Kitsune Router 1.0.1 — 不可变尝试，未建立发布成功
+
+`v1.0.1` 固定于 **`745834026a5a9f55dffce40c0ad01bf3106e8237`**；PR #1 合并至 master `ce752a9f`。SSH **9,039 通过、100 跳过、零失败**，CI `40463259397` 通过。GHCR `40465152324` 精确源码门槛 **9,038 通过、一项失败**（`db-scoped-cache:216`），在登录/推送前停止；未发布规范 1.0.1 镜像。
+
+npm `40465152995` 精确门槛/docs build/pack 通过，但 publish 失败；冗长输出截断最终错误，原因尚未知。原始产物 `12716498091` 已保存，tarball SHA-256 `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`；2026-10-27 公开读回 HTTP 404，未创建 GitHub Release 1.0.1。见 [尝试记录](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)。历史迁移测试 **58 总数包含八项拒绝**，生产对不可读 same-UID 状态仍 fail-closed；限定 UID 65534 Linux 证据不是普遍非 root 支持，原生 Windows/macOS 迁移未验证。ByKitsune PR #6 在 `73a14982` 合并，无生产部署。旧数量不验证 1.0.2。
 
 ## Kitsune Router 1.0.0 — 保留尝试标签，未发布 npm/GHCR
 
@@ -12,7 +18,7 @@
 
 先停止旧写入者并整目录备份。默认迁移可验证复制 `~/.zenrouter`/`~/.9router` 到 `~/.kitsune-router`，保留原件且不覆盖已有目标；显式 `DATA_DIR` 优先。保留秘密、auth、加密派生输入和受信任证书。变量 `KITSUNE_ROUTER_*`、扩展头 `x-kitsune-router-*`；标准 `/v1/*` 与端口 20128 不变。
 
-此失败尝试未发布 npm/GHCR。保留旧标签/证据，以 1.0.1 做接续验证。[尝试记录](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [历史技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+此失败尝试未发布 npm/GHCR。保留旧标签、范围与证据，当前 1.0.2 接续仍待完成。[尝试记录](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [历史技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
 
 > **历史边界：** 下列内容保留当时 ZenRouter 名称、产物、URL 和测试证据，不是 Kitsune 0.x 发布，也不验证当前源代码。请用 [当前安装](/zh-CN/getting-started/installation/) 而非历史升级命令。下方 Unreleased 工作记录于品牌迁移提案之前。
 

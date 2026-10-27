@@ -4,7 +4,7 @@
 
 ## Release status
 
-**1.0.1 is the selected next candidate, pending final tag/SHA verification and publication.** The GitHub organization/repository are confirmed. npm authenticates as `bykitsune` and Actions credentials were updated, but package-publishing permission, registry access and artifact readback remain unverified. Identities:
+**1.0.2 is the authorized next candidate; final SHA/tag, verification gates and npm/GHCR publication are pending.** Use package/image commands only after publication and registry readback are verified; source installation is available meanwhile. Identities:
 
 | Surface | Identity |
 | --- | --- |
@@ -14,7 +14,7 @@
 | Client provider key | `kitsunerouter` |
 | Canonical image | `ghcr.io/bykitsune/kitsune-router` |
 
-The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root ownership scan; npm/GHCR 1.0.0 were not published. v1.0.1 follows with a deterministic process-isolated regression harness and mobile key-row wrapping; production ownership policy remains fail-closed. The recorded 9,029-pass old candidate is not v1.0.1 proof. See the [current draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) and [changelog](/en/changelog/). Historical 0.x provenance remains unchanged.
+Tags stay immutable: v1.0.1 at `745834026a5a9f55dffce40c0ad01bf3106e8237` passed SSH/CI, but its GHCR gate failed before login/push (no canonical image), and npm publish failed with cause not yet known (public readback HTTP 404 on 2026-10-27; no GitHub Release). v1.0.0 at `390a65677c06a30084386d2a2adf8b0c48709281` did not publish npm/GHCR after its migration-test failure. The [1.0.2 follow-up](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) controls test timestamps and improves npm publish diagnostics without changing production ordering or fail-closed ownership policy. Old counts do not verify 1.0.2. [Changelog](/en/changelog/); original 0.x provenance is unchanged.
 
 [Documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) is available on the verified official Cloudflare account/project; it is not a final release or custom-domain/DNS change.
 

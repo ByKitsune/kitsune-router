@@ -8,16 +8,16 @@
 
 ## リリース状況とインストール
 
-**1.0.1 が次の候補として選択され、最終 tag/SHA 検証・公開待ちです。** リポジトリ `ByKitsune/kitsune-router` は確認済み。npm `@bykitsune/router`、コマンド `kitsune-router`、正規イメージ `ghcr.io/bykitsune/kitsune-router` は不変です。npm は `bykitsune` として認証され Actions 資格情報も更新済みですが、公開権限・成果物の証明ではありません。
+**1.0.2 が承認済みの次期候補です。最終 SHA/tag、検証ゲート、npm/GHCR 公開は未完了です。** リポジトリ `ByKitsune/kitsune-router`、npm `@bykitsune/router`、コマンド `kitsune-router`、正規イメージ `ghcr.io/bykitsune/kitsune-router` は不変です。パッケージコマンドは公開確認後に使用し、それまではソースを利用してください。
 
-`v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、non-root workflow 失敗で npm/GHCR 未公開です。1.0.1 は合成プロセス分離の回帰・拒否テストとモバイル key 行対応で、本番の same-UID 読取不可は引き続き fail-closed。旧 9,029 件成功は新版の証明ではありません。[試行](../releases/RELEASE_NOTES_v1.0.0.md) · [1.0.1 草案](../releases/RELEASE_NOTES_v1.0.1.md)。0.x 出典を保持します。
+旧タグは移動しません。`v1.0.1` は `74583402` で SSH/CI に成功しましたが、GHCR ゲートは login/push 前に失敗し、正規イメージは未公開です。npm publish も失敗し原因は未確定、2026-10-27 の公開読戻しは HTTP 404、GitHub Release も未作成です。`v1.0.0` は `390a6567` に固定され、移行テスト失敗後 npm/GHCR 未公開です。[1.0.1 記録](../releases/RELEASE_NOTES_v1.0.1.md) · [1.0.2 草案](../releases/RELEASE_NOTES_v1.0.2.md)。テスト用時計と npm 診断の改善は本番の並び順・所有権拒否を変えません。旧件数は新版の証拠ではなく、0.x 出典も保持します。
 
 必要環境は **Node.js >=22.19.0**。公開後のみ使用してください。
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
-# または: npx @bykitsune/router@1.0.1
+# または: npx @bykitsune/router@1.0.2
 ```
 
 確認済みの正規リポジトリか既存チェックアウトから、ルートで実行します。`app/` サブディレクトリはありません。
@@ -65,7 +65,7 @@ env_key = "KITSUNE_ROUTER_API_KEY"
 
 Docker は有効 `DATA_DIR` に既存 volume/mount を保持します。既定 `/app/data` または対応する独自絶対パスで、linux/amd64 のみです。制限 Linux は停止・保存後に明示 `DATA_DIR` で移動せず使うか特権レビューを依頼し、権限エラーを無視しません。image を確認し mirror は任意。[インストール](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [運用](../docs/OPERATIONS.md)。
 
-圧縮効果は処理内容次第です。固定削減率、無制限枠、常時稼働は保証しません。概算は請求書ではなく、不明な料金は無料ではありません。上流の権限・地域・規約は引き続き適用されます。既定のホスト型 Kitsune サービスはなく、旧クラウド同期は削除済みです。この文書更新は現在のテスト・ビルド成功を証明しません。[1.0.1 草案](../releases/RELEASE_NOTES_v1.0.1.md)。
+圧縮効果は処理内容次第です。固定削減率、無制限枠、常時稼働は保証しません。概算は請求書ではなく、不明な料金は無料ではありません。上流の権限・地域・規約は引き続き適用されます。既定のホスト型 Kitsune サービスはなく、旧クラウド同期は削除済みです。この文書更新は現在のテスト・ビルド成功を証明しません。[1.0.2 草案](../releases/RELEASE_NOTES_v1.0.2.md)。
 
 ## 謝辞とライセンス
 

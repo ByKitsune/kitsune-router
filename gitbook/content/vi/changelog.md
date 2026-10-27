@@ -1,8 +1,14 @@
 # Nhật ký thay đổi
 
-## Kitsune Router 1.0.1 — ứng viên, chờ tag/SHA cuối và phát hành
+## Kitsune Router 1.0.2 — ứng viên được phép; chờ SHA/tag cuối, gate và xuất bản
 
-Harness cô lập tiến trình tổng hợp và denial test; **production vẫn fail-closed cho ownership same-UID không đọc được**. Có bằng chứng giới hạn regression/smoke UID 65534, không hỗ trợ non-root chung. Wrap mobile và test/build tag cuối vẫn chờ, không mượn số cũ. npm `bykitsune`/Actions cập nhật không chứng minh quyền/publish. [Bản nháp 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+Chỉ mock `Date` trong child writer để kiểm tra timestamp bằng nhau và chênh 1 ms, giữ ghi SQLite/đọc cache thật và thứ tự priority/`updatedAt` production. Cả hai tình huống cho cache cha thấy cập nhật credential và active-state đã commit. Chỉ dùng log warning cho `npm publish`; output pack và guard SHA/hiện vật gốc/provenance không đổi. Số test/build cuối 1.0.2 và npm/GHCR còn chờ, không kế thừa số cũ. [Bản nháp 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+
+## Kitsune Router 1.0.1 — lần thử bất biến; chưa xác lập xuất bản
+
+Tag `v1.0.1` giữ ở **`745834026a5a9f55dffce40c0ad01bf3106e8237`**; PR #1 merge master `ce752a9f`. SSH **9.039 qua, 100 skip, không lỗi**; CI `40463259397` qua. GHCR `40465152324` gate nguồn chính xác **9.038 qua, một lỗi** tại `db-scoped-cache:216`, trước login/push; không xuất bản image chính thức 1.0.1.
+
+npm `40465152995` qua gate chính xác/docs build/pack rồi publish lỗi. Output dài bị cắt nên chưa rõ nguyên nhân. Lưu hiện vật gốc `12716498091`, tarball SHA-256 `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`; readback công khai HTTP 404 ngày 2026-10-27, không GitHub Release 1.0.1. [Lần thử](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). **58 test di chuyển đã gồm tám denial**, production vẫn fail-closed cho same-UID không đọc được. Bằng chứng Linux UID 65534 không chứng nhận non-root chung; Windows/macOS native chưa xác minh. ByKitsune PR #6 merge `73a14982`, không triển khai production. Số cũ không xác minh 1.0.2.
 
 ## Kitsune Router 1.0.0 — giữ lần thử; không xuất bản npm/GHCR
 
@@ -12,7 +18,7 @@ Tag bất biến `v1.0.0` ở `390a65677c06a30084386d2a2adf8b0c48709281`; workfl
 
 Dừng writer, backup toàn bộ. Di chuyển kiểm tra `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, giữ gốc, không ghi đè đích; `DATA_DIR` tường minh ưu tiên. Giữ secret/auth/salt/chứng chỉ tin cậy. Biến `KITSUNE_ROUTER_*`, header `x-kitsune-router-*`; `/v1/*` và 20128 không đổi.
 
-Lần thử lỗi không xuất bản npm/GHCR. Giữ tag/bằng chứng, xác minh bản tiếp theo là 1.0.1. [Lần thử](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Chi tiết lịch sử](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+Lần thử lỗi không xuất bản npm/GHCR. Giữ tag, phạm vi và bằng chứng; bản tiếp theo hiện tại 1.0.2 còn chờ. [Lần thử](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Chi tiết lịch sử](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
 > **Lưu trữ lịch sử:** phần sau giữ tên, hiện vật, URL và bằng chứng ZenRouter gốc; không phải phát hành Kitsune 0.x hay xác minh nguồn hiện tại. Dùng [cài đặt mới](/vi/getting-started/installation/), không lệnh nâng cấp cũ. Công việc Unreleased bên dưới được ghi trước đề xuất đổi thương hiệu.
 

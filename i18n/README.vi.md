@@ -8,16 +8,16 @@ Gateway AI ưu tiên cục bộ, trung lập giữa các nhà cung cấp, do [By
 
 ## Phát hành và cài đặt
 
-**1.0.1 là ứng viên tiếp theo đã chọn; chờ xác minh tag/SHA cuối và phát hành.** Kho `ByKitsune/kitsune-router` đã xác nhận; gói `@bykitsune/router`, lệnh `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. npm đã xác thực là `bykitsune` và cập nhật credential Actions, nhưng chưa chứng minh quyền xuất bản hay hiện vật sẵn có.
+**1.0.2 là ứng viên tiếp theo được cho phép; SHA/tag cuối, các gate và xuất bản npm/GHCR còn chờ.** Kho `ByKitsune/kitsune-router`, gói `@bykitsune/router`, lệnh `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. Chỉ dùng lệnh gói sau khi xác minh xuất bản; hiện có thể dùng mã nguồn.
 
-Tag `v1.0.0` giữ nguyên ở `390a65677c06a30084386d2a2adf8b0c48709281`, không npm/GHCR sau lỗi workflow non-root. 1.0.1 cô lập tiến trình tổng hợp trong regression/denial test và wrap key mobile; production vẫn fail-closed khi ownership same-UID không đọc được. 9.029 test cũ không xác minh bản mới. [Lần thử](../releases/RELEASE_NOTES_v1.0.0.md) · [Ứng viên 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Giữ nguồn gốc 0.x.
+Không di chuyển tag: `v1.0.1` tại `74583402` qua SSH/CI, nhưng gate GHCR lỗi trước login/push nên không có image chính thức. Lệnh npm publish lỗi, chưa rõ nguyên nhân; readback công khai HTTP 404 ngày 2026-10-27, không tạo GitHub Release. `v1.0.0` tại `390a6567` không xuất bản npm/GHCR sau lỗi test di chuyển. [Lần thử 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Ứng viên 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). Đồng hồ test và chẩn đoán npm không thay đổi thứ tự hay chính sách ownership fail-closed production. Không dùng số test cũ xác minh 1.0.2; giữ nguồn gốc 0.x.
 
 Yêu cầu **Node.js >=22.19.0**. Chỉ dùng sau khi phát hành:
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
-# Hoặc: npx @bykitsune/router@1.0.1
+# Hoặc: npx @bykitsune/router@1.0.2
 ```
 
 Chạy từ kho chính thức đã xác nhận hoặc checkout hiện có, ở gốc không có thư mục con `app/`:
@@ -65,7 +65,7 @@ Giữ `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/`, `mitm/`. Không �
 
 Docker giữ volume/mount ở `DATA_DIR` hiệu lực: mặc định `/app/data` hoặc path tuyệt đối tùy chỉnh hỗ trợ; chỉ linux/amd64. Linux hạn chế cần dừng/backup rồi dùng `DATA_DIR` rõ ràng giữ nguồn không di chuyển hoặc nhờ review đặc quyền; không bỏ qua permission. Kiểm tra image, mirror tùy chọn. [Cài đặt](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Vận hành](../docs/OPERATIONS.md).
 
-Tiết kiệm nén tùy khối lượng công việc; không cam kết tỷ lệ cố định, hạn mức vô tận hay hoạt động liên tục. Chi phí ước tính không phải hóa đơn; chưa rõ không có nghĩa miễn phí. Quyền tài khoản, khu vực và điều khoản upstream vẫn áp dụng. Không có dịch vụ Kitsune hosted mặc định; đồng bộ đám mây cũ đã bị gỡ. Lần sửa tài liệu này không xác nhận test/build hiện tại. [Bản nháp 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
+Tiết kiệm nén tùy khối lượng công việc; không cam kết tỷ lệ cố định, hạn mức vô tận hay hoạt động liên tục. Chi phí ước tính không phải hóa đơn; chưa rõ không có nghĩa miễn phí. Quyền tài khoản, khu vực và điều khoản upstream vẫn áp dụng. Không có dịch vụ Kitsune hosted mặc định; đồng bộ đám mây cũ đã bị gỡ. Lần sửa tài liệu này không xác nhận test/build hiện tại. [Bản nháp 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 ## Ghi nhận và giấy phép
 

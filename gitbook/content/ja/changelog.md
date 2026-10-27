@@ -1,8 +1,14 @@
 # 変更履歴
 
-## Kitsune Router 1.0.1 — 候補、最終 tag/SHA 検証・公開待ち
+## Kitsune Router 1.0.2 — 承認済み候補、最終 SHA/tag・検証ゲート・公開待ち
 
-合成プロセス分離の回帰・拒否テストが対象で、**本番の same-UID 読取不可への fail-closed は不変**。限定回帰・UID 65534 smoke の証拠はありますが、一般 non-root 対応の証明ではありません。mobile と最終 tag の tests/builds は未完了、旧件数を流用しません。npm `bykitsune`・Actions 更新は公開権限の証明ではありません。[1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md)。
+書込子プロセスの `Date` だけを mock し、同一時刻と 1 ms 差を実際の SQLite 書込・キャッシュ読取で検証します。本番 priority/`updatedAt` 順序は不変。両時刻シナリオで確定済みの資格情報・active-state 更新が親キャッシュに反映されました。`npm publish` だけ warning レベルにし、pack 出力と SHA/原本成果物/provenance 保護は不変です。最終 1.0.2 件数・ビルド・npm/GHCR 公開は未完了で、旧件数を流用しません。[1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+
+## Kitsune Router 1.0.1 — 不変の試行、公開成功は未確立
+
+`v1.0.1` は **`745834026a5a9f55dffce40c0ad01bf3106e8237`** に固定、PR #1 は master `ce752a9f` に統合。SSH は **9,039 成功、100 skip、失敗ゼロ**、CI `40463259397` 成功。GHCR `40465152324` は exact-source ゲートで **9,038 成功、一件失敗**（`db-scoped-cache:216`）、login/push 前に停止し正規 1.0.1 イメージは未公開です。
+
+npm `40465152995` は exact gate/docs build/pack 成功後 publish 失敗。冗長出力で最終エラーが切れ、原因未確定です。保存原本 `12716498091`、tarball SHA-256 `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`。2026-10-27 公開読戻し HTTP 404、GitHub Release 1.0.1 未作成。[試行記録](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)。移行テストは **計58件に拒否8件を含みます**。本番所有権検査は fail-closed、限定 UID 65534 Linux 証拠は一般 non-root 対応を示さず、ネイティブ Windows/macOS 移行は未検証。ByKitsune PR #6 は `73a14982` に統合、production 配備なし。旧件数は 1.0.2 の証明ではありません。
 
 ## Kitsune Router 1.0.0 — 試行タグ保持、npm/GHCR 未公開
 
@@ -12,7 +18,7 @@
 
 writer 停止・全体保存後、`~/.zenrouter`/`~/.9router` → `~/.kitsune-router` を検証コピーし、原本保持・既存 target 上書き拒否。明示 `DATA_DIR` 優先。秘密/auth/ソルト/信頼証明書を維持。変数 `KITSUNE_ROUTER_*`、ヘッダー `x-kitsune-router-*`、`/v1/*` と 20128 は不変です。
 
-この試行は npm/GHCR を公開していません。旧 tag/証拠を保持し、後続を 1.0.1 として検証します。[試行記録](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [当時の技術履歴](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+この試行は npm/GHCR を公開していません。旧 tag・範囲・証拠を保持し、現行 1.0.2 の検証・公開は未完了です。[試行記録](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [当時の技術履歴](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
 
 > **歴史資料：** 以下は当時の ZenRouter 名称・成果物・URL・検証を保持します。Kitsune 0.x 公開や現行ソースの検証ではありません。[現行インストール](/ja/getting-started/installation/) を使い、旧更新コマンドを使わないでください。下の Unreleased 作業はリブランド提案以前の記録です。
 

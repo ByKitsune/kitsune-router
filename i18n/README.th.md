@@ -8,16 +8,16 @@
 
 ## สถานะและการติดตั้ง
 
-**1.0.1 คือ candidate ถัดไปที่เลือกแล้ว ยังรอตรวจสอบ tag/SHA สุดท้ายและเผยแพร่** ยืนยันคลัง `ByKitsune/kitsune-router` แล้ว แพ็กเกจ `@bykitsune/router`, คำสั่ง `kitsune-router`, อิมเมจ `ghcr.io/bykitsune/kitsune-router` คงเดิม npm ยืนยันตัวตนเป็น `bykitsune` และอัปเดต credential Actions แล้ว แต่ยังไม่พิสูจน์สิทธิ์เผยแพร่หรือไฟล์พร้อมใช้
+**1.0.2 คือ candidate ถัดไปที่อนุมัติแล้ว ยังรอ SHA/tag สุดท้าย gate และการเผยแพร่ npm/GHCR** คลัง `ByKitsune/kitsune-router`, แพ็กเกจ `@bykitsune/router`, คำสั่ง `kitsune-router`, อิมเมจ `ghcr.io/bykitsune/kitsune-router` คงเดิม ใช้คำสั่งแพ็กเกจหลังยืนยันการเผยแพร่เท่านั้น ระหว่างนี้ติดตั้งจากซอร์สได้
 
-คง tag `v1.0.0` ที่ `390a65677c06a30084386d2a2adf8b0c48709281` ไม่มี npm/GHCR หลัง workflow non-root ล้มเหลว 1.0.1 แยกโปรเซสจำลองใน regression/denial test และตัดบรรทัด key มือถือ โดย production ยัง fail-closed เมื่ออ่าน ownership same-UID ไม่ได้ ผลเก่า 9,029 tests ไม่ตรวจ candidate ใหม่ [บันทึก](../releases/RELEASE_NOTES_v1.0.0.md) · [ร่าง 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) คงที่มา 0.x
+ไม่ย้าย tag: `v1.0.1` ที่ `74583402` ผ่าน SSH/CI แต่ gate GHCR ล้มเหลวก่อน login/push จึงไม่มีอิมเมจหลัก คำสั่ง npm publish ล้มเหลวโดยยังไม่ทราบสาเหตุ อ่าน registry สาธารณะได้ HTTP 404 เมื่อ 2026-10-27 และไม่ได้สร้าง GitHub Release ส่วน `v1.0.0` ที่ `390a6567` ไม่มี npm/GHCR หลัง test ย้ายข้อมูลล้มเหลว [บันทึก 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [ร่าง 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) นาฬิกาทดสอบและ diagnostic npm ไม่เปลี่ยนลำดับหรือการปฏิเสธ ownership ใน production ผลเก่าไม่ยืนยัน 1.0.2 และคงที่มา 0.x
 
 ต้องใช้ **Node.js >=22.19.0** คำสั่งนี้ใช้หลังเผยแพร่แล้วเท่านั้น:
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
-# หรือ: npx @bykitsune/router@1.0.1
+# หรือ: npx @bykitsune/router@1.0.2
 ```
 
 รันจากคลังทางการที่ยืนยันแล้วหรือ checkout ที่มีอยู่ ที่รากคลัง ไม่มีโฟลเดอร์ย่อย `app/`:
@@ -65,7 +65,7 @@ env_key = "KITSUNE_ROUTER_API_KEY"
 
 Docker คง volume/mount ที่ `DATA_DIR` จริง ค่าเริ่มต้น `/app/data` หรือ absolute path กำหนดเองที่รองรับ เฉพาะ linux/amd64 บน Linux จำกัดสิทธิ์ให้หยุด/สำรองแล้วใช้ `DATA_DIR` เดิมโดยไม่ย้าย หรือขอตรวจด้วยสิทธิ์เหมาะสม อย่าข้าม permission error ตรวจอิมเมจและ mirror เป็นทางเลือก [ติดตั้ง](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [ปฏิบัติการ](../docs/OPERATIONS.md)
 
-ผลการบีบอัดขึ้นกับงาน ไม่มีเปอร์เซ็นต์ประหยัดคงที่ โควตาไม่จำกัด หรือการรับประกันพร้อมใช้ตลอดเวลา ค่าใช้จ่ายประมาณการไม่ใช่ใบแจ้งหนี้ และราคาไม่ทราบไม่ใช่ฟรี ต้องเคารพสิทธิ์ ภูมิภาค และข้อกำหนด upstream ไม่มีบริการ Kitsune แบบโฮสต์ให้โดยปริยาย และยกเลิก cloud sync เดิมแล้ว การแก้เอกสารนี้ไม่ได้ยืนยันผล test/build ปัจจุบัน [ร่าง 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md)
+ผลการบีบอัดขึ้นกับงาน ไม่มีเปอร์เซ็นต์ประหยัดคงที่ โควตาไม่จำกัด หรือการรับประกันพร้อมใช้ตลอดเวลา ค่าใช้จ่ายประมาณการไม่ใช่ใบแจ้งหนี้ และราคาไม่ทราบไม่ใช่ฟรี ต้องเคารพสิทธิ์ ภูมิภาค และข้อกำหนด upstream ไม่มีบริการ Kitsune แบบโฮสต์ให้โดยปริยาย และยกเลิก cloud sync เดิมแล้ว การแก้เอกสารนี้ไม่ได้ยืนยันผล test/build ปัจจุบัน [ร่าง 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md)
 
 ## เครดิตและสิทธิ์การใช้งาน
 

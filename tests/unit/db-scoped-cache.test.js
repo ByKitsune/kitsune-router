@@ -202,7 +202,7 @@ describe("bounded scoped configuration cache", () => {
     expect(await db.getComboByName("child-after")).toBeNull();
   });
 
-  it("refreshes credential, active, priority and routing filters across repository-writing processes", async () => {
+  it.each([0, 1])("refreshes credential, active, priority and routing filters across repository-writing processes (%i ms between updates)", async updateGapMs => {
     const first = await db.createProviderConnection({ provider: "tenant-a", authType: "oauth", name: "first", accessToken: "old-token", providerSpecificData: { strictProxy: true, vercelRelayUrl: "https://old.invalid" } });
     const sibling = await db.createProviderConnection({ provider: "tenant-a", authType: "apikey", name: "sibling", apiKey: "synthetic-sibling" });
     const other = await db.createProviderConnection({ provider: "tenant-b", authType: "apikey", name: "other", apiKey: "synthetic-other" });
@@ -212,8 +212,28 @@ describe("bounded scoped configuration cache", () => {
     const selected = await db.getProviderConnectionById(first.id);
     const inserted = await childWrite('return await repos.createProviderConnection({ provider: "tenant-a", authType: "apikey", name: "third", apiKey: "synthetic-third" });');
     expect((await db.getProviderConnections({ provider: "tenant-a" })).map(row => row.id)).toEqual([first.id, sibling.id, inserted.id]);
-    await childWrite(`await repos.updateProviderConnection(${JSON.stringify(first.id)}, { accessToken: "new-token", isActive: false, providerSpecificData: { strictProxy: true, vercelRelayUrl: "https://new.invalid" } }); await repos.updateProviderConnection(${JSON.stringify(inserted.id)}, { priority: 1 });`);
-    expect((await db.getProviderConnections({ provider: "tenant-a" })).map(row => row.id)).toEqual([inserted.id, first.id, sibling.id]);
+    // Reordering breaks equal priorities by updatedAt. Two fast writes may have
+    // the same millisecond, so exercise both cases with a child-owned clock
+    // instead of depending on wall-clock scheduling or sleeping between writes.
+    await childWrite(`
+      const { mock } = await import("node:test");
+      const now = Date.parse("2026-10-27T12:00:00.000Z");
+      mock.timers.enable({ apis: ["Date"], now });
+      try {
+        await repos.updateProviderConnection(${JSON.stringify(first.id)}, { accessToken: "new-token", isActive: false, providerSpecificData: { strictProxy: true, vercelRelayUrl: "https://new.invalid" } });
+        mock.timers.setTime(now + ${updateGapMs});
+        await repos.updateProviderConnection(${JSON.stringify(inserted.id)}, { priority: 1 });
+      } finally { mock.timers.reset(); }
+    `);
+    const refreshed = await db.getProviderConnections({ provider: "tenant-a" });
+    expect(refreshed.map(row => row.id)).toEqual(updateGapMs === 0
+      ? [first.id, inserted.id, sibling.id]
+      : [inserted.id, first.id, sibling.id]);
+    expect(refreshed.map(row => row.priority)).toEqual([1, 2, 3]);
+    expect((await db.getProviderConnectionById(first.id)).updatedAt).toBe("2026-10-27T12:00:00.000Z");
+    expect((await db.getProviderConnectionById(inserted.id)).updatedAt).toBe(updateGapMs === 0
+      ? "2026-10-27T12:00:00.000Z"
+      : "2026-10-27T12:00:00.001Z");
     expect((await db.getProviderConnections({ provider: "tenant-a", isActive: true })).map(row => row.id)).toEqual([inserted.id, sibling.id]);
     expect(await db.getProviderConnections({ provider: "tenant-a", isActive: false })).toMatchObject([{ id: first.id, accessToken: "new-token", providerSpecificData: { vercelRelayUrl: "https://new.invalid", strictProxy: true } }]);
     await expect(db.updateProviderConnection(first.id, { accessToken: "stale-parent-write" }, { expected: selected._writeFence })).rejects.toMatchObject({ code: "STALE_CONNECTION_WRITE" });

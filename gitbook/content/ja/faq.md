@@ -4,9 +4,9 @@
 
 [ByKitsune](https://bykitsune.com) が保守・支援する中立・ローカルファーストのゲートウェイで、ZenRouter/9Router を継続します。**Your models. Your routes.** 設定した上流を使い、スポンサーへ自動送信しません。
 
-## 1.0.1 は公開済み？
+## 1.0.2 は公開済み？
 
-次の候補で **最終 tag/SHA 検証・公開待ち**。v1.0.0 は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、所有権 scan 失敗で npm/GHCR 未公開です。GitHub 確認・npm `bykitsune` 認証と公開権限/readback は別です。[インストール](/ja/getting-started/installation/) · [履歴](/ja/changelog/)。0.x 歴史は保持します。
+承認済み候補で **最終 SHA/tag、検証ゲート、npm/GHCR 公開待ち** です。v1.0.1 は `74583402` で SSH/CI に成功しましたが、GHCR は login/push 前に失敗し正規イメージなし。npm publish も失敗、原因未確定、2026-10-27 公開読戻しは HTTP 404、GitHub Release も未作成。v1.0.0 は `390a6567` に固定され npm/GHCR 未公開です。両タグは移動せず、registry 成果物の証明ではありません。[インストール](/ja/getting-started/installation/) · [履歴](/ja/changelog/)。0.x 歴史を保持します。
 
 ## 必須アカウントや順序は？
 

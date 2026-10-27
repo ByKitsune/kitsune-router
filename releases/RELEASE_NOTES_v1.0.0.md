@@ -4,7 +4,7 @@
 
 **Status: attempted tag retained; npm/GHCR publication failed.** Immutable tag [`v1.0.0`](https://github.com/ByKitsune/kitsune-router/tree/v1.0.0) points to `390a65677c06a30084386d2a2adf8b0c48709281`. The release workflow failed on the non-root process-ownership scan; no `@bykitsune/router@1.0.0` package or canonical GHCR 1.0.0 image was published. This source tag is not an installable registry release and will not be moved.
 
-The user selected **1.0.1** for the follow-up instead. See the [current release draft](RELEASE_NOTES_v1.0.1.md) and [installation guide](../docs/INSTALLATION.md). The original 1.0.0 scope and intended targets below remain historical; the candidate's recorded **9,029 passing tests** do not certify publication or the later 1.0.1 source.
+The first follow-up was [1.0.1](RELEASE_NOTES_v1.0.1.md), whose immutable tag is retained after failed publication workflows. The user has now authorized **1.0.2**, pending final SHA/tag, gates and publication; see the [current notes](RELEASE_NOTES_v1.0.2.md) and [installation guide](../docs/INSTALLATION.md). The original 1.0.0 scope and intended targets below remain historical; the candidate's recorded **9,029 passing tests** do not certify publication or later source versions.
 
 Kitsune Router continues ZenRouter and its 9Router lineage under the maintenance and sponsorship of [ByKitsune](https://bykitsune.com). It is a provider-neutral, local-first AI gateway. Choose your own upstream accounts and model/fallback order; no ByKitsune login, subscription or preferred routing destination is required. Configured upstreams still receive your inference requests.
 
@@ -37,7 +37,7 @@ See [MIGRATION.md](../docs/MIGRATION.md) for custom sources, skip controls, refu
 
 ## Archived installation targets — not available from this attempt
 
-These were the draft's intended 1.0.0 targets, not successfully published artifacts. Keep them as historical records; do not run them as current installation guidance. Use the 1.0.1 instructions only after that version is actually published.
+These were the draft's intended 1.0.0 targets, not successfully published artifacts. Keep them as historical records; do not run them as current installation guidance. Use the current 1.0.2 instructions only after that version is actually published and verified.
 
 Requires **Node.js >=22.19.0**:
 

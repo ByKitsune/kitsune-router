@@ -1,10 +1,16 @@
 # Changelog
 
-## Kitsune Router 1.0.1 — selected candidate, final tag/SHA verification and publication pending
+## Kitsune Router 1.0.2 — authorized candidate; final SHA/tag, gates and publication pending
 
-Follow up with a deterministic process-isolated migration regression harness and denial coverage; **production ownership policy is unchanged and still fails closed on unreadable same-UID state**. Interim checks report 58 regression cases plus eight denials and a bounded UID 65534 native smoke, not general non-root certification. Mobile wrapping and final tag-bound tests/builds remain pending, not inherited from old counts.
+Mock only child-writer `Date` to cover equal timestamps and a 1 ms difference, keeping real SQLite writes/cache reads and production priority/`updatedAt` ordering. Both timestamp scenarios exposed the committed credential and active-state updates to the parent cache. Improve warning-level `npm publish` diagnostics only; pack output and exact-SHA/original-artifact/provenance guards stay unchanged. Final 1.0.2 suite counts/builds/publication are pending, not inherited from prior runs. [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Technical details](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
 
-The repository is confirmed; npm authenticates as `bykitsune` and Actions credentials were updated, but publishing permission and artifact readback remain unverified. The [official-account docs preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) is a preview, not release/DNS evidence. [1.0.1 draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Technical details](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+## Kitsune Router 1.0.1 — immutable attempt; publication not established
+
+Tag `v1.0.1` stays at **`745834026a5a9f55dffce40c0ad01bf3106e8237`**; PR #1 merged to master at `ce752a9f`. SSH: **9,039 passed, 100 skipped, zero failures**; [CI 40463259397](https://github.com/ByKitsune/kitsune-router/actions/runs/40463259397) passed. [GHCR 40465152324](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152324) failed its exact-source gate with **9,038 passed, one failed** at `db-scoped-cache:216`, before login/push: no canonical GHCR 1.0.1 image was published.
+
+[npm 40465152995](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152995) passed the exact gate/docs build/pack, then publish failed. Saved original artifact `12716498091`, tarball SHA-256 `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`. The final error was obscured by truncated verbose output; cause is not yet known, not an established E401/E403/two-factor error. Public npm readback returned **HTTP 404 on 2026-10-27**; no GitHub Release was created. [Attempt record](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Technical evidence](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+
+Migration coverage was **58 total cases including eight denials**; production remains fail-closed for unreadable same-UID ownership. Bounded UID 65534 Linux evidence is not general non-root support; native Windows/macOS migration is unverified. ByKitsune integration PR #6 merged at `73a14982`, with no production deployment. The [docs preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) is not release/DNS evidence.
 
 ## Kitsune Router 1.0.0 — attempted tag retained; npm/GHCR not published
 
@@ -14,7 +20,7 @@ Immutable `v1.0.0` remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its wo
 
 Stop old writers and back up all state before migration. Default startup can verify/copy `~/.zenrouter` or `~/.9router` to `~/.kitsune-router`, preserving originals and refusing existing destination overwrite. Explicit `DATA_DIR` stays authoritative. Preserve secrets, auth, crypto derivation inputs and trusted certificates. Project settings become `KITSUNE_ROUTER_*`, extension headers `x-kitsune-router-*`; standard `/v1/*` and port 20128 stay stable.
 
-The failed attempt did not establish published npm/GHCR artifacts. Preserve its original tag and evidence; perform follow-up verification/publication under 1.0.1. [Attempt record](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Historical technical changelog](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+The failed attempt did not establish published npm/GHCR artifacts. Preserve its original tag, scope and evidence; see the current pending 1.0.2 follow-up above. [Attempt record](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Historical technical changelog](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
 > **Archive boundary:** entries below preserve the original ZenRouter names, artifacts, URLs and dated test claims. They are not retroactive Kitsune 0.x publications or verification of the renamed source. Use [current installation](/en/getting-started/installation/), not archived upgrade commands. The preceding Unreleased source work was recorded before the rebrand proposal.
 

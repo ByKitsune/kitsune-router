@@ -4,9 +4,9 @@
 
 Gateway trung lập, local-first do [ByKitsune](https://bykitsune.com) duy trì/tài trợ, tiếp nối ZenRouter/9Router. **Your models. Your routes.** Gửi tới upstream bạn cấu hình, không tự tới nhà tài trợ.
 
-## 1.0.1 đã phát hành?
+## 1.0.2 đã phát hành?
 
-Đây là ứng viên tiếp theo, **chờ tag/SHA cuối và phát hành**. v1.0.0 ở `390a65677c06a30084386d2a2adf8b0c48709281` không có npm/GHCR sau lỗi ownership. GitHub đã xác nhận, npm xác thực `bykitsune` nhưng quyền/xuất bản/readback còn riêng. [Cài đặt](/vi/getting-started/installation/) · [Thay đổi](/vi/changelog/). Giữ lịch sử 0.x.
+Đây là ứng viên được cho phép, **chờ SHA/tag cuối, các gate và xuất bản npm/GHCR**. v1.0.1 tại `74583402` qua SSH/CI, nhưng GHCR lỗi trước login/push, không image chính thức; npm publish lỗi chưa rõ nguyên nhân, readback công khai HTTP 404 ngày 2026-10-27, không GitHub Release. v1.0.0 giữ tại `390a6567`, không npm/GHCR. Không di chuyển tag và tag không là hiện vật registry. [Cài đặt](/vi/getting-started/installation/) · [Thay đổi](/vi/changelog/). Giữ lịch sử 0.x.
 
 ## Bắt buộc tài khoản/thứ tự?
 

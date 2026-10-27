@@ -144,7 +144,10 @@ export async function publishNpm(version, file, { command: run = command, ...rea
     return published;
   }
   // An accepted publish is never repeated just because registry reads lag.
-  run("npm", ["publish", file, "--ignore-scripts", "--access", "public", "--provenance", "--tag", `release-${version}`]);
+  // Avoid a multi-thousand-file notice dump hiding the terminal registry error
+  // when Node formats a failed execFileSync result. Do not suppress warnings,
+  // retry writes, or weaken provenance/authorization checks.
+  run("npm", ["publish", file, "--ignore-scripts", "--access", "public", "--provenance", "--loglevel", "warn", "--tag", `release-${version}`]);
   const confirmed = await waitForNpmReadback(() => npmArtifact(version, run), value => value !== null, readback);
   verifyIntegrity(file, confirmed);
   return confirmed;

@@ -5,28 +5,37 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 **History boundary:** 0.x entries retain their original ZenRouter names, package records, release URLs, evidence paths and dated verification. They are not Kitsune publications or proof about the current source. Use the [current installation guide](docs/INSTALLATION.md) and [migration guide](docs/MIGRATION.md), not archived upgrade commands.
 
-## [1.0.1] — Selected candidate, pending final tag/SHA verification and publication
+## [1.0.2] — Authorized candidate; final SHA/tag, gates and publication pending
 
-This is the next release candidate for **Kitsune Router — Your models. Your routes.** It retains the provider-neutral rebrand and state-preservation contracts below. ByKitsune maintains/sponsors the project without a required account or preferred provider order.
+- Make the cross-process SQLite cache regression deterministic by mocking only child-writer `Date`, covering equal timestamps and a 1 ms difference with real cache/repository writes. Exact 1.0.1 diagnostics ordered same-millisecond writes `first, third, sibling`, different milliseconds `third, first, sibling`. Both timestamp scenarios exposed the committed credential and active-state updates to the parent cache. Production priority/`updatedAt` ordering is unchanged. Targeted checks passed 29 cases (14 cache plus 15 readback); eight repeats of the 14-case suite passed, not final-source/full-suite gates.
+- Make npm publish failures readable with warning-level `npm publish` logging; pack output is unchanged. Keep exact-SHA, original-artifact and provenance guards; do not assume an authorization or two-factor cause from incomplete logs.
+- Move current package/image pins to 1.0.2; preserve both immutable attempts and all original 0.x history. Final 1.0.2 test counts, app/docs builds, packed-runtime gates, npm publication/readback and GHCR digest/SBOM/readback remain pending.
+- ByKitsune integration PR #6 merged at `73a14982`; no production deployment. Provider-neutral routing, user keys, migration safety and Linux restrictions remain unchanged; native Windows/macOS migration is unverified.
+- See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md), [technical changelog](docs/CHANGELOG_v1.0.2.md) and the main-owned [release ledger](docs/REBRANDING.md).
+
+## [1.0.1] — Attempted release; immutable tag, publication not established
+
+Tag `v1.0.1` remains at **`745834026a5a9f55dffce40c0ad01bf3106e8237`**; PR #1 merged to master at `ce752a9f`. It is a source tag, not proof of a published package/image. The next authorized version is 1.0.2; do not move either old tag.
 
 ### Follow-up scope
 
-- Isolate regression tests to owned synthetic process inventories and add denial coverage after the v1.0.0 workflow failure. The deterministic process-isolated harness does **not** relax production ownership checks: native/same-UID unreadable state still fails closed. Interim evidence reports 58 regression cases plus eight denial cases and a bounded UID 65534 native check (open source refused, closed source migrated, uninspectable host-wide ownership refused). This is scoped evidence, not general non-root support or final tag-bound verification.
-- Finish mobile endpoint API-key row wrapping so long keys and controls fit narrow screens without discarding content or actions. Final integration and visual/regression verification remain pending.
-- Update current installation pins and release guidance to 1.0.1, retaining v1.0.0 and all historical 0.x evidence rather than rewriting their identities or artifacts.
+- Isolate migration regressions to owned synthetic process inventories, with **58 total cases including eight denials**. Production ownership checks remain fail-closed for unreadable same-UID state. A bounded UID 65534 Linux check refused an open source, migrated a closed source and refused uninspectable host-wide ownership; this is not general non-root support.
+- Wrap mobile endpoint API-key rows without removing key content or controls. Recorded source tests do not independently certify every responsive layout.
+- Target installation/release guidance to 1.0.1 at that attempt, preserving v1.0.0 and historical 0.x identities and artifacts. Current guidance now targets 1.0.2.
 
 ### Publication and evidence
 
 - **Do not move v1.0.0:** it remains at `390a65677c06a30084386d2a2adf8b0c48709281`. That attempt failed on the non-root ownership scan before npm/GHCR publication; no npm 1.0.0 package or canonical GHCR 1.0.0 image exists from the attempt.
-- The recorded **9,029 passing tests** belong to the 1.0.0 candidate. They are not a final 1.0.1 result; current tests/builds and packed-artifact checks must be tied to the final 1.0.1 tag/SHA.
+- SSH suite: **9,039 passed, 100 skipped, zero failures**; [CI 40463259397](https://github.com/ByKitsune/kitsune-router/actions/runs/40463259397) passed. These are 1.0.1 evidence, not final 1.0.2 counts. The 1.0.0 candidate's 9,029-pass result remains separate.
 - On restricted Linux, stop and back up legacy state, then keep it in place with explicit `DATA_DIR` (no relocation) or obtain privileged ownership review. Do not ignore permission denials or assume the harness change authorizes non-root migration. Containers retain the same volume at the effective absolute `DATA_DIR`, `/app/data` by default or a supported custom path.
-- The GitHub organization/repository are confirmed. npm now authenticates as `bykitsune` and Actions credentials were updated; package-publishing permission, accepted publication and registry readback are still unverified.
-- A [documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) exists on the verified official Cloudflare account. It is not proof of a 1.0.1 artifact, production deployment or custom-domain/DNS write.
-- See [1.0.1 release draft](releases/RELEASE_NOTES_v1.0.1.md), [technical changelog](docs/CHANGELOG_v1.0.1.md), [migration](docs/MIGRATION.md) and the [rebranding ledger](docs/REBRANDING.md). Final publication remains pending.
+- [GHCR workflow 40465152324](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152324) failed its exact-source gate: **9,038 passed, one failed** at `db-scoped-cache:216`, before login/push. No canonical GHCR 1.0.1 image was published.
+- [npm workflow 40465152995](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152995) passed the exact-source gate, docs build and pack, then its publish command failed. Original CI artifact **`12716498091`** was saved; tarball SHA-256 **`f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`**. The final error was obscured by truncated verbose output; cause is not yet known, not an established E401/E403/two-factor error. Public npm readback after failure on **2026-10-27 returned HTTP 404**.
+- No GitHub Release 1.0.1 was created. The [documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) and npm authentication as `bykitsune` do not establish registry publication or production deployment.
+- See [1.0.1 attempt record](releases/RELEASE_NOTES_v1.0.1.md), [technical changelog](docs/CHANGELOG_v1.0.1.md), [migration](docs/MIGRATION.md) and the [rebranding ledger](docs/REBRANDING.md).
 
 ## [1.0.0] — Attempted tag retained; npm/GHCR not published
 
-**Attempt status:** immutable tag `v1.0.0` points to `390a65677c06a30084386d2a2adf8b0c48709281`. The workflow failed on the non-root process-ownership scan; this is not a successful package/image release. The candidate's recorded 9,029 passing tests do not change that result and do not verify the 1.0.1 follow-up. The release draft below is preserved as historical scope; use 1.0.1 current instructions only after its publication.
+**Attempt status:** immutable tag `v1.0.0` points to `390a65677c06a30084386d2a2adf8b0c48709281`. The workflow failed on the non-root process-ownership scan; this is not a successful package/image release. The candidate's recorded 9,029 passing tests do not change that result or verify later versions. The release draft below is preserved as historical scope; see [current 1.0.2 guidance](releases/RELEASE_NOTES_v1.0.2.md), pending publication.
 
 First breaking rebrand release attempt: **Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), with neutral multi-provider routing and no mandatory ByKitsune account or provider ordering.
 
@@ -48,7 +57,7 @@ First breaking rebrand release attempt: **Kitsune Router — Your models. Your r
 
 - Reconcile installation, Docker, integration and multilingual docs; remove unqualified unlimited-access, fixed-savings and free-forever promises. Preserve historical evidence and upstream copyright attribution.
 - Make fresh source recipes provision a private strong `JWT_SECRET` once; `next dev` is not the launcher's generator. Upgrades keep effective existing secrets and absolute state paths rather than rotating them for a brand change.
-- The tag exists, but the failed workflow did not publish npm/GHCR artifacts. Historical candidate checks are not current verification; release permission and artifact readback must be established separately for 1.0.1.
+- The tag exists, but the failed workflow did not publish npm/GHCR artifacts. Historical candidate checks are not current verification; release permission and artifact readback must be established separately for each follow-up.
 - See the [attempt record](releases/RELEASE_NOTES_v1.0.0.md), [historical technical changelog](docs/CHANGELOG_v1.0.0.md), [migration](docs/MIGRATION.md) and [rebranding checklist](docs/REBRANDING.md).
 
 ## [Unreleased]

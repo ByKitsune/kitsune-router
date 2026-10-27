@@ -4,7 +4,7 @@
 
 ## 启动与迁移
 
-- 包找不到：1.0.1 尚待发布，v1.0.0 标签未发布 npm/GHCR；npm 登录不证明发布权限。核实 `@bykitsune/router` 并先用 [源码安装](/zh-CN/getting-started/installation/)。
+- 包找不到：1.0.2 尚待发布。1.0.1 npm publish 失败，原因未知，2026-10-27 公开读回 HTTP 404；标签/登录不证明发布。核实 `@bykitsune/router` 并先用 [源码安装](/zh-CN/getting-started/installation/)。
 - 旧 Node：需 >=22.19.0，迁移须支持 Node/Bun 原生 SQLite 快照，不做不安全原始复制。
 - 端口占用：仪表盘/API 共用 20128，识别拥有者并正常停止，不广泛 `pkill`/`kill -9`。
 - 状态空白：先查绝对路径和 `/app/data` 挂载；显式 `DATA_DIR` 阻止搬迁。

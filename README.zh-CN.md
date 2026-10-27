@@ -8,21 +8,21 @@
 
 ## 发布状态
 
-**1.0.1 是已选定的下一候选版本，尚待最终标签/SHA 验证和发布。** 仓库 `ByKitsune/kitsune-router` 已确认，npm 包为 `@bykitsune/router`，命令为 `kitsune-router`，规范镜像为 `ghcr.io/bykitsune/kitsune-router`。npm 已以 `bykitsune` 身份认证并更新 Actions 凭据，但这不证明包发布权限或发布成功；镜像访问、实际产物和读回仍待验证。以下安装命令只在发布后适用。
+**1.0.2 是用户已授权的下一候选版本，最终 SHA/标签、验证门槛和 npm/GHCR 发布尚待完成。** 仓库 `ByKitsune/kitsune-router`、包 `@bykitsune/router`、命令 `kitsune-router` 和规范镜像 `ghcr.io/bykitsune/kitsune-router` 不变。以下命令仅在发布并验证后适用，目前可用源码安装。
 
-`v1.0.0` 标签保留在 `390a65677c06a30084386d2a2adf8b0c48709281`，不移动。其工作流因非 root 进程所有权扫描失败，未发布 npm/GHCR 1.0.0 产物；历史 9,029 条通过记录不是 1.0.1 验证。1.0.1 接续隔离合成进程的回归 harness/拒绝用例及移动端 key 行换行，**生产对不可读同 UID 所有权仍拒绝继续**，不是普遍允许非 root 搬迁。最终标签验证仍待完成。参阅 [尝试记录](releases/RELEASE_NOTES_v1.0.0.md) 和 [1.0.1 草案](releases/RELEASE_NOTES_v1.0.1.md)。0.x 原产物身份保留。
+旧标签均不移动：`v1.0.1` 固定于 `745834026a5a9f55dffce40c0ad01bf3106e8237`，SSH/CI 通过，但 GHCR 门槛在登录/推送前失败，未发布规范 1.0.1 镜像；npm 发布命令失败，原因尚未知，2026-10-27 公开读回为 HTTP 404，未创建 GitHub Release 1.0.1。`v1.0.0` 固定于 `390a65677c06a30084386d2a2adf8b0c48709281`，迁移测试失败后未发布 npm/GHCR。见 [1.0.1 尝试](releases/RELEASE_NOTES_v1.0.1.md) 与 [1.0.2 草案](releases/RELEASE_NOTES_v1.0.2.md)：接续确定性时钟测试和清晰 npm 诊断，不改变生产排序或所有权拒绝策略，也不沿用旧测试数量。0.x 来源保留。
 
-[文档预览](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) 位于已验证的官方 Cloudflare 账户/项目；它不是 1.0.1 发布证明，也不表示自定义域名或 DNS 已变更。
+[文档预览](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) 位于已验证的官方 Cloudflare 账户/项目；它不是发布、生产部署或自定义域名/DNS 变更证明。
 
 ## 安装和启动
 
 启动器要求 **Node.js >=22.19.0**：
 
 ```bash
-# 仅在 1.0.1 发布后：
-npx @bykitsune/router@1.0.1
+# 仅在 1.0.2 发布并验证后：
+npx @bykitsune/router@1.0.2
 # 或：
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 
@@ -78,7 +78,7 @@ curl http://localhost:20128/v1/models \
 
 提供协议转换、多账户/模型回退、用量统计，以及可选 RTK/Headroom 等压缩功能。支持情况取决于具体传输与模型；无法表示的参数或文档可能明确拒绝。没有固定节省比例、无限免费额度或不中断运行的保证。成本估算不是账单；未知价格不等于免费，订阅积分不等于 API 美元费用。
 
-容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.1`，需先核实发布和访问权限；Docker Hub 镜像只是可选镜像源。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [测试说明](tests/README.md)。本次文档更新不声称已验证当前测试或构建。
+容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.2`，需先核实发布、访问和摘要；Docker Hub 只是可选镜像源。原生 Windows/macOS 迁移仍未验证。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [测试说明](tests/README.md)。本次文档更新不声称已验证当前测试或构建。
 
 ## 致谢与许可证
 

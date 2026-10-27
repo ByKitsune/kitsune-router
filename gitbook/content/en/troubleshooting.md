@@ -4,12 +4,12 @@ Start with the installed version/source SHA, absolute `DATA_DIR`, sanitized erro
 
 ## Startup and migration
 
-- **Package not found:** 1.0.1 publication is pending; the failed v1.0.0 tag did not publish npm/GHCR 1.0.0. npm authentication does not prove publishing permission. Verify `@bykitsune/router` availability/authorization and use [source installation](/en/getting-started/installation/) meanwhile.
+- **Package not found:** 1.0.2 publication is pending. The 1.0.1 npm publish command failed with cause not yet known; public readback returned HTTP 404 on 2026-10-27. Source tags/authentication are not publication proof. Verify `@bykitsune/router` availability and use [source installation](/en/getting-started/installation/) meanwhile.
 - **Old Node:** use Node.js >=22.19.0. Migration needs supported native Node/Bun SQLite snapshot APIs; no unsafe raw-copy fallback is provided.
 - **Port in use:** dashboard/API share 20128. Identify the owner and stop it gracefully; avoid broad `pkill` or `kill -9` recipes.
 - **Empty state:** inspect absolute `DATA_DIR` and container `/app/data` mount before adding accounts. Explicit paths disable automatic relocation.
 - **Migration refused:** stop legacy gateway/helpers, inspect source safety/integrity/ownership and destination. Don't remove locks or overwrite either directory blindly. [Migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
-- **Restricted Linux ownership scan:** production still fails closed for unreadable same-UID ownership. v1.0.1 isolates synthetic process inventories in regression tests; it does not generally allow non-root relocation. After stopping/backing up, use explicit `DATA_DIR` without relocating or request privileged review. Do not ignore permission failures; bounded UID 65534 evidence is not general support or final tag-bound verification.
+- **Restricted Linux ownership scan:** production still fails closed for unreadable same-UID ownership. Test-only isolation/clock changes do not generally allow non-root relocation. After stopping/backing up, use explicit `DATA_DIR` without relocating or request privileged review. Do not ignore permission failures; bounded UID 65534 evidence is not general support, and native Windows/macOS migration remains unverified.
 
 ## Client and upstream errors
 

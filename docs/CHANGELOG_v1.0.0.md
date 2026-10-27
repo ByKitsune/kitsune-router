@@ -1,6 +1,6 @@
 # Kitsune Router 1.0.0 technical changelog — attempted, not published to npm/GHCR
 
-**Status: immutable tag retained after a failed publication attempt.** `v1.0.0` points to `390a65677c06a30084386d2a2adf8b0c48709281`. The workflow failed on the non-root process-ownership scan; no npm 1.0.0 package or canonical GHCR 1.0.0 image was published. This document preserves the attempted release's scope, not a successful registry release. [Attempt record](../releases/RELEASE_NOTES_v1.0.0.md) · [1.0.1 follow-up](CHANGELOG_v1.0.1.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
+**Status: immutable tag retained after a failed publication attempt.** `v1.0.0` points to `390a65677c06a30084386d2a2adf8b0c48709281`. The workflow failed on the non-root process-ownership scan; no npm 1.0.0 package or canonical GHCR 1.0.0 image was published. This document preserves the attempted release's scope, not a successful registry release. [Attempt record](../releases/RELEASE_NOTES_v1.0.0.md) · [1.0.1 attempt](CHANGELOG_v1.0.1.md) · [Current 1.0.2 follow-up](CHANGELOG_v1.0.2.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
 
 ## Identity contracts
 
@@ -43,4 +43,4 @@ Fresh source recipes explicitly generate a strong private `JWT_SECRET` once: `ne
 
 The supplied pre-change remote baseline of 8,845 passes, 100 pending/skipped and zero failures is planning context only. It does **not** certify renamed code, migration or a 1.0.0 artifact. No local costly suite/build, live inference, deployment, commit or publication is claimed. See [tests](../tests/README.md) and the [rebranding checklist](REBRANDING.md) for the final owner's verification workflow.
 
-The earlier 9,028-pass frozen inventory remains a separate historical snapshot in the release notes. The next selected version is **1.0.1**, with a deterministic process-isolated regression harness/denial coverage and mobile key-row wrapping follow-up pending final tag verification. The production ownership hook is not relaxed and same-UID unreadable state still fails closed. Current pins move forward; the old tag, source evidence and unpublished-target history do not.
+The earlier 9,028-pass frozen inventory remains a separate historical snapshot in the release notes. The first follow-up, **1.0.1**, retains its own immutable source tag and failed publication record. The current authorized candidate is **1.0.2**, pending final SHA/tag, gates and publication. Production ownership remains fail-closed for unreadable same-UID state. Current pins move forward; old tags, source evidence and unpublished-target history do not.

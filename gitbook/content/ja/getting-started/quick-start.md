@@ -1,9 +1,9 @@
 # クイックスタート
 
-**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。1.0.1 は最終 tag/SHA と公開待ちで、v1.0.0 は npm/GHCR 未公開の試行です。[ソース手順](/ja/getting-started/installation/) を使い、公開後のみ Node.js >=22.19.0 で実行します。
+**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。1.0.2 は最終 SHA/tag、検証ゲート、npm/GHCR 公開待ちです。両旧タグは不変の試行記録で、registry 利用可能性の証明ではありません。[ソース手順](/ja/getting-started/installation/) を使い、公開確認後のみ Node.js >=22.19.0 で実行します。
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 ```
 
 ## 設定
