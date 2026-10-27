@@ -26,3 +26,13 @@ describe("rebranded standalone boot dependency closure", () => {
     expect(fs.existsSync(path.join(output, "node_modules/next/dist/build/compiler.js"))).toBe(false);
   });
 });
+
+describe("native dialog lifecycle after the rebrand", () => {
+  it("closes a mounted dialog so the browser can restore focus rather than removing the open element", () => {
+    const source = fs.readFileSync(new URL("../../src/shared/components/Modal.js", import.meta.url), "utf8");
+    expect(source).toContain("dialog.showModal()");
+    expect(source).toContain("dialog.close()");
+    expect(source).not.toContain("if (!isOpen) return null");
+    expect(source).not.toContain("onCancel=");
+  });
+});

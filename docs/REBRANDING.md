@@ -53,12 +53,12 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
 ## Completed external changes
 
 - GitHub repository ID `1348441164` was renamed in place to `kitsune-router`;
-  current URL is https://github.com/ZenRouter/kitsune-router until the owner
-  completes the organization-handle rename. Repository history and permissions
-  remain on that same repository ID.
+  the owner then completed the organization-handle rename. Canonical URL is now
+  https://github.com/ByKitsune/kitsune-router. Repository history and permissions
+  remain on the same repository ID; organization ID `321756995` is unchanged.
 - Organization display name, public description, website, and public support
-  email now identify ByKitsune. The **login is still `ZenRouter`**, not
-  `ByKitsune`; a display-name update does not satisfy that remaining step.
+  email identify ByKitsune. Both the display name and login are now `ByKitsune`,
+  verified through the authenticated public API after the owner action.
 - Repository description, homepage and topics now identify the provider-neutral
   Kitsune Router product. Local `origin` follows the actual current path.
 - All 26 existing GitHub releases now carry a Kitsune Router archive title and
@@ -70,16 +70,19 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
 
 ## External work still requiring authorization
 
-- Rename the organization handle through GitHub's owner settings. The public
-  organization update REST API and GraphQL mutations do not support changing
-  this login; do not claim completion or invent an undocumented write route.
+- Organization handle rename is complete. Avatar and custom social-preview
+  uploads still require an authenticated owner web session; editable artwork is
+  included in this repository.
 - Create/claim npm organization `bykitsune` and authorize publication of
   `@bykitsune/router`. No npm authentication is available on the editing host.
   An existing secret's name is not evidence of its scope or validity.
-- Cloudflare zone reads work via the ByKitsune Composio CLI connection, but
-  account/Pages/DNS operations returned authentication/header errors. No DNS or
-  deployment mutations have been attempted. Reauthorize that same connection;
-  never switch to an unrelated account just because it accepts a request.
+- Cloudflare account and Pages reads now succeed through Composio CLI toolkit
+  `cloudflare_api_key`, alias **ByKitsune**, against official account
+  `4f243094abd8315b58c0a850380dc457`. Its Pages project list was empty at readback.
+  Toolkit `cloudflare` uses a different authentication format and still fails;
+  DNS reads on `bykitsune.com` also returned an authorization error. No custom
+  domain/DNS write is authorized by a successful account/Pages read alone.
+  Never switch to the unrelated account to bypass this boundary.
 
 ## Additional name checks
 
@@ -131,6 +134,14 @@ source inventory is
 `2e7c2402d8ada9710e666f6adb5a42b03dc2e0d429024a5ab6ca7e773d1d91b4`.
 Strict lint/build, 61 immutable migration definitions, 153 schema objects,
 1,276 server tests (plus the existing Windows exclusion), 20 infrastructure
-tests, six browser-infrastructure tests, and targeted browser lanes (74
-production / 25 development) passed. Complete browser-lane verification and
-commit-bound evidence remain separate from those targeted results.
+tests and six browser-infrastructure tests passed. Complete browser lanes also
+passed: **1,164 production cases and 141 development cases**, with the configured
+fail-on-flaky policy unchanged. Server results were rerun successfully against
+integration commit `21bfb3312af80150e43b79a82bc919756d4d4dee`.
+
+The initial Router candidate is commit
+`9dd5e1f8b2e9fb24b783a3680b1cc5ad1f50b167`; a follow-up fixes verified native-dialog
+focus return and records the completed organization rename. Re-run the shared
+commit-bound source gate and rebuild artifacts at the follow-up revision before
+promoting it. Both candidates were pushed on separate rebrand branches; neither
+default branch nor production service was replaced by these pushes.

@@ -31,14 +31,11 @@ export default function Modal({
     if (!isOpen && dialog?.open) dialog.close();
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
       <dialog
         ref={dialogRef}
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : "Dialog"}
-        onCancel={(event) => { event.preventDefault(); onClose(); }}
         onClose={onClose}
         onClick={(event) => {
           if (!closeOnOverlay || event.target !== event.currentTarget) return;
@@ -53,6 +50,9 @@ export default function Modal({
           className
         )}
       >
+        {/* Keep the native element mounted until close() restores the invoker's
+            focus. Removing an open dialog bypasses that browser behavior. */}
+        {isOpen && <>
         {/* Header */}
         {(title || showTrafficLights) && (
           <div className="flex items-center justify-between gap-4 px-6 py-3 bg-surface-2">
@@ -81,6 +81,7 @@ export default function Modal({
             {footer}
           </div>
         )}
+        </>}
       </dialog>
   );
 }
