@@ -8,16 +8,16 @@ Passerelle IA locale en priorité, neutre entre fournisseurs, maintenue et spons
 
 ## Publication et installation
 
-**1.0.1 est la prochaine candidate choisie ; vérification du tag/SHA final et publication restent en attente.** Dépôt `ByKitsune/kitsune-router` confirmé ; paquet `@bykitsune/router`, commande `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. npm s’authentifie comme `bykitsune` et les identifiants Actions ont été mis à jour, sans prouver le droit de publier ni la disponibilité des artefacts.
+**1.0.2 est la prochaine candidate autorisée ; SHA/tag final, contrôles et publication npm/GHCR restent en attente.** Dépôt `ByKitsune/kitsune-router`, paquet `@bykitsune/router`, commande `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. Utilisez les commandes du paquet après publication vérifiée ; les sources sont disponibles entre-temps.
 
-Le tag `v1.0.0` reste à `390a65677c06a30084386d2a2adf8b0c48709281`, sans npm/GHCR après l’échec du workflow non-root. 1.0.1 isole les processus synthétiques dans les régressions/refus et ajuste les lignes mobiles ; la production refuse toujours les propriétés same-UID illisibles. Les 9 029 tests anciens ne vérifient pas cette candidate. [Tentative](../releases/RELEASE_NOTES_v1.0.0.md) · [Candidate 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Provenance 0.x intacte.
+Les tags restent immuables : `v1.0.1` à `74583402` a passé SSH/CI, mais le contrôle GHCR a échoué avant login/push, sans image canonique. La commande npm publish a échoué, cause encore inconnue ; lecture publique HTTP 404 le 2026-10-27, aucune GitHub Release créée. `v1.0.0` à `390a6567` n’a publié ni npm ni GHCR après l’échec du test de migration. [Tentative 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Candidate 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). L’horloge de test et les diagnostics npm ne changent ni le tri ni le refus de propriété en production. Les anciens résultats ne vérifient pas 1.0.2 ; provenance 0.x intacte.
 
 Prérequis : **Node.js >=22.19.0**. Après publication uniquement :
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
-# Ou : npx @bykitsune/router@1.0.1
+# Ou : npx @bykitsune/router@1.0.2
 ```
 
 Depuis le dépôt canonique confirmé ou votre copie existante, à la racine sans sous-dossier `app/` :
@@ -65,7 +65,7 @@ Conservez `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/` et `mitm/`. Ne
 
 Docker conserve le volume/montage au `DATA_DIR` effectif : `/app/data` par défaut ou chemin absolu personnalisé pris en charge ; linux/amd64 seulement. Sur Linux restreint, arrêtez/sauvegardez puis gardez l’ancien chemin via `DATA_DIR` explicite sans déplacement, ou demandez une revue privilégiée ; n’ignorez pas les permissions. Vérifiez l’image, miroir facultatif. [Installation](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Exploitation](../docs/OPERATIONS.md).
 
-La compression dépend des données : aucun pourcentage fixe, quota illimité ou fonctionnement continu n’est garanti. Les estimations ne sont pas des factures ; inconnu ne signifie pas gratuit. Respectez droits, régions et conditions des fournisseurs. Pas de service Kitsune hébergé par défaut ; l’ancienne synchronisation a été retirée. Cette révision ne certifie aucun test/build actuel. [Projet de version 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
+La compression dépend des données : aucun pourcentage fixe, quota illimité ou fonctionnement continu n’est garanti. Les estimations ne sont pas des factures ; inconnu ne signifie pas gratuit. Respectez droits, régions et conditions des fournisseurs. Pas de service Kitsune hébergé par défaut ; l’ancienne synchronisation a été retirée. Cette révision ne certifie aucun test/build actuel. [Projet de version 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 ## Remerciements et licence
 

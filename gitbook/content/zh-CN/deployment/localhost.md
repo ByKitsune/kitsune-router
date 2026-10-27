@@ -1,6 +1,6 @@
 # 本地部署
 
-仪表盘和 API 共用 **20128**，不是 3000。Node.js >=22.19.0；1.0.1 待最终验证/发布，v1.0.0 未发布 npm/GHCR。见 [安装](/zh-CN/getting-started/installation/)，发布后运行 `kitsune-router`。
+仪表盘和 API 共用 **20128**，不是 3000。Node.js >=22.19.0；1.0.2 待最终 SHA/标签、验证门槛和发布。两个旧标签是不可变尝试记录，不证明 registry 可用。见 [安装](/zh-CN/getting-started/installation/)，发布验证后运行 `kitsune-router`。
 
 - 仪表盘：`http://localhost:20128/dashboard`
 - API 基址：`http://localhost:20128/v1`

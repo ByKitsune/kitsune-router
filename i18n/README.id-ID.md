@@ -8,16 +8,16 @@ Gateway AI local-first yang netral terhadap penyedia, dipelihara dan disponsori 
 
 ## Status rilis dan instalasi
 
-**1.0.1 adalah kandidat berikutnya yang dipilih; verifikasi tag/SHA akhir dan publikasi masih tertunda.** Repositori `ByKitsune/kitsune-router` sudah dikonfirmasi; paket `@bykitsune/router`, perintah `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. npm terautentikasi sebagai `bykitsune` dan kredensial Actions diperbarui, tetapi belum membuktikan izin publikasi atau artefak tersedia.
+**1.0.2 adalah kandidat berikutnya yang diizinkan; SHA/tag akhir, gate dan publikasi npm/GHCR masih tertunda.** Repositori `ByKitsune/kitsune-router`, paket `@bykitsune/router`, perintah `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. Gunakan perintah paket setelah publikasi terverifikasi; sementara ini gunakan sumber.
 
-Tag `v1.0.0` tetap di `390a65677c06a30084386d2a2adf8b0c48709281`, tanpa npm/GHCR setelah workflow non-root gagal. 1.0.1 mengisolasi proses sintetis dalam tes regresi/penolakan dan membungkus key seluler; produksi tetap menolak ownership same-UID yang tidak terbaca. 9.029 tes lama bukan bukti kandidat baru. [Percobaan](../releases/RELEASE_NOTES_v1.0.0.md) · [Kandidat 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Asal 0.x dipertahankan.
+Tag tidak dipindahkan: `v1.0.1` di `74583402` lulus SSH/CI, tetapi gate GHCR gagal sebelum login/push, tanpa image kanonis. Perintah npm publish gagal, penyebab belum diketahui; readback publik HTTP 404 pada 2026-10-27, tanpa GitHub Release. `v1.0.0` di `390a6567` tidak menerbitkan npm/GHCR setelah tes migrasi gagal. [Percobaan 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Kandidat 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). Jam tes dan diagnostik npm tidak mengubah urutan atau penolakan ownership produksi. Jumlah tes lama bukan bukti 1.0.2; asal 0.x dipertahankan.
 
 Memerlukan **Node.js >=22.19.0**. Hanya setelah dipublikasikan:
 
 ```bash
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
-# Atau: npx @bykitsune/router@1.0.1
+# Atau: npx @bykitsune/router@1.0.2
 ```
 
 Dari repositori kanonis yang dikonfirmasi atau checkout yang ada, jalankan di root tanpa subdirektori `app/`:
@@ -65,7 +65,7 @@ Simpan `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/`, dan `mitm/`. Jan
 
 Docker tetap memakai volume/mount pada `DATA_DIR` efektif: default `/app/data` atau path absolut kustom yang didukung; hanya linux/amd64. Pada Linux terbatas, hentikan/backup lalu pakai `DATA_DIR` eksplisit ke sumber tanpa relokasi atau minta tinjauan berhak akses; jangan abaikan izin. Verifikasi image; mirror opsional. [Instalasi](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operasi](../docs/OPERATIONS.md).
 
-Penghematan kompresi bergantung beban kerja. Tidak ada persentase tetap, kuota tak terbatas, atau jaminan selalu tersedia. Estimasi bukan tagihan; harga tidak diketahui bukan gratis. Izin, wilayah, dan ketentuan penyedia tetap berlaku. Tidak ada endpoint Kitsune terkelola bawaan; sinkronisasi lama sudah dihapus. Pembaruan dokumentasi ini tidak membuktikan tes/build terkini lulus. [Draf 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
+Penghematan kompresi bergantung beban kerja. Tidak ada persentase tetap, kuota tak terbatas, atau jaminan selalu tersedia. Estimasi bukan tagihan; harga tidak diketahui bukan gratis. Izin, wilayah, dan ketentuan penyedia tetap berlaku. Tidak ada endpoint Kitsune terkelola bawaan; sinkronisasi lama sudah dihapus. Pembaruan dokumentasi ini tidak membuktikan tes/build terkini lulus. [Draf 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md).
 
 ## Kredit dan lisensi
 

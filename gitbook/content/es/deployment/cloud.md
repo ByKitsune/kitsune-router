@@ -8,12 +8,12 @@ Usa Node.js >=22.19.0, dependencias bloqueadas y build de raíz según [instalac
 
 ## Contenedores
 
-**1.0.1 pendiente de tag/SHA final y publicación.** v1.0.0 no publicó npm/GHCR. Verifica permiso, acceso y digest; login npm no equivale a publicación. Solo linux/amd64.
+**1.0.2 pendiente de SHA/tag final, controles y publicación.** Ningún intento anterior publicó imagen GHCR canónica: 1.0.1 falló antes de login/push; 1.0.0 falló la prueba de migración. Verifica acceso, digest y lectura del registro; tag/login no equivale a publicación. Solo linux/amd64.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"

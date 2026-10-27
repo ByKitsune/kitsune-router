@@ -4,7 +4,7 @@
 
 ## Estado de publicación
 
-**1.0.1 es la siguiente candidata elegida; verificación del tag/SHA final y publicación pendientes.** Repositorio confirmado; npm autentica como `bykitsune` y credenciales Actions actualizadas, sin probar permiso de publicación ni artefactos.
+**1.0.2 es la siguiente candidata autorizada; SHA/tag final, controles y publicación npm/GHCR pendientes.** Usa comandos de paquete/imagen solo tras verificar publicación y lectura del registro; mientras tanto están las fuentes.
 
 | Superficie | Destino |
 | --- | --- |
@@ -14,7 +14,7 @@
 | Clave de proveedor | `kitsunerouter` |
 | Imagen canónica | `ghcr.io/bykitsune/kitsune-router` |
 
-`v1.0.0` sigue inmutable en `390a65677c06a30084386d2a2adf8b0c48709281`: falló el workflow de propiedad non-root y no se publicó npm/GHCR 1.0.0. Los 9.029 tests de esa candidata no verifican 1.0.1. El seguimiento aísla procesos sintéticos en tests y ajusta filas móviles; producción sigue fail-closed. [Cambios](/es/changelog/) · [Borrador 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). La historia 0.x no cambia.
+Tags inmutables: `v1.0.1` en `74583402` pasó SSH/CI, pero GHCR falló antes de login/push, sin imagen canónica; npm publish falló, causa aún desconocida, lectura pública HTTP 404 el 2026-10-27 y sin GitHub Release. `v1.0.0` en `390a6567` no publicó npm/GHCR tras fallar la prueba de migración. 1.0.2 controla fechas de test y mejora diagnósticos npm, sin cambiar orden ni política fail-closed de producción. Los resultados antiguos no verifican esta candidata. [Cambios](/es/changelog/) · [Borrador 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md). Historia 0.x intacta.
 
 ## Capacidades y límites
 

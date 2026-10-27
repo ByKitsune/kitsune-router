@@ -10,24 +10,24 @@ Kitsune Router connects coding tools, agents and SDKs to the providers **you cho
 
 ## Release status
 
-**1.0.1 is the selected next release candidate, pending final tag/SHA verification and publication.** The identities are GitHub [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router), npm [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router), command `kitsune-router`, and canonical image `ghcr.io/bykitsune/kitsune-router`.
+**1.0.2 is the user-authorized next release candidate; final SHA/tag, verification gates and npm/GHCR publication are pending.** GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`. Commands below apply **after verified publication**; use a source checkout now.
 
-The **v1.0.0 tag remains immutable at `390a65677c06a30084386d2a2adf8b0c48709281`**. Its release workflow failed on the non-root process-ownership scan; no npm 1.0.0 package or canonical GHCR 1.0.0 image was published. v1.0.1 follows with a deterministic process-isolated regression harness and mobile key-row wrapping, not a relaxed production ownership check or a moved tag. Unreadable same-UID ownership still fails closed. Scoped regressions and a bounded native non-root check have been reported; final tag-bound verification remains pending. See the [1.0.0 attempt record](releases/RELEASE_NOTES_v1.0.0.md) and [1.0.1 release draft](releases/RELEASE_NOTES_v1.0.1.md).
+**Previous tags stay immutable.** [v1.0.1](releases/RELEASE_NOTES_v1.0.1.md) remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: SSH/CI passed, but the GHCR gate failed before login/push and npm's publish command failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. [v1.0.0](releases/RELEASE_NOTES_v1.0.0.md) remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Source tags are not registry artifacts.
 
-The GitHub organization/repository are confirmed. npm now authenticates as `bykitsune` and Actions credentials were updated, but authentication alone does not prove package-publishing permission or publication. Final v1.0.1 verification, npm authorization, registry visibility and artifact readback remain pending. Commands below apply **after publication**; use a source checkout now. Earlier 0.x records remain original ZenRouter artifacts. Read the [migration guide](docs/MIGRATION.md).
+The [1.0.2 follow-up](releases/RELEASE_NOTES_v1.0.2.md) makes timestamp-sensitive cache tests deterministic and npm failure diagnostics readable; production priority ordering and fail-closed migration ownership checks are unchanged. Prior pass counts do not verify 1.0.2. Earlier 0.x records remain original ZenRouter artifacts. Read the [migration guide](docs/MIGRATION.md).
 
-Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) on the verified official Cloudflare account. It is a preview, not proof of a v1.0.1 release or a custom-domain/DNS change.
+Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) on the verified official Cloudflare account. It is not release, production-deployment or custom-domain/DNS evidence.
 
 ## Quick start
 
 Requires **Node.js >=22.19.0** for the launcher.
 
 ```bash
-# After 1.0.1 is published:
-npx @bykitsune/router@1.0.1
+# After 1.0.2 is published and verified:
+npx @bykitsune/router@1.0.2
 
 # Or install the launcher globally:
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 
@@ -73,7 +73,7 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.1
+  ghcr.io/bykitsune/kitsune-router:1.0.2
 ```
 
 Set `INITIAL_PASSWORD` securely in the invoking environment first. The example uses default `/app/data`; for a supported custom absolute `DATA_DIR`, keep the same existing volume mounted at that exact effective path. Do not substitute an empty volume just to rename the service. See [Docker](DOCKER.md).

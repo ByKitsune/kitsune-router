@@ -1,13 +1,13 @@
 # 安装
 
-**Kitsune Router 1.0.1 尚待最终标签/SHA 验证和发布。** 仓库已确认；npm `bykitsune` 认证不是发布权限或产物证明。v1.0.0 保持旧标签，因非 root 所有权工作流失败未发布 npm/GHCR。包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。
+**Kitsune Router 1.0.2 已授权，最终 SHA/标签、验证门槛和 npm/GHCR 发布待完成。** 包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。v1.0.1 固定于 `74583402`：GHCR 门槛在登录/推送前失败，npm publish 失败且原因未知，2026-10-27 公开读回 HTTP 404，无规范镜像或 GitHub Release。v1.0.0 固定于 `390a6567`，未发布 npm/GHCR。标签不移动；发布验证前用源码，见 [日志](/zh-CN/changelog/)。
 
 ## 发布后的启动器
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 # 或：
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 

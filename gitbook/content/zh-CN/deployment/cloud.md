@@ -8,12 +8,12 @@
 
 ## 容器
 
-**1.0.1 尚待最终标签/SHA 验证与发布**；v1.0.0 未发布 npm/GHCR。先核实权限、访问和摘要，npm 登录不等于发布。仅 linux/amd64。
+**1.0.2 尚待最终 SHA/标签、验证门槛与发布**。两个旧尝试均未发布规范 GHCR 镜像：1.0.1 在登录/推送前门槛失败，1.0.0 迁移测试失败。先核实访问、摘要和读回；标签/登录不等于发布。仅 linux/amd64。
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"

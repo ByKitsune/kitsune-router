@@ -65,7 +65,7 @@ Regression tests cover translator and executor final payloads, nullable aliases,
 
 A real loopback HTTP test exercises the normal translator, executor serialization and fetch stack. A production standalone smoke creates isolated local credentials/provider nodes through the dashboard API, reads them back, routes only to a loopback fixture, and reads the actual SQLite usage table. It checks preserved caps, exact usage, paid empty-output accounting and exactly-once terminal-then-cancel persistence.
 
-The recorded validation used an isolated HOME/DATA_DIR, fresh test-only secrets and no live provider inference. Offline fixtures establish the gateway's behavior at that snapshot, not upstream acceptance, current account entitlement, invoice parity or current rebrand verification. Source snapshots, exact commands, RED/GREEN evidence and final gate counts are recorded in the external task handoff. See [1.0.1 status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md).
+The recorded validation used an isolated HOME/DATA_DIR, fresh test-only secrets and no live provider inference. Offline fixtures establish the gateway's behavior at that snapshot, not upstream acceptance, current account entitlement, invoice parity or current rebrand verification. Source snapshots, exact commands, RED/GREEN evidence and final gate counts are recorded in the external task handoff. See [1.0.2 status](CHANGELOG_v1.0.2.md) and [migration](MIGRATION.md).
 
 ## Sources
 

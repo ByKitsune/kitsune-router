@@ -116,6 +116,14 @@ describe("bounded npm publication readback", () => {
     expect(readFileSync(fixture.artifact)).toEqual(bytes);
   });
 
+  it("keeps terminal publish errors readable without weakening provenance or immutable tags", async () => {
+    const fixture = publication([missing(), published]);
+    await publishNpm(version, fixture.artifact, fixture);
+    expect(fixture.calls.filter(call => call[1] === "publish")).toEqual([
+      ["npm", "publish", fixture.artifact, "--ignore-scripts", "--access", "public", "--provenance", "--loglevel", "warn", "--tag", `release-${version}`],
+    ]);
+  });
+
   it("stops with a meaningful timeout instead of dereferencing null", async () => {
     const fixture = publication([missing(), missing(), missing()]);
     await expect(publishNpm(version, fixture.artifact, { ...fixture, attempts: 2 })).rejects.toThrow(/not confirmed after 2 attempts.*original CI tarball/);

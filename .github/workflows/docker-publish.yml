@@ -6,7 +6,7 @@ on:
       tag:
         description: "Stable release tag (must match all package versions)"
         required: true
-        default: "v1.0.1"
+        default: "v1.0.2"
 
 concurrency:
   group: docker-release

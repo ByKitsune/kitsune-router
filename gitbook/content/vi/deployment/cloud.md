@@ -8,12 +8,12 @@ Node.js >=22.19.0, dependency khóa, build từ root theo [cài đặt](/vi/gett
 
 ## Container
 
-**1.0.1 chờ tag/SHA cuối và phát hành**; v1.0.0 không có npm/GHCR. Kiểm tra quyền, truy cập, digest; login npm không là xuất bản. Chỉ linux/amd64.
+**1.0.2 chờ SHA/tag cuối, gate và xuất bản**. Hai lần thử cũ không có image GHCR chính thức: 1.0.1 lỗi trước login/push, 1.0.0 lỗi test di chuyển. Kiểm tra truy cập, digest và readback; tag/login không chứng minh xuất bản. Chỉ linux/amd64.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"

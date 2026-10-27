@@ -4,18 +4,22 @@
 sponsored by [ByKitsune](https://bykitsune.com/).
 
 The public package is `@bykitsune/router`; its executable is `kitsune-router`.
-The publication candidate is **1.0.1**. The 1.0.0 tag was an unpublished attempt
-retained immutably after a non-root verification failure. Historical
-0.x packages were published as ZenRouter, not as this new scoped package.
+The authorized publication candidate is **1.0.2**, pending final SHA/tag, gates
+and npm/GHCR publication. Both previous tags remain immutable: 1.0.0 failed a
+migration test before publication; 1.0.1 passed SSH/CI but its GHCR gate and npm
+publish command failed. The npm cause is not yet known; public readback returned
+HTTP 404 on 2026-10-27. Source tags are not registry artifacts. See the
+[1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
+Historical 0.x packages retain their original ZenRouter identities.
 
 ## Install and start
 
 Requires **Node.js >=22.19.0**. After the package has been published:
 
 ```sh
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 # Or install once:
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 

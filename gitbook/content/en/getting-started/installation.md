@@ -1,15 +1,15 @@
 # Installation
 
-**Kitsune Router 1.0.1 is the next candidate, pending final tag/SHA verification and publication.** The repository is confirmed; npm authentication as `bykitsune` and updated Actions credentials do not prove publishing permission or available artifacts. The package is `@bykitsune/router`, not the bare command name. Requires **Node.js >=22.19.0**.
+**Kitsune Router 1.0.2 is authorized; final SHA/tag, verification gates and npm/GHCR publication are pending.** The package is `@bykitsune/router`, not the bare command name. Requires **Node.js >=22.19.0**. Use source installation until publication and registry readback are verified.
 
-The retained v1.0.0 tag at `390a65677c06a30084386d2a2adf8b0c48709281` failed its ownership-scan workflow, with no npm/GHCR publication. Use current pins only after 1.0.1 is published; do not treat the old source tag as an available package.
+Both old tags remain immutable. v1.0.1 at `74583402` passed SSH/CI, but its GHCR gate failed before login/push and npm publish failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 at `390a6567` did not publish npm/GHCR after its migration-test failure. See [release history](/en/changelog/); source tags are not registry artifacts.
 
 ## Launcher — after publication
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 # Or:
-npm install -g @bykitsune/router@1.0.1
+npm install -g @bykitsune/router@1.0.2
 kitsune-router
 ```
 

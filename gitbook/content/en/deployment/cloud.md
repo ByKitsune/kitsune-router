@@ -8,12 +8,12 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**1.0.1 remains a candidate pending final tag/SHA verification and publication.** v1.0.0's retained tag did not publish an npm/GHCR artifact. Verify canonical GHCR access and the new version digest first; npm login alone does not prove publishing permission. The workflow targets **linux/amd64 only**.
+**1.0.2 awaits final SHA/tag, verification gates and publication.** Neither old attempt published a canonical GHCR image: 1.0.1 failed its gate before login/push, and 1.0.0 failed its migration test. Verify canonical access, digest and readback first; source tags and npm login do not prove publication. The workflow targets **linux/amd64 only**.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     restart: unless-stopped
     ports:

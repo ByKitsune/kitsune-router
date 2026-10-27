@@ -4,11 +4,34 @@ Status: implementation candidate verified offline; final artifact gates and
 external namespace authorization remain separate. No release publication is
 implied by this document.
 
-**Current publication candidate: 1.0.1.** The user elected to retain the failed
+**Current publication candidate: 1.0.2.** The user elected to retain the failed
 `v1.0.0` tag immutably, rather than moving a public tag after GitHub's non-root
 runner exposed an ownership-inspection limitation. The v1.0.0 npm/GHCR workflows
 stopped before either registry was written. Earlier 1.0.0 candidate evidence below
-remains historical proof of that revision, not certification of 1.0.1.
+remains historical proof of that revision, not certification of 1.0.2.
+
+The immutable `v1.0.1` tag remains at
+`745834026a5a9f55dffce40c0ad01bf3106e8237`. Its SSH source gate passed
+**9,039 tests, 100 skipped/todo, zero failures**, and GitHub PR CI passed.
+The separate container-publication gate exposed a millisecond timestamp
+collision in `db-scoped-cache.test.js:216` and stopped before login/push.
+The npm workflow passed verification/docs/pack, retained its original tarball,
+then failed the publish command; the public registry still returned 404 after
+that failure. No successful npm/GHCR 1.0.1 publication is claimed.
+
+A real SQLite, cross-process diagnostic at that exact SHA reproduced both
+timestamp outcomes while confirming fresh credentials and active status in the
+parent cache. Version 1.0.2 controls only the child test clock and exercises both
+outcomes; production priority and cache code are unchanged. Quieter npm notice
+output preserves terminal publish errors without changing provenance, original
+artifact recovery, authorization or immutable-version guards.
+
+The changed cache/readback tests passed 29 targeted cases on SSH; the cache
+suite then passed eight consecutive 14-case runs. These are focused intermediate
+checks, not substitutes for the final SHA-bound 1.0.2 gate. Five known synthetic
+preview runtimes were stopped using PID-bound signals after verifying their
+executable, source directory, port and isolated `DATA_DIR`; no live service or
+state was replaced.
 
 ## Identity contract
 
@@ -82,11 +105,12 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
   header; that exact asset is included as `public/brand/bykitsune-favicon.png`.
   API readback still reports no custom repository Open Graph image, so a profile
   avatar is not being misreported as a custom social-preview upload.
-- Create/claim npm organization `bykitsune` and authorize publication of
-  `@bykitsune/router`. A user-authorized temporary token authenticated as
+- Authorize publication of `@bykitsune/router`. A user-authorized temporary token authenticated as
   `bykitsune` and replaced the official Actions `NPM_TOKEN` secret. Scope
   membership read returned 403; actual publishing permission remains a registry
-  gate, not an inference from the username or secret's existence. Temporary
+  gate, not an inference from the username or secret's existence. The 1.0.1
+  publish command failed; its verbose file listing obscured the terminal npm
+  reason, so no specific authentication/permission cause is asserted. Temporary
   credentials disclosed in chat must be revoked after use.
 - Cloudflare account and Pages reads now succeed through Composio CLI toolkit
   `cloudflare_api_key`, alias **ByKitsune**, against official account
@@ -96,7 +120,8 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
   domain/DNS write is authorized by a successful account/Pages read alone.
   Never switch to the unrelated account to bypass this boundary.
 - Documentation project `kitsune-router-docs` was created in that official
-  account, with preview deployment `e50d3392-93ce-4a92-8d0c-ed30b988bf0c`
+  account. The latest verified preview is deployment
+  `d3544c04-2973-48dd-adce-aae654617129`, source `74583402`,
   at https://rebrand-candidate.kitsune-router-docs.pages.dev/en/. Composio
   performed account/project/asset operations and readback; its multipart proxy
   could not forward the final manifest. The user explicitly authorized Wrangler
@@ -117,7 +142,7 @@ clearance is implied by an exact compound-name registry lookup.
 
 Do not call this complete until names are owned, source consistency checks pass, migration tests pass, all required offline suites/lint/build/docs/package checks pass, screenshots have been reviewed at desktop/tablet/mobile sizes, and remaining external owner-only steps are explicitly recorded.
 
-## Candidate verification — 2026-10-27
+## Initial candidate verification — 2026-10-27
 
 All expensive work ran on the isolated SSH verification host, not the editing
 server. No production database, provider credential or environment file was
@@ -163,9 +188,37 @@ passed: **1,164 production cases and 141 development cases**, with the configure
 fail-on-flaky policy unchanged. Server results were rerun successfully against
 integration commit `21bfb3312af80150e43b79a82bc919756d4d4dee`.
 
-The initial Router candidate is commit
+The initial Router candidate was commit
 `9dd5e1f8b2e9fb24b783a3680b1cc5ad1f50b167`; a follow-up fixes verified native-dialog
 focus return and records the completed organization rename. Re-run the shared
 commit-bound source gate and rebuild artifacts at the follow-up revision before
-promoting it. Both candidates were pushed on separate rebrand branches; neither
-default branch nor production service was replaced by these pushes.
+promoting it. Those early branch pushes did not replace production services.
+
+## Merges and immutable attempt evidence
+
+- Router [PR #1](https://github.com/ByKitsune/kitsune-router/pull/1) merged to
+  `master` at `ce752a9fa0385a58a70c25865b21219f7416876d`, after GitHub CI
+  [40463259397](https://github.com/ByKitsune/kitsune-router/actions/runs/40463259397)
+  passed. The v1.0.1 tag remains on its verified ancestor `74583402`.
+- Companion [PR #6](https://github.com/joyccn/ByKitsuneV2/pull/6) merged to
+  `main` at `73a14982f6ae7aa438268f2c654438940cf3c3e0`, after its full gate
+  passed. `/root/ByKitsuneV2` and live production processes were not updated or
+  restarted.
+- v1.0.1 exact SSH source report SHA-256:
+  `111d3c2dbac4de647493900bddfb552e80114e036f0359fd9e9b01e36ea3007f`.
+  Separate locally built tarball SHA-256:
+  `2067e23982b245f3c063aaaf9f880b967b1a50dbce82b900cc0e4242fa340dfd`;
+  isolated install/runtime/upgrade and container restart smokes passed. These
+  bytes are not the original GitHub publication artifact.
+- Original npm CI artifact ID `12716498091`, workflow
+  [40465152995](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152995),
+  tarball SHA-256
+  `f00e2f581631065a9afa4719999487bf2f5eba31c096393d2a9141fb13bd55e8`.
+  It is retained privately after the failed publish, not relabeled as 1.0.2.
+- Container workflow
+  [40465152324](https://github.com/ByKitsune/kitsune-router/actions/runs/40465152324)
+  reported 9,038 passing assertions and one timestamp-order assertion failure;
+  its report is retained separately from the successful SSH/PR reports.
+- Version 1.0.2 requires its own final source SHA, complete gates, original
+  publication tarball, registry readback, container digest/provenance/SBOM, and
+  published-artifact smokes. Earlier pass counts cannot certify that revision.

@@ -8,12 +8,12 @@ Node.js >=22.19.0、固定依存、ルート build を [手順](/ja/getting-star
 
 ## コンテナー
 
-**1.0.1 は最終 tag/SHA 検証・公開待ち**。v1.0.0 は npm/GHCR 未公開。権限・アクセス・digest を確認し、npm login を公開成功と扱わないでください。linux/amd64 のみです。
+**1.0.2 は最終 SHA/tag、検証ゲート・公開待ち**。旧試行の正規 GHCR イメージはありません。1.0.1 は login/push 前、1.0.0 は移行テストで失敗しました。アクセス・digest・読戻しを確認し、タグや npm login を公開成功と扱わないでください。linux/amd64 のみです。
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.1
+    image: ghcr.io/bykitsune/kitsune-router:1.0.2
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"

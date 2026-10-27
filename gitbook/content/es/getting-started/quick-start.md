@@ -1,9 +1,9 @@
 # Inicio rápido
 
-**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. 1.0.1 espera tag/SHA final y publicación; v1.0.0 fue un intento sin npm/GHCR. Consulta [instalación](/es/getting-started/installation/) para fuentes. Tras publicar, con Node.js >=22.19.0:
+**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. 1.0.2 espera SHA/tag final, controles y publicación npm/GHCR; los dos tags anteriores son intentos inmutables, no prueba de disponibilidad. Consulta [instalación](/es/getting-started/installation/) para fuentes. Solo tras verificar publicación, con Node.js >=22.19.0:
 
 ```bash
-npx @bykitsune/router@1.0.1
+npx @bykitsune/router@1.0.2
 ```
 
 ## Configura el gateway

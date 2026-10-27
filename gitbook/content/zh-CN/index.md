@@ -4,7 +4,7 @@
 
 ## 发布状态
 
-**1.0.1 是下一候选版本，尚待最终标签/SHA 验证和发布。** GitHub 组织/仓库已确认；npm 已认证 `bykitsune` 并更新 Actions 凭据，但发布权限、镜像和产物读回仍待验证。
+**1.0.2 是已授权的下一候选版本，最终 SHA/标签、验证门槛与 npm/GHCR 发布待完成。** 包/镜像命令仅在发布并读回验证后适用，目前可用源码安装。
 
 | 项目 | 新标识 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | 工具提供商标识 | `kitsunerouter` |
 | 规范镜像 | `ghcr.io/bykitsune/kitsune-router` |
 
-`v1.0.0` 保留于 `390a65677c06a30084386d2a2adf8b0c48709281`，因非 root 所有权扫描工作流失败而未发布 npm/GHCR。旧候选 9,029 条通过不是 1.0.1 验证。接续工作是合成进程隔离回归测试与移动端 key 行换行，生产拒绝策略不放宽。见 [日志](/zh-CN/changelog/) 和 [1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)，0.x 原来源保持。
+旧标签不移动：`v1.0.1` 在 `74583402`，SSH/CI 通过，但 GHCR 门槛在登录/推送前失败，未发布规范镜像；npm publish 失败，原因尚未知，2026-10-27 公开读回 HTTP 404，未创建 GitHub Release。`v1.0.0` 在 `390a6567`，迁移测试失败后未发布 npm/GHCR。1.0.2 控制测试时间戳并改善 npm 发布诊断，不改变生产排序或所有权 fail-closed 策略；旧数量不验证新版。见 [日志](/zh-CN/changelog/) 和 [1.0.2 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md)，0.x 来源保留。
 
 ## 能力与边界
 
