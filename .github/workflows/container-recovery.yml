@@ -1,0 +1,127 @@
+name: Recover Immutable GHCR Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing immutable source tag"
+        required: true
+        default: "v1.0.2"
+      source_sha:
+        description: "Full verified commit SHA expected under that tag"
+        required: true
+        default: "65c8b97d783becab3f1e1210d2ab9ce67992e13b"
+
+concurrency:
+  group: docker-release
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      RECOVERY_TAG: ${{ inputs.tag }}
+      RECOVERY_SOURCE_SHA: ${{ inputs.source_sha }}
+      GHCR_IMAGE: ghcr.io/bykitsune/kitsune-router
+      JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
+      KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
+    steps:
+      - name: Checkout reviewed recovery tooling at dispatch SHA
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: release-tools
+          fetch-depth: 0
+
+      - name: Checkout immutable release source separately
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          path: release-source
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Validate separate tooling and release source boundaries
+        run: node release-tools/scripts/recover-container-release.mjs validate
+
+      - name: Isolate application state before dependency lifecycle scripts
+        run: node release-source/scripts/release-publication-helpers.mjs isolate
+
+      - name: Install locked release-source dependencies
+        working-directory: release-source
+        run: |
+          npm ci
+          npm --prefix tests ci
+
+      - name: Verify exact immutable release source with its original gates
+        working-directory: release-source
+        env:
+          GITHUB_SHA: ${{ inputs.source_sha }}
+          GITHUB_REF: refs/tags/${{ inputs.tag }}
+        run: node scripts/release-publication-helpers.mjs verify-source
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to canonical GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reconcile registry JSON and existing immutable digests
+        id: immutable
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node release-tools/scripts/recover-container-release.mjs prepare
+
+      - name: Build only confirmed absent exact release source
+        if: steps.immutable.outputs.build == 'true'
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ steps.immutable.outputs.context }}
+          push: true
+          tags: ghcr.io/bykitsune/kitsune-router:${{ steps.immutable.outputs.version }}
+          platforms: linux/amd64
+          provenance: mode=min
+          sbom: true
+          labels: |
+            org.opencontainers.image.title=Kitsune Router
+            org.opencontainers.image.description=Provider-neutral AI gateway. Your models. Your routes.
+            org.opencontainers.image.vendor=ByKitsune
+            org.opencontainers.image.version=${{ steps.immutable.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.immutable.outputs.revision }}
+            org.opencontainers.image.source=https://github.com/ByKitsune/kitsune-router
+
+      - name: Verify immutable digest, source labels, provenance and SBOM
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
+        run: node release-tools/scripts/recover-container-release.mjs verify
+
+      - name: Promote latest only from the verified original digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
+        run: node release-tools/scripts/recover-container-release.mjs promote
+
+      - name: Preserve exact source and separate recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: container-recovery-${{ github.run_id }}
+          path: |
+            release-source/verification/
+            ${{ runner.temp }}/container-recovery-source.json
+          if-no-files-found: warn

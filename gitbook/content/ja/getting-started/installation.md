@@ -1,6 +1,6 @@
 # インストール
 
-**Kitsune Router 1.0.2 は承認済みで、最終 SHA/tag、検証ゲート、npm/GHCR 公開は未完了です。** パッケージは `@bykitsune/router`、必要環境 **Node.js >=22.19.0**。v1.0.1 は `74583402` に固定され、GHCR は login/push 前に失敗、npm publish も原因未確定の失敗、2026-10-27 公開読戻しは HTTP 404、正規イメージ・GitHub Release はありません。v1.0.0 は `390a6567` に固定され npm/GHCR 未公開。公開確認まではソースを利用し、[履歴](/ja/changelog/) を参照してください。
+**1.0.2 ソースは不変タグ `65c8b97d` で検証済み、npm/GHCR 公開はブロック中です。** 9,041 成功、100 skip、assertion/suite 失敗ゼロ、lint/build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token）、公開読戻し HTTP 404。GHCR は欠落 manifest の preflight エラーで build/push 前に停止しました。GitHub UI での token 交換は完了未確認、正規イメージ・GitHub Release は未確立。パッケージ `@bykitsune/router`、必要環境 **Node.js >=22.19.0**。公開/readback 確認まではソースを利用してください。[証拠](/ja/changelog/)。
 
 ## 公開後のランチャー
 

@@ -1,6 +1,6 @@
 # Cài đặt
 
-**Kitsune Router 1.0.2 được cho phép; SHA/tag cuối, các gate và xuất bản npm/GHCR còn chờ.** Gói `@bykitsune/router`, không tên lệnh bare; yêu cầu **Node.js >=22.19.0**. v1.0.1 tại `74583402`: GHCR lỗi trước login/push, npm publish lỗi chưa rõ nguyên nhân, readback công khai HTTP 404 ngày 2026-10-27; không image chính thức hay GitHub Release. v1.0.0 tại `390a6567` không có npm/GHCR. Không di chuyển tag; dùng mã nguồn trước khi xác minh xuất bản. [Lịch sử](/vi/changelog/).
+**Nguồn 1.0.2 đã xác minh ở tag bất biến `65c8b97d`; xuất bản npm/GHCR bị chặn.** 9.041 qua, 100 skip, không lỗi assertion/suite; lint/build qua. npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback HTTP 404; GHCR dừng trước build/push do preflight manifest thiếu. Thay token qua GitHub UI chưa xác nhận; chưa có image chính thức/GitHub Release. Gói `@bykitsune/router`, không tên lệnh bare; yêu cầu **Node.js >=22.19.0**. Dùng mã nguồn đến khi xuất bản/readback được xác minh. [Bằng chứng](/vi/changelog/).
 
 ## Launcher sau khi phát hành
 

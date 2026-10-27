@@ -1,6 +1,6 @@
 # Triển khai localhost
 
-Dashboard/API cùng cổng **20128**, không 3000. Node.js >=22.19.0; 1.0.2 chờ SHA/tag cuối, gate và xuất bản. Hai tag cũ là lần thử bất biến, không chứng minh registry sẵn có. [Cài đặt](/vi/getting-started/installation/). Sau xác minh xuất bản chạy `kitsune-router`.
+Dashboard/API cùng cổng **20128**, không 3000. Nguồn 1.0.2 đã xác minh ở tag bất biến `65c8b97d`, xuất bản registry bị chặn. Dùng [mã nguồn](/vi/getting-started/installation/) với Node.js >=22.19.0 trước khi xác minh xuất bản/readback. Tag/test local không chứng minh registry sẵn có; chỉ sau đó chạy gói `kitsune-router`.
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

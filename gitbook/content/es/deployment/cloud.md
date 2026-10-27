@@ -8,7 +8,7 @@ Usa Node.js >=22.19.0, dependencias bloqueadas y build de raíz según [instalac
 
 ## Contenedores
 
-**1.0.2 pendiente de SHA/tag final, controles y publicación.** Ningún intento anterior publicó imagen GHCR canónica: 1.0.1 falló antes de login/push; 1.0.0 falló la prueba de migración. Verifica acceso, digest y lectura del registro; tag/login no equivale a publicación. Solo linux/amd64.
+**Fuente 1.0.2 verificada en `65c8b97d`; publicación GHCR bloqueada.** Run `40469972099` pasó gates/login; preflight clasificó mal un manifest ausente y paró antes de build/push. Lectura autenticada HTTP 404 / `MANIFEST_UNKNOWN`. Recuperación separada conserva fuente/versión/tag; todavía sin imagen canónica. Usa el ejemplo solo tras verificar digest/proveniencia/SBOM/readback. Solo linux/amd64; tests locales no prueban imagen publicada.
 
 ```yaml
 services:

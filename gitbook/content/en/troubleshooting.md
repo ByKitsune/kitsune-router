@@ -4,7 +4,8 @@ Start with the installed version/source SHA, absolute `DATA_DIR`, sanitized erro
 
 ## Startup and migration
 
-- **Package not found:** 1.0.2 publication is pending. The 1.0.1 npm publish command failed with cause not yet known; public readback returned HTTP 404 on 2026-10-27. Source tags/authentication are not publication proof. Verify `@bykitsune/router` availability and use [source installation](/en/getting-started/installation/) meanwhile.
+- **Package not found:** 1.0.2 source is verified, but npm publish was denied E403 requiring 2FA or a granular token with bypass 2fa enabled; public readback remained HTTP 404. The user will replace the Actions secret through GitHub's UI, but completion is not confirmed. Do not share tokens in chat/logs. Use [source installation](/en/getting-started/installation/) until publication/readback succeed. The 1.0.1 npm cause remains unknown.
+- **GHCR image not found:** 1.0.2 gates/login passed; a missing-manifest preflight error stopped the workflow before build/push. Structured authenticated readback confirmed HTTP 404 / `MANIFEST_UNKNOWN`. Separate recovery does not move the tag; see [recovery operations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). Do not treat a local image ID as a canonical GHCR digest.
 - **Old Node:** use Node.js >=22.19.0. Migration needs supported native Node/Bun SQLite snapshot APIs; no unsafe raw-copy fallback is provided.
 - **Port in use:** dashboard/API share 20128. Identify the owner and stop it gracefully; avoid broad `pkill` or `kill -9` recipes.
 - **Empty state:** inspect absolute `DATA_DIR` and container `/app/data` mount before adding accounts. Explicit paths disable automatic relocation.

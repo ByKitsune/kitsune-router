@@ -2,11 +2,11 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-The canonical image target is **`ghcr.io/bykitsune/kitsune-router:1.0.2`**. **Final SHA/tag, verification gates and publication are pending**; confirm registry access and the version digest before using these commands. Docker Hub `bykitsune/kitsune-router` is only an optional mirror if separately published and verified, not an assumed public fallback. The workflow targets **linux/amd64**, not native ARM64/multi-architecture.
+The canonical image target is **`ghcr.io/bykitsune/kitsune-router:1.0.2`**. **Source is verified at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`, but GHCR publication is blocked.** Workflow `40469972099` passed source gates/login, then preflight misclassified a missing manifest and stopped **before image build/push**. An authenticated registry read confirmed HTTP 404 / `MANIFEST_UNKNOWN`; no canonical 1.0.2 image is available from that run. Separate authorized recovery tooling keeps version/tag unchanged; execution and digest/provenance/SBOM/readback are still required. See [recovery status](docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). The target is **linux/amd64**, not ARM64/multi-architecture; Docker Hub is an optional independently verified mirror, not an assumed fallback.
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
-## Run
+## Run only after publication and digest verification
 
 Set a strong `INITIAL_PASSWORD` in your private environment first; `-e INITIAL_PASSWORD` forwards it without embedding a value in the example.
 
@@ -101,4 +101,6 @@ docker run --rm -p 127.0.0.1:20128:20128 \
 
 When switching from a historical container, set `KITSUNE_ROUTER_CONTAINER` and `KITSUNE_ROUTER_DATA_VOLUME` to the existing stopped installation's names rather than assuming the new defaults migrate it. For a manually invoked `docker run`, keep the `-v` target and `-e DATA_DIR` identical; for the repository Compose file, its explicit `DATA_DIR=/app/data` is authoritative.
 
-Release publication is a separate guarded workflow in [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml), not an automatic consequence of writing docs or building locally. Verify exact tag/SHA, immutable digests, provenance/SBOM, registry visibility and any mirror before announcing availability. No current build, scan, live-provider or publication result is asserted here.
+The verified source's **local** image `sha256:92aeda74d937e440bae4643523beaac9bc33addab1e9d5b18544c0ce6d0dfbec` passed six restart/secret-preservation scenarios: default `/app/data` and custom `/var/lib/kitsune-router`, each with fresh JWT, CLI JSON and legacy ENV secrets; all keys retained at mode 0600. This is a local image ID, not a GHCR digest, scan result or published artifact. See [release evidence](docs/CHANGELOG_v1.0.2.md).
+
+Publication and the separate container-recovery tooling are guarded operations, not automatic consequences of a local build. The recovery retains the immutable release-source SHA and does not bump 1.0.2 or move its tag. Verify resulting registry digest, provenance/SBOM, visibility and any mirror before announcing availability. No production deployment is implied.

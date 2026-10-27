@@ -6,7 +6,7 @@
 
 ## 1.0.2 は公開済み？
 
-承認済み候補で **最終 SHA/tag、検証ゲート、npm/GHCR 公開待ち** です。v1.0.1 は `74583402` で SSH/CI に成功しましたが、GHCR は login/push 前に失敗し正規イメージなし。npm publish も失敗、原因未確定、2026-10-27 公開読戻しは HTTP 404、GitHub Release も未作成。v1.0.0 は `390a6567` に固定され npm/GHCR 未公開です。両タグは移動せず、registry 成果物の証明ではありません。[インストール](/ja/getting-started/installation/) · [履歴](/ja/changelog/)。0.x 歴史を保持します。
+**ソース検証済み、公開はブロック中です。** `v1.0.2` / `65c8b97d` は 9,041 成功、100 skip、assertion/suite 失敗ゼロ、lint/build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token）、公開読戻し HTTP 404。利用者が GitHub UI で token を交換する予定ですが完了未確認です。GHCR は gate/login 成功後 preflight で build/push 前に停止し、正規イメージ・GitHub Release は未確立。独立 recovery はタグ/版を変えず、1.0.1 npm 原因は依然不明です。[インストール](/ja/getting-started/installation/) · [履歴](/ja/changelog/)。0.x 歴史を保持します。
 
 ## 必須アカウントや順序は？
 

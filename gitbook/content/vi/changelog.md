@@ -1,8 +1,12 @@
 # Nhật ký thay đổi
 
-## Kitsune Router 1.0.2 — ứng viên được phép; chờ SHA/tag cuối, gate và xuất bản
+## Kitsune Router 1.0.2 — nguồn đã xác minh; xuất bản bị chặn
 
-Chỉ mock `Date` trong child writer để kiểm tra timestamp bằng nhau và chênh 1 ms, giữ ghi SQLite/đọc cache thật và thứ tự priority/`updatedAt` production. Cả hai tình huống cho cache cha thấy cập nhật credential và active-state đã commit. Chỉ dùng log warning cho `npm publish`; output pack và guard SHA/hiện vật gốc/provenance không đổi. Số test/build cuối 1.0.2 và npm/GHCR còn chờ, không kế thừa số cũ. [Bản nháp 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+Tag bất biến **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**, PR #2 merge `23375bf1`. SSH nguồn chính xác: **9.041 qua, 100 skip, không lỗi assertion/suite**; lint nghiêm ngặt, 18 docs tests/export tĩnh, app build và pack qua. CI `40468830176` xanh trên cây nguồn khớp tag. Smoke tarball local, sáu tình huống restart container và browser nguồn chính xác qua trong phạm vi ghi nhận. Chỉ mock child `Date`, không đổi thứ tự production; warning log chỉ cho npm publish, không pack.
+
+npm `40469972263` qua gate/docs/pack rồi publish bị **E403** (cần 2FA hoặc granular token bật bypass 2fa), readback HTTP 404. Hiện vật CI gốc `12718343077`, SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`, khác byte tarball local đã smoke; smoke riêng còn chờ. Người dùng thay token qua GitHub UI chưa xác nhận; nguyên nhân npm 1.0.1 vẫn chưa rõ.
+
+GHCR `40469972099` qua gate/login rồi preflight phân loại sai Buildx `not found`, dừng trước build/push; readback xác thực HTTP 404 / `MANIFEST_UNKNOWN`. Recovery riêng giữ nguồn/phiên bản/tag; CI/merge, thực thi, digest/provenance/SBOM/readback cần bằng chứng riêng. Chưa có image chính thức, GitHub Release 1.0.2 hay triển khai production; preview docs chưa cập nhật. [Bằng chứng 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
 
 ## Kitsune Router 1.0.1 — lần thử bất biến; chưa xác lập xuất bản
 

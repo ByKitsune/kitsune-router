@@ -1,6 +1,6 @@
 # 安装
 
-**Kitsune Router 1.0.2 已授权，最终 SHA/标签、验证门槛和 npm/GHCR 发布待完成。** 包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。v1.0.1 固定于 `74583402`：GHCR 门槛在登录/推送前失败，npm publish 失败且原因未知，2026-10-27 公开读回 HTTP 404，无规范镜像或 GitHub Release。v1.0.0 固定于 `390a6567`，未发布 npm/GHCR。标签不移动；发布验证前用源码，见 [日志](/zh-CN/changelog/)。
+**1.0.2 源码已在不可变标签 `65c8b97d` 验证，npm/GHCR 发布受阻。** 9,041 通过、100 跳过、断言/套件零失败，严格 lint 与构建通过。npm publish 被 E403 拒绝（2FA 或启用 bypass 2fa 的 granular token），公开读回 HTTP 404；GHCR 因缺失 manifest 的 preflight 错误在构建/推送前停止。用户 GitHub UI token 替换尚未确认；暂无规范镜像或 GitHub Release。包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。发布/读回验证前用源码，见 [验证记录](/zh-CN/changelog/)。
 
 ## 发布后的启动器
 

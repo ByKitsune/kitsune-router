@@ -4,11 +4,14 @@
 sponsored by [ByKitsune](https://bykitsune.com/).
 
 The public package is `@bykitsune/router`; its executable is `kitsune-router`.
-The authorized publication candidate is **1.0.2**, pending final SHA/tag, gates
-and npm/GHCR publication. Both previous tags remain immutable: 1.0.0 failed a
-migration test before publication; 1.0.1 passed SSH/CI but its GHCR gate and npm
-publish command failed. The npm cause is not yet known; public readback returned
-HTTP 404 on 2026-10-27. Source tags are not registry artifacts. See the
+**1.0.2 source is verified**, at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`:
+9,041 passed, 100 skipped, zero failed assertions/suites; strict lint and builds
+passed. **Publication is blocked:** npm publish was denied with E403 requiring
+two-factor authentication or a granular token with bypass 2fa enabled; public
+readback remained HTTP 404. The user will replace the Actions secret through
+GitHub's UI but has not confirmed completion. GHCR stopped before build/push;
+no canonical image or GitHub Release is established. Both older attempt tags
+remain immutable; the 1.0.1 npm failure cause remains unknown. See the
 [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
 Historical 0.x packages retain their original ZenRouter identities.
 

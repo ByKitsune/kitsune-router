@@ -1,6 +1,6 @@
 # Localhost Deployment
 
-Dashboard and API share port **20128**. There is no separate default dashboard at 3000. See [installation](/en/getting-started/installation/) for pending 1.0.2 final SHA/tag, gates and publication, plus Node.js >=22.19.0 requirements. Both previous tags remain immutable attempt records, not available-registry proof.
+Dashboard and API share port **20128**, not a separate default at 3000. **1.0.2 source is verified at immutable `65c8b97d`, but registry publication is blocked.** Use [source installation](/en/getting-started/installation/) with Node.js >=22.19.0 until package publication/readback succeed. Source tags and local tests do not establish registry availability.
 
 ```bash
 # Only after package publication:

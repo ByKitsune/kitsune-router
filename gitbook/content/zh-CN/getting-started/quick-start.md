@@ -1,6 +1,6 @@
 # 快速开始
 
-**Your models. Your routes.** 无需 ByKitsune 账户或固定顺序。1.0.2 待最终 SHA/标签、门槛和 npm/GHCR 发布；两个旧标签均为不可变尝试记录，不证明 registry 可用。先用 [源码安装](/zh-CN/getting-started/installation/)，下列命令仅发布验证后适用，要求 Node.js >=22.19.0。
+**Your models. Your routes.** 无需 ByKitsune 账户或固定顺序。**1.0.2 源码已在不可变标签 `65c8b97d` 验证，npm/GHCR 发布受阻。** 先用 [源码安装](/zh-CN/getting-started/installation/) 并查看当前阻塞；下列命令仅发布/读回验证后适用，要求 Node.js >=22.19.0。标签及本地构建不证明 registry 可用。
 
 ```bash
 npx @bykitsune/router@1.0.2

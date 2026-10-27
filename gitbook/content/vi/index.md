@@ -4,7 +4,7 @@
 
 ## Trạng thái phát hành
 
-**1.0.2 là ứng viên tiếp theo được cho phép; SHA/tag cuối, các gate và xuất bản npm/GHCR còn chờ.** Chỉ dùng lệnh gói/image sau khi xác minh xuất bản và readback; hiện có thể cài từ mã nguồn.
+**Nguồn 1.0.2 đã xác minh; xuất bản npm/GHCR bị chặn.** Tag bất biến `65c8b97d`: 9.041 qua, 100 skip, không lỗi assertion/suite; lint nghiêm ngặt và build app/docs qua. npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback công khai HTTP 404. GHCR qua gate/login rồi preflight phân loại sai manifest thiếu, dừng trước build/push. Thay token qua GitHub UI do người dùng làm chưa được xác nhận; recovery riêng giữ phiên bản/tag. Chưa có image chính thức/GitHub Release; chỉ dùng lệnh registry sau xuất bản/readback, hiện dùng mã nguồn.
 
 | Thành phần | Định danh |
 | --- | --- |

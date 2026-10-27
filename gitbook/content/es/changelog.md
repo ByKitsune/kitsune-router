@@ -1,8 +1,12 @@
 # Registro de cambios
 
-## Kitsune Router 1.0.2 — candidata autorizada; SHA/tag final, controles y publicación pendientes
+## Kitsune Router 1.0.2 — fuente verificada; publicación bloqueada
 
-Controla solo `Date` del hijo escritor para probar timestamps iguales y separados por 1 ms con escrituras SQLite y caché reales; no cambia orden de producción. Ambos escenarios mostraron al caché padre las actualizaciones confirmadas de credenciales y estado activo. Diagnóstico de `npm publish` a nivel warning, sin cambiar pack ni protecciones SHA/artefacto original/proveniencia. Los resultados finales 1.0.2 y npm/GHCR siguen pendientes. [Borrador 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Detalles](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+Tag inmutable **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merge `23375bf1`. SSH exacto: **9.041 aprobados, 100 omitidos, cero fallos de assertions/suites**; lint estricto, 18 tests docs/export estático, build app y pack pasaron. CI `40468830176` verde con árbol igual al tag. Smoke del tarball local, seis reinicios de contenedor y navegador pasaron en su alcance. Mock solo de `Date` del hijo, orden de producción intacto; log warning de npm publish, no pack.
+
+npm `40469972263` pasó gate/docs/pack, pero publish recibió **E403** por requerir 2FA o granular token con bypass 2fa. Readback público HTTP 404. Artefacto CI original `12718343077`, SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`, distinto del tarball local probado; su smoke sigue pendiente. Reemplazo de token por el usuario en GitHub UI no confirmado; la causa npm 1.0.1 sigue desconocida.
+
+GHCR `40469972099` pasó gates/login; preflight rechazó Buildx `not found` por mala clasificación y paró antes de build/push. Lectura autenticada HTTP 404 / `MANIFEST_UNKNOWN`. Recuperación separada conserva fuente/versión/tag; CI/merge, ejecución, digest/proveniencia/SBOM/readback aún requieren evidencia. Sin imagen canónica, GitHub Release 1.0.2 ni despliegue de producción; preview docs no actualizado. [Evidencia 1.0.2](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Detalles](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
 
 ## Kitsune Router 1.0.1 — intento inmutable; publicación no establecida
 

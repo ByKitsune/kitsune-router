@@ -4,7 +4,7 @@
 
 ## 公開状況
 
-**1.0.2 が承認済みの次期候補で、最終 SHA/tag、検証ゲート、npm/GHCR 公開は未完了です。** パッケージ・イメージのコマンドは公開と registry 読戻しの確認後に使用し、それまではソースを利用してください。
+**1.0.2 ソース検証済み、npm/GHCR 公開はブロック中です。** 不変タグ `65c8b97d`：9,041 成功、100 skip、assertion/suite 失敗ゼロ、strict lint と app/docs build 成功。npm publish は E403（2FA または bypass 2fa 有効の granular token が必要）、公開読戻しは HTTP 404。GHCR は gate/login 後、欠落 manifest の誤判定で build/push 前に停止。利用者の GitHub UI token 交換は完了未確認、独立 recovery は版・タグを変えません。正規イメージ・GitHub Release は未確立です。registry コマンドは公開確認後のみ、当面はソースを利用してください。
 
 | 対象 | 識別子 |
 | --- | --- |

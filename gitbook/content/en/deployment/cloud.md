@@ -8,7 +8,7 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**1.0.2 awaits final SHA/tag, verification gates and publication.** Neither old attempt published a canonical GHCR image: 1.0.1 failed its gate before login/push, and 1.0.0 failed its migration test. Verify canonical access, digest and readback first; source tags and npm login do not prove publication. The workflow targets **linux/amd64 only**.
+**1.0.2 source is verified at immutable `65c8b97d`; GHCR publication is blocked.** Run `40469972099` passed source gates/login, then preflight misclassified a missing manifest and stopped before build/push. Authenticated readback confirmed HTTP 404 / `MANIFEST_UNKNOWN`. Separate recovery tooling retains this release source/version/tag; no canonical image is available yet. Use the example only after verified digest/provenance/SBOM and readback. The target is **linux/amd64 only**; local-image restart tests are not published-image evidence.
 
 ```yaml
 services:

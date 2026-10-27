@@ -1,8 +1,12 @@
 # Changelog
 
-## Kitsune Router 1.0.2 — authorized candidate; final SHA/tag, gates and publication pending
+## Kitsune Router 1.0.2 — source verified; publication blocked
 
-Mock only child-writer `Date` to cover equal timestamps and a 1 ms difference, keeping real SQLite writes/cache reads and production priority/`updatedAt` ordering. Both timestamp scenarios exposed the committed credential and active-state updates to the parent cache. Improve warning-level `npm publish` diagnostics only; pack output and exact-SHA/original-artifact/provenance guards stay unchanged. Final 1.0.2 suite counts/builds/publication are pending, not inherited from prior runs. [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Technical details](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md).
+Immutable `v1.0.2` is **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merged at `23375bf1`. Exact-source SSH: **9,041 passed, 100 skipped, zero failed assertions/suites**; strict lint, 18 docs tests/static export, app build and pack passed. CI `40468830176` was green on a matching source tree. Local tarball install/runtime/upgrade, six container restart scenarios and exact-source browser checks passed within their recorded scope. The cache test mocks only child `Date`, not production ordering; warning-level logging affects npm publish only, not pack.
+
+npm `40469972263` passed source/docs/pack gates, then publish was denied **E403**: `Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.` Public readback remained HTTP 404. Original CI artifact `12718343077`, tarball SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114`, is distinct from the local tarball; both independently passed install/runtime/upgrade smoke. User-managed token replacement via GitHub UI is not confirmed; the 1.0.1 npm cause remains unknown.
+
+GHCR `40469972099` passed gates/login, then preflight misclassified Buildx `not found`, stopping before build/push. Authenticated readback confirmed HTTP 404 / `MANIFEST_UNKNOWN`. Separate recovery tooling keeps source/version/tag unchanged; CI/merge, execution, digest/provenance/SBOM and readback are still required. No canonical image, GitHub Release 1.0.2 or production deployment is established; the docs preview has not been refreshed. [1.0.2 evidence](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [Technical details](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md) · [Recovery](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag).
 
 ## Kitsune Router 1.0.1 — immutable attempt; publication not established
 

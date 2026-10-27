@@ -4,7 +4,8 @@ Thu thập version/SHA hiện tại, `DATA_DIR` tuyệt đối, route và lỗi 
 
 ## Startup và di chuyển
 
-- Không có gói: 1.0.2 chờ xuất bản. npm publish 1.0.1 lỗi chưa rõ nguyên nhân; readback công khai HTTP 404 ngày 2026-10-27. Tag/login không chứng minh xuất bản. Kiểm tra `@bykitsune/router` và dùng [nguồn](/vi/getting-started/installation/) trước.
+- Không có gói: nguồn 1.0.2 đã xác minh nhưng npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback HTTP 404. Người dùng sẽ thay secret qua GitHub UI, chưa xác nhận; không chia sẻ token. Dùng [nguồn](/vi/getting-started/installation/) đến khi xác minh xuất bản/readback. Nguyên nhân npm 1.0.1 vẫn chưa rõ.
+- Không có image GHCR: 1.0.2 qua gate/login, preflight phân loại sai manifest thiếu và dừng trước build/push; readback xác thực HTTP 404 / `MANIFEST_UNKNOWN`. Recovery riêng không di chuyển tag; xem [vận hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). Image ID local không là digest GHCR.
 - Node cũ: >=22.19.0; migration cần snapshot SQLite native Node/Bun hỗ trợ, không raw-copy không an toàn.
 - Cổng bận: API/dashboard cùng 20128. Xác định chủ và dừng nhẹ nhàng, không `pkill`/`kill -9` diện rộng.
 - Trạng thái trống: kiểm tra path/mount `/app/data`; `DATA_DIR` rõ ràng không được tự chuyển.
