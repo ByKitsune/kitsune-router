@@ -1,13 +1,13 @@
 # インストール
 
-**Kitsune Router 1.0.0 は検証・公開待ちです。** 名前空間、npm 公開権限、成果物を先に確認してください。パッケージは `@bykitsune/router` であり、コマンドの裸の名前ではありません。必要環境は **Node.js >=22.19.0**。
+**Kitsune Router 1.0.1 は最終 tag/SHA 検証・公開待ちです。** リポジトリは確認済み、npm `bykitsune` 認証は公開権限・成果物の証明ではありません。v1.0.0 タグは固定で、non-root ownership 失敗後 npm/GHCR 未公開。パッケージは `@bykitsune/router`、必要環境 **Node.js >=22.19.0**。
 
 ## 公開後のランチャー
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 # または:
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
@@ -17,7 +17,7 @@ kitsune-router
 
 ## ソースから実行
 
-ルートで実行し、`app/` サブディレクトリは使用しません。移転先が未公開なら既存チェックアウトを使います。
+確認済み正規リポジトリか既存チェックアウトのルートで実行し、`app/` は使いません。
 
 **新規**だけで、非公開 `.env` に秘密を一度生成します（POSIX shell/OpenSSL）。`next dev` はランチャーの生成を使わず、32 文字以上の強い `JWT_SECRET` がなければログイン失敗します。更新時は既存の有効 JWT/API/識別秘密と絶対 `DATA_DIR` を [移行手順](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) で保持します。他の例の値は新規だけで見直し、`.env` を公開・コミットしません。
 

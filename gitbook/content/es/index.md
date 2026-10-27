@@ -4,7 +4,7 @@
 
 ## Estado de publicación
 
-**1.0.0 es la primera versión incompatible propuesta para la nueva marca; verificación y publicación pendientes.** Falta confirmar registro/propiedad de namespaces, autorización npm, acceso a registros y artefactos.
+**1.0.1 es la siguiente candidata elegida; verificación del tag/SHA final y publicación pendientes.** Repositorio confirmado; npm autentica como `bykitsune` y credenciales Actions actualizadas, sin probar permiso de publicación ni artefactos.
 
 | Superficie | Destino |
 | --- | --- |
@@ -14,7 +14,7 @@
 | Clave de proveedor | `kitsunerouter` |
 | Imagen canónica | `ghcr.io/bykitsune/kitsune-router` |
 
-Los archivos 0.x son registros ZenRouter históricos, no publicaciones Kitsune retroactivas. [Cambios](/es/changelog/) · [Borrador de versión](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md).
+`v1.0.0` sigue inmutable en `390a65677c06a30084386d2a2adf8b0c48709281`: falló el workflow de propiedad non-root y no se publicó npm/GHCR 1.0.0. Los 9.029 tests de esa candidata no verifican 1.0.1. El seguimiento aísla procesos sintéticos en tests y ajusta filas móviles; producción sigue fail-closed. [Cambios](/es/changelog/) · [Borrador 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). La historia 0.x no cambia.
 
 ## Capacidades y límites
 

@@ -1,12 +1,18 @@
 # 更新日志
 
-## Kitsune Router 1.0.0 — 提案，待验证/发布
+## Kitsune Router 1.0.1 — 候选版，待最终标签/SHA 验证与发布
+
+接续合成进程隔离回归 harness 与拒绝用例，**生产不可读 same-UID 所有权仍 fail-closed**。已有局部回归/限定 UID 65534 原生 smoke 记录，不等于普遍非 root 支持。移动端与最终标签测试/构建仍待完成，不沿用旧数量。npm `bykitsune` 认证与 Actions 更新不证明发布权限。[1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md)。
+
+## Kitsune Router 1.0.0 — 保留尝试标签，未发布 npm/GHCR
+
+不可变 `v1.0.0` 位于 `390a65677c06a30084386d2a2adf8b0c48709281`。非 root 所有权工作流失败，未完成发布。**9,029 条通过**是该候选历史证据，不验证 1.0.1。下方保留当时范围。
 
 **Your models. Your routes.** 由 [ByKitsune](https://bykitsune.com) 维护与赞助，无强制账户/提供商顺序。目标仓库 `ByKitsune/kitsune-router`、包 `@bykitsune/router`、命令 `kitsune-router`、工具标识 `kitsunerouter`、规范镜像 `ghcr.io/bykitsune/kitsune-router`。
 
 先停止旧写入者并整目录备份。默认迁移可验证复制 `~/.zenrouter`/`~/.9router` 到 `~/.kitsune-router`，保留原件且不覆盖已有目标；显式 `DATA_DIR` 优先。保留秘密、auth、加密派生输入和受信任证书。变量 `KITSUNE_ROUTER_*`、扩展头 `x-kitsune-router-*`；标准 `/v1/*` 与端口 20128 不变。
 
-命名空间、npm 授权、镜像权限、最终 SHA 验证与实际发布仍待完成。[发布草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+此失败尝试未发布 npm/GHCR。保留旧标签/证据，以 1.0.1 做接续验证。[尝试记录](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [历史技术日志](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
 
 > **历史边界：** 下列内容保留当时 ZenRouter 名称、产物、URL 和测试证据，不是 Kitsune 0.x 发布，也不验证当前源代码。请用 [当前安装](/zh-CN/getting-started/installation/) 而非历史升级命令。下方 Unreleased 工作记录于品牌迁移提案之前。
 

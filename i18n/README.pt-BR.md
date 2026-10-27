@@ -8,17 +8,19 @@ Gateway de IA local-first e neutro entre provedores, mantido e patrocinado pela 
 
 ## Publicação e instalação
 
-**1.0.0 é a primeira versão incompatível proposta para a nova marca; verificação e publicação pendentes.** Registro/propriedade dos namespaces, autorização npm, acesso aos registros e artefatos precisam ser confirmados. Destinos: `ByKitsune/kitsune-router`, pacote `@bykitsune/router`, comando `kitsune-router`, imagem canônica `ghcr.io/bykitsune/kitsune-router`. Registros 0.x preservam os artefatos ZenRouter originais, não publicações Kitsune retroativas.
+**1.0.1 é a próxima candidata escolhida; verificação do tag/SHA final e publicação pendentes.** Repositório `ByKitsune/kitsune-router` confirmado; pacote `@bykitsune/router`, comando `kitsune-router`, imagem `ghcr.io/bykitsune/kitsune-router`. npm autentica como `bykitsune` e credenciais Actions foram atualizadas, mas isso não prova permissão de publicação ou artefatos disponíveis.
+
+O tag `v1.0.0` fica em `390a65677c06a30084386d2a2adf8b0c48709281`, sem npm/GHCR após falha do workflow non-root. 1.0.1 isola processos sintéticos em regressões/negações e ajusta linhas móveis; produção segue fail-closed para ownership same-UID ilegível. Os 9.029 testes antigos não verificam esta candidata. [Tentativa](../releases/RELEASE_NOTES_v1.0.0.md) · [Candidata 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Histórico 0.x preservado.
 
 Requer **Node.js >=22.19.0**. Somente após a publicação:
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# Ou: npx @bykitsune/router@1.0.0
+# Ou: npx @bykitsune/router@1.0.1
 ```
 
-Pelo código-fonte, na raiz sem subdiretório `app/` (use o checkout existente se o repositório destino ainda não estiver disponível):
+Pelo repositório canônico confirmado ou checkout existente, na raiz sem subdiretório `app/`:
 
 Somente em instalação **nova**, gere o segredo uma vez no `.env` privado (shell POSIX/OpenSSL). `next dev` não executa o gerador do launcher; sem `JWT_SECRET` aleatório com pelo menos 32 caracteres o login falha. Na migração preserve `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` efetivos e `DATA_DIR` absoluto. Revise o arquivo, substitua valores de exemplo apenas em instalação nova e nunca publique/commite `.env`.
 
@@ -61,9 +63,9 @@ Pare o gateway anterior e auxiliares e faça backup de **todo** o diretório pri
 
 Preserve `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/` e `mitm/`. Não altere sais criptográficos nem raízes de certificados confiáveis apenas pelo nome. Nem toda credencial tem garantia de criptografia em repouso. Variáveis novas: `KITSUNE_ROUTER_*`; cabeçalhos: `x-kitsune-router-*`; provedor: `kitsunerouter`. `/v1/*` e porta 20128 continuam iguais; aliases antigos não são exigidos.
 
-Docker mantém o volume existente em `/app/data`; publicação apenas linux/amd64. Verifique a imagem canônica; espelho Docker Hub é opcional. [Instalação](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operação](../docs/OPERATIONS.md).
+Docker mantém volume/montagem no `DATA_DIR` efetivo: `/app/data` padrão ou caminho absoluto personalizado suportado; apenas linux/amd64. Em Linux restrito, pare/faça backup e mantenha o estado com `DATA_DIR` explícito sem mover, ou peça revisão privilegiada; não ignore permissões. Verifique a imagem; espelho opcional. [Instalação](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operação](../docs/OPERATIONS.md).
 
-Compressão depende da carga: não há economia fixa, cota ilimitada ou disponibilidade garantida. Estimativas não são faturas; preço desconhecido não é zero. Permissões, regiões e termos dos provedores continuam válidos. Não há serviço Kitsune hospedado padrão; a sincronização antiga foi removida. Esta revisão não certifica testes/build atuais. [Rascunho 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md).
+Compressão depende da carga: não há economia fixa, cota ilimitada ou disponibilidade garantida. Estimativas não são faturas; preço desconhecido não é zero. Permissões, regiões e termos dos provedores continuam válidos. Não há serviço Kitsune hospedado padrão; a sincronização antiga foi removida. Esta revisão não certifica testes/build atuais. [Rascunho 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
 
 ## Créditos e licença
 

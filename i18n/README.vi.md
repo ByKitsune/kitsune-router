@@ -8,17 +8,19 @@ Gateway AI ưu tiên cục bộ, trung lập giữa các nhà cung cấp, do [By
 
 ## Phát hành và cài đặt
 
-**1.0.0 là đề xuất phiên bản đổi thương hiệu đầu tiên có thay đổi không tương thích; đang chờ xác minh và phát hành.** Cần xác nhận đăng ký/quyền sở hữu namespace, quyền xuất bản npm, truy cập registry và hiện vật. Đích: `ByKitsune/kitsune-router`, gói `@bykitsune/router`, lệnh `kitsune-router`, image chuẩn `ghcr.io/bykitsune/kitsune-router`. Hồ sơ 0.x vẫn là hiện vật ZenRouter gốc, không phải bản Kitsune được xuất bản hồi tố.
+**1.0.1 là ứng viên tiếp theo đã chọn; chờ xác minh tag/SHA cuối và phát hành.** Kho `ByKitsune/kitsune-router` đã xác nhận; gói `@bykitsune/router`, lệnh `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. npm đã xác thực là `bykitsune` và cập nhật credential Actions, nhưng chưa chứng minh quyền xuất bản hay hiện vật sẵn có.
+
+Tag `v1.0.0` giữ nguyên ở `390a65677c06a30084386d2a2adf8b0c48709281`, không npm/GHCR sau lỗi workflow non-root. 1.0.1 cô lập tiến trình tổng hợp trong regression/denial test và wrap key mobile; production vẫn fail-closed khi ownership same-UID không đọc được. 9.029 test cũ không xác minh bản mới. [Lần thử](../releases/RELEASE_NOTES_v1.0.0.md) · [Ứng viên 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Giữ nguồn gốc 0.x.
 
 Yêu cầu **Node.js >=22.19.0**. Chỉ dùng sau khi phát hành:
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# Hoặc: npx @bykitsune/router@1.0.0
+# Hoặc: npx @bykitsune/router@1.0.1
 ```
 
-Chạy từ mã nguồn ở thư mục gốc, không có thư mục con `app/` (dùng checkout hiện có nếu kho đích chưa sẵn sàng):
+Chạy từ kho chính thức đã xác nhận hoặc checkout hiện có, ở gốc không có thư mục con `app/`:
 
 Chỉ với bản cài **mới**, tạo secret một lần trong `.env` riêng (shell POSIX/OpenSSL). `next dev` không chạy bộ sinh secret của launcher; thiếu `JWT_SECRET` ngẫu nhiên tối thiểu 32 ký tự thì đăng nhập lỗi. Khi di chuyển giữ giá trị hiệu lực `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` và `DATA_DIR` tuyệt đối. Xem lại file, thay giá trị ví dụ chỉ cho cài mới; không công khai/commit `.env`.
 
@@ -61,9 +63,9 @@ Dừng gateway cũ cùng helper, sao lưu **toàn bộ** thư mục riêng tư. 
 
 Giữ `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/`, `mitm/`. Không đổi salt mã hóa hoặc chứng chỉ gốc đã tin cậy chỉ để đổi tên. Không đảm bảo mọi khóa nhà cung cấp đều mã hóa khi lưu. Biến mới: `KITSUNE_ROUTER_*`; header: `x-kitsune-router-*`; provider: `kitsunerouter`. `/v1/*` và cổng 20128 không đổi; không bắt buộc alias lệnh/provider cũ.
 
-Docker giữ volume cũ ở `/app/data`; chỉ phát hành linux/amd64. Kiểm tra image chuẩn trước khi dùng; mirror Docker Hub là tùy chọn. [Cài đặt](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Vận hành](../docs/OPERATIONS.md).
+Docker giữ volume/mount ở `DATA_DIR` hiệu lực: mặc định `/app/data` hoặc path tuyệt đối tùy chỉnh hỗ trợ; chỉ linux/amd64. Linux hạn chế cần dừng/backup rồi dùng `DATA_DIR` rõ ràng giữ nguồn không di chuyển hoặc nhờ review đặc quyền; không bỏ qua permission. Kiểm tra image, mirror tùy chọn. [Cài đặt](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Vận hành](../docs/OPERATIONS.md).
 
-Tiết kiệm nén tùy khối lượng công việc; không cam kết tỷ lệ cố định, hạn mức vô tận hay hoạt động liên tục. Chi phí ước tính không phải hóa đơn; chưa rõ không có nghĩa miễn phí. Quyền tài khoản, khu vực và điều khoản upstream vẫn áp dụng. Không có dịch vụ Kitsune hosted mặc định; đồng bộ đám mây cũ đã bị gỡ. Lần sửa tài liệu này không xác nhận test/build hiện tại. [Bản nháp 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md).
+Tiết kiệm nén tùy khối lượng công việc; không cam kết tỷ lệ cố định, hạn mức vô tận hay hoạt động liên tục. Chi phí ước tính không phải hóa đơn; chưa rõ không có nghĩa miễn phí. Quyền tài khoản, khu vực và điều khoản upstream vẫn áp dụng. Không có dịch vụ Kitsune hosted mặc định; đồng bộ đám mây cũ đã bị gỡ. Lần sửa tài liệu này không xác nhận test/build hiện tại. [Bản nháp 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
 
 ## Ghi nhận và giấy phép
 

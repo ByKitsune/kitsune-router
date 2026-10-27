@@ -8,12 +8,12 @@
 
 ## 容器
 
-**1.0.0 尚待验证/发布**；先核实命名空间、GHCR 权限和版本摘要。仅 linux/amd64。
+**1.0.1 尚待最终标签/SHA 验证与发布**；v1.0.0 未发布 npm/GHCR。先核实权限、访问和摘要，npm 登录不等于发布。仅 linux/amd64。
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"
@@ -24,7 +24,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-保留旧卷，不以新空卷冒充迁移。Docker Hub 镜像源为可选，需独立验证。见 [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
+在有效 `DATA_DIR` 保留旧卷/挂载：默认 `/app/data`，支持的自定义路径也保留，不以新空卷冒充迁移。Docker Hub 镜像源可选。见 [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
 ## 安全边界
 

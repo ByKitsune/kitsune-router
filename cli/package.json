@@ -1,6 +1,6 @@
 {
   "name": "@bykitsune/router",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Kitsune Router CLI and provider-neutral AI gateway. Your models. Your routes.",
   "bin": {
     "kitsune-router": "./cli.js"

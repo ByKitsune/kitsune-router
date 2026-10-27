@@ -1,13 +1,13 @@
 # Instalación
 
-**Kitsune Router 1.0.0 espera verificación y publicación.** Confirma namespaces, autorización npm y artefactos. Paquete `@bykitsune/router`, no el nombre sin scope del ejecutable. Requiere **Node.js >=22.19.0**.
+**Kitsune Router 1.0.1 espera verificación del tag/SHA final y publicación.** Repositorio confirmado; npm autentica como `bykitsune`, pero permiso y artefactos siguen pendientes. El tag v1.0.0 se conserva y no publicó npm/GHCR tras el fallo de ownership non-root. Paquete `@bykitsune/router`, no nombre bare. Requiere **Node.js >=22.19.0**.
 
 ## Launcher después de publicar
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 # O:
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
@@ -17,7 +17,7 @@ El launcher puede escuchar en todas las interfaces por defecto. Añade `--host 1
 
 ## Código fuente
 
-En la raíz, sin subcarpeta `app/`. Usa el checkout existente si el destino aún no está disponible.
+En la raíz del repositorio confirmado o tu checkout existente, sin subcarpeta `app/`.
 
 Solo en instalación **nueva**, genera una vez el secreto en `.env` privado (POSIX shell/OpenSSL). `next dev` no usa el generador del launcher: login falla sin `JWT_SECRET` aleatorio de al menos 32 caracteres. Para actualizar conserva secretos JWT/API/identidad y `DATA_DIR` efectivo según [migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Revisa otros valores de ejemplo solo para instalación nueva; nunca publiques/commitees `.env`.
 

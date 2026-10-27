@@ -1,12 +1,18 @@
 # Registro de cambios
 
-## Kitsune Router 1.0.0 — propuesta, pendiente de verificar/publicar
+## Kitsune Router 1.0.1 — candidata, tag/SHA final y publicación pendientes
+
+Harness aislado de procesos sintéticos y denegaciones; **producción sigue fail-closed ante propiedad same-UID ilegible**. Hay evidencia limitada de regresiones y smoke UID 65534, no soporte non-root general. Filas móviles y tests/builds del tag final siguen pendientes; no heredan cifras antiguas. npm `bykitsune` y Actions actualizado no prueban permiso/publicación. [Borrador 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Detalles](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+
+## Kitsune Router 1.0.0 — intento conservado; npm/GHCR no publicados
+
+Tag inmutable `v1.0.0` en `390a65677c06a30084386d2a2adf8b0c48709281`. Falló el workflow de ownership non-root antes de publicar. Los **9.029 tests aprobados** son evidencia de esa candidata, no de 1.0.1. Se conserva el alcance del intento a continuación.
 
 **Your models. Your routes.** Mantenimiento/patrocinio de [ByKitsune](https://bykitsune.com), sin cuenta ni orden obligatorio. Destinos: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, comando `kitsune-router`, proveedor `kitsunerouter`, imagen `ghcr.io/bykitsune/kitsune-router`.
 
 Detén escritores y respalda todo. Migración verificada `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, originales conservados, sin sobrescribir destinos; `DATA_DIR` explícito manda. Conserva secretos/auth/sales/certificados. Variables `KITSUNE_ROUTER_*`, cabeceras `x-kitsune-router-*`; `/v1/*` y 20128 permanecen.
 
-Registro/propiedad de nombres, npm, acceso a imágenes, SHA final y publicación siguen pendientes. [Borrador](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Cambios técnicos](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+El intento fallido no publicó npm/GHCR. Conserva tag/evidencia y verifica el seguimiento como 1.0.1. [Intento](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Detalles históricos](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
 > **Archivo:** lo siguiente conserva nombres, artefactos, URLs y pruebas ZenRouter originales. No son publicaciones Kitsune 0.x ni verifican la fuente actual. Usa [instalación actual](/es/getting-started/installation/), no comandos históricos. El trabajo Unreleased siguiente se registró antes de esta propuesta.
 

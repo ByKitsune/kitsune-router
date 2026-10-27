@@ -4,7 +4,7 @@
 
 ## Release status
 
-**1.0.0 is the proposed first breaking rebrand release, pending final verification and publication.** Namespace registration/ownership, npm authorization, registry visibility and actual artifacts still require confirmation. Targets:
+**1.0.1 is the selected next candidate, pending final tag/SHA verification and publication.** The GitHub organization/repository are confirmed. npm authenticates as `bykitsune` and Actions credentials were updated, but package-publishing permission, registry access and artifact readback remain unverified. Identities:
 
 | Surface | Identity |
 | --- | --- |
@@ -14,7 +14,9 @@
 | Client provider key | `kitsunerouter` |
 | Canonical image | `ghcr.io/bykitsune/kitsune-router` |
 
-Historical 0.x records remain ZenRouter artifacts with original provenance, not Kitsune publications. See the [release draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) and [changelog](/en/changelog/). Dated pass counts do not verify the current tree.
+The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root ownership scan; npm/GHCR 1.0.0 were not published. v1.0.1 follows with a deterministic process-isolated regression harness and mobile key-row wrapping; production ownership policy remains fail-closed. The recorded 9,029-pass old candidate is not v1.0.1 proof. See the [current draft](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) and [changelog](/en/changelog/). Historical 0.x provenance remains unchanged.
+
+[Documentation preview](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) is available on the verified official Cloudflare account/project; it is not a final release or custom-domain/DNS change.
 
 ## What the gateway does
 

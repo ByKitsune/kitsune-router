@@ -36,3 +36,13 @@ describe("native dialog lifecycle after the rebrand", () => {
     expect(source).not.toContain("onCancel=");
   });
 });
+
+describe("small-screen endpoint controls", () => {
+  it("allows key rows and values to wrap instead of colliding with enable/delete controls", () => {
+    const source = fs.readFileSync(new URL("../../src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js", import.meta.url), "utf8");
+    expect(source).toContain("flex min-w-0 flex-col gap-3");
+    expect(source).toContain("sm:flex-row sm:items-center sm:justify-between");
+    expect(source).toContain("min-w-0 max-w-full break-all");
+    expect(source).toContain("flex shrink-0 items-center gap-2 self-end sm:self-auto");
+  });
+});

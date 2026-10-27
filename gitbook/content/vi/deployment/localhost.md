@@ -1,6 +1,6 @@
 # Triển khai localhost
 
-Dashboard/API cùng cổng **20128**, không dashboard mặc định ở 3000. Node.js >=22.19.0; 1.0.0 chờ xác minh/phát hành. [Cài đặt](/vi/getting-started/installation/). Sau xuất bản chạy `kitsune-router`.
+Dashboard/API cùng cổng **20128**, không 3000. Node.js >=22.19.0; 1.0.1 chờ xác minh/phát hành, v1.0.0 không có npm/GHCR. [Cài đặt](/vi/getting-started/installation/). Sau xuất bản chạy `kitsune-router`.
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

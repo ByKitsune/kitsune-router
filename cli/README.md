@@ -4,7 +4,8 @@
 sponsored by [ByKitsune](https://bykitsune.com/).
 
 The public package is `@bykitsune/router`; its executable is `kitsune-router`.
-The first rebranded release is **1.0.0**, pending verified publication. Historical
+The publication candidate is **1.0.1**. The 1.0.0 tag was an unpublished attempt
+retained immutably after a non-root verification failure. Historical
 0.x packages were published as ZenRouter, not as this new scoped package.
 
 ## Install and start
@@ -12,9 +13,9 @@ The first rebranded release is **1.0.0**, pending verified publication. Historic
 Requires **Node.js >=22.19.0**. After the package has been published:
 
 ```sh
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 # Or install once:
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 

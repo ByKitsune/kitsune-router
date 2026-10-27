@@ -1,6 +1,6 @@
 # Client and model catalog reconciliation
 
-This is a dated source-reconciliation report retained by Kitsune Router. Catalog counts, sources and validation below describe their original snapshots, not fresh 1.0.0 verification or publication. See [current installation](INSTALLATION.md), [release status](CHANGELOG_v1.0.0.md) and [migration](MIGRATION.md).
+This is a dated source-reconciliation report retained by Kitsune Router. Catalog counts, sources and validation below describe their original snapshots, not fresh 1.0.1 verification or publication. See [current installation](INSTALLATION.md), [release status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md).
 
 Research date: 2026-10-06 (Asia/Jakarta). Source baseline: `ff469a0768a854ebe7d6d5936702c669c5cd91f5`.
 

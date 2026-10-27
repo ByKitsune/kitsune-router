@@ -1,6 +1,6 @@
 # Web search routing and grounding
 
-Kitsune Router keeps standard `/v1/search` routing; rebranding does not rename provider model IDs. See [current installation](INSTALLATION.md), [1.0.0 status](CHANGELOG_v1.0.0.md) and [migration](MIGRATION.md). Dated validation below is not a fresh rebrand or live-provider result.
+Kitsune Router keeps standard `/v1/search` routing; rebranding does not rename provider model IDs. See [current installation](INSTALLATION.md), [1.0.1 status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md). Dated validation below is not a fresh rebrand or live-provider result.
 
 `POST /v1/search` supports dedicated search providers and grounded LLM search. Provider selection is separate from the upstream grounding model.
 

@@ -8,12 +8,12 @@ Node.js >=22.19.0、固定依存、ルート build を [手順](/ja/getting-star
 
 ## コンテナー
 
-**1.0.0 は検証・公開待ち**。名前空間、GHCR 権限、digest を先に確認します。linux/amd64 のみです。
+**1.0.1 は最終 tag/SHA 検証・公開待ち**。v1.0.0 は npm/GHCR 未公開。権限・アクセス・digest を確認し、npm login を公開成功と扱わないでください。linux/amd64 のみです。
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"
@@ -24,7 +24,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-既存ボリュームを保持します。新しい空ボリュームは移行ではありません。Docker Hub ミラーは任意で独立確認が必要。[Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
+有効 `DATA_DIR` の既存 volume/mount を保持します。既定 `/app/data`、対応する独自パスも維持できます。新しい空 volume は移行ではありません。Docker Hub ミラーは任意。[Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
 ## 信頼境界
 

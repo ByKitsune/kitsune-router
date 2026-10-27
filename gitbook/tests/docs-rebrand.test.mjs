@@ -16,9 +16,9 @@ describe("Kitsune Router docs public identity", () => {
     assert.equal(read("../public/icons/logo.svg"), read("../../public/icons/logo.svg"));
   });
 
-  it("uses the private 1.0.0 docs package version rather than a hardcoded display release", () => {
+  it("uses the synchronized private docs package version rather than a hardcoded display release", () => {
     const packageInfo = JSON.parse(read("../package.json"));
-    assert.equal(packageInfo.version, "1.0.0");
+    assert.equal(packageInfo.version, JSON.parse(read("../../package.json")).version);
     assert.equal(packageInfo.private, true);
     assert.match(read("../constants/docsConfig.js"), /version: packageInfo\.version/);
     assert.match(read("../constants/docsConfig.js"), /appUrl: "http:\/\/localhost:20128"/);

@@ -1,6 +1,6 @@
 {
   "name": "kitsune-router-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Kitsune Router dashboard and provider-neutral AI gateway. Your models. Your routes.",
   "private": true,
   "scripts": {

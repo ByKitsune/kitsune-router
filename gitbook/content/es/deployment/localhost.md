@@ -1,6 +1,6 @@
 # Despliegue local
 
-Dashboard y API comparten **20128**, no un dashboard predeterminado en 3000. Node.js >=22.19.0; 1.0.0 pendiente de verificar/publicar. [Instalación](/es/getting-started/installation/). Tras publicar, ejecuta `kitsune-router`.
+Dashboard y API comparten **20128**, no 3000. Node.js >=22.19.0; 1.0.1 espera verificación final/publicación y v1.0.0 no publicó npm/GHCR. [Instalación](/es/getting-started/installation/). Tras publicar, ejecuta `kitsune-router`.
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

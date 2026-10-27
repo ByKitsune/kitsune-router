@@ -8,17 +8,19 @@ Gateway de IA local-first y neutral entre proveedores, mantenido y patrocinado p
 
 ## Estado e instalación
 
-**1.0.0 es la primera versión incompatible propuesta para el cambio de marca; verificación y publicación pendientes.** Falta confirmar registro/propiedad de los espacios de nombres, autorización de npm, acceso a registros y artefactos. Destinos: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, ejecutable `kitsune-router`, imagen canónica `ghcr.io/bykitsune/kitsune-router`. Los registros 0.x conservan sus artefactos ZenRouter originales; no son publicaciones Kitsune retroactivas.
+**1.0.1 es la siguiente candidata elegida; verificación del tag/SHA final y publicación pendientes.** El repositorio `ByKitsune/kitsune-router` está confirmado. Paquete `@bykitsune/router`, comando `kitsune-router`, imagen `ghcr.io/bykitsune/kitsune-router`. npm autentica como `bykitsune` y se actualizaron credenciales de Actions, pero eso no prueba permiso de publicación ni artefactos disponibles.
+
+`v1.0.0` permanece en `390a65677c06a30084386d2a2adf8b0c48709281`: falló el workflow de propiedad non-root, sin npm/GHCR 1.0.0. 1.0.1 aísla procesos sintéticos en regresiones/denegaciones y ajusta filas móviles; producción sigue fail-closed ante propiedad same-UID ilegible. Los 9.029 tests antiguos no verifican esta. [Intento 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md) · [Candidata 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Historia 0.x intacta.
 
 Requiere **Node.js >=22.19.0**. Solo después de publicar:
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# Alternativa: npx @bykitsune/router@1.0.0
+# Alternativa: npx @bykitsune/router@1.0.1
 ```
 
-Desde el código fuente, en la raíz (sin subdirectorio `app/`; usa tu copia existente si el repositorio destino aún no está disponible):
+Desde el repositorio canónico confirmado o tu copia existente, en la raíz sin subdirectorio `app/`:
 
 Solo para una instalación **nueva**: genera una vez el secreto en `.env` privado (shell POSIX/OpenSSL). `next dev` no ejecuta el generador del launcher; sin `JWT_SECRET` aleatorio de al menos 32 caracteres falla el login. En migraciones conserva los secretos efectivos `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` y `DATA_DIR` absoluto. Revisa el archivo y sustituye valores de ejemplo únicamente en instalaciones nuevas; no lo publiques ni lo incluyas en Git.
 
@@ -61,9 +63,9 @@ Detén el gateway anterior y sus auxiliares, y respalda **todo** el directorio p
 
 Conserva `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/` y `mitm/`; no cambies sales criptográficas ni raíces de certificados confiables solo por el nombre. No presupongas que todas las credenciales están cifradas en reposo. Los nuevos ajustes usan `KITSUNE_ROUTER_*`, las cabeceras `x-kitsune-router-*` y el proveedor `kitsunerouter`. `/v1/*` y el puerto 20128 no cambian; no se exige un alias del comando/proveedor anterior.
 
-Docker conserva el volumen existente en `/app/data`; publicación solo linux/amd64. Verifica la imagen canónica antes de usarla; un espejo Docker Hub es opcional. [Instalación](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operación](../docs/OPERATIONS.md).
+Docker conserva el volumen/montaje en el `DATA_DIR` efectivo: `/app/data` por defecto o ruta absoluta personalizada compatible; solo linux/amd64. En Linux restringido, detén/respalda y conserva la ruta con `DATA_DIR` explícito sin reubicar, o pide revisión privilegiada; no ignores permisos. Verifica la imagen; espejo Docker Hub opcional. [Instalación](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Operación](../docs/OPERATIONS.md).
 
-La compresión depende de la carga; no hay ahorro fijo, cuotas ilimitadas ni disponibilidad garantizada. Las estimaciones no son facturas y un precio desconocido no es cero. Respeta permisos, regiones y condiciones del proveedor. No hay servicio Kitsune alojado por defecto; la sincronización antigua se eliminó. Este cambio documental no certifica las pruebas actuales. [Borrador 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md).
+La compresión depende de la carga; no hay ahorro fijo, cuotas ilimitadas ni disponibilidad garantizada. Las estimaciones no son facturas y un precio desconocido no es cero. Respeta permisos, regiones y condiciones del proveedor. No hay servicio Kitsune alojado por defecto; la sincronización antigua se eliminó. Este cambio documental no certifica las pruebas actuales. [Borrador 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
 
 ## Créditos y licencia
 

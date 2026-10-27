@@ -4,7 +4,7 @@
 
 ## 发布状态
 
-**1.0.0 是首次重大品牌迁移版本提案，尚待最终验证和发布。** 命名空间注册/所有权、npm 授权、镜像可见性和实际产物仍待确认。
+**1.0.1 是下一候选版本，尚待最终标签/SHA 验证和发布。** GitHub 组织/仓库已确认；npm 已认证 `bykitsune` 并更新 Actions 凭据，但发布权限、镜像和产物读回仍待验证。
 
 | 项目 | 新标识 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | 工具提供商标识 | `kitsunerouter` |
 | 规范镜像 | `ghcr.io/bykitsune/kitsune-router` |
 
-历史 0.x 记录保留 ZenRouter 原始名称、产物和验证，不是已发布的 Kitsune 包。见 [更新日志](/zh-CN/changelog/) 和 [发布草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md)。
+`v1.0.0` 保留于 `390a65677c06a30084386d2a2adf8b0c48709281`，因非 root 所有权扫描工作流失败而未发布 npm/GHCR。旧候选 9,029 条通过不是 1.0.1 验证。接续工作是合成进程隔离回归测试与移动端 key 行换行，生产拒绝策略不放宽。见 [日志](/zh-CN/changelog/) 和 [1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)，0.x 原来源保持。
 
 ## 能力与边界
 

@@ -4,7 +4,7 @@
 
 ## Trạng thái phát hành
 
-**1.0.0 là đề xuất bản đổi thương hiệu đầu tiên có thay đổi không tương thích; chờ xác minh và phát hành.** Cần xác nhận đăng ký/quyền sở hữu namespace, quyền npm, truy cập registry và hiện vật.
+**1.0.1 là ứng viên tiếp theo đã chọn, chờ tag/SHA cuối và phát hành.** Kho GitHub đã xác nhận; npm xác thực là `bykitsune` và Actions cập nhật credential, nhưng quyền xuất bản, registry và hiện vật chưa được chứng minh.
 
 | Thành phần | Định danh |
 | --- | --- |
@@ -14,7 +14,7 @@
 | Khóa provider của công cụ | `kitsunerouter` |
 | Image chuẩn | `ghcr.io/bykitsune/kitsune-router` |
 
-Hồ sơ 0.x giữ hiện vật và bằng chứng ZenRouter gốc, không phải xuất bản Kitsune hồi tố. [Thay đổi](/vi/changelog/) · [Bản nháp](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md).
+`v1.0.0` giữ nguyên tại `390a65677c06a30084386d2a2adf8b0c48709281`: workflow lỗi ownership non-root, không xuất bản npm/GHCR 1.0.0. 9.029 test cũ không xác minh 1.0.1. Bản tiếp theo cô lập inventory tiến trình tổng hợp trong test và sửa wrap key mobile; production vẫn fail-closed. [Thay đổi](/vi/changelog/) · [Bản nháp 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md). Giữ lịch sử 0.x.
 
 ## Khả năng và giới hạn
 

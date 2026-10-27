@@ -4,9 +4,9 @@
 
 Kitsune Router 是由 [ByKitsune](https://bykitsune.com) 维护/赞助的中立、本地优先 AI 网关，延续 ZenRouter/9Router。**Your models. Your routes.** 请求走你配置的上游，不自动发送到赞助方。
 
-## 1.0.0 发布了吗？
+## 1.0.1 发布了吗？
 
-它是首次重大品牌迁移版本提案，**验证与发布待完成**。命名空间、npm 授权、镜像访问和产物读回仍是发布门槛。见 [安装](/zh-CN/getting-started/installation/) 与 [日志](/zh-CN/changelog/)。0.x 仍是历史 ZenRouter 产物。
+它是下一候选版，**最终标签/SHA 验证和发布待完成**。v1.0.0 保留在 `390a65677c06a30084386d2a2adf8b0c48709281`，所有权工作流失败后未发布 npm/GHCR。GitHub 已确认，npm 已认证 `bykitsune`，但权限/发布/读回仍是独立门槛。见 [安装](/zh-CN/getting-started/installation/) 与 [日志](/zh-CN/changelog/)，0.x 来源不变。
 
 ## 需要账户或指定顺序吗？
 

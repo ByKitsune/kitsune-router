@@ -4,11 +4,12 @@ Thu thập version/SHA hiện tại, `DATA_DIR` tuyệt đối, route và lỗi 
 
 ## Startup và di chuyển
 
-- Không có gói: 1.0.0 chờ xuất bản; kiểm tra `@bykitsune/router`, không gói bare hoặc Kitsune 0.x giả. [Nguồn](/vi/getting-started/installation/).
+- Không có gói: 1.0.1 chờ xuất bản, tag v1.0.0 không có npm/GHCR. Login npm không chứng minh quyền publish. Kiểm tra `@bykitsune/router` và dùng [nguồn](/vi/getting-started/installation/) trước.
 - Node cũ: >=22.19.0; migration cần snapshot SQLite native Node/Bun hỗ trợ, không raw-copy không an toàn.
 - Cổng bận: API/dashboard cùng 20128. Xác định chủ và dừng nhẹ nhàng, không `pkill`/`kill -9` diện rộng.
 - Trạng thái trống: kiểm tra path/mount `/app/data`; `DATA_DIR` rõ ràng không được tự chuyển.
 - Bị từ chối migration: dừng nguồn/helper, kiểm tra an toàn, integrity, ownership, target. Không xóa lock mù quáng. [Hướng dẫn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+- Linux hạn chế: production vẫn fail-closed nếu ownership same-UID không đọc được. Test cô lập không cho phép migration non-root chung. Sau dừng/backup, dùng `DATA_DIR` giữ nguồn không chuyển hoặc nhờ review đặc quyền; không bỏ qua permission. Smoke UID 65534 giới hạn không chứng minh hỗ trợ chung hay tag cuối.
 
 ## Client
 

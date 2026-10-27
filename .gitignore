@@ -61,6 +61,7 @@ docs/*
 !docs/INTEGRATIONS.md
 !docs/OPERATIONS.md
 !docs/CHANGELOG_v1.0.0.md
+!docs/CHANGELOG_v1.0.1.md
 !docs/antigravity-location-error.md
 !docs/CHANGELOG_v0.9.5.md
 !docs/CHANGELOG_v0.9.6.md

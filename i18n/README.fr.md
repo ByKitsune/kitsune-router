@@ -8,17 +8,19 @@ Passerelle IA locale en priorité, neutre entre fournisseurs, maintenue et spons
 
 ## Publication et installation
 
-**1.0.0 est la première version majeure proposée pour le changement de marque ; vérification et publication restent en attente.** Il faut confirmer propriété/enregistrement des espaces de noms, autorisation npm, accès aux registres et artefacts. Cibles : `ByKitsune/kitsune-router`, paquet `@bykitsune/router`, commande `kitsune-router`, image canonique `ghcr.io/bykitsune/kitsune-router`. Les archives 0.x désignent les artefacts ZenRouter d’origine, pas des publications Kitsune rétroactives.
+**1.0.1 est la prochaine candidate choisie ; vérification du tag/SHA final et publication restent en attente.** Dépôt `ByKitsune/kitsune-router` confirmé ; paquet `@bykitsune/router`, commande `kitsune-router`, image `ghcr.io/bykitsune/kitsune-router`. npm s’authentifie comme `bykitsune` et les identifiants Actions ont été mis à jour, sans prouver le droit de publier ni la disponibilité des artefacts.
+
+Le tag `v1.0.0` reste à `390a65677c06a30084386d2a2adf8b0c48709281`, sans npm/GHCR après l’échec du workflow non-root. 1.0.1 isole les processus synthétiques dans les régressions/refus et ajuste les lignes mobiles ; la production refuse toujours les propriétés same-UID illisibles. Les 9 029 tests anciens ne vérifient pas cette candidate. [Tentative](../releases/RELEASE_NOTES_v1.0.0.md) · [Candidate 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md). Provenance 0.x intacte.
 
 Prérequis : **Node.js >=22.19.0**. Après publication uniquement :
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# Ou : npx @bykitsune/router@1.0.0
+# Ou : npx @bykitsune/router@1.0.1
 ```
 
-Depuis les sources, à la racine sans sous-dossier `app/` (utilisez votre copie existante si le dépôt cible n’est pas encore disponible) :
+Depuis le dépôt canonique confirmé ou votre copie existante, à la racine sans sous-dossier `app/` :
 
 Pour une installation **neuve** seulement, générez une fois le secret dans un `.env` privé (shell POSIX/OpenSSL). `next dev` n’exécute pas le générateur du launcher ; sans `JWT_SECRET` aléatoire d’au moins 32 caractères, la connexion échoue. En migration, conservez les valeurs effectives `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` et le `DATA_DIR` absolu. Vérifiez le fichier et remplacez les exemples uniquement sur une installation neuve ; ne le publiez/committez jamais.
 
@@ -61,9 +63,9 @@ Arrêtez l’ancienne passerelle et ses auxiliaires, puis sauvegardez **tout** l
 
 Conservez `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/` et `mitm/`. Ne changez pas les sels cryptographiques ni les racines de certificats approuvées pour une simple question de nom. Toutes les clés fournisseur ne sont pas garanties chiffrées au repos. Nouveaux paramètres : `KITSUNE_ROUTER_*` ; en-têtes : `x-kitsune-router-*` ; fournisseur : `kitsunerouter`. `/v1/*` et le port 20128 ne changent pas ; aucun alias ancien n’est exigé.
 
-Docker doit conserver le volume à `/app/data` ; publication linux/amd64 uniquement. Vérifiez l’image canonique ; un miroir Docker Hub est facultatif. [Installation](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Exploitation](../docs/OPERATIONS.md).
+Docker conserve le volume/montage au `DATA_DIR` effectif : `/app/data` par défaut ou chemin absolu personnalisé pris en charge ; linux/amd64 seulement. Sur Linux restreint, arrêtez/sauvegardez puis gardez l’ancien chemin via `DATA_DIR` explicite sans déplacement, ou demandez une revue privilégiée ; n’ignorez pas les permissions. Vérifiez l’image, miroir facultatif. [Installation](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [Exploitation](../docs/OPERATIONS.md).
 
-La compression dépend des données : aucun pourcentage fixe, quota illimité ou fonctionnement continu n’est garanti. Les estimations ne sont pas des factures ; inconnu ne signifie pas gratuit. Respectez droits, régions et conditions des fournisseurs. Pas de service Kitsune hébergé par défaut ; l’ancienne synchronisation a été retirée. Cette révision ne certifie aucun test/build actuel. [Projet de version 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md).
+La compression dépend des données : aucun pourcentage fixe, quota illimité ou fonctionnement continu n’est garanti. Les estimations ne sont pas des factures ; inconnu ne signifie pas gratuit. Respectez droits, régions et conditions des fournisseurs. Pas de service Kitsune hébergé par défaut ; l’ancienne synchronisation a été retirée. Cette révision ne certifie aucun test/build actuel. [Projet de version 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md).
 
 ## Remerciements et licence
 

@@ -1,6 +1,6 @@
-# Kitsune Router 1.0.0 technical changelog — proposed
+# Kitsune Router 1.0.0 technical changelog — attempted, not published to npm/GHCR
 
-**Status: pending final verification and publication.** This is the proposed first breaking Kitsune Router release, not evidence that npm, GitHub or GHCR artifacts exist. [Release draft](../releases/RELEASE_NOTES_v1.0.0.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
+**Status: immutable tag retained after a failed publication attempt.** `v1.0.0` points to `390a65677c06a30084386d2a2adf8b0c48709281`. The workflow failed on the non-root process-ownership scan; no npm 1.0.0 package or canonical GHCR 1.0.0 image was published. This document preserves the attempted release's scope, not a successful registry release. [Attempt record](../releases/RELEASE_NOTES_v1.0.0.md) · [1.0.1 follow-up](CHANGELOG_v1.0.1.md) · [Complete changelog](../CHANGELOG.md) · [Migration](MIGRATION.md).
 
 ## Identity contracts
 
@@ -30,15 +30,17 @@ Root guides, translated READMEs, GitBook content, architecture/integration/opera
 
 Fresh source recipes explicitly generate a strong private `JWT_SECRET` once: `next dev` is not the launcher secret-setup path, and missing/short secrets make dashboard login fail. Source migrations retain existing effective secrets and absolute state paths; `.env` stays private and uncommitted.
 
-## Release gate ledger
+## Historical release gate ledger
 
 | Gate | State |
 | --- | --- |
-| Final 1.0.0 manifests/lockfiles and exact source tag | Pending release owner confirmation |
-| Current test/build/lint and packaged runtime/migration checks | Pending SHA-bound evidence; not run by this docs pass |
-| GitHub org/repository ownership and registration/transfer | Pending external confirmation |
-| npm scope ownership, authorization and public package publication | Pending external confirmation |
-| Canonical GHCR package access/visibility, digest, provenance/SBOM | Pending registry verification |
-| Original npm tarball integrity and registry readback | Pending registry verification |
+| Retained 1.0.0 source tag | `390a65677c06a30084386d2a2adf8b0c48709281`; immutable, not moved for the follow-up |
+| Recorded 1.0.0 candidate tests | 9,029 passed; historical candidate evidence, not 1.0.1 verification |
+| Release workflow | Failed on the non-root process-ownership scan |
+| npm 1.0.0 package publication | Not published by the attempt |
+| Canonical GHCR 1.0.0 image publication | Not published by the attempt |
+| Original tarball/image integrity and registry readback | No successful 1.0.0 publication established |
 
 The supplied pre-change remote baseline of 8,845 passes, 100 pending/skipped and zero failures is planning context only. It does **not** certify renamed code, migration or a 1.0.0 artifact. No local costly suite/build, live inference, deployment, commit or publication is claimed. See [tests](../tests/README.md) and the [rebranding checklist](REBRANDING.md) for the final owner's verification workflow.
+
+The earlier 9,028-pass frozen inventory remains a separate historical snapshot in the release notes. The next selected version is **1.0.1**, with a deterministic process-isolated regression harness/denial coverage and mobile key-row wrapping follow-up pending final tag verification. The production ownership hook is not relaxed and same-UID unreadable state still fails closed. Current pins move forward; the old tag, source evidence and unpublished-target history do not.

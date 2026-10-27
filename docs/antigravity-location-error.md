@@ -1,6 +1,6 @@
 # Antigravity: "User location is not supported for the API use"
 
-Catatan Kitsune Router: diagnosis ini bukan janji akses gratis, izin akun, atau verifikasi live terbaru. Ikuti wilayah dan ketentuan resmi Google; jangan memakai pergantian IP/akun untuk menghindari pembatasan. Lihat [operasi aman](OPERATIONS.md), [status rilis](CHANGELOG_v1.0.0.md) dan [migrasi](MIGRATION.md).
+Catatan Kitsune Router: diagnosis ini bukan janji akses gratis, izin akun, atau verifikasi live terbaru. Ikuti wilayah dan ketentuan resmi Google; jangan memakai pergantian IP/akun untuk menghindari pembatasan. Lihat [operasi aman](OPERATIONS.md), [status rilis](CHANGELOG_v1.0.1.md) dan [migrasi](MIGRATION.md).
 
 ## Gejala
 

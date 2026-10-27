@@ -64,6 +64,15 @@ but the source lock cannot stop an unmodified old binary from being restarted.
 Windows requires a clean shutdown with no leftover WAL; macOS fails closed if
 open-file ownership cannot be established. Linux tests and synthetic platform
 fixtures are not claims of native Windows/macOS/Bun execution.
+On restricted Linux systems, an unreadable same-user/root process descriptor
+also prevents automatic relocation: permissions are not evidence of a stopped
+database. After stopping the old gateway and taking a verified full backup,
+either resolve inspection permissions through an operator-reviewed maintenance
+session or keep using the old state in place with an explicit absolute
+`DATA_DIR`. Do not remove this safeguard or delete state to force migration.
+Unit-test process inventories are isolated to their owned synthetic fixtures;
+that deterministic harness does not certify unrestricted host-wide inspection
+for an unprivileged user.
 
 ## Containers and source deployments
 

@@ -8,17 +8,19 @@
 
 ## リリース状況とインストール
 
-**1.0.0 は破壊的変更を含む最初のブランド移行リリース案であり、最終検証・公開は未完了です。** 名前空間の登録・所有権、npm 公開権限、レジストリアクセス、成果物を確認する必要があります。公開先は `ByKitsune/kitsune-router`、npm は `@bykitsune/router`、コマンドは `kitsune-router`、正規イメージは `ghcr.io/bykitsune/kitsune-router` です。0.x 記録は当時の ZenRouter 成果物であり、過去の Kitsune 公開を意味しません。
+**1.0.1 が次の候補として選択され、最終 tag/SHA 検証・公開待ちです。** リポジトリ `ByKitsune/kitsune-router` は確認済み。npm `@bykitsune/router`、コマンド `kitsune-router`、正規イメージ `ghcr.io/bykitsune/kitsune-router` は不変です。npm は `bykitsune` として認証され Actions 資格情報も更新済みですが、公開権限・成果物の証明ではありません。
+
+`v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、non-root workflow 失敗で npm/GHCR 未公開です。1.0.1 は合成プロセス分離の回帰・拒否テストとモバイル key 行対応で、本番の same-UID 読取不可は引き続き fail-closed。旧 9,029 件成功は新版の証明ではありません。[試行](../releases/RELEASE_NOTES_v1.0.0.md) · [1.0.1 草案](../releases/RELEASE_NOTES_v1.0.1.md)。0.x 出典を保持します。
 
 必要環境は **Node.js >=22.19.0**。公開後のみ使用してください。
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# または: npx @bykitsune/router@1.0.0
+# または: npx @bykitsune/router@1.0.1
 ```
 
-ソースから起動する場合はルートで実行します。`app/` サブディレクトリはありません。移転先が未公開なら既存のチェックアウトを使用します。
+確認済みの正規リポジトリか既存チェックアウトから、ルートで実行します。`app/` サブディレクトリはありません。
 
 **新規**インストールだけで、非公開 `.env` に秘密を一度生成します（POSIX shell/OpenSSL）。`next dev` はランチャーの生成処理を使わず、32 文字以上の強い `JWT_SECRET` がなければログイン失敗します。移行時は有効な既存 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` と絶対 `DATA_DIR` を保持します。例の値を変更するのは新規だけとし、`.env` を公開・コミットしないでください。
 
@@ -61,9 +63,9 @@ env_key = "KITSUNE_ROUTER_API_KEY"
 
 `db/data.sqlite`、`secrets.json`、`machine-id`、`auth/`、`mitm/` を保持してください。改名のために暗号ソルトや信頼済みルート証明書を交換してはいけません。すべての認証情報の保存時暗号化は保証していません。新しい設定は `KITSUNE_ROUTER_*`、拡張ヘッダーは `x-kitsune-router-*`、識別子は `kitsunerouter`。`/v1/*` とポート 20128 は不変で、旧コマンド・識別子の互換エイリアスは必須ではありません。
 
-Docker は既存ボリュームを `/app/data` に維持します。公開対象は linux/amd64 のみです。正規イメージを確認してください。Docker Hub ミラーは任意です。[インストール](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [運用](../docs/OPERATIONS.md)。
+Docker は有効 `DATA_DIR` に既存 volume/mount を保持します。既定 `/app/data` または対応する独自絶対パスで、linux/amd64 のみです。制限 Linux は停止・保存後に明示 `DATA_DIR` で移動せず使うか特権レビューを依頼し、権限エラーを無視しません。image を確認し mirror は任意。[インストール](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [運用](../docs/OPERATIONS.md)。
 
-圧縮効果は処理内容次第です。固定削減率、無制限枠、常時稼働は保証しません。概算は請求書ではなく、不明な料金は無料ではありません。上流の権限・地域・規約は引き続き適用されます。既定のホスト型 Kitsune サービスはなく、旧クラウド同期は削除済みです。この文書更新は現在のテスト・ビルド成功を証明しません。[1.0.0 草案](../releases/RELEASE_NOTES_v1.0.0.md)。
+圧縮効果は処理内容次第です。固定削減率、無制限枠、常時稼働は保証しません。概算は請求書ではなく、不明な料金は無料ではありません。上流の権限・地域・規約は引き続き適用されます。既定のホスト型 Kitsune サービスはなく、旧クラウド同期は削除済みです。この文書更新は現在のテスト・ビルド成功を証明しません。[1.0.1 草案](../releases/RELEASE_NOTES_v1.0.1.md)。
 
 ## 謝辞とライセンス
 

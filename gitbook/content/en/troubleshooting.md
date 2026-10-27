@@ -4,11 +4,12 @@ Start with the installed version/source SHA, absolute `DATA_DIR`, sanitized erro
 
 ## Startup and migration
 
-- **Package not found:** 1.0.0 publication is pending. Verify `@bykitsune/router` availability/authorization; don't substitute a bare npm package or invent a Kitsune 0.x release. Use [source installation](/en/getting-started/installation/) now.
+- **Package not found:** 1.0.1 publication is pending; the failed v1.0.0 tag did not publish npm/GHCR 1.0.0. npm authentication does not prove publishing permission. Verify `@bykitsune/router` availability/authorization and use [source installation](/en/getting-started/installation/) meanwhile.
 - **Old Node:** use Node.js >=22.19.0. Migration needs supported native Node/Bun SQLite snapshot APIs; no unsafe raw-copy fallback is provided.
 - **Port in use:** dashboard/API share 20128. Identify the owner and stop it gracefully; avoid broad `pkill` or `kill -9` recipes.
 - **Empty state:** inspect absolute `DATA_DIR` and container `/app/data` mount before adding accounts. Explicit paths disable automatic relocation.
 - **Migration refused:** stop legacy gateway/helpers, inspect source safety/integrity/ownership and destination. Don't remove locks or overwrite either directory blindly. [Migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+- **Restricted Linux ownership scan:** production still fails closed for unreadable same-UID ownership. v1.0.1 isolates synthetic process inventories in regression tests; it does not generally allow non-root relocation. After stopping/backing up, use explicit `DATA_DIR` without relocating or request privileged review. Do not ignore permission failures; bounded UID 65534 evidence is not general support or final tag-bound verification.
 
 ## Client and upstream errors
 

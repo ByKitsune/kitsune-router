@@ -1,13 +1,13 @@
 # Cài đặt
 
-**Kitsune Router 1.0.0 đang chờ xác minh/phát hành.** Kiểm tra namespace, quyền npm và hiện vật trước. Gói là `@bykitsune/router`, không phải tên lệnh không scope. Yêu cầu **Node.js >=22.19.0**.
+**Kitsune Router 1.0.1 chờ tag/SHA cuối và phát hành.** Kho đã xác nhận; npm xác thực `bykitsune` chưa chứng minh quyền xuất bản hay hiện vật. Tag v1.0.0 giữ nguyên, không có npm/GHCR sau lỗi ownership non-root. Gói `@bykitsune/router`, không tên lệnh bare. Yêu cầu **Node.js >=22.19.0**.
 
 ## Launcher sau khi phát hành
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 # Hoặc:
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
@@ -17,7 +17,7 @@ Launcher có thể mặc định lắng nghe mọi giao diện. Thêm `--host 12
 
 ## Từ mã nguồn
 
-Chạy ở gốc, không có thư mục `app/`. Dùng checkout hiện có nếu kho đích chưa sẵn sàng.
+Chạy ở gốc kho chính thức đã xác nhận hoặc checkout hiện có, không thư mục `app/`.
 
 Chỉ cài **mới**, tạo secret một lần trong `.env` riêng (POSIX shell/OpenSSL). `next dev` không dùng bộ sinh launcher: đăng nhập lỗi nếu thiếu `JWT_SECRET` ngẫu nhiên tối thiểu 32 ký tự. Nâng cấp giữ JWT/API/identity secret và `DATA_DIR` hiệu lực theo [di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Xem giá trị ví dụ khác chỉ cho cài mới; không công khai/commit `.env`.
 

@@ -8,23 +8,25 @@
 
 ## 发布状态
 
-**1.0.0 是首次重大品牌迁移版本的提案，尚待最终验证和发布。** 目标仓库为 `ByKitsune/kitsune-router`，npm 包为 `@bykitsune/router`，命令为 `kitsune-router`，规范镜像为 `ghcr.io/bykitsune/kitsune-router`。外部命名空间注册/所有权、npm 发布权限、镜像可见性及实际产物仍待确认。下面的包/镜像命令仅在成功发布后适用；目前可使用源码工作副本。
+**1.0.1 是已选定的下一候选版本，尚待最终标签/SHA 验证和发布。** 仓库 `ByKitsune/kitsune-router` 已确认，npm 包为 `@bykitsune/router`，命令为 `kitsune-router`，规范镜像为 `ghcr.io/bykitsune/kitsune-router`。npm 已以 `bykitsune` 身份认证并更新 Actions 凭据，但这不证明包发布权限或发布成功；镜像访问、实际产物和读回仍待验证。以下安装命令只在发布后适用。
 
-0.x 发布说明中的 ZenRouter 名称、包和镜像保留其历史含义，不能当作已发布的 Kitsune 0.x 产物。参阅 [1.0.0 发布草案](releases/RELEASE_NOTES_v1.0.0.md)。
+`v1.0.0` 标签保留在 `390a65677c06a30084386d2a2adf8b0c48709281`，不移动。其工作流因非 root 进程所有权扫描失败，未发布 npm/GHCR 1.0.0 产物；历史 9,029 条通过记录不是 1.0.1 验证。1.0.1 接续隔离合成进程的回归 harness/拒绝用例及移动端 key 行换行，**生产对不可读同 UID 所有权仍拒绝继续**，不是普遍允许非 root 搬迁。最终标签验证仍待完成。参阅 [尝试记录](releases/RELEASE_NOTES_v1.0.0.md) 和 [1.0.1 草案](releases/RELEASE_NOTES_v1.0.1.md)。0.x 原产物身份保留。
+
+[文档预览](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) 位于已验证的官方 Cloudflare 账户/项目；它不是 1.0.1 发布证明，也不表示自定义域名或 DNS 已变更。
 
 ## 安装和启动
 
 启动器要求 **Node.js >=22.19.0**：
 
 ```bash
-# 仅在 1.0.0 发布后：
-npx @bykitsune/router@1.0.0
+# 仅在 1.0.1 发布后：
+npx @bykitsune/router@1.0.1
 # 或：
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
-源码方式（在仓库根目录运行，没有 `app/` 子目录；目标仓库尚不可用时使用现有工作副本）：
+源码方式（已确认的规范仓库或现有工作副本，在根目录运行，没有 `app/` 子目录）：
 
 以下生成密钥仅用于**全新源码安装**（POSIX shell 和 OpenSSL）。`next dev` 不经过启动器的自动密钥配置；`JWT_SECRET` 必须为至少 32 字符的强随机值，否则登录失败。升级/迁移必须保留原有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`，先阅读 [迁移](docs/MIGRATION.md)。
 
@@ -68,7 +70,7 @@ curl http://localhost:20128/v1/models \
 
 先停止旧网关、托盘以及 MITM/隧道辅助进程，并备份**整个私密数据目录**。未设置 `DATA_DIR` 时，首次启动可发现 `~/.zenrouter` 或 `~/.9router`，验证一致的 SQLite 快照和复制文件后创建 `~/.kitsune-router`；Windows 使用 `%APPDATA%` 下的对应目录。保留源文件，拒绝覆盖已有目标。显式 `DATA_DIR` 始终优先，不会自动搬迁。
 
-除 `db/data.sqlite` 外，还须保留 `secrets.json`、`machine-id`、`auth/` 和 `mitm/`。加密派生常量和现有受信任证书根保持不变；不能为了改名删除密钥或重新生成证书。并非所有提供商凭据都保证静态加密。Docker 持久化 `/app/data`，迁移时继续使用原卷，不要创建空卷替代。
+除 `db/data.sqlite` 外，还须保留 `secrets.json`、`machine-id`、`auth/` 和 `mitm/`。加密派生常量和现有受信任证书根保持不变；不能为了改名删除密钥或重新生成证书。并非所有提供商凭据都保证静态加密。Docker 在有效 `DATA_DIR` 保留原卷/挂载，默认 `/app/data` 或支持的自定义绝对路径，不用空卷替代。受限 Linux 须先停止备份，再显式指定旧 `DATA_DIR` 原地使用或请求特权审查，不能忽略权限错误。
 
 项目环境变量改为 `KITSUNE_ROUTER_*`，扩展头改为 `x-kitsune-router-*`；无前缀的密钥和 `DATA_DIR` 保持原含义和值。标准 `/v1/*`、`/v1beta/*` 和端口 **20128** 不变；不要求旧命令或旧提供商标识别名。先阅读 [迁移指南](docs/MIGRATION.md)。
 
@@ -76,7 +78,7 @@ curl http://localhost:20128/v1/models \
 
 提供协议转换、多账户/模型回退、用量统计，以及可选 RTK/Headroom 等压缩功能。支持情况取决于具体传输与模型；无法表示的参数或文档可能明确拒绝。没有固定节省比例、无限免费额度或不中断运行的保证。成本估算不是账单；未知价格不等于免费，订阅积分不等于 API 美元费用。
 
-容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.0`，需先核实发布和访问权限；Docker Hub 镜像只是可选镜像源。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [测试说明](tests/README.md)。本次文档更新不声称已验证当前测试或构建。
+容器发布仅面向 **linux/amd64**。规范目标为 `ghcr.io/bykitsune/kitsune-router:1.0.1`，需先核实发布和访问权限；Docker Hub 镜像只是可选镜像源。远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[Docker](DOCKER.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [测试说明](tests/README.md)。本次文档更新不声称已验证当前测试或构建。
 
 ## 致谢与许可证
 

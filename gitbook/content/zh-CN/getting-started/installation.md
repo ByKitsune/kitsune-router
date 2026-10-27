@@ -1,13 +1,13 @@
 # 安装
 
-**Kitsune Router 1.0.0 尚待最终验证和发布。** 先确认命名空间、npm 发布权限及产物可用性。包名为 `@bykitsune/router`，不是命令的裸包名。要求 **Node.js >=22.19.0**。
+**Kitsune Router 1.0.1 尚待最终标签/SHA 验证和发布。** 仓库已确认；npm `bykitsune` 认证不是发布权限或产物证明。v1.0.0 保持旧标签，因非 root 所有权工作流失败未发布 npm/GHCR。包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。
 
 ## 发布后的启动器
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 # 或：
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
@@ -17,7 +17,7 @@ kitsune-router
 
 ## 源码运行
 
-在根目录执行，不存在 `app/` 子目录。目标仓库尚不可用时，使用现有工作副本。
+在已确认规范仓库或现有工作副本的根目录执行，不存在 `app/` 子目录。
 
 以下仅为**全新**安装生成一次私有 `.env` 密钥（POSIX shell/OpenSSL）。`next dev` 不运行启动器生成；缺少至少 32 字符强 `JWT_SECRET` 会登录失败。升级须按 [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) 保留已有有效 JWT/API/身份秘密与绝对 `DATA_DIR`。其他公开示例值也仅在全新安装时替换；不提交或输出 `.env`。
 

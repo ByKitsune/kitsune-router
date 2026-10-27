@@ -37,6 +37,10 @@ than a newly invented default palette.
 - `public/icons/logo.svg`: product mark, authored in source for this rebrand.
 - `public/icons/icon-192.svg`, `icon-512.svg`, `public/favicon.svg`: app variants.
 - `public/brand/social-card.svg`: editable share/repository image source.
+- `public/brand/bykitsune-favicon.png`: exact 192px favicon copied from
+  `/root/ByKitsuneV2/public/favicon-192x192.png` at the owner's request for the
+  GitHub README/description header. It is the ByKitsune character artwork,
+  separate from the routing-fox mark used inside the application.
 - `images/kitsune-router.png`: real packaged-candidate dashboard capture using
   isolated synthetic state. Historical screenshots are identified in
   `images/README.md`, not relabeled as current builds.

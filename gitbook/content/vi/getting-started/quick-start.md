@@ -1,9 +1,9 @@
 # Bắt đầu nhanh
 
-**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. 1.0.0 chờ xác minh/phát hành; dùng mã nguồn theo [cài đặt](/vi/getting-started/installation/). Chỉ sau khi xuất bản, với Node.js >=22.19.0:
+**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. 1.0.1 chờ tag/SHA cuối và phát hành; v1.0.0 là lần thử không có npm/GHCR. Dùng [nguồn](/vi/getting-started/installation/) trước. Chỉ sau xuất bản, với Node.js >=22.19.0:
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 ```
 
 ## Thiết lập

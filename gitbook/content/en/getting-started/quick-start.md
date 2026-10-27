@@ -1,11 +1,11 @@
 # Quick Start
 
-**Your models. Your routes.** No ByKitsune account or required provider ordering. [Installation](/en/getting-started/installation/) covers source checkout and the proposed 1.0.0 publication gates; package commands below work only after publication and require **Node.js >=22.19.0**.
+**Your models. Your routes.** No ByKitsune account or required provider ordering. [Installation](/en/getting-started/installation/) covers source checkout and pending 1.0.1 final tag/SHA/publication gates. v1.0.0 remains an unpublished failed attempt, not a moved tag. Package commands below work only after publication and require **Node.js >=22.19.0**.
 
 ## 1. Start the gateway
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 ```
 
 Set a strong `INITIAL_PASSWORD` in your private environment before exposing access. Open `http://localhost:20128/dashboard`.

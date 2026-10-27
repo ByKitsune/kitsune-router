@@ -1,12 +1,18 @@
 # Nhật ký thay đổi
 
-## Kitsune Router 1.0.0 — đề xuất, chờ xác minh/phát hành
+## Kitsune Router 1.0.1 — ứng viên, chờ tag/SHA cuối và phát hành
+
+Harness cô lập tiến trình tổng hợp và denial test; **production vẫn fail-closed cho ownership same-UID không đọc được**. Có bằng chứng giới hạn regression/smoke UID 65534, không hỗ trợ non-root chung. Wrap mobile và test/build tag cuối vẫn chờ, không mượn số cũ. npm `bykitsune`/Actions cập nhật không chứng minh quyền/publish. [Bản nháp 1.0.1](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md).
+
+## Kitsune Router 1.0.0 — giữ lần thử; không xuất bản npm/GHCR
+
+Tag bất biến `v1.0.0` ở `390a65677c06a30084386d2a2adf8b0c48709281`; workflow lỗi ownership non-root trước xuất bản. **9.029 test qua** là bằng chứng ứng viên đó, không của 1.0.1. Giữ phạm vi lần thử bên dưới.
 
 **Your models. Your routes.** [ByKitsune](https://bykitsune.com) duy trì/tài trợ, không bắt buộc account/thứ tự provider. Đích: `ByKitsune/kitsune-router`, npm `@bykitsune/router`, lệnh `kitsune-router`, provider `kitsunerouter`, image `ghcr.io/bykitsune/kitsune-router`.
 
 Dừng writer, backup toàn bộ. Di chuyển kiểm tra `~/.zenrouter`/`~/.9router` → `~/.kitsune-router`, giữ gốc, không ghi đè đích; `DATA_DIR` tường minh ưu tiên. Giữ secret/auth/salt/chứng chỉ tin cậy. Biến `KITSUNE_ROUTER_*`, header `x-kitsune-router-*`; `/v1/*` và 20128 không đổi.
 
-Namespace, quyền npm/GHCR, xác minh SHA cuối và xuất bản còn chờ. [Bản nháp](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Chi tiết](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
+Lần thử lỗi không xuất bản npm/GHCR. Giữ tag/bằng chứng, xác minh bản tiếp theo là 1.0.1. [Lần thử](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Chi tiết lịch sử](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
 > **Lưu trữ lịch sử:** phần sau giữ tên, hiện vật, URL và bằng chứng ZenRouter gốc; không phải phát hành Kitsune 0.x hay xác minh nguồn hiện tại. Dùng [cài đặt mới](/vi/getting-started/installation/), không lệnh nâng cấp cũ. Công việc Unreleased bên dưới được ghi trước đề xuất đổi thương hiệu.
 

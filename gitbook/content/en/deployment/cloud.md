@@ -8,12 +8,12 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**1.0.0 remains proposed and pending verification/publication.** Verify namespace ownership, canonical GHCR access and the version digest first. The workflow targets **linux/amd64 only**.
+**1.0.1 remains a candidate pending final tag/SHA verification and publication.** v1.0.0's retained tag did not publish an npm/GHCR artifact. Verify canonical GHCR access and the new version digest first; npm login alone does not prove publishing permission. The workflow targets **linux/amd64 only**.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     restart: unless-stopped
     ports:
@@ -25,7 +25,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-Canonical GHCR is the release target; a Docker Hub mirror is optional and must be independently verified. Keep the existing volume during rebranding; a renamed/new empty volume is not a migration. Read [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
+Canonical GHCR is the release target; a Docker Hub mirror is optional and must be independently verified. Keep the existing volume at the effective `DATA_DIR` (`/app/data` by default, or your supported custom mount). A renamed/new empty volume is not a migration. Read [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ## HTTPS and trust
 

@@ -8,17 +8,19 @@
 
 ## สถานะและการติดตั้ง
 
-**1.0.0 เป็นข้อเสนอรุ่นแรกหลังเปลี่ยนแบรนด์ที่มี breaking changes และยังรอการตรวจสอบ/เผยแพร่** ต้องยืนยันการลงทะเบียน/สิทธิ์ namespace, สิทธิ์เผยแพร่ npm, การเข้าถึง registry และไฟล์เผยแพร่ เป้าหมายคือ `ByKitsune/kitsune-router`, แพ็กเกจ `@bykitsune/router`, คำสั่ง `kitsune-router` และอิมเมจหลัก `ghcr.io/bykitsune/kitsune-router` บันทึก 0.x ยังคงเป็นของ ZenRouter เดิม ไม่ใช่ Kitsune ที่เผยแพร่ย้อนหลัง
+**1.0.1 คือ candidate ถัดไปที่เลือกแล้ว ยังรอตรวจสอบ tag/SHA สุดท้ายและเผยแพร่** ยืนยันคลัง `ByKitsune/kitsune-router` แล้ว แพ็กเกจ `@bykitsune/router`, คำสั่ง `kitsune-router`, อิมเมจ `ghcr.io/bykitsune/kitsune-router` คงเดิม npm ยืนยันตัวตนเป็น `bykitsune` และอัปเดต credential Actions แล้ว แต่ยังไม่พิสูจน์สิทธิ์เผยแพร่หรือไฟล์พร้อมใช้
+
+คง tag `v1.0.0` ที่ `390a65677c06a30084386d2a2adf8b0c48709281` ไม่มี npm/GHCR หลัง workflow non-root ล้มเหลว 1.0.1 แยกโปรเซสจำลองใน regression/denial test และตัดบรรทัด key มือถือ โดย production ยัง fail-closed เมื่ออ่าน ownership same-UID ไม่ได้ ผลเก่า 9,029 tests ไม่ตรวจ candidate ใหม่ [บันทึก](../releases/RELEASE_NOTES_v1.0.0.md) · [ร่าง 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) คงที่มา 0.x
 
 ต้องใช้ **Node.js >=22.19.0** คำสั่งนี้ใช้หลังเผยแพร่แล้วเท่านั้น:
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# หรือ: npx @bykitsune/router@1.0.0
+# หรือ: npx @bykitsune/router@1.0.1
 ```
 
-รันจากซอร์สที่รากคลัง ไม่มีโฟลเดอร์ย่อย `app/` หากคลังเป้าหมายยังไม่พร้อมให้ใช้ checkout ที่มีอยู่:
+รันจากคลังทางการที่ยืนยันแล้วหรือ checkout ที่มีอยู่ ที่รากคลัง ไม่มีโฟลเดอร์ย่อย `app/`:
 
 สำหรับการติดตั้ง **ใหม่** เท่านั้น ให้สร้าง secret ครั้งเดียวใน `.env` ส่วนตัว (POSIX shell/OpenSSL) `next dev` ไม่เรียกตัวสร้าง secret ของ launcher; หากไม่มี `JWT_SECRET` แบบสุ่มอย่างน้อย 32 ตัวอักษรจะล็อกอินไม่ได้ การย้ายข้อมูลต้องคงค่าเดิมของ `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` และ `DATA_DIR` แบบ absolute ตรวจไฟล์และเปลี่ยนค่าตัวอย่างเฉพาะติดตั้งใหม่ อย่าเผยแพร่หรือ commit `.env`
 
@@ -61,9 +63,9 @@ env_key = "KITSUNE_ROUTER_API_KEY"
 
 เก็บ `db/data.sqlite`, `secrets.json`, `machine-id`, `auth/`, `mitm/` อย่าเปลี่ยน salt เข้ารหัสหรือ root certificate ที่เชื่อถือแล้วเพียงเพื่อเปลี่ยนชื่อ ไม่รับประกันว่า credential ทั้งหมดเข้ารหัสขณะจัดเก็บ ตัวแปรใหม่คือ `KITSUNE_ROUTER_*`, header คือ `x-kitsune-router-*`, provider คือ `kitsunerouter` ส่วน `/v1/*` และพอร์ต 20128 ไม่เปลี่ยน ไม่จำเป็นต้องมี alias คำสั่ง/provider เดิม
 
-Docker ต้องคง volume เดิมที่ `/app/data` เผยแพร่เฉพาะ linux/amd64 ตรวจอิมเมจหลักก่อนใช้ mirror Docker Hub เป็นทางเลือก [ติดตั้ง](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [ปฏิบัติการ](../docs/OPERATIONS.md)
+Docker คง volume/mount ที่ `DATA_DIR` จริง ค่าเริ่มต้น `/app/data` หรือ absolute path กำหนดเองที่รองรับ เฉพาะ linux/amd64 บน Linux จำกัดสิทธิ์ให้หยุด/สำรองแล้วใช้ `DATA_DIR` เดิมโดยไม่ย้าย หรือขอตรวจด้วยสิทธิ์เหมาะสม อย่าข้าม permission error ตรวจอิมเมจและ mirror เป็นทางเลือก [ติดตั้ง](../docs/INSTALLATION.md) · [Docker](../DOCKER.md) · [ปฏิบัติการ](../docs/OPERATIONS.md)
 
-ผลการบีบอัดขึ้นกับงาน ไม่มีเปอร์เซ็นต์ประหยัดคงที่ โควตาไม่จำกัด หรือการรับประกันพร้อมใช้ตลอดเวลา ค่าใช้จ่ายประมาณการไม่ใช่ใบแจ้งหนี้ และราคาไม่ทราบไม่ใช่ฟรี ต้องเคารพสิทธิ์ ภูมิภาค และข้อกำหนด upstream ไม่มีบริการ Kitsune แบบโฮสต์ให้โดยปริยาย และยกเลิก cloud sync เดิมแล้ว การแก้เอกสารนี้ไม่ได้ยืนยันผล test/build ปัจจุบัน [ร่าง 1.0.0](../releases/RELEASE_NOTES_v1.0.0.md)
+ผลการบีบอัดขึ้นกับงาน ไม่มีเปอร์เซ็นต์ประหยัดคงที่ โควตาไม่จำกัด หรือการรับประกันพร้อมใช้ตลอดเวลา ค่าใช้จ่ายประมาณการไม่ใช่ใบแจ้งหนี้ และราคาไม่ทราบไม่ใช่ฟรี ต้องเคารพสิทธิ์ ภูมิภาค และข้อกำหนด upstream ไม่มีบริการ Kitsune แบบโฮสต์ให้โดยปริยาย และยกเลิก cloud sync เดิมแล้ว การแก้เอกสารนี้ไม่ได้ยืนยันผล test/build ปัจจุบัน [ร่าง 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md)
 
 ## เครดิตและสิทธิ์การใช้งาน
 

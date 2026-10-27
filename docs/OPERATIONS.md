@@ -4,7 +4,7 @@ Kitsune Router is a provider-neutral, local-first gateway maintained/sponsored b
 
 ## Protect state
 
-- Use an absolute `DATA_DIR`. Default paths are `~/.kitsune-router` or `%APPDATA%\kitsune-router`; containers use `/app/data`.
+- Use an absolute `DATA_DIR`. Default paths are `~/.kitsune-router` or `%APPDATA%\kitsune-router`; containers default to `/app/data`. For a supported custom container path, mount the same existing volume at that exact effective `DATA_DIR`.
 - Stop the gateway, tray and MITM/tunnel helpers before backups or migration. Keep SQLite plus secrets, machine identity, auth keys and certificates. A config export is not a complete backup.
 - Keep owner-only permissions where supported. Do not use broad `chmod 755`, delete ownership locks blindly, raw-copy a live database, or replace a whole directory on top of active state.
 - Keep operator secrets stable. `.env.example` documents current `KITSUNE_ROUTER_*` settings; unprefixed `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and `DATA_DIR` retain their meanings.
@@ -51,6 +51,8 @@ Request/response debug logs can contain private prompts, credentials or account 
 
 ## Upgrades and verification
 
-**1.0.0 is proposed, pending final verification/publication.** Confirm namespace ownership, npm publishing authorization, registry visibility, exact source SHA, original package integrity and image digests before upgrading. Do not invent rebranded 0.x package/image publications; their original names and provenance remain historical. See [installation](INSTALLATION.md), [Docker](../DOCKER.md), [release draft](../releases/RELEASE_NOTES_v1.0.0.md) and [test workflow](../tests/README.md).
+**1.0.1 is the next candidate, pending final tag/SHA verification and publication.** Keep v1.0.0 at `390a65677c06a30084386d2a2adf8b0c48709281`; the ownership-scan workflow failure did not publish npm/GHCR 1.0.0 artifacts. The follow-up uses a deterministic process-isolated regression harness and denial coverage, not a relaxed production ownership hook. Unreadable same-UID state still fails closed; scoped native evidence is not general non-root certification. npm authentication as `bykitsune` and updated Actions credentials are not proof of publishing permission. Verify registry visibility, exact source, original tarball integrity and image digests before upgrading. See [installation](INSTALLATION.md), [Docker](../DOCKER.md), [release draft](../releases/RELEASE_NOTES_v1.0.1.md) and [test workflow](../tests/README.md).
+
+On restricted Linux, stop and back up the old installation and keep it in place with explicit `DATA_DIR` (no relocation), or obtain privileged ownership review. Do not ignore permission errors or remove locks to force migration.
 
 This docs pass ran no expensive build/test or live-provider check. Archived audit counts describe their original snapshots, not today's source. Rollback means stopping the new writer and returning to original state; post-migration writes are not automatically merged back.

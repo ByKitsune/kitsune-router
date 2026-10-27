@@ -4,6 +4,12 @@ Status: implementation candidate verified offline; final artifact gates and
 external namespace authorization remain separate. No release publication is
 implied by this document.
 
+**Current publication candidate: 1.0.1.** The user elected to retain the failed
+`v1.0.0` tag immutably, rather than moving a public tag after GitHub's non-root
+runner exposed an ownership-inspection limitation. The v1.0.0 npm/GHCR workflows
+stopped before either registry was written. Earlier 1.0.0 candidate evidence below
+remains historical proof of that revision, not certification of 1.0.1.
+
 ## Identity contract
 
 | Surface | Target |
@@ -71,11 +77,17 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
 ## External work still requiring authorization
 
 - Organization handle rename is complete. Avatar and custom social-preview
-  uploads still require an authenticated owner web session; editable artwork is
-  included in this repository.
+  controls require an authenticated owner web session. The owner reported the
+  profile/avatar complete and requested the ByKitsuneV2 favicon for the README
+  header; that exact asset is included as `public/brand/bykitsune-favicon.png`.
+  API readback still reports no custom repository Open Graph image, so a profile
+  avatar is not being misreported as a custom social-preview upload.
 - Create/claim npm organization `bykitsune` and authorize publication of
-  `@bykitsune/router`. No npm authentication is available on the editing host.
-  An existing secret's name is not evidence of its scope or validity.
+  `@bykitsune/router`. A user-authorized temporary token authenticated as
+  `bykitsune` and replaced the official Actions `NPM_TOKEN` secret. Scope
+  membership read returned 403; actual publishing permission remains a registry
+  gate, not an inference from the username or secret's existence. Temporary
+  credentials disclosed in chat must be revoked after use.
 - Cloudflare account and Pages reads now succeed through Composio CLI toolkit
   `cloudflare_api_key`, alias **ByKitsune**, against official account
   `4f243094abd8315b58c0a850380dc457`. Its Pages project list was empty at readback.
@@ -83,6 +95,13 @@ The public provider APIs (`/v1/*`, `/v1beta/*`) retain their protocol-defined na
   DNS reads on `bykitsune.com` also returned an authorization error. No custom
   domain/DNS write is authorized by a successful account/Pages read alone.
   Never switch to the unrelated account to bypass this boundary.
+- Documentation project `kitsune-router-docs` was created in that official
+  account, with preview deployment `e50d3392-93ce-4a92-8d0c-ed30b988bf0c`
+  at https://rebrand-candidate.kitsune-router-docs.pages.dev/en/. Composio
+  performed account/project/asset operations and readback; its multipart proxy
+  could not forward the final manifest. The user explicitly authorized Wrangler
+  for that final deployment. Public readback confirmed the source SHA and
+  successful preview stage. No production custom-domain or DNS record changed.
 
 ## Additional name checks
 
@@ -123,6 +142,11 @@ copied into these fixtures.
 - Native Linux Bun 1.4.4 migration smoke used its real `bun:sqlite`, retained
   SQLite content and keys/secrets, and preserved the source. Native Windows and
   macOS migration/trust-store execution remain unverified.
+- A bounded native Node 22.23.4 smoke as UID 65534 detected a real open fixture
+  database and migrated it safely after close with a fixture-owned process
+  inventory. The unmodified host-wide scan correctly refused beside a controlled
+  same-UID process with uninspectable descriptors. This is evidence of the
+  fail-closed policy, not a general non-root automatic-migration guarantee.
 - Earlier isolated tarball install/runtime/upgrade and Docker restart smokes
   passed, but **those intermediate bytes are not final release artifacts**.
   Rebuild/repack/container checks must be tied to the frozen source revision

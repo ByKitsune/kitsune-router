@@ -1,8 +1,8 @@
 # Kitsune Router Architecture
 
-_Architecture review: 2026-10-19; identity/migration documentation updated for the proposed 1.0.0 rebrand._
+_Architecture review: 2026-10-19; release guidance updated for the pending 1.0.1 candidate._
 
-**Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. The proposed 1.0.0 release is pending verification/publication; historical checks below describe their original scope. See [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
+**Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. The 1.0.1 candidate is pending final tag/SHA verification and publication; v1.0.0 is an immutable failed publication attempt, not an available npm/GHCR release. Historical checks below describe their original scope. See [release status](CHANGELOG_v1.0.1.md), [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
 
 ## Executive Summary
 
@@ -161,7 +161,9 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 
 `cli/hooks/dataDirectory.js` resolves state before any database, runtime-secret or certificate initialization. Explicit `DATA_DIR` remains authoritative and is not relocated. Otherwise it can discover stopped `~/.zenrouter` or `~/.9router` state and migrate to `~/.kitsune-router` (Windows equivalents under `%APPDATA%`). It stages a private verified copy and a SQLite-consistent snapshot, then reserves the destination with a lock/incomplete marker until publication has been verified. Original state is retained, partial destinations cannot be opened, and unsafe/busy/ambiguous/damaged sources or destination overwrite are refused. This is distinct from the SQLite schema migrations below.
 
-Keep `secrets.json`, `machine-id`, `auth/` and `mitm/` together with SQLite. Encryption derivation constants and trusted root subjects/keys intentionally retain their original values. Runtime caches are regenerated, not migrated as active binaries. Containers keep their explicit `/app/data` volume; rollback does not merge subsequent writes backwards. See [MIGRATION.md](MIGRATION.md) for operator controls and refusal handling.
+Keep `secrets.json`, `machine-id`, `auth/` and `mitm/` together with SQLite. Encryption derivation constants and trusted root subjects/keys intentionally retain their original values. Runtime caches are regenerated, not migrated as active binaries. Containers keep the same volume/mount at effective `DATA_DIR`, default `/app/data` or a supported custom absolute path; rollback does not merge subsequent writes backwards. See [MIGRATION.md](MIGRATION.md) for operator controls and refusal handling.
+
+The 1.0.1 process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Scoped native non-root evidence in the [release notes](../releases/RELEASE_NOTES_v1.0.1.md) does not certify general support; final tag-bound verification remains pending.
 
 Startup recognizes legacy-prefixed operator settings at the migration boundary without rewriting environment files; explicit current names win. Process-only trusted-peer proof tokens are never imported. An existing implicit legacy SAML entity ID is persisted when no custom issuer was saved; fresh installations use `urn:kitsunerouter:sp`. Do not replace an existing IdP configuration to make its name look new.
 

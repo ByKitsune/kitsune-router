@@ -8,12 +8,12 @@ Usa Node.js >=22.19.0, dependencias bloqueadas y build de raíz según [instalac
 
 ## Contenedores
 
-**1.0.0 pendiente de verificar/publicar.** Confirma namespace, acceso GHCR y digest. Solo linux/amd64.
+**1.0.1 pendiente de tag/SHA final y publicación.** v1.0.0 no publicó npm/GHCR. Verifica permiso, acceso y digest; login npm no equivale a publicación. Solo linux/amd64.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"
@@ -24,7 +24,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-Conserva el volumen anterior: uno vacío no es migración. Mirror Docker Hub opcional, verificación independiente. [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
+Conserva el volumen/montaje en el `DATA_DIR` efectivo: `/app/data` por defecto o tu ruta personalizada compatible. Uno vacío no es migración. Mirror Docker Hub opcional. [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ## Confianza
 

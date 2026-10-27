@@ -1,6 +1,6 @@
 # Localhost Deployment
 
-Dashboard and API share port **20128**. There is no separate default dashboard at 3000. See [installation](/en/getting-started/installation/) for the proposed 1.0.0 publication status and Node.js >=22.19.0 requirements.
+Dashboard and API share port **20128**. There is no separate default dashboard at 3000. See [installation](/en/getting-started/installation/) for pending 1.0.1 final tag/SHA verification/publication and Node.js >=22.19.0 requirements. v1.0.0 remains an unpublished failed attempt.
 
 ```bash
 # Only after package publication:

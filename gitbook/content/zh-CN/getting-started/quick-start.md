@@ -1,9 +1,9 @@
 # 快速开始
 
-**Your models. Your routes.** 无需 ByKitsune 账户或固定提供商顺序。1.0.0 是待验证/发布的提案；当前可用源码方式，见 [安装](/zh-CN/getting-started/installation/)。以下包命令只在发布后使用，要求 Node.js >=22.19.0。
+**Your models. Your routes.** 无需 ByKitsune 账户或固定顺序。1.0.1 待最终标签/SHA 验证和发布；v1.0.0 是未发布 npm/GHCR 的尝试。先用 [源码安装](/zh-CN/getting-started/installation/)，下列命令仅发布后适用，要求 Node.js >=22.19.0。
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 ```
 
 ## 配置

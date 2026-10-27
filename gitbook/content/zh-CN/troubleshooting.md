@@ -4,11 +4,12 @@
 
 ## 启动与迁移
 
-- 包找不到：1.0.0 尚待发布，先核实 `@bykitsune/router`，不改用裸 npm 名或虚构 Kitsune 0.x。见 [源码安装](/zh-CN/getting-started/installation/)。
+- 包找不到：1.0.1 尚待发布，v1.0.0 标签未发布 npm/GHCR；npm 登录不证明发布权限。核实 `@bykitsune/router` 并先用 [源码安装](/zh-CN/getting-started/installation/)。
 - 旧 Node：需 >=22.19.0，迁移须支持 Node/Bun 原生 SQLite 快照，不做不安全原始复制。
 - 端口占用：仪表盘/API 共用 20128，识别拥有者并正常停止，不广泛 `pkill`/`kill -9`。
 - 状态空白：先查绝对路径和 `/app/data` 挂载；显式 `DATA_DIR` 阻止搬迁。
 - 迁移拒绝：停止源进程/辅助，查安全性、完整性、所有权及已有目标，不盲删锁。见 [迁移](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+- 受限 Linux：生产不可读 same-UID 所有权仍拒绝继续，测试隔离不代表普遍允许非 root 搬迁。停止备份后，可显式 `DATA_DIR` 原地使用或请求特权审查，不能忽略权限。限定 UID 65534 smoke 不证明普遍支持或最终标签。
 
 ## 客户端
 

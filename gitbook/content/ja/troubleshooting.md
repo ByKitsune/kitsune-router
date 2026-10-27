@@ -4,11 +4,12 @@
 
 ## 起動と移行
 
-- パッケージなし：1.0.0 公開待ち。`@bykitsune/router` を確認し、裸名や架空 Kitsune 0.x を使いません。[ソース](/ja/getting-started/installation/)。
+- パッケージなし：1.0.1 公開待ち、v1.0.0 は npm/GHCR 未公開です。npm login は公開権限の証明ではありません。`@bykitsune/router` を確認し、先に [ソース](/ja/getting-started/installation/) を使います。
 - 古い Node：>=22.19.0。移行は対応 Node/Bun の native SQLite snapshot が必要で、安全でない raw copy はしません。
 - 使用中ポート：API/画面は 20128。所有者を調べ正常停止し、広範な `pkill`/`kill -9` を避けます。
 - 空の状態：絶対パスと `/app/data` mount を先に確認。明示 `DATA_DIR` は自動移動しません。
 - 移行拒否：旧 source/helper を停止し、安全・整合性・所有権・既存 target を確認。lock を盲削除しません。[ガイド](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+- 制限 Linux：same-UID 読取不可は本番で fail-closed、テスト分離は non-root 移行の一般許可ではありません。停止・保存後に明示 `DATA_DIR` で移動せず使うか特権レビューを依頼し、permission を無視しません。限定 UID 65534 smoke は一般対応・最終 tag の証明ではありません。
 
 ## クライアント
 

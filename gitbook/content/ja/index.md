@@ -4,7 +4,7 @@
 
 ## 公開状況
 
-**1.0.0 は破壊的変更を含む最初のブランド移行リリース案で、検証・公開待ちです。** 名前空間の登録・所有権、npm 権限、レジストリアクセスと成果物は確認が必要です。
+**1.0.1 が次の候補で、最終 tag/SHA 検証・公開待ちです。** GitHub リポジトリは確認済み。npm は `bykitsune` 認証・Actions 更新済みですが、公開権限と成果物の証明ではありません。
 
 | 対象 | 識別子 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | ツールのプロバイダーキー | `kitsunerouter` |
 | 正規イメージ | `ghcr.io/bykitsune/kitsune-router` |
 
-0.x 記録は ZenRouter 当時の成果物・検証であり、過去の Kitsune 公開ではありません。[変更履歴](/ja/changelog/) · [リリース草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md)。
+`v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、non-root 所有権 scan の workflow 失敗で npm/GHCR は未公開です。旧候補の 9,029 件成功は 1.0.1 の証明ではありません。後続は合成プロセス分離テストとモバイル key 行修正で、本番の fail-closed は不変。[履歴](/ja/changelog/) · [1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)。0.x 出典は保持します。
 
 ## 機能と制限
 

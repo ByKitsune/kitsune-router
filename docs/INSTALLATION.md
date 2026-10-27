@@ -4,24 +4,26 @@
 
 ## Availability
 
-**1.0.0 is a proposed breaking rebrand release, pending verification and publication.** The target repository is `https://github.com/ByKitsune/kitsune-router`, npm package `@bykitsune/router`, executable `kitsune-router`, and canonical container `ghcr.io/bykitsune/kitsune-router`. Confirm namespace ownership/registration, npm authorization, registry visibility and actual artifacts before announcing installation availability. Existing 0.x artifacts belong to the historical ZenRouter release line.
+**1.0.1 is the selected next release candidate, pending final tag/SHA verification and publication.** The confirmed repository is `https://github.com/ByKitsune/kitsune-router`; package `@bykitsune/router`, executable `kitsune-router`, and canonical container `ghcr.io/bykitsune/kitsune-router` retain their names. npm authenticates as `bykitsune` and Actions credentials were updated, but package-publishing permission, registry visibility and artifact readback still require verification.
+
+The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root process-ownership scan; **no npm 1.0.0 package or canonical GHCR 1.0.0 image was published**. Use the pending [1.0.1 instructions](../releases/RELEASE_NOTES_v1.0.1.md), not that attempted tag's archived install examples. Existing 0.x artifacts remain original ZenRouter records.
 
 ## Launcher (after publication)
 
 Use **Node.js >=22.19.0** and its supported npm. Check `node --version` first.
 
 ```bash
-npx @bykitsune/router@1.0.0
+npx @bykitsune/router@1.0.1
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
 ```
 
-The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.0 --host 127.0.0.1` after publication. Inspect supported options with `kitsune-router --help`.
+The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.1 --host 127.0.0.1` after publication. Inspect supported options with `kitsune-router --help`.
 
 The package name and binary differ. Update/uninstall the **scoped package**, not a nonexistent bare `kitsune-router` npm package:
 
@@ -34,7 +36,7 @@ Removing the package does not remove your state. Do not delete data as a trouble
 
 ## Source checkout
 
-If the target repository has not been created/transferred yet, use the existing checkout. Commands run at the root, not `kitsune-router/app`:
+Use the canonical repository or an existing checkout. Commands run at the root, not `kitsune-router/app`:
 
 The initialization below is for a **fresh source install** (POSIX shell and OpenSSL). `next dev` does not run the CLI's secret generator, and source/standalone execution must not assume automatic secret provisioning. A strong `JWT_SECRET` of at least 32 characters is required; otherwise dashboard login fails. Generate it once into private `.env`, reuse it on restarts, and never commit or print it. For existing state, retain the original effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` using [migration](MIGRATION.md), not new generated values.
 
@@ -78,4 +80,6 @@ Defaults: `~/.kitsune-router` on macOS/Linux and `%APPDATA%\kitsune-router` on W
 
 For ZenRouter/9Router, stop the source and its helpers and back up the entire directory. First startup can discover `~/.zenrouter` or `~/.9router`, verify a consistent snapshot and copied files, then create the new directory without deleting originals. Existing destinations are never merged/overwritten. See [MIGRATION.md](MIGRATION.md) for source selection, skip controls, certificate/key preservation and rollback.
 
-For containers use [DOCKER.md](../DOCKER.md), keep `/app/data` mounted, and verify the canonical image/version before pulling. Remote access requires authenticated HTTPS and a reviewed proxy/firewall policy. See [integrations](INTEGRATIONS.md) and [operations](OPERATIONS.md).
+The 1.0.1 ownership-scan follow-up changes regression isolation/denial coverage, **not production permission policy**. Unreadable native/same-UID ownership still fails closed. On restricted Linux, stop/back up the old state and select it with explicit `DATA_DIR` to keep it in place without relocation, or obtain privileged review. Do not blindly ignore permission errors. Scoped native evidence is recorded in the [release draft](../releases/RELEASE_NOTES_v1.0.1.md), but general non-root support and final tag-bound verification are not certified.
+
+For containers use [DOCKER.md](../DOCKER.md), keep the same volume mounted at the effective absolute `DATA_DIR` (`/app/data` by default or a supported custom path), and verify the canonical image/version before pulling. Remote access requires authenticated HTTPS and a reviewed proxy/firewall policy. See [integrations](INTEGRATIONS.md) and [operations](OPERATIONS.md).

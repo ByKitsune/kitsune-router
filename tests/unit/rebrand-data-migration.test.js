@@ -27,20 +27,36 @@ function fixture(name = "zenrouter") {
   fs.writeFileSync(path.join(source, "auth", "mitm-password.key"), "synthetic-encryption-key");
   fs.writeFileSync(path.join(source, "secrets.json"), JSON.stringify({ JWT_SECRET, API_KEY_SECRET: "synthetic-api-key-secret-not-production", MACHINE_ID_SALT: "synthetic-stable-machine-salt-not-production" }));
   fs.writeFileSync(path.join(source, "machine-id"), "synthetic-stable-machine");
-  return { home, source, target: path.join(home, ".kitsune-router"), resolve: (env = {}) => resolveDataDirectory({ home, env, platform: "linux" }) };
+  const f = { home, source, target: path.join(home, ".kitsune-router") };
+  const resolver = loadResolver(f);
+  return { ...f, resolve: (env = {}) => resolver.resolveDataDirectory({ home, env, platform: "linux" }) };
 }
 
 afterEach(() => { vi.restoreAllMocks(); for (const home of homes.splice(0)) fs.rmSync(home, { recursive: true, force: true }); });
 
-// Permission faults, cross-platform ownership checks and race windows are
-// injected without loading production HOME, env, machine IDs or OS commands.
-function loadResolver(f, { filesystem = {}, platform = process.platform, versions = process.versions, sqlite, execute = () => { throw new Error("Unexpected OS command in migration test"); } } = {}) {
+// Tests own their temporary state, not the CI runner's other processes. Limit
+// the default /proc PID inventory to this process, retaining native fd listing
+// and inode stat calls (including detection of a real open fixture database).
+// Explicit filesystem overrides below model additional processes and denials.
+// This isolation is not evidence that a host-wide unprivileged scan succeeds:
+// production must still refuse a same-user process it cannot inspect.
+// Permission faults, cross-platform checks and race windows never load
+// production HOME, env, machine IDs or execute OS commands.
+function loadResolver(f, { filesystem = {}, platform = process.platform, versions = process.versions, uid = process.getuid?.() ?? 1000, sqlite, execute = () => { throw new Error("Unexpected OS command in migration test"); } } = {}) {
+  const isolatedFs = {
+    ...fs,
+    readdirSync(file, ...args) {
+      if (file === "/proc") return [String(process.pid)];
+      return fs.readdirSync(file, ...args);
+    },
+    ...filesystem,
+  };
   const fixtureModule = { exports: {} };
   vm.runInNewContext(dataDirectorySource, {
     module: fixtureModule, exports: fixtureModule.exports, Buffer,
-    process: { env: {}, platform, versions, pid: process.pid, getuid: process.getuid?.bind(process), kill: process.kill.bind(process) },
+    process: { env: {}, platform, versions, pid: process.pid, getuid: () => uid, kill: process.kill.bind(process) },
     require(name) {
-      if (name === "node:fs") return { ...fs, ...filesystem };
+      if (name === "node:fs") return isolatedFs;
       if (name === "node:os") return { homedir: () => f.home };
       if (name === "node:module") return { createRequire: () => name => {
         if (name === "bun:sqlite") return sqlite;
@@ -108,8 +124,20 @@ describe("Kitsune Router state migration", () => {
 
   it.skipIf(process.platform !== "linux")("rejects live databases, symlinks and concurrent migration locks", () => {
     const f = fixture();
+    const nativeStat = fs.statSync.bind(fs);
+    const inspected = [];
+    const resolver = loadResolver(f, { filesystem: { statSync(file, ...args) {
+      const stat = nativeStat(file, ...args);
+      if (String(file).startsWith(`/proc/${process.pid}/fd/`)) inspected.push(stat);
+      return stat;
+    } } });
+    const database = nativeStat(path.join(f.source, "db", "data.sqlite"));
     const open = new DatabaseSync(path.join(f.source, "db", "data.sqlite"));
-    try { expect(() => f.resolve()).toThrow(/open in another process/); } finally { open.close(); }
+    try {
+      expect(() => resolver.resolveDataDirectory({ home: f.home, env: {} })).toThrow(/open in another process/);
+      expect(inspected.some(stat => stat.ino === database.ino && stat.dev === database.dev)).toBe(true);
+      expect(fs.existsSync(f.target)).toBe(false);
+    } finally { open.close(); }
     const external = path.join(f.home, "external-secret");
     fs.writeFileSync(external, "not-for-migration");
     fs.symlinkSync(external, path.join(f.source, "unsafe"));
@@ -119,6 +147,68 @@ describe("Kitsune Router state migration", () => {
     expect(() => f.resolve()).toThrow();
     expect(fs.existsSync(f.target)).toBe(false);
     expect(fs.readFileSync(external, "utf8")).toBe("not-for-migration");
+    expect(fs.existsSync(`${f.target}.migration.lock`)).toBe(false);
+  });
+
+  it.each([
+    ["same-user", 1000, "fd directory", "EACCES"],
+    ["same-user", 1000, "fd directory", "EPERM"],
+    ["same-user", 1000, "descriptor", "EACCES"],
+    ["same-user", 1000, "descriptor", "EPERM"],
+    ["root", 0, "fd directory", "EACCES"],
+    ["root", 0, "fd directory", "EPERM"],
+    ["root", 0, "descriptor", "EACCES"],
+    ["root", 0, "descriptor", "EPERM"],
+  ])("fails closed for an uninspectable %s process (uid=%s, %s, %s)", (_owner, uid, stage, code) => {
+    const f = fixture();
+    const pid = "7654321";
+    const calls = [];
+    const denied = () => { throw Object.assign(new Error("Synthetic proc permission denied"), { code }); };
+    const resolver = loadResolver(f, { platform: "linux", uid, filesystem: {
+      readdirSync(file, ...args) {
+        if (file === "/proc") return [pid];
+        if (file === `/proc/${pid}/fd`) {
+          calls.push("fd directory");
+          if (stage === "fd directory") return denied();
+          return ["23"];
+        }
+        return fs.readdirSync(file, ...args);
+      },
+      statSync(file, ...args) {
+        if (file === `/proc/${pid}`) { calls.push("owner"); return { uid }; }
+        if (file === `/proc/${pid}/fd/23`) { calls.push("descriptor"); return denied(); }
+        return fs.statSync(file, ...args);
+      },
+    } });
+    const originals = ["db/data.sqlite", "secrets.json", "auth/mitm-password.key"]
+      .map(file => [file, fs.readFileSync(path.join(f.source, file))]);
+    expect(() => resolver.resolveDataDirectory({ home: f.home, env: {} })).toThrow(/Cannot inspect legacy database ownership/);
+    expect(calls).toEqual(stage === "descriptor" ? ["fd directory", "descriptor", "owner"] : ["fd directory", "owner"]);
+    originals.forEach(([file, bytes]) => expect(fs.readFileSync(path.join(f.source, file))).toEqual(bytes));
+    expect(fs.existsSync(f.target)).toBe(false);
+    expect(fs.existsSync(`${f.target}.migration.lock`)).toBe(false);
+    expect(fs.readdirSync(f.source).sort()).toEqual(["auth", "db", "machine-id", "secrets.json"]);
+  });
+
+  it("detects an open SQLite inode in another synthetic process, regardless of descriptor path", () => {
+    const f = fixture();
+    const database = fs.statSync(path.join(f.source, "db", "data.sqlite"));
+    const pid = "7654321";
+    const calls = [];
+    const resolver = loadResolver(f, { platform: "linux", filesystem: {
+      readdirSync(file, ...args) {
+        if (file === "/proc") return [pid];
+        if (file === `/proc/${pid}/fd`) { calls.push("fd directory"); return ["23"]; }
+        return fs.readdirSync(file, ...args);
+      },
+      statSync(file, ...args) {
+        if (file === `/proc/${pid}/fd/23`) { calls.push("descriptor"); return database; }
+        return fs.statSync(file, ...args);
+      },
+    } });
+    expect(() => resolver.resolveDataDirectory({ home: f.home, env: {} })).toThrow(/open in another process/);
+    expect(calls).toEqual(["fd directory", "descriptor"]);
+    expect(fs.existsSync(f.target)).toBe(false);
     expect(fs.existsSync(`${f.target}.migration.lock`)).toBe(false);
   });
 

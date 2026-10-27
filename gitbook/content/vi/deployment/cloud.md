@@ -8,12 +8,12 @@ Node.js >=22.19.0, dependency khóa, build từ root theo [cài đặt](/vi/gett
 
 ## Container
 
-**1.0.0 chờ xác minh/phát hành**; kiểm tra namespace, quyền GHCR và digest trước. Chỉ linux/amd64.
+**1.0.1 chờ tag/SHA cuối và phát hành**; v1.0.0 không có npm/GHCR. Kiểm tra quyền, truy cập, digest; login npm không là xuất bản. Chỉ linux/amd64.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"
@@ -24,7 +24,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-Giữ volume cũ; volume trống không phải di chuyển. Mirror Docker Hub tùy chọn, cần kiểm tra riêng. [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
+Giữ volume/mount tại `DATA_DIR` hiệu lực: mặc định `/app/data` hoặc đường dẫn tùy chỉnh hỗ trợ. Volume trống không là di chuyển. Mirror Docker Hub tùy chọn. [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ## Ranh giới tin cậy
 

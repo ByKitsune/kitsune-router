@@ -8,17 +8,19 @@
 
 ## 发布与安装
 
-**1.0.0 为首次重大品牌迁移版本提案，尚待最终验证与发布。** 外部命名空间注册/所有权、npm 发布授权、镜像访问和实际产物仍待确认。目标为 `ByKitsune/kitsune-router`、`@bykitsune/router`、命令 `kitsune-router` 和规范镜像 `ghcr.io/bykitsune/kitsune-router`；不能把历史 0.x 产物改写为已发布的 Kitsune 包。
+**1.0.1 是已选定的下一候选版本，尚待最终标签/SHA 验证与发布。** 仓库 `ByKitsune/kitsune-router` 已确认；包 `@bykitsune/router`、命令 `kitsune-router`、规范镜像 `ghcr.io/bykitsune/kitsune-router` 不变。npm 已认证为 `bykitsune` 并更新 Actions 凭据，但发布权限、产物和读回仍待验证。
+
+`v1.0.0` 保留在 `390a65677c06a30084386d2a2adf8b0c48709281`，非 root 所有权工作流失败，未发布 npm/GHCR 1.0.0。1.0.1 隔离合成进程回归/拒绝测试并调整移动端 key 行，生产对不可读同 UID 状态仍拒绝继续。旧候选 9,029 条通过不是新验证。见 [尝试](../releases/RELEASE_NOTES_v1.0.0.md) 和 [当前草案](../releases/RELEASE_NOTES_v1.0.1.md)，0.x 来源保留。
 
 要求 **Node.js >=22.19.0**。以下仅在发布后使用：
 
 ```bash
-npm install -g @bykitsune/router@1.0.0
+npm install -g @bykitsune/router@1.0.1
 kitsune-router
-# 或：npx @bykitsune/router@1.0.0
+# 或：npx @bykitsune/router@1.0.1
 ```
 
-源码运行（目标仓库不可用时使用现有工作副本，在根目录操作）：
+源码运行（使用已确认的规范仓库或现有工作副本，在根目录操作）：
 
 以下仅为**全新**安装生成一次私有 `.env` 密钥（POSIX shell/OpenSSL）。`next dev` 不运行启动器密钥生成；缺少至少 32 字符的强 `JWT_SECRET` 会导致登录失败。迁移保留已有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`。审阅文件，仅全新安装替换公开示例值；不提交或输出 `.env`。
 
@@ -59,9 +61,9 @@ env_key = "KITSUNE_ROUTER_API_KEY"
 
 停止旧网关及辅助进程并备份整个目录。默认可将 `~/.zenrouter` 或 `~/.9router` 验证迁移至 `~/.kitsune-router`（Windows 为 `%APPDATA%`）；源文件保留，不覆盖已有目标。显式 `DATA_DIR` 优先。保留 SQLite、`secrets.json`、`machine-id`、`auth/`、`mitm/`，不能仅备份数据库或为改名更换加密盐/受信任根证书。不要假设所有凭据都已静态加密。
 
-项目变量为 `KITSUNE_ROUTER_*`、扩展头为 `x-kitsune-router-*`、新工具标识为 `kitsunerouter`。标准 `/v1/*` 和端口 20128 不变；不要求旧命令/标识别名。Docker 继续挂载原卷到 `/app/data`，仅发布 linux/amd64。参阅 [迁移](../docs/MIGRATION.md)、[安装](../docs/INSTALLATION.md)、[Docker](../DOCKER.md) 与 [运维](../docs/OPERATIONS.md)。
+项目变量为 `KITSUNE_ROUTER_*`、扩展头为 `x-kitsune-router-*`、新工具标识为 `kitsunerouter`；`/v1/*` 和 20128 不变。Docker 保留原卷在有效 `DATA_DIR`（默认 `/app/data` 或支持的自定义绝对路径），仅 linux/amd64。受限 Linux 先停止备份，再显式指定旧路径原地使用或请求特权审查，不忽略权限错误。参阅 [迁移](../docs/MIGRATION.md)、[安装](../docs/INSTALLATION.md)、[Docker](../DOCKER.md) 与 [运维](../docs/OPERATIONS.md)。
 
-压缩节省因工作负载而异；没有无限额度、永久免费服务或零停机保证。成本估算不是账单，未知不等于免费；账号权限、上游条款和地域限制仍适用。没有默认托管服务，旧云同步已移除。本次文档更新不证明当前测试/构建通过；见 [发布草案](../releases/RELEASE_NOTES_v1.0.0.md)。
+压缩节省因工作负载而异；没有无限额度、永久免费服务或零停机保证。成本估算不是账单，未知不等于免费；账号权限、上游条款和地域限制仍适用。没有默认托管服务，旧云同步已移除。本次文档更新不证明当前测试/构建通过；见 [发布草案](../releases/RELEASE_NOTES_v1.0.1.md)。
 
 ## 致谢与许可证
 

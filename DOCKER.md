@@ -2,7 +2,9 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-The canonical image target is **`ghcr.io/bykitsune/kitsune-router`**. **1.0.0 is proposed and pending publication/verification**; confirm registry access and the version digest before using these commands. Docker Hub `bykitsune/kitsune-router` is only an optional mirror if separately published and verified, not an assumed public fallback. The workflow targets **linux/amd64**, not native ARM64/multi-architecture.
+The canonical image target is **`ghcr.io/bykitsune/kitsune-router`**. **1.0.1 is the next candidate, pending final tag/SHA verification and publication**; confirm registry access and the version digest before using these commands. Docker Hub `bykitsune/kitsune-router` is only an optional mirror if separately published and verified, not an assumed public fallback. The workflow targets **linux/amd64**, not native ARM64/multi-architecture.
+
+The immutable v1.0.0 tag remains at `390a65677c06a30084386d2a2adf8b0c48709281`. Its workflow failed on the non-root ownership scan, before npm/GHCR publication; a source tag is not an available image. v1.0.1 isolates synthetic process inventories in regression tests and adds denial coverage; **the production hook is not relaxed** and same-UID unreadable ownership still fails closed. Scoped native non-root evidence is not general support or final-source verification. See [release draft](releases/RELEASE_NOTES_v1.0.1.md).
 
 ## Run
 
@@ -16,7 +18,7 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.0
+  ghcr.io/bykitsune/kitsune-router:1.0.1
 ```
 
 Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. A ByKitsune account is not required.
@@ -24,7 +26,7 @@ Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhos
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.0
+    image: ghcr.io/bykitsune/kitsune-router:1.0.1
     platform: linux/amd64
     restart: unless-stopped
     ports:
@@ -39,7 +41,7 @@ services:
 
 ## Keep all persistent state
 
-The image defaults to `DATA_DIR=/app/data`. Mount the **effective `DATA_DIR`** (including a custom absolute path), not `/root/.kitsune-router` and not a separate usage volume. Active configuration and usage share SQLite at `db/data.sqlite`; secrets and auth files are also needed:
+The image defaults to `DATA_DIR=/app/data`. Mount the **effective `DATA_DIR`**, including a supported custom absolute path; a mount at `/root/.kitsune-router` only works if that is also the explicitly selected `DATA_DIR`. Do not create a separate usage volume. Active configuration and usage share SQLite at `db/data.sqlite`; secrets and auth files are also needed (default layout below):
 
 ```text
 /app/data/
@@ -54,6 +56,8 @@ The image defaults to `DATA_DIR=/app/data`. Mount the **effective `DATA_DIR`** (
 Stop the service and its helpers before taking a private full-directory backup. A database-only export is not a credential/certificate backup. Never copy a live SQLite file with ordinary file copying. Do not expose state through a web directory or commit it.
 
 When moving from ZenRouter/9Router, **keep the existing volume and explicit `DATA_DIR`**. Host-side automatic discovery cannot see a legacy directory that is not mounted. Renaming a Compose volume creates new state; it does not migrate it. Existing crypto salts and trusted certificate roots must remain usable. See [MIGRATION.md](docs/MIGRATION.md).
+
+If restricted Linux process visibility prevents ownership verification, do not bypass the denial. Stop/back up the source, retain the old state in place via explicit `DATA_DIR` and its matching mount, or obtain privileged review. The test harness change does not grant general non-root relocation permission.
 
 ### Runtime secrets across CLI and container upgrades
 
