@@ -44,8 +44,9 @@ function getDefaultHeapMb() {
 }
 
 function resolveHeapFlags(env = process.env) {
-  const varName = env.ZENROUTER_MAX_OLD_SPACE_SIZE !== undefined
-    ? "ZENROUTER_MAX_OLD_SPACE_SIZE"
+  // NINEROUTER_* is a migration-only alias; new configurations use KITSUNE_ROUTER_*.
+  const varName = env.KITSUNE_ROUTER_MAX_OLD_SPACE_SIZE !== undefined
+    ? "KITSUNE_ROUTER_MAX_OLD_SPACE_SIZE"
     : env.NINEROUTER_MAX_OLD_SPACE_SIZE !== undefined
       ? "NINEROUTER_MAX_OLD_SPACE_SIZE"
       : null;
@@ -58,7 +59,7 @@ function resolveHeapFlags(env = process.env) {
       return [`--max-old-space-size=${megabytes}`];
     }
     console.warn(
-      `[zenrouter] ignoring ${varName}="${explicit}": expected a positive integer (MB) or 0`,
+      `[kitsune-router] ignoring ${varName}="${explicit}": expected a positive integer (MB) or 0`,
     );
   }
 

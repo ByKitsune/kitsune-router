@@ -15,7 +15,7 @@ beforeEach(async () => {
   previousListeners = new Map(
     shutdownEvents.map((event) => [event, process.rawListeners(event)])
   );
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-usage-overlay-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-usage-overlay-"));
   process.env.DATA_DIR = dataDir;
   vi.resetModules();
   delete global._dbAdapter;

@@ -1,5 +1,7 @@
 # 02 — Persistence and Data Model
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Audit snapshot: **2026-10-13** · version **0.9.7** · scope: `src/lib/db/**`, `src/lib/localDb.js`,
 `src/lib/usageDb.js`, `src/lib/**` (inventory), `src/models/`, `src/store/`, `src/shared/`,
 and the on-disk state under `~/.zenrouter`.

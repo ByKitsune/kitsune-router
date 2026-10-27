@@ -1,125 +1,86 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getNavigation } from "@/constants/docsConfig";
+import { BookOpen, ChevronDown, Code2, ExternalLink, HelpCircle, Layers, Plug, Rocket, Server, Zap } from "lucide-react";
+import { DOCS_CONFIG, getNavigation, t } from "@/constants/docsConfig";
 import { DEFAULT_LANG } from "@/constants/languages";
-import { ChevronDown, ChevronRight, BookOpen, Rocket, Terminal, Monitor, HelpCircle, MessageCircle, Layers, Plug, Cloud, Zap, Wallet, Gift, GitBranch, BarChart3, Code2, Sparkles, Server } from "lucide-react";
+import { docsHref } from "@/lib/urls.mjs";
 
-// Icons keyed by structural key (language-independent)
 const SECTION_ICONS = {
   gettingStarted: Rocket,
   providers: Layers,
   features: Zap,
   integration: Plug,
-  deployment: Cloud,
-  help: HelpCircle
-};
-
-const ITEM_ICONS = {
-  introduction: BookOpen,
-  quickStart: Rocket,
-  installation: Terminal,
-  subscription: Sparkles,
-  cheap: Wallet,
-  free: Gift,
-  smartRouting: GitBranch,
-  combos: Layers,
-  quotaTracking: BarChart3,
-  claudeCode: Code2,
-  codex: Code2,
-  cursor: Code2,
-  cline: Code2,
-  roo: Code2,
-  continue: Code2,
-  otherTools: Plug,
-  localhost: Monitor,
-  cloud: Server,
-  troubleshooting: HelpCircle,
-  faq: MessageCircle
+  deployment: Server,
+  help: HelpCircle,
 };
 
 export default function DocsSidebar({ isMobile = false, onClose, lang = DEFAULT_LANG }) {
   const pathname = usePathname();
   const navigation = getNavigation(lang);
-  const [openSections, setOpenSections] = useState(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(sessionStorage.getItem("sidebarOpen") || "[]");
-    } catch { return []; }
-  });
+  const [collapsedSections, setCollapsedSections] = useState([]);
+  const id = useId();
+  const currentPath = (pathname || "").replace(/\/$/, "");
 
-  useEffect(() => {
-    sessionStorage.setItem("sidebarOpen", JSON.stringify(openSections));
-  }, [openSections]);
-
-  const toggleSection = (index) => {
-    setOpenSections(prev =>
-      prev.includes(index)
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
-  };
-
-  const buildHref = (slug) => (slug ? `/${lang}/${slug}` : `/${lang}`);
-  const isActive = (slug) => pathname === buildHref(slug);
-
-  const handleLinkClick = () => {
-    if (isMobile && onClose) onClose();
+  const toggleSection = (key) => {
+    setCollapsedSections(previous => previous.includes(key) ? previous.filter(item => item !== key) : [...previous, key]);
   };
 
   return (
-    <aside className={`${isMobile ? 'w-full' : 'w-64'} border-r bg-white border-gray-200 ${isMobile ? 'h-full' : 'h-[calc(100vh-4rem)] sticky top-16'} overflow-y-auto`}>
-      <nav className="p-4 space-y-6">
-        {navigation.map((section, sectionIndex) => {
+    <aside className={`docs-sidebar${isMobile ? " docs-sidebar-mobile" : ""}`}>
+      <div className="docs-sidebar-context">
+        <span>{t(lang, "documentation")}</span>
+        <span className="docs-version"><span className="sr-only">{t(lang, "version")} </span>v{DOCS_CONFIG.version}</span>
+      </div>
+      <nav className="docs-sidebar-nav" aria-label={t(lang, "documentation")}>
+        {navigation.map(section => {
           const SectionIcon = SECTION_ICONS[section.key] || BookOpen;
+          const expanded = !collapsedSections.includes(section.key);
+          const sectionId = `${id}-${section.key}`;
 
           return (
-            <div key={section.key}>
-              <button
-                onClick={() => toggleSection(sectionIndex)}
-                className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2 hover:text-[#E68A6E] transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <SectionIcon className="w-4 h-4" />
-                  {section.title}
-                </span>
-                {openSections.includes(sectionIndex) ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )}
-              </button>
-
-              {openSections.includes(sectionIndex) && (
-                <ul className="space-y-1">
-                  {section.items.map((item) => {
-                    const ItemIcon = ITEM_ICONS[item.key] || BookOpen;
-
-                    return (
-                      <li key={item.key}>
-                        <Link
-                          href={buildHref(item.slug)}
-                          onClick={handleLinkClick}
-                          className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-                            isActive(item.slug)
-                              ? "bg-[#E68A6E]/10 text-[#E68A6E] font-medium"
-                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                          }`}
-                        >
-                          <ItemIcon className="w-4 h-4" />
-                          {item.title}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+            <div key={section.key} className="docs-sidebar-section">
+              <h2>
+                <button type="button" onClick={() => toggleSection(section.key)} className="docs-section-toggle" aria-expanded={expanded} aria-controls={sectionId}>
+                  <SectionIcon size={16} aria-hidden="true" />
+                  <span>{section.title}</span>
+                  <ChevronDown size={15} className="docs-section-chevron" aria-hidden="true" />
+                </button>
+              </h2>
+              <ul id={sectionId} hidden={!expanded}>
+                {section.items.map(item => {
+                  const href = docsHref(lang, item.slug);
+                  const active = currentPath === href.replace(/\/$/, "");
+                  return (
+                    <li key={item.key}>
+                      <Link href={href} onClick={isMobile ? onClose : undefined} className="docs-sidebar-link" aria-current={active ? "page" : undefined}>
+                        {item.title}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           );
         })}
       </nav>
+      <div className="docs-sidebar-footer">
+        <p className="docs-sidebar-tagline" lang="en">{DOCS_CONFIG.tagline}</p>
+        <a href={DOCS_CONFIG.githubUrl} className="docs-sidebar-external">
+          <Code2 size={16} aria-hidden="true" />GitHub<ExternalLink size={14} aria-hidden="true" />
+        </a>
+        <p>{t(lang, "maintainedBy")} <a href={DOCS_CONFIG.sponsorUrl}>{DOCS_CONFIG.organization}</a>.</p>
+        <p className="docs-sponsor-note">{t(lang, "sponsorNote")}</p>
+        {isMobile && (
+          <a href={DOCS_CONFIG.appUrl} target="_blank" rel="noopener noreferrer" className="docs-mobile-app-link">
+            <span>{t(lang, "goToApp")}</span>
+            <ExternalLink size={16} aria-hidden="true" />
+            <span className="sr-only"> ({t(lang, "newWindow")})</span>
+          </a>
+        )}
+      </div>
     </aside>
   );
 }

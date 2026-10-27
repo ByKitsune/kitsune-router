@@ -68,15 +68,19 @@ export default function HeaderMenu({ onLogout }) {
     <>
       <div className="relative" ref={menuRef}>
         <button
+          type="button"
           onClick={() => setIsOpen((v) => !v)}
           className="flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all"
           title="Menu"
+          aria-label="Account and application menu"
+          aria-expanded={isOpen}
+          aria-controls="application-actions"
         >
           <span className="material-symbols-outlined">grid_view</span>
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-2 w-60 bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden py-1">
+          <div id="application-actions" className="absolute right-0 top-full mt-2 w-60 bg-surface border border-border rounded-xl shadow-[var(--shadow-elevated)] z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden py-1">
             <MenuItem
               icon={isDark ? "light_mode" : "dark_mode"}
               label="Theme"

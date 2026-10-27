@@ -1,12 +1,12 @@
 services:
-  zenrouter:
-    image: joyccn/zenrouter:latest
-    container_name: zenrouter
+  kitsune-router:
+    image: ghcr.io/bykitsune/kitsune-router:latest
+    container_name: kitsune-router
     restart: unless-stopped
     ports:
       - "20128:20128"
     volumes:
-      - zenrouter-data:/app/data
+      - kitsune-router-data:/app/data
     # Optional: copy .env.example to .env to override secrets/ports. The image
     # provisions JWT_SECRET itself, so no .env is required to get started.
     # `required: false` keeps `docker compose up` working when it is absent.
@@ -30,5 +30,7 @@ services:
       - "8787:8787"
 
 volumes:
-  zenrouter-data:
-    name: zenrouter-data
+  kitsune-router-data:
+    # To reuse an existing stopped installation's volume, explicitly set
+    # KITSUNE_ROUTER_DATA_VOLUME to its name. Never run both gateways on it.
+    name: ${KITSUNE_ROUTER_DATA_VOLUME:-kitsune-router-data}

@@ -1,127 +1,15 @@
-# Tích hợp Roo AI Assistant
+# Tích hợp Roo
 
-Tích hợp ZenRouter với Roo AI Assistant để truy cập nhiều model AI qua một giao diện thống nhất.
+Dùng OpenAI-compatible được bản Roo hỗ trợ. Gateway định tuyến/chuyển đổi, không cấp thuê bao hay đảm bảo mọi chức năng.
 
-## Yêu cầu
-
-- Roo AI Assistant đã cài đặt
-- ZenRouter API key từ [dashboard](http://localhost:20128/dashboard)
-- ZenRouter đang chạy (cục bộ hoặc cloud)
-
-## Các bước Cấu hình
-
-### 1. Mở Roo Settings
-
-Khởi chạy Roo AI Assistant và mở panel settings.
-
-### 2. Cấu hình API Provider
-
-1. Đi đến cài đặt **API Provider**
-2. Chọn **Ollama** làm provider type
-3. Cấu hình các settings sau:
-
-**Cho ZenRouter cục bộ:**
-```
+```text
 Base URL: http://localhost:20128/v1
-API Key: your-api-key-from-dashboard
+API key: khóa Kitsune Router gateway đã cấp
+Model: ID bật chính xác hoặc combo đã tạo
 ```
 
-**Cho ZenRouter cloud:**
-```
-Base URL: http://localhost:20128/v1
-API Key: your-api-key-from-dashboard
-```
+Nối upstream được phép và tạo key trước. `my-route` chỉ có sau khi tạo combo. Xem `/v1/models` có xác thực.
 
-### 3. Chọn Model
+Giữ cấu hình khác, xem preset. Provider **`kitsunerouter`**, lệnh **`kitsune-router`**; không đưa secret OAuth vào ví dụ/issue.
 
-Chọn từ các model ZenRouter có sẵn:
-
-**Claude Models:**
-- `cc/claude-opus-4-5-20251101` - Mạnh nhất
-- `cc/claude-sonnet-4-20250514` - Cân bằng
-- `cc/claude-haiku-4-20250514` - Nhanh
-
-**DeepSeek Models:**
-- `cx/deepseek-chat` - Đa năng
-- `cx/deepseek-reasoner` - Reasoning phức tạp
-
-**GLM Models:**
-- `glm/glm-4-plus` - Nâng cao
-- `glm/glm-4-flash` - Phản hồi nhanh
-
-### 4. Test Connection
-
-Gửi tin nhắn test để xác minh tích hợp:
-
-```
-Hello! Can you confirm you're connected through ZenRouter?
-```
-
-## Ví dụ Sử dụng
-
-### Chat Cơ bản
-```
-Ask Roo: "Explain quantum computing in simple terms"
-Model: cc/claude-sonnet-4-20250514
-```
-
-### Tạo Code
-```
-Ask Roo: "Write a Python function to calculate Fibonacci numbers"
-Model: cx/deepseek-chat
-```
-
-### Reasoning Phức tạp
-```
-Ask Roo: "Analyze the trade-offs between microservices and monolithic architecture"
-Model: cx/deepseek-reasoner
-```
-
-## Mẹo Chọn Model
-
-- **Task nhanh**: Dùng `cc/claude-haiku-4-20250514` hoặc `glm/glm-4-flash`
-- **Hiệu năng cân bằng**: Dùng `cc/claude-sonnet-4-20250514` hoặc `cx/deepseek-chat`
-- **Reasoning phức tạp**: Dùng `cc/claude-opus-4-5-20251101` hoặc `cx/deepseek-reasoner`
-- **Tối ưu chi phí**: Dùng model DeepSeek hoặc GLM
-
-## Troubleshooting
-
-### Connection Failed
-- Xác minh ZenRouter đang chạy: `curl http://localhost:20128/health`
-- Kiểm tra API key đúng
-- Đảm bảo Base URL bao gồm hậu tố `/v1`
-
-### Model không khả dụng
-- Kiểm tra tên model khớp chính xác (case-sensitive)
-- Xác minh model được bật trong ZenRouter plan
-- Thử model khác từ danh sách
-
-### Phản hồi Chậm
-- Chuyển sang model nhanh hơn (haiku, flash)
-- Kiểm tra kết nối network
-- Theo dõi logs ZenRouter để xem vấn đề
-
-## Cấu hình Nâng cao
-
-### Custom Model Aliases
-
-Bạn có thể tạo shortcut cho model thường dùng trong Roo settings:
-
-```
-Alias: "fast" → cc/claude-haiku-4-20250514
-Alias: "smart" → cc/claude-opus-4-5-20251101
-Alias: "code" → cx/deepseek-chat
-```
-
-### Nhiều Profile
-
-Setup profile khác nhau cho use case khác nhau:
-- **Development**: Model DeepSeek cho code
-- **Writing**: Model Claude cho nội dung
-- **Research**: Model Reasoner cho phân tích
-
-## Bước tiếp theo
-
-- [Cấu hình Cursor](cursor.md) cho tích hợp IDE
-- [Setup Continue](continue.md) cho VSCode
-- [Khám phá CLI usage](../cli/basic-usage.md)
+`/api/health` không chứng minh inference. Kiểm tra tools/media, tôn trọng retry/cancel. Remote cần HTTPS có auth do bạn quản lý, không cloud Kitsune mặc định. [Công cụ khác](/vi/integration/other-tools/) · [Khắc phục](/vi/troubleshooting/) · [Di chuyển](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).

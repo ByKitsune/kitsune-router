@@ -67,14 +67,14 @@ async function startTerminalUI(port) {
   // Configure API client
   api.configure({ port });
 
-  const basePath = ["ZenRouter"];
+  const basePath = ["Kitsune Router"];
 
   // Prime header cache before first render
   await refreshHeaderBg(port);
 
   // Main menu
   await showMenuWithBack({
-    title: "📡 ZenRouter Terminal UI",
+    title: "📡 Kitsune Router Terminal UI",
     breadcrumb: basePath,
     headerContent: () => getHeader(port),
     items: [

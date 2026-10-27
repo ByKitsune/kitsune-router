@@ -53,8 +53,8 @@ async function tryNodeSqlite() {
 
 async function trySqlJs() {
   try {
-    if (process.env.ZENROUTER_SQLJS_SINGLE_PROCESS !== "true") {
-      throw Object.assign(new Error("sql.js requires ZENROUTER_SQLJS_SINGLE_PROCESS=true and exclusive single-process DATA_DIR ownership; use a native SQLite driver for workers"), { code: "SQLJS_SINGLE_PROCESS_REQUIRED" });
+    if (process.env.KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS !== "true") {
+      throw Object.assign(new Error("sql.js requires KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true and exclusive single-process DATA_DIR ownership; use a native SQLite driver for workers"), { code: "SQLJS_SINGLE_PROCESS_REQUIRED" });
     }
     const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
     return await createSqlJsAdapter(DATA_FILE);

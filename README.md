@@ -1,131 +1,111 @@
 <div align="center">
-  <img src="public/icons/icon-192.svg" width="96" height="96" alt="ZenRouter Logo" />
-  <h1>🌿 ZenRouter</h1>
-  <p><b>Unified High-Performance AI Gateway & Intelligent Multi-Provider Routing Engine</b></p>
-  <p>
-    <a href="https://github.com/ZenRouter/ZenRouter/releases"><img src="https://img.shields.io/github/v/release/ZenRouter/ZenRouter?color=84cc16&label=release" alt="Release" /></a>
-    <a href="https://www.npmjs.com/package/@joyccn/zenrouter"><img src="https://img.shields.io/npm/v/@joyccn/zenrouter?color=84cc16&label=npm" alt="NPM Version" /></a>
-    <a href="https://hub.docker.com/r/joyccn/zenrouter"><img src="https://img.shields.io/docker/pulls/joyccn/zenrouter?color=84cc16" alt="Docker Pulls" /></a>
-    <a href="https://github.com/ZenRouter/ZenRouter/blob/master/LICENSE"><img src="https://img.shields.io/github/license/ZenRouter/ZenRouter?color=84cc16" alt="License" /></a>
-  </p>
+  <img src="public/brand/bykitsune-favicon.png" width="96" height="96" alt="Kitsune Router — ByKitsune" />
+  <h1>Kitsune Router</h1>
+  <p><strong>Your models. Your routes.</strong></p>
+  <p>A provider-neutral, local-first AI gateway. Maintained and sponsored by <a href="https://bykitsune.com">ByKitsune</a>.</p>
+  <p><a href="https://github.com/ByKitsune/kitsune-router">GitHub</a> · <a href="https://github.com/ByKitsune/kitsune-router/releases">Releases</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="LICENSE">MIT license</a></p>
 </div>
 
----
+Kitsune Router connects coding tools, agents and SDKs to the providers **you choose** through a local dashboard and compatible APIs. Configure accounts, model combos, fallback, translation and usage tracking without a required ByKitsune account or a prescribed provider order. Requests still go to the upstreams you configure; local-first does not mean offline inference.
 
-## ⚡ What is ZenRouter?
+## Release status
 
-**ZenRouter** is an open-source, high-performance local AI gateway and routing platform that exposes a clean, drop-in **OpenAI & Anthropic-compatible API endpoint** (`/v1/*`) while intelligently orchestrating, translating, and load-balancing requests across **40+ upstream AI providers**.
+**1.0.1 is the selected next release candidate, pending final tag/SHA verification and publication.** The identities are GitHub [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router), npm [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router), command `kitsune-router`, and canonical image `ghcr.io/bykitsune/kitsune-router`.
 
-Designed for developers, agentic frameworks, and multi-account setups, ZenRouter delivers:
-- 🚀 **Zero-Downtime Smart Fallback**: Dynamic circuit breaker, quota reset tracking, and instant failover across model combos and pooled accounts.
-- ✂️ **Real-Time Token Compression (RTK / Headroom)**: In-place prompt and tool execution compression saving up to 40% input tokens.
-- 🎭 **Protocol-Aware Format Translation**: Bi-directional translation between OpenAI Chat, Anthropic Claude Messages, OpenAI Responses API, Google Gemini, and Ollama, with native media/tool preservation and explicit limits where protocols differ.
-- 📊 **Local-First & Multi-Driver SQLite**: Shared configuration and usage storage. Bun prefers `bun:sqlite`; Node tries `better-sqlite3` then `node:sqlite`, with `sql.js` as the portable fallback.
-- 🌐 **Web Search Grounding**: Integrated Google Search, Xquik (X platform search), and Ollama search providers.
-- 💻 **One-Click CLI Tool Presets**: Instant configuration for Claude Code CLI, OpenAI Codex CLI, Cursor, Cline, OpenClaw, Hermes Agent, and Droid.
+The **v1.0.0 tag remains immutable at `390a65677c06a30084386d2a2adf8b0c48709281`**. Its release workflow failed on the non-root process-ownership scan; no npm 1.0.0 package or canonical GHCR 1.0.0 image was published. v1.0.1 follows with a deterministic process-isolated regression harness and mobile key-row wrapping, not a relaxed production ownership check or a moved tag. Unreadable same-UID ownership still fails closed. Scoped regressions and a bounded native non-root check have been reported; final tag-bound verification remains pending. See the [1.0.0 attempt record](releases/RELEASE_NOTES_v1.0.0.md) and [1.0.1 release draft](releases/RELEASE_NOTES_v1.0.1.md).
 
----
+The GitHub organization/repository are confirmed. npm now authenticates as `bykitsune` and Actions credentials were updated, but authentication alone does not prove package-publishing permission or publication. Final v1.0.1 verification, npm authorization, registry visibility and artifact readback remain pending. Commands below apply **after publication**; use a source checkout now. Earlier 0.x records remain original ZenRouter artifacts. Read the [migration guide](docs/MIGRATION.md).
 
-## Current release: 0.9.13
+Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) on the verified official Cloudflare account. It is a preview, not proof of a v1.0.1 release or a custom-domain/DNS change.
 
-Dated **2026-10-19**. [GitHub release](https://github.com/ZenRouter/ZenRouter/releases/tag/v0.9.13) · [Changelog](CHANGELOG.md) · [Technical details](docs/CHANGELOG_v0.9.13.md) · [Release notes](releases/RELEASE_NOTES_v0.9.13.md).
+## Quick start
 
-This release fixes false thinking-budget errors in dashboard model tests and makes provider thinking defaults persist. OpenAI and Codex gain independent Standard/Fast/Ultrafast controls, with native request fields, account-scoped eligibility and retained file attachments. Faster tiers can cost more; selection does not prove account entitlement or actual delivery. See [processing speed](docs/PROCESSING-SPEED.md) and the [verification limits](releases/RELEASE_NOTES_v0.9.13.md#verification-and-limits).
+Requires **Node.js >=22.19.0** for the launcher.
 
-Source updates after that release are listed under [Unreleased](CHANGELOG.md#unreleased).
-They are not retroactively included in earlier published artifacts. For the current
-test workflow and its live-provider limits, see [tests/README.md](tests/README.md).
-
-For a source checkout, install the committed dependency tree with `npm ci`, not
-an old `node_modules` directory. `npm run check:deps` verifies the installed
-direct dependencies against the lockfile before builds. See the
-[transport recovery and source-build checks](docs/audit/20-fetch-transport-recovery-2026-10.md).
-
-## 🚀 Quick Start
-
-Requires **Node.js >=22.19.0** for NPX/global installation. Examples pin 0.9.13 and apply after the package/image is published; preparing release documentation does not publish it.
-
-### 1. Run with NPX (Zero-Install)
 ```bash
-npx @joyccn/zenrouter@0.9.13
+# After 1.0.1 is published:
+npx @bykitsune/router@1.0.1
+
+# Or install the launcher globally:
+npm install -g @bykitsune/router@1.0.1
+kitsune-router
 ```
 
-### 2. Global NPM Install
+For a source checkout, run these commands from the repository root (there is no `app/` subdirectory):
+
+For a **fresh** source install, generate the session secret once in a private `.env` as below (POSIX shell and OpenSSL). `next dev` does **not** use the launcher's automatic secret setup; without a strong `JWT_SECRET` of at least 32 characters dashboard login fails. For an upgrade/migration, retain the existing effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` instead; follow [migration](docs/MIGRATION.md) before starting.
+
 ```bash
-npm install -g @joyccn/zenrouter@0.9.13
-zenrouter
+git clone https://github.com/ByKitsune/kitsune-router.git
+cd kitsune-router
+umask 077
+cp -n .env.example .env
+if ! grep -q '^JWT_SECRET=.' .env; then
+  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
+fi
+chmod 600 .env
+npm ci
+npm run check:deps
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
-### 3. Docker & Docker Compose
+The canonical repository is available; an existing checkout can also be used. The launcher can bind beyond loopback by default; for a local-only session use `kitsune-router --host 127.0.0.1` (or append `--host 127.0.0.1` to NPX). Set a strong `INITIAL_PASSWORD` in your private environment before exposing the service. Open `http://localhost:20128/dashboard`, connect a permitted upstream, create/copy a gateway API key, and select a model actually listed by your installation.
 
-The publication workflow targets **linux/amd64**, not a multi-architecture image. Persist data at **/app/data**; see the [Docker guide](DOCKER_README.md).
+Review `.env` before startup: use a writable **absolute** state path and fresh private API/identity secrets rather than published example values on a new install; keep all existing values on upgrades. Never commit `.env` or print its secrets in logs/issues.
+
+| Address | Purpose |
+| --- | --- |
+| `http://localhost:20128/dashboard` | Provider, credential, combo and usage management |
+| `http://localhost:20128/v1` | OpenAI-compatible client base URL |
+| `http://localhost:20128/v1/messages` | Anthropic-compatible Messages endpoint |
+| `http://localhost:20128/v1/models` | Available model/route discovery |
+| `http://localhost:20128/api/health` | Health probe; not proof of upstream availability |
+
+### Containers
+
+The publication workflow targets **linux/amd64 only**. After verifying the image exists and you have access:
+
 ```bash
-docker run -d \
-  --name zenrouter \
-  -p 20128:20128 \
-  -v zenrouter-data:/app/data \
+docker run -d --name kitsune-router \
+  --platform linux/amd64 \
+  -p 127.0.0.1:20128:20128 \
+  -v kitsune-router-data:/app/data \
+  -e DATA_DIR=/app/data \
+  -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  joyccn/zenrouter:0.9.13
+  ghcr.io/bykitsune/kitsune-router:1.0.1
 ```
 
-Using `docker-compose.yml`:
-```yaml
-services:
-  zenrouter:
-    image: joyccn/zenrouter:0.9.13
-    platform: linux/amd64
-    container_name: zenrouter
-    restart: unless-stopped
-    ports:
-      - "20128:20128"
-    volumes:
-      - ./data:/app/data
-    environment:
-      - PORT=20128
-      - INITIAL_PASSWORD=admin12345
-```
+Set `INITIAL_PASSWORD` securely in the invoking environment first. The example uses default `/app/data`; for a supported custom absolute `DATA_DIR`, keep the same existing volume mounted at that exact effective path. Do not substitute an empty volume just to rename the service. See [Docker](DOCKER.md).
 
----
+## Capabilities and limits
 
-## 🎯 Architecture Overview
+- **Multi-provider routing:** explicit model combos and account pools, with quota-aware fallback and cancellation/error handling. No bypass of provider quotas, regional restrictions or terms.
+- **Protocol translation:** Chat Completions, Responses, Anthropic Messages, Gemini and Ollama-compatible surfaces, with route-specific support. Unrepresentable controls or documents may be rejected rather than silently discarded.
+- **Local state:** SQLite configuration/usage plus installation secrets and optional auth/certificate files. Protect the whole data directory; do not assume all stored provider keys are encrypted at rest.
+- **Optional token-saving tools:** RTK, Headroom and related controls can reduce some workloads. Savings, answer quality and latency depend on the workload; no fixed percentage or uninterrupted availability is promised.
+- **Tool integrations:** dashboard presets for coding tools and documented manual configurations. Use `kitsunerouter` as the **client provider key** and `kitsune-router` as the **executable**.
+- **Usage visibility:** measured tokens, known cost subtotals and unknown prices are distinct. Estimates are not invoices; subscription credits are not API-dollar charges.
 
-```text
-[Client / Agent / SDK]
-  (Claude Code, Codex, Cline, Cursor, Hermes Agent, OpenAI SDK)
-             │
-             ▼
-┌────────────────────────────────────────────────────────┐
-│  ZenRouter Server (Port 20128 / /v1/*)                 │
-│  • Format Detection & Bidirectional Translation        │
-│  • RTK / Headroom In-Place Token Compression           │
-│  • Multi-Account & Model-Combo Fallback Circuit        │
-│  • Real-Time Token & Quota Tracking                    │
-└───────────────────────┬────────────────────────────────┘
-                        │
-                        ▼
-┌────────────────────────────────────────────────────────┐
-│  Multi-Provider Upstream Pools (40+ Providers)         │
-│  • Google Antigravity / Gemini CLI (Multi-OAuth Pool)  │
-│  • Anthropic Claude / OpenAI GPT / DeepSeek            │
-│  • NVIDIA NIM (130+ Node Load-Balancing Pool)          │
-│  • Mistral, Groq, Cerebras, Moonshot Kimi, MiniMax     │
-└────────────────────────────────────────────────────────┘
-```
+## Migrating from ZenRouter / 9Router
 
----
+Stop the old gateway and its helpers, then back up the **entire** state directory. Without an explicit `DATA_DIR`, first startup can migrate `~/.zenrouter` or `~/.9router` to `~/.kitsune-router` (Windows uses `%APPDATA%`). It verifies a consistent database snapshot and retained files, leaves originals in place, and refuses to overwrite an existing destination. `DATA_DIR` remains authoritative.
 
-## 🛠️ Configuration & Port Alignment
+Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the database. Encryption derivation constants and existing trusted certificate roots are intentionally retained. Rename project environment settings to `KITSUNE_ROUTER_*`, re-apply client presets using `kitsunerouter`, and use extension headers named `x-kitsune-router-*`. Standard `/v1/*` paths and port **20128** do not change. There is no required old-command/provider-key alias. Read [MIGRATION.md](docs/MIGRATION.md) before switching.
 
-| Endpoint | Purpose | Description |
-| :--- | :--- | :--- |
-| `http://localhost:20128` | **Web Dashboard** | Manage providers, credentials, combos, and live logs |
-| `http://localhost:20128/v1` | **API Base URL** | OpenAI / Anthropic-compatible routing endpoint |
-| `http://localhost:20128/v1/models` | **Catalog** | Active models & single-model lookup endpoint |
-| `http://localhost:20128/v1/search` | **Web Search** | Unified multi-provider web & X search |
+## Documentation and development
 
----
+- [Installation](docs/INSTALLATION.md) · [Integrations](docs/INTEGRATIONS.md) · [Operations](docs/OPERATIONS.md)
+- [Architecture](docs/ARCHITECTURE.md) · [Processing speed](docs/PROCESSING-SPEED.md) · [Reasoning](docs/REASONING-BUDGETS.md) · [Web search](docs/WEB-SEARCH.md)
+- [Tests and verification boundaries](tests/README.md) · [Contributor/agent guidance](CLAUDE.md)
+- [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 
-## 📄 License
+This documentation pass does not certify a current test/build result. Use SHA-bound release verification rather than historical pass counts.
 
-ZenRouter is open-source software licensed under the **MIT License**.
-Sponsored & maintained by **Joy** and the open-source community.
+**Languages:** [简体中文](README.zh-CN.md) · [Español](i18n/README.es.md) · [فارسی](i18n/README.fa_IR.md) · [Français](i18n/README.fr.md) · [Indonesia](i18n/README.id-ID.md) · [日本語](i18n/README.ja-JP.md) · [Português](i18n/README.pt-BR.md) · [Русский](i18n/README.ru.md) · [ไทย](i18n/README.th.md) · [Tiếng Việt](i18n/README.vi.md)
+
+## Maintainers, acknowledgments and license
+
+[ByKitsune](https://bykitsune.com) maintains and sponsors Kitsune Router with the community. A hosted ByKitsune service is optional, not a prerequisite or preferred routing destination.
+
+Kitsune Router continues ZenRouter and its 9Router lineage. Credit remains with their authors and contributors, including Joy, and with [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), [RTK](https://github.com/rtk-ai/rtk), [Caveman](https://github.com/JuliusBrussee/caveman) and [Ponytail](https://github.com/DietrichGebert/ponytail) for the acknowledged implementations and ideas. The rebrand does not replace upstream copyright notices or historical artifact provenance. See [LICENSE](LICENSE).

@@ -1,6 +1,6 @@
 // Port of rtk src/cmds/system/env_cmd.rs (v0.45.x) — post-hoc variant.
 // Compresses `env`/`printenv` dumps: sorted, values truncated, and — as a
-// zenrouter security extension — secret-looking values are redacted outright
+// kitsunerouter security extension — secret-looking values are redacted outright
 // (upstream only truncates; agents pasting real env vars into tool results
 // is exactly how API keys leak into LLM contexts).
 import { CAP_LIST } from "../constants.js";

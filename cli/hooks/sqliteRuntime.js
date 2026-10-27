@@ -3,8 +3,8 @@
 // sql.js is bundled in bin/app already; node:sqlite / bun:sqlite are built-in.
 const { execSync, spawnSync } = require("child_process");
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
+const { resolveDataDirectory } = require("./dataDirectory");
 
 // Gate the pinned version by Node major, mirroring src/lib/db/driver.js gating
 // style: 13.x is N-API and ships per-platform prebuilds inside the package, so
@@ -15,19 +15,16 @@ const USE_NAPI_BUILD = NODE_MAJOR >= 22;
 const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.0.3" : "12.6.2";
 const SQL_JS_VERSION = "1.14.2";
 
-function getDataDir() {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  return process.platform === "win32"
-    ? path.join(process.env.APPDATA || os.homedir(), "zenrouter")
-    : path.join(os.homedir(), ".zenrouter");
+function getDataDir(env = process.env) {
+  return resolveDataDirectory({ env });
 }
 
-function getRuntimeDir() {
-  return path.join(getDataDir(), "runtime");
+function getRuntimeDir(env = process.env) {
+  return path.join(getDataDir(env), "runtime");
 }
 
-function getRuntimeNodeModules() {
-  return path.join(getRuntimeDir(), "node_modules");
+function getRuntimeNodeModules(env = process.env) {
+  return path.join(getRuntimeDir(env), "node_modules");
 }
 
 function ensureRuntimeDir() {
@@ -38,10 +35,10 @@ function ensureRuntimeDir() {
   const pkgPath = path.join(dir, "package.json");
   if (!fs.existsSync(pkgPath)) {
     fs.writeFileSync(pkgPath, JSON.stringify({
-      name: "zenrouter-runtime",
+      name: "kitsune-router-runtime",
       version: "1.0.0",
       private: true,
-      description: "User-writable runtime deps for zenrouter (better-sqlite3 native binary)",
+      description: "User-writable runtime deps for Kitsune Router (better-sqlite3 native binary)",
     }, null, 2));
   }
   return dir;
@@ -163,11 +160,11 @@ function ensureSqliteRuntime({ silent = false } = {}) {
 // Inject runtime + bundled node_modules into NODE_PATH so child Node processes
 // resolve sql.js (bundled in bin/app/node_modules) and better-sqlite3 (runtime).
 function buildEnvWithRuntime(baseEnv = process.env) {
-  const runtimeNm = getRuntimeNodeModules();
+  const runtimeNm = getRuntimeNodeModules(baseEnv);
   const bundledNm = path.join(__dirname, "..", "app", "node_modules");
   const existing = baseEnv.NODE_PATH || "";
   const NODE_PATH = [runtimeNm, bundledNm, existing].filter(Boolean).join(path.delimiter);
-  return { ...baseEnv, NODE_PATH };
+  return { ...baseEnv, DATA_DIR: getDataDir(baseEnv), NODE_PATH };
 }
 
 module.exports = {

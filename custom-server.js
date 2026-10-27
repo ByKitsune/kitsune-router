@@ -4,12 +4,16 @@ const fs = require("fs");
 const crypto = require("crypto");
 const { isIP } = require("node:net");
 const { registerShutdownHook, isShuttingDown, runShutdownHooks } = require("./shutdown-lifecycle.cjs");
+const { migrateLegacyEnvironment } = require("./cli/hooks/dataDirectory.js");
+
+// Pure startup option aliases only. Peer proofs remain boot-generated below.
+migrateLegacyEnvironment(process.env);
 
 const managedShutdown = require.main === module;
 if (managedShutdown) {
-  process.env.ZENROUTER_MANAGED_SHUTDOWN = "1";
+  process.env.KITSUNE_ROUTER_MANAGED_SHUTDOWN = "1";
   process.env.NEXT_MANUAL_SIG_HANDLE = "1";
-  const dbLifecycle = globalThis[Symbol.for("zenrouter.db.lifecycle")] ??= { managed: true, releases: new Set() };
+  const dbLifecycle = globalThis[Symbol.for("kitsunerouter.db.lifecycle")] ??= { managed: true, releases: new Set() };
   dbLifecycle.managed = true;
   for (const release of [...dbLifecycle.releases]) release();
   let stopping = false;
@@ -17,7 +21,7 @@ if (managedShutdown) {
     process.once(signal, () => {
       if (stopping) return;
       stopping = true;
-      const configured = Number(process.env.ZENROUTER_SHUTDOWN_DEADLINE_MS || 15000);
+      const configured = Number(process.env.KITSUNE_ROUTER_SHUTDOWN_DEADLINE_MS || 15000);
       const deadlineMs = Number.isSafeInteger(configured) && configured > 0 ? configured : 15000;
       const forceExit = setTimeout(() => process.exit(1), deadlineMs);
       runShutdownHooks({ deadlineMs }).then(() => {
@@ -65,6 +69,7 @@ const origCreate = http.createServer.bind(http);
     // A malformed or unreadable .env must never prevent the server from booting.
   }
 })();
+migrateLegacyEnvironment(process.env);
 
 // Fix #3744: suppress SOCKS5 and SQLite ExperimentalWarning (undici socks5-proxy-agent and node:sqlite emit on first use)
 if (typeof process !== "undefined") {
@@ -95,12 +100,11 @@ if (typeof process !== "undefined") {
   }
 }
 
-// Per-process secret proving x-zen-real-ip was stamped below rather than sent by the client.
+// Per-process secret proving x-kitsune-router-real-ip was stamped below rather than sent by the client.
 // A bare `next start` / `next dev` never loads this file, so it cannot produce a matching
 // header even though the env var is inherited by child processes.
 const PEER_TOKEN = crypto.randomBytes(24).toString("hex");
-process.env.ZENROUTER_PEER_TOKEN = PEER_TOKEN;
-process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
+process.env.KITSUNE_ROUTER_PEER_TOKEN = PEER_TOKEN;
 
 // Wrap Next standalone HTTP server: derive client IP from the TCP socket
 // (unspoofable) and strip client-supplied forwarding headers so downstream
@@ -249,21 +253,21 @@ http.createServer = (...args) => {
     const lastHop = xffHops.at(-1)?.trim() || "";
     const proxyIp = isIP(lastHop) ? lastHop : "";
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
-    delete req.headers["x-zen-real-ip"];
+    delete req.headers["x-kitsune-router-real-ip"];
     delete req.headers["x-forwarded-for"];
     delete req.headers["x-real-ip"];
-    delete req.headers["x-zen-via-proxy"];
-    delete req.headers["x-zen-peer-token"];
-    req.headers["x-zen-real-ip"] = ip;
-    req.headers["x-zen-peer-token"] = PEER_TOKEN;
+    delete req.headers["x-kitsune-router-via-proxy"];
+    delete req.headers["x-kitsune-router-peer-token"];
+    req.headers["x-kitsune-router-real-ip"] = ip;
+    req.headers["x-kitsune-router-peer-token"] = PEER_TOKEN;
     if (viaProxy) {
-      req.headers["x-zen-via-proxy"] = "1";
+      req.headers["x-kitsune-router-via-proxy"] = "1";
     }
 
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);
-  const configuredKeepAlive = Number(process.env.ZENROUTER_HTTP_KEEP_ALIVE_MS || 65000);
+  const configuredKeepAlive = Number(process.env.KITSUNE_ROUTER_HTTP_KEEP_ALIVE_MS || 65000);
   server.keepAliveTimeout = Number.isSafeInteger(configuredKeepAlive) && configuredKeepAlive >= 1000 && configuredKeepAlive <= 600000 ? configuredKeepAlive : 65000;
   server.headersTimeout = Math.max(66000, server.keepAliveTimeout + 1000);
   if (managedShutdown) {

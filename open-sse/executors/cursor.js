@@ -239,7 +239,7 @@ function createAgentExecResponse(execRequest, field, payload) {
 }
 
 function createRequestContextResponse(execRequest) {
-  // AgentService asks every run for client context. zenrouter has no IDE file
+  // AgentService asks every run for client context. kitsunerouter has no IDE file
   // context, so acknowledge with an empty RequestContext.
   const requestContextSuccess = agentMessage(1, new Uint8Array());
   const requestContextResult = agentMessage(1, requestContextSuccess);
@@ -608,7 +608,7 @@ export class CursorExecutor extends BaseExecutor {
             }
 
             // AgentService requests IDE context before producing a response.
-            // Return an empty context; zenrouter is not coupled to an editor.
+            // Return an empty context; kitsunerouter is not coupled to an editor.
             if (serverMessage.has(2)) {
               const execRequest = decodeMessage(serverMessage.get(2)[0].value);
               if (execRequest.has(10)) {
@@ -639,7 +639,7 @@ export class CursorExecutor extends BaseExecutor {
                 }
               } else {
                 // Every other ExecServerMessage variant is an editor-backed tool
-                // (shell, read, write, …) that zenrouter cannot service. Fail the
+                // (shell, read, write, …) that kitsunerouter cannot service. Fail the
                 // turn rather than narrating protocol state as assistant text.
                 debugLog(`[CURSOR AGENT] Unsupported exec request fields: ${[...execRequest.keys()].join(",")}`);
                 finished = true;

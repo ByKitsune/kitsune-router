@@ -166,13 +166,13 @@ export async function writeStreamError(writer, statusCode, message) {
 // to avoid ERROR_RULES trigger phrases so this error keeps its fail-fast,
 // no-cooldown, no-fallback classification in accountFallback.js.
 const GOOGLE_LOCATION_GATE_RE = /user location is not supported/i;
-const ZEN_LOCATION_GATE_HINT = "[ZenRouter hint: Google decided this from your server's egress IP region (the Antigravity free tier enforces its own regional allowlist) — not from your request content, account, or quota. Options: (1) send this connection through a proxy/VPN exiting in a supported region, (2) use Claude models on the same Antigravity account (unaffected), (3) turn off TUN-mode VPN / IPv6 egress to Google and retry. Details: docs/antigravity-location-error.md]";
+const ROUTER_LOCATION_GATE_HINT = "[Kitsune Router hint: Google decided this from your server's egress IP region (the Antigravity free tier enforces its own regional allowlist) — not from your request content, account, or quota. Options: (1) send this connection through a proxy/VPN exiting in a supported region, (2) use Claude models on the same Antigravity account (unaffected), (3) turn off TUN-mode VPN / IPv6 egress to Google and retry. Details: docs/antigravity-location-error.md]";
 
 export function withLocationGateHint(message) {
   if (typeof message !== "string" || message.length === 0) return message;
   if (!GOOGLE_LOCATION_GATE_RE.test(message)) return message;
-  if (message.includes("[ZenRouter hint:")) return message;
-  return `${message} ${ZEN_LOCATION_GATE_HINT}`;
+  if (message.includes("[Kitsune Router hint:")) return message;
+  return `${message} ${ROUTER_LOCATION_GATE_HINT}`;
 }
 
 /**

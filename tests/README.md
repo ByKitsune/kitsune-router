@@ -1,4 +1,4 @@
-# Verify ZenRouter changes
+# Verify Kitsune Router changes
 
 Run the gateway, translator, persistence, discovery, pricing and dashboard contract suites from the repository root. Keep provider inference opt-in and use isolated state for runtime smoke checks.
 
@@ -29,7 +29,7 @@ For local runtime checks, use a fresh absolute `DATA_DIR`, a separate `HOME`, sy
 
 - Set `RUN_REAL`, `RUN_E2E`, `RUN_LIVE_TESTS` and `AG_CACHE_TEST` to `0`
 - Set `MODEL_CATALOG_SYNC=off` and `DISABLE_BACKGROUND_TOKEN_REFRESH=1`
-- Set `ZENROUTER_DISABLE_MITM=1` and `NEXT_TELEMETRY_DISABLED=1`
+- Set `KITSUNE_ROUTER_DISABLE_MITM=1` and `NEXT_TELEMETRY_DISABLED=1`
 
 Live-provider tests self-skip without their opt-in conditions or credentials. A skipped live test does not verify serving availability, image understanding, account entitlement or an upstream invoice. The private cloud embeddings suite remains `unit/embeddings.cloud.test.js.skip` until that checkout exists.
 
@@ -78,8 +78,8 @@ counts, zero failed assertions and zero failed suites. A collection failure can
 report zero failed test cases; `verify-no-regression.mjs` now rejects that case:
 
 ```bash
-npm test -- --reporter=json --outputFile=/tmp/opencode/zen-vitest.json
-node tests/__baseline__/verify-no-regression.mjs /tmp/opencode/zen-vitest.json
+npm test -- --reporter=json --outputFile=/tmp/opencode/kitsune-router-vitest.json
+node tests/__baseline__/verify-no-regression.mjs /tmp/opencode/kitsune-router-vitest.json
 ```
 
 Run the independent documentation and HTTP/2 compatibility checks:

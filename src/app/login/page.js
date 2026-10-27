@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Card, Button, Input } from "@/shared/components";
+import Link from "next/link";
+import { BRAND } from "../../../branding/identity.mjs";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -45,7 +46,7 @@ export default function LoginPage() {
           if (data.authenticated === true || data.requireLogin === false) {
             // Full reload on purpose: the session cookie changed, so the
             // client-side RSC cache must be dropped rather than soft-navigated.
-            // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+            // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
             window.location.assign("/dashboard");
             return;
           }
@@ -73,6 +74,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading || retryAfter > 0) return;
     setLoading(true);
     setError("");
     setResetHint("");
@@ -91,7 +93,7 @@ export default function LoginPage() {
           return;
         }
         // Full reload on purpose: a fresh session cookie was just issued.
-        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+        // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       } else {
         const data = await res.json();
@@ -109,6 +111,7 @@ export default function LoginPage() {
   // Force a new password before entering the dashboard (default + remote).
   const handleSetNewPassword = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
     try {
@@ -119,7 +122,7 @@ export default function LoginPage() {
       });
       if (res.ok) {
         // Full reload on purpose: credentials rotated, session cookie reissued.
-        // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+        // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       } else {
         const data = await res.json();
@@ -135,13 +138,13 @@ export default function LoginPage() {
   const handleOidcLogin = () => {
     // Route handler that answers with a 302 to the external IdP — a client-side
     // soft navigation cannot follow it, so a document-level load is required.
-    // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+    // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
     window.location.href = "/api/auth/oidc/start";
   };
 
   const handleSamlLogin = () => {
     // Route handler that answers with a 302 to the external IdP (see above).
-    // eslint-disable-next-line zenrouter/no-location-assign-relative-destination
+    // eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination
     window.location.href = "/api/auth/saml/start";
   };
 
@@ -158,155 +161,164 @@ export default function LoginPage() {
   if (hasPassword === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg p-4">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-text-muted mt-4">Loading...</p>
+        <div className="flex items-center gap-4" role="status">
+          <Image src="/icons/logo.svg" alt="" width={40} height={40} />
+          <p className="text-sm text-text-main">Checking sign-in options…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg p-4 relative overflow-hidden">
-      {/* Dynamic ambient gradient glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-500/10 dark:bg-brand-500/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-[300px] h-[200px] bg-accent-sun/10 rounded-full blur-[100px] pointer-events-none" />
-      {/* Faint grid background */}
-      <div className="landing-grid absolute inset-0 pointer-events-none opacity-40" aria-hidden="true" />
-      
-      <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-300">
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-surface border border-border p-3 mb-4 shadow-[var(--shadow-warm)] hover:scale-105 transition-transform duration-300">
-            <Image src="/icons/logo.svg" alt="ZenRouter" width={40} height={40} className="h-full w-full object-contain" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-main mb-1.5 flex items-center justify-center gap-2">
-            ZenRouter
-            <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">Gateway</span>
-          </h1>
-          <p className="text-sm text-text-muted max-w-xs mx-auto">
-            {samlAvailable
-              ? "Sign in with SAML 2.0 Single Sign-On"
-              : oidcAvailable
-              ? "Sign in with your OIDC identity provider"
-              : "Serene AI Gateway & Intelligent Routing Engine"}
-          </p>
+    <div className="flex min-h-svh flex-col bg-bg text-text-main">
+      <header className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-5 py-6 sm:px-10">
+        <Link href="/landing" className="flex items-center gap-2.5 text-base font-bold tracking-tight sm:text-lg">
+          <Image src="/icons/logo.svg" alt="" width={34} height={34} />
+          {BRAND.name}
+        </Link>
+        <a href={BRAND.docsUrl} className="inline-flex min-h-11 items-center text-sm font-semibold hover:underline underline-offset-4">Docs</a>
+      </header>
+      <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-center gap-12 px-5 pb-12 pt-8 sm:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-24 lg:py-16">
+        <div className="hidden lg:block">
+          <Image src="/icons/logo.svg" alt="" width={112} height={112} className="mb-8" />
+          <p className="text-[clamp(44px,4.5vw,64px)] font-semibold leading-[1.05] tracking-[-0.06em]">Your models.<br />Your routes.</p>
+          <p className="mt-7 max-w-sm text-base leading-7">Your gateway’s connections, fallback rules and usage. Managed on your installation.</p>
+          <p className="mt-12 max-w-sm text-sm leading-7 text-text-muted">Maintained and sponsored by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a>. Use the providers you choose.</p>
         </div>
-
-        <div className="bg-surface/85 backdrop-blur-xl border border-border rounded-2xl p-6 sm:p-8 shadow-[var(--shadow-elev)]">
+        <div className="mx-auto w-full max-w-md bg-bg-alt p-6 sm:p-9">
+          <div className="mb-7">
+            <h1 className="text-3xl font-semibold tracking-[-0.05em]">{mustChange ? "Set a new password" : "Open your dashboard"}</h1>
+            <p className="mt-3 text-sm leading-6 text-text-muted">
+              {mustChange
+                ? "Choose a unique password to protect this installation."
+                : samlAvailable
+                  ? "Sign in with your SAML identity provider."
+                  : oidcAvailable
+                    ? "Sign in with your OIDC identity provider."
+                    : "Sign in to this Kitsune Router installation."}
+            </p>
+          </div>
           {mustChange ? (
-            <form onSubmit={handleSetNewPassword} className="flex flex-col gap-4">
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+            <form onSubmit={handleSetNewPassword} className="flex flex-col gap-5" aria-busy={loading}>
+              <div className="bg-surface-2 p-4">
+                <p className="text-sm leading-6">
                   Set a secure password before accessing the dashboard remotely.
                 </p>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">New Password</label>
-                <Input
+                <label htmlFor="new-password" className="text-sm font-semibold">New password</label>
+                <input
+                  id="new-password"
+                  name="newPassword"
                   type="password"
-                  placeholder="Enter new password"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
+                  autoComplete="new-password"
+                  className="min-h-12 w-full border border-border bg-surface px-3 text-base text-text-main"
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "login-error" : undefined}
                   required
                   autoFocus
                 />
-                {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+                <p id="login-error" className="text-sm leading-6 text-red-700 dark:text-red-300" role="alert">{error}</p>
               </div>
-              <Button type="submit" variant="primary" className="w-full h-11" loading={loading} disabled={!newPassword}>
-                Set Password &amp; Continue
-              </Button>
+              <button type="submit" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>
+                {loading ? "Saving password…" : "Set password & continue"}
+              </button>
             </form>
           ) : (
           <div className="flex flex-col gap-5">
             {samlAvailable && (
-              <Button type="button" variant="primary" className="w-full h-11" onClick={handleSamlLogin}>
+              <button type="button" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg" onClick={handleSamlLogin}>
                 {samlLoginLabel}
-              </Button>
+              </button>
             )}
 
             {oidcAvailable && (
-              <Button type="button" variant="primary" className="w-full h-11" onClick={handleOidcLogin}>
+              <button type="button" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg" onClick={handleOidcLogin}>
                 {oidcLoginLabel}
-              </Button>
+              </button>
             )}
 
             {ssoAvailable && passwordAvailable && (
-              <div className="relative flex items-center justify-center">
-                <div className="border-t border-border w-full" />
-                <span className="bg-surface px-3 text-xs uppercase tracking-wider text-text-subtle absolute">or</span>
-              </div>
+              <p className="text-center text-sm text-text-muted">Or use your dashboard password</p>
             )}
 
             {passwordAvailable ? (
-              <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <form onSubmit={handleLogin} className="flex flex-col gap-5" aria-busy={loading}>
                 {isSsoEnabled && !ssoAvailable && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 text-center bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                  <p className="bg-surface-2 p-4 text-sm leading-6">
                     {activeSsoType === "saml" ? "SAML SSO" : "OIDC"} login is enabled, but configuration is incomplete. Password login is active.
                   </p>
                 )}
 
                 {authMode === "both" && ssoAvailable && (
-                  <p className="text-xs text-text-muted text-center">
+                  <p className="text-sm leading-6 text-text-muted">
                     Password and {activeSsoType === "saml" ? "SAML SSO" : "OIDC"} login are both enabled.
                   </p>
                 )}
 
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">Password</label>
-                  </div>
-                  <Input
+                  <label htmlFor="login-password" className="text-sm font-semibold">Password</label>
+                  <input
+                    id="login-password"
+                    name="password"
                     type="password"
-                    placeholder="Enter password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                    autoComplete="current-password"
+                    className="min-h-12 w-full border border-border bg-surface px-3 text-base text-text-main"
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={[error ? "login-error" : "", retryAfter > 0 ? "login-rate-limit" : "", resetHint ? "login-reset-hint" : ""].filter(Boolean).join(" ") || undefined}
                     required
-                    autoFocus={!oidcAvailable}
+                    autoFocus={!ssoAvailable}
                   />
-                  {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+                  <p id="login-error" className="text-sm leading-6 text-red-700 dark:text-red-300" role="alert">{error}</p>
                   {retryAfter > 0 && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Locked. Retry in <span className="font-mono font-bold">{retryAfter}s</span>.
+                    <p id="login-rate-limit" className="text-sm leading-6 text-text-muted">
+                      Sign-in is temporarily paused. Retry in <span className="font-semibold tabular-nums">{retryAfter}s</span>.
                     </p>
                   )}
                   {resetHint && (
-                    <p className="text-xs text-text-muted bg-surface-2 p-2 rounded-lg border border-border">
-                      Forgot password? Open <code className="bg-surface px-1 py-0.5 rounded text-brand-600 dark:text-brand-400 font-mono">zenrouter</code> CLI → <b>Settings</b> → <b>Reset Password to Default</b>.
+                    <p id="login-reset-hint" className="bg-surface-2 p-4 text-sm leading-6">
+                      Forgot your password? Open the <code className="font-mono">{BRAND.binary}</code> CLI, then choose <strong>Settings → Reset Password to Default</strong>.
                     </p>
                   )}
                 </div>
 
-                <Button
+                <button
                   type="submit"
-                  variant="primary"
-                  className="w-full h-11 text-sm font-semibold cursor-pointer shadow-[var(--shadow-warm)]"
-                  loading={loading}
-                  disabled={retryAfter > 0}
+                  className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading || retryAfter > 0}
+                  aria-describedby={retryAfter > 0 ? "login-rate-limit" : undefined}
                 >
-                  {retryAfter > 0 ? `Wait ${retryAfter}s` : "Sign In to Dashboard"}
-                </Button>
+                  {loading ? "Signing in…" : retryAfter > 0 ? `Wait ${retryAfter}s` : "Sign in to dashboard"}
+                </button>
 
                 {usesDefaultPassword === true && (
-                  <div className="text-center pt-1">
-                    <p className="text-xs text-text-muted">
-                      Default password is <code className="bg-surface-2 border border-border px-1.5 py-0.5 rounded font-mono font-medium text-text-main">12345678</code>
+                  <div className="bg-surface-2 p-4">
+                    <p className="text-sm leading-6">
+                      Default password: <code className="font-mono font-semibold">12345678</code>. Change it in Settings after signing in.
                     </p>
                   </div>
                 )}
                 {hasPassword === false && (
-                  <p className="text-xs text-center text-amber-600 dark:text-amber-400">
-                    Security notice: default password active. You will be prompted to update it on remote access.
+                  <p className="text-sm leading-6 text-text-muted">
+                    No custom password is configured. Set a unique password before exposing this installation remotely.
                   </p>
                 )}
               </form>
             ) : (
-              error && <p className="text-xs text-red-500 font-medium text-center">{error}</p>
+              <p className="text-sm leading-6 text-red-700 dark:text-red-300" role="alert">{error}</p>
             )}
           </div>
           )}
         </div>
-      </div>
+      </main>
+      <footer className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-5 py-6 text-xs leading-6 text-text-muted sm:px-10">
+        <p>A provider-neutral AI gateway. {BRAND.tagline}</p>
+        <p>Maintained by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a>.</p>
+      </footer>
     </div>
   );
 }

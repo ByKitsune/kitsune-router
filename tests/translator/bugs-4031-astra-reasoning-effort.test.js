@@ -9,7 +9,7 @@ const apply = (targetFormat, model, body, provider) => {
 };
 
 // 9Router #4031: gpt-6-astra rejects reasoning_effort:"none" on
-// /v1/chat/completions (low/medium/high only), yet ZenRouter emitted "none"
+// /v1/chat/completions (low/medium/high only), yet Kitsune Router emitted "none"
 // whenever thinking resolved to off — e.g. via the provider-level thinking
 // default or an explicit client "none" — breaking function tools on Astra.
 // Fix: astra declares thinkingCanDisable:false, and the openai wire format

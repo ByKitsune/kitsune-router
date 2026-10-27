@@ -1,9 +1,9 @@
 {
-  "name": "@joyccn/zenrouter",
-  "version": "0.9.13",
-  "description": "ZenRouter CLI - Serene AI Gateway & Intelligent Routing Engine",
+  "name": "@bykitsune/router",
+  "version": "1.0.1",
+  "description": "Kitsune Router CLI and provider-neutral AI gateway. Your models. Your routes.",
   "bin": {
-    "zenrouter": "./cli.js"
+    "kitsune-router": "./cli.js"
   },
   "files": [
     "cli.js",
@@ -28,13 +28,13 @@
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
-  "comment_sqlite": "sql.js + better-sqlite3 are NOT bundled here. They are installed into runtime directories (~/.zenrouter/runtime or ~/.9router/runtime) by hooks/postinstall.js.",
+  "comment_sqlite": "sql.js + better-sqlite3 are installed into the resolved DATA_DIR/runtime by hooks/postinstall.js. Legacy state is migrated before setup.",
   "comment_systray": "systray2 is NOT bundled here. It is lazy-installed into runtime directories by hooks/postinstall.js.",
   "engines": {
     "node": ">=22.19.0"
   },
   "keywords": [
-    "zenrouter",
+    "kitsune-router",
     "cli",
     "gateway",
     "proxy",
@@ -43,11 +43,17 @@
     "llm-router"
   ],
   "license": "MIT",
+  "author": "ByKitsune",
+  "homepage": "https://github.com/ByKitsune/kitsune-router#readme",
+  "bugs": "https://github.com/ByKitsune/kitsune-router/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "esbuild": "^0.28.2"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZenRouter/ZenRouter.git"
+    "url": "https://github.com/ByKitsune/kitsune-router.git"
   }
 }

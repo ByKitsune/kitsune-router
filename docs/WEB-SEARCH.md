@@ -1,5 +1,7 @@
 # Web search routing and grounding
 
+Kitsune Router keeps standard `/v1/search` routing; rebranding does not rename provider model IDs. See [current installation](INSTALLATION.md), [1.0.1 status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md). Dated validation below is not a fresh rebrand or live-provider result.
+
 `POST /v1/search` supports dedicated search providers and grounded LLM search. Provider selection is separate from the upstream grounding model.
 
 ## Request forms
@@ -12,7 +14,13 @@ A bare `model` selects a **provider**, preserving the historical web-search API 
 
 ```json
 { "provider": "gemini", "query": "Current release notes" }
+```
+
+```json
 { "provider": "gemini", "model": "gemini", "query": "Current release notes" }
+```
+
+```json
 { "model": "gemini/search", "query": "Current release notes" }
 ```
 
@@ -22,6 +30,9 @@ To select a grounding model explicitly:
 
 ```json
 { "provider": "gemini", "model": "gemini-3.8-flash", "query": "Current release notes" }
+```
+
+```json
 { "model": "ag/gemini-3.8-flash", "query": "Current release notes" }
 ```
 

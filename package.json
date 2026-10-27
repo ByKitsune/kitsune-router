@@ -1,12 +1,13 @@
 {
-  "name": "zenrouter-app",
-  "version": "0.9.13",
-  "description": "ZenRouter web dashboard & Serene AI Gateway",
+  "name": "kitsune-router-app",
+  "version": "1.0.1",
+  "description": "Kitsune Router dashboard and provider-neutral AI gateway. Your models. Your routes.",
   "private": true,
   "scripts": {
     "dev": "next dev --port 20128",
     "dev:webpack": "next dev --webpack --port 20128",
     "check:deps": "node scripts/check-installed-dependencies.mjs",
+    "check:brand": "node scripts/rebrand-identity.mjs",
     "prebuild": "node scripts/check-installed-dependencies.mjs",
     "build": "next build --webpack",
     "postbuild": "node scripts/copy-standalone-assets.mjs",
@@ -91,9 +92,12 @@
       "eslint": "$eslint"
     }
   },
+  "author": "ByKitsune",
+  "homepage": "https://github.com/ByKitsune/kitsune-router#readme",
+  "bugs": "https://github.com/ByKitsune/kitsune-router/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZenRouter/ZenRouter.git"
+    "url": "https://github.com/ByKitsune/kitsune-router.git"
   },
   "engines": {
     "node": ">=22.19.0"

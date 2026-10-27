@@ -9,7 +9,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-const packageName = process.env.UPDATER_PKG_NAME || "zenrouter";
+const packageName = process.env.UPDATER_PKG_NAME || "@bykitsune/router";
 const port = parseInt(process.env.UPDATER_PORT || "20129", 10);
 const tailLines = parseInt(process.env.UPDATER_TAIL_LINES || "8", 10);
 const maxRetries = parseInt(process.env.UPDATER_RETRIES || "3", 10);
@@ -22,11 +22,11 @@ const appPort = parseInt(process.env.UPDATER_APP_PORT || "20128", 10);
 
 // Data directory (match mitm/paths.js logic)
 function getDataDir() {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (process.env.DATA_DIR) return path.resolve(process.env.DATA_DIR);
   if (process.platform === "win32") {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "zenrouter");
+    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "kitsune-router");
   }
-  return path.join(os.homedir(), ".zenrouter");
+  return path.join(os.homedir(), ".kitsune-router");
 }
 const updateDir = path.join(getDataDir(), "update");
 try { fs.mkdirSync(updateDir, { recursive: true }); } catch { /* best effort */ }

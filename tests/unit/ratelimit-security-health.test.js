@@ -8,8 +8,8 @@
 //
 // P03-B: the response was missing HSTS, X-Content-Type-Options, X-Frame-Options,
 // Referrer-Policy and Permissions-Policy, and sent
-// `Access-Control-Allow-Headers: *`. This is not cosmetic: the gateway is
-// published through a Cloudflare tunnel (router.bykitsune.org → 127.0.0.1:20128).
+// `Access-Control-Allow-Headers: *`. These protections also cover operator
+// deployments exposed through an HTTPS reverse proxy or tunnel, not just loopback.
 //
 // P03-C: /api/health returned a constant {"ok":true}. The tunnel watchdog reads
 // it, so it reported healthy even with the database unreachable.
@@ -198,9 +198,41 @@ describe("security headers (P03-B)", () => {
     expect(spreads.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("documents that the gateway is publicly reachable via the tunnel", () => {
-    expect(config).toMatch(/Cloudflare tunnel/);
-    expect(config).toMatch(/router\.bykitsune\.org/);
+  it("preserves API and dashboard security policies independently of the reverse proxy or tunnel hostname", async () => {
+    const { default: nextConfig } = await import("../../next.config.mjs");
+    const rules = await nextConfig.headers();
+    expect(rules.map(rule => rule.source)).toEqual([
+      "/api/:path*", "/v1/:path*", "/v1beta/:path*",
+      "/((?!api|v1|v1beta|_next/static|_next/image).*)",
+    ]);
+    const baseline = {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    };
+    for (const rule of rules) {
+      const headers = Object.fromEntries(rule.headers.map(({ key, value }) => [key, value]));
+      expect(headers, rule.source).toMatchObject(baseline);
+      const csp = headers["Content-Security-Policy"];
+      if (rule.source.startsWith("/((?!")) {
+        const directives = Object.fromEntries(csp.split(";").map(value => {
+          const [directive, ...sources] = value.trim().split(/\s+/);
+          return [directive, sources];
+        }));
+        expect(directives["default-src"]).toEqual(["'self'"]);
+        expect(directives["connect-src"]).toEqual(expect.arrayContaining(["'self'", "ws:", "wss:"]));
+        expect(directives["connect-src"]).not.toContain("'none'");
+        expect(directives["connect-src"]).not.toContain("*");
+        expect(directives["object-src"]).toEqual(["'none'"]);
+        expect(directives["frame-ancestors"]).toEqual(["'self'"]);
+        expect(directives["base-uri"]).toEqual(["'self'"]);
+        expect(directives["form-action"]).toEqual(["'self'"]);
+      } else {
+        expect(csp, rule.source).toBe("default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+      }
+    }
   });
 });
 
@@ -253,9 +285,9 @@ describe("metrics endpoint (P04)", () => {
 
   it("answers the questions the audit could not answer from logs", () => {
     // Which models are used, and how many failures per status.
-    expect(source).toMatch(/zenrouter_model_requests_total/);
-    expect(source).toMatch(/zenrouter_failures_total/);
-    expect(source).toMatch(/zenrouter_requests_in_flight/);
+    expect(source).toMatch(/kitsunerouter_model_requests_total/);
+    expect(source).toMatch(/kitsunerouter_failures_total/);
+    expect(source).toMatch(/kitsunerouter_requests_in_flight/);
   });
 
   it("never emits an account label or identity", () => {
@@ -280,8 +312,8 @@ describe("metrics endpoint (P04)", () => {
   });
 
   it("still serves liveness when the stats query fails", () => {
-    // zenrouter_up and uptime are emitted before the try/catch block.
-    const upIdx = source.indexOf('line("zenrouter_up"');
+    // kitsunerouter_up and uptime are emitted before the try/catch block.
+    const upIdx = source.indexOf('line("kitsunerouter_up"');
     const tryIdx = source.indexOf("stats = await getUsageStats");
     expect(upIdx).toBeGreaterThan(-1);
     expect(tryIdx).toBeGreaterThan(upIdx);

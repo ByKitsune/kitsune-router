@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const globals = [Symbol.for("zenrouter.requestLogQueue"), Symbol.for("zenrouter.db.lifecycle"), "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers", "_requestFailureCounts"];
+const globals = [Symbol.for("kitsunerouter.requestLogQueue"), Symbol.for("kitsunerouter.db.lifecycle"), "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers", "_requestFailureCounts"];
 let directory, previous, adapter;
 
 beforeEach(async () => {
@@ -17,7 +17,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  const queue = globalThis[Symbol.for("zenrouter.requestLogQueue")];
+  const queue = globalThis[Symbol.for("kitsunerouter.requestLogQueue")];
   if (queue) await (await import("open-sse/utils/requestLogger.js")).flushRequestLogs({ deadline: Date.now() + 10_000 });
   await adapter?.close();
   adapter = null;

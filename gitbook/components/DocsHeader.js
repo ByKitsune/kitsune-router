@@ -1,78 +1,64 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useId, useState } from "react";
 import { DOCS_CONFIG, t } from "@/constants/docsConfig";
 import { DEFAULT_LANG } from "@/constants/languages";
 import { ExternalLink, Menu, X } from "lucide-react";
 import DocsSidebar from "./DocsSidebar";
 import LanguageSwitcher from "./LanguageSwitcher";
+import DocsBrand from "./DocsBrand";
+import DocsDialog from "./DocsDialog";
+import DocsSearch from "./DocsSearch";
 
-export default function DocsHeader({ lang = DEFAULT_LANG }) {
+export default function DocsHeader({ lang = DEFAULT_LANG, searchIndex = [] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuId = useId();
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMobileMenuOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm border-gray-200">
-        <div className=" mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6 text-gray-600" />
-          </button>
-
-          {/* Logo */}
-          <Link href={`/${lang}`} className="flex items-center gap-2 font-bold text-2xl text-black hover:opacity-80 transition-opacity">
-            <span>9</span>
-            <span className="text-[#E68A6E]">{DOCS_CONFIG.logo} Docs</span>
-          </Link>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2 sm:gap-3">
+      <header className="docs-header">
+        <div className="docs-header-inner">
+          <DocsBrand lang={lang} />
+          <div className="docs-header-search"><DocsSearch entries={searchIndex} lang={lang} /></div>
+          <div className="docs-header-actions">
             <LanguageSwitcher currentLang={lang} />
-
-            {/* Go to App */}
-            <Link
+            <a
               href={DOCS_CONFIG.appUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#E68A6E] text-white rounded-lg font-medium hover:bg-[#d67a5e] transition-colors text-sm"
+              className="docs-app-link"
             >
-              <span className="hidden sm:inline">{t(lang, "goToApp")}</span>
-              <ExternalLink className="w-4 h-4" />
-            </Link>
+              <span>{t(lang, "goToApp")}</span>
+              <ExternalLink size={16} aria-hidden="true" />
+              <span className="sr-only"> ({t(lang, "newWindow")})</span>
+            </a>
+            <button type="button" onClick={() => setMobileMenuOpen(true)} className="docs-icon-button docs-mobile-menu-trigger" aria-label={t(lang, "openMenu")} aria-haspopup="dialog" aria-expanded={mobileMenuOpen} aria-controls={menuId}>
+              <Menu size={22} aria-hidden="true" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <>
-          <div
-            className="mobile-menu-overlay lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          <div className="mobile-menu-drawer lg:hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <span className="font-bold text-lg text-black">
-                <span className="text-[#E68A6E]">9</span>{DOCS_CONFIG.logo} Docs
-              </span>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                aria-label="Close menu"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            <DocsSidebar isMobile onClose={() => setMobileMenuOpen(false)} lang={lang} />
-          </div>
-        </>
-      )}
+      <DocsDialog open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} id={menuId} labelledBy={`${menuId}-title`} className="docs-menu-dialog">
+        <div className="docs-dialog-heading">
+          <h2 id={`${menuId}-title`}>{t(lang, "documentation")}</h2>
+          <button type="button" onClick={() => setMobileMenuOpen(false)} className="docs-icon-button" aria-label={t(lang, "closeMenu")}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <DocsSidebar isMobile onClose={() => setMobileMenuOpen(false)} lang={lang} />
+      </DocsDialog>
     </>
   );
 }

@@ -17,7 +17,7 @@ const eslintConfig = defineConfig([
       "react-hooks": fixupPluginRules(reactHooks),
       import: fixupPluginRules(importPlugin),
       "jsx-a11y": fixupPluginRules(jsxA11y),
-      zenrouter: {
+      kitsunerouter: {
         rules: { "no-location-assign-relative-destination": noLocationAssignRelativeDestination },
       },
     },
@@ -55,7 +55,7 @@ const eslintConfig = defineConfig([
       "jsx-a11y/aria-unsupported-elements": "warn",
       "jsx-a11y/role-has-required-aria-props": "warn",
       "jsx-a11y/role-supports-aria-props": "warn",
-      "zenrouter/no-location-assign-relative-destination": "warn",
+      "kitsunerouter/no-location-assign-relative-destination": "warn",
     },
   },
   {

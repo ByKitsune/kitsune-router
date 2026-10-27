@@ -1,5 +1,7 @@
 # Client identities, model catalogs and pricing refresh
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Review date: **2026-10-21**. Starting source and deployed production revision:
 `04c0bf77c3d0b287a438566e504d72b81e6e081b`.
 

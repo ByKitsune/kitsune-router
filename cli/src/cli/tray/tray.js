@@ -58,7 +58,7 @@ function initTray(options) {
  */
 function buildMenuItems(port, autostartEnabled) {
   return [
-    { title: `ZenRouter (Port ${port})`, tooltip: "Server is running", enabled: false },
+    { title: `Kitsune Router (Port ${port})`, tooltip: "Server is running", enabled: false },
     { title: "Open Dashboard", tooltip: "Open in browser", enabled: true },
     {
       title: autostartEnabled ? "✓ Auto-start Enabled" : "Enable Auto-start",
@@ -121,7 +121,7 @@ function initWindowsTray(options) {
 
     trayInstance = initWinTray({
       iconPath,
-      tooltip: `ZenRouter - Port ${port}`,
+      tooltip: `Kitsune Router - Port ${port}`,
       items,
       onClick: (index) => {
         handleClick(index, options, (newEnabled) => {
@@ -204,7 +204,7 @@ function initUnixTray(options) {
       // because template mode only uses the alpha channel.
       isTemplateIcon: false,
       title: "",
-      tooltip: `ZenRouter - Port ${port}`,
+      tooltip: `Kitsune Router - Port ${port}`,
       items
     };
 
@@ -230,7 +230,7 @@ function initUnixTray(options) {
       // failures (binary crash, EACCES, etc.) so users can see why the icon
       // didn't appear instead of getting a misleading "running in tray" log.
       trayInstance.ready().catch((err) => {
-        process.stderr.write(`[zenrouter] tray failed to start: ${err && err.message ? err.message : err}\n`);
+        process.stderr.write(`[kitsunerouter] tray failed to start: ${err && err.message ? err.message : err}\n`);
       });
     } else {
       trayInstance.onReady(() => {});
@@ -239,7 +239,7 @@ function initUnixTray(options) {
 
     return trayInstance;
   } catch (err) {
-    process.stderr.write(`[zenrouter] tray init error: ${err.message}\n`);
+    process.stderr.write(`[kitsunerouter] tray init error: ${err.message}\n`);
     return null;
   }
 }

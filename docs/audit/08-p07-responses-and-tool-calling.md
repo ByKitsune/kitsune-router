@@ -1,5 +1,7 @@
 # P07 — `/v1/responses` gap and tool-calling verification (empirical report)
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 **Date:** 2026-10-15 · **Target:** production `/opt/zenrouter/0.9.7/app` (port 20128, read-only probes) + checkout `/root/ZenRouter` 0.9.8.
 
 **Rule followed:** every claim below came from a real command against the running gateway. Nothing here is inferred from metadata alone. Probes used `max_tokens`/`max_output_tokens` ≥ 50 (never 3), because small caps produce false negatives on reasoning models.

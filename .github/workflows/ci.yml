@@ -15,10 +15,10 @@ jobs:
       AG_CACHE_TEST: "0"
       MODEL_CATALOG_SYNC: "off"
       DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
-      ZENROUTER_DISABLE_MITM: "1"
+      KITSUNE_ROUTER_DISABLE_MITM: "1"
       NEXT_TELEMETRY_DISABLED: "1"
       JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
-      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
+      KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

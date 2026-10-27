@@ -1,5 +1,7 @@
 # Client and model catalog reconciliation
 
+This is a dated source-reconciliation report retained by Kitsune Router. Catalog counts, sources and validation below describe their original snapshots, not fresh 1.0.1 verification or publication. See [current installation](INSTALLATION.md), [release status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md).
+
 Research date: 2026-10-06 (Asia/Jakarta). Source baseline: `ff469a0768a854ebe7d6d5936702c669c5cd91f5`.
 
 ## Scope and evidence
@@ -18,7 +20,7 @@ GPT-6.1 Sol's OpenAI API specification is **1,050,000 total context**, **922,000
 
 The official Codex `rust-v0.160.0` model catalog instead declares **272,000 default context** and **872,000 maximum configurable context** for this model. The protocol calls the latter the “Maximum context window allowed for config overrides”; it separately defines 95% effective context and a 90% automatic-compaction threshold.[3][4]
 
-Consequently, Zen does not relabel the API limit as an independently proven Codex backend limit. The selected Codex configuration value remains separate from API maxima in `metadata.limits`; unverified route input/output maxima are `null` and omitted from top-level numeric limit fields. Account-supplied live metadata and explicit operator declarations can override the static reference without crossing provider boundaries.
+Consequently, Kitsune Router does not relabel the API limit as an independently proven Codex backend limit. The selected Codex configuration value remains separate from API maxima in `metadata.limits`; unverified route input/output maxima are `null` and omitted from top-level numeric limit fields. Account-supplied live metadata and explicit operator declarations can override the static reference without crossing provider boundaries.
 
 ## Client updates
 
@@ -50,7 +52,7 @@ DeepSeek publishes peak and off-peak schedules. The recorded reference rates and
 
 Subscription quotas, regional CNY tariffs, images, characters, duration and modality-specific token prices remain labelled in `metadata.billing`. Only compatible USD-per-million-token quotes enter the token calculator. Unknown tariffs are shown as “Not specified,” not as zero/free; numeric usage costs remain local estimates, not guaranteed upstream invoices.
 
-OpenAI image pricing separates text/image input and image output. Gemini Embedding 2's input allowance and embedding dimensions are not completion-token limits; Zen's existing adapter is text-only even though the native model supports more modalities.[10][11]
+OpenAI image pricing separates text/image input and image output. Gemini Embedding 2's input allowance and embedding dimensions are not completion-token limits; Kitsune Router's existing adapter is text-only even though the native model supports more modalities.[10][11]
 
 ## New-model safety and explicit deferrals
 

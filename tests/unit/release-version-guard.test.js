@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -7,14 +7,19 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const script = fileURLToPath(new URL("../../scripts/check-release-version.mjs", import.meta.url));
 const fixtures = [];
+const packageNames = {
+  "": "kitsune-router-app", "cli/": "@bykitsune/router",
+  "tests/": "kitsune-router-tests", "gitbook/": "kitsune-router-docs",
+};
 afterEach(() => { for (const root of fixtures.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "zenrouter-release-guard-"));
+  const root = mkdtempSync(join(tmpdir(), "kitsunerouter-release-guard-"));
   fixtures.push(root);
-  for (const prefix of ["", "cli/", "tests/", "gitbook/"]) {
+  for (const [prefix, name] of Object.entries(packageNames)) {
     mkdirSync(resolve(root, prefix), { recursive: true });
-    writeFileSync(resolve(root, prefix + "package.json"), JSON.stringify({ name: prefix === "cli/" ? "@joyccn/zenrouter" : "fixture", version: "0.9.7" }));
-    writeFileSync(resolve(root, prefix + "package-lock.json"), JSON.stringify({ version: "0.9.7", packages: { "": { version: "0.9.7" } } }));
+    const bin = prefix === "cli/" ? { "kitsune-router": "./cli.js" } : undefined;
+    writeFileSync(resolve(root, prefix + "package.json"), JSON.stringify({ name, version: "0.9.7", bin }));
+    writeFileSync(resolve(root, prefix + "package-lock.json"), JSON.stringify({ name, version: "0.9.7", packages: { "": { name, version: "0.9.7", bin } } }));
   }
   return root;
 }
@@ -48,5 +53,31 @@ describe("release publication version guard", () => {
     const result = run(root, "v0.9.7");
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("Version mismatch");
+  });
+
+  it.each(Object.keys(packageNames).flatMap(prefix => ["manifest", "lock", "lock root"].map(location => [prefix, location])))(
+    "rejects a foreign package identity in %s %s even when versions match", (prefix, location) => {
+      const root = fixture();
+      const file = join(root, prefix, location === "manifest" ? "package.json" : "package-lock.json");
+      const value = JSON.parse(readFileSync(file, "utf8"));
+      if (location === "lock root") value.packages[""].name = "untrusted-package";
+      else value.name = "untrusted-package";
+      writeFileSync(file, JSON.stringify(value));
+      const result = run(root, "v0.9.7");
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("Identity mismatch");
+    },
+  );
+
+  it.each(["manifest", "lock"])("rejects a renamed executable in CLI %s metadata", location => {
+    const root = fixture();
+    const file = join(root, "cli", location === "manifest" ? "package.json" : "package-lock.json");
+    const value = JSON.parse(readFileSync(file, "utf8"));
+    const metadata = location === "manifest" ? value : value.packages[""];
+    metadata.bin = { kitsunerouter: "cli.js" };
+    writeFileSync(file, JSON.stringify(value));
+    const result = run(root, "v0.9.7");
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/CLI binary/);
   });
 });

@@ -1,21 +1,22 @@
-"use client";
-
 import DocsHeader from "./DocsHeader";
 import DocsSidebar from "./DocsSidebar";
 import DocsToc from "./DocsToc";
 import { DEFAULT_LANG } from "@/constants/languages";
+import { t } from "@/constants/docsConfig";
+import { getSearchIndex } from "@/lib/content";
 
 export default function DocsLayout({ children, headings = [], lang = DEFAULT_LANG }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#FCFBF9]">
-      <DocsHeader lang={lang} />
-      <div className="flex-1 flex">
-        <div className="hidden lg:block">
+    <div className="docs-shell" lang={lang}>
+      <a className="docs-skip-link" href="#docs-content">{t(lang, "skipToContent")}</a>
+      <DocsHeader lang={lang} searchIndex={getSearchIndex(lang)} />
+      <div className="docs-frame">
+        <div className="docs-desktop-sidebar">
           <DocsSidebar lang={lang} />
         </div>
-        <div className="flex-1 flex min-w-0">
+        <div className="docs-reading-layout">
           {children}
-          <div className="hidden lg:block">
+          <div className="docs-desktop-toc">
             <DocsToc headings={headings} lang={lang} />
           </div>
         </div>

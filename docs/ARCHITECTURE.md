@@ -1,10 +1,12 @@
-# ZenRouter Architecture
+# Kitsune Router Architecture
 
-_Last reviewed: 2026-10-19_
+_Architecture review: 2026-10-19; release guidance updated for the pending 1.0.1 candidate._
+
+**Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. The 1.0.1 candidate is pending final tag/SHA verification and publication; v1.0.0 is an immutable failed publication attempt, not an available npm/GHCR release. Historical checks below describe their original scope. See [release status](CHANGELOG_v1.0.1.md), [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
 
 ## Executive Summary
 
-ZenRouter is a local AI routing gateway and dashboard built on Next.js.
+Kitsune Router is a local AI routing gateway and dashboard built on Next.js.
 It provides a single OpenAI-compatible endpoint (`/v1/*`) and routes traffic across multiple upstream providers with translation, fallback, token refresh, and usage tracking.
 
 Core capabilities:
@@ -52,7 +54,7 @@ flowchart LR
         BROWSER[Browser Dashboard]
     end
 
-    subgraph Router[ZenRouter Local Process]
+    subgraph Router[Kitsune Router Local Process]
         API[V1 Compatibility API\n/v1/*]
         DASH[Dashboard + Management API\n/api/*]
         CORE[SSE + Translation Core\nopen-sse + src/sse]
@@ -155,15 +157,25 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 
 ## 3) Persistence Layer
 
+### Rebrand startup boundary
+
+`cli/hooks/dataDirectory.js` resolves state before any database, runtime-secret or certificate initialization. Explicit `DATA_DIR` remains authoritative and is not relocated. Otherwise it can discover stopped `~/.zenrouter` or `~/.9router` state and migrate to `~/.kitsune-router` (Windows equivalents under `%APPDATA%`). It stages a private verified copy and a SQLite-consistent snapshot, then reserves the destination with a lock/incomplete marker until publication has been verified. Original state is retained, partial destinations cannot be opened, and unsafe/busy/ambiguous/damaged sources or destination overwrite are refused. This is distinct from the SQLite schema migrations below.
+
+Keep `secrets.json`, `machine-id`, `auth/` and `mitm/` together with SQLite. Encryption derivation constants and trusted root subjects/keys intentionally retain their original values. Runtime caches are regenerated, not migrated as active binaries. Containers keep the same volume/mount at effective `DATA_DIR`, default `/app/data` or a supported custom absolute path; rollback does not merge subsequent writes backwards. See [MIGRATION.md](MIGRATION.md) for operator controls and refusal handling.
+
+The 1.0.1 process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Scoped native non-root evidence in the [release notes](../releases/RELEASE_NOTES_v1.0.1.md) does not certify general support; final tag-bound verification remains pending.
+
+Startup recognizes legacy-prefixed operator settings at the migration boundary without rewriting environment files; explicit current names win. Process-only trusted-peer proof tokens are never imported. An existing implicit legacy SAML entity ID is persisted when no custom issuer was saved; fresh installations use `urn:kitsunerouter:sp`. Do not replace an existing IdP configuration to make its name look new.
+
 Primary state DB — **SQLite** under `src/lib/db/`. Bun uses `bun:sqlite`;
 Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5).
-Pure-JS `sql.js` requires `ZENROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive
+Pure-JS `sql.js` requires `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive
 single-process DATA_DIR ownership; native/sql.js mixed writers fail closed.
 A crash-left owner directory requires confirming the old process is gone before
 operator recovery. Repos live in `src/lib/db/repos/*`; schema/migrations in
 `src/lib/db/migrations/`.
 
-- file: `${DATA_DIR}/db/data.sqlite` (or `~/.zenrouter/db/data.sqlite`)
+- file: `${DATA_DIR}/db/data.sqlite` (or `~/.kitsune-router/db/data.sqlite`)
 - ⚠️ keep `DATA_DIR` ABSOLUTE for the standalone/bun build (it chdirs into
   `.next/standalone`; a relative path silently creates a fresh empty DB)
 - entities: providerConnections, providerNodes, modelAliases, combos,
@@ -440,7 +452,7 @@ erDiagram
 
 Physical storage files:
 
-- main state: `${DATA_DIR}/db/data.sqlite` (or `~/.zenrouter/db/data.sqlite`; legacy `db.json`/`usage.json` kept only for migration via `src/lib/db/paths.js:LEGACY_FILES`)
+- main state: `${DATA_DIR}/db/data.sqlite` (or `~/.kitsune-router/db/data.sqlite`; legacy `db.json`/`usage.json` kept only for migration via `src/lib/db/paths.js:LEGACY_FILES`)
 - usage stats: SQLite tables `usageHistory`/`usageDaily` + in-memory recent-requests ring (`src/lib/db/repos/usageRepo.js`)
 - request details: SQLite `requestDetails` (`requestDetailsRepo.js`, payloads redacted)
 - optional translator/request debug sessions: `<repo>/logs/...`
@@ -454,7 +466,7 @@ flowchart LR
         Browser[Dashboard Browser]
     end
 
-    subgraph ContainerOrProcess[ZenRouter Runtime]
+    subgraph ContainerOrProcess[Kitsune Router Runtime]
         Next[Next.js Server\nPORT=20128]
         Core[SSE Core + Executors]
         MainDB[(SQLite data.sqlite)]
@@ -476,7 +488,9 @@ flowchart LR
 
 ### Development worker mesh
 
-`scripts/worker-mesh.mjs` manages a development-only Mutagen 0.18.1 star: the local checkout is the hub and each isolated worker workspace is a leaf. There is no worker-to-worker sync cycle or production target. SSH aliases `zen-mesh-node1` and `zen-mesh-node2` must use their expected IPs, `User root`, `BatchMode yes`, `StrictHostKeyChecking yes`, and `ForwardAgent no`; verify host keys out-of-band first. Install the official Mutagen binary and agents archive under `~/.local/share/zenrouter-worker-mesh/tools`, verifying the release SHA256SUMS, or set `WORKER_MESH_MUTAGEN`.
+Existing host-specific SSH aliases below are operational identities, not product names; do not rename them without updating and verifying the operator's SSH configuration.
+
+`scripts/worker-mesh.mjs` manages a development-only Mutagen 0.18.1 star: the local checkout is the hub and each isolated worker workspace is a leaf. There is no worker-to-worker sync cycle or production target. SSH aliases `zen-mesh-node1` and `zen-mesh-node2` must use their expected IPs, `User root`, `BatchMode yes`, `StrictHostKeyChecking yes`, and `ForwardAgent no`; verify host keys out-of-band first. Install the official Mutagen binary and agents archive under `~/.local/share/kitsune-router-worker-mesh/tools`, verifying the release SHA256SUMS, or set `WORKER_MESH_MUTAGEN`.
 
 ```bash
 node scripts/worker-mesh.mjs create
@@ -494,7 +508,7 @@ node scripts/worker-mesh.mjs stop
 
 - Two-way-safe sessions preserve divergent edits as conflicts; flush refuses reported conflicts or scan/transition errors. Resolve intentionally before retrying. A two-pass flush carries reverse edits through the hub; it is a synchronization barrier, **not** a source lock. Freeze edits during build/test/lint/audit verification.
 - Secrets, `.env*` (including examples), DBs, logs, history, SSH keys, dependencies, build products, and symlinks are excluded. Treat every synchronized source file as readable by both worker administrators; filename exclusions are not a substitute for keeping secrets out of source.
-- Worker state is isolated under `/root/zenrouter-worker-mesh/{workspace,jobs,runtime}` with private permissions. Jobs use synthetic authentication values and private HOME/DATA_DIR, never production state. Per-node locking rejects concurrent jobs; node2 owns builds, while tests use at most three workers.
+- Worker state is isolated under `/root/kitsune-router-worker-mesh/{workspace,jobs,runtime}` with private permissions. Jobs use synthetic authentication values and private HOME/DATA_DIR, never production state. Per-node locking rejects concurrent jobs; node2 owns builds, while tests use at most three workers.
 - `lint` and `audit` are additional fixed job types; audits cover the gateway, tests, and CLI packages. Machine-readable test/audit reports stay in the private job directory. Redacted stdout/stderr and exit status survive SSH disconnects; `follow NODE JOB_ID STDOUT_BYTES STDERR_BYTES` resumes from emitted byte offsets. Output is UTF-8-safe and bounded per frame.
 - The Mutagen daemon persists independently of the CLI. `stop` pauses sessions without deleting archives; `create` resumes. After a workstation restart, run `create` again. No OS startup service, public listener, firewall change, or production deployment is installed.
 - Network latency and availability remain finite; keepalives detect broken SSH sessions but cannot guarantee uninterrupted transport. Detached execution and persisted output allow recovery without replaying the job.
@@ -688,6 +702,7 @@ Runtime visibility sources:
 ## Security-Sensitive Boundaries
 
 - JWT secret (`JWT_SECRET`) secures dashboard session cookie verification/signing
+- Source `next dev` is not the CLI's runtime-secret provisioning path. Source/standalone operators must supply and retain a strong `JWT_SECRET` of at least 32 characters; otherwise dashboard login fails. Fresh setup is documented in [installation](INSTALLATION.md); migrations preserve effective secrets instead of generating replacements.
 - Initial password fallback (`INITIAL_PASSWORD`, default `12345678`) must be overridden in real deployments
 - API key HMAC secret (`API_KEY_SECRET`) secures generated local API key format
 - Provider secrets (API keys/tokens) are persisted in local DB and should be protected at filesystem level
@@ -701,6 +716,7 @@ Environment variables actively used by code:
 
 - App/auth: `JWT_SECRET`, `INITIAL_PASSWORD`
 - Storage: `DATA_DIR`
+- Rebrand migration: `KITSUNE_ROUTER_MIGRATE_FROM`, `KITSUNE_ROUTER_MIGRATION`; project-specific settings use `KITSUNE_ROUTER_*` and extension headers `x-kitsune-router-*`. Unprefixed operator secret values remain stable. Client provider identifiers use `kitsunerouter`, not executable `kitsune-router`; standard protocol routes are unchanged.
 - Security hashing: `API_KEY_SECRET`, `MACHINE_ID_SALT`
 - Logging: `ENABLE_REQUEST_LOGS`
 - SSO callback base URL: `BASE_URL`, `NEXT_PUBLIC_BASE_URL`; legacy cloud UI fields may still read `NEXT_PUBLIC_CLOUD_URL`

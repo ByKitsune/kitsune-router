@@ -9,7 +9,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "zenrouter";
+const PROVIDER_NAME = "kitsunerouter";
 
 const getDeepSeekDir = () => path.join(os.homedir(), ".deepseek");
 const getDeepSeekConfigPath = () => path.join(getDeepSeekDir(), "config.toml");
@@ -51,8 +51,8 @@ const parseToml = (content) => {
     return result;
 };
 
-// Build TOML config for ZenRouter (openai provider mode)
-const buildZenRouterConfig = (baseUrl, apiKey, model) => {
+// Build TOML config for Kitsune Router (openai provider mode)
+const buildKitsuneRouterConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
 
@@ -92,8 +92,8 @@ const readConfigToml = async () => {
     }
 };
 
-// Detect ZenRouter by checking if provider is "openai" and base_url points to localhost/127.0.0.1
-const hasZenRouterConfig = (config) => {
+// Detect Kitsune Router by checking if provider is "openai" and base_url points to localhost/127.0.0.1
+const hasKitsuneRouterConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
     if (provider !== "openai") return false;
@@ -113,7 +113,7 @@ export async function GET() {
         return NextResponse.json({
             installed: true,
             settings: config,
-            hasZenRouter: hasZenRouterConfig(config),
+            hasKitsuneRouter: hasKitsuneRouterConfig(config),
             configPath: getDeepSeekConfigPath(),
         });
     } catch (error) {
@@ -133,18 +133,18 @@ export async function POST(request) {
         await fs.mkdir(dir, { recursive: true });
 
         let keyToUse = apiKey;
-        if (!keyToUse || keyToUse === "sk_zenrouter" || keyToUse === "sk_9router") {
+        if (!keyToUse || keyToUse === "sk_kitsunerouter" || keyToUse === "sk_9router") {
           try {
             const { getApiKeys } = await import("@/lib/db/repos/apiKeysRepo.js");
             const keys = await getApiKeys();
             const active = keys?.filter(k => k.isActive);
-            keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_zenrouter");
+            keyToUse = active?.length > 0 ? active[0].key : (keyToUse || "sk_kitsunerouter");
           } catch {
-            keyToUse = keyToUse || "sk_zenrouter";
+            keyToUse = keyToUse || "sk_kitsunerouter";
           }
         }
 
-        const newConfig = buildZenRouterConfig(baseUrl, keyToUse, model);
+        const newConfig = buildKitsuneRouterConfig(baseUrl, keyToUse, model);
         await fs.writeFile(getDeepSeekConfigPath(), newConfig);
 
         return NextResponse.json({

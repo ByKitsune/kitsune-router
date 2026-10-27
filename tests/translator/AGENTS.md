@@ -1,5 +1,9 @@
 # Translation Layer Tests
 
+These suites verify the **Kitsune Router** engine maintained by **ByKitsune**.
+Use isolated state and the `KITSUNE_ROUTER_*` environment names. Historical
+upstream issue references remain provenance, not product branding.
+
 Tests for `open-sse/translator/`. Goals: data-driven protocol coverage and regression tests for information lost at format boundaries. Do not equate a catalog matrix entry with verified live-provider behavior.
 
 ## 1. Translation layer structure (`open-sse/translator/`)

@@ -37,7 +37,7 @@ function lint(source, file = "components/Example.jsx") {
 }
 
 beforeAll(() => {
-  fixtureRoot = mkdtempSync(join(tmpdir(), "zenrouter-next-lint-"));
+  fixtureRoot = mkdtempSync(join(tmpdir(), "kitsunerouter-next-lint-"));
   const packagePath = require.resolve("oxlint/package.json");
   const metadata = JSON.parse(readFileSync(packagePath, "utf8"));
   oxlint = join(dirname(packagePath), metadata.bin.oxlint);

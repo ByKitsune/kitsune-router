@@ -49,7 +49,7 @@ async function setupTestContext(nodeData) {
 }
 
 function makeRequest(provider, name = "Test Connection") {
-  return new Request("https://zenrouter.local/api/providers", {
+  return new Request("https://kitsunerouter.local/api/providers", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

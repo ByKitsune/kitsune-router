@@ -207,7 +207,7 @@ function mcpRequest(url, local = false) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(local ? { "x-zen-real-ip": "127.0.0.1", "x-zen-peer-token": process.env.ZENROUTER_PEER_TOKEN } : {}),
+      ...(local ? { "x-kitsune-router-real-ip": "127.0.0.1", "x-kitsune-router-peer-token": process.env.KITSUNE_ROUTER_PEER_TOKEN } : {}),
     },
     body: JSON.stringify({ url }),
   });
@@ -237,7 +237,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("preserves private MCP access for a trusted local peer", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     try {
       const response = await POST(mcpRequest(`http://127.0.0.1:${server.address().port}/mcp`, true));
       expect(await response.json()).toEqual({ tools: [{ name: "safe_tool", description: "Public tool" }] });
@@ -249,7 +249,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("rejects metadata targets even for a trusted local peer", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     try {
       const response = await POST(mcpRequest("http://169.254.169.254/latest/meta-data", true));
       expect(response.status).toBe(400);
@@ -261,7 +261,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("rejects a metadata DNS answer for a trusted local peer before dispatch", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     lookup.mockResolvedValue([{ address: "169.254.169.254", family: 4 }]);
     try {
       const response = await POST(mcpRequest(`${base}/mcp`, true));
@@ -275,7 +275,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("rejects a metadata redirect from a trusted local MCP server", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     try {
       const response = await POST(mcpRequest(`http://127.0.0.1:${server.address().port}/mcp-metadata-redirect`, true));
       expect((await response.json()).error).toMatch(/Blocked URL/);
@@ -286,7 +286,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("refuses a configured proxy rather than silently connecting local MCP directly", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     vi.stubEnv("HTTP_PROXY", "http://proxy.example:8080");
     const response = await POST(mcpRequest(`${base}/mcp`, true));
     expect((await response.json()).error).toMatch(/configure NO_PROXY/);
@@ -295,7 +295,7 @@ describe("MCP public network boundary", () => {
   });
 
   it("permits a trusted private MCP DNS target explicitly exempted by NO_PROXY", async () => {
-    vi.stubEnv("ZENROUTER_PEER_TOKEN", "fixture-trusted-peer");
+    vi.stubEnv("KITSUNE_ROUTER_PEER_TOKEN", "fixture-trusted-peer");
     vi.stubEnv("HTTP_PROXY", "http://proxy.example:8080");
     vi.stubEnv("NO_PROXY", "private.example");
     const response = await POST(mcpRequest(`http://private.example:${server.address().port}/mcp`, true));

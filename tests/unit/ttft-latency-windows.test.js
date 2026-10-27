@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 vi.mock("@/dashboardGuard", () => ({
-  hasValidCliToken: async (request) => request.headers.get("x-zen-cli-token") === "ttft-fixture-token",
+  hasValidCliToken: async (request) => request.headers.get("x-kitsune-router-cli-token") === "ttft-fixture-token",
   isAuthenticated: async () => false,
 }));
 
@@ -21,7 +21,7 @@ let getUsageStats;
 let metricsGet;
 
 beforeEach(async () => {
-  dataDir = await mkdtemp(join(tmpdir(), "zenrouter-ttft-window-"));
+  dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-ttft-window-"));
   vi.stubEnv("DATA_DIR", dataDir);
   vi.stubEnv("TZ", "Asia/Jakarta");
   previousGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
@@ -58,7 +58,7 @@ afterEach(async () => {
     vi.unstubAllEnvs();
     vi.resetModules();
     const resolved = await realpath(dataDir);
-    if (dirname(resolved) !== await realpath(tmpdir()) || !resolved.includes("zenrouter-ttft-window-")) {
+    if (dirname(resolved) !== await realpath(tmpdir()) || !resolved.includes("kitsunerouter-ttft-window-")) {
       throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
     }
     await rm(resolved, { recursive: true, force: true });
@@ -77,7 +77,7 @@ function record(timestamp, ttft = 250) {
 
 function metricsRequest(authenticated = true) {
   return new Request("http://localhost/api/metrics", {
-    headers: authenticated ? { "x-zen-cli-token": "ttft-fixture-token" } : {},
+    headers: authenticated ? { "x-kitsune-router-cli-token": "ttft-fixture-token" } : {},
   });
 }
 
@@ -186,8 +186,8 @@ describe("persisted TTFT windows", () => {
     const text = await response.text();
 
     expect(stats.latency).toBeUndefined();
-    expect(text).not.toContain("zenrouter_ttft_ms");
-    expect(text).not.toContain("zenrouter_ttft_samples_total");
+    expect(text).not.toContain("kitsunerouter_ttft_ms");
+    expect(text).not.toContain("kitsunerouter_ttft_samples_total");
   });
 
   it("does not expose measured TTFT through an unauthenticated metrics GET", async () => {
@@ -206,9 +206,9 @@ describe("persisted TTFT windows", () => {
     const text = await response.text();
 
     expect(response.status).toBe(200);
-    expect(text).toContain("zenrouter_metrics_scrape_ok 1\n");
-    expect(text).toContain("# TYPE zenrouter_ttft_ms gauge\n");
-    expect(text).toContain('zenrouter_ttft_ms{quantile="0.9"} 250\n');
-    expect(text).toContain("zenrouter_ttft_samples_total 1\n");
+    expect(text).toContain("kitsunerouter_metrics_scrape_ok 1\n");
+    expect(text).toContain("# TYPE kitsunerouter_ttft_ms gauge\n");
+    expect(text).toContain('kitsunerouter_ttft_ms{quantile="0.9"} 250\n');
+    expect(text).toContain("kitsunerouter_ttft_samples_total 1\n");
   });
 });

@@ -19,6 +19,8 @@
 //    handful of accounts on one gateway, cheap to read in a log line.
 import { createHash } from "crypto";
 
+// Preserve pre-rebrand pseudonymous identities so existing log correlation does
+// not change merely because the product changed names. This is not UI branding.
 const FALLBACK_SALT = "zenrouter-account-redaction-v1";
 
 function salt() {

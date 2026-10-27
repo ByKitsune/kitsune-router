@@ -1,166 +1,23 @@
-# ZenRouterへようこそ
+# Kitsune Router へようこそ
 
-**現行バージョン：0.9.9（2026-10-15）。** 変更内容、検証の限界、更新要件は[変更履歴](/ja/changelog/)をご覧ください。Node.js >=22.19.0 が必要です。カタログ掲載はアカウントの利用権限や上流の実際の可用性を保証しません。
+**Your models. Your routes.** [ByKitsune](https://bykitsune.com) が保守・支援する、プロバイダー中立・ローカルファーストの AI ゲートウェイです。モデル、アカウント、フォールバック順序は利用者が選択します。ByKitsune アカウントやホスト型 API 購入は不要です。設定した上流へリクエストを送信するため、オフライン推論ではありません。
 
-**Claude、Codex、Geminiを無料で利用 • 100万トークンあたり$0.20からの超低価格な代替手段**
+## 公開状況
 
-ZenRouterは、インテリジェントなルーティングと自動フォールバックを通じて、サブスクリプションの価値を最大化し、コストを最小限に抑えるAIモデルルーターです。
+**1.0.1 が次の候補で、最終 tag/SHA 検証・公開待ちです。** GitHub リポジトリは確認済み。npm は `bykitsune` 認証・Actions 更新済みですが、公開権限と成果物の証明ではありません。
 
----
+| 対象 | 識別子 |
+| --- | --- |
+| リポジトリ | [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router) |
+| npm | `@bykitsune/router` |
+| コマンド | `kitsune-router` |
+| ツールのプロバイダーキー | `kitsunerouter` |
+| 正規イメージ | `ghcr.io/bykitsune/kitsune-router` |
 
-## ZenRouterとは?
+`v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281` に固定し、non-root 所有権 scan の workflow 失敗で npm/GHCR は未公開です。旧候補の 9,029 件成功は 1.0.1 の証明ではありません。後続は合成プロセス分離テストとモバイル key 行修正で、本番の fail-closed は不変。[履歴](/ja/changelog/) · [1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md)。0.x 出典は保持します。
 
-ZenRouterは、コーディングツール(Cursor、Cline、Claude Desktop)とAIプロバイダーの間に位置するスマートプロキシです。クォータ、コスト、可用性に基づいて、リクエストを最適なモデルへ自動的にルーティングします。
+## 機能と制限
 
-**お金を無駄にしないために:**
-- ❌ サブスクリプションのクォータが毎月未使用のまま失効
-- ❌ レート制限でコーディングが中断
-- ❌ 高額なAPI(プロバイダーあたり月$20〜50)
-- ❌ プロバイダー間の手動切り替え
+ルート別制限を持つプロトコル変換、任意のコンボ・アカウント選択、ローカル SQLite、任意の圧縮を提供します。無制限枠、固定削減率、常時稼働は保証しません。概算は請求書ではなく、不明な価格は無料ではありません。旧クラウド同期は削除済みで、リモート利用は認証 HTTPS を備えた自己管理サービスです。
 
-**価値を最大化するために:**
-- ✅ **サブスクリプションを最大限活用** - Claude Code、Codex、Geminiのクォータを余すことなく追跡・利用
-- ✅ **無料で利用可能** - CLI経由でiFlow、Qwen、Kiroモデルにアクセス
-- ✅ **超低価格バックアップ** - GLM(100万あたり$0.6)、MiniMax M2.1(100万あたり$0.20)
-- ✅ **スマートフォールバック** - サブスクリプション → 低価格 → 無料へ自動切替
-
----
-
-## 主な機能
-
-### 🔄 スマート3階層フォールバック
-
-```
-一度セットアップすれば、コーディングが止まらない:
-
-Tier 1 (サブスクリプション): Claude Code → Codex → Gemini
-  ↓ クォータ消費
-Tier 2 (低価格): GLM-4.7 → MiniMax M2.1 → Kimi
-  ↓ 予算上限
-Tier 3 (無料): iFlow → Qwen → Kiro
-
-→ 自動切替、ダウンタイムゼロ!
-```
-
-### 📊 クォータトラッキング
-
-- プロバイダーごとのリアルタイムトークン消費
-- リセットカウントダウン(5時間、毎日、毎週、毎月)
-- 有料プランのコスト見積もり
-- 月次支出レポート
-
-### 🎯 ユニバーサルCLIサポート
-
-カスタムOpenAIエンドポイントをサポートするあらゆるツールで動作:
-
-✅ **Cursor** • **Cline** • **Claude Desktop** • **Codex** • **RooCode** • **Continue** • **OpenAI互換ツール全般**
-
-### 💰 コスト最適化
-
-**実例(月1億トークン):**
-```
-Gemini CLI経由で6000万: $0(無料プラン)
-Claude Code経由で3000万: $0(既存サブスクリプション)
-GLM経由で800万: $4.80
-MiniMax経由で200万: $0.40
-合計: 月$5.20 vs ChatGPT APIの$2000!
-```
-
----
-
-## なぜZenRouterを選ぶのか?
-
-### サブスクリプションを最大化
-
-すでにClaude Code(月$20〜100)やCodex(月$20〜200)に支払っていますか? 完全な価値を引き出しましょう:
-
-- クォータ使用量をリアルタイムで追跡
-- クォータリセット(5時間、週次)時に自動切替
-- 失効前にすべてのトークンを使い切る
-- Gemini CLI: 月18万コンプリーション**無料**
-
-### 超低価格バックアップ
-
-サブスクリプションのクォータが切れたら、わずかな金額で:
-
-| プロバイダー | 100万トークンあたりのコスト | リセット |
-|----------|-------------------|-------|
-| **GLM-4.7** | 入力$0.60 / 出力$2.20 | 毎日午前10時 |
-| **MiniMax M2.1** | 入力$0.20 / 出力$1.00 | 5時間ローリング |
-| **Kimi K2** | 月$9(1000万トークン) | 月次 |
-
-**ChatGPT API(100万あたり$20)より約90%安い!**
-
-### 永久無料フォールバック
-
-他がすべてクォータ制限に達した時の緊急バックアップ:
-
-- **iFlow**: 8モデル(Kimi K2、Qwen3 Coder Plus、GLM 4.7、MiniMax M2)
-- **Qwen**: 3モデル(Qwen3 Coder Plus/Flash、Vision)
-- **Kiro**: Claude Sonnet 4.5、Haiku 4.5(AWS Builder ID)
-
----
-
-## クイックスタート
-
-2分で始められます:
-
-```bash
-# グローバルインストール
-npm install -g @joyccn/zenrouter@0.9.10
-
-# 起動(ダッシュボードが自動で開きます)
-zenrouter
-```
-
-🎉 **ダッシュボードが開く** → プロバイダーを接続 → コーディング開始!
-
-**CLIツールで使う:**
-
-```
-Endpoint: http://localhost:20128/v1
-API Key: [ダッシュボードから取得]
-Model: cc/claude-opus-4-5-20251101
-```
-
-[→ 完全なスタートガイド](getting-started.md)
-
----
-
-## ユースケース
-
-### 個人開発者向け
-
-- Claude Code/Codexサブスクリプションを最大限活用
-- Gemini CLI無料プラン(月18万)を活用
-- 超低価格モデル(100万あたり$0.20)へフォールバック
-- レート制限なしで24時間コーディング
-
-### チーム向け
-
-- VPS/クラウドにデプロイして共有アクセス
-- チームの支出をリアルタイムで追跡
-- 階層ごとに予算上限を設定
-- 集中型のプロバイダー管理
-
-### モバイル/リモートコーディング向け
-
-- クラウドデプロイ(http://localhost:20128)を使用
-- iPad、スマホ、どこからでもアクセス
-- localhost制限なし
-- Cloudflareエッジネットワーク(300以上のロケーション)
-
----
-
-## 次は?
-
-- [スタートガイド](getting-started.md) - 5分でインストールと設定
-- [インストールガイド](getting-started/installation.md) - 詳細なセットアップ手順
-- [機能](features/) - すべての機能を確認
-- [FAQ](faq.md) - よくある質問
-
----
-
-<div align="center">
-  <sub>AIの価値を最大化する開発者のために ❤️ で構築</sub>
-</div>
+[開始](/ja/getting-started/quick-start/) · [インストール](/ja/getting-started/installation/) · [連携](/ja/integration/other-tools/) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。MIT と上流の著作権表示、ZenRouter/9Router の貢献者への謝辞を保持します。[LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE)。

@@ -8,14 +8,26 @@ export function checkReleaseVersion(root, tag) {
   assert(match && match[0] === tag, "Invalid stable release tag; expected vMAJOR.MINOR.PATCH");
   const version = tag.slice(1);
   const read = path => JSON.parse(readFileSync(resolve(root, path), "utf8"));
-  for (const prefix of ["", "cli/", "tests/", "gitbook/"]) {
+  const names = {
+    "": "kitsune-router-app",
+    "cli/": "@bykitsune/router",
+    "tests/": "kitsune-router-tests",
+    "gitbook/": "kitsune-router-docs",
+  };
+  for (const [prefix, name] of Object.entries(names)) {
     const manifest = read(prefix + "package.json");
     const lock = read(prefix + "package-lock.json");
     for (const [label, value] of [["manifest", manifest.version], ["lock", lock.version], ["lock root", lock.packages?.[""]?.version]]) {
       assert.equal(value, version, `Version mismatch: ${prefix || "root/"}${label}`);
     }
+    for (const [label, value] of [["manifest", manifest.name], ["lock", lock.name], ["lock root", lock.packages?.[""]?.name]]) {
+      assert.equal(value, name, `Identity mismatch: ${prefix || "root/"}${label}`);
+    }
   }
-  assert.equal(read("cli/package.json").name, "@joyccn/zenrouter", "Unexpected published CLI identity");
+  const normalizeBin = bin => Object.fromEntries(Object.entries(bin || {}).map(([name, file]) => [name, file.replace(/^\.\//, "")]));
+  const expectedBin = { "kitsune-router": "cli.js" };
+  assert.deepEqual(normalizeBin(read("cli/package.json").bin), expectedBin, "Unexpected published CLI binary");
+  assert.deepEqual(normalizeBin(read("cli/package-lock.json").packages[""].bin), expectedBin, "Unexpected locked CLI binary");
   return { tag, version };
 }
 

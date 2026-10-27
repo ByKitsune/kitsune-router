@@ -15,7 +15,7 @@ const getConfigPath = () => path.join(getJcodeConfigDir(), "config.toml");
 
 const getProviderEnvPath = () => {
   const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
-  return path.join(configDir, "jcode", "provider-zenrouter.env");
+  return path.join(configDir, "jcode", "provider-kitsunerouter.env");
 };
 
 const checkJcodeInstalled = async () => {
@@ -44,12 +44,12 @@ const readConfig = async () => {
   }
 };
 
-const hasZenRouterConfig = (config) => {
+const hasKitsuneRouterConfig = (config) => {
   if (!config || !config.providers) return false;
 
   const providers = config.providers;
 
-  if (providers["zenrouter"]) return true;
+  if (providers["kitsunerouter"]) return true;
 
   for (const [name, provider] of Object.entries(providers)) {
     if (provider.base_url && provider.base_url.includes("localhost:20128")) {
@@ -118,12 +118,12 @@ export async function GET() {
   }
 
   const config = await readConfig();
-  const hasZenRouter = hasZenRouterConfig(config);
+  const hasKitsuneRouter = hasKitsuneRouterConfig(config);
 
   return NextResponse.json({
     installed: true,
     config,
-    hasZenRouter,
+    hasKitsuneRouter,
     configPath: getConfigPath(),
   });
 }
@@ -149,12 +149,12 @@ export async function POST(request) {
       config.providers = {};
     }
 
-    config.providers["zenrouter"] = {
+    config.providers["kitsunerouter"] = {
       type: "openai-compatible",
       base_url: normalizedBaseUrl,
       auth: "bearer",
-      api_key_env: "JCODE_ZENROUTER_API_KEY",
-      env_file: "provider-zenrouter.env",
+      api_key_env: "JCODE_KITSUNE_ROUTER_API_KEY",
+      env_file: "provider-kitsunerouter.env",
       default_model: models && models.length > 0 ? models[0] : "cc/claude-opus-4-7",
       requires_api_key: true,
     };
@@ -169,12 +169,12 @@ export async function POST(request) {
     await fs.mkdir(jcodeConfigDir, { recursive: true });
 
     const env = await readProviderEnv();
-    env.JCODE_ZENROUTER_API_KEY = apiKey;
+    env.JCODE_KITSUNE_ROUTER_API_KEY = apiKey;
     await writeProviderEnv(env);
 
     return NextResponse.json({
       success: true,
-      message: "jcode configured successfully. Use: jcode --provider-profile zenrouter",
+      message: "jcode configured successfully. Use: jcode --provider-profile kitsunerouter",
       configPath: getConfigPath(),
     });
   } catch (error) {
@@ -194,17 +194,17 @@ export async function DELETE() {
       return NextResponse.json({ success: true, message: "No configuration to remove" });
     }
 
-    delete config.providers["zenrouter"];
+    delete config.providers["kitsunerouter"];
 
     await writeConfig(config);
 
     const env = await readProviderEnv();
-    delete env.JCODE_ZENROUTER_API_KEY;
+    delete env.JCODE_KITSUNE_ROUTER_API_KEY;
     await writeProviderEnv(env);
 
     return NextResponse.json({
       success: true,
-      message: "zenrouter configuration removed from jcode",
+      message: "kitsunerouter configuration removed from jcode",
     });
   } catch (error) {
     console.error("Error removing jcode configuration:", error);

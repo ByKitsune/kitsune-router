@@ -1,5 +1,7 @@
 # ZenRouter v0.7.2 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.7.2` brings significant gateway reliability upgrades, security enhancements, complete Token Saver ecosystem synchronization (Headroom, Caveman v2.7.0, Ponytail v4.10.0, and RTK), upstream stability cherry-picks, and key bugfixes across provider integrations.
 
 ---

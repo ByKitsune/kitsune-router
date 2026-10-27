@@ -7,7 +7,7 @@ let tempDir;
 const originalDataDir = process.env.DATA_DIR;
 
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-integrity-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-integrity-"));
   process.env.DATA_DIR = tempDir;
   delete global._dbAdapter;
   vi.resetModules();

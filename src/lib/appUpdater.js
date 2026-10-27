@@ -1,8 +1,8 @@
 import { spawn, execSync } from "child_process";
 import path from "path";
 import fs from "fs";
-import os from "os";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
+import { DATA_DIR } from "./dataDir.js";
 
 const KILL_TIMEOUT_MS = 5000;
 const PROCESS_WAIT_MS = 1500;
@@ -11,15 +11,13 @@ const PROCESS_WAIT_MS = 1500;
 function killMitmByPidFile() {
   try {
     const mitmPidFile = path.join(
-      process.platform === "win32"
-        ? path.join(process.env.APPDATA || "", "zenrouter")
-        : path.join(os.homedir(), ".zenrouter"),
+      DATA_DIR,
       "mitm",
       ".mitm.pid"
     );
     if (!fs.existsSync(mitmPidFile)) return;
-    const pid = parseInt(fs.readFileSync(mitmPidFile, "utf8").trim(), 10);
-    if (!pid) return;
+    const pid = Number(fs.readFileSync(mitmPidFile, "utf8").trim());
+    if (!Number.isSafeInteger(pid) || pid <= 1 || pid === process.pid) return;
 
     if (process.platform === "win32") {
       // taskkill first (works if same user); fallback to PowerShell Stop-Process which can kill admin process if our token allows
@@ -37,24 +35,27 @@ function killMitmByPidFile() {
   } catch { /* best effort */ }
 }
 
-// Collect PIDs of all zenrouter-related processes (excluding current)
+// Collect identified Kitsune Router processes (excluding current).
+function isAppCommand(command) {
+  const normalized = command.toLowerCase().replaceAll("\\", "/");
+  const cwd = process.cwd().toLowerCase().replaceAll("\\", "/");
+  return /(?:node|bun)(?:\.exe)?(?:[\s"/]|$)/.test(normalized)
+    && (/\/@bykitsune\/router\//.test(normalized) || normalized.includes("/kitsune-router/") || normalized.includes("/kitsune-router ") || normalized.includes(`${cwd}/server.js`))
+    && /(?:cli|server)\.js|kitsune-router(?:[\s"]|$)/.test(normalized);
+}
+
 function collectAppPids() {
   const pids = [];
   const platform = process.platform;
 
   if (platform === "win32") {
     try {
-      const psCmd = `powershell -NonInteractive -WindowStyle Hidden -Command "Get-WmiObject Win32_Process -Filter 'Name=\\"node.exe\\"' | Select-Object ProcessId,CommandLine | ConvertTo-Csv -NoTypeInformation"`;
+      const psCmd = `powershell -NonInteractive -WindowStyle Hidden -Command "Get-WmiObject Win32_Process -Filter 'Name=\\"node.exe\\" OR Name=\\"bun.exe\\"' | Select-Object ProcessId,CommandLine | ConvertTo-Csv -NoTypeInformation"`;
       const output = execSync(psCmd, { encoding: "utf8", windowsHide: true, timeout: KILL_TIMEOUT_MS });
       const lines = output.split("\n").slice(1).filter(l => l.trim());
       lines.forEach(line => {
         const lower = line.toLowerCase();
-        // Match anything running from zenrouter install dir or wrapper cli.js
-        const isAppProcess = lower.includes("zenrouter") ||
-          lower.includes("next-server") ||
-          lower.includes("\\bin\\app\\") ||
-          lower.includes("/bin/app/") ||
-          lower.includes("cli.js");
+        const isAppProcess = isAppCommand(lower);
         if (isAppProcess) {
           const match = line.match(/^"(\d+)"/);
           if (match && match[1] && match[1] !== process.pid.toString()) pids.push(match[1]);
@@ -62,32 +63,19 @@ function collectAppPids() {
       });
     } catch { /* no processes */ }
 
-    // Kill cloudflared + tray binaries (hold app dir lock)
-    for (const procName of ["cloudflared", "tray_windows_release"]) {
-      try {
-        const cmd = `powershell -NonInteractive -WindowStyle Hidden -Command "Get-Process ${procName} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id"`;
-        const out = execSync(cmd, { encoding: "utf8", windowsHide: true, timeout: KILL_TIMEOUT_MS });
-        out.split("\n").forEach(l => {
-          const pid = l.trim();
-          if (pid && !isNaN(pid)) pids.push(pid);
-        });
-      } catch { /* not running */ }
-    }
+    // Helper teardown belongs to the lifecycle/PID owner, not a global image
+    // name search which could kill another installation's tunnel or tray.
   } else {
     try {
-      const output = execSync("ps aux 2>/dev/null", { encoding: "utf8", timeout: KILL_TIMEOUT_MS });
+      const output = execSync("ps -ww -eo pid=,args= 2>/dev/null", { encoding: "utf8", timeout: KILL_TIMEOUT_MS });
       output.split("\n").forEach(line => {
-        const isAppProcess = line.includes("zenrouter") ||
-          line.includes("next-server") ||
-          line.includes("cloudflared") ||
-          line.includes("/bin/app/") ||
-          line.includes("tray_darwin") ||
-          line.includes("tray_linux");
-        if (isAppProcess) {
-          const parts = line.trim().split(/\s+/);
-          const pid = parts[1];
-          if (pid && !isNaN(pid) && pid !== process.pid.toString()) pids.push(pid);
+        const match = line.match(/^\s*(\d+)\s+(.*)$/);
+        if (!match || match[1] === process.pid.toString() || !isAppCommand(match[2])) return;
+        if (platform === "linux") {
+          try { if (!isAppCommand(fs.readFileSync(`/proc/${match[1]}/cmdline`, "utf8").replace(/\0/g, " "))) return; }
+          catch { return; }
         }
+        pids.push(match[1]);
       });
     } catch { /* no processes */ }
   }
@@ -97,11 +85,7 @@ function collectAppPids() {
 
 // Copy updater.js into DATA_DIR so npm -g can overwrite node_modules safely
 function getDataDir() {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  if (process.platform === "win32") {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "zenrouter");
-  }
-  return path.join(os.homedir(), ".zenrouter");
+  return DATA_DIR;
 }
 
 function resolveBundledUpdaterPath() {
@@ -124,7 +108,7 @@ function ensureRuntimeUpdater(bundledPath) {
     const runtimePath = path.join(runtimeDir, "updater.js");
     if (fs.existsSync(runtimePath)) {
       try {
-        if (fs.statSync(bundledPath).size === fs.statSync(runtimePath).size) return runtimePath;
+        if (fs.readFileSync(bundledPath).equals(fs.readFileSync(runtimePath))) return runtimePath;
       } catch { /* recopy */ }
     }
     fs.mkdirSync(runtimeDir, { recursive: true });
@@ -159,7 +143,7 @@ export async function killAppProcesses() {
 // Resolve the npx binary + package to relaunch after update (cross-platform)
 function resolveRelaunchCommand() {
   const isWin = process.platform === "win32";
-  // Prefer `npx @joyccn/zenrouter` — works regardless of global bin path changes after npm i -g
+  // Prefer `npx @bykitsune/router` — works regardless of global bin path changes after npm i -g
   const npx = isWin ? "npx.cmd" : "npx";
   return { cmd: npx, args: [UPDATER_CONFIG.npmPackageName] };
 }
@@ -180,6 +164,9 @@ export function spawnUpdaterAndExit(packageName = UPDATER_CONFIG.npmPackageName)
     windowsHide: true,
     env: {
       ...process.env,
+      // The copied updater cannot import application hooks after npm replaces
+      // the package. Inherit the already migrated, authoritative location.
+      DATA_DIR,
       UPDATER_PKG_NAME: packageName,
       UPDATER_PORT: String(UPDATER_CONFIG.statusPort),
       UPDATER_TAIL_LINES: String(UPDATER_CONFIG.statusLogTailLines),

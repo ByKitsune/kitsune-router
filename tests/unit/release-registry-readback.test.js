@@ -58,7 +58,7 @@ if (args[0] === "view") {
   const result = spawnSync(process.execPath, [resolve(root, "scripts/release-publication-helpers.mjs"), mode, version, ...(mode === "publish" ? [artifact] : [])], {
     cwd: directory, encoding: "utf8", timeout: 10000,
     env: { PATH: `${directory}:${process.env.PATH}`, HOME: directory, GITHUB_OUTPUT: output,
-      GITHUB_REPOSITORY: "ZenRouter/ZenRouter", FIXTURE_STATE: state, FIXTURE_INTEGRITY: integrity },
+      GITHUB_REPOSITORY: "ByKitsune/kitsune-router", FIXTURE_STATE: state, FIXTURE_INTEGRITY: integrity },
   });
   return { result, state: JSON.parse(readFileSync(state, "utf8")), artifact: readFileSync(artifact), output: readFileSync(output, "utf8") };
 }

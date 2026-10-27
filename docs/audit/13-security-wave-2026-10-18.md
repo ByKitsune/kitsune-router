@@ -1,5 +1,7 @@
 # Security and gateway follow-up — 2026-10-18
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Base commit: `250751b7e6707bad08d68c33ca87a92065c2af14`.
 This follows the earlier audit snapshots; it does not rewrite their historical
 measurements or claim every remaining audit item is fixed.

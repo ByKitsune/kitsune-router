@@ -1,21 +1,21 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { getRequestPhaseMetrics, recordRequestPhase, startRequestPhase } from "../../open-sse/utils/requestTiming.js";
 
-const previous = process.env.ZENROUTER_REQUEST_TIMING;
+const previous = process.env.KITSUNE_ROUTER_REQUEST_TIMING;
 afterEach(() => {
-  if (previous === undefined) delete process.env.ZENROUTER_REQUEST_TIMING;
-  else process.env.ZENROUTER_REQUEST_TIMING = previous;
+  if (previous === undefined) delete process.env.KITSUNE_ROUTER_REQUEST_TIMING;
+  else process.env.KITSUNE_ROUTER_REQUEST_TIMING = previous;
 });
 
 describe("bounded request phase measurements", () => {
   it("is opt-in and does not record sensitive request fields", () => {
-    delete process.env.ZENROUTER_REQUEST_TIMING;
+    delete process.env.KITSUNE_ROUTER_REQUEST_TIMING;
     recordRequestPhase("disabled_phase", 12);
     expect(getRequestPhaseMetrics().some(entry => entry.phase === "disabled_phase")).toBe(false);
   });
 
   it("retains a bounded percentile window and counts all samples", () => {
-    process.env.ZENROUTER_REQUEST_TIMING = "1";
+    process.env.KITSUNE_ROUTER_REQUEST_TIMING = "1";
     for (let n = 1; n <= 600; n++) recordRequestPhase("test_phase", n);
     const metric = getRequestPhaseMetrics().find(entry => entry.phase === "test_phase");
     expect(metric.count).toBe(600);
@@ -28,7 +28,7 @@ describe("bounded request phase measurements", () => {
   });
 
   it("records each timer once and ignores invalid durations", () => {
-    process.env.ZENROUTER_REQUEST_TIMING = "1";
+    process.env.KITSUNE_ROUTER_REQUEST_TIMING = "1";
     const done = startRequestPhase("single_phase");
     done(); done();
     recordRequestPhase("single_phase", NaN);

@@ -1,8 +1,8 @@
 // Client-facing error messages, kept free of internal routing detail.
 //
-// Zen is the internal engine behind ByKitsune. The owner's rule: a user must
-// never see which provider, account, channel or routing prefix served (or
-// refused) their request. The concrete leak that motivated this module was
+// Public API errors must not reveal which provider, account, channel or routing
+// prefix served (or refused) a request. The concrete leak that motivated this
+// module was
 //
 //   {"error":{"message":"No active credentials for provider: openai",
 //             "code":"model_not_found"}}

@@ -6,13 +6,13 @@ const GOOGLE_MSG = "User location is not supported for the API use.";
 
 // Google's Cloud Code Assist regional allowlist rejection (Antigravity/Gemini
 // free tier) is decided from the server's egress IP — never from payload
-// content. ZenRouter must surface an actionable hint instead of a bare 400,
+// content. Kitsune Router must surface an actionable hint instead of a bare 400,
 // WITHOUT changing the fail-fast / no-cooldown classification (accounts stay safe).
 describe("Google location-gate error hint", () => {
   it("appends the hint to the exact Google message", () => {
     const out = withLocationGateHint(GOOGLE_MSG);
     expect(out).toContain(GOOGLE_MSG);
-    expect(out).toContain("[ZenRouter hint:");
+    expect(out).toContain("[Kitsune Router hint:");
     expect(out).toContain("proxy");
   });
 
@@ -38,14 +38,14 @@ describe("Google location-gate error hint", () => {
     const parsed = await parseUpstreamError(res, null);
     expect(parsed.statusCode).toBe(400);
     expect(parsed.message).toContain(GOOGLE_MSG);
-    expect(parsed.message).toContain("[ZenRouter hint:");
+    expect(parsed.message).toContain("[Kitsune Router hint:");
   });
 
   it("parseUpstreamError (executor path) carries the hint too", async () => {
     const res = new Response("{}", { status: 400 });
     const fakeExecutor = { parseError: () => ({ message: GOOGLE_MSG, status: 400 }) };
     const parsed = await parseUpstreamError(res, fakeExecutor);
-    expect(parsed.message).toContain("[ZenRouter hint:");
+    expect(parsed.message).toContain("[Kitsune Router hint:");
   });
 
   it("does not hint other 400s", async () => {
@@ -54,7 +54,7 @@ describe("Google location-gate error hint", () => {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
     const parsed = await parseUpstreamError(res, null);
-    expect(parsed.message).not.toContain("[ZenRouter hint:");
+    expect(parsed.message).not.toContain("[Kitsune Router hint:");
   });
 
   it("hinted message keeps fail-fast classification (no fallback, no cooldown)", () => {

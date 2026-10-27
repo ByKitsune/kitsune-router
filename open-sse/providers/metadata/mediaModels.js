@@ -613,7 +613,7 @@ const mediaModels = {
         "route": "POST https://api.openai.com/v1/images/generations",
         "routeLimitations": [
           "Do not reuse API image IDs as Codex chat aliases.",
-          "Existing Zen adapter is prompt-only; no image edit inputs.",
+          "Existing Kitsune Router adapter is prompt-only; no image edit inputs.",
           "No documented context/output token ceiling on model pages; leave unspecified.",
           "Flat input/output schema cannot represent both text and image input rates."
         ],
@@ -667,7 +667,7 @@ const mediaModels = {
         "route": "POST https://api.openai.com/v1/images/generations",
         "routeLimitations": [
           "Do not reuse API image IDs as Codex chat aliases.",
-          "Existing Zen adapter is prompt-only; no image edit inputs.",
+          "Existing Kitsune Router adapter is prompt-only; no image edit inputs.",
           "No documented context/output token ceiling on model pages; leave unspecified.",
           "Flat input/output schema cannot represent both text and image input rates."
         ],
@@ -1146,7 +1146,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent (array input: batchEmbedContents)",
         "routeLimitations": [
-          "Only text/string-array inputs are supported by Zen adapter; structured inputs are String(object).",
+          "Only text/string-array inputs are supported by Kitsune Router adapter; structured inputs are String(object).",
           "Do not transfer multimodal capabilities from provider to this route.",
           "Preview ID deprecation page literally says embedding-2-preview; do not silently normalize that into gemini-embedding-2-preview."
         ],
@@ -1207,7 +1207,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent",
         "routeLimitations": [
-          "Zen image adapter only forwards text prompt and responseModalities; no edit image, resolution, aspect ratio controls."
+          "Kitsune Router image adapter only forwards text prompt and responseModalities; no edit image, resolution, aspect ratio controls."
         ],
         "unverifiedCapabilityFields": [
           "contextWindow"
@@ -1363,7 +1363,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://api.voyageai.com/v1/embeddings",
         "routeLimitations": [
-          "Zen sends dimensions, not Voyage output_dimension; configurable dimensions/input_type need adapter mapping.",
+          "Kitsune Router sends dimensions, not Voyage output_dimension; configurable dimensions/input_type need adapter mapping.",
           "Do not add voyage-context-4 or multimodal/rerank siblings through ordinary /embeddings without endpoint-specific support."
         ],
         "unverifiedCapabilityFields": [
@@ -1575,7 +1575,7 @@ const mediaModels = {
         "routeLimitations": [
           "Docs use unprefixed model ID; public /v1/models uses jina-ai/ prefix. Preserve this distinction.",
           "Raw public pricing.prompt is 0.00000005 small / 0.00000002 nano; do not assert USD/M mapping without unit provenance.",
-          "Zen only passes input/encoding_format/dimensions, not task or multimodal options.",
+          "Kitsune Router only passes input/encoding_format/dimensions, not task or multimodal options.",
           "New v5 entries explicitly declared in registry.models and embeddingConfig.models; no general nested model merge."
         ],
         "unverifiedCapabilityFields": [
@@ -1624,7 +1624,7 @@ const mediaModels = {
         "routeLimitations": [
           "Docs use unprefixed model ID; public /v1/models uses jina-ai/ prefix. Preserve this distinction.",
           "Raw public pricing.prompt is 0.00000005 small / 0.00000002 nano; do not assert USD/M mapping without unit provenance.",
-          "Zen only passes input/encoding_format/dimensions, not task or multimodal options.",
+          "Kitsune Router only passes input/encoding_format/dimensions, not task or multimodal options.",
           "New v5 entries explicitly declared in registry.models and embeddingConfig.models; no general nested model merge."
         ],
         "unverifiedCapabilityFields": [
@@ -1877,7 +1877,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://external.api.recraft.ai/v1/images/generations",
         "routeLimitations": [
-          "Use default JSON/url output; multipart preview/streaming not supported by generic Zen adapter.",
+          "Use default JSON/url output; multipart preview/streaming not supported by generic Kitsune Router adapter.",
           "No token context/output limit should be invented."
         ],
         "unverifiedCapabilityFields": [
@@ -1926,7 +1926,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://external.api.recraft.ai/v1/images/generations",
         "routeLimitations": [
-          "Use default JSON/url output; multipart preview/streaming not supported by generic Zen adapter.",
+          "Use default JSON/url output; multipart preview/streaming not supported by generic Kitsune Router adapter.",
           "No token context/output limit should be invented."
         ],
         "unverifiedCapabilityFields": [
@@ -1975,7 +1975,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://external.api.recraft.ai/v1/images/generations",
         "routeLimitations": [
-          "Use default JSON/url output; multipart preview/streaming not supported by generic Zen adapter.",
+          "Use default JSON/url output; multipart preview/streaming not supported by generic Kitsune Router adapter.",
           "No token context/output limit should be invented."
         ],
         "unverifiedCapabilityFields": [
@@ -2024,7 +2024,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://external.api.recraft.ai/v1/images/generations",
         "routeLimitations": [
-          "Use default JSON/url output; multipart preview/streaming not supported by generic Zen adapter.",
+          "Use default JSON/url output; multipart preview/streaming not supported by generic Kitsune Router adapter.",
           "No token context/output limit should be invented."
         ],
         "unverifiedCapabilityFields": [
@@ -2073,7 +2073,7 @@ const mediaModels = {
         "authenticatedRouteVerified": false,
         "route": "POST https://external.api.recraft.ai/v1/images/generations",
         "routeLimitations": [
-          "Use default JSON/url output; multipart preview/streaming not supported by generic Zen adapter.",
+          "Use default JSON/url output; multipart preview/streaming not supported by generic Kitsune Router adapter.",
           "No token context/output limit should be invented."
         ],
         "unverifiedCapabilityFields": [
@@ -2326,7 +2326,7 @@ for (const [id, rate] of [["stable-image-ultra", 0.08], ["stable-image-core", 0.
     note: "Per-generation credits converted using Stability's explicit $0.01/credit, not a fabricated token rate. Signup credits do not make the model free.",
   }, {
     characters: 10000, routeSupported: false,
-    routeLimitations: ["Primary API requires multipart/form-data but current Zen adapter sends application/json. Published prices are reference facts, not proof this route executes. Native sd3.5-flash exists but must not be advertised before fixing that adapter."],
+    routeLimitations: ["Primary API requires multipart/form-data but current Kitsune Router adapter sends application/json. Published prices are reference facts, not proof this route executes. Native sd3.5-flash exists but must not be advertised before fixing that adapter."],
   });
 }
 

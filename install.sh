@@ -2,15 +2,15 @@
 set -e
 
 # ==============================================================================
-# 🌿 ZenRouter Official Installer — Zero-Config
-# https://github.com/ZenRouter/ZenRouter
+# Kitsune Router by ByKitsune — Your models. Your routes.
+# https://github.com/ByKitsune/kitsune-router
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ZenRouter/ZenRouter/master/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/ZenRouter/ZenRouter/master/install.sh | bash -s -- --dir ~/.zenrouter/app --branch master
+#   curl -fsSL https://raw.githubusercontent.com/ByKitsune/kitsune-router/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ByKitsune/kitsune-router/master/install.sh | bash -s -- --dir ~/.kitsune-router/app --branch master
 #
 # Options:
-#   --dir PATH      Custom install directory (default: ~/.zenrouter/app for source fallback)
+#   --dir PATH      Custom install directory (default: ~/.kitsune-router/app for source fallback)
 #   --branch NAME   Git branch to clone (default: master)
 #   --help          Show help
 #   --no-build      Skip npm build step when using source fallback
@@ -19,9 +19,10 @@ set -e
 # Features (inspired by hermes-agent zero-config):
 #   - Auto-detects OS/arch, handles Linux/macOS/WSL/Termux
 #   - Auto-installs missing deps: git, curl, Node.js (>=22.19.0), build tools
-#   - Managed Node fallback (downloads official tarball to ~/.zenrouter/node if system Node is too old)
+#   - Managed Node fallback (downloads official tarball to ~/.kitsune-router/node if system Node is too old)
 #   - Non-interactive safe (curl | bash), handles sudo gracefully
-#   - Idempotent: re-runs update existing installs
+#   - Re-runs fast-forward clean source checkouts; never discard local work
+#   - Managed Node upgrades retain recognized prior installs for manual recovery
 # ==============================================================================
 
 # Guard against env leakage (like hermes)
@@ -40,8 +41,8 @@ RED="\033[38;2;248;113;113m"
 RESET="\033[0m"
 
 # Configuration
-REPO_URL="https://github.com/ZenRouter/ZenRouter.git"
-ZENROUTER_HOME="${ZENROUTER_HOME:-$HOME/.zenrouter}"
+REPO_URL="https://github.com/ByKitsune/kitsune-router.git"
+KITSUNE_ROUTER_HOME="${KITSUNE_ROUTER_HOME:-$HOME/.kitsune-router}"
 INSTALL_DIR=""
 INSTALL_DIR_EXPLICIT=false
 BRANCH="master"
@@ -57,8 +58,8 @@ NPM_CMD=""
 BUN_CMD=""
 SOURCE_CLI_CMD=""
 
-if [ -n "${ZENROUTER_INSTALL_DIR:-}" ]; then
-  INSTALL_DIR="$ZENROUTER_INSTALL_DIR"
+if [ -n "${KITSUNE_ROUTER_INSTALL_DIR:-}" ]; then
+  INSTALL_DIR="$KITSUNE_ROUTER_INSTALL_DIR"
   INSTALL_DIR_EXPLICIT=true
 fi
 
@@ -73,10 +74,10 @@ while [[ $# -gt 0 ]]; do
     --no-build) SKIP_BUILD=true; shift ;;
     --skip-deps) SKIP_DEPS=true; shift ;;
     -h|--help)
-      echo "ZenRouter Installer"
+      echo "Kitsune Router Installer"
       echo ""
       echo "Usage: install.sh [OPTIONS]"
-      echo "  --dir PATH     Install directory for source fallback (default: ~/.zenrouter/app)"
+      echo "  --dir PATH     Install directory for source fallback (default: ~/.kitsune-router/app)"
       echo "  --branch NAME  Git branch (default: master)"
       echo "  --no-build     Skip build step"
       echo "  --skip-deps    Skip system dependency auto-install"
@@ -119,7 +120,7 @@ resolve_install_layout() {
     log_info "Install dir: $INSTALL_DIR (explicit)"
     return 0
   fi
-  INSTALL_DIR="$ZENROUTER_HOME/app"
+  INSTALL_DIR="$KITSUNE_ROUTER_HOME/app"
 }
 
 get_link_dir() {
@@ -131,15 +132,11 @@ get_link_dir() {
 
 # Banner
 print_banner() {
-  echo -e "${BLUE}"
-  echo "  ______           ____             __       "
-  echo " /__  / ___  ____ / __ \____  __  __/ /____  "
-  echo "   / / / _ \/ __ \/ /_/ / __ \/ / / / __/ _ \ "
-  echo "  / /_/  __/ / / / _, _/ /_/ / /_/ / /_/  __/ "
-  echo " /____|___/_/ /_/_/ |_|\____/\__,_/\__/\___/  "
-  echo -e "${RESET}"
-  echo -e "${CORAL}${BOLD} 🌿 ZenRouter — Serene AI Gateway & Intelligent Routing Engine${RESET}"
-  echo -e "${GRAY} https://github.com/ZenRouter/ZenRouter${RESET}"
+  echo ""
+  echo -e "${CORAL}${BOLD} Kitsune Router${RESET} ${GRAY}by ByKitsune${RESET}"
+  echo -e "${BOLD} Your models. Your routes.${RESET}"
+  echo -e "${GRAY} A provider-neutral AI gateway${RESET}"
+  echo -e "${GRAY} https://github.com/ByKitsune/kitsune-router${RESET}"
   echo ""
 }
 
@@ -165,7 +162,7 @@ detect_os() {
   if [ "$OS" = "windows" ]; then
     log_warn "Native Windows detected — WSL2 or Docker is strongly recommended."
     log_info "  WSL: wsl --install"
-    log_info "  Docker: docker run -p 20128:20128 joyccn/zenrouter"
+    log_info "  Docker: docker run -p 20128:20128 -v kitsune-router-data:/app/data ghcr.io/bykitsune/kitsune-router:latest"
   fi
   if is_wsl; then log_info "WSL detected — using Linux flow"; fi
 }
@@ -276,11 +273,213 @@ select_bun_runtime() {
   NPM_CMD=""
 }
 
+managed_node_is_owned() {
+  local directory="$1" marker_owner marker_home actual_home
+  [ -d "$directory" ] && [ ! -L "$directory" ] && [ -O "$directory" ] || return 1
+  local marker="$directory/.kitsune-router-managed-node"
+  [ -f "$marker" ] && [ ! -L "$marker" ] && [ -O "$marker" ] || return 1
+  { IFS= read -r marker_owner && IFS= read -r marker_home; } < "$marker" || return 1
+  actual_home=$(cd -- "$directory/.." && pwd -P) || return 1
+  [ "$marker_owner" = "kitsune-router-managed-node-v1" ] && [ "$marker_home" = "$actual_home" ] || return 1
+  [ -f "$directory/bin/node" ] && [ ! -L "$directory/bin/node" ] && [ -x "$directory/bin/node" ] && [ -f "$directory/lib/node_modules/npm/package.json" ]
+}
+
 configure_managed_npm_prefix() {
-  [ -x "$ZENROUTER_HOME/node/bin/npm" ] || return 0
+  # An override may point at a user-maintained Node tree. Do not claim it or
+  # rewrite its npm configuration just because bin/npm happens to exist.
+  managed_node_is_owned "$KITSUNE_ROUTER_HOME/node" || return 0
+  local directory="$KITSUNE_ROUTER_HOME/node/etc" config="$KITSUNE_ROUTER_HOME/node/etc/npmrc"
+  if [ -L "$config" ] || { [ -e "$config" ] && [ ! -f "$config" ]; }; then
+    log_error "Refusing unsafe managed npm configuration: $config"
+    return 1
+  fi
+  if [ -f "$config" ]; then return 0; fi
+  if [ -L "$directory" ] || { [ -e "$directory" ] && [ ! -d "$directory" ]; }; then
+    log_error "Refusing unsafe managed npm configuration directory: $directory"
+    return 1
+  fi
   local link_dir; link_dir="$(get_link_dir)"
-  mkdir -p "$ZENROUTER_HOME/node/etc"
-  printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$ZENROUTER_HOME/node/etc/npmrc"
+  mkdir -p -- "$directory" || return 1
+  (umask 077; set -C; printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$config") || return 1
+}
+
+cleanup_managed_node_stage() {
+  local stage="$1"
+  # Only the private mktemp directory from this invocation can be removed.
+  case "$stage" in "$KITSUNE_ROUTER_HOME"/.node-stage.*) ;; *) return 1 ;; esac
+  [ "${stage%/*}" = "$KITSUNE_ROUTER_HOME" ] || return 1
+  [[ "${stage##*/}" =~ ^\.node-stage\.[A-Za-z0-9]{8}$ ]] || return 1
+  [ -d "$stage" ] && [ ! -L "$stage" ] && [ -O "$stage" ] || return 1
+  rm -rf -- "$stage"
+}
+
+activate_managed_node() {
+  local candidate="$1"
+  # The checksum-verified new Node performs exact rename operations, not mv's
+  # directory-nesting behavior. Existing installs are retained, never deleted.
+  "$candidate/bin/node" - "$KITSUNE_ROUTER_HOME" "$candidate" <<'KITSUNE_MANAGED_NODE'
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const [home, candidate] = process.argv.slice(2);
+    const target = path.join(home, "node");
+    const marker = ".kitsune-router-managed-node";
+    const expectedMarker = `kitsune-router-managed-node-v1\n${home}\n`;
+    const exists = (file) => {
+      try { return fs.lstatSync(file); } catch (error) {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      }
+    };
+    const privateDirectory = (directory) => {
+      const stat = fs.lstatSync(directory);
+      if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o022)) {
+        throw new Error(`Refusing unowned or writable managed directory: ${directory}`);
+      }
+    };
+    const regularFile = (file) => {
+      const stat = fs.lstatSync(file);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.uid !== process.getuid()) {
+        throw new Error(`Refusing unsafe managed file: ${file}`);
+      }
+    };
+    const nodeLayout = (directory) => {
+      privateDirectory(directory);
+      for (const relative of ["bin", "lib", "lib/node_modules", "lib/node_modules/npm"]) {
+        privateDirectory(path.join(directory, relative));
+      }
+      regularFile(path.join(directory, "bin/node"));
+      regularFile(path.join(directory, "lib/node_modules/npm/package.json"));
+      const npm = fs.realpathSync(path.join(directory, "bin/npm"));
+      if (!npm.startsWith(path.join(directory, "lib/node_modules/npm") + path.sep)) {
+        throw new Error("Managed npm executable points outside its installation");
+      }
+    };
+    const stage = path.dirname(path.dirname(candidate));
+    let backup;
+    let movedPrevious = false;
+    try {
+      privateDirectory(home);
+      if (fs.realpathSync(home) !== home || path.dirname(stage) !== home || !/^\.node-stage\.[A-Za-z0-9]{8}$/.test(path.basename(stage)) || path.basename(path.dirname(candidate)) !== "unpack") {
+        throw new Error("Invalid managed Node staging location");
+      }
+      nodeLayout(candidate);
+      const stageStat = fs.lstatSync(stage);
+      privateDirectory(stage);
+      privateDirectory(path.dirname(candidate));
+      if (stageStat.mode & 0o077) throw new Error("Node staging directory is not private");
+      const previous = exists(target);
+      if (previous) {
+        nodeLayout(target);
+        regularFile(path.join(target, marker));
+        const markerStat = fs.statSync(path.join(target, marker));
+        if ((markerStat.mode & 0o022) || fs.readFileSync(path.join(target, marker), "utf8") !== expectedMarker) {
+          throw new Error("Existing Node installation is not owned by this installer");
+        }
+        const npmConfig = path.join(target, "etc/npmrc");
+        if (exists(npmConfig)) {
+          privateDirectory(path.join(target, "etc"));
+          regularFile(npmConfig);
+          fs.mkdirSync(path.join(candidate, "etc"), { recursive: true, mode: 0o700 });
+          fs.copyFileSync(npmConfig, path.join(candidate, "etc/npmrc"), fs.constants.COPYFILE_EXCL);
+          fs.chmodSync(path.join(candidate, "etc/npmrc"), 0o600);
+        }
+      }
+      fs.writeFileSync(path.join(candidate, marker), expectedMarker, { flag: "wx", mode: 0o600 });
+      const current = exists(target);
+      if (Boolean(current) !== Boolean(previous) || (current && (current.dev !== previous.dev || current.ino !== previous.ino))) {
+        throw new Error("Managed Node destination changed during validation; no replacement attempted");
+      }
+      if (previous) {
+        backup = path.join(fs.mkdtempSync(path.join(home, ".node-previous-")), "node");
+        fs.renameSync(target, backup);
+        movedPrevious = true;
+        console.log(`Previous managed Node retained at ${backup}`);
+      }
+      if (exists(target)) throw new Error("Managed Node destination appeared concurrently; retained prior installation is untouched");
+      fs.renameSync(candidate, target);
+    } catch (error) {
+      if (movedPrevious && !exists(target)) {
+        try { fs.renameSync(backup, target); } catch (rollback) {
+          console.error(`Restore the retained Node at ${backup}: ${rollback.message}`);
+        }
+      }
+      console.error(`Managed Node activation stopped: ${error.message}`);
+      process.exitCode = 1;
+    }
+KITSUNE_MANAGED_NODE
+}
+
+stage_managed_node() {
+  local node_os="$1" node_arch="$2"
+  (
+    umask 077
+    local lock="$KITSUNE_ROUTER_HOME/.node-install.lock" stage=""
+    if ! mkdir -- "$lock"; then
+      log_error "Managed Node setup is locked; review $lock before retrying"
+      exit 1
+    fi
+    trap 'if [ -n "$stage" ]; then cleanup_managed_node_stage "$stage" || true; fi; rmdir -- "$lock" 2>/dev/null || true' EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    stage=$(mktemp -d "$KITSUNE_ROUTER_HOME/.node-stage.XXXXXXXX") || { log_error "Cannot create private Node staging directory"; exit 1; }
+    local index_url="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
+    if ! curl -fsSL "${index_url}SHASUMS256.txt" -o "$stage/SHASUMS256.txt"; then
+      log_error "Cannot download official Node checksums"
+      exit 1
+    fi
+    local tarball="" checksum="" digest archive extra
+    local pattern="^node-v${NODE_VERSION}\\.[0-9]+\\.[0-9]+-${node_os}-${node_arch}\\.tar\\.(xz|gz)$"
+    while read -r digest archive extra; do
+      if [[ "$digest" =~ ^[a-f0-9]{64}$ ]] && [[ "$archive" =~ $pattern ]] && [ -z "$extra" ]; then
+        tarball="$archive"; checksum="$digest"
+        if [[ "$archive" == *.tar.xz ]]; then break; fi
+      fi
+    done < "$stage/SHASUMS256.txt"
+    [ -n "$tarball" ] || { log_error "No matching Node archive in official checksums"; exit 1; }
+    log_info "Downloading and verifying $tarball..."
+    curl -fsSL "${index_url}${tarball}" -o "$stage/$tarball" || { log_error "Node download failed"; exit 1; }
+    local actual
+    if command -v sha256sum >/dev/null 2>&1; then
+      actual=$(sha256sum "$stage/$tarball") || exit 1
+    elif command -v shasum >/dev/null 2>&1; then
+      actual=$(shasum -a 256 "$stage/$tarball") || exit 1
+    else
+      log_error "sha256sum or shasum is required to verify managed Node"
+      exit 1
+    fi
+    [ "${actual%% *}" = "$checksum" ] || { log_error "Node archive checksum mismatch; current installation retained"; exit 1; }
+    local archive_root="${tarball%.tar.*}" member
+    tar -tf "$stage/$tarball" > "$stage/members" || { log_error "Cannot inspect Node archive"; exit 1; }
+    while IFS= read -r member; do
+      case "$member" in "$archive_root"|"$archive_root/"*) ;; *) log_error "Unsafe Node archive path"; exit 1 ;; esac
+      case "/$member/" in */../*) log_error "Unsafe Node archive traversal"; exit 1 ;; esac
+    done < "$stage/members"
+    mkdir -- "$stage/unpack" || exit 1
+    tar -xf "$stage/$tarball" -C "$stage/unpack" --no-same-owner || { log_error "Node archive extraction failed"; exit 1; }
+    local candidate="$stage/unpack/$archive_root" version expected_version
+    [ -d "$candidate" ] && [ ! -L "$candidate" ] && [ -f "$candidate/bin/node" ] && [ ! -L "$candidate/bin/node" ] || { log_error "Invalid Node archive layout"; exit 1; }
+    version=$("$candidate/bin/node" --version) || exit 1
+    expected_version="${archive_root#node-}"
+    expected_version="${expected_version%-${node_os}-${node_arch}}"
+    [ "$version" = "$expected_version" ] || { log_error "Node archive version mismatch"; exit 1; }
+    node_satisfies "$version" || { log_error "Downloaded Node does not meet the runtime minimum"; exit 1; }
+    PATH="$candidate/bin:$PATH" "$candidate/bin/npm" --version >/dev/null || { log_error "Downloaded npm cannot run"; exit 1; }
+    activate_managed_node "$candidate" || exit 1
+  )
+}
+
+link_managed_node_commands() {
+  local link_dir="$1" name destination
+  mkdir -p -- "$link_dir" || return 1
+  for name in node npm npx; do
+    destination="$link_dir/$name"
+    if [ -e "$destination" ] || [ -L "$destination" ]; then
+      log_info "Keeping existing command at $destination; managed Node will use its own PATH"
+      continue
+    fi
+    ln -s -- "$KITSUNE_ROUTER_HOME/node/bin/$name" "$destination" || return 1
+  done
 }
 
 install_managed_node() {
@@ -293,37 +492,36 @@ install_managed_node() {
   case "$OS" in linux) node_os="linux";; macos) node_os="darwin";; *) log_warn "Unsupported OS for managed Node"; return 1;; esac
   case "$ARCH" in x86_64) node_arch="x64";; arm64|aarch64) node_arch="arm64";; armv7l) node_arch="armv7l";; *) log_warn "Unsupported arch $ARCH for Node"; return 1;; esac
 
-  local index_url="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
-  local tarball=""
-  log_info "Resolving Node.js v${NODE_VERSION} tarball (${node_os}-${node_arch})..."
-  tarball=$(curl -fsSL "$index_url" | grep -oE "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.(xz|gz)" | head -1 || true)
-  if [ -z "$tarball" ]; then log_warn "Could not find Node $NODE_VERSION tarball at $index_url"; return 1; fi
-  local url="${index_url}${tarball}"
-  local tmp; tmp=$(mktemp -d 2>/dev/null || echo "/tmp/zenrouter-node-$$")
-  log_info "Downloading $tarball..."
-  if ! curl -fsSL "$url" -o "$tmp/$tarball"; then log_warn "Download failed: $url"; rm -rf "$tmp"; return 1; fi
-  log_info "Extracting to $ZENROUTER_HOME/node..."
-  if [[ "$tarball" == *.tar.xz ]]; then tar -xf "$tmp/$tarball" -C "$tmp"; else tar -xzf "$tmp/$tarball" -C "$tmp"; fi
-  local extracted; extracted=$(ls -d "$tmp"/node-v* 2>/dev/null | head -1)
-  if [ ! -d "$extracted" ]; then log_warn "Extraction failed"; rm -rf "$tmp"; return 1; fi
-  rm -rf "$ZENROUTER_HOME/node"
-  mkdir -p "$ZENROUTER_HOME"
-  mv "$extracted" "$ZENROUTER_HOME/node"
-  rm -rf "$tmp"
-  local link_dir; link_dir="$(get_link_dir)"; mkdir -p "$link_dir"
-  ln -sf "$ZENROUTER_HOME/node/bin/node" "$link_dir/node"
-  ln -sf "$ZENROUTER_HOME/node/bin/npm" "$link_dir/npm"
-  ln -sf "$ZENROUTER_HOME/node/bin/npx" "$link_dir/npx"
-  configure_managed_npm_prefix
-  export PATH="$ZENROUTER_HOME/node/bin:$PATH"
-  export PATH="$link_dir:$PATH"
-  log_success "Managed Node $(node --version) installed to $ZENROUTER_HOME/node"
+  case "$KITSUNE_ROUTER_HOME" in /*) ;; *) log_error "Managed Node home must be absolute"; return 1 ;; esac
+  if [ -L "$KITSUNE_ROUTER_HOME" ] || { [ -e "$KITSUNE_ROUTER_HOME" ] && [ ! -d "$KITSUNE_ROUTER_HOME" ]; }; then
+    log_error "Refusing symbolic-link or non-directory managed Node home: $KITSUNE_ROUTER_HOME"
+    return 1
+  fi
+  mkdir -p -- "$KITSUNE_ROUTER_HOME" || return 1
+  KITSUNE_ROUTER_HOME=$(cd -- "$KITSUNE_ROUTER_HOME" && pwd -P) || return 1
+  case "$KITSUNE_ROUTER_HOME" in /|"$HOME"|*$'\n'*|*$'\r'*) log_error "Unsafe managed Node home"; return 1 ;; esac
+  [ -O "$KITSUNE_ROUTER_HOME" ] || { log_error "Managed Node home is not owned by the current user"; return 1; }
+  local writable_home
+  writable_home=$(find "$KITSUNE_ROUTER_HOME" -prune \( -perm -020 -o -perm -002 \) -print) || { log_error "Cannot inspect managed Node home permissions"; return 1; }
+  [ -z "$writable_home" ] || { log_error "Managed Node home is group/world writable; no replacement attempted"; return 1; }
+  if [ -e "$KITSUNE_ROUTER_HOME/node" ] || [ -L "$KITSUNE_ROUTER_HOME/node" ]; then
+    if ! managed_node_is_owned "$KITSUNE_ROUTER_HOME/node"; then
+      log_error "Existing $KITSUNE_ROUTER_HOME/node is unrecognized or user-managed; no files removed. Choose another KITSUNE_ROUTER_HOME or move it manually."
+      return 1
+    fi
+  fi
+  stage_managed_node "$node_os" "$node_arch" || return 1
+  configure_managed_npm_prefix || return 1
+  local link_dir; link_dir="$(get_link_dir)"
+  link_managed_node_commands "$link_dir" || return 1
+  export PATH="$KITSUNE_ROUTER_HOME/node/bin:$link_dir:$PATH"
+  log_success "Managed Node $("$KITSUNE_ROUTER_HOME/node/bin/node" --version) installed to $KITSUNE_ROUTER_HOME/node"
   return 0
 }
 
 check_node() {
   log_step "Checking Node.js (>=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH}) / Bun"
-  configure_managed_npm_prefix
+  configure_managed_npm_prefix || return 1
 
   # Prefer existing system node if good
   if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
@@ -338,17 +536,17 @@ check_node() {
   fi
 
   # Check managed node
-  if [ -x "$ZENROUTER_HOME/node/bin/node" ] && [ -x "$ZENROUTER_HOME/node/bin/npm" ]; then
-    local mver; mver=$("$ZENROUTER_HOME/node/bin/node" --version 2>/dev/null || echo "v0")
-    if select_node_runtime "$ZENROUTER_HOME/node/bin/node" "$ZENROUTER_HOME/node/bin/npm"; then
-      log_success "Managed Node $mver found ($ZENROUTER_HOME/node) "
+  if [ -x "$KITSUNE_ROUTER_HOME/node/bin/node" ] && [ -x "$KITSUNE_ROUTER_HOME/node/bin/npm" ]; then
+    local mver; mver=$("$KITSUNE_ROUTER_HOME/node/bin/node" --version 2>/dev/null || echo "v0")
+    if select_node_runtime "$KITSUNE_ROUTER_HOME/node/bin/node" "$KITSUNE_ROUTER_HOME/node/bin/npm"; then
+      log_success "Managed Node $mver found ($KITSUNE_ROUTER_HOME/node) "
       return 0
     fi
   fi
 
-  # Check Bun as alternative (can run zenrouter but npm needed for global install)
+  # Check Bun as alternative (can run kitsune-router but npm needed for global install)
   if command -v bun >/dev/null 2>&1; then
-    log_info "Bun $(bun --version 2>/dev/null) found — can run ZenRouter, but Node is preferred for npm global"
+    log_info "Bun $(bun --version 2>/dev/null) found — can run Kitsune Router, but Node is preferred for npm global"
     # Still try to get Node for npm global path; Bun can be fallback
   fi
 
@@ -440,22 +638,22 @@ check_build_tools() {
   if command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1; then log_success "Build tools now available"; else log_warn "Build tools still missing — will use sql.js fallback"; fi
 }
 
-# Install zenrouter via npm
+# Install kitsune-router via npm
 install_via_npm() {
-  log_step "Installing ZenRouter CLI via npm"
+  log_step "Installing Kitsune Router CLI via npm"
   local npm_cmd="$NPM_CMD"
   if [ "$RUNTIME" = "node" ]; then
     export PATH="${NODE_CMD%/*}:$PATH"
   elif [ "$RUNTIME" = "bun" ]; then
     log_info "Using selected Bun runtime..."
-    if "$BUN_CMD" add -g @joyccn/zenrouter >/dev/null 2>&1; then log_success "Installed via bun"; return 0; else log_warn "bun add -g failed"; return 1; fi
+    if "$BUN_CMD" add -g @bykitsune/router >/dev/null 2>&1; then log_success "Installed via bun"; return 0; else log_warn "bun add -g failed"; return 1; fi
   else
     log_warn "npm/bun not available"; return 1
   fi
 
-  log_info "Running: $npm_cmd install -g @joyccn/zenrouter"
-  if "$npm_cmd" install -g @joyccn/zenrouter --silent >/dev/null 2>&1; then
-    log_success "Installed zenrouter via npm"
+  log_info "Running: $npm_cmd install -g @bykitsune/router"
+  if "$npm_cmd" install -g @bykitsune/router --silent >/dev/null 2>&1; then
+    log_success "Installed kitsune-router via npm"
     return 0
   fi
   log_warn "npm install without sudo failed (likely EACCES), retrying with sudo..."
@@ -463,10 +661,10 @@ install_via_npm() {
   if command -v sudo >/dev/null 2>&1; then
     # Check if sudo is available and we can prompt
     if [ "$IS_INTERACTIVE" = true ] || [ -r /dev/tty ]; then
-      if sudo env "PATH=${NODE_CMD%/*}:$PATH" "$npm_cmd" install -g @joyccn/zenrouter; then log_success "Installed via sudo"; return 0; fi
+      if sudo env "PATH=${NODE_CMD%/*}:$PATH" "$npm_cmd" install -g @bykitsune/router; then log_success "Installed via sudo"; return 0; fi
     else
       # Non-interactive: try passwordless sudo
-      if sudo -n true 2>/dev/null && sudo -n env "PATH=${NODE_CMD%/*}:$PATH" "$npm_cmd" install -g @joyccn/zenrouter >/dev/null 2>&1; then log_success "Installed via sudo -n"; return 0; fi
+      if sudo -n true 2>/dev/null && sudo -n env "PATH=${NODE_CMD%/*}:$PATH" "$npm_cmd" install -g @bykitsune/router >/dev/null 2>&1; then log_success "Installed via sudo -n"; return 0; fi
       log_warn "No terminal for sudo prompt and passwordless sudo not available"
     fi
   else
@@ -480,9 +678,9 @@ install_via_npm() {
     local link_dir; link_dir="$(get_link_dir)"; mkdir -p "$link_dir"
     # Ensure PATH includes npm-global/bin
     export PATH="${NODE_CMD%/*}:$HOME/.npm-global/bin:$PATH"
-    if "$npm_cmd" install -g @joyccn/zenrouter >/dev/null 2>&1; then
+    if "$npm_cmd" install -g @bykitsune/router >/dev/null 2>&1; then
       # Ensure link exists in expected bin dir
-      if [ -f "$HOME/.npm-global/bin/zenrouter" ] && [ ! -f "$link_dir/zenrouter" ]; then ln -sf "$HOME/.npm-global/bin/zenrouter" "$link_dir/zenrouter" || true; fi
+      if [ -f "$HOME/.npm-global/bin/kitsune-router" ] && [ ! -f "$link_dir/kitsune-router" ]; then ln -sf "$HOME/.npm-global/bin/kitsune-router" "$link_dir/kitsune-router" || true; fi
       log_success "Installed via user-local prefix $HOME/.npm-global"
       log_warn "Add to PATH: export PATH=\"\$HOME/.npm-global/bin:\$PATH\" (add to ~/.bashrc / ~/.zshrc)"
       return 0
@@ -492,37 +690,102 @@ install_via_npm() {
   return 1
 }
 
-# Source fallback: git clone + build
-install_via_source() {
-  log_step "Falling back to source install (git clone)"
-  local link_dir; link_dir="$(get_link_dir)"
-  mkdir -p "$INSTALL_DIR" "$link_dir"
+directory_is_empty() {
+  [ -d "$1" ] && [ ! -L "$1" ] || return 1
+  local entry
+  for entry in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+    if [ -e "$entry" ] || [ -L "$entry" ]; then return 1; fi
+  done
+  return 0
+}
 
+source_checkout_is_clean() {
+  local status marker marker_path
+  if ! status=$(git -C "$INSTALL_DIR" status --porcelain=v1 --untracked-files=all --ignore-submodules=none); then
+    log_error "Cannot inspect checkout state at $INSTALL_DIR; no update attempted"
+    return 1
+  fi
+  if [ -n "$status" ]; then
+    log_error "Checkout has tracked changes or untracked files: $INSTALL_DIR. Preserve them before updating."
+    return 1
+  fi
+  for marker in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-apply rebase-merge sequencer; do
+    marker_path=$(git -C "$INSTALL_DIR" rev-parse --git-path "$marker") || return 1
+    case "$marker_path" in /*) ;; *) marker_path="$INSTALL_DIR/$marker_path" ;; esac
+    if [ -e "$marker_path" ] || [ -L "$marker_path" ]; then
+      log_error "Checkout has an unfinished Git operation ($marker); resolve it before updating"
+      return 1
+    fi
+  done
+  return 0
+}
+
+prepare_source_checkout() {
   if ! command -v git >/dev/null 2>&1; then
     log_error "git is required for source install but not found"
     return 1
   fi
+  if [ -z "$INSTALL_DIR" ] || [ -L "$INSTALL_DIR" ] || { [ -e "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR" ]; }; then
+    log_error "Install directory must be a real directory, not an empty path, file or symbolic link: $INSTALL_DIR"
+    return 1
+  fi
+  case "$BRANCH" in ""|-*) log_error "Invalid source branch: $BRANCH"; return 1 ;; esac
+  git check-ref-format "refs/heads/$BRANCH" >/dev/null 2>&1 || { log_error "Invalid source branch: $BRANCH"; return 1; }
+  mkdir -p -- "$INSTALL_DIR" || return 1
+  INSTALL_DIR=$(cd -- "$INSTALL_DIR" && pwd -P) || return 1
 
-  # Ensure curl/tar are available for npm install inside repo
-  if [ -d "$INSTALL_DIR/.git" ]; then
-    log_info "Updating existing checkout at $INSTALL_DIR..."
-    if ! git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH" >/dev/null 2>&1; then
-      log_warn "fetch failed, trying pull"
-      git -C "$INSTALL_DIR" pull --ff-only >/dev/null 2>&1 || true
-    else
-      git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" >/dev/null 2>&1 || true
+  if [ -e "$INSTALL_DIR/.git" ] || [ -L "$INSTALL_DIR/.git" ]; then
+    local checkout_root current_branch before_head fetched_head
+    if [ -L "$INSTALL_DIR/.git" ]; then
+      log_error "Refusing a symbolic-link Git directory at $INSTALL_DIR"
+      return 1
+    fi
+    checkout_root=$(git -C "$INSTALL_DIR" rev-parse --show-toplevel) || return 1
+    checkout_root=$(cd -- "$checkout_root" && pwd -P) || return 1
+    [ "$checkout_root" = "$INSTALL_DIR" ] || { log_error "Install directory is not the checkout root"; return 1; }
+    current_branch=$(git -C "$INSTALL_DIR" symbolic-ref --quiet --short HEAD) || { log_error "Detached checkout; select $BRANCH manually before updating"; return 1; }
+    [ "$current_branch" = "$BRANCH" ] || { log_error "Checkout is on $current_branch, not $BRANCH; no branch switch attempted"; return 1; }
+    source_checkout_is_clean || return 1
+    before_head=$(git -C "$INSTALL_DIR" rev-parse --verify HEAD) || return 1
+    log_info "Fetching origin branch $BRANCH for $INSTALL_DIR..."
+    if ! git -C "$INSTALL_DIR" fetch --no-tags origin "refs/heads/$BRANCH"; then
+      log_error "Fetch failed; checkout retained without update or default-branch fallback"
+      return 1
+    fi
+    fetched_head=$(git -C "$INSTALL_DIR" rev-parse --verify 'FETCH_HEAD^{commit}') || return 1
+    if ! git -C "$INSTALL_DIR" merge-base --is-ancestor "$before_head" "$fetched_head"; then
+      log_error "origin/$BRANCH is not a fast-forward of this checkout; local commits retained, resolve manually"
+      return 1
+    fi
+    # Recheck after the network operation. Do not hide changes in an automatic
+    # stash, overwrite ignored files, or merge a different concurrently selected branch.
+    source_checkout_is_clean || return 1
+    current_branch=$(git -C "$INSTALL_DIR" symbolic-ref --quiet --short HEAD) || return 1
+    [ "$current_branch" = "$BRANCH" ] && [ "$(git -C "$INSTALL_DIR" rev-parse --verify HEAD)" = "$before_head" ] || { log_error "Checkout changed during fetch; no update attempted"; return 1; }
+    if ! git -C "$INSTALL_DIR" -c merge.autoStash=false merge --ff-only --no-edit --no-overwrite-ignore "$fetched_head"; then
+      log_error "Fast-forward update refused; existing files retained. Resolve the checkout manually."
+      return 1
     fi
   else
+    if ! directory_is_empty "$INSTALL_DIR"; then
+      log_error "Non-Git install directory is not empty: $INSTALL_DIR. Choose an empty --dir; no files were removed."
+      return 1
+    fi
     log_info "Cloning $REPO_URL (branch: $BRANCH) to $INSTALL_DIR..."
-    # Clean non-git dir if exists
-    if [ -e "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR/.git" ]; then rm -rf "$INSTALL_DIR"; mkdir -p "$INSTALL_DIR"; fi
-    if ! git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR" 2>&1; then
-      log_warn "Branch $BRANCH not found, trying default..."
-      git clone --depth 1 "$REPO_URL" "$INSTALL_DIR" || { log_error "git clone failed"; return 1; }
+    if ! git clone --depth 1 --branch "$BRANCH" -- "$REPO_URL" "$INSTALL_DIR"; then
+      log_error "Clone failed; no default-branch retry or directory cleanup attempted. Review $INSTALL_DIR before retrying."
+      return 1
     fi
   fi
+}
 
-  cd "$INSTALL_DIR"
+# Source fallback: clone an empty directory or fast-forward a clean checkout.
+install_via_source() {
+  log_step "Falling back to source install (git clone)"
+  prepare_source_checkout || return 1
+  local link_dir; link_dir="$(get_link_dir)"
+  mkdir -p -- "$link_dir" || return 1
+  cd -- "$INSTALL_DIR" || return 1
 
   # Choose package manager
   local pm="$NPM_CMD"
@@ -547,7 +810,7 @@ install_via_source() {
   fi
 
   if [ "$SKIP_BUILD" = false ]; then
-    log_info "Building ZenRouter ($pm run build)..."
+    log_info "Building Kitsune Router ($pm run build)..."
     local build_args=(run build --silent)
     if [ "$RUNTIME" = "bun" ]; then build_args=(--bun "${build_args[@]}"); fi
     if ! "$pm" "${build_args[@]}" >/dev/null 2>&1; then
@@ -562,7 +825,7 @@ install_via_source() {
 
   # Link binary
   local cli_src="$INSTALL_DIR/cli/cli.js"
-  local cli_link="$link_dir/zenrouter"
+  local cli_link="$link_dir/kitsune-router"
   # Pin source verification independently of the selected runtime's PATH.
   SOURCE_CLI_CMD="$cli_link"
   if [ -f "$cli_src" ]; then
@@ -591,9 +854,9 @@ ensure_path() {
   export PATH="$link_dir:$PATH"
 }
 
-zenrouter_version() {
+kitsune_router_version() {
   local cli_cmd="$SOURCE_CLI_CMD"
-  if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v zenrouter) || return 1; fi
+  if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v kitsune-router) || return 1; fi
   if [ "$RUNTIME" = "bun" ]; then
     "$BUN_CMD" "$cli_cmd" --version 2>/dev/null || "$BUN_CMD" "$cli_cmd" -v 2>/dev/null
   else
@@ -611,26 +874,26 @@ verify_install() {
   if [ "$RUNTIME" = "node" ]; then export PATH="${NODE_CMD%/*}:$PATH"; fi
 
   local cli_cmd="$SOURCE_CLI_CMD"
-  if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v zenrouter || true); fi
+  if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v kitsune-router || true); fi
   if [ -n "$cli_cmd" ]; then
     local ver
-    if ! ver=$(zenrouter_version); then log_error "zenrouter could not run with the selected $RUNTIME runtime"; return 1; fi
-    log_success "ZenRouter found: $ver ($cli_cmd)"
+    if ! ver=$(kitsune_router_version); then log_error "kitsune-router could not run with the selected $RUNTIME runtime"; return 1; fi
+    log_success "Kitsune Router found: $ver ($cli_cmd)"
     return 0
   fi
   # Check link exists but not in PATH
-  if [ -x "$link_dir/zenrouter" ]; then
-    log_warn "zenrouter binary exists at $link_dir/zenrouter but not in PATH"
+  if [ -x "$link_dir/kitsune-router" ]; then
+    log_warn "kitsune-router binary exists at $link_dir/kitsune-router but not in PATH"
     ensure_path
-    if command -v zenrouter >/dev/null 2>&1 && zenrouter_version >/dev/null; then log_success "Now found after PATH fix"; return 0; fi
+    if command -v kitsune-router >/dev/null 2>&1 && kitsune_router_version >/dev/null; then log_success "Now found after PATH fix"; return 0; fi
   fi
   if [ -x "$INSTALL_DIR/cli/cli.js" ]; then
     log_warn "CLI found at $INSTALL_DIR/cli/cli.js but not linked"
-    ln -sf "$INSTALL_DIR/cli/cli.js" "$link_dir/zenrouter" 2>/dev/null || true
-    if command -v zenrouter >/dev/null 2>&1 && zenrouter_version >/dev/null; then log_success "Linked and found"; return 0; fi
+    ln -sf "$INSTALL_DIR/cli/cli.js" "$link_dir/kitsune-router" 2>/dev/null || true
+    if command -v kitsune-router >/dev/null 2>&1 && kitsune_router_version >/dev/null; then log_success "Linked and found"; return 0; fi
   fi
-  log_error "zenrouter command not found after install"
-  log_info "Try: export PATH=\"\$HOME/.local/bin:\$PATH\" && zenrouter --help"
+  log_error "kitsune-router command not found after install"
+  log_info "Try: export PATH=\"\$HOME/.local/bin:\$PATH\" && kitsune-router --help"
   log_info "Or check logs above for errors"
   return 1
 }
@@ -663,15 +926,15 @@ main() {
   echo ""
   if [ "$installed" = true ] && verify_install; then
     echo ""
-    echo -e "${GREEN}${BOLD}✓ ZenRouter successfully installed!${RESET}"
+    echo -e "${GREEN}${BOLD}✓ Kitsune Router successfully installed!${RESET}"
     # Show version if possible
-    local ver; ver=$(zenrouter_version || echo "")
+    local ver; ver=$(kitsune_router_version || echo "")
     if [ -n "$ver" ]; then echo -e "  ${GRAY}Version: $ver${RESET}"; fi
   else
     echo ""
-    log_error "ZenRouter installation failed"
+    log_error "Kitsune Router installation failed"
     echo -e "  ${GRAY}Check output above. Try manual steps:${RESET}"
-    echo -e "  ${GRAY}  npm install -g @joyccn/zenrouter  # or${RESET}"
+    echo -e "  ${GRAY}  npm install -g @bykitsune/router  # or${RESET}"
     echo -e "  ${GRAY}  git clone $REPO_URL $INSTALL_DIR && cd $INSTALL_DIR && npm install && npm run build${RESET}"
     return 1
   fi
@@ -679,10 +942,10 @@ main() {
   # Next steps
   echo ""
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${RESET}"
-  echo -e "${BOLD}🚀 Get Started with ZenRouter:${RESET}"
+  echo -e "${BOLD}🚀 Get Started with Kitsune Router:${RESET}"
   echo ""
   echo -e "  1. Start the gateway:"
-  echo -e "     ${GREEN}${BOLD}zenrouter${RESET}  ${GRAY}# or: zenrouter --port 20128${RESET}"
+  echo -e "     ${GREEN}${BOLD}kitsune-router${RESET}  ${GRAY}# or: kitsune-router --port 20128${RESET}"
   echo ""
   echo -e "  2. Dashboard:"
   echo -e "     ${CYAN}${BOLD}http://localhost:20128${RESET}  ${GRAY}(auto-opens)${RESET}"
@@ -691,16 +954,16 @@ main() {
   echo -e "  3. Use with AI tools:"
   echo -e "     ${GRAY}Claude Code:${RESET} ${BOLD}export ANTHROPIC_BASE_URL=http://localhost:20128${RESET}"
   echo -e "     ${GRAY}Codex/Cursor:${RESET} ${BOLD}export OPENAI_BASE_URL=http://localhost:20128/v1${RESET}"
-  echo -e "     ${GRAY}API Key:${RESET} ${BOLD}sk-zenrouter${RESET} ${GRAY}(or dashboard key)${RESET}"
+  echo -e "     ${GRAY}API Key:${RESET} ${BOLD}Create a key in Dashboard → API Keys${RESET}"
   echo ""
   echo -e "  4. Manage:"
-  echo -e "     ${GRAY}zenrouter status  # health${RESET}"
-  echo -e "     ${GRAY}zenrouter start   # background${RESET}"
-  echo -e "     ${GRAY}zenrouter stop    # stop${RESET}"
-  echo -e "     ${GRAY}zenrouter --help  # all options${RESET}"
+  echo -e "     ${GRAY}kitsune-router status  # health${RESET}"
+  echo -e "     ${GRAY}kitsune-router start   # background${RESET}"
+  echo -e "     ${GRAY}kitsune-router stop    # stop${RESET}"
+  echo -e "     ${GRAY}kitsune-router --help  # all options${RESET}"
   echo ""
-  echo -e "  ${GRAY}Docs: https://github.com/ZenRouter/ZenRouter#readme${RESET}"
-  echo -e "  ${GRAY}Issues: https://github.com/ZenRouter/ZenRouter/issues${RESET}"
+  echo -e "  ${GRAY}Docs: https://github.com/ByKitsune/kitsune-router#readme${RESET}"
+  echo -e "  ${GRAY}Issues: https://github.com/ByKitsune/kitsune-router/issues${RESET}"
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${RESET}"
   echo ""
   ensure_path

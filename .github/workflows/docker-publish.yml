@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Publish Canonical GHCR Image
 
 on:
   workflow_dispatch:
@@ -6,15 +6,14 @@ on:
       tag:
         description: "Stable release tag (must match all package versions)"
         required: true
-        default: "v0.9.13"
+        default: "v1.0.1"
 
 concurrency:
   group: docker-release
   cancel-in-progress: false
 
 env:
-  GHCR_IMAGE: ghcr.io/zenrouter/zenrouter
-  DOCKERHUB_IMAGE: joyccn/zenrouter
+  GHCR_IMAGE: ghcr.io/bykitsune/kitsune-router
 
 jobs:
   build-and-push:
@@ -24,7 +23,7 @@ jobs:
       packages: write
     env:
       JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
-      ZENROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
+      KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
 
     steps:
       - uses: actions/checkout@v7
@@ -41,6 +40,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
+          test "$GITHUB_REPOSITORY" = "ByKitsune/kitsune-router"
           node scripts/check-release-version.mjs "$RELEASE_TAG"
           test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
           test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
@@ -69,24 +69,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Reconcile immutable version digests before any build
         id: immutable
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-publication-helpers.mjs docker-prepare "$RELEASE_VERSION" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
+        run: node scripts/release-publication-helpers.mjs docker-prepare "$RELEASE_VERSION" "$GHCR_IMAGE"
 
       - name: Check current registry latest versions before promotion
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-publication-helpers.mjs docker-latest "$RELEASE_VERSION" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
+        run: node scripts/release-publication-helpers.mjs docker-latest "$RELEASE_VERSION" "$GHCR_IMAGE"
 
       - name: Extract metadata
         id: meta
@@ -94,11 +88,13 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_IMAGE }}
-            ${{ env.DOCKERHUB_IMAGE }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest,enable=${{ steps.latest.outputs.promote }}
           labels: |
+            org.opencontainers.image.title=Kitsune Router
+            org.opencontainers.image.description=Provider-neutral AI gateway. Your models. Your routes.
+            org.opencontainers.image.vendor=ByKitsune
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ steps.version.outputs.revision }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -114,10 +110,9 @@ jobs:
           # Never build onto latest or overwrite a version found by preflight.
           tags: |
             ${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/zenrouter/zenrouter:buildcache
-          cache-to: type=registry,ref=ghcr.io/zenrouter/zenrouter:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/bykitsune/kitsune-router:buildcache
+          cache-to: type=registry,ref=ghcr.io/bykitsune/kitsune-router:buildcache,mode=max
           platforms: linux/amd64
           # Minimal provenance excludes build arguments/environment; no build secrets.
           provenance: mode=min
@@ -128,23 +123,14 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           RELEASE_DIGEST: ${{ steps.build.outputs.digest }}
-        run: node scripts/release-publication-helpers.mjs docker-verify "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
+        run: node scripts/release-publication-helpers.mjs docker-verify "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE"
 
       - name: Promote latest from the original verified digest without rebuilding
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           RELEASE_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
-        run: node scripts/release-publication-helpers.mjs docker-promote "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"
-
-      - name: Update Docker Hub Description
-        uses: peter-evans/dockerhub-description@v5
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: joyccn/zenrouter
-          readme-filepath: ./DOCKER_README.md
-          short-description: "🌿 ZenRouter: Serene AI Gateway & Intelligent Multi-Provider Routing Engine"
+        run: node scripts/release-publication-helpers.mjs docker-promote "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE"
 
       - name: Preserve exact-SHA source verification evidence
         if: always()

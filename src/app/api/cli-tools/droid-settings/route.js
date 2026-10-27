@@ -46,10 +46,10 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has ZenRouter customModels
-const hasZenRouterConfig = (settings) => {
+// Check if settings has Kitsune Router customModels
+const hasKitsuneRouterConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
-  return settings.customModels.some(m => m.id?.startsWith("custom:ZenRouter"));
+  return settings.customModels.some(m => m.id?.startsWith("custom:Kitsune Router"));
 };
 
 // GET - Check droid CLI and read current settings
@@ -70,7 +70,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasZenRouter: hasZenRouterConfig(settings),
+      hasKitsuneRouter: hasKitsuneRouterConfig(settings),
       settingsPath: getDroidSettingsPath(),
     });
   } catch (error) {
@@ -79,7 +79,7 @@ export async function GET() {
   }
 }
 
-// POST - Update ZenRouter customModels (merge with existing settings)
+// POST - Update Kitsune Router customModels (merge with existing settings)
 // Accepts either `model` (string, legacy single-model) or `models` (array of strings, multi-model)
 // Also accepts `activeModel` to set which model is active/primary
 export async function POST(request) {
@@ -111,8 +111,8 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing ZenRouter configs
-    settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:ZenRouter"));
+    // Remove all existing Kitsune Router configs
+    settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Kitsune Router"));
 
     // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
@@ -137,7 +137,7 @@ export async function POST(request) {
       if (!m || typeof m !== "string") continue;
       settings.customModels.push({
         model: m,
-        id: `custom:ZenRouter-${i}`,
+        id: `custom:Kitsune Router-${i}`,
         index: i,
         baseUrl: normalizedBaseUrl,
         apiKey: keyToUse,
@@ -171,7 +171,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove ZenRouter customModels only (keep other settings)
+// DELETE - Remove Kitsune Router customModels only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getDroidSettingsPath();
@@ -191,9 +191,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove ZenRouter customModels
+    // Remove Kitsune Router customModels
     if (settings.customModels) {
-      settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:ZenRouter"));
+      settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Kitsune Router"));
       
       // Remove customModels array if empty
       if (settings.customModels.length === 0) {
@@ -206,7 +206,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "ZenRouter settings removed successfully",
+      message: "Kitsune Router settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting droid settings:", error);

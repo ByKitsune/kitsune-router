@@ -1,4 +1,6 @@
-# ZenRouter — Audit & Knowledge Map
+# Kitsune Router — historical audit & knowledge map
+
+> **Archive boundary:** these ZenRouter-era reports retain original names, package/artifact URLs, source hashes, operational paths and dated results. They are not current installation instructions or fresh Kitsune Router verification. Use [current docs](../INSTALLATION.md), [operations](../OPERATIONS.md) and [migration](../MIGRATION.md). Kitsune Router is maintained/sponsored by [ByKitsune](https://bykitsune.com); no hosted account is required.
 
 Audit snapshot: **2026-10-13** · commit `2c61f4f1` (`master`) · version **0.9.7**
 *(completed in two passes on the same commit — pass 2 filled in 04 + 06, verified key

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { UPSTREAM_TRANSPORT_CONFIG } from "../config/runtimeConfig.js";
 
-const STATE_KEY = Symbol.for("zenrouter.upstream-transport.v1");
+const STATE_KEY = Symbol.for("kitsunerouter.upstream-transport.v1");
 
 function transportError(message, code) {
   return Object.assign(new Error(message), { code });

@@ -1,4 +1,4 @@
-const lifecycle = globalThis[Symbol.for("zenrouter.db.lifecycle")] ||= { managed: false, releases: new Set() };
+const lifecycle = globalThis[Symbol.for("kitsunerouter.db.lifecycle")] ||= { managed: false, releases: new Set() };
 
 export function configureDbLifecycle({ managed = true } = {}) {
   lifecycle.managed = managed;

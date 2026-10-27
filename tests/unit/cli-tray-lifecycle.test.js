@@ -73,10 +73,12 @@ async function runLauncher({ tray, crash }) {
     Object.defineProperty(process.stdin, 'isTTY', { value: true });
     let trayChild;
     Module._load = function(request, parent, isMain) {
+      if (request === './hooks/dataDirectory') return { resolveDataDirectory: () => process.env.DATA_DIR };
       if (request === './hooks/sqliteRuntime') return { ensureSqliteRuntime() {}, buildEnvWithRuntime: env => env };
       if (request === './hooks/runtimeSecrets') return { buildSecretsEnv: () => ({}), getSecretsPath: () => '' };
       if (request === './hooks/nodeFlags') return { resolveHeapFlags: () => [] };
       if (request === './hooks/trayRuntime') return { ensureTrayRuntime() {} };
+      if (request === './src/cli/tray/autostart') return { migrateLegacyAutoStart: () => ({ migrated: false, warnings: [] }) };
       if (request === './src/cli/tray/tray') return {
         initTray() {
           if (trayChild) return;
@@ -100,7 +102,12 @@ async function runLauncher({ tray, crash }) {
     };
   `);
   const child = spawn(process.execPath, ["--require", preload, path.join(dir, "cli.cjs"), "--skip-update", "--no-browser", "--host", "127.0.0.1", "--port", String(port), ...(tray ? ["--tray"] : [])], {
-    env: { ...process.env, APPDATA: dir, DATA_DIR: dir, SystemRoot: dir },
+    env: {
+      PATH: process.env.PATH, HOME: dir, APPDATA: dir, DATA_DIR: dir, SystemRoot: dir,
+      NODE_ENV: "test", RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0",
+      MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1",
+      KITSUNE_ROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";

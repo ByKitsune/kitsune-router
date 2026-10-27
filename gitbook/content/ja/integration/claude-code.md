@@ -1,109 +1,19 @@
-# Claude Code統合
+# Claude Code 連携
 
-ZenRouterをClaude Code CLIと統合し、AnthropicのAPIリクエストをZenRouterのインテリジェントルーティングシステム経由でルーティングします。
+ゲートウェイを起動し、許可された上流・ゲートウェイキーと Messages 対応ルートを選びます。`my-route` は事前作成するコンボです。ByKitsune アカウントは不要です。
 
-## 前提条件
+## クライアント環境
 
-- Claude Code CLIがインストール済み
-- ZenRouterがローカルで動作中、またはクラウドエンドポイントが設定済み
-- ZenRouterダッシュボードからのAPIキー
-
-## セットアップ
-
-### 1. 環境変数を設定
-
-シェル設定ファイル (`~/.bashrc`、`~/.zshrc`、または `~/.bash_profile`) で以下の環境変数を設定:
-
-```bash
-# ZenRouter用Base URL
-export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
-
-# オプション: エイリアス用のデフォルトモデルを設定
-export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="cc/claude-sonnet-4-5-20250929"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="cc/claude-haiku-4-5-20251001"
-```
-
-### 2. シェル設定をリロード
-
-```bash
-source ~/.zshrc  # または ~/.bashrc
-```
-
-### 3. 設定を確認
-
-環境変数が正しく設定されているか確認:
-
-```bash
-echo $ANTHROPIC_BASE_URL
-```
-
-## モデルエイリアス
-
-Claude CodeはZenRouterモデルにマッピングされる以下のモデルエイリアスをサポート:
-
-| エイリアス | モデル | 環境変数 |
-|-------|-------|---------------------|
-| `opus` | Claude Opus 4.5 | `ANTHROPIC_DEFAULT_OPUS_MODEL` |
-| `sonnet` | Claude Sonnet 4.5 | `ANTHROPIC_DEFAULT_SONNET_MODEL` |
-| `haiku` | Claude Haiku 4.5 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` |
-
-## 使用例
-
-### モデルエイリアスを使用
-
-```bash
-# Opusモデルを使用
-claude --model opus "Explain quantum computing"
-
-# Sonnetモデルを使用
-claude --model sonnet "Write a Python function"
-
-# Haikuモデルを使用
-claude --model haiku "Quick code review"
-```
-
-### フルモデル名を使用
-
-```bash
-claude --model cc/claude-opus-4-5-20251101 "Your prompt here"
-```
-
-## 設定ファイル
-
-Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に応じてこのファイルを手動で編集できます:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "defaultModel": "sonnet"
-}
-```
-
-## トラブルシューティング
-
-### 接続の問題
-
-接続エラーが発生した場合:
-
-1. ZenRouterが動作中か確認: `curl http://localhost:20128/health`
-2. 環境変数が正しく設定されているか確認
-3. ファイアウォールがポート20128をブロックしていないか確認
-
-### モデルが見つからない
-
-「model not found」エラーが発生した場合:
-
-1. モデル名がZenRouterの設定と一致しているか確認
-2. ZenRouterダッシュボードでプロバイダー接続がアクティブか確認
-3. 接続されたプロバイダーでモデルが利用可能か確認
-
-## クラウドエンドポイント
-
-localhostの代わりにZenRouterクラウドエンドポイントを使用するには:
+Claude Code が `/v1/messages` を追加するので、基底は **`/v1` なしの origin** です。
 
 ```bash
 export ANTHROPIC_BASE_URL="http://localhost:20128"
+export ANTHROPIC_AUTH_TOKEN="$KITSUNE_ROUTER_API_KEY"
+claude --model my-route
 ```
 
-ZenRouterクラウドダッシュボードでAPIキーが設定されていることを確認してください。
+変数は発行済みゲートウェイキーで、上流 refresh token ではなく、キー作成設定でもありません。試験は当該セッションに限定し、既存設定を保持します。
+
+プリセットは `~/.claude/settings.json` の `env` を変更し、架空のトップレベル `baseUrl`/`defaultModel` は使いません。確認・バックアップしてください。Claude Desktop は別製品であり、これは汎用 Desktop 手順ではありません。
+
+`/api/health` と認証 `/v1/models` はツール・文書・権限を証明しません。リモートは自己 HTTPS origin を `/v1` なしで使います。既定の Kitsune hosted はありません。[詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。

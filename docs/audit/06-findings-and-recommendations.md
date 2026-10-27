@@ -1,5 +1,7 @@
 # 06 — Consolidated findings & recommendations
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Consolidates: [01](01-open-sse-engine.md) §8, [02](02-persistence-and-data-model.md) §7,
 [03](03-app-surface-and-request-flow.md) §7, [04](04-security-audit.md) §11, plus new
 findings from the second audit pass (this session, same commit `2c61f4f1`).

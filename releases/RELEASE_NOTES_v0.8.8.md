@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.8.8 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.8.8` makes a fresh install **work out of the box**. Previously you could reach the dashboard but never sign in — `npm i -g` produced a server that failed every login with `JWT_SECRET environment variable is required`.
 
 ---

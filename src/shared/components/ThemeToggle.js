@@ -14,9 +14,8 @@ export default function ThemeToggle({ className, variant = "default" }) {
     ),
     card: cn(
       "flex items-center justify-center size-11 rounded-full",
-      "bg-surface/60 hover:bg-surface",
+      "bg-surface-2 hover:bg-surface-3",
       "border border-border",
-      "backdrop-blur-md shadow-sm hover:shadow-[var(--shadow-warm)]",
       "text-text-muted hover:text-brand-500",
       "transition-all group"
     ),
@@ -24,6 +23,7 @@ export default function ThemeToggle({ className, variant = "default" }) {
 
   return (
     <button
+      type="button"
       onClick={toggleTheme}
       className={cn(variants[variant], className)}
       aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}

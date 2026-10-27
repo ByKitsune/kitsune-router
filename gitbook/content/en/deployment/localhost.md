@@ -1,164 +1,27 @@
-# 🏠 Localhost Deployment
+# Localhost Deployment
 
-Run ZenRouter on your local machine for development and personal use.
-
----
-
-## 📦 Installation
-
-Install ZenRouter globally via npm:
+Dashboard and API share port **20128**. There is no separate default dashboard at 3000. See [installation](/en/getting-started/installation/) for pending 1.0.1 final tag/SHA verification/publication and Node.js >=22.19.0 requirements. v1.0.0 remains an unpublished failed attempt.
 
 ```bash
-npm install -g @joyccn/zenrouter
+# Only after package publication:
+kitsune-router
 ```
 
-**Requirements:**
-- Node.js 20 or higher
-- npm 9 or higher
+- Dashboard: `http://localhost:20128/dashboard`
+- OpenAI-compatible base: `http://localhost:20128/v1`
+- Health: `http://localhost:20128/api/health`
+- Default state: `~/.kitsune-router` or `%APPDATA%\kitsune-router`
 
----
-
-## 🚀 Starting the Server
-
-Start ZenRouter with a single command:
+## Explicit state
 
 ```bash
-zenrouter
+DATA_DIR=/absolute/private/path kitsune-router
 ```
 
-The dashboard will automatically open in your browser at `http://localhost:3000`
+Explicit `DATA_DIR` is authoritative and not relocated. Stop gracefully through the launcher or `Ctrl+C`; do not use broad process-kill recipes or run concurrent writers. Back up the whole stopped directory: SQLite plus secrets, machine identity, auth and optional certificates. Do not restore by blindly copying over active state or relaxing permissions.
 
-**Default Configuration:**
-- **Dashboard**: `http://localhost:3000`
-- **API Endpoint**: `http://localhost:20128/v1`
-- **Data Directory**: `~/.zenrouter`
+## Migration
 
----
+Default startup can verify/copy stopped `~/.zenrouter` or `~/.9router` into `~/.kitsune-router`, preserving originals and refusing existing destination overwrite. Review [migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) first. Existing crypto derivation inputs and trusted certificate roots stay unchanged.
 
-## 🔧 Configuration
-
-### Custom Data Directory
-
-Set a custom data directory using environment variable:
-
-```bash
-DATA_DIR=/path/to/data zenrouter
-```
-
-### Custom Port
-
-The API port (20128) and dashboard port (3000) are configured in the application. To change them, you'll need to modify the source code or use environment variables if supported.
-
----
-
-## 🛑 Stopping the Server
-
-Press `Ctrl+C` in the terminal where ZenRouter is running.
-
-```bash
-# In the terminal running zenrouter
-^C  # Press Ctrl+C
-```
-
-The server will gracefully shut down and save all data.
-
----
-
-## 🔄 Restarting the Server
-
-Simply run the start command again:
-
-```bash
-zenrouter
-```
-
-All your configurations, API keys, and combos are preserved in the data directory.
-
----
-
-## 📊 Updating ZenRouter
-
-Update to the latest version:
-
-```bash
-npm update -g zenrouter
-```
-
-Check your current version:
-
-```bash
-npm list -g zenrouter
-```
-
----
-
-## 🔍 Troubleshooting
-
-### Port Already in Use
-
-If port 20128 or 3000 is already in use:
-
-```bash
-# Find process using the port (macOS/Linux)
-lsof -i :20128
-lsof -i :3000
-
-# Kill the process
-kill -9 <PID>
-```
-
-### Permission Errors
-
-If you encounter permission errors during installation:
-
-```bash
-# Use sudo (not recommended)
-sudo npm install -g @joyccn/zenrouter
-
-# Or fix npm permissions (recommended)
-mkdir ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### Data Directory Issues
-
-If the data directory is not accessible:
-
-```bash
-# Check permissions
-ls -la ~/.zenrouter
-
-# Fix permissions
-chmod 755 ~/.zenrouter
-```
-
----
-
-## 📁 Data Directory Structure
-
-```
-~/.zenrouter/
-├── db.json           # Main database (providers, combos, settings)
-├── logs/             # Application logs
-└── cache/            # Temporary cache files
-```
-
-**Backup Your Data:**
-
-```bash
-# Backup
-cp -r ~/.zenrouter ~/.zenrouter.backup
-
-# Restore
-cp -r ~/.zenrouter.backup ~/.zenrouter
-```
-
----
-
-## 🔗 Next Steps
-
-- [Connect Providers](/providers/subscription.md)
-- [Create Combos](/features/combos.md)
-- [Integrate with CLI Tools](/integration/cursor.md)
+Set a strong `INITIAL_PASSWORD` before exposure. For source deployments use an absolute `DATA_DIR` and explicit `PORT`/base URL; consult [operations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md) and `.env.example`, not old Node 20/`db.json` instructions. No ByKitsune account is required.

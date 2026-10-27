@@ -179,10 +179,10 @@ async function buildCodexHeader() {
   const result = await api.getCliToolSettings("codex");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, hasZenRouter, config } = result.data;
+  const { installed, hasKitsuneRouter, config } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Codex CLI not installed${COLORS.reset}`;
 
-  if (!hasZenRouter) {
+  if (!hasKitsuneRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -267,18 +267,18 @@ async function buildDroidHeader() {
   const result = await api.getCliToolSettings("droid");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, hasZenRouter, settings } = result.data;
+  const { installed, hasKitsuneRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Factory Droid not installed${COLORS.reset}`;
 
-  if (!hasZenRouter) {
+  if (!hasKitsuneRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
     ].join("\n");
   }
 
-  // Extract ZenRouter custom model config
-  const custom = settings?.customModels?.find(m => m.id === "custom:ZenRouter-0");
+  // Extract Kitsune Router custom model config
+  const custom = settings?.customModels?.find(m => m.id === "custom:Kitsune Router-0");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
   if (custom?.baseUrl) lines.push(`Endpoint: ${COLORS.cyan}${custom.baseUrl}${COLORS.reset}`);
   if (custom?.model)   lines.push(`Model:    ${COLORS.dim}${custom.model}${COLORS.reset}`);
@@ -350,20 +350,20 @@ async function buildOpenClawHeader() {
   const result = await api.getCliToolSettings("openclaw");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, hasZenRouter, settings } = result.data;
+  const { installed, hasKitsuneRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Open Claw not installed${COLORS.reset}`;
 
-  if (!hasZenRouter) {
+  if (!hasKitsuneRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
     ].join("\n");
   }
 
-  // Extract ZenRouter provider config
-  const provider = settings?.models?.providers?.["zenrouter"];
+  // Extract Kitsune Router provider config
+  const provider = settings?.models?.providers?.["kitsunerouter"];
   const primary = settings?.agents?.defaults?.model?.primary || "";
-  const model = primary.startsWith("zenrouter/") ? primary.replace("zenrouter/", "") : (provider?.models?.[0]?.id || "");
+  const model = primary.startsWith("kitsunerouter/") ? primary.replace("kitsunerouter/", "") : (provider?.models?.[0]?.id || "");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
   if (provider?.baseUrl) lines.push(`Endpoint: ${COLORS.cyan}${provider.baseUrl}${COLORS.reset}`);
   if (model)             lines.push(`Model:    ${COLORS.dim}${model}${COLORS.reset}`);
@@ -431,10 +431,10 @@ async function buildOpenCodeHeader() {
   const result = await api.getCliToolSettings("opencode");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, hasZenRouter, opencode } = result.data;
+  const { installed, hasKitsuneRouter, opencode } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ OpenCode CLI not installed${COLORS.reset}`;
 
-  if (!hasZenRouter) {
+  if (!hasKitsuneRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -519,10 +519,10 @@ async function buildHermesHeader() {
   const result = await api.getCliToolSettings("hermes");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, hasZenRouter, settings } = result.data;
+  const { installed, hasKitsuneRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Hermes Agent not installed${COLORS.reset}`;
 
-  if (!hasZenRouter) {
+  if (!hasKitsuneRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -585,7 +585,7 @@ async function showCliToolsMenu(port, breadcrumb = []) {
   await showMenuWithBack({
     title: "🔧 CLI Tools",
     breadcrumb,
-    headerContent: `Configure CLI tools to use ZenRouter\nEndpoint: ${endpoint}`,
+    headerContent: `Configure CLI tools to use Kitsune Router\nEndpoint: ${endpoint}`,
     items: [
       {
         label: "Claude Code",

@@ -1,7 +1,7 @@
 /**
  * Regression: Claude Code appends `[1m]` to the model name when the
  * 1M-context beta is on, so `/v1/messages` arrives with
- * `model: "claude-opus-5[1m]"`. Nothing in ZenRouter knows about the marker:
+ * `model: "claude-opus-5[1m]"`. Nothing in Kitsune Router knows about the marker:
  * it matches no combo, no alias and no `provider/model` pair, so the request
  * is rejected at model resolution and the client reports
  *

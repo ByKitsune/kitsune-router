@@ -1,7 +1,7 @@
 /**
- * Tests for the `zenrouter xai video` CLI command (cli/src/cli/commands/xaiVideo.js)
+ * Tests for the `kitsune-router xai video` CLI command (cli/src/cli/commands/xaiVideo.js)
  *
- * Uses a real local HTTP server standing in for the zenrouter gateway + video CDN.
+ * Uses a real local HTTP server standing in for the Kitsune Router gateway + video CDN.
  * No real credentials or upstream calls.
  *
  * Covers:
@@ -40,6 +40,10 @@ let server;
 
 beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "xai-video-test-"));
+  vi.stubEnv("HOME", tmpDir);
+  vi.stubEnv("DATA_DIR", path.join(tmpDir, ".kitsune-router"));
+  vi.stubEnv("KITSUNE_ROUTER_API_KEY", "");
+  vi.stubEnv("NINE_ROUTER_API_KEY", "");
 });
 
 afterEach(async () => {
@@ -49,6 +53,7 @@ afterEach(async () => {
   }
   fs.rmSync(tmpDir, { recursive: true, force: true });
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("parseArgs", () => {
@@ -75,6 +80,21 @@ describe("parseArgs", () => {
 
   it("rejects unknown flags", () => {
     expect(() => parseArgs(["--bogus"])).toThrow(/Unknown option/);
+  });
+
+  it("reads the branded API-key environment variable without leaking into other cases", () => {
+    vi.stubEnv("KITSUNE_ROUTER_API_KEY", "synthetic-kitsune-router-api-key");
+    expect(parseArgs(["--prompt", "hi"]).apiKey).toBe("synthetic-kitsune-router-api-key");
+    expect(parseArgs(["--prompt", "hi", "--api-key", "synthetic-explicit-api-key"]).apiKey).toBe("synthetic-explicit-api-key");
+  });
+
+  it("advertises the installed executable in help without contacting a gateway", async () => {
+    const logs = [];
+    vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args.join(" ")));
+    expect(await run(["--help"])).toBe(0);
+    expect(logs.join("\n")).toContain('Usage: kitsune-router xai video --prompt "..." [options]');
+    expect(logs.join("\n")).toContain("KITSUNE_ROUTER_API_KEY");
+    expect(logs.join("\n")).not.toContain("Usage: kitsunerouter ");
   });
 });
 
@@ -109,7 +129,7 @@ describe("run (against a mock gateway)", () => {
         req.on("data", (c) => (body += c));
         req.on("end", () => {
           seen.createBody = JSON.parse(body);
-          res.writeHead(200, { "Content-Type": "application/json", "x-zenrouter-connection-id": "conn-42" });
+          res.writeHead(200, { "Content-Type": "application/json", "x-kitsune-router-connection-id": "conn-42" });
           res.end(JSON.stringify({ request_id: "job-1" }));
         });
         return;

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#fffefa"/>
+  <path d="M854 74 971 137H1052L1169 74 1137 281 1011 398 885 281Z" fill="#a63f23"/>
+  <path d="M899 236 984 272 1011 344 1038 272 1124 236 1101 303 1011 384 921 303Z" fill="#fffefa"/>
+  <path d="m948 213 40 22m86-22-40 22" fill="none" stroke="#30241d" stroke-width="20" stroke-linecap="round"/>
+  <g fill="#30241d" font-family="Arial, Helvetica, sans-serif">
+    <text x="72" y="118" font-size="32" font-weight="700">Kitsune Router</text>
+    <text x="72" y="282" font-size="76" font-weight="700" letter-spacing="-3">Your models.</text>
+    <text x="72" y="368" font-size="76" font-weight="700" letter-spacing="-3">Your routes.</text>
+    <text x="72" y="452" font-size="29">A provider-neutral AI gateway.</text>
+    <text x="72" y="560" font-size="25">Open source. Self-hosted. By ByKitsune.</text>
+  </g>
+</svg>

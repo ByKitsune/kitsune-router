@@ -42,7 +42,7 @@ beforeEach(async () => {
     MACHINE_ID_SALT: "synthetic-metrics-machine-salt",
     RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0",
     MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1",
-    ZENROUTER_DISABLE_MITM: "1", DISABLE_MITM_BYPASS: "1", NEXT_TELEMETRY_DISABLED: "1",
+    KITSUNE_ROUTER_DISABLE_MITM: "1", DISABLE_MITM_BYPASS: "1", NEXT_TELEMETRY_DISABLED: "1",
     ENABLE_REQUEST_LOGS: "false", OBSERVABILITY_ENABLED: "false",
     HTTP_PROXY: "", HTTPS_PROXY: "", ALL_PROXY: "", NO_PROXY: "*",
     http_proxy: "", https_proxy: "", all_proxy: "", no_proxy: "*", TZ: "UTC",
@@ -105,7 +105,7 @@ async function scrape(authenticated = true) {
 }
 
 function failureSamples(text) {
-  return text.split("\n").filter((line) => line.startsWith("zenrouter_failures_total{"));
+  return text.split("\n").filter((line) => line.startsWith("kitsunerouter_failures_total{"));
 }
 
 function record(overrides = {}) {
@@ -164,23 +164,23 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     const response = await scrape();
     const text = await response.text();
     expect(response.status).toBe(200);
-    expect(failureSamples(text)).toEqual(['zenrouter_failures_total{status="429"} 2']);
-    expect(text).toContain("# TYPE zenrouter_failures_total counter\n");
-    expect(text).toContain("zenrouter_requests_total 0\n");
+    expect(failureSamples(text)).toEqual(['kitsunerouter_failures_total{status="429"} 2']);
+    expect(text).toContain("# TYPE kitsunerouter_failures_total counter\n");
+    expect(text).toContain("kitsunerouter_requests_total 0\n");
     for (const marker of secretMarkers) expect(text).not.toContain(marker);
   });
 
   it("never evicts failures with log retention, time passage, repeated scrapes, or module reloads", async () => {
     for (let index = 0; index < 625; index++) await usage.appendRequestLog({ status: "FAILED 401" });
     for (let index = 0; index < 625; index++) await usage.appendRequestLog({ status: "200 OK" });
-    expect(failureSamples(await (await scrape()).text())).toEqual(['zenrouter_failures_total{status="401"} 625']);
-    expect(failureSamples(await (await scrape()).text())).toEqual(['zenrouter_failures_total{status="401"} 625']);
+    expect(failureSamples(await (await scrape()).text())).toEqual(['kitsunerouter_failures_total{status="401"} 625']);
+    expect(failureSamples(await (await scrape()).text())).toEqual(['kitsunerouter_failures_total{status="401"} 625']);
     vi.setSystemTime(new Date("2026-10-23T12:00:00.000Z"));
     vi.resetModules();
     usage = await import("@/lib/db/repos/usageRepo.js");
     ({ GET: metricsGet } = await import("@/app/api/metrics/route.js"));
     await usage.appendRequestLog({ status: "FAILED 401" });
-    expect(failureSamples(await (await scrape()).text())).toEqual(['zenrouter_failures_total{status="401"} 626']);
+    expect(failureSamples(await (await scrape()).text())).toEqual(['kitsunerouter_failures_total{status="401"} 626']);
   });
 
   it("bounds status cardinality and drops identities, arbitrary messages, and non-failures", async () => {
@@ -197,9 +197,9 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     const text = await (await scrape()).text();
     const samples = failureSamples(text);
     expect(samples).toHaveLength(200);
-    expect(samples[0]).toBe('zenrouter_failures_total{status="400"} 1');
-    expect(samples.at(-1)).toBe('zenrouter_failures_total{status="599"} 1');
-    expect(samples.every((sample) => /^zenrouter_failures_total\{status="[45]\d{2}"\} 1$/.test(sample))).toBe(true);
+    expect(samples[0]).toBe('kitsunerouter_failures_total{status="400"} 1');
+    expect(samples.at(-1)).toBe('kitsunerouter_failures_total{status="599"} 1');
+    expect(samples.every((sample) => /^kitsunerouter_failures_total\{status="[45]\d{2}"\} 1$/.test(sample))).toBe(true);
     for (const marker of secretMarkers) expect(text).not.toContain(marker);
     expect(await usage.getRecentLogs()).toEqual([]);
     expect(db.get("SELECT COUNT(*) AS n FROM usageHistory").n).toBe(0);
@@ -210,17 +210,17 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     await record();
     let text = await (await scrape()).text();
     for (const metric of ["requests", "prompt_tokens", "completion_tokens", "cached_tokens", "cost_usd", "model_requests", "ttft_samples"]) {
-      expect(text).toContain(`# TYPE zenrouter_${metric}_total gauge\n`);
+      expect(text).toContain(`# TYPE kitsunerouter_${metric}_total gauge\n`);
     }
-    expect(text).toContain("zenrouter_requests_total 1\n");
-    expect(text).toContain("zenrouter_prompt_tokens_total 10\n");
-    expect(text).toContain("zenrouter_cached_tokens_total 3\n");
-    expect(text).toContain("zenrouter_ttft_samples_total 1\n");
+    expect(text).toContain("kitsunerouter_requests_total 1\n");
+    expect(text).toContain("kitsunerouter_prompt_tokens_total 10\n");
+    expect(text).toContain("kitsunerouter_cached_tokens_total 3\n");
+    expect(text).toContain("kitsunerouter_ttft_samples_total 1\n");
     vi.setSystemTime(new Date("2026-10-22T12:00:00.001Z"));
     text = await (await scrape()).text();
-    expect(text).toContain("zenrouter_requests_total 0\n");
-    expect(text).toContain("zenrouter_prompt_tokens_total 0\n");
-    expect(text).not.toContain("zenrouter_ttft_samples_total");
+    expect(text).toContain("kitsunerouter_requests_total 0\n");
+    expect(text).toContain("kitsunerouter_prompt_tokens_total 0\n");
+    expect(text).not.toContain("kitsunerouter_ttft_samples_total");
     expect(db.get("SELECT COUNT(*) AS n FROM usageHistory").n).toBe(1);
   });
 
@@ -229,9 +229,9 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     await record({ provider: "synthetic-other-provider" });
     await record({ model: `private-model-${secretMarkers.join("-")}` });
     const text = await (await scrape()).text();
-    const samples = text.split("\n").filter((line) => line.startsWith("zenrouter_model_requests_total{"));
-    expect(samples).toEqual(['zenrouter_model_requests_total{model="gpt-4o"} 2']);
-    expect(text).toContain("zenrouter_requests_total 3\n");
+    const samples = text.split("\n").filter((line) => line.startsWith("kitsunerouter_model_requests_total{"));
+    expect(samples).toEqual(['kitsunerouter_model_requests_total{model="gpt-4o"} 2']);
+    expect(text).toContain("kitsunerouter_requests_total 3\n");
     for (const marker of secretMarkers) expect(text).not.toContain(marker);
   });
 
@@ -243,7 +243,7 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     expect(await usage.getRecentLogs(1)).toEqual(logs);
     expect(db.get("SELECT COUNT(*) AS n FROM usageHistory").n).toBe(1);
     expect((await usage.getUsageStats("24h")).totalRequests).toBe(1);
-    expect(failureSamples(await (await scrape()).text())).toEqual(['zenrouter_failures_total{status="429"} 1']);
+    expect(failureSamples(await (await scrape()).text())).toEqual(['kitsunerouter_failures_total{status="429"} 1']);
   });
 
   it("does not disclose failure counts without authentication", async () => {
@@ -251,7 +251,7 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     const response = await scrape(false);
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Unauthorized" });
-    expect(failureSamples(await (await scrape()).text())).toEqual(['zenrouter_failures_total{status="401"} 1']);
+    expect(failureSamples(await (await scrape()).text())).toEqual(['kitsunerouter_failures_total{status="401"} 1']);
   });
 
   it("continues to report actual failure events when the real SQLite usage query is unavailable", async () => {
@@ -260,9 +260,9 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
     const response = await scrape();
     const text = await response.text();
     expect(response.status).toBe(200);
-    expect(text).toContain("zenrouter_up 1\n");
-    expect(text).toContain("zenrouter_metrics_scrape_ok 0\n");
-    expect(failureSamples(text)).toEqual(['zenrouter_failures_total{status="502"} 1']);
+    expect(text).toContain("kitsunerouter_up 1\n");
+    expect(text).toContain("kitsunerouter_metrics_scrape_ok 0\n");
+    expect(failureSamples(text)).toEqual(['kitsunerouter_failures_total{status="502"} 1']);
   });
 
   it("starts fresh in another process rather than claiming restart-durable failure history", async () => {

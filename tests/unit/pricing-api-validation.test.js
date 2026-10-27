@@ -18,7 +18,7 @@ let proxy;
 let authToken;
 
 beforeEach(async () => {
-  sandbox = await mkdtemp(join(tmpdir(), "zenrouter-pricing-api-"));
+  sandbox = await mkdtemp(join(tmpdir(), "kitsunerouter-pricing-api-"));
   previousListeners = new Map(shutdownEvents.map((event) => [event, process.rawListeners(event)]));
   previousGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
   vi.stubEnv("DATA_DIR", join(sandbox, "data"));

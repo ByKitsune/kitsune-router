@@ -1,9 +1,11 @@
 const fs = require("fs");
 const crypto = require("crypto");
-const { exec } = require("child_process");
+const path = require("path");
+const os = require("os");
+const { execFile } = require("child_process");
 const { execWithPassword, isSudoAvailable } = require("../dns/dnsConfig.js");
 const { runElevatedPowerShell, quotePs } = require("../winElevated.js");
-const { log, err } = require("../logger");
+const { log } = require("../logger");
 
 const IS_WIN = process.platform === "win32";
 const IS_MAC = process.platform === "darwin";
@@ -27,13 +29,31 @@ function getLinuxCertConfig() {
   // Fallback to Debian default if none exist
   return LINUX_CERT_PATHS[0];
 }
-const ROOT_CA_CN = "ZenRouter MITM Root CA";
+const ROOT_CA_CN = "Kitsune Router MITM Root CA";
+const LINUX_CERT_NAMES = ["kitsune-router-root-ca.crt", "zenrouter-root-ca.crt", "9router-root-ca.crt"];
+const quoteSh = value => `'${String(value).replace(/'/g, "'\\''")}'`;
+
+function runFile(command, args) {
+  return new Promise((resolve, reject) => execFile(command, args, { windowsHide: true, timeout: 10000 }, (error, stdout) => {
+    if (error) reject(error);
+    else resolve(stdout);
+  }));
+}
+// Existing trusted roots are identities, not UI labels. Preserve their actual
+// subject and fingerprint after data migration instead of requiring new trust.
+function certificateName(certPath) {
+  if (!certPath) throw new Error("A root certificate file is required");
+  const certificate = new crypto.X509Certificate(fs.readFileSync(certPath));
+  const commonName = certificate.subject.split("\n").find((part) => part.startsWith("CN="))?.slice(3);
+  if (![ROOT_CA_CN, "ZenRouter MITM Root CA", "9Router MITM Root CA"].includes(commonName) || !certificate.ca) {
+    throw new Error("Unrecognized application root certificate subject");
+  }
+  return commonName;
+}
 
 // Get SHA1 fingerprint from cert file using Node.js crypto
 function getCertFingerprint(certPath) {
-  const pem = fs.readFileSync(certPath, "utf-8");
-  const der = Buffer.from(pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, ""), "base64");
-  return crypto.createHash("sha1").update(der).digest("hex").toUpperCase().match(/.{2}/g).join(":");
+  return new crypto.X509Certificate(fs.readFileSync(certPath)).fingerprint;
 }
 
 /**
@@ -42,42 +62,26 @@ function getCertFingerprint(certPath) {
 async function checkCertInstalled(certPath) {
   if (IS_WIN) return checkCertInstalledWindows(certPath);
   if (IS_MAC) return checkCertInstalledMac(certPath);
-  return checkCertInstalledLinux();
+  return checkCertInstalledLinux(certPath);
 }
 
-function checkCertInstalledMac(certPath) {
-  return new Promise((resolve) => {
-    try {
-      const fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
-      // Verify exact cert bytes match — same CN with different fingerprint = stale cert
-      exec(`security find-certificate -a -c "${ROOT_CA_CN}" -Z /Library/Keychains/System.keychain 2>/dev/null`, { windowsHide: true }, (error, stdout) => {
-        if (error || !stdout) return resolve(false);
-        const match = new RegExp(`SHA-1 hash:\\s*${fingerprint}`, "i").test(stdout);
-        if (!match) return resolve(false);
-        // Cert exists with matching fingerprint — confirm trust policy
-        exec(`security verify-cert -c "${certPath}" -p ssl -k /Library/Keychains/System.keychain 2>/dev/null`, { windowsHide: true }, (err2) => {
-          resolve(!err2);
-        });
-      });
-    } catch {
-      resolve(false);
-    }
-  });
+async function checkCertInstalledMac(certPath) {
+  try {
+    const fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
+    const output = await runFile("security", ["find-certificate", "-a", "-Z", "/Library/Keychains/System.keychain"]);
+    if (!new RegExp(`^\\s*SHA-1 hash:\\s*${fingerprint}\\s*$`, "im").test(output)) return false;
+    await runFile("security", ["verify-cert", "-c", certPath, "-p", "ssl", "-k", "/Library/Keychains/System.keychain"]);
+    return true;
+  } catch { return false; }
 }
 
-function checkCertInstalledWindows(certPath) {
-  return new Promise((resolve) => {
-    // Check by SHA1 fingerprint — detects stale cert with same CN but different key
-    let fingerprint;
-    try {
-      fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
-    } catch {
-      return resolve(false);
-    }
-    exec(`certutil -store Root ${fingerprint}`, { windowsHide: true }, (error) => {
-      resolve(!error);
-    });
-  });
+async function checkCertInstalledWindows(certPath) {
+  try {
+    const fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
+    const script = `$ErrorActionPreference='Stop'; (Get-Item -LiteralPath 'Cert:\\LocalMachine\\Root\\${fingerprint}').Thumbprint`;
+    const output = await runFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")]);
+    return output.trim().toUpperCase() === fingerprint;
+  } catch { return false; }
 }
 
 /**
@@ -88,6 +92,7 @@ async function installCert(sudoPassword, certPath, { check = () => {} } = {}) {
   if (!fs.existsSync(certPath)) {
     throw new Error(`Certificate file not found: ${certPath}`);
   }
+  certificateName(certPath);
 
   const isInstalled = await checkCertInstalled(certPath);
   check();
@@ -107,12 +112,12 @@ async function installCert(sudoPassword, certPath, { check = () => {} } = {}) {
 }
 
 async function installCertMac(sudoPassword, certPath, check) {
-  // Remove all old certs with same name first to avoid duplicate/stale cert conflict
-  const deleteOld = `security delete-certificate -c "ZenRouter MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
-  const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
+  // A shared subject is not an identity. Never delete somebody else's root or
+  // an older installation's still-working CA while installing this exact one.
+  const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ${quoteSh(certPath)}`;
   check();
   try {
-    await execWithPassword(`${deleteOld} && ${install}`, sudoPassword);
+    await execWithPassword(install, sudoPassword);
     check();
     log("🔐 Cert: ✅ installed to system keychain");
   } catch (error) {
@@ -124,9 +129,7 @@ async function installCertMac(sudoPassword, certPath, check) {
 
 async function installCertWindows(certPath, check) {
   // Auto-elevate via UAC popup if not admin (zero popup if already admin).
-  // Delete any stale cert with same CN before adding to avoid duplicates.
   const script = `
-    certutil -delstore Root ${quotePs(ROOT_CA_CN)} 2>$null | Out-Null
     $exit = & certutil -addstore Root ${quotePs(certPath)} 2>&1
     if ($LASTEXITCODE -ne 0) { throw "certutil exit $LASTEXITCODE" }
   `;
@@ -145,6 +148,9 @@ async function installCertWindows(certPath, check) {
  * Uninstall SSL certificate from system store
  */
 async function uninstallCert(sudoPassword, certPath) {
+  // Missing/invalid paths must fail before any name-based removal or command.
+  certificateName(certPath);
+  if (!IS_WIN && !IS_MAC) return uninstallCertLinux(sudoPassword, certPath);
   const isInstalled = await checkCertInstalled(certPath);
   if (!isInstalled) {
     log("🔐 Cert: not found in system store");
@@ -152,11 +158,9 @@ async function uninstallCert(sudoPassword, certPath) {
   }
 
   if (IS_WIN) {
-    await uninstallCertWindows();
+    await uninstallCertWindows(certPath);
   } else if (IS_MAC) {
     await uninstallCertMac(sudoPassword, certPath);
-  } else {
-    await uninstallCertLinux(sudoPassword);
   }
 }
 
@@ -171,9 +175,9 @@ async function uninstallCertMac(sudoPassword, certPath) {
   }
 }
 
-async function uninstallCertWindows() {
+async function uninstallCertWindows(certPath) {
   // Auto-elevate via UAC popup if not admin
-  const script = `certutil -delstore Root ${quotePs(ROOT_CA_CN)}`;
+  const script = `& certutil -delstore Root ${quotePs(getCertFingerprint(certPath).replace(/:/g, ""))}; if ($LASTEXITCODE -ne 0) { throw "certutil exit $LASTEXITCODE" }`;
   try {
     await runElevatedPowerShell(script);
     log("🔐 Cert: ✅ uninstalled from Windows Root store");
@@ -182,54 +186,47 @@ async function uninstallCertWindows() {
   }
 }
 
-function checkCertInstalledLinux() {
-  const config = getLinuxCertConfig();
-  const certFile = `${config.dir}/zenrouter-root-ca.crt`;
-  return Promise.resolve(fs.existsSync(certFile));
+function checkCertInstalledLinux(certPath) {
+  let fingerprint;
+  try { fingerprint = getCertFingerprint(certPath); } catch { return Promise.resolve(false); }
+  return Promise.resolve(matchingLinuxCertificates(fingerprint).length > 0);
 }
 
-async function updateNssDatabases(certPath, action = 'add') {
-  const certName = "ZenRouter MITM Root CA";
-  
-  const script = `
-    if ! command -v certutil &> /dev/null; then
-      exit 0
-    fi
-    
-    DIRS="$HOME/.pki/nssdb $HOME/snap/chromium/current/.pki/nssdb"
-    
-    if [ -d "$HOME/.mozilla/firefox" ]; then
-      for profile in "$HOME"/.mozilla/firefox/*/; do
-        if [ -f "\${profile}cert9.db" ] || [ -f "\${profile}cert8.db" ]; then
-          DIRS="$DIRS $profile"
-        fi
-      done
-    fi
-
-    if [ -d "$HOME/snap/firefox/common/.mozilla/firefox" ]; then
-      for profile in "$HOME"/snap/firefox/common/.mozilla/firefox/*/; do
-        if [ -f "\${profile}cert9.db" ] || [ -f "\${profile}cert8.db" ]; then
-          DIRS="$DIRS $profile"
-        fi
-      done
-    fi
-
-    for db in $DIRS; do
-      if [ -d "$db" ]; then
-        if [ "${action}" = "add" ]; then
-          certutil -d sql:"$db" -A -t "C,," -n "${certName}" -i "${certPath}" 2>/dev/null || \\
-          certutil -d "$db" -A -t "C,," -n "${certName}" -i "${certPath}" 2>/dev/null || true
-        else
-          certutil -d sql:"$db" -D -n "${certName}" 2>/dev/null || \\
-          certutil -d "$db" -D -n "${certName}" 2>/dev/null || true
-        fi
-      fi
-    done
-  `;
-  
-  return new Promise((resolve) => {
-    exec(script, { shell: "/bin/bash" }, () => resolve());
+function matchingLinuxCertificates(fingerprint) {
+  return LINUX_CERT_PATHS.flatMap(config => LINUX_CERT_NAMES.map(name => ({ ...config, file: path.join(config.dir, name) }))).filter(config => {
+    try { return fs.lstatSync(config.file).isFile() && getCertFingerprint(config.file) === fingerprint; } catch { return false; }
   });
+}
+
+async function updateNssDatabases(certPath, action = "add") {
+  const certName = certificateName(certPath);
+  const fingerprint = getCertFingerprint(certPath);
+  const home = os.homedir();
+  const directories = [path.join(home, ".pki", "nssdb"), path.join(home, "snap", "chromium", "current", ".pki", "nssdb")];
+  for (const profiles of [path.join(home, ".mozilla", "firefox"), path.join(home, "snap", "firefox", "common", ".mozilla", "firefox")]) {
+    try {
+      for (const name of fs.readdirSync(profiles)) directories.push(path.join(profiles, name));
+    } catch { /* optional browser installation */ }
+  }
+  for (const directory of directories) {
+    try { if (!fs.statSync(directory).isDirectory()) continue; } catch { continue; }
+    for (const database of [`sql:${directory}`, directory]) {
+      let existing;
+      try { existing = await runFile("certutil", ["-d", database, "-L", "-n", certName, "-a"]); }
+      catch { /* nickname absent, utility unavailable or other NSS format */ }
+      if (existing) {
+        try { if (new crypto.X509Certificate(existing).fingerprint !== fingerprint) break; }
+        catch { break; } // ambiguous output is never authority to delete a root
+      }
+      if (action === "delete" && !existing) continue;
+      try {
+        await runFile("certutil", action === "add"
+          ? ["-d", database, "-A", "-t", "C,,", "-n", certName, "-i", certPath]
+          : ["-d", database, "-D", "-n", certName]);
+        break;
+      } catch { /* best effort; try the other NSS database format */ }
+    }
+  }
 }
 
 async function installCertLinux(sudoPassword, certPath, check) {
@@ -243,14 +240,19 @@ async function installCertLinux(sudoPassword, certPath, check) {
   }
   
   const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/zenrouter-root-ca.crt`;
+  const destFile = `${config.dir}/kitsune-router-root-ca.crt`;
+  try {
+    const stat = fs.lstatSync(destFile);
+    if (!stat.isFile() || getCertFingerprint(destFile) !== getCertFingerprint(certPath)) throw new Error("A different trust anchor already exists; review it before replacing the working CA");
+  } catch (error) { if (error.code !== "ENOENT") throw error; }
   
   // Copy to the discovered directory and execute the specific update command
-  const cmd = `cp "${certPath}" "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
+  const cmd = `cp -n -- ${quoteSh(certPath)} ${quoteSh(destFile)} && ${config.cmd}`;
   
   try {
     await execWithPassword(cmd, sudoPassword);
     check();
+    if (getCertFingerprint(destFile) !== getCertFingerprint(certPath)) throw new Error("Trust anchor changed during installation; existing root retained for review");
     await updateNssDatabases(certPath, 'add');
     check();
     log(`🔐 Cert: ✅ installed to Linux trust store (${config.dir}) and user browser databases`);
@@ -260,17 +262,19 @@ async function installCertLinux(sudoPassword, certPath, check) {
   }
 }
 
-async function uninstallCertLinux(sudoPassword) {
+async function uninstallCertLinux(sudoPassword, certPath) {
   // Always try to uninstall from user DBs even without sudo
-  await updateNssDatabases(null, 'delete');
+  await updateNssDatabases(certPath, 'delete');
 
   if (!isSudoAvailable()) {
     return;
   }
   
-  const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/zenrouter-root-ca.crt`;
-  const cmd = `rm -f "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
+  const fingerprint = getCertFingerprint(certPath);
+  const matches = matchingLinuxCertificates(fingerprint);
+  if (!matches.length) return; // never execute an empty removal command
+  const commands = [...new Set(matches.map(config => config.cmd))];
+  const cmd = [...matches.map(config => `rm -f -- ${quoteSh(config.file)}`), ...commands].join(" && ");
   
   try {
     await execWithPassword(cmd, sudoPassword);

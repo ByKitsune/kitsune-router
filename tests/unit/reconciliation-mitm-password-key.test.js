@@ -363,7 +363,7 @@ describe("MITM password installation key", () => {
 
   it("does not follow the legacy paths module's HOME fallback when configured DATA_DIR is inaccessible", async () => {
     const directory = temporaryInstallation();
-    const fallback = path.join(directory, "home", ".zenrouter");
+    const fallback = path.join(directory, "home", ".kitsune-router");
     const fixture = loadManager(source, directory, {
       resolvedDataDir: fallback,
       filesystem: { mkdirSync(file, ...args) {

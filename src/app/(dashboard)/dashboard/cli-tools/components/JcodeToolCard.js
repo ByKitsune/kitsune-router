@@ -36,12 +36,12 @@ export default function JcodeToolCard({
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
 
-  const currentBaseUrl = jcodeStatus?.config?.providers?.["zenrouter"]?.base_url || jcodeStatus?.config?.providers?.["9router"]?.base_url || "";
+  const currentBaseUrl = jcodeStatus?.config?.providers?.["kitsunerouter"]?.base_url || jcodeStatus?.config?.providers?.["9router"]?.base_url || "";
 
   const getConfigStatus = () => {
     if (!jcodeStatus?.installed) return null;
-    if (!jcodeStatus?.hasZenRouter) return "not_configured";
-    const currentProvider = jcodeStatus.config?.providers?.["zenrouter"];
+    if (!jcodeStatus?.hasKitsuneRouter) return "not_configured";
+    const currentProvider = jcodeStatus.config?.providers?.["kitsunerouter"];
     if (!currentProvider) return "not_configured";
     return matchKnownEndpoint(currentProvider.base_url, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
@@ -126,7 +126,7 @@ export default function JcodeToolCard({
     let cancelled = false;
     if (jcodeStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
-      const provider = jcodeStatus.config?.providers?.["zenrouter"];
+      const provider = jcodeStatus.config?.providers?.["kitsunerouter"];
       if (provider) {
         if (provider.default_model) {
           const nextModel = provider.default_model;
@@ -171,7 +171,7 @@ export default function JcodeToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_zenrouter" : null);
+        || (!cloudEnabled ? "sk_kitsunerouter" : null);
 
       const res = await fetch("/api/cli-tools/jcode-settings", {
         method: "POST",
@@ -227,21 +227,21 @@ export default function JcodeToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_zenrouter" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_kitsunerouter" : "<API_KEY_FROM_DASHBOARD>");
 
-    const configToml = `[providers.zenrouter]
+    const configToml = `[providers.kitsunerouter]
 type = "openai-compatible"
 base_url = "${getEffectiveBaseUrl()}"
 auth = "bearer"
-api_key_env = "JCODE_ZENROUTER_API_KEY"
-env_file = "provider-zenrouter.env"
+api_key_env = "JCODE_KITSUNE_ROUTER_API_KEY"
+env_file = "provider-kitsunerouter.env"
 default_model = "${selectedModel || "cc/claude-opus-4-7"}"
 requires_api_key = true
 
-[[providers.zenrouter.models]]
+[[providers.kitsunerouter.models]]
 id = "${selectedModel || "cc/claude-opus-4-7"}"`;
 
-    const envContent = `JCODE_ZENROUTER_API_KEY="${keyToUse}"`;
+    const envContent = `JCODE_KITSUNE_ROUTER_API_KEY="${keyToUse}"`;
 
     return [
       {
@@ -249,7 +249,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
         content: configToml,
       },
       {
-        filename: "~/.config/jcode/provider-zenrouter.env",
+        filename: "~/.config/jcode/provider-kitsunerouter.env",
         content: envContent,
       },
     ];
@@ -295,7 +295,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                     <code className="block mt-2 p-2 bg-black/20 rounded text-xs font-mono">
                       curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash
                     </code>
-                    <p className="text-sm text-text-muted mt-2">Manual configuration is still available if zenrouter is deployed on a remote server.</p>
+                    <p className="text-sm text-text-muted mt-2">Manual configuration is still available if kitsunerouter is deployed on a remote server.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">
@@ -346,12 +346,12 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                 </div>
 
                 {/* Current configured */}
-                {jcodeStatus?.config?.providers?.["zenrouter"]?.base_url && (
+                {jcodeStatus?.config?.providers?.["kitsunerouter"]?.base_url && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {jcodeStatus.config.providers["zenrouter"].base_url}
+                      {jcodeStatus.config.providers["kitsunerouter"].base_url}
                     </span>
                   </div>
                 )}
@@ -377,8 +377,8 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                 {/* Usage hint */}
                 <div className="flex flex-col gap-1 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
                   <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Usage:</p>
-                  <code className="text-xs font-mono text-text-muted">jcode --provider-profile zenrouter</code>
-                  <code className="text-xs font-mono text-text-muted">jcode --provider-profile zenrouter --model {selectedModel || "cc/claude-opus-4-7"}</code>
+                  <code className="text-xs font-mono text-text-muted">jcode --provider-profile kitsunerouter</code>
+                  <code className="text-xs font-mono text-text-muted">jcode --provider-profile kitsunerouter --model {selectedModel || "cc/claude-opus-4-7"}</code>
                 </div>
               </div>
 
@@ -393,7 +393,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                 <Button variant="primary" size="sm" onClick={handleApplySettings} disabled={!selectedModel} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!jcodeStatus?.hasZenRouter} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!jcodeStatus?.hasKitsuneRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

@@ -14,7 +14,7 @@ Anthropic manual `budget_tokens`, adaptive effort and total `max_tokens` are dis
 
 **A larger cap can reduce some truncation risk; no fixed floor guarantees a nonempty answer.** A gateway must not describe a cap as a hard caller maximum while silently raising it.
 
-## Zen's request policy
+## Kitsune Router's request policy
 
 The baseline already contained a 65,536 reasoning-floor constant, but the real request paths applied it inconsistently. The corrections do not add another blanket floor.
 
@@ -65,7 +65,7 @@ Regression tests cover translator and executor final payloads, nullable aliases,
 
 A real loopback HTTP test exercises the normal translator, executor serialization and fetch stack. A production standalone smoke creates isolated local credentials/provider nodes through the dashboard API, reads them back, routes only to a loopback fixture, and reads the actual SQLite usage table. It checks preserved caps, exact usage, paid empty-output accounting and exactly-once terminal-then-cancel persistence.
 
-All validation uses an isolated HOME/DATA_DIR, fresh test-only secrets and no live provider inference. Offline fixtures establish Zen's behavior, not upstream acceptance, current account entitlement or invoice parity. Source snapshots, exact commands, RED/GREEN evidence and final gate counts are recorded in the external task handoff.
+The recorded validation used an isolated HOME/DATA_DIR, fresh test-only secrets and no live provider inference. Offline fixtures establish the gateway's behavior at that snapshot, not upstream acceptance, current account entitlement, invoice parity or current rebrand verification. Source snapshots, exact commands, RED/GREEN evidence and final gate counts are recorded in the external task handoff. See [1.0.1 status](CHANGELOG_v1.0.1.md) and [migration](MIGRATION.md).
 
 ## Sources
 

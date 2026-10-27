@@ -19,7 +19,7 @@ beforeAll(async () => {
 });
 
 function directory() {
-  const value = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-mitm-startup-"));
+  const value = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-mitm-startup-"));
   directories.push(value);
   return value;
 }

@@ -63,6 +63,9 @@ CLI_WORKS=${quote(cliWorks)}
 CLI_IN_LINKS=${quote(cliInLinks)}
 STALE_CLI_DIR=${quote(staleCliDir)}
 STALE_CLI_WORKS=${quote(staleCliWorks)}
+MOCK_CWD=/mock/workspace
+MOCK_SOURCE_DIRECTORY=""
+MOCK_SOURCE_READY=false
 ${configuration}
 ${functions}
 record() { printf 'CALL %s\\n' "$*" >&3; }
@@ -77,7 +80,7 @@ command() {
   if [ "$1" != "-v" ]; then record "FORBIDDEN command $*"; return 99; fi
   local name="$2" directory
   case "$name" in
-    node|npm|bun|zenrouter)
+    node|npm|bun|kitsune-router)
       local previous_ifs="$IFS"; IFS=:
       for directory in $PATH; do
         case "$directory/$name" in
@@ -85,11 +88,11 @@ command() {
           /mock/old/bin/node) printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0 ;;
           /mock/home/.npm-global/bin/node) [ "$NPM_PREFIX_WORKS" = true ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
           /mock/system/bin/npm) [ "$SYSTEM_NPM" = true ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
-          /mock/home/.zenrouter/node/bin/node) [ -n "$MANAGED_NODE" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
-          /mock/home/.zenrouter/node/bin/npm) [ "$MANAGED_NPM" = true ] && [ -n "$MANAGED_NODE" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
+          /mock/home/.kitsune-router/node/bin/node) [ -n "$MANAGED_NODE" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
+          /mock/home/.kitsune-router/node/bin/npm) [ "$MANAGED_NPM" = true ] && [ -n "$MANAGED_NODE" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
           /mock/home/.bun/bin/bun) [ -n "$BUN_VERSION" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
-          /mock/links/zenrouter) [ "$CLI_IN_LINKS" = true ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
-          /mock/system/bin/zenrouter|/mock/home/.zenrouter/node/bin/zenrouter|/mock/home/.bun/bin/zenrouter)
+          /mock/links/kitsune-router) [ "$CLI_IN_LINKS" = true ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
+          /mock/system/bin/kitsune-router|/mock/home/.kitsune-router/node/bin/kitsune-router|/mock/home/.bun/bin/kitsune-router)
             [ "$directory" = "$STALE_CLI_DIR" ] && { printf '%s\\n' "$directory/$name"; IFS="$previous_ifs"; return 0; } ;;
         esac
       done
@@ -103,12 +106,13 @@ command() {
 }
 [() {
   case "$1" in
-    -x|-f|-d|-e|-r|-w)
+    -x|-f|-d|-e|-L|-r|-w)
       case "$1:$2" in
-        -x:/mock/home/.zenrouter/node/bin/node) builtin [ -n "$MANAGED_NODE" ]; return ;;
-        -x:/mock/home/.zenrouter/node/bin/npm) builtin [ -n "$MANAGED_NODE" ] && builtin [ "$MANAGED_NPM" = true ]; return ;;
-        -x:/mock/links/zenrouter) builtin [ "$CLI_IN_LINKS" = true ]; return ;;
-        -f:/mock/home/.zenrouter/app/cli/cli.js|-f:/mock/source/cli/cli.js) return 0 ;;
+        -x:/mock/home/.kitsune-router/node/bin/node) builtin [ -n "$MANAGED_NODE" ]; return ;;
+        -x:/mock/home/.kitsune-router/node/bin/npm) builtin [ -n "$MANAGED_NODE" ] && builtin [ "$MANAGED_NPM" = true ]; return ;;
+        -x:/mock/links/kitsune-router) builtin [ "$CLI_IN_LINKS" = true ]; return ;;
+        -d:/mock/home/.kitsune-router/app|-d:/mock/source) builtin [ "$2" = "$MOCK_SOURCE_DIRECTORY" ]; return ;;
+        -f:/mock/home/.kitsune-router/app/cli/cli.js|-f:/mock/source/cli/cli.js) builtin [ "$MOCK_SOURCE_READY" = true ]; return ;;
         *) return 1 ;;
       esac ;;
     *) builtin [ "$@" ;;
@@ -116,7 +120,7 @@ command() {
 }
 function /mock/system/bin/node() { printf '%s\\n' "$SYSTEM_NODE"; }
 function /mock/old/bin/node() { printf 'v22.18.0\\n'; }
-function /mock/home/.zenrouter/node/bin/node() { printf '%s\\n' "$MANAGED_NODE"; }
+function /mock/home/.kitsune-router/node/bin/node() { printf '%s\\n' "$MANAGED_NODE"; }
 mock_npm() {
   if [ "$2" = --version ]; then [ "$NPM_WORKS" = true ] || return 1; printf '10.9.4\\n'; return 0; fi
   record "npm:$1 node:$(command -v node || true) \${*:2}"
@@ -125,37 +129,37 @@ mock_npm() {
   [ "$NPM_INSTALL_WORKS" = true ] || { [ "\${MOCK_SUDO:-false}" = true ] && [ "$NPM_SUDO_WORKS" = true ]; }
 }
 function /mock/system/bin/npm() { mock_npm system "$@"; }
-function /mock/home/.zenrouter/node/bin/npm() { mock_npm managed "$@"; }
+function /mock/home/.kitsune-router/node/bin/npm() { mock_npm managed "$@"; }
 function /mock/home/.bun/bin/bun() {
   if [ "$1" = --version ]; then
     [ "$BUN_WORKS" = true ] || return 1
     printf '%s\\n' "$BUN_VERSION"; return 0
   fi
   record "bun $*"
-  if [ "$1" = /mock/links/zenrouter ]; then [ "$CLI_WORKS" = true ] || return 1; printf '${currentVersion}\\n'; return 0; fi
+  if [ "$1" = /mock/links/kitsune-router ]; then [ "$CLI_WORKS" = true ] || return 1; printf '${currentVersion}\\n'; return 0; fi
   case "$1" in
-    /mock/system/bin/zenrouter|/mock/home/.zenrouter/node/bin/zenrouter|/mock/home/.bun/bin/zenrouter)
+    /mock/system/bin/kitsune-router|/mock/home/.kitsune-router/node/bin/kitsune-router|/mock/home/.bun/bin/kitsune-router)
       mock_stale_cli "$@"; return ;;
   esac
   [ "$BUN_INSTALL_WORKS" = true ]
 }
 mock_stale_cli() {
-  record "stale-zenrouter $*"
+  record "stale-kitsune-router $*"
   [ "$STALE_CLI_WORKS" = true ] || return 1
   printf '0.8.0\\n'
 }
-function /mock/system/bin/zenrouter() { mock_stale_cli /mock/system/bin/zenrouter "$@"; }
-function /mock/home/.zenrouter/node/bin/zenrouter() { mock_stale_cli /mock/home/.zenrouter/node/bin/zenrouter "$@"; }
-function /mock/home/.bun/bin/zenrouter() { mock_stale_cli /mock/home/.bun/bin/zenrouter "$@"; }
-function /mock/links/zenrouter() {
-  record "zenrouter node:$(command -v node || true) $*"
+function /mock/system/bin/kitsune-router() { mock_stale_cli /mock/system/bin/kitsune-router "$@"; }
+function /mock/home/.kitsune-router/node/bin/kitsune-router() { mock_stale_cli /mock/home/.kitsune-router/node/bin/kitsune-router "$@"; }
+function /mock/home/.bun/bin/kitsune-router() { mock_stale_cli /mock/home/.bun/bin/kitsune-router "$@"; }
+function /mock/links/kitsune-router() {
+  record "kitsune-router node:$(command -v node || true) $*"
   [ "$CLI_WORKS" = true ] || return 1
   printf '${currentVersion}\\n'
 }
 node() { local executable; executable=$(command -v node) || return 127; "$executable" "$@"; }
 npm() { local executable; executable=$(command -v npm) || return 127; "$executable" "$@"; }
 bun() { local executable; executable=$(command -v bun) || return 127; "$executable" "$@"; }
-zenrouter() { local executable; executable=$(command -v zenrouter) || return 127; "$executable" "$@"; }
+kitsune-router() { local executable; executable=$(command -v kitsune-router) || return 127; "$executable" "$@"; }
 sudo() {
   record "sudo $*"
   if [ "$1" = -n ]; then [ "$SUDO_PASSWORDLESS" = true ] || return 1; shift; fi
@@ -177,16 +181,41 @@ apt-get() { provision_node apt-get "$@"; }
 dnf() { provision_node dnf "$@"; }
 pacman() { provision_node pacman "$@"; }
 curl() { record "curl $*"; return 1; }
-git() { record "git $*"; return 0; }
+git() {
+  record "git $*"
+  case "$1" in
+    check-ref-format) [ "$2" = "refs/heads/$BRANCH" ] || return 1 ;;
+    clone)
+      if [ "$#" != 8 ] || [ "$2" != --depth ] || [ "$3" != 1 ] || [ "$4" != --branch ] || [ "$5" != "$BRANCH" ] || [ "$6" != -- ] || [ "$7" != "$REPO_URL" ] || [ "$8" != "$INSTALL_DIR" ]; then
+        record "FORBIDDEN unexpected git clone arguments $*"; return 99
+      fi
+      [ "$MOCK_SOURCE_DIRECTORY" = "$INSTALL_DIR" ] || return 1
+      MOCK_SOURCE_READY=true ;;
+    *) record "FORBIDDEN unexpected git operation $*"; return 99 ;;
+  esac
+}
 bash() { record "bash $*"; return 1; }
 id() { printf '1000\\n'; }
-mkdir() { record "mkdir $*"; }
+mkdir() {
+  record "mkdir $*"
+  local directory
+  for directory in "$@"; do
+    case "$directory" in -*) continue;; esac
+    if [ "$directory" = "$INSTALL_DIR" ]; then MOCK_SOURCE_DIRECTORY="$directory"; fi
+  done
+}
 rm() { record "rm $*"; }
 mv() { record "mv $*"; }
-ln() { record "ln $*"; if [ "$3" = /mock/links/zenrouter ]; then CLI_IN_LINKS=true; fi; }
+ln() { record "ln $*"; if [ "$3" = /mock/links/kitsune-router ]; then CLI_IN_LINKS=true; fi; }
 chmod() { record "chmod $*"; }
 tar() { record "tar $*"; }
-cd() { record "cd $*"; }
+cd() {
+  record "cd $*"
+  if [ "$1" = -- ]; then shift; fi
+  [ "$1" = "$MOCK_SOURCE_DIRECTORY" ] || { record "FORBIDDEN cd outside prepared source $*"; return 99; }
+  MOCK_CWD="$1"
+}
+pwd() { printf '%s\\n' "$MOCK_CWD"; }
 get_link_dir() { printf '/mock/links\\n'; }
 print_banner() { :; }
 detect_os() {
@@ -203,7 +232,7 @@ install_managed_node() {
   record managed-node-install
   [ -n "$MANAGED_INSTALL_NODE" ] || return 1
   MANAGED_NODE="$MANAGED_INSTALL_NODE"
-  PATH="$ZENROUTER_HOME/node/bin:$PATH"
+  PATH="$KITSUNE_ROUTER_HOME/node/bin:$PATH"
 }
 ${action}
 `;
@@ -213,13 +242,13 @@ ${action}
     env: {
       HOME: "/mock/home",
       PATH: "/mock/system/bin:/mock/home/.bun/bin:/mock/links",
-      DATA_DIR: process.env.DATA_DIR,
+      DATA_DIR: "/mock/home/.kitsune-router",
       NODE_ENV: "test",
       RUN_REAL: "0",
       RUN_E2E: "0",
       RUN_LIVE_TESTS: "0",
       MODEL_CATALOG_SYNC: "off",
-      ZENROUTER_INSTALL_DIR: installDirEnv,
+      KITSUNE_ROUTER_INSTALL_DIR: installDirEnv,
     },
   });
   expect(result.error).toBeUndefined();
@@ -232,8 +261,8 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it("installs the scoped CLI using a supported system Node/npm pair", () => {
     const result = runInstaller({ systemNode: "v22.19.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install -g @joyccn/zenrouter --silent");
-    expect(result.stdout).toContain("ZenRouter successfully installed");
+    expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router --silent");
+    expect(result.stdout).toContain("Kitsune Router successfully installed");
   });
 
   it("parses help without attempting dependency or package operations", () => {
@@ -257,14 +286,14 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       action: 'get_link_dir() { printf "/mock/system/bin\\n"; }; main',
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL npm:managed node:/mock/home/.zenrouter/node/bin/node install -g @joyccn/zenrouter --silent");
-    expect(result.calls).not.toContain("CALL npm:system node:/mock/system/bin/node install -g @joyccn/zenrouter --silent");
+    expect(result.calls).toContain("CALL npm:managed node:/mock/home/.kitsune-router/node/bin/node install -g @bykitsune/router --silent");
+    expect(result.calls).not.toContain("CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router --silent");
   });
 
   it("uses working Bun with --skip-deps instead of falling back to unsupported npm", () => {
     const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun add -g @joyccn/zenrouter");
+    expect(result.calls).toContain("CALL bun add -g @bykitsune/router");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
     expect(result.calls).not.toContain("CALL managed-node-install");
   });
@@ -272,9 +301,9 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it("does not replace selected system Node with an outdated managed Node during verification", () => {
     const result = runInstaller({ managedNode: "v22.18.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.calls.filter((call) => call.startsWith("CALL zenrouter"))).toEqual([
-      "CALL zenrouter node:/mock/system/bin/node --version",
-      "CALL zenrouter node:/mock/system/bin/node --version",
+    expect(result.calls.filter((call) => call.startsWith("CALL kitsune-router"))).toEqual([
+      "CALL kitsune-router node:/mock/system/bin/node --version",
+      "CALL kitsune-router node:/mock/system/bin/node --version",
     ]);
   });
 
@@ -289,7 +318,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it("retains Bun selection when automatic Node provisioning fails in the default flow", () => {
     const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0" });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun add -g @joyccn/zenrouter");
+    expect(result.calls).toContain("CALL bun add -g @bykitsune/router");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
   });
 
@@ -302,33 +331,35 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install --silent");
     expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node run build --silent");
     expect(result.calls.some((call) => call.startsWith("CALL npm:managed"))).toBe(false);
+    expect(result.calls).toContain("CALL git clone --depth 1 --branch master -- https://github.com/ByKitsune/kitsune-router.git /mock/source");
+    expect(result.calls.some((call) => /^CALL (?:rm|mv) /.test(call))).toBe(false);
   });
 
   it("resolves competing CLI versions through mock PATH", () => {
     const result = runInstaller({
       staleCliDir: "/mock/system/bin",
-      action: 'zenrouter --version; PATH="/mock/links:$PATH"; zenrouter --version',
+      action: 'kitsune-router --version; PATH="/mock/links:$PATH"; kitsune-router --version',
     });
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("0.8.0");
     expect(result.stdout).toContain(currentVersion);
     expect(result.calls).toEqual([
-      "CALL stale-zenrouter /mock/system/bin/zenrouter --version",
-      "CALL zenrouter node:/mock/system/bin/node --version",
+      "CALL stale-kitsune-router /mock/system/bin/kitsune-router --version",
+      "CALL kitsune-router node:/mock/system/bin/node --version",
     ]);
   });
 
   it("still verifies a global CLI when no source link exists", () => {
     const result = runInstaller({ cliInLinks: false, staleCliDir: "/mock/system/bin", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("ZenRouter found: 0.8.0 (/mock/system/bin/zenrouter)");
-    expect(result.calls.filter((call) => call.startsWith("CALL stale-zenrouter"))).toHaveLength(2);
+    expect(result.stdout).toContain("Kitsune Router found: 0.8.0 (/mock/system/bin/kitsune-router)");
+    expect(result.calls.filter((call) => call.startsWith("CALL stale-kitsune-router"))).toHaveLength(2);
     expect(result.calls.some((call) => call.startsWith("CALL ln "))).toBe(false);
   });
 
   it.each([
     ["system", "v22.23.2", "", "/mock/system/bin"],
-    ["managed", "v22.18.0", "v22.23.2", "/mock/home/.zenrouter/node/bin"],
+    ["managed", "v22.18.0", "v22.23.2", "/mock/home/.kitsune-router/node/bin"],
   ])("verifies the fresh source CLI rather than the stale global in the selected %s Node bin", (_kind, systemNode, managedNode, staleCliDir) => {
     const result = runInstaller({
       systemNode, managedNode, staleCliDir, cliInLinks: false,
@@ -336,13 +367,13 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL ln -sf /mock/source/cli/cli.js /mock/links/zenrouter");
-    expect(result.calls.filter((call) => call.startsWith("CALL zenrouter"))).toEqual([
-      `CALL zenrouter node:${staleCliDir}/node --version`,
-      `CALL zenrouter node:${staleCliDir}/node --version`,
+    expect(result.calls).toContain("CALL ln -sf /mock/source/cli/cli.js /mock/links/kitsune-router");
+    expect(result.calls.filter((call) => call.startsWith("CALL kitsune-router"))).toEqual([
+      `CALL kitsune-router node:${staleCliDir}/node --version`,
+      `CALL kitsune-router node:${staleCliDir}/node --version`,
     ]);
-    expect(result.calls.some((call) => call.startsWith("CALL stale-zenrouter"))).toBe(false);
-    expect(result.stdout).toContain(`ZenRouter found: ${currentVersion} (/mock/links/zenrouter)`);
+    expect(result.calls.some((call) => call.startsWith("CALL stale-kitsune-router"))).toBe(false);
+    expect(result.stdout).toContain(`Kitsune Router found: ${currentVersion} (/mock/links/kitsune-router)`);
     expect(result.stdout).toContain(`Version: ${currentVersion}`);
     expect(result.stdout).not.toContain("0.8.0");
   });
@@ -354,12 +385,12 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(1);
-    expect(result.calls.filter((call) => call.startsWith("CALL zenrouter"))).toEqual([
-      "CALL zenrouter node:/mock/system/bin/node --version",
-      "CALL zenrouter node:/mock/system/bin/node -v",
+    expect(result.calls.filter((call) => call.startsWith("CALL kitsune-router"))).toEqual([
+      "CALL kitsune-router node:/mock/system/bin/node --version",
+      "CALL kitsune-router node:/mock/system/bin/node -v",
     ]);
-    expect(result.calls.some((call) => call.startsWith("CALL stale-zenrouter"))).toBe(false);
-    expect(result.stdout).toContain("zenrouter could not run with the selected node runtime");
+    expect(result.calls.some((call) => call.startsWith("CALL stale-kitsune-router"))).toBe(false);
+    expect(result.stdout).toContain("kitsune-router could not run with the selected node runtime");
     expect(result.stdout).not.toMatch(/successfully installed|installation completed|Get Started/);
   });
 
@@ -376,7 +407,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it.each(["brew", "apt-get", "dnf", "pacman"])("selects the validated Node/npm pair installed by %s", (provisioner) => {
     const result = runInstaller({ systemNode: "v22.18.0", provisioner, sudo: provisioner === "apt-get" });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install -g @joyccn/zenrouter --silent");
+    expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router --silent");
     expect(result.calls).not.toContain("CALL managed-node-install");
   });
 
@@ -395,14 +426,14 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it("uses the selected Bun to verify the CLI instead of its unsupported Node shebang", () => {
     const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun /mock/links/zenrouter --version");
-    expect(result.calls.some((call) => call.startsWith("CALL zenrouter"))).toBe(false);
+    expect(result.calls).toContain("CALL bun /mock/links/kitsune-router --version");
+    expect(result.calls.some((call) => call.startsWith("CALL kitsune-router"))).toBe(false);
   });
 
   it("fails verification when the installed CLI cannot execute under the selected runtime", () => {
     const result = runInstaller({ args: ["--skip-deps"], cliWorks: false });
     expect(result.status).not.toBe(0);
-    expect(result.stdout).toContain("ZenRouter installation failed");
+    expect(result.stdout).toContain("Kitsune Router installation failed");
     expect(result.stdout).not.toMatch(/successfully installed|installation completed|Get Started/);
   });
 
@@ -421,8 +452,8 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     });
     expect(result.status).toBe(0);
     expect(result.calls.filter((call) => call.startsWith("CALL npm:"))).toEqual([
-      "CALL npm:system node:/mock/system/bin/node install -g @joyccn/zenrouter --silent",
-      "CALL npm:system node:/mock/system/bin/node install -g @joyccn/zenrouter",
+      "CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router --silent",
+      "CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router",
     ]);
     expect(result.stdout).toContain("Installed via sudo -n");
   });
@@ -455,7 +486,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   it("selects a valid managed runtime installed by the automatic fallback", () => {
     const result = runInstaller({ systemNode: "v22.18.0", managedInstallNode: "v22.23.2" });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL npm:managed node:/mock/home/.zenrouter/node/bin/node install -g @joyccn/zenrouter --silent");
+    expect(result.calls).toContain("CALL npm:managed node:/mock/home/.kitsune-router/node/bin/node install -g @bykitsune/router --silent");
     expect(result.calls.some((call) => call.startsWith("CALL npm:system"))).toBe(false);
   });
 
@@ -465,8 +496,9 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL git clone --depth 1 --branch feature/runtime https://github.com/ZenRouter/ZenRouter.git /mock/source");
-    expect(result.calls).toContain("CALL cd /mock/source");
+    expect(result.calls).toContain("CALL git check-ref-format refs/heads/feature/runtime");
+    expect(result.calls).toContain("CALL git clone --depth 1 --branch feature/runtime -- https://github.com/ByKitsune/kitsune-router.git /mock/source");
+    expect(result.calls).toContain("CALL cd -- /mock/source");
     expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install --silent");
     expect(result.calls.some((call) => call.includes("run build"))).toBe(false);
   });
@@ -496,7 +528,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       args: ["--skip-deps"], installDirEnv: "/mock/source", action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL cd /mock/source");
+    expect(result.calls).toContain("CALL cd -- /mock/source");
   });
 
   it("rejects unknown CLI arguments without any dependency or install operations", () => {

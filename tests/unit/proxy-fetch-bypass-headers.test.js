@@ -18,7 +18,7 @@ import selfsigned from "selfsigned";
 
 const HOST = "127.0.0.1";
 
-// Throwaway self-signed cert (CN=zenrouter-test-localhost) generated for this
+// Throwaway self-signed cert (CN=9router-test-localhost) generated for this
 // fixture only. Accepted solely by explicit per-request fixture options;
 // never use these files anywhere else.
 const TEST_TLS_KEY = `-----BEGIN PRIVATE KEY-----

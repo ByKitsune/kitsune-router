@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, appendFileSync, renameSync, createWriteStream
 import { resolve } from "node:path";
 
 // Uploaded outside the synchronized tree. Only fixed, worker-local tasks run here.
-const ROOT = "/root/zenrouter-worker-mesh";
+const ROOT = "/root/kitsune-router-worker-mesh";
 const [id, task, encoded = "W10="] = process.argv.slice(2);
 if (!/^[a-z0-9-]{1,80}$/.test(id || "")) throw new Error("Invalid job id");
 const args = JSON.parse(Buffer.from(encoded, "base64").toString());

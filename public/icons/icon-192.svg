@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 500 500">
-  <rect width="500" height="500" rx="90" fill="#141414"/>
-  <!-- Zen Sun -->
-  <path d="M375 95 C425 80, 480 120, 475 170 C470 215, 415 235, 370 210 C330 185, 335 110, 375 95 Z" fill="#FF3B1D" />
-  <!-- Zen Star -->
-  <path d="M260 95 C285 90, 305 125, 300 165 C295 198, 275 220, 270 240 C288 238, 335 240, 395 245 C440 248, 455 285, 430 305 C400 328, 325 315, 278 305 C265 318, 280 375, 305 425 C320 460, 285 488, 245 480 C205 470, 195 410, 202 360 C205 330, 185 300, 160 305 C115 315, 60 345, 25 385 C-5 420, -15 380, 10 345 C35 310, 105 270, 150 252 C140 235, 95 200, 45 155 C10 125, 35 88, 75 105 C120 125, 170 178, 195 210 C215 190, 230 100, 260 95 Z" fill="#5D87B8" />
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 96 96" fill="none">
+  <title>Kitsune Router</title>
+  <rect width="96" height="96" rx="20" fill="#fffefa"/>
+  <path d="M13 12 39 25H57L83 12 76 58 48 84 20 58Z" fill="#a63f23"/>
+  <path d="M20 24 35 32 23 44ZM76 24 61 32 73 44Z" fill="#f3dfba"/>
+  <path d="M23 48 42 56 48 72 54 56 73 48 68 63 48 81 28 63Z" fill="#fffefa"/>
+  <path d="m34 43 9 5m19-5-9 5" stroke="#30241d" stroke-width="5" stroke-linecap="round"/>
+  <path d="m43 62 5 5 5-5" fill="#30241d"/>
+  <path d="M48 30V18M41 18h14" stroke="#fffefa" stroke-width="4" stroke-linecap="round"/>
 </svg>

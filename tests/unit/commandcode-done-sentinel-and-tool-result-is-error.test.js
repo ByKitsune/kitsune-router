@@ -1,6 +1,6 @@
 /**
  * Regression tests for two upstream-reported defects that both hit OpenAI
- * clients through ZenRouter.
+ * clients through Kitsune Router.
  *
  * #4461 — CommandCode chat streams drop `data: [DONE]`
  *   `inspectAndWrapCommandCodeResponse()` already decodes the upstream NDJSON

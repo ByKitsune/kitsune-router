@@ -33,10 +33,14 @@ function fixture(name, scenario = "green") {
   mkdirSync(bin);
   mkdirSync(resolve(dir, "scripts"));
   cpSync(resolve(root, ".github/workflows"), resolve(dir, ".github/workflows"), { recursive: true });
-  for (const prefix of ["", "cli/", "tests/", "gitbook/"]) {
+  for (const [prefix, name] of Object.entries({
+    "": "kitsune-router-app", "cli/": "@bykitsune/router",
+    "tests/": "kitsune-router-tests", "gitbook/": "kitsune-router-docs",
+  })) {
     mkdirSync(resolve(dir, prefix), { recursive: true });
-    writeFileSync(resolve(dir, prefix, "package.json"), JSON.stringify({ name: "@joyccn/zenrouter", version: "0.9.7" }));
-    writeFileSync(resolve(dir, prefix, "package-lock.json"), JSON.stringify({ version: "0.9.7", packages: { "": { version: "0.9.7" } } }));
+    const bin = prefix === "cli/" ? { "kitsune-router": "./cli.js" } : undefined;
+    writeFileSync(resolve(dir, prefix, "package.json"), JSON.stringify({ name, version: "0.9.7", bin }));
+    writeFileSync(resolve(dir, prefix, "package-lock.json"), JSON.stringify({ name, version: "0.9.7", packages: { "": { name, version: "0.9.7", bin } } }));
   }
   copyFileSync(resolve(root, "scripts/check-release-version.mjs"), resolve(dir, "scripts/check-release-version.mjs"));
   copyFileSync(resolve(root, "scripts/release-publication-helpers.mjs"), resolve(dir, "scripts/release-publication-helpers.mjs"));
@@ -59,7 +63,7 @@ function fixture(name, scenario = "green") {
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ args, home: process.env.HOME, data: process.env.DATA_DIR, xdg: process.env.XDG_CONFIG_HOME, xdgData: process.env.XDG_DATA_HOME, refresh: process.env.DISABLE_BACKGROUND_TOKEN_REFRESH, catalog: process.env.MODEL_CATALOG_SYNC, cache: process.env.AG_CACHE_TEST })+'\\n');
+fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ args, home: process.env.HOME, data: process.env.DATA_DIR, xdg: process.env.XDG_CONFIG_HOME, xdgData: process.env.XDG_DATA_HOME, refresh: process.env.DISABLE_BACKGROUND_TOKEN_REFRESH, catalog: process.env.MODEL_CATALOG_SYNC, cache: process.env.AG_CACHE_TEST, migration: process.env.KITSUNE_ROUTER_MIGRATION })+'\\n');
 if (args[0] === 'test' && !args.includes('--prefix')) {
   const output = args.find(a => a.startsWith('--outputFile='));
   if (output) {
@@ -73,6 +77,7 @@ if (args[0] === 'test' && !args.includes('--prefix')) {
   if (process.env.SCENARIO === 'test-exit') process.exit(1);
 }
 if (args.includes('test:compat') && process.env.SCENARIO === 'compat') process.exit(1);
+if (args.includes('check:brand') && process.env.SCENARIO === 'brand') process.exit(1);
 if (args.includes('lint') && process.env.SCENARIO === 'lint') process.exit(1);
 if (args.includes('build') && process.env.SCENARIO === 'build') process.exit(1);
 if (args.includes('build') && process.env.SCENARIO === 'changed-report') fs.writeFileSync(path.join('verification',process.env.GITHUB_SHA,'vitest.json'), JSON.stringify({success:false}));
@@ -96,7 +101,7 @@ if (args.includes('build') && process.env.SCENARIO === 'changed-report') fs.writ
   const env = {
     PATH: `${bin}:${process.env.PATH}`, HOME: resolve(dir, "ambient-home"), DATA_DIR: resolve(dir, "ambient-data"),
     RUNNER_TEMP: resolve(dir, "runner"), GITHUB_ENV: githubEnv, GITHUB_SHA: sha, GITHUB_REF: "refs/tags/v0.9.7",
-    RELEASE_TAG: "v0.9.7", GITHUB_OUTPUT: resolve(dir, "output"), GITHUB_REPOSITORY: "ZenRouter/ZenRouter",
+    RELEASE_TAG: "v0.9.7", GITHUB_OUTPUT: resolve(dir, "output"), GITHUB_REPOSITORY: "ByKitsune/kitsune-router",
     NPM_TOKEN: "offline-fixture", FIXTURE_LOG: log, SCENARIO: scenario, XDG_DATA_HOME: resolve(dir, "ambient-xdg-data"),
   };
   mkdirSync(env.HOME);
@@ -118,16 +123,18 @@ describe("workflow source verification actually gates publication", () => {
     expect(metadata).toEqual({ sha: f.sha, ref: "refs/tags/v0.9.7", reportSha256: createHash("sha256").update(report).digest("hex") });
     expect(f.calls.filter(c => c.gate).map(c => c.gate)).toEqual(["identity", "providers", "aliases", "oauth"]);
     expect(f.calls.some(c => c.args?.includes("test:compat"))).toBe(true);
+    expect(f.calls.some(c => c.args?.includes("check:brand"))).toBe(true);
     for (const call of f.calls.filter(c => c.home)) {
-      expect(call.home).toBe(resolve(f.dir, "runner/zenrouter-home"));
-      expect(call.data).toBe(resolve(f.dir, "runner/zenrouter-data"));
-      expect(call.xdg).toBe(resolve(f.dir, "runner/zenrouter-home/.config"));
-      expect(call.xdgData).toBe(resolve(f.dir, "runner/zenrouter-home/.local/share"));
+      expect(call.home).toBe(resolve(f.dir, "runner/kitsune-router-home"));
+      expect(call.data).toBe(resolve(f.dir, "runner/kitsune-router-data"));
+      expect(call.xdg).toBe(resolve(f.dir, "runner/kitsune-router-home/.config"));
+      expect(call.xdgData).toBe(resolve(f.dir, "runner/kitsune-router-home/.local/share"));
       expect([call.refresh, call.catalog, call.cache]).toEqual(["1", "off", "0"]);
+      expect(call.migration).toBe("skip");
     }
   });
 
-  it.each(["release", "docker-publish"].flatMap(name => ["collection", "empty", "inconsistent", "test-exit", "compat", "identity", "providers", "aliases", "oauth", "lint", "build", "changed-report"].map(scenario => [name, scenario])))("%s blocks publication on %s failure", (name, scenario) => {
+  it.each(["release", "docker-publish"].flatMap(name => ["collection", "empty", "inconsistent", "test-exit", "compat", "brand", "identity", "providers", "aliases", "oauth", "lint", "build", "changed-report"].map(scenario => [name, scenario])))("%s blocks publication on %s failure", (name, scenario) => {
     const f = fixture(name, scenario);
     expect(f.result.status, f.result.stdout + f.result.stderr).not.toBe(0);
     expect(f.calls.some(c => c.args?.includes("fixture-publish"))).toBe(false);

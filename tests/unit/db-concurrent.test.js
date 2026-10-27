@@ -21,7 +21,7 @@ beforeAll(async () => {
   originalUsageGlobals = Object.fromEntries(usageGlobals.map((key) => [key, global[key]]));
   for (const key of usageGlobals) delete global[key];
   originalListeners = new Map(shutdownEvents.map((event) => [event, new Set(process.listeners(event))]));
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-concurrent-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-concurrent-"));
   process.env.DATA_DIR = tempDir;
   // Exercise persisted settings rather than inherited observability overrides.
   delete process.env.OBSERVABILITY_ENABLED;

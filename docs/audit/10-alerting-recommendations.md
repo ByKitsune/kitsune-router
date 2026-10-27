@@ -1,5 +1,7 @@
 # P04-C — Alerting recommendations (corrected 2026-10-16)
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Recommendations only. No notification service, timer, or production configuration was installed.
 The original examples had an inverted health predicate and unsafe assumptions about metrics;
 use the corrected requirements below, not the older release-tag examples.

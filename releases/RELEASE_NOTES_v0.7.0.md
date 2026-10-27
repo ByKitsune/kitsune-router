@@ -1,5 +1,7 @@
 # ZenRouter v0.7.0 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.7.0` is a gateway-readiness release: smarter OAuth for hosted dashboards, a full client-fingerprint refresh, deeper provider compatibility fixes, and a dependency tree with zero outstanding advisories.
 
 ## Highlights

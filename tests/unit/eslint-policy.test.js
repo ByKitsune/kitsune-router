@@ -165,7 +165,7 @@ describe("internal navigation policy", () => {
   });
 
   it("supports explicit project-rule exceptions without pretending to be the Next plugin", async () => {
-    const findings = await messages('// eslint-disable-next-line zenrouter/no-location-assign-relative-destination\nwindow.location.assign("/login");');
+    const findings = await messages('// eslint-disable-next-line kitsunerouter/no-location-assign-relative-destination\nwindow.location.assign("/login");');
     expect(findings).toEqual([]);
   });
 

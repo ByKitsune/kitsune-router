@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 const shutdownEvents = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
 const globalKeys = [
-  Symbol.for("zenrouter.db.importState"),
+  Symbol.for("kitsunerouter.db.importState"),
   "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter",
   "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers",
 ];
@@ -68,7 +68,7 @@ beforeEach(async () => {
   previousGlobals = Object.fromEntries(globalKeys.map(key => [key, Object.getOwnPropertyDescriptor(global, key)]));
   previousEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
   previousListeners = new Map(shutdownEvents.map(event => [event, process.rawListeners(event)]));
-  root = await mkdtemp(join(tmpdir(), "zenrouter-db-import-cache-"));
+  root = await mkdtemp(join(tmpdir(), "kitsunerouter-db-import-cache-"));
   process.env.HOME = join(root, "home");
   process.env.DATA_DIR = join(root, "data");
   await mkdir(process.env.HOME);

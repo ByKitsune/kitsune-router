@@ -442,7 +442,7 @@ describe("guard, cancellation and diagnostic boundaries", () => {
     const dnsLookup = vi.spyOn(dns.Resolver.prototype, "resolve4").mockRejectedValue(new Error("offline DNS failure"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const target = upstreamUrl(direct, "api2.cursor.sh");
-    const fetchState = globalThis[Symbol.for("zenrouter.proxy-fetch.v1")];
+    const fetchState = globalThis[Symbol.for("kitsunerouter.proxy-fetch.v1")];
     const dispatch = vi.spyOn(fetchState, "original").mockImplementation((url, options) => {
       expect(url).toBe(target);
       expect(options.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);

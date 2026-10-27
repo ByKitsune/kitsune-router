@@ -1,5 +1,7 @@
 # Audit response — consolidated report (prompts 01–10)
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 **Date:** 2026-10-16 · **Repo:** `/root/ZenRouter` @ `master` · **Published:** 0.9.8 (backfill) and 0.9.9
 
 This document answers the "LAPORAN YANG DIMINTA" section of every prompt. Per-prompt detail

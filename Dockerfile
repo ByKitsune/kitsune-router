@@ -13,12 +13,17 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY . ./
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN NEXT_PHASE=phase-production-build DISABLE_BACKGROUND_TOKEN_REFRESH=1 npm run build
+RUN HOME=/tmp/kitsune-router-build-home DATA_DIR=/tmp/kitsune-router-build-data \
+  KITSUNE_ROUTER_MIGRATION=skip NEXT_PHASE=phase-production-build \
+  DISABLE_BACKGROUND_TOKEN_REFRESH=1 npm run build
 
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
-LABEL org.opencontainers.image.title="zenrouter"
+LABEL org.opencontainers.image.title="Kitsune Router" \
+  org.opencontainers.image.description="Provider-neutral AI gateway. Your models. Your routes." \
+  org.opencontainers.image.vendor="ByKitsune" \
+  org.opencontainers.image.url="https://github.com/ByKitsune/kitsune-router"
 
 ENV NODE_ENV=production
 ENV PORT=20128
@@ -30,6 +35,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/custom-server.js ./custom-server.js
+COPY --from=builder /app/cli/hooks/containerEntrypoint.js ./cli/hooks/containerEntrypoint.js
 COPY --from=builder /app/open-sse ./open-sse
 # Ensure `next` is available at runtime in case tracing did not include it.
 COPY --from=builder /app/node_modules/next ./node_modules/next
@@ -39,33 +45,20 @@ COPY --from=builder /app/node_modules/sql.js ./node_modules/sql.js
 # node-machine-id is createRequire-loaded at runtime; tracing omits it.
 COPY --from=builder /app/node_modules/node-machine-id ./node_modules/node-machine-id
 
-RUN mkdir -p /app/data && chown -R node:node /app && \
-  mkdir -p /app/data-home && chown node:node /app/data-home && \
-  ln -sf /app/data-home /root/.zenrouter 2>/dev/null || true
+RUN mkdir -p /app/data /app/data-home && chown -R node:node /app
 
-# Fix permissions at runtime (handles mounted volumes) and auto-provision the
-# runtime secrets. JWT_SECRET is required by the dashboard (no fallback, by
-# design), so a container started with no env must still come up usable:
-# generate a per-container random secret and persist it in the data volume so
-# it survives restarts (a changing secret would invalidate every session).
-# An explicitly passed JWT_SECRET always wins.
+# Fix mounted-volume ownership, then exec the actual command as the node user.
+# The default Node command preloads the shared JSON/legacy-env secret resolver;
+# never source a secret file as shell code or put resolved values in argv.
 RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
   printf '%s\n' \
     '#!/bin/sh' \
-    'chown -R node:node /app/data /app/data-home 2>/dev/null' \
-    'SECRETS_FILE="${DATA_DIR:-/app/data}/secrets.env"' \
-    'if [ -z "$JWT_SECRET" ] || [ "${#JWT_SECRET}" -lt 32 ]; then' \
-    '  if [ ! -f "$SECRETS_FILE" ]; then' \
-    '    mkdir -p "$(dirname "$SECRETS_FILE")"' \
-    '    umask 077' \
-    '    { printf "JWT_SECRET=%s\n" "$(head -c 32 /dev/urandom | od -An -tx1 | tr -d " \n")"' \
-    '      printf "API_KEY_SECRET=%s\n" "$(head -c 32 /dev/urandom | od -An -tx1 | tr -d " \n")"' \
-    '      printf "MACHINE_ID_SALT=%s\n" "$(head -c 32 /dev/urandom | od -An -tx1 | tr -d " \n")"; } > "$SECRETS_FILE"' \
-    '    chown node:node "$SECRETS_FILE" 2>/dev/null' \
-    '  fi' \
-    '  . "$SECRETS_FILE"' \
-    '  export JWT_SECRET API_KEY_SECRET MACHINE_ID_SALT' \
-    'fi' \
+    'set -eu' \
+    'DATA_DIR="${DATA_DIR:-/app/data}"' \
+    'case "$DATA_DIR" in /*) ;; *) printf "%s\n" "DATA_DIR must be absolute" >&2; exit 1 ;; esac' \
+    'mkdir -p "$DATA_DIR" /app/data-home' \
+    'chown -R node:node "$DATA_DIR" /app/data-home' \
+    'export DATA_DIR' \
     'exec su-exec node "$@"' \
     > /entrypoint.sh && \
   chmod +x /entrypoint.sh
@@ -73,4 +66,4 @@ RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
 EXPOSE 20128
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["node", "custom-server.js"]
+CMD ["node", "--require", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]

@@ -15,7 +15,7 @@ import { COMMANDCODE_MAX_OUTPUT_TOKENS } from "../config/runtimeConfig.js";
  * Upstream returns AI SDK v5 NDJSON (one JSON event per line, no `data:` prefix).
  * We translate each event to an OpenAI chat.completion.chunk and emit it as SSE so
  * both the streaming and non-streaming (forced SSE → JSON) downstream handlers in
- * 9router can consume it without further format translation.
+ * Kitsune Router can consume it without further format translation.
  */
 export class CommandCodeExecutor extends BaseExecutor {
   constructor() {

@@ -75,9 +75,9 @@ describe("AUDIT-003: Proxy URL validation", () => {
     delete process.env.HTTP_PROXY;
     delete process.env.HTTPS_PROXY;
     delete process.env.ALL_PROXY;
-    delete process.env.ZENROUTER_PROXY_MANAGED;
-    delete process.env.ZENROUTER_PROXY_URL;
-    delete process.env.ZENROUTER_NO_PROXY;
+    delete process.env.KITSUNE_ROUTER_PROXY_MANAGED;
+    delete process.env.KITSUNE_ROUTER_PROXY_URL;
+    delete process.env.KITSUNE_ROUTER_NO_PROXY;
     delete process.env.NINE_ROUTER_PROXY_MANAGED;
     delete process.env.NINE_ROUTER_PROXY_URL;
     delete process.env.NINE_ROUTER_NO_PROXY;
@@ -251,7 +251,7 @@ describe("AUDIT-004: Atomic lock file for MITM startup", () => {
 // ============================================================
 function restartFixture() {
   const source = fs.readFileSync(path.resolve(repoRoot, "src/mitm/manager.js"), "utf8");
-  const lifecycleStart = source.indexOf('const helperLifecycle = globalThis[Symbol.for("zenrouter.helper.lifecycle")]');
+  const lifecycleStart = source.indexOf('const helperLifecycle = globalThis[Symbol.for("kitsunerouter.helper.lifecycle")]');
   const scopeStart = source.indexOf('const mitmScope = helperLifecycle.scope("mitm")', lifecycleStart);
   const restartStart = source.indexOf("function scheduleMitmRestart(apiKey)");
   const restartEnd = source.indexOf("\n}\n", restartStart) + 2;

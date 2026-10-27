@@ -1,15 +1,15 @@
 let warnedDevMode = false;
 
-// x-zen-real-ip is only trustworthy when custom-server.js stamped it from the TCP socket.
+// x-kitsune-router-real-ip is only trustworthy when custom-server.js stamped it from the TCP socket.
 // It proves that by echoing the per-process secret it generated at boot, which a client
 // cannot guess. Without the proof the header is just attacker-supplied input.
 export function hasTrustedPeerHeaders(request) {
-  const token = process.env.ZENROUTER_PEER_TOKEN || process.env.NINEROUTER_PEER_TOKEN;
+  const token = process.env.KITSUNE_ROUTER_PEER_TOKEN;
   if (!token && process.env.NODE_ENV === "development" && !warnedDevMode) {
     warnedDevMode = true;
     console.warn(
-      "[Security] ZENROUTER_PEER_TOKEN is not set. If running 'next dev' directly without custom-server.js, peer trust is disabled (requests treated as non-local)."
+      "[Security] KITSUNE_ROUTER_PEER_TOKEN is not set. If running 'next dev' directly without custom-server.js, peer trust is disabled (requests treated as non-local)."
     );
   }
-  return Boolean(token) && request.headers.get("x-zen-peer-token") === token;
+  return Boolean(token) && request.headers.get("x-kitsune-router-peer-token") === token;
 }

@@ -63,7 +63,7 @@ describe("trailing user turn survives empty-message cleanup", () => {
       { role: "user", content: "hi" },
       { role: "assistant", content: [{ type: "text", text: "Sure:" }] },
     ] };
-    const preserveHeaders = { "x-zenrouter-assistant-prefill": "preserve" };
+    const preserveHeaders = { "x-kitsune-router-assistant-prefill": "preserve" };
     expect(roles(prepareClaudeRequest(structuredClone(body), "claude", null, null, preserveHeaders))).toEqual(["user", "assistant"]);
     expect(roles(normalizeClaudePassthrough(structuredClone(body), "claude-opus-4-5", preserveHeaders))).toEqual(["user", "assistant"]);
   });

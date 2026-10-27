@@ -1,5 +1,7 @@
 # October consistency and selective upstream reconciliation
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Source review date: **2026-10-21**. Starting Zen source:
 `e5d816b4224e64ae4ecdf2fd16b5dc1b2b454754`, based on published 0.9.13 plus
 unreleased source changes. The candidate remains unreleased until an explicit

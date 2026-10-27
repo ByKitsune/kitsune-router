@@ -28,7 +28,7 @@ beforeAll(async () => {
   originalUsageGlobals = Object.fromEntries(usageGlobals.map((key) => [key, global[key]]));
   for (const key of usageGlobals) delete global[key];
   originalListeners = new Map(shutdownEvents.map((event) => [event, new Set(process.listeners(event))]));
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-details-tab-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-details-tab-"));
   process.env.DATA_DIR = tempDir;
   // Exercise persisted settings rather than inherited observability overrides.
   delete process.env.OBSERVABILITY_ENABLED;
@@ -164,7 +164,7 @@ describe("backupDbLite — excludes requestDetails, keeps critical data", () => 
     const { backupDbLite } = await import("@/lib/db/backup.js");
     await saveDetail({ id: "bk-1", provider: "openai", model: "m", status: "ok", tokens: {}, request: {}, response: {} });
 
-    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-bklite-"));
+    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-bklite-"));
     const dest = backupDbLite(adapter, backupDir);
     expect(fs.existsSync(dest)).toBe(true);
 

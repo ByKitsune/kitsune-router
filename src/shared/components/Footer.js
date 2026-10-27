@@ -1,126 +1,38 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { APP_CONFIG } from "@/shared/constants/config";
-
-const footerLinks = {
-  product: [
-    { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#pricing" },
-  ],
-  resources: [
-    { label: "Documentation", href: "#" },
-    { label: "API Reference", href: "#" },
-    { label: "Help Center", href: "#" },
-  ],
-  company: [
-    { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Contact", href: "#" },
-  ],
-};
+import { BRAND } from "../../../branding/identity.mjs";
 
 export default function Footer() {
   return (
-    <footer className="bg-bg border-t border-border pt-16 pb-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-12">
-          {/* Brand */}
-          <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="size-7 rounded-lg bg-surface-2 border border-border p-1 flex items-center justify-center">
-                <Image src="/icons/logo.svg" alt="ZenRouter" width={28} height={28} className="w-full h-full object-contain" />
-              </div>
-              <span className="text-xl font-bold text-text-main">
-                {APP_CONFIG.name}
-              </span>
-            </div>
-            <p className="text-text-muted mb-6 max-w-sm font-light">
-              Serene AI Gateway &amp; Intelligent Routing Engine. Unified, observable, and token-efficient.
+    <footer className="bg-surface-2 text-text-main">
+      <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
+        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-start">
+          <div className="max-w-lg">
+            <p className="text-xl font-semibold tracking-tight sm:text-2xl">{BRAND.tagline}</p>
+            <p className="mt-4 text-base leading-7">
+              Maintained and sponsored by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a>.
+              {" "}Choose your own providers. A ByKitsune account is not required.
             </p>
-            {/* Social links */}
-            <div className="flex gap-4">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-primary transition-colors"
-                aria-label="Twitter"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
-                </svg>
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-primary transition-colors"
-                aria-label="GitHub"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
-                </svg>
-              </a>
-            </div>
           </div>
-
-          {/* Product */}
-          <div>
-            <h4 className="font-semibold text-text-main mb-4">Product</h4>
-            <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
-              {footerLinks.product.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className="hover:text-primary transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div>
-            <h4 className="font-semibold text-text-main mb-4">Resources</h4>
-            <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
-              {footerLinks.resources.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className="hover:text-primary transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="font-semibold text-text-main mb-4">Company</h4>
-            <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
-              {footerLinks.company.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className="hover:text-primary transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-1 text-base font-semibold md:max-w-xs md:justify-end">
+            <a href={BRAND.docsUrl} className="inline-flex min-h-11 items-center hover:underline underline-offset-4">Documentation</a>
+            <a href={BRAND.repository} className="inline-flex min-h-11 items-center hover:underline underline-offset-4">Source</a>
+            <a href={`${BRAND.repository}/blob/HEAD/LICENSE`} className="inline-flex min-h-11 items-center hover:underline underline-offset-4">MIT license</a>
+            <a href={`mailto:${BRAND.supportEmail}`} className="inline-flex min-h-11 items-center hover:underline underline-offset-4">Contact</a>
+          </nav>
         </div>
-
-        {/* Bottom */}
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-text-muted">
-            © {new Date().getFullYear()} {APP_CONFIG.name} Inc. All rights reserved.
+        <Link href="/landing" className="mt-12 flex w-fit items-center gap-3 sm:gap-5" aria-label={`${BRAND.name} home`}>
+          <Image src="/icons/logo.svg" alt="" width={92} height={92} className="h-12 w-12 shrink-0 sm:h-20 sm:w-20" />
+          <span className="text-[clamp(28px,6.5vw,94px)] font-semibold leading-none tracking-[-0.065em]">{BRAND.name}</span>
+        </Link>
+        <div className="mt-10 flex flex-col justify-between gap-4 text-[13px] leading-6 text-text-muted sm:flex-row sm:gap-8">
+          <p>
+            MIT licensed. Original work © 2024–2026 decolua and contributors.
+            {" "}Built on <a href="https://github.com/decolua/9router" className="underline underline-offset-4">9Router</a>.
           </p>
-          <div className="flex gap-6 text-sm text-text-muted">
-            <Link href="#" className="hover:text-primary transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="hover:text-primary transition-colors">
-              Terms of Service
-            </Link>
-          </div>
+          <p className="max-w-sm">Provider names and marks belong to their respective owners. No provider endorsement is implied.</p>
         </div>
       </div>
     </footer>
   );
 }
-

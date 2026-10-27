@@ -32,8 +32,8 @@ describe("publication subprocess wall-clock bounds", () => {
 
   it.each([
     ["npm", "npmArtifact('0.9.7')", "process.stderr.write('{\"error\":{\"code\":\"E404\"}}');"],
-    ["docker", "dockerLatest('joyccn/zenrouter', 'ZenRouter/ZenRouter')", "process.stderr.write('manifest unknown');"],
-    ["gh", "githubLatest('0.9.7', 'ZenRouter/ZenRouter')", "if (!process.argv.at(-1).endsWith('/latest')) { console.log('[]'); process.exit(0); } process.stderr.write('HTTP 404');"],
+    ["docker", "dockerLatest('bykitsune/kitsune-router', 'ByKitsune/kitsune-router')", "process.stderr.write('manifest unknown');"],
+    ["gh", "githubLatest('0.9.7', 'ByKitsune/kitsune-router')", "if (!process.argv.at(-1).endsWith('/latest')) { console.log('[]'); process.exit(0); } process.stderr.write('HTTP 404');"],
   ])("never treats partial missing-artifact output from a timed-out %s as confirmed absence", (executable, expression, output) => {
     const dir = mkdtempSync(resolve(process.env.RUNNER_TEMP || tmpdir(), "reconciliation-timeout-"));
     directories.push(dir);

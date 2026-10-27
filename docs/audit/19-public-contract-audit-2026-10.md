@@ -1,5 +1,7 @@
 # Public gateway contract audit and implementation
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Date: 2026-10-21; implementation and final local verification: 2026-10-22. Starting source: `677b3ee1e78f93c153fec678f07c5e9372296727`.
 This is a customized ZenRouter audit, not a blanket merge of 9Router.
 

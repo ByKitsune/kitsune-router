@@ -60,8 +60,8 @@ async function generateRootCA() {
   notAfter.setFullYear(notBefore.getFullYear() + 10);
   const cert = await x509.X509CertificateGenerator.createSelfSigned({
     name: [
-      { CN: ["ZenRouter MITM Root CA"] },
-      { O: ["ZenRouter"] },
+      { CN: ["Kitsune Router MITM Root CA"] },
+      { O: ["Kitsune Router"] },
       { C: ["US"] },
     ],
     keys,

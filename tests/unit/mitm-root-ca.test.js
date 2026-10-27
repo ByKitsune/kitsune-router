@@ -15,7 +15,7 @@ const directories = [];
 const rootCAPath = require.resolve("../../src/mitm/cert/rootCA.js");
 
 function temporaryDirectory() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-mitm-ca-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-mitm-ca-"));
   directories.push(directory);
   return directory;
 }
@@ -85,7 +85,7 @@ afterEach(() => {
 });
 
 describe("MITM Root CA generation", () => {
-  it("persists a matching, self-signed RSA CA with the existing identity and extensions", async () => {
+  it("persists a matching, self-signed RSA CA with the new-install identity and existing extensions", async () => {
     const directory = temporaryDirectory();
     const { rootCA, generate } = loadCertificates(directory);
     const files = await generate.generateCert();
@@ -97,8 +97,8 @@ describe("MITM Root CA generation", () => {
     expect(cert.ca).toBe(true);
     expect(cert.publicKey.asymmetricKeyDetails.modulusLength).toBe(2048);
     const parsed = new x509.X509Certificate(fs.readFileSync(files.cert, "utf8"));
-    expect(parsed.subjectName.getField("CN")).toEqual(["ZenRouter MITM Root CA"]);
-    expect(parsed.subjectName.getField("O")).toEqual(["ZenRouter"]);
+    expect(parsed.subjectName.getField("CN")).toEqual(["Kitsune Router MITM Root CA"]);
+    expect(parsed.subjectName.getField("O")).toEqual(["Kitsune Router"]);
     expect(parsed.subjectName.getField("C")).toEqual(["US"]);
     expect(Buffer.from(parsed.issuerName.toArrayBuffer())).toEqual(Buffer.from(parsed.subjectName.toArrayBuffer()));
     expect(parsed.notAfter.getFullYear() - parsed.notBefore.getFullYear()).toBe(10);
@@ -145,6 +145,8 @@ describe("MITM Root CA generation", () => {
       const name = new x509.Name([
         { C: [{ printableString: "US" }] },
         { O: [{ utf8String: "Existing, trusted Root" }], OU: [{ utf8String: "Saved trust" }] },
+        // Existing trust must retain the historical issuer, not be regenerated
+        // solely to replace its display name after the rebrand.
         { CN: [{ utf8String: "ZenRouter MITM Root CA" }] },
       ]);
       const fixture = await authority({ name });

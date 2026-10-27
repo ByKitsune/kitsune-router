@@ -102,7 +102,7 @@ describe("proxy diagnostics through a CONNECT-only proxy", () => {
       result: { ok: true, status: 204, statusText: "No Content", url: testUrl },
       connects: [{ method: "CONNECT", url: authority }],
       forwarded: [],
-      targetRequests: [{ method: "HEAD", url: "/diagnostic?probe=1", userAgent: "ZenRouter" }],
+      targetRequests: [{ method: "HEAD", url: "/diagnostic?probe=1", userAgent: "Kitsune Router" }],
     });
     expect(result.elapsedMs).toEqual(expect.any(Number));
     expect(result.elapsedMs).toBeGreaterThanOrEqual(0);

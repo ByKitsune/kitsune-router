@@ -43,7 +43,7 @@ export async function GET(request, context) {
           return [toolId, { error: res.status === 403 ? "Local only: CLI token required" : "Status unavailable" }];
         }
         const data = await res.json();
-        return [toolId, { installed: !!data.installed, hasZenRouter: !!data.hasZenRouter }];
+        return [toolId, { installed: !!data.installed, hasKitsuneRouter: !!data.hasKitsuneRouter }];
       } catch {
         return [toolId, null];
       }

@@ -191,7 +191,7 @@ const INLINE_IMAGE_MIME_BY_FORMAT = new Map([
 /**
  * Safely stringify a tool-call input value.
  * OpenAI expects `function.arguments` to be a JSON string, never an object.
- * If zenrouter's Anthropic→OpenAI conversion passes the input as a pre-parsed object,
+ * If kitsunerouter's Anthropic→OpenAI conversion passes the input as a pre-parsed object,
  * this prevents the "" + object → "[object Object]" corruption.
  */
 function safeArgsString(value) {
@@ -506,7 +506,7 @@ function emitFinish(state) {
  * Intercept Kiro IDE CodeWhisperer request and convert to EventStream response:
  *   1. Parse CodeWhisperer JSON body (reject binary EventStream formats)
  *   2. Convert CodeWhisperer format to OpenAI messages[] format
- *   3. Forward to zenrouter /v1/chat/completions (OpenAI SSE)
+ *   3. Forward to kitsunerouter /v1/chat/completions (OpenAI SSE)
  *   4. Convert OpenAI SSE response → AWS EventStream binary frames
  *   5. Stream EventStream frames back to Kiro IDE
  * 
@@ -542,7 +542,7 @@ async function intercept(req, res, bodyBuffer, mappedModel) {
       ...(tools.length > 0 && { tools, tool_choice: "auto" }),
     };
 
-    // 3: Forward to zenrouter
+    // 3: Forward to kitsunerouter
     const routerRes = await fetchRouter(openaiBody, "/v1/chat/completions", req.headers);
 
     // 4 + 5: Re-encode response as AWS EventStream binary using standard pipeline

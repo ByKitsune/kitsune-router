@@ -65,7 +65,7 @@ rl.on("line", (line) => {
 
 let directory;
 beforeEach(() => {
-  directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-acp-test-"));
+  directory = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-acp-test-"));
   state.script = path.join(directory, "strict-agent.mjs");
   fs.writeFileSync(state.script, AGENT);
   state.mode = "reply";

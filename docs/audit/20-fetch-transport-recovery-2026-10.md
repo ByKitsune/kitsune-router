@@ -1,5 +1,7 @@
 # Fetch transport recovery and reproducible source builds
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Date: **2026-10-26**. This is a source-maintenance follow-up, not a new npm,
 Docker or GitHub release. Published `0.9.13` artifacts and tags are immutable.
 

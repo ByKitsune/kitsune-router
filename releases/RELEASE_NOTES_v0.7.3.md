@@ -1,5 +1,7 @@
 # ZenRouter v0.7.3 Release Notes
 
+> **Kitsune Router archive:** original ZenRouter release record; old names/artifacts and dated verification are preserved, not republished as Kitsune 0.x. Use [current docs](../docs/INSTALLATION.md) and [migration](../docs/MIGRATION.md).
+
 ZenRouter `v0.7.3` aligns OAuth authentication architecture 100% with upstream 9Router standards, resolving callback mismatch issues with desktop/installed-app providers (Claude Code CLI, Google Antigravity, Gemini CLI).
 
 ---

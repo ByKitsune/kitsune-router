@@ -1,22 +1,33 @@
 import { describe, it, expect } from "vitest";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const lifecycle = fileURLToPath(new URL("../../shutdown-lifecycle.cjs", import.meta.url));
 const wrapper = fileURLToPath(new URL("../../custom-server.js", import.meta.url));
+const dataDirectory = fileURLToPath(new URL("../../cli/hooks/dataDirectory.js", import.meta.url));
 
 function run(code, extra = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["-e", code], { env: { ...process.env, LIFECYCLE: lifecycle, ...extra }, stdio: ["ignore", "pipe", "pipe"] });
+    const directory = mkdtempSync(join(tmpdir(), "kitsune-router-shutdown-run-"));
+    const child = spawn(process.execPath, ["-e", code], {
+      cwd: extra.FIXTURE || directory,
+      env: {
+        PATH: process.env.PATH, HOME: directory, DATA_DIR: join(directory, "data"), NODE_ENV: "test",
+        RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0", MODEL_CATALOG_SYNC: "off",
+        DISABLE_BACKGROUND_TOKEN_REFRESH: "1", KITSUNE_ROUTER_DISABLE_MITM: "1", KITSUNE_ROUTER_MIGRATION: "skip",
+        NEXT_TELEMETRY_DISABLED: "1", LIFECYCLE: lifecycle, ...extra,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stdout = "", stderr = "";
     const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("shutdown fixture hung")); }, 5000);
     child.stdout.on("data", chunk => { stdout += chunk; });
     child.stderr.on("data", chunk => { stderr += chunk; });
-    child.once("error", error => { clearTimeout(timer); reject(error); });
-    child.once("exit", status => { clearTimeout(timer); resolve({ stdout, stderr, status }); });
+    child.once("error", error => { clearTimeout(timer); rmSync(directory, { recursive: true, force: true }); reject(error); });
+    child.once("close", status => { clearTimeout(timer); rmSync(directory, { recursive: true, force: true }); resolve({ stdout, stderr, status }); });
   });
 }
 
@@ -62,10 +73,12 @@ runShutdownHooks().catch(() => process.exit(2));
   });
 
   it("the real HTTP wrapper drains an active request before durable work and database shutdown", async () => {
-    const fixture = mkdtempSync(join(tmpdir(), "zen-shutdown-http-"));
+    const fixture = mkdtempSync(join(tmpdir(), "kitsune-router-shutdown-http-"));
     try {
       cpSync(lifecycle, join(fixture, "shutdown-lifecycle.cjs"));
       cpSync(wrapper, join(fixture, "custom-server.js"));
+      mkdirSync(join(fixture, "cli/hooks"), { recursive: true });
+      cpSync(dataDirectory, join(fixture, "cli/hooks/dataDirectory.js"));
       writeFileSync(join(fixture, "server.js"), `
 const http = require('node:http');
 const { registerShutdownHook } = require('./shutdown-lifecycle.cjs');
@@ -82,7 +95,8 @@ server.listen(0, '127.0.0.1', () => console.log('PORT=' + server.address().port)
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const child = spawn(process.execPath, [path.join(process.env.FIXTURE, 'custom-server.js')], {
-  env: { ...process.env, NODE_ENV: 'production', DISABLE_BACKGROUND_TOKEN_REFRESH: '1', ZENROUTER_SHUTDOWN_DEADLINE_MS: '2000' },
+  cwd: process.env.FIXTURE,
+  env: { ...process.env, NODE_ENV: 'production', DISABLE_BACKGROUND_TOKEN_REFRESH: '1', KITSUNE_ROUTER_SHUTDOWN_DEADLINE_MS: '2000' },
   stdio: ['ignore', 'pipe', 'pipe']
 });
 let output = '', errors = '', started = false, bodyPromise;
@@ -97,7 +111,7 @@ child.stdout.on('data', data => {
     return response.text();
   });
 });
-child.on('exit', async code => {
+child.on('close', async code => {
   try {
     const body = await bodyPromise;
     console.log(JSON.stringify({ code, body, output, errors }));

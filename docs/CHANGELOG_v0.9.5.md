@@ -1,5 +1,7 @@
 # 🌿 ZenRouter v0.9.5 Changelog & Technical Documentation
 
+> **Kitsune Router archive:** this dated ZenRouter record keeps its original names, artifacts and evidence; it is not current installation or verification guidance. See [current docs](INSTALLATION.md) and [migration](MIGRATION.md).
+
 This document provides technical documentation for the ZenRouter **v0.9.5** release.
 
 ---

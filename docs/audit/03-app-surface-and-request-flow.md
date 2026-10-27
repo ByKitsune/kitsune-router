@@ -1,5 +1,7 @@
 # 03 — Next.js app surface & request flow
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 Audit date 2026-10-13 · commit `2c61f4f1` (`master`) · version **0.9.7** · static reading only (no deps installed, no build, no tests).
 
 Scope of this document:

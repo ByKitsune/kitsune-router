@@ -1,5 +1,21 @@
 # 変更履歴
 
+## Kitsune Router 1.0.1 — 候補、最終 tag/SHA 検証・公開待ち
+
+合成プロセス分離の回帰・拒否テストが対象で、**本番の same-UID 読取不可への fail-closed は不変**。限定回帰・UID 65534 smoke の証拠はありますが、一般 non-root 対応の証明ではありません。mobile と最終 tag の tests/builds は未完了、旧件数を流用しません。npm `bykitsune`・Actions 更新は公開権限の証明ではありません。[1.0.1 草案](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.1.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.1.md)。
+
+## Kitsune Router 1.0.0 — 試行タグ保持、npm/GHCR 未公開
+
+不変タグ `v1.0.0` は `390a65677c06a30084386d2a2adf8b0c48709281`。non-root ownership workflow 失敗で公開に至りませんでした。**9,029 件成功**は旧候補の証拠で、1.0.1 の検証ではありません。以下に当時の範囲を保持します。
+
+**Your models. Your routes.** [ByKitsune](https://bykitsune.com) が保守・支援し、アカウント・プロバイダー順序は強制しません。対象 `ByKitsune/kitsune-router`、npm `@bykitsune/router`、コマンド `kitsune-router`、キー `kitsunerouter`、image `ghcr.io/bykitsune/kitsune-router`。
+
+writer 停止・全体保存後、`~/.zenrouter`/`~/.9router` → `~/.kitsune-router` を検証コピーし、原本保持・既存 target 上書き拒否。明示 `DATA_DIR` 優先。秘密/auth/ソルト/信頼証明書を維持。変数 `KITSUNE_ROUTER_*`、ヘッダー `x-kitsune-router-*`、`/v1/*` と 20128 は不変です。
+
+この試行は npm/GHCR を公開していません。旧 tag/証拠を保持し、後続を 1.0.1 として検証します。[試行記録](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [当時の技術履歴](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。
+
+> **歴史資料：** 以下は当時の ZenRouter 名称・成果物・URL・検証を保持します。Kitsune 0.x 公開や現行ソースの検証ではありません。[現行インストール](/ja/getting-started/installation/) を使い、旧更新コマンドを使わないでください。下の Unreleased 作業はリブランド提案以前の記録です。
+
 ## 未リリース — 10月の整合性修正
 
 - Next.js の fetch ラッパーとゲートウェイ転送層の再帰呼び出しを修正し、チャット・OAuth 更新・使用量・一覧取得を復旧します。アカウントやプロキシの方針は変更しません。

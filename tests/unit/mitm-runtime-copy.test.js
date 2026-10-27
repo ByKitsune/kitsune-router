@@ -10,9 +10,9 @@ const sourcePath = require.resolve("../../src/mitm/manager.js");
 const directories = [];
 
 function fixture() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenrouter-mitm-runtime-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-mitm-runtime-"));
   directories.push(directory);
-  const bundled = path.join(directory, "node_modules", "zenrouter", "app", "src", "mitm", "server.js");
+  const bundled = path.join(directory, "node_modules", "@bykitsune", "router", "app", "src", "mitm", "server.js");
   const runtime = path.join(directory, "state", "runtime", "mitm", "server.js");
   fs.mkdirSync(path.dirname(bundled), { recursive: true });
   fs.mkdirSync(path.dirname(runtime), { recursive: true });
@@ -26,7 +26,7 @@ function importManager({ directory, bundled }) {
     exports: fixtureModule.exports,
     __dirname: path.dirname(bundled),
     process: {
-      env: { MITM_SERVER_PATH: bundled },
+      env: { HOME: directory, DATA_DIR: path.join(directory, "state"), MITM_SERVER_PATH: bundled },
       platform: process.platform,
       cwd: () => directory,
     },

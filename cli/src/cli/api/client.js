@@ -3,8 +3,8 @@ const https = require("https");
 const crypto = require("crypto");
 const fs = require("node:fs");
 const path = require("node:path");
-const os = require("node:os");
 const { machineIdSync } = require("node-machine-id");
+const { resolveDataDirectory } = require("../../../hooks/dataDirectory");
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -13,16 +13,10 @@ const DEFAULT_CONFIG = {
   protocol: "http:",
 };
 
-const CLI_TOKEN_HEADER = "x-zen-cli-token";
+const CLI_TOKEN_HEADER = "x-kitsune-router-cli-token";
 const CLI_TOKEN_SALT = "zen-cli-auth";
-const APP_NAME = "zenrouter";
-
 function getDataDir() {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  if (process.platform === "win32") {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), APP_NAME);
-  }
-  return path.join(os.homedir(), `.${APP_NAME}`);
+  return resolveDataDirectory();
 }
 
 const MACHINE_ID_FILE = path.join(getDataDir(), "machine-id");
@@ -46,14 +40,24 @@ function loadRawMachineId() {
 function loadCliSecret() {
   if (cachedCliSecret) return cachedCliSecret;
   try {
+    const stat = fs.lstatSync(CLI_SECRET_FILE);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink > 1) throw new Error("CLI authentication secret must be a private regular file");
     cachedCliSecret = fs.readFileSync(CLI_SECRET_FILE, "utf8").trim();
     if (cachedCliSecret) return cachedCliSecret;
-  } catch {}
-  cachedCliSecret = crypto.randomBytes(32).toString("hex");
+    throw new Error("Existing CLI authentication secret is empty; refusing replacement");
+  } catch (error) { if (error.code !== "ENOENT") throw error; }
+  const generated = crypto.randomBytes(32).toString("hex");
   try {
-    fs.mkdirSync(AUTH_DIR, { recursive: true });
-    fs.writeFileSync(CLI_SECRET_FILE, cachedCliSecret, { mode: 0o600 });
-  } catch {}
+    fs.mkdirSync(AUTH_DIR, { recursive: true, mode: 0o700 });
+    if (!fs.lstatSync(AUTH_DIR).isDirectory()) throw new Error("Unsafe CLI authentication directory");
+    // Another startup may have just created the shared secret. Never truncate
+    // its value or keep a private in-memory replacement on persistence failure.
+    fs.writeFileSync(CLI_SECRET_FILE, generated, { flag: "wx", mode: 0o600 });
+    cachedCliSecret = generated;
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    return loadCliSecret();
+  }
   return cachedCliSecret;
 }
 
@@ -394,7 +398,7 @@ async function deleteCombo(id) {
 /**
  * Get CLI tool settings
  * @param {string} tool - Tool name: claude | codex | droid | openclaw
- * @returns {Promise<Object>} { success, data: { installed, hasZenRouter, ... } }
+ * @returns {Promise<Object>} { success, data: { installed, hasKitsuneRouter, ... } }
  */
 async function getCliToolSettings(tool) {
   return makeRequest("GET", `/api/cli-tools/${tool}-settings`);

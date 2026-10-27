@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 
 const shutdownEvents = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
 const globalKeys = [
-  Symbol.for("zenrouter.db.importState"),
+  Symbol.for("kitsunerouter.db.importState"),
   "fetch", "__mitmBypassCooldown", "_dbAdapter", "_pendingRequests", "_lastErrorProvider",
   "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers",
   "__mitmSudoPassword",
@@ -15,7 +15,7 @@ const globalKeys = [
 const envKeys = [
   "HOME", "DATA_DIR", "JWT_SECRET", "INITIAL_PASSWORD", "DISABLE_MITM_BYPASS",
   "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy",
-  "ZENROUTER_PROXY_MANAGED", "ZENROUTER_PROXY_URL", "ZENROUTER_NO_PROXY",
+  "KITSUNE_ROUTER_PROXY_MANAGED", "KITSUNE_ROUTER_PROXY_URL", "KITSUNE_ROUTER_NO_PROXY",
   "NINE_ROUTER_PROXY_MANAGED", "NINE_ROUTER_PROXY_URL", "NINE_ROUTER_NO_PROXY",
 ];
 
@@ -147,7 +147,7 @@ beforeEach(async () => {
   previousGlobals = Object.fromEntries(globalKeys.map(key => [key, Object.getOwnPropertyDescriptor(global, key)]));
   previousEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
   previousListeners = new Map(shutdownEvents.map(event => [event, process.rawListeners(event)]));
-  root = await mkdtemp(join(tmpdir(), "zenrouter-import-public-"));
+  root = await mkdtemp(join(tmpdir(), "kitsunerouter-import-public-"));
   for (const key of envKeys) delete process.env[key];
   process.env.HOME = join(root, "home");
   process.env.DATA_DIR = join(root, "data");

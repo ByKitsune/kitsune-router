@@ -5,7 +5,7 @@ import { getUpstreamDispatcher, trackBypassRequest } from "./transportPool.js";
 
 export { closeUpstreamPools, configureUpstreamPools, getUpstreamPoolStats } from "./transportPool.js";
 
-const FETCH_STATE_KEY = Symbol.for("zenrouter.proxy-fetch.v1");
+const FETCH_STATE_KEY = Symbol.for("kitsunerouter.proxy-fetch.v1");
 const fetchState = (globalThis[FETCH_STATE_KEY] ??= { original: globalThis.fetch, patched: null, implementation: null });
 
 export const getDefaultAgent = () => getUpstreamDispatcher();
@@ -241,7 +241,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
   const targetUrl = typeof url === "string" ? url : url instanceof Request ? url.url : url.toString();
   // Next installs its own fetch wrapper after instrumentation has installed
   // ours. That wrapper delegates back to our patch: calling it from here would
-  // recurse Next -> ZenRouter -> Next for chat AND background OAuth/catalog
+  // recurse Next -> Kitsune Router -> Next for chat AND background OAuth/catalog
   // requests. Keep the captured downstream transport as the terminal boundary,
   // while retaining the independent global-fetch test/instrumentation seam.
   const currentFetch = globalThis.fetch;

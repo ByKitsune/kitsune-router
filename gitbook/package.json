@@ -1,6 +1,8 @@
 {
-  "name": "zenrouter-docs",
-  "version": "0.9.13",
+  "name": "kitsune-router-docs",
+  "version": "1.0.1",
+  "description": "Kitsune Router documentation. Your models. Your routes.",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3001",
@@ -8,7 +10,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "test": "node --test tests/*.test.mjs",
-    "deploy": "npm run build && npx wrangler pages deploy out --project-name=zenrouter-docs --commit-dirty=true"
+    "deploy": "npm run build && npx wrangler pages deploy out --project-name=kitsune-router-docs --commit-dirty=true"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

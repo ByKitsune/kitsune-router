@@ -1,136 +1,22 @@
-# OpenAI Codex CLI統合
+# Codex CLI 連携
 
-ZenRouterをOpenAI Codex CLIと統合し、OpenAI APIリクエストをZenRouterのインテリジェントルーティングシステム経由でルーティングします。
+コマンドは `kitsune-router`、プロバイダーキーは **`kitsunerouter`**。許可された上流と発行済みゲートウェイキーが必要です。Codex/OpenAI 契約や全機能を付与するものではありません。
 
-## 前提条件
+## 設定
 
-- OpenAI Codex CLIがインストール済み
-- ZenRouterがローカルで動作中、またはクラウドエンドポイントが設定済み
-- ZenRouterダッシュボードからのAPIキー
+`config.json` でなく `~/.codex/config.toml` にマージします。
 
-## セットアップ
+```toml
+model_provider = "kitsunerouter"
+model = "my-route"
 
-### 1. 環境変数を設定
-
-シェル設定ファイル (`~/.bashrc`、`~/.zshrc`、または `~/.bash_profile`) で以下の環境変数を設定:
-
-```bash
-# ZenRouter用Base URL
-export OPENAI_BASE_URL="http://localhost:20128/v1"
-
-# ZenRouterダッシュボードからのAPIキー
-export OPENAI_API_KEY="your-zenrouter-api-key"
+[model_providers.kitsunerouter]
+name = "Kitsune Router"
+base_url = "http://localhost:20128/v1"
+wire_api = "responses"
+env_key = "KITSUNE_ROUTER_API_KEY"
 ```
 
-### 2. シェル設定をリロード
+先に `my-route` を作るか正確な有効 ID を指定します。非公開変数には発行済みキーを保持し、変数はキーを作成しません。プリセットは固定 Authorization を書く場合があるためファイルを秘密として扱い、他設定・ディレクトリ全体は置換しません。
 
-```bash
-source ~/.zshrc  # または ~/.bashrc
-```
-
-### 3. 設定を確認
-
-環境変数が正しく設定されているか確認:
-
-```bash
-echo $OPENAI_BASE_URL
-echo $OPENAI_API_KEY
-```
-
-## 利用可能なモデル
-
-ZenRouterは以下のCodexモデルを提供します:
-
-| モデルID | 説明 |
-|----------|-------------|
-| `cx/gpt-5.2-codex` | GPT-5.2 Codex - 最新バージョン |
-| `cx/gpt-5.1-codex-max` | GPT-5.1 Codex Max - 拡張コンテキスト |
-
-## 使用例
-
-### 基本的な使用法
-
-```bash
-# GPT-5.2 Codexを使用
-codex --model cx/gpt-5.2-codex "Write a function to sort an array"
-
-# GPT-5.1 Codex Maxを使用
-codex --model cx/gpt-5.1-codex-max "Explain this complex algorithm"
-```
-
-### コード生成
-
-```bash
-codex --model cx/gpt-5.2-codex "Create a REST API endpoint for user authentication"
-```
-
-### コード説明
-
-```bash
-codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js)"
-```
-
-## 設定ファイル
-
-設定ファイルを使ってCodex CLIを設定することもできます。`~/.codex/config.json` を作成または編集:
-
-```json
-{
-  "baseUrl": "http://localhost:20128/v1",
-  "apiKey": "your-zenrouter-api-key",
-  "defaultModel": "cx/gpt-5.2-codex"
-}
-```
-
-## トラブルシューティング
-
-### 認証エラー
-
-認証エラーが発生した場合:
-
-1. ZenRouterダッシュボードでAPIキーが正しいか確認
-2. `OPENAI_API_KEY` 環境変数が設定されているか確認
-3. APIキーが期限切れでないか確認
-
-### 接続の問題
-
-接続エラーが発生した場合:
-
-1. ZenRouterが動作中か確認: `curl http://localhost:20128/health`
-2. 環境変数が正しく設定されているか確認
-3. ファイアウォールがポート20128をブロックしていないか確認
-
-### モデルが利用不可
-
-「model not available」エラーが発生した場合:
-
-1. モデル名がZenRouter設定と一致するか確認
-2. ZenRouterダッシュボードでOpenAIプロバイダー接続がアクティブか確認
-3. 接続されたプロバイダーでモデルが利用可能か確認
-
-## クラウドエンドポイント
-
-localhostの代わりにZenRouterクラウドエンドポイントを使用するには:
-
-```bash
-export OPENAI_BASE_URL="http://localhost:20128"
-```
-
-ZenRouterクラウドダッシュボードでAPIキーが設定されていることを確認してください。
-
-## 高度な設定
-
-### カスタムタイムアウト
-
-```bash
-export OPENAI_TIMEOUT=60  # 秒
-```
-
-### デバッグモード
-
-詳細なリクエスト/レスポンスログを表示するため、デバッグモードを有効化:
-
-```bash
-export CODEX_DEBUG=true
-codex --model cx/gpt-5.2-codex "Your prompt"
-```
+`/api/health` と認証付き `/v1/models` を確認し、`codex --model my-route`。リモートは自己管理 HTTPS `/v1` で、localhost はクラウドではありません。モデル表は権限・速度・請求を証明せず、非対応文書・制御は拒否される場合があります。[連携詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INTEGRATIONS.md) · [速度](https://github.com/ByKitsune/kitsune-router/blob/master/docs/PROCESSING-SPEED.md) · [移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)。

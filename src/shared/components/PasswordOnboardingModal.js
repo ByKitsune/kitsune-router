@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Button from "./Button";
 
@@ -9,13 +9,17 @@ export default function PasswordOnboardingModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
+  }, [isOpen]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       // Check if user already dismissed the prompt in this browser session
-      const dismissed = sessionStorage.getItem("zenrouter_pwd_onboarding_dismissed");
+      const dismissed = sessionStorage.getItem("kitsunerouter_pwd_onboarding_dismissed");
       if (dismissed) {
         if (!cancelled) setLoading(false);
         return;
@@ -26,7 +30,7 @@ export default function PasswordOnboardingModal() {
         if (!res.ok) throw new Error("Failed to check status");
         const data = await res.json();
         // If password is not set yet (using default 12345678)
-        if (data && data.hasPassword === false) {
+        if (data?.usesDefaultPassword === true) {
           if (!cancelled) setIsOpen(true);
         }
       } catch {
@@ -39,12 +43,12 @@ export default function PasswordOnboardingModal() {
   }, []);
 
   const handleDismiss = () => {
-    sessionStorage.setItem("zenrouter_pwd_onboarding_dismissed", "true");
+    sessionStorage.setItem("kitsunerouter_pwd_onboarding_dismissed", "true");
     setIsOpen(false);
   };
 
   const handleGoToSettings = () => {
-    sessionStorage.setItem("zenrouter_pwd_onboarding_dismissed", "true");
+    sessionStorage.setItem("kitsunerouter_pwd_onboarding_dismissed", "true");
     setIsOpen(false);
     router.push("/dashboard/profile#password");
   };
@@ -52,35 +56,20 @@ export default function PasswordOnboardingModal() {
   if (loading || !isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
-        onClick={handleDismiss}
-      />
-
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-[var(--shadow-elev)] overflow-hidden animate-in zoom-in-95 duration-200 z-10">
-        {/* Glow Accents */}
-        <div className="absolute -top-16 -right-16 size-40 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 size-40 bg-accent-sun/15 rounded-full blur-3xl pointer-events-none" />
-
+    <dialog ref={dialogRef} aria-labelledby="password-setup-title" aria-describedby="password-setup-description"
+      onCancel={handleDismiss} onClose={handleDismiss}
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg bg-surface text-text-main rounded-xl shadow-[var(--shadow-elevated)] p-0 backdrop:bg-black/50">
         <div className="p-6 sm:p-8 flex flex-col items-center text-center">
           {/* Logo Badge */}
           <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-surface-2 border border-border p-3 mb-5 shadow-[var(--shadow-warm)]">
-            <Image src="/icons/logo.svg" alt="ZenRouter" width={38} height={38} className="w-full h-full object-contain" />
+            <Image src="/icons/logo.svg" alt="Kitsune Router" width={38} height={38} className="w-full h-full object-contain" />
           </div>
 
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent-sun/15 text-accent-sun border border-accent-sun/25 mb-3">
-            <span className="size-1.5 rounded-full bg-accent-sun animate-pulse" />
-            Security Setup
-          </span>
-
-          <h2 className="text-2xl font-bold tracking-tight text-text-main mb-2">
-            Welcome to ZenRouter!
+          <h2 id="password-setup-title" className="text-2xl font-bold tracking-tight text-text-main mb-2">
+            Secure your gateway
           </h2>
 
-          <p className="text-sm text-text-muted leading-relaxed mb-6">
+          <p id="password-setup-description" className="text-sm text-text-muted leading-relaxed mb-6">
             Your gateway is currently running on the default password (<code className="bg-surface-2 border border-border px-1.5 py-0.5 rounded font-mono font-bold text-text-main">12345678</code>). To keep your AI accounts, API keys, and endpoints secure, please set a custom password.
           </p>
 
@@ -102,7 +91,6 @@ export default function PasswordOnboardingModal() {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </dialog>
   );
 }

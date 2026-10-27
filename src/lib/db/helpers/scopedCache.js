@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-const registry = globalThis[Symbol.for("zenrouter.db.scopedCaches")] ||= { adapters: new WeakMap(), counters: {} };
+const registry = globalThis[Symbol.for("kitsunerouter.db.scopedCaches")] ||= { adapters: new WeakMap(), counters: {} };
 
 export function readScopeRevision(db, scopes) {
   const keys = [...new Set(scopes)].sort().map(scope => `cacheRevision:${scope}`);

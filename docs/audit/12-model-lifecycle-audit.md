@@ -1,5 +1,7 @@
 # Whole-catalog model lifecycle audit — 2026-10-16
 
+> **Kitsune Router archive:** dated ZenRouter audit evidence; original names, paths, hashes and results remain historical, not current verification. See [current docs](../INSTALLATION.md) and [migration](../MIGRATION.md).
+
 ## Scope and publication state
 
 This report inventories every active source provider and model/voice declaration, not just

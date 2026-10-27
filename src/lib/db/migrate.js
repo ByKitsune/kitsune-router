@@ -9,6 +9,7 @@ import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
 import { assertDatabaseIntegrity } from "./integrity.js";
 import durableUsageMigration from "./migrations/002-durable-usage.js";
+import { preserveLegacyBrandSettings } from "./helpers/brandSettings.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -255,6 +256,7 @@ export async function runMigrationOnce(adapter) {
   // Capture freshness BEFORE migrations stamp _meta (otherwise we'd misclassify
   // a brand-new DB as non-fresh once schemaVersion is written).
   const fresh = isFreshDb(adapter);
+  const previousAppVersion = fresh ? null : getMetaSync(adapter, "appVersion", null);
 
   const alreadyImported = fs.existsSync(MIGRATED_MARKER);
   const legacyMain = readJsonSafe(LEGACY_FILES.main);
@@ -321,6 +323,9 @@ export async function runMigrationOnce(adapter) {
       setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
       setMetaSync(adapter, "migratedAt", new Date().toISOString());
     }
+    preserveLegacyBrandSettings(adapter, {
+      legacyInstallation: importLegacy || (typeof previousAppVersion === "string" && /^0\./.test(previousAppVersion)),
+    });
   };
   // Fresh schema stamps and imported rows commit together. Any SQL/import
   // failure rolls back the stamps as well; failed adapters are never memoized.

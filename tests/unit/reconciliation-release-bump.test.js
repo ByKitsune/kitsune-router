@@ -7,6 +7,10 @@ import { tmpdir } from "node:os";
 const root = resolve(import.meta.dirname, "../..");
 const directories = [];
 const prefixes = ["", "cli/", "tests/", "gitbook/"];
+const packageNames = {
+  "": "kitsune-router-app", "cli/": "@bykitsune/router",
+  "tests/": "kitsune-router-tests", "gitbook/": "kitsune-router-docs",
+};
 afterEach(() => { for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 function fixture() {
   const dir = mkdtempSync(resolve(process.env.RUNNER_TEMP || tmpdir(), "reconciliation-bump-"));
@@ -15,9 +19,10 @@ function fixture() {
   for (const file of ["bump-version.mjs", "check-release-version.mjs"]) copyFileSync(resolve(root, "scripts", file), resolve(dir, "scripts", file));
   for (const prefix of prefixes) {
     mkdirSync(resolve(dir, prefix), { recursive: true });
-    const name = prefix === "cli/" ? "@joyccn/zenrouter" : "fixture";
-    writeFileSync(resolve(dir, prefix, "package.json"), JSON.stringify({ name, version: "0.9.7", dependencies: { untouched: "^1.0.0" } }));
-    writeFileSync(resolve(dir, prefix, "package-lock.json"), JSON.stringify({ name, version: "0.9.7", lockfileVersion: 3, packages: { "": { name, version: "0.9.7" }, "node_modules/untouched": { version: "1.0.0", integrity: "fixture" } } }));
+    const name = packageNames[prefix];
+    const bin = prefix === "cli/" ? { "kitsune-router": "./cli.js" } : undefined;
+    writeFileSync(resolve(dir, prefix, "package.json"), JSON.stringify({ name, version: "0.9.7", bin, dependencies: { untouched: "^1.0.0" } }));
+    writeFileSync(resolve(dir, prefix, "package-lock.json"), JSON.stringify({ name, version: "0.9.7", lockfileVersion: 3, packages: { "": { name, version: "0.9.7", bin }, "node_modules/untouched": { version: "1.0.0", integrity: "fixture" } } }));
   }
   return dir;
 }
@@ -33,6 +38,11 @@ describe("version bump synchronizes the release guard's complete input set", () 
       const manifest = JSON.parse(readFileSync(resolve(dir, prefix, "package.json"), "utf8"));
       const lock = JSON.parse(readFileSync(resolve(dir, prefix, "package-lock.json"), "utf8"));
       expect([manifest.version, lock.version, lock.packages[""].version]).toEqual([version, version, version]);
+      expect([manifest.name, lock.name, lock.packages[""].name]).toEqual(Array(3).fill(packageNames[prefix]));
+      if (prefix === "cli/") {
+        expect(manifest.bin).toEqual({ "kitsune-router": "./cli.js" });
+        expect(lock.packages[""].bin).toEqual(manifest.bin);
+      }
       expect(manifest.dependencies).toEqual({ untouched: "^1.0.0" });
       expect(lock.packages["node_modules/untouched"]).toEqual({ version: "1.0.0", integrity: "fixture" });
     }
