@@ -1,6 +1,6 @@
 # Cài đặt
 
-**Nguồn 1.0.2 đã xác minh ở tag bất biến `65c8b97d`; xuất bản npm/GHCR bị chặn.** 9.041 qua, 100 skip, không lỗi assertion/suite; lint/build qua. npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback HTTP 404; GHCR dừng trước build/push do preflight manifest thiếu. Thay token qua GitHub UI chưa xác nhận; chưa có image chính thức/GitHub Release. Gói `@bykitsune/router`, không tên lệnh bare; yêu cầu **Node.js >=22.19.0**. Dùng mã nguồn đến khi xuất bản/readback được xác minh. [Bằng chứng](/vi/changelog/).
+**Nguồn 1.0.2 đã xác minh; container xuất bản private; npm bị chặn.** Runtime giữ `65c8b97d`. Recovery `40485038668` xuất bản GHCR, readback xác thực digest/provenance/SPDX và smoke image đã xuất bản qua. Gói vẫn **private**, chọn Public chưa xác nhận, grant ẩn danh HTTP 401. Dùng nguồn hoặc [truy cập container private được phép](/vi/deployment/cloud/). npm `@bykitsune/router` vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Lệnh bên dưới chỉ sau xuất bản/readback **npm** thành công, yêu cầu **Node.js >=22.19.0**. [Bằng chứng](/vi/changelog/).
 
 ## Launcher sau khi phát hành
 

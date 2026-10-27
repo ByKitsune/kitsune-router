@@ -1,8 +1,9 @@
 # Kitsune Router rebranding and migration
 
-Status: source 1.0.2 is verified and merged; registry publication is blocked by
-npm authorization and an identified GHCR preflight format mismatch. Source
-verification is not a claim that registry artifacts have been published.
+Status: source 1.0.2 is verified and merged; its GHCR image is published with
+authenticated digest/provenance/SBOM readback. GitHub initially made the package
+private, so public pull still awaits an owner visibility change. npm remains
+blocked by publication authorization. No production gateway was deployed.
 
 **Selected immutable release source: 1.0.2 at
 `65c8b97d783becab3f1e1210d2ab9ce67992e13b`.** The user elected to retain the failed
@@ -228,7 +229,7 @@ promoting it. Those early branch pushes did not replace production services.
   publication tarball, registry readback, container digest/provenance/SBOM, and
   published-artifact smokes. Earlier pass counts cannot certify that revision.
 
-## Verified 1.0.2 source and blocked publication
+## Verified 1.0.2 source and publication evidence
 
 - Immutable tag `v1.0.2` points to `65c8b97d783becab3f1e1210d2ab9ce67992e13b`.
   [PR #2](https://github.com/ByKitsune/kitsune-router/pull/2) merged to `master`
@@ -272,7 +273,8 @@ promoting it. Those early branch pushes did not replace production services.
   classifies absence only from authenticated structured registry evidence,
   retains original digest/config/source/provenance/SBOM checks, and builds from
   the full release commit. This changes release tooling, not the v1.0.2 tag or
-  runtime. Registry publication/readback remain pending until actually verified.
+  runtime. The successful recovery and authenticated readback are recorded below;
+  public visibility and npm publication remain separate outcomes.
   Focused registry/recovery checks include real annotated Git references and the
   actual workflow validation shell; denied grants, unsafe refs, HTML/malformed
   JSON, mixed registry error codes, oversized responses and digest mismatches are
@@ -287,3 +289,45 @@ source gate received the reserved GitHub tooling SHA despite a step environment
 override. The follow-up passes a validated source context directly to the
 immutable source's original `verifySource` API; it does not change the source
 tag, weaken the SHA assertion or rely on overriding GitHub's default variables.
+
+## Successful container recovery — 2026-10-27
+
+- [PR #4](https://github.com/ByKitsune/kitsune-router/pull/4) merged at
+  `802c61bfcf3c6e23efc6643ce429b7f188caeeaa` after the exact tooling SHA
+  `3efda810` passed **9,086 tests, 100 skipped/todo, zero failures**, lint/build,
+  18 docs tests and static export. Its source report SHA-256 is
+  `da8a65d8ffcee4ce9e6e304276506491a3d71c13e44f8b4f2464c763200f75e8`.
+  These are tooling checks, not a relabeling of runtime tests.
+- [Recovery run 40485038668](https://github.com/ByKitsune/kitsune-router/actions/runs/40485038668)
+  successfully verified the original runtime tag, built from its exact Git
+  commit, pushed, verified immutable source/config/provenance/SBOM, and promoted
+  `latest` from that same digest. Runtime verification passed **9,041 tests**;
+  its report SHA-256 is
+  `a60b94b1e850d7cf8c10d96a170d8113c4dd3580e67a58ae486663e240842f3e`.
+  Recovery evidence artifact `12725441012` records tooling SHA `802c61bf` and
+  runtime SHA `65c8b97d` separately.
+- Authenticated registry readback confirmed version `1.0.2` and `latest` both
+  reference **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**.
+  The linux/amd64 platform manifest is
+  `sha256:1f9cec174a74843909030fd86612ea6aba9e53233c61fbd13dc19ac9fcd3339d`;
+  image config ID is
+  `sha256:af6416b66810127f938479f8bf837ab338fd857ba366dfbaeef66a9f9ba04f51`.
+  Labels name the original runtime SHA and canonical repository, not the tooling
+  commit. SLSA v1 resolved dependencies/config source match the exact Git URI and
+  commit; SLSA and SPDX attestations bind to the same platform-manifest digest.
+- GitHub package ID `16308407` is connected to `ByKitsune/kitsune-router`.
+  First-package visibility was **private**; anonymous grant/pull was denied.
+  The owner selected changing it to Public through package settings but has not
+  yet confirmed completion. Published privately is not public availability.
+  No unsupported REST write or unrelated account was used to bypass visibility.
+- The published registry content was retrieved on the approved SSH host using a
+  short-lived repository-scoped pull grant held in memory. All 16 compressed
+  layer digests, uncompressed rootfs diff IDs, manifest and config digests were
+  verified before loading the exact image for smoke tests. The primary GitHub
+  credential was not transferred to that host or stored in Docker configuration.
+- The **published registry image**, independently of the earlier local build,
+  passed all six start/restart combinations: fresh explicit JWT, existing CLI
+  JSON, and legacy Docker env at default `/app/data` and custom
+  `/var/lib/kitsune-router`. Version/health checks passed; secrets remained
+  unchanged and `0600`. Test containers were stopped and removed, leaving their
+  synthetic evidence directories; no production deployment or restart occurred.

@@ -4,7 +4,7 @@
 
 ## Trạng thái phát hành
 
-**Nguồn 1.0.2 đã xác minh; xuất bản npm/GHCR bị chặn.** Tag bất biến `65c8b97d`: 9.041 qua, 100 skip, không lỗi assertion/suite; lint nghiêm ngặt và build app/docs qua. npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback công khai HTTP 404. GHCR qua gate/login rồi preflight phân loại sai manifest thiếu, dừng trước build/push. Thay token qua GitHub UI do người dùng làm chưa được xác nhận; recovery riêng giữ phiên bản/tag. Chưa có image chính thức/GitHub Release; chỉ dùng lệnh registry sau xuất bản/readback, hiện dùng mã nguồn.
+**Container 1.0.2 đã xuất bản private; pull ẩn danh chờ xác nhận; npm bị chặn.** Runtime cố định `65c8b97d` (9.041 qua, 100 skip, không lỗi). Recovery `40485038668` xuất bản GHCR `1.0.2`/`latest`, readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản qua. Gói vẫn **private** ở lần đọc cuối: chủ chọn Public nhưng chưa xác nhận, grant ẩn danh HTTP 401. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Dùng nguồn hoặc quyền container private được phép; lệnh npm chỉ sau xuất bản npm được chấp nhận. Không GitHub Release/production. [Bằng chứng](/vi/changelog/).
 
 | Thành phần | Định danh |
 | --- | --- |

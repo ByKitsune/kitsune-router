@@ -1,6 +1,6 @@
 # 安装
 
-**1.0.2 源码已在不可变标签 `65c8b97d` 验证，npm/GHCR 发布受阻。** 9,041 通过、100 跳过、断言/套件零失败，严格 lint 与构建通过。npm publish 被 E403 拒绝（2FA 或启用 bypass 2fa 的 granular token），公开读回 HTTP 404；GHCR 因缺失 manifest 的 preflight 错误在构建/推送前停止。用户 GitHub UI token 替换尚未确认；暂无规范镜像或 GitHub Release。包名 `@bykitsune/router`，要求 **Node.js >=22.19.0**。发布/读回验证前用源码，见 [验证记录](/zh-CN/changelog/)。
+**1.0.2 源码已验证，容器已私有发布，npm 受阻。** Runtime 固定于 `65c8b97d`。Recovery `40485038668` 发布 GHCR，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。包仍为 **private**，Public 选择未确认，匿名 grant HTTP 401。可用源码或 [获授权私有容器](/zh-CN/deployment/cloud/)。npm `@bykitsune/router` 仍 E403/公开读回 HTTP 404，用户 token 替换未确认。下列命令仅 npm 发布/读回成功后适用，要求 **Node.js >=22.19.0**。见 [证据](/zh-CN/changelog/)。
 
 ## 发布后的启动器
 

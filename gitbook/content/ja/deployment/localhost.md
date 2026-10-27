@@ -1,6 +1,6 @@
 # ローカル配置
 
-画面と API は **20128** を共有し、既定 3000 ではありません。1.0.2 ソースは不変タグ `65c8b97d` で検証済み、registry 公開はブロック中です。[ソース手順](/ja/getting-started/installation/) を Node.js >=22.19.0 で使用してください。タグ/ローカル検証は registry 利用可能性の証明ではなく、公開/readback 確認後にパッケージの `kitsune-router` を使います。
+画面と API は **20128** を共有し、既定 3000 ではありません。Runtime 1.0.2 は `65c8b97d` のまま、コンテナは **private 配布済み**、匿名アクセス未確認、npm ブロック中。[ソース手順](/ja/getting-started/installation/)（Node.js >=22.19.0）か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下の launcher は npm 配布/readback 確認後のみ使用します。
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

@@ -1,6 +1,6 @@
 # 本地部署
 
-仪表盘和 API 共用 **20128**，不是 3000。1.0.2 源码已在不可变标签 `65c8b97d` 验证，registry 发布受阻。先用 [源码安装](/zh-CN/getting-started/installation/)，要求 Node.js >=22.19.0。标签与本地测试不证明 registry 可用，发布/读回验证后再用包命令 `kitsune-router`。
+仪表盘和 API 共用 **20128**，不是 3000。Runtime 1.0.2 固定于 `65c8b97d`，容器已 **私有发布**，匿名访问待确认，npm 受阻。可用 [源码安装](/zh-CN/getting-started/installation/)（Node.js >=22.19.0）或 [获授权私有容器](/zh-CN/deployment/cloud/)。下列启动器命令仅 npm 发布/读回成功后适用。
 
 - 仪表盘：`http://localhost:20128/dashboard`
 - API 基址：`http://localhost:20128/v1`

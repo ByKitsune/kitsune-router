@@ -1,6 +1,6 @@
 # Bắt đầu nhanh
 
-**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. **Nguồn 1.0.2 đã xác minh ở tag bất biến `65c8b97d`, xuất bản npm/GHCR bị chặn.** Dùng [mã nguồn](/vi/getting-started/installation/) và xem các blocker hiện tại. Lệnh dưới chỉ sau xuất bản/readback được xác minh, với Node.js >=22.19.0; tag/build local không chứng minh registry sẵn có.
+**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. **Container 1.0.2 đã xuất bản private, pull ẩn danh còn chờ, npm bị chặn.** Runtime giữ `65c8b97d`. Dùng [mã nguồn](/vi/getting-started/installation/) hoặc [truy cập container private được phép](/vi/deployment/cloud/). Lệnh dưới chỉ sau xuất bản/readback **npm** thành công, với Node.js >=22.19.0; xuất bản container không xuất bản launcher npm.
 
 ```bash
 npx @bykitsune/router@1.0.2

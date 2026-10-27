@@ -8,7 +8,7 @@ Node.js >=22.19.0、固定依存、ルート build を [手順](/ja/getting-star
 
 ## コンテナー
 
-**1.0.2 ソースは `65c8b97d` で検証済み、GHCR 公開はブロック中です。** Run `40469972099` は gate/login 成功後、欠落 manifest の誤判定により build/push 前に停止。認証読戻し HTTP 404 / `MANIFEST_UNKNOWN`。独立 recovery はソース/版/タグを変えず、正規イメージはまだありません。以下は digest/provenance/SBOM/readback 確認後のみ使用してください。linux/amd64 のみで、ローカル再起動検証は公開イメージの証拠ではありません。
+**GHCR 1.0.2 は配布済みですが private です。** Recovery `40485038668` は tooling `802c61bf` と不変 runtime `65c8b97d` を使用し、認証付き digest/provenance/SPDX 読戻しと配布イメージ smoke に成功。`1.0.2`/`latest` index は `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。以下は許可済み private GHCR アクセス、または Public 設定・匿名読戻し確認後のみ使用してください。Public 選択は未確認、匿名 grant は HTTP 401。**linux/amd64 のみ**。[Digest pin と証拠](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
 ```yaml
 services:

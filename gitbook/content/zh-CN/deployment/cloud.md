@@ -8,7 +8,7 @@
 
 ## 容器
 
-**1.0.2 源码已在 `65c8b97d` 验证，GHCR 发布受阻。** Run `40469972099` 门槛/登录通过，preflight 因误分类缺失 manifest，在构建/推送前停止；认证读回 HTTP 404 / `MANIFEST_UNKNOWN`。独立恢复保留源码/版本/标签不变，尚无规范镜像。下列示例仅在摘要/来源/SBOM/读回验证后适用。仅 linux/amd64，本地重启测试不是已发布镜像证明。
+**GHCR 1.0.2 已发布，但为 private。** Recovery `40485038668` 用 tooling `802c61bf` 构建不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。`1.0.2`/`latest` 共用索引 `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。下列示例须获授权私有 GHCR 访问，或先确认所有者完成 Public 设置且匿名读回成功。Public 选择未确认，最近匿名 grant HTTP 401。仅 **linux/amd64**。见 [摘要锁定与证据](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
 ```yaml
 services:

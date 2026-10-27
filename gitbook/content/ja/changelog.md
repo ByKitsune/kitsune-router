@@ -1,12 +1,12 @@
 # 変更履歴
 
-## Kitsune Router 1.0.2 — ソース検証済み、公開ブロック中
+## Kitsune Router 1.0.2 — private コンテナ配布済み、匿名 pull 未確認、npm ブロック中
 
 不変タグ **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**、PR #2 merge `23375bf1`。exact-source SSH は **9,041 成功、100 skip、assertion/suite 失敗ゼロ**、strict lint、18 docs tests/static export、app build、pack 成功。CI `40468830176` は同一ソースツリーで成功。ローカル tarball の install/runtime/upgrade、六つのコンテナ再起動と exact-source browser 検証は記録範囲で成功しました。mock は子 `Date` のみで本番順序は不変、warning logging は publish のみで pack 不変です。
 
-npm `40469972263` は gate/docs/pack 後 **E403**（2FA または bypass 2fa 有効の granular token が必要）、公開読戻し HTTP 404。原本 CI 成果物 `12718343077`、SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114` はローカル smoke の tarball と別バイトで、原本 smoke は未完了。利用者の GitHub UI token 交換は完了未確認、1.0.1 npm 原因は不明のままです。
+npm `40469972263` は gate/docs/pack 後 **E403**（2FA または bypass 2fa 有効の granular token が必要）、公開読戻し HTTP 404。原本 CI 成果物 `12718343077`、SHA-256 `a52d736ade6b8cbcf17ba114c9b55018956a7f1b35c4280edcae2912de8a3114` はローカル tarball と別バイトですが、双方独立 help/version/runtime/upgrade smoke に成功し原本状態/キー保持、secret 0600、終了 0。GitHub UI token 交換は未確認、1.0.1 npm 原因は不明のままです。
 
-GHCR `40469972099` は gate/login 成功後、Buildx `not found` の誤判定で build/push 前に停止。認証読戻し HTTP 404 / `MANIFEST_UNKNOWN`。独立 recovery はソース/版/タグを変えず、CI/merge・実行・digest/provenance/SBOM/readback は別途証拠が必要です。正規イメージ、GitHub Release 1.0.2、production 配備は未確立、docs preview は未更新。[1.0.2 証拠](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
+以前の GHCR `40469972099` は build/push 前に失敗、初回 recovery `40483141695` は caller `GITHUB_SHA` context で registry 前に停止。PR #4 merge `802c61bf` で明示 API ソース検証を採用。成功 recovery **`40485038668`** が同 tooling で不変 runtime `65c8b97d` を配布し、9,041 成功/100 skip/失敗ゼロ、labels/SLSA v1/SPDX と `latest` promotion 成功。独立認証読戻しで両タグ index **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`** を確認。配布 image `af6416b6` は16層/rootfs検証・六つの実 SSH start/restart に成功、健康な1.0.2、キー安定/0600。最新 package は **private**、Public 選択未確認、匿名 grant HTTP 401。npm ブロック中、GitHub Release/production 配備なし、preview 未更新。以前の失敗、tooling/runtime、各成果物は別証拠のままです。[1.0.2 証拠](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) · [技術詳細](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.2.md)。
 
 ## Kitsune Router 1.0.1 — 不変の試行、公開成功は未確立
 

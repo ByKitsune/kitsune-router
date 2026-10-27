@@ -8,7 +8,7 @@ Node.js >=22.19.0, dependency khóa, build từ root theo [cài đặt](/vi/gett
 
 ## Container
 
-**Nguồn 1.0.2 đã xác minh ở `65c8b97d`; xuất bản GHCR bị chặn.** Run `40469972099` qua gate/login rồi preflight phân loại sai manifest thiếu, dừng trước build/push. Readback xác thực HTTP 404 / `MANIFEST_UNKNOWN`. Recovery riêng giữ nguồn/phiên bản/tag, chưa có image chính thức. Ví dụ chỉ dùng sau xác minh digest/provenance/SBOM/readback. Chỉ linux/amd64; test khởi động lại local không chứng minh image công khai.
+**GHCR 1.0.2 đã xuất bản nhưng private.** Recovery `40485038668` dùng tooling `802c61bf` và runtime bất biến `65c8b97d`, readback xác thực digest/provenance/SPDX và smoke image đã xuất bản qua. `1.0.2`/`latest` chung index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Ví dụ cần quyền private GHCR được phép, hoặc chờ chủ hoàn tất Public và readback ẩn danh thành công. Chọn Public chưa xác nhận, grant ẩn danh HTTP 401. Chỉ **linux/amd64**. [Digest pin/bằng chứng](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ```yaml
 services:

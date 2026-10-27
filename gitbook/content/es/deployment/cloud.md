@@ -8,7 +8,7 @@ Usa Node.js >=22.19.0, dependencias bloqueadas y build de raíz según [instalac
 
 ## Contenedores
 
-**Fuente 1.0.2 verificada en `65c8b97d`; publicación GHCR bloqueada.** Run `40469972099` pasó gates/login; preflight clasificó mal un manifest ausente y paró antes de build/push. Lectura autenticada HTTP 404 / `MANIFEST_UNKNOWN`. Recuperación separada conserva fuente/versión/tag; todavía sin imagen canónica. Usa el ejemplo solo tras verificar digest/proveniencia/SBOM/readback. Solo linux/amd64; tests locales no prueban imagen publicada.
+**GHCR 1.0.2 publicado, pero privado.** Recovery `40485038668` usó tooling `802c61bf` y runtime inmutable `65c8b97d`; lectura autenticada digest/proveniencia/SPDX y smoke de la imagen publicada pasaron. `1.0.2`/`latest` comparten índice `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Usa el ejemplo con acceso privado autorizado o después de confirmar Public y lectura anónima. Public seleccionado no confirmado, grants anónimos HTTP 401. Solo **linux/amd64**. [Digest y evidencia](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ```yaml
 services:

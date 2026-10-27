@@ -4,7 +4,7 @@
 
 ## Release status
 
-**1.0.2 source is verified; npm/GHCR publication is blocked.** Immutable tag `65c8b97d` passed 9,041 tests with 100 skips and zero failed assertions/suites; strict lint and app/docs builds passed. npm publish received E403 requiring 2FA or a granular token with bypass 2fa enabled; public readback remained HTTP 404. GHCR gates/login passed, but preflight stopped before build/push on a misclassified missing manifest. User-managed token replacement is not confirmed; separate container recovery retains the same version/tag. No canonical image or GitHub Release is established. Use registry commands only after verified publication, or source installation now. Identities:
+**1.0.2 container published privately; anonymous pulls pending; npm blocked.** Runtime stays at immutable `65c8b97d` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2`/`latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. The package remains **private** at last read: owner-selected Public visibility is not confirmed, anonymous grants HTTP 401. npm remains E403-denied, public readback HTTP 404, token replacement not confirmed. Use source or authorized private container access; npm commands require future accepted npm publication. No GitHub Release or production deployment. [Distribution evidence](/en/changelog/). Identities:
 
 | Surface | Identity |
 | --- | --- |

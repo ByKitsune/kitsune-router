@@ -6,7 +6,7 @@ A provider-neutral, local-first AI gateway and dashboard, maintained/sponsored b
 
 ## Is 1.0.2 published?
 
-**Source is verified, publication is blocked.** Immutable `v1.0.2` / `65c8b97d` passed 9,041 tests with 100 skips and zero failed assertions/suites, strict lint and builds. npm publish was denied E403 requiring 2FA or a granular token with bypass 2fa enabled; public npm readback remained HTTP 404. The user will replace the token through GitHub's UI, but has not confirmed completion. GHCR source gates/login passed, then preflight stopped before build/push; no canonical image or GitHub Release 1.0.2 is established. Separate recovery keeps this tag/version unchanged. Earlier 1.0.1/1.0.0 failures retain their own evidence; **1.0.1's npm cause remains unknown**. See [installation](/en/getting-started/installation/) and [changelog](/en/changelog/); 0.x history is unchanged.
+**The container is published, but private; npm is still blocked.** Recovery `40485038668` published unchanged runtime `65c8b97d`, with independent authenticated digest/provenance/SPDX readback and published-image smoke passed. The owner selected Public visibility but has not confirmed it; anonymous grants still return HTTP 401 at last read. Use authorized private access or source installation, not an assumed anonymous pull. npm remains E403-denied with public readback HTTP 404; user-managed token replacement is unconfirmed. No GitHub Release 1.0.2 or production deployment occurred. Previous tags retain their own evidence and **1.0.1's npm cause remains unknown**. [Installation](/en/getting-started/installation/) · [Evidence](/en/changelog/).
 
 ## Do I need a ByKitsune account or provider order?
 

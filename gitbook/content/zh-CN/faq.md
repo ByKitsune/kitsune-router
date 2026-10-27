@@ -6,7 +6,7 @@ Kitsune Router 是由 [ByKitsune](https://bykitsune.com) 维护/赞助的中立�
 
 ## 1.0.2 发布了吗？
 
-**源码已验证，发布受阻。** `v1.0.2` / `65c8b97d` 已通过 9,041 测试、100 跳过、断言/套件零失败，以及严格 lint 与构建。npm publish 被 E403 拒绝（2FA 或启用 bypass 2fa 的 granular token），公开读回 HTTP 404。用户将在 GitHub UI 自行替换 token，尚未确认完成。GHCR 门槛/登录通过，但 preflight 在构建/推送前停止，暂无规范镜像或 GitHub Release。独立恢复不改标签/版本；1.0.1 npm 错误原因仍未知。见 [安装](/zh-CN/getting-started/installation/) 与 [日志](/zh-CN/changelog/)，0.x 来源不变。
+**容器已发布但私有，npm 仍受阻。** Recovery `40485038668` 发布不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。所有者选择 Public 但未确认，最近匿名 grant 仍 HTTP 401；请用获授权私有访问或源码，不假设可匿名拉取。npm 仍 E403/公开读回 HTTP 404，token 替换未确认。无 GitHub Release 1.0.2 或生产部署；旧标签保留各自证据，1.0.1 npm 原因仍未知。见 [安装](/zh-CN/getting-started/installation/) 与 [证据](/zh-CN/changelog/)。
 
 ## 需要账户或指定顺序吗？
 

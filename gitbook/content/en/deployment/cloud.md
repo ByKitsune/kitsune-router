@@ -8,7 +8,7 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**1.0.2 source is verified at immutable `65c8b97d`; GHCR publication is blocked.** Run `40469972099` passed source gates/login, then preflight misclassified a missing manifest and stopped before build/push. Authenticated readback confirmed HTTP 404 / `MANIFEST_UNKNOWN`. Separate recovery tooling retains this release source/version/tag; no canonical image is available yet. Use the example only after verified digest/provenance/SBOM and readback. The target is **linux/amd64 only**; local-image restart tests are not published-image evidence.
+**GHCR 1.0.2 is published, but private.** Recovery `40485038668` built immutable runtime `65c8b97d` using separate tooling `802c61bf`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. `1.0.2` and `latest` share index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Use the example with authorized private GHCR access, or after the owner completes Public visibility and anonymous readback succeeds. Public was selected but not confirmed; anonymous grants remain HTTP 401 at last read. **linux/amd64 only**. [Digest pin and evidence](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ```yaml
 services:

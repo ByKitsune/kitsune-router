@@ -2,13 +2,13 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-The canonical image target is **`ghcr.io/bykitsune/kitsune-router:1.0.2`**. **Source is verified at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`, but GHCR publication is blocked.** Workflow `40469972099` passed source gates/login, then preflight misclassified a missing manifest and stopped **before image build/push**. An authenticated registry read confirmed HTTP 404 / `MANIFEST_UNKNOWN`; no canonical 1.0.2 image is available from that run. Separate authorized recovery tooling keeps version/tag unchanged; execution and digest/provenance/SBOM/readback are still required. See [recovery status](docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). The target is **linux/amd64**, not ARM64/multi-architecture; Docker Hub is an optional independently verified mirror, not an assumed fallback.
+**`ghcr.io/bykitsune/kitsune-router:1.0.2` is published, but the package is currently private.** Recovery `40485038668` used tooling `802c61bf` to build immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; build/push, revision labels, SLSA v1/SPDX, `latest` promotion, independent authenticated readback and published-image smoke passed. `1.0.2` and `latest` resolve to index **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) remains private at last read; Public was selected by the owner but not confirmed, and anonymous grants return HTTP 401. See [distribution evidence](docs/CHANGELOG_v1.0.2.md). The image is **linux/amd64**, not ARM64/multi-architecture; Docker Hub remains unverified and optional.
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
-## Run only after publication and digest verification
+## Run with authorized access
 
-Set a strong `INITIAL_PASSWORD` in your private environment first; `-e INITIAL_PASSWORD` forwards it without embedding a value in the example.
+Authenticate to GHCR using credentials with permission to read this private package before using these examples. Alternatively, wait until the owner completes the Public visibility setting in GitHub's package UI and anonymous access is independently confirmed; a selected intention is not completed access. Do not paste tokens in commands, source, chat or logs. Set a strong `INITIAL_PASSWORD` in your private environment first; `-e INITIAL_PASSWORD` forwards it without embedding a value in the example.
 
 ```bash
 docker run -d --name kitsune-router \
@@ -21,7 +21,13 @@ docker run -d --name kitsune-router \
   ghcr.io/bykitsune/kitsune-router:1.0.2
 ```
 
-Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. A ByKitsune account is not required.
+For fixed bytes, replace the image reference in `docker run` or Compose with:
+
+```text
+ghcr.io/bykitsune/kitsune-router@sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b
+```
+
+Digest pinning does not bypass private-package authorization. Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. The gateway does not require a ByKitsune account or prescribe a provider; current GHCR download authorization is a separate distribution restriction.
 
 ```yaml
 services:
@@ -103,4 +109,6 @@ When switching from a historical container, set `KITSUNE_ROUTER_CONTAINER` and `
 
 The verified source's **local** image `sha256:92aeda74d937e440bae4643523beaac9bc33addab1e9d5b18544c0ce6d0dfbec` passed six restart/secret-preservation scenarios: default `/app/data` and custom `/var/lib/kitsune-router`, each with fresh JWT, CLI JSON and legacy ENV secrets; all keys retained at mode 0600. This is a local image ID, not a GHCR digest, scan result or published artifact. See [release evidence](docs/CHANGELOG_v1.0.2.md).
 
-Publication and the separate container-recovery tooling are guarded operations, not automatic consequences of a local build. The recovery retains the immutable release-source SHA and does not bump 1.0.2 or move its tag. Verify resulting registry digest, provenance/SBOM, visibility and any mirror before announcing availability. No production deployment is implied.
+The **published registry image**, config `sha256:af6416b66810127f938479f8bf837ab338fd857ba366dfbaeef66a9f9ba04f51`, independently passed six real SSH start/restart scenarios for the same two paths and three secret sources. All 16 compressed-layer digests and rootfs diff hashes were verified before loading; each scenario was healthy at version 1.0.2, with keys stable and secrets mode 0600. This is separate from local image `92aeda74`; manifest, config and index identities are recorded in [release evidence](docs/CHANGELOG_v1.0.2.md).
+
+Recovery published unchanged release source without a version bump or tag move. Earlier preflight/context failures remain [historical](docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). Authenticated registry publication and runtime smoke do not establish anonymous access or production deployment. npm is separately blocked by E403 and unconfirmed user-managed token replacement.

@@ -1,6 +1,6 @@
 # Inicio rápido
 
-**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. **Fuente 1.0.2 verificada en tag inmutable `65c8b97d`, publicación npm/GHCR bloqueada.** Consulta [instalación](/es/getting-started/installation/) para fuentes y bloqueos actuales. Los comandos siguientes solo tras publicación/readback verificados, con Node.js >=22.19.0; tag/build local no prueba disponibilidad.
+**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. **Contenedor 1.0.2 publicado en privado, pull anónimo pendiente, npm bloqueado.** Runtime sigue `65c8b97d`. Usa [fuentes](/es/getting-started/installation/) o [acceso privado autorizado al contenedor](/es/deployment/cloud/). Los comandos siguientes solo tras publicación/readback de **npm**, con Node.js >=22.19.0; publicar contenedor no publica el launcher npm.
 
 ```bash
 npx @bykitsune/router@1.0.2

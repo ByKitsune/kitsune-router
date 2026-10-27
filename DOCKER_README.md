@@ -5,14 +5,14 @@
 - Repository: [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router)
 - Canonical image target: **`ghcr.io/bykitsune/kitsune-router`**
 - CLI package target: **`@bykitsune/router`**, command **`kitsune-router`**
-- **Release status:** 1.0.2 source is verified at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; registry publication is blocked. GHCR `40469972099` passed source gates/login but preflight stopped on a misclassified missing manifest before build/push. Authenticated readback confirmed HTTP 404 / `MANIFEST_UNKNOWN`. No canonical image is published; separate recovery keeps version/tag unchanged. Verify digest/provenance/SBOM/readback before use; a Docker Hub mirror is optional.
+- **Release status:** GHCR 1.0.2 is published from immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; authenticated digest/provenance/SPDX readback and published-image smoke passed. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) remains **private** at last read. The owner selected Public but has not confirmed completion; anonymous grants return HTTP 401. npm remains blocked, and Docker Hub is unverified.
 - Publication platform: **linux/amd64 only**. The image supplies its own Node runtime; the launcher requires Node.js >=22.19.0.
 
 `v1.0.1` stays at `745834026a5a9f55dffce40c0ad01bf3106e8237`. Its GHCR gate failed before login/push, so no canonical 1.0.1 image was published. npm's publish command failed with cause not yet known; public readback was HTTP 404 on 2026-10-27. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Tags are not registry artifacts and will not be moved.
 
 The 1.0.2 follow-up controls timestamp-sensitive cache tests and improves npm failure diagnostics without changing production priority ordering or fail-closed migration ownership checks. Bounded Linux evidence is not general non-root support; native Windows/macOS migration is unverified. Restricted operators must stop/back up state and keep it at explicit `DATA_DIR` without relocation, or seek privileged review—not ignore permission errors.
 
-After publication, with a strong `INITIAL_PASSWORD` set in your private environment:
+With authorized private GHCR access—or after Public visibility and anonymous pulls are confirmed—and a strong `INITIAL_PASSWORD` set in your private environment:
 
 ```bash
 docker run -d --name kitsune-router \
@@ -40,6 +40,6 @@ Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/mast
 
 ## Security and verification limits
 
-Use authenticated HTTPS for remote access, keep secrets out of source/logs and choose a strong initial password. Compression has no guaranteed savings; estimates are not invoices; synthetic tests do not establish entitlement or live availability. Source gates and six local container restart scenarios passed, but the local image ID is not a GHCR digest or an OS-image scan. npm 1.0.2 was separately denied with E403; user-managed token replacement is not confirmed. See [release evidence](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) and [recovery operations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). No production deployment or GitHub Release 1.0.2 is established.
+Use authenticated HTTPS for remote access, keep secrets out of source/logs and choose a strong initial password. Compression has no guaranteed savings; estimates are not invoices; synthetic tests do not establish entitlement or live availability. Recovery `40485038668` published `1.0.2` and `latest` at index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Independent published-image smoke passed all six path/secret-source restart scenarios, but private authorization still applies. See the [Docker guide](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md) for digest pinning and [release evidence](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) for distinct artifact identities. npm E403/token replacement remains unresolved; no production deployment or GitHub Release 1.0.2 is established.
 
 MIT licensed; upstream copyright notices remain in [LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE).

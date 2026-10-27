@@ -5,7 +5,7 @@
 ## 启动与迁移
 
 - 包找不到：1.0.2 源码已验证，但 npm publish 被 E403 拒绝（2FA 或启用 bypass 2fa 的 granular token），公开读回 HTTP 404。用户将在 GitHub UI 自行替换 secret，尚未确认完成；不要分享 token。先用 [源码安装](/zh-CN/getting-started/installation/)，等待发布/读回验证。1.0.1 npm 原因仍未知。
-- GHCR 镜像找不到：1.0.2 门槛/登录通过，preflight 误分类缺失 manifest，在构建/推送前停止；认证读回 HTTP 404 / `MANIFEST_UNKNOWN`。独立恢复不移动标签，见 [运维](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag)。本地 image ID 不是 GHCR 摘要。
+- GHCR 拉取拒绝/找不到：1.0.2 已发布且认证读回/smoke 通过，但最近包仍 **private**，匿名 grant HTTP 401。所有者选择 Public 但未确认完成；请用获授权私有读取，或等待 Public 和无认证读回确认，不把隐藏权限拒绝误判为未发布。早期 preflight/context 失败保留于 [运维](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag)。不要分享 token。
 - 旧 Node：需 >=22.19.0，迁移须支持 Node/Bun 原生 SQLite 快照，不做不安全原始复制。
 - 端口占用：仪表盘/API 共用 20128，识别拥有者并正常停止，不广泛 `pkill`/`kill -9`。
 - 状态空白：先查绝对路径和 `/app/data` 挂载；显式 `DATA_DIR` 阻止搬迁。

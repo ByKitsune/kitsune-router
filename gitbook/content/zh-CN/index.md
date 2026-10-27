@@ -4,7 +4,7 @@
 
 ## 发布状态
 
-**1.0.2 源码已验证，npm/GHCR 发布受阻。** 不可变标签 `65c8b97d`：9,041 通过、100 跳过、断言/套件零失败，严格 lint 与 app/docs 构建通过。npm publish 被 E403 拒绝（2FA 或启用 bypass 2fa 的 granular token），公开读回 HTTP 404；GHCR 门槛/登录通过，但缺失 manifest 被误分类，在构建/推送前停止。用户将在 GitHub UI 替换 token，尚未确认；独立容器恢复不改版本/标签。暂无规范镜像或 GitHub Release。包/镜像命令仅发布读回验证后适用，目前可用源码。
+**1.0.2 容器已私有发布，匿名拉取待确认，npm 受阻。** Runtime 固定于 `65c8b97d`（9,041 通过、100 跳过、零失败）。Recovery `40485038668` 发布 GHCR `1.0.2`/`latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。包最近读回仍为 **private**，所有者选择 Public 但未确认，匿名 grant HTTP 401。npm 仍 E403/公开读回 HTTP 404，token 替换未确认。可用源码或获授权私有容器访问；npm 命令仅 npm 发布验证后适用。无 GitHub Release 或生产部署。见 [分发证据](/zh-CN/changelog/)。
 
 | 项目 | 新标识 |
 | --- | --- |

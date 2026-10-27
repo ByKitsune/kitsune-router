@@ -1,6 +1,6 @@
 # Instalación
 
-**Fuente 1.0.2 verificada en tag inmutable `65c8b97d`; publicación npm/GHCR bloqueada.** 9.041 aprobados, 100 omitidos, cero fallos de tests/suites; lint y builds pasaron. npm publish recibió E403 (2FA o token granular con bypass 2fa), lectura pública HTTP 404; GHCR paró antes de build/push por preflight de manifest ausente. Cambio de token en GitHub UI no confirmado; sin imagen canónica ni GitHub Release. Paquete `@bykitsune/router`, no nombre bare; requiere **Node.js >=22.19.0**. Usa fuentes hasta verificar publicación/readback. [Evidencia](/es/changelog/).
+**Fuente 1.0.2 verificada; contenedor publicado en privado; npm bloqueado.** Runtime sigue `65c8b97d`. Recovery `40485038668` publicó GHCR y pasó lectura autenticada digest/proveniencia/SPDX y smoke de la imagen publicada. Paquete aún **private**: Public seleccionado sin confirmar, grants anónimos HTTP 401. Usa fuentes o [acceso privado autorizado](/es/deployment/cloud/). npm `@bykitsune/router` sigue E403/readback público HTTP 404, cambio de token no confirmado. Los comandos de abajo solo tras publicación/readback npm, con **Node.js >=22.19.0**. [Evidencia](/es/changelog/).
 
 ## Launcher después de publicar
 
