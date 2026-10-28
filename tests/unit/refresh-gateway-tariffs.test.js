@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { calculateCostBreakdown, calculateCostFromTokens, getPricingForModel, PROVIDER_PRICING } from "../../open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 
@@ -61,11 +63,37 @@ describe("2026-10-21 hosted route token estimates", () => {
     expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 100000 }, getPricingForModel("featherless", "deepseek-ai/DeepSeek-V4-Pro"))).toBeCloseTo(1.92, 12);
   });
 
-  it("keeps TokenRouter's ratio-zero route scoped to the quoted provider", () => {
+  it("keeps TokenRouter's ratio-zero route scoped to the quoted provider", async () => {
+    const model = "minimax/minimax-m3.1-flash";
     const usage = { prompt_tokens: 1000000, completion_tokens: 100000 };
-    expect(calculateCostFromTokens(usage, getPricingForModel("tokenrouter", "minimax/minimax-m3.1-flash"))).toBe(0);
-    expect(calculateCostFromTokens(usage, getPricingForModel("openrouter", "minimax/minimax-m3.1-flash"))).toBeGreaterThan(0);
-  });
+    expect(calculateCostFromTokens(usage, getPricingForModel("tokenrouter", model))).toBe(0);
+    // The old positive price was borrowed through a global model fallback;
+    // OpenRouter's multimodal catalog row does not establish a text-only bill.
+    expect(getPricingForModel("openrouter", model)).toBeNull();
+    expect(calculateCostFromTokens(usage, getPricingForModel("openrouter", model))).toBeNull();
+    const dir = await mkdtemp(join(process.env.TMPDIR || "/tmp/opencode", "pricing-gateway-"));
+    const oldDir = process.env.DATA_DIR, previous = Object.getOwnPropertyDescriptor(global, "_dbAdapter");
+    const events = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
+    const listeners = new Map(events.map(event => [event, new Set(process.listeners(event))]));
+    process.env.DATA_DIR = join(dir, "data"); delete global._dbAdapter; vi.resetModules();
+    try {
+      const repo = await import("../../src/lib/db/repos/pricingRepo.js");
+      expect(await repo.getPricingForModel("openrouter", model)).toBeNull();
+      await repo.updatePricing({ openrouter: { [model]: { input: 0.15, output: 0.6 } } });
+      expect((await repo.getSavedPricing()).openrouter[model]).toEqual({ input: 0.15, output: 0.6 });
+      const override = await repo.getPricingForModel("openrouter", model);
+      expect(override).toMatchObject({ input: 0.15, output: 0.6 });
+      expect(calculateCostFromTokens(usage, override)).toBeCloseTo(0.21, 12);
+      expect(calculateCostFromTokens(usage, await repo.getPricingForModel("tokenrouter", model))).toBe(0);
+      expect(await repo.getPricingForModel("unrelated-price-fixture", model)).toBeNull();
+    } finally {
+      await global._dbAdapter?.instance?.close();
+      for (const event of events) for (const listener of process.listeners(event)) if (!listeners.get(event).has(listener)) process.removeListener(event, listener);
+      if (previous) Object.defineProperty(global, "_dbAdapter", previous); else delete global._dbAdapter;
+      if (oldDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = oldDir;
+      vi.resetModules(); await rm(dir, { recursive: true, force: true });
+    }
+  }, 20000);
 
   it("keeps a dynamic Kilo auto quote unknown rather than treating its -1 sentinel as a credit", () => {
     expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 100000 }, getPricingForModel("kilo-gateway", "kilo-auto/efficient"))).toBeNull();

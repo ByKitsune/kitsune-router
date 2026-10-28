@@ -90,6 +90,34 @@ estimate; subscription credit/usage multipliers do not become USD invoices.
 Existing Standard/default estimates remain estimates; use the upstream billing
 dashboard for actual charges. See the [October reconciliation](audit/17-october-reconciliation-2026-10.md).
 
+### GPT-6.1 Terra public API reference
+
+The 2026-10-29 source follow-up records separate public OpenAI API quotes for
+`gpt-6.1-terra`. Values below are USD per million tokens, excluding regional
+processing uplift. Cached input is a subset of input, not an additional charge.
+
+| Delivered tier | Input / cached input / output, up to 272,000 input tokens | Input / cached input / output, above 272,000 input tokens |
+| --- | --- | --- |
+| Standard | $1 / $0.05 / $5 | $2 / $0.10 / $7.50 |
+| Fast | $2 / $0.10 / $10 | $4 / $0.20 / $15 |
+| Flex | $0.50 / $0.025 / $2.50 | $1 / $0.05 / $3.75 |
+
+Exactly 272,000 input tokens uses the first column; above that boundary, the
+higher rates apply to the entire request. Native 30-minute and 12-hour cache-write
+rates remain separate from cached reads. Fast and Flex depend on actual delivery;
+unsupported or unconfirmed tiers do not acquire a Standard quote. The Terra speed
+selector offers Auto, Standard and Fast; Flex can be requested with
+`service_tier: "flex"`. Public API Ultrafast is unsupported for this model. The
+estimator does **not** automatically apply the documented 10% regional processing
+uplift, so its global-rate estimate can differ from an eligible regional endpoint's
+bill. Account eligibility and the upstream invoice remain separate. These public
+API quotes do not establish Codex subscription charges.
+
+The gateway selects Responses for the OpenAI Terra route, including tool-bearing
+Chat requests. The public API specification lists 1,050,000 total context,
+922,000 maximum input and 128,000 maximum output tokens; those numbers are not
+verified Codex backend limits. See the [source follow-up](audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up).
+
 ## OpenCode V2
 
 Use a Responses-compatible custom provider for the gateway. This example keeps
@@ -138,12 +166,15 @@ in this file.
 
 ## Sources
 
-These dated protocol/pricing references are not a fresh live-provider verification or a claim that Kitsune Router 1.0.2 is published. See [release status](CHANGELOG_v1.0.2.md) and [migration](MIGRATION.md).
+These dated protocol/pricing references do not establish live-provider verification or package/production status. See [release status](CHANGELOG_v1.0.2.md) and [migration](MIGRATION.md).
 
 - [OpenAI Fast](https://developers.openai.com/api/docs/guides/fast-mode),
   [Ultrafast](https://developers.openai.com/api/docs/guides/ultrafast-mode),
   [pricing](https://developers.openai.com/api/docs/pricing) and
   [dated changelog](https://developers.openai.com/api/docs/changelog).
+- [GPT-6.1 Terra model reference](https://developers.openai.com/api/docs/models/gpt-6.1-terra.md)
+  and [regional processing](https://developers.openai.com/api/docs/guides/your-data.md),
+  captured separately from the October 19 speed review.
 - [Codex speed](https://developers.openai.com/codex/agent-configuration/speed).
 - [OpenCode V2 providers](https://opencode.ai/v2/docs/providers) and
   [models/variants](https://opencode.ai/v2/docs/models).

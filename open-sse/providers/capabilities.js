@@ -738,7 +738,11 @@ const GITHUB_NO_FORCED_TOOL_CHOICE_MODELS = new Set(["claude-opus-5.5"]);
 export function getCapabilitiesForModel(provider, model) {
   const baseline = resolveBaselineCapabilities(provider, model);
   const nativeProvider = canonicalizeProviderId(provider);
-  const reviewed = applyReviewedCapabilities(baseline, provider, model);
+  // Prefer an exact record, then retry the base id for a client thinking suffix.
+  // Otherwise a suffixed request can bypass a route's explicitly unknown limits.
+  const cleanModel = typeof model === "string" ? model.replace(/\([^()]+\)\s*$/, "").trim() : model;
+  const reviewedModel = getReviewedModelMetadata(provider, model) ? model : cleanModel;
+  const reviewed = applyReviewedCapabilities(baseline, provider, reviewedModel);
   let caps = isDocumentUnsupportedRoute(nativeProvider, model) ? { ...reviewed, pdf: false } : reviewed;
   const modelId = typeof model === "string" ? model.split("/").pop().replace(/\([^()]+\)\s*$/, "").trim().toLowerCase() : "";
   if (nativeProvider === "github") {

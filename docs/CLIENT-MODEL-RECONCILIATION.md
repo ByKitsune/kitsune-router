@@ -122,3 +122,23 @@ The [test guide](../tests/README.md) lists the reproducible gates. The [lifecycl
 [18] https://registry.npmjs.org/@vscode/copilot-api/-/copilot-api-0.5.2.tgz
 [19] https://docs.cohere.com/docs/compatibility-api.md
 [20] https://antigravity.google/docs/changelog.md
+
+## 2026-10-29 source follow-up addendum
+
+This addendum describes the current worktree, not a rewrite of the dated records above or evidence of a new release, deployment, live-provider entitlement or invoice. Pricing remains subject to final integration verification.
+
+### Pricing scope and coverage tradeoff
+
+Provider billing resolution no longer uses unscoped generic vendor-family fallbacks as if they were a route's tariff. This avoids cross-product price attribution but reduces future cost coverage: a read-only comparison of the same pre-change static LLM registry found many previously numeric routes now resolve unknown, especially among Kiro, CodeBuddy and gateway subscription routes. This observation is scoped to that comparison, not a complete inventory. Previously stored historical costs are unchanged.
+
+The selected [models.dev](https://models.dev/api.json) snapshot references use exact provider/product and literal model IDs, not generic family matches. Verification against the captured payload found 146 distinct matching provider/model pairs across 149 registry rows with catalog costs under the selected product mappings; all are included among 163 extracted references. This does not claim coverage of other products, dynamic models, or later catalog changes. References are informational and are not account invoices, entitlements or availability claims. A narrower opt-in set of 16 text-only hosted pairs may provide input/output estimates for recorded timestamps from the captured observation until strictly before 24 hours later. The capture time is `2026-10-28T18:11:32.422Z`; estimates are not backdated and expire after that window. Other route-specific quotes and operator overrides are separate. Unverified used cost components remain `null`, so a known subtotal is not necessarily a complete total.
+
+`node scripts/verify-modelsdev-pricing.mjs --extraction-only` checks the compact extraction's integrity; providing the original captured JSON additionally checks its pinned hash and snapshot coverage. The compact extraction cannot independently establish the full payload's provenance, completeness or estimate eligibility, and a later download of the changing endpoint cannot reproduce the original snapshot by itself.
+
+The DeepSeek time-of-day limitation in the 2026-10-06 record is historical. Current source implements recorded-time native schedule selection for reviewed DeepSeek routes, with a finite reviewed holiday calendar; unreviewed or invalid inputs can remain unknown. The earlier OpenCode Go endpoint statement also describes its dated additions: the current registry has per-model `supportedFormats` and `targetFormat`, including Chat-only and multi-endpoint models. Neither change proves a live account's billing or access.
+
+### Usage and Ollama Local discovery
+
+The usage dashboard debounces committed-update events and refetches selected-period statistics and chart data. Retained snapshots keep their original period labels, and failures offer retry. Live request fields stream independently. The original cause of the user's browser issue remains unconfirmed.
+
+Ollama Local speech and embeddings require an active registered connection, with an optional API key. Public speech defaults to WAV, supports PCM and JSON-wrapped WAV, and rejects explicit MP3; listed Phonon tags are selectable, not evidence of installation. The embedding adapter forwards literal IDs. Its discovery shows operator-declared embeddings and recognizable whitelist IDs, not an installed inventory; `enabledModels` filters discovery candidates rather than proving universal request enforcement, and custom declarations and aliases can also appear. Both adapters reject redirects and relay configurations that cannot guarantee redirect refusal. Direct internal `handleTtsCore` calls retain their separate MP3 default and do not forward the public route's voice, cancellation, speed or instructions options; explicit WAV is the tested internal path.

@@ -10,6 +10,24 @@ Kitsune Router records request usage locally and displays available upstream quo
 - Delivered processing tier can differ from requested tier. Subscription credits and multipliers are not public API-dollar invoices. See [processing speed](https://github.com/ByKitsune/kitsune-router/blob/master/docs/PROCESSING-SPEED.md).
 - Retries can incur usage; client cancellation does not prove the upstream stopped billing. Do not infer a hard monetary budget from a token cap.
 
+## Dashboard refresh and retry
+
+In the 2026-10-29 source follow-up, a committed usage update schedules a debounced refresh of both statistics and the chart for the selected period. The dashboard also refreshes when its stream opens or reconnects. Active and recent requests, pending state and provider errors continue to update through the live stream independently of the period totals.
+
+When a newer client connects to an older server, its first all-time stream snapshot and subsequent changes to committed totals or breakdowns trigger a selected-period refresh; pending-only messages do not. The all-time snapshot itself never replaces the selected-period totals. An already open tab still running the previous client must be reloaded after an upgrade to receive these changes.
+
+Passage of time alone does not trigger a refresh when a period rolls forward. Switch periods or reload the page to recalculate it. A legacy stream also cannot reveal a change that leaves every compared aggregate and breakdown unchanged.
+
+If a statistics or chart refresh fails, the dashboard keeps the last successful data and labels it with the period it actually covers, which may differ from the current selection. Use the displayed retry control; if prompted about an expired session, sign in again. The original cause of the user's browser issue is not confirmed by these source changes or synthetic tests.
+
+## Pricing coverage in the source follow-up
+
+Removing unscoped vendor-family fallbacks prevents prices from being borrowed across different provider products, but reduces future estimate coverage. Some routes that previously showed numeric prices, including Kiro, CodeBuddy and gateway subscription routes, may now show unknown costs. Existing recorded costs are not repriced.
+
+Selected models.dev prices are references for exact provider/product and literal model IDs, not invoices. Only a narrow, text-only subset can supply input/output estimates for usage recorded from the snapshot's captured observation until strictly before 24 hours later; it is not backdated and expires for later usage. The current window ends at **2026-10-29 18:11:32.422 UTC** and there is no automatic refresh. After expiry, operators can enter independently verified route-specific rates as overrides; existing recorded costs are not repriced. Other provider-specific prices and saved operator overrides are separate. Missing used components remain unknown (`null`), not free, and pricing coverage remains under review.
+
+OpenCode's provider-reported `usage.cost` and Go allowance fields are not yet retained by the usage ledger. Consult the provider's dashboard for those amounts; an allowance reference is not a cash charge, and even a provider-reported amount can differ from the final charge.
+
 ## Storage and backup
 
 Configuration and active usage share SQLite at `${DATA_DIR}/db/data.sqlite`. Legacy `usage.json`/`db.json` are migration inputs, not current active storage. Keep an absolute `DATA_DIR` and back up the entire stopped installation, including secrets, auth keys and optional certificates. See [operations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md).

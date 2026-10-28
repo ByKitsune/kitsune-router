@@ -61,7 +61,6 @@ describe("gateway quota and account billing boundaries", () => {
     ["github", "gpt-5.6-sol", 2.22, 100000],
     ["ollama", "kimi-k3", 3.15, 1000000],
     ["clinepass", "cline-pass/qwen3.7-plus", 0.182, 100000],
-    ["opencode-go", "gpt-6-luna", 0.0555, 100000],
   ])("uses the exact published %s/%s token/credit reference as an estimate, not a marginal invoice", (provider, model, expected, prompt) => {
     const pricing = getPricingForModel(provider, model);
     expect(calculateCostFromTokens({ prompt_tokens: prompt, cached_tokens: prompt / 2, completion_tokens: 100000 }, pricing)).toBeCloseTo(expected, 12);
@@ -69,5 +68,13 @@ describe("gateway quota and account billing boundaries", () => {
     expect(billing.invoiceVerified).toBe(false);
     expect(billing.currency).toBe("USD");
     expect(billing.unit).toBe("per_1000000_tokens");
+  });
+
+  it("retains Go's tiered token reference only for quota estimates, not cash cost", () => {
+    const tokens = { prompt_tokens: 100000, cached_tokens: 50000, completion_tokens: 100000 };
+    const record = getReviewedModelMetadata("opencode-go", "gpt-6-luna");
+    expect(record.billing.referencePricing.tier).toMatchObject({ threshold: 272000, input: 0.2, output: 0.75 });
+    expect(calculateCostFromTokens(tokens, record.billing.referencePricing)).toBeCloseTo(0.0555, 12);
+    expect(calculateCostFromTokens(tokens, getPricingForModel("opencode-go", "gpt-6-luna"))).toBeNull();
   });
 });

@@ -12,7 +12,7 @@ The app first resolves aliases/combos and selects an account in `src/sse/`. `han
 
 ## Directory map
 
-- `config/` — ALL constants/config (no hardcode elsewhere). `providers.js`/`registry/` (provider defs), `providerModels.js` (alias→models matrix), `runtimeConfig.js` (timeouts, token limits), `*Constants.js`.
+- `config/` — ALL constants/config (no hardcode elsewhere). `providers.js` (provider exports), `providerModels.js` (derived alias→models view), `runtimeConfig.js` (timeouts, token limits), `*Constants.js`. Provider definitions and registry model rows live under `providers/registry/`; special TTS model/voice tables also come from `config/ttsModels.js`.
 - `translator/` — format conversion. `request/<from>-to-<to>.js`, `response/<from>-to-<to>.js`, `schema/` (enums: ROLE, CLAUDE_BLOCK…), `concerns/` (shared logic), `formats.js`+`formats/` (per-format). `index.js` is the registry/entry.
 - `executors/` — per-provider upstream call. `base.js` (BaseExecutor), one file per special provider, `index.js` map.
 - `providers/` — registry build + `capabilities.js` + `pricing.js`. Entry: `index.js` (PROVIDERS).
@@ -45,14 +45,15 @@ The app first resolves aliases/combos and selects an account in `src/sse/`. `han
 
 ## How to add
 
-- **Provider**: copy `providers/REGISTRY_TEMPLATE.js` → `providers/registry/{id}.js`; add models to `config/providerModels.js`. Generic providers need no executor (DefaultExecutor handles OpenAI-compatible APIs).
-- **Model**: add an ordered `PATTERN_CAPABILITIES` entry in `providers/capabilities.js` (specific before generic) + exact/pattern pricing in `providers/pricing.js`, then lock it with a case in `tests/unit/capabilities.test.js` (e.g. GPT-6 Astra: 1050000 ctx / 128000 out).
+- **Provider**: copy `providers/REGISTRY_TEMPLATE.js` → `providers/registry/{id}.js`, declare its models in that entry, and add its import and array entry to `providers/registry/index.js`. Preserve intentionally hidden entries. Generic providers need no executor (DefaultExecutor handles OpenAI-compatible APIs).
+- **Model**: add a static model to the provider's registry `models` list and update provider-scoped reviewed metadata, capabilities and pricing as appropriate. `providers/index.js` builds `PROVIDER_MODELS` from the registry plus special TTS tables; `config/providerModels.js` re-exports it. Add behavioral coverage, including `tests/unit/capabilities.test.js` where applicable.
+- **Identity metadata**: after changing provider identities, aliases or declared upstream model IDs, run `node scripts/generate-provider-identity.mjs` from the repository root and verify with `--check`. It generates `providers/identity.js` from the registered providers; it does not generate the registry index. Run the relevant provider/alias baselines after registry changes.
 - **Executor** (only for non-standard upstream): subclass `BaseExecutor` (override `getBaseUrls`/`buildHeaders`/`buildUrl`/`execute`), register in `executors/index.js` map. `getExecutor` falls back to `DefaultExecutor` when absent.
 - **Translator**: add `request|response/<from>-to-<to>.js` calling `register(...)`, then import it in `translator/index.js`. Reuse `schema/` + `concerns/` — don't re-implement parsing.
 
 ## Pitfalls
 
 - OpenAI bridge is lossy (thinking, non-base64 images, tool ids, is_error) — prefer a direct route for fragile pairs.
-- `registry/index.js` is an auto-generated static import list; regenerate it (don't hand-edit) after adding a `registry/{id}.js`. REGISTRY_TEMPLATE is excluded by design.
-- Special binary/protobuf formats (kiro EventStream, cursor protobuf, commandcode NDJSON) don't round-trip through OpenAI — handle in their executor.
+- `registry/index.js` is a checked-in static import list and array; keep both in sync when adding a provider. No checked-in index generator has been identified; the migration and display-injection scripts do not generate it. `REGISTRY_TEMPLATE` is outside the index by design.
+- Kiro EventStream and Cursor protobuf require executor-level coverage. CommandCode requests use the OpenAI-to-CommandCode translator; its executor decodes NDJSON into OpenAI SSE using the response translator, so test both boundaries.
 - `rtk/` + `headroom.js` mutate the request body in-place and are **fail-open**: any error returns null and leaves the body untouched — never throw out of them. RTK skips `is_error`/`status:"error"` tool results to preserve traces.

@@ -1,5 +1,31 @@
 # Registro de cambios
 
+## Sin publicar — seguimiento del código del 2026-10-29
+
+Estos cambios son de código fuente y están separados de los artefactos 1.0.2;
+no acreditan una publicación, despliegue, acceso real ni una factura.
+
+- GPT-6.1 Terra figura en los catálogos de OpenAI y Codex; la ruta de OpenAI
+  usa Responses para conservar las herramientas. Los precios API son estimaciones,
+  no facturas de Codex.
+- CommandCode usa cabeceras 1.88 y mantiene aisladas las sesiones traducidas,
+  conservando el mismo identificador durante los reintentos.
+- Se conservan los límites válidos de arrays de esquemas Google y se distingue
+  el error observado de contexto de Copilot de un agotamiento de cuota.
+- Las actualizaciones de uso confirmadas agrupan la recarga de estadísticas y
+  gráfico del período seleccionado; los datos anteriores conservan su etiqueta y
+  los errores permiten reintentar. Los detalles de solicitudes siguen por el flujo en vivo;
+  la causa original en el navegador no está confirmada.
+- La voz y los embeddings de Ollama Local requieren una conexión activa, con clave
+  API opcional. La voz usa WAV por defecto, admite PCM y WAV en JSON, y rechaza
+  MP3; las etiquetas y el catálogo de embeddings no prueban que estén instalados.
+- Eliminar tarifas genéricas sin ámbito reduce la cobertura futura: algunas rutas
+  antes numéricas pasan a desconocidas y el historial guardado no cambia. Las
+  referencias exactas por proveedor/modelo no son facturas; solo un pequeño grupo
+  de texto aporta estimaciones durante 24 horas desde la captura.
+
+[Revisión y límites del código](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up)
+
 ## Kitsune Router 1.0.2 — contenedor privado publicado; pull anónimo pendiente; npm bloqueado
 
 Tag inmutable **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merge `23375bf1`. SSH exacto: **9.041 aprobados, 100 omitidos, cero fallos de assertions/suites**; lint estricto, 18 tests docs/export estático, build app y pack pasaron. CI `40468830176` verde con árbol igual al tag. Smoke del tarball local, seis reinicios de contenedor y navegador pasaron en su alcance. Mock solo de `Date` del hijo, orden de producción intacto; log warning de npm publish, no pack.
@@ -26,7 +52,7 @@ El intento fallido no publicó npm/GHCR. Conserva tag, alcance y evidencia; el s
 
 > **Archivo:** lo siguiente conserva nombres, artefactos, URLs y pruebas ZenRouter originales. No son publicaciones Kitsune 0.x ni verifican la fuente actual. Usa [instalación actual](/es/getting-started/installation/), no comandos históricos. El trabajo Unreleased siguiente se registró antes de esta propuesta.
 
-## Sin publicar — conciliación de octubre
+## Histórico anterior al cambio de marca — conciliación de octubre
 
 - Corrige la recursión entre el wrapper fetch de Next.js y el transporte del gateway; recupera chat, renovación OAuth, uso y catálogo sin cambiar las políticas de cuentas o proxy.
 - Verifica las dependencias directas instaladas frente al lockfile antes de compilar o probar. Reinstala con `npm ci` para no empaquetar versiones antiguas de Next.js/Undici. Los artefactos 0.9.13 publicados no cambian.

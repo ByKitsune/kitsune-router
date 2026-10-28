@@ -1,6 +1,6 @@
 # Kitsune Router — historical audit & knowledge map
 
-> **Archive boundary:** these ZenRouter-era reports retain original names, package/artifact URLs, source hashes, operational paths and dated results. They are not current installation instructions or fresh Kitsune Router verification. Use [current docs](../INSTALLATION.md), [operations](../OPERATIONS.md) and [migration](../MIGRATION.md). Kitsune Router is maintained/sponsored by [ByKitsune](https://bykitsune.com); no hosted account is required.
+> **Archive boundary:** the ZenRouter-era reports retain original names, package/artifact URLs, source hashes, operational paths and dated results. They are not current installation instructions or fresh Kitsune Router verification. Later Kitsune-era source reviews have their own dates and evidence boundaries. Use [current docs](../INSTALLATION.md), [operations](../OPERATIONS.md) and [migration](../MIGRATION.md). Kitsune Router is maintained/sponsored by [ByKitsune](https://bykitsune.com); no hosted account is required.
 
 Audit snapshot: **2026-10-13** · commit `2c61f4f1` (`master`) · version **0.9.7**
 *(completed in two passes on the same commit — pass 2 filled in 04 + 06, verified key
@@ -41,6 +41,10 @@ subscription-billing guarantees.
 The [transport recovery follow-up](20-fetch-transport-recovery-2026-10.md)
 records the Next.js/global-fetch recursion incident, installed dependency drift,
 reproducible build checks and isolated deployment validation.
+
+The Kitsune-era [9Router upstream review and 2026-10-29 source follow-up](21-upstream-9router-2026-10-29.md)
+record selected adaptations, deferred work and evidence limits. They are not a
+claim that the reviewed source was released or deployed.
 
 ## Read in this order
 

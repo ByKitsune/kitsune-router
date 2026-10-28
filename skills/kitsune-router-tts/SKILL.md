@@ -1,6 +1,6 @@
 ---
 name: kitsune-router-tts
-description: Text-to-speech via Kitsune Router /v1/audio/speech using OpenAI / ElevenLabs / Deepgram / Edge TTS / Google TTS / Hyperbolic / Inworld voices. Use when the user wants to convert text to speech, generate audio, voiceover, narrate, or read text aloud.
+description: Text-to-speech via Kitsune Router /v1/audio/speech using OpenAI / ElevenLabs / Deepgram / Edge TTS / Google TTS / Hyperbolic / Inworld / Ollama Local. Use when the user wants to convert text to speech, generate audio, voiceover, narrate, or read text aloud.
 ---
 
 # Kitsune Router — Text-to-Speech
@@ -18,7 +18,7 @@ curl "$KITSUNE_ROUTER_URL/v1/models/info?id=el/eleven_multilingual_v2"
 curl "$KITSUNE_ROUTER_URL/v1/audio/voices?provider=edge-tts&lang=vi" | jq '.data[].model'
 ```
 
-`model` field in `/v1/audio/speech` = voice ID directly (e.g. `edge-tts/vi-VN-HoaiMyNeural`, `el/<voice_id>`, or `openai/tts-1` model+default voice).
+The `model` field selects a provider route; its model/voice convention depends on the provider (e.g. `edge-tts/vi-VN-HoaiMyNeural`, `el/<voice_id>`, or `openai/tts-1`). For Ollama Local it can be a model tag such as `ollama-local/phonon:en`, with an optional separate `voice` field. Discovery lists selectable candidates, not proof a model is installed.
 
 ## Endpoint
 
@@ -26,10 +26,16 @@ curl "$KITSUNE_ROUTER_URL/v1/audio/voices?provider=edge-tts&lang=vi" | jq '.data
 
 | Field | Required | Notes |
 |---|---|---|
-| `model` | yes | voice ID from `/v1/models/tts` |
+| `model` | yes | Provider-qualified model or voice route; conventions vary by provider |
 | `input` | yes | text to speak |
+| `voice` | no | Provider-specific voice; Ollama Local accepts a non-empty voice string |
+| `response_format` | no | Ollama Local body format: `wav`, `pcm`, or `json`; see precedence below |
 
-Query `?response_format=mp3` (default, raw bytes) or `?response_format=json` (`{audio: base64, format}`).
+For Ollama Local, the query parameter `?response_format=...` takes precedence over the body field. With neither set, the public route returns WAV bytes. `pcm` returns raw PCM bytes; `json` returns `{audio: base64, format: "wav"}`. Explicit `mp3` is rejected rather than mislabeled. Other providers use the legacy route's MP3 default and query-format behavior; supported formats vary by adapter.
+
+Ollama Local requires an active registered connection, although its API key is optional. Configure the Ollama endpoint on that connection and install the selected tag on the server; listing it does not install it. Redirects are refused, and a configured relay that cannot enforce redirect refusal is rejected.
+
+For internal callers, `handleTtsCore` is not the public Ollama route: it defaults to MP3 and does not pass through the public route's `voice`, cancellation signal, `speed`, or `instructions`. Explicit WAV is the tested internal path.
 
 ## Examples
 
@@ -41,6 +47,16 @@ curl -X POST "$KITSUNE_ROUTER_URL/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{"model":"openai/tts-1","input":"Hello world"}' \
   --output speech.mp3
+```
+
+Save WAV from an installed Ollama Local model (with an active connection):
+
+```bash
+curl -fS -X POST "$KITSUNE_ROUTER_URL/v1/audio/speech" \
+  -H "Authorization: Bearer $KITSUNE_ROUTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ollama-local/phonon:en","input":"Hello world","voice":"default"}' \
+  --output speech.wav
 ```
 
 JS (save file):
@@ -57,11 +73,11 @@ await writeFile("speech.mp3", Buffer.from(await r.arrayBuffer()));
 
 ## Response shape
 
-Default → raw audio bytes (Content-Type `audio/mp3`).
+Ollama Local default → raw WAV bytes (Content-Type `audio/wav`). Other providers default to MP3 at the route; the returned format depends on adapter support.
 
-`?response_format=json`:
+Ollama Local `?response_format=json`:
 ```json
-{ "audio": "SUQzBAAAA...", "format": "mp3" }
+{ "audio": "<base64-encoded WAV>", "format": "wav" }
 ```
 
 ## Provider quirks (model format)
@@ -78,3 +94,4 @@ Default → raw audio bytes (Content-Type `audio/mp3`).
 | `nvidia`, `inworld`, `cartesia`, `playht` | `model/voice` | Provider-specific auth header |
 | `coqui`, `tortoise` | speaker / voice id | Localhost noAuth |
 | `hyperbolic` | model id | Body = `{text}` only |
+| `ollama-local` | model tag, e.g. `phonon:en`; optional body `voice` | Active registered connection required; API key optional; WAV default, PCM or JSON; MP3 rejected |

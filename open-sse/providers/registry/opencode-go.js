@@ -1,3 +1,9 @@
+import { BRAND } from "../../../branding/identity.mjs";
+
+// https://opencode.ai/v2/docs/console/go/#where-can-i-use-it
+// This identifies the router, not an OpenCode/free-tier client fingerprint.
+const routerHeaders = Object.freeze({ "User-Agent": BRAND.binary });
+
 export default {
   id: "opencode-go",
   priority: 210,
@@ -13,25 +19,29 @@ export default {
     textIcon: "OC",
     website: "https://opencode.ai/auth",
     notice: {
-      text: "OpenCode Go: $10/month; Go Plus: $40/month. Model token reference rates measure subscription quota, not separate API charges.",
+      text: "OpenCode Go: $10/month; Go Plus: $40/month. Token reference rates measure plan quota, not per-request cash charges. If enabled and Console credits are available, Extra Usage can draw from the balance after plan limits are reached. https://opencode.ai/v2/docs/console/go/",
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },
   category: "apikey",
   transport: {
     baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
-    headers: {},
+    headers: routerHeaders,
   },
   // Multi-endpoint: pick the transport matching the client sourceFormat to skip
   // translation. Guarded per-model by `supportedFormats` (see chatCore) because
   // opencode-go models differ in endpoint support.
   transports: [
-    { format: "openai", baseUrl: "https://opencode.ai/zen/go/v1/chat/completions", auth: { combined: true, header: "Authorization", scheme: "bearer" } },
-    { format: "claude", baseUrl: "https://opencode.ai/zen/go/v1/messages", auth: { combined: true, header: "x-api-key", scheme: "raw", anthropicVersion: true } },
-    { format: "openai-responses", baseUrl: "https://opencode.ai/zen/go/v1/responses", auth: { combined: true, header: "Authorization", scheme: "bearer" } },
+    { format: "openai", baseUrl: "https://opencode.ai/zen/go/v1/chat/completions", headers: routerHeaders, auth: { combined: true, header: "Authorization", scheme: "bearer" } },
+    { format: "claude", baseUrl: "https://opencode.ai/zen/go/v1/messages", headers: routerHeaders, auth: { combined: true, header: "x-api-key", scheme: "raw", anthropicVersion: true } },
+    { format: "openai-responses", baseUrl: "https://opencode.ai/zen/go/v1/responses", headers: routerHeaders, auth: { combined: true, header: "Authorization", scheme: "bearer" } },
   ],
   models: [
     { id: "glm-5.3-flash", name: "GLM 5.3 Flash (Vision)", supportedFormats: ["openai"] },
+    // 9Router 2aa99d9f; ID and native Chat lane rechecked against
+    // https://opencode.ai/v2/docs/console/go/ and the captured catalog. The
+    // configured /zen endpoint's live compatibility and account access are unverified.
+    { id: "glm-5.3", name: "GLM 5.3", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "glm-5.2", name: "GLM 5.2", supportedFormats: ["openai"] },
     { id: "glm-5.1", name: "GLM 5.1", supportedFormats: ["openai"] },
     { id: "kimi-k2.7-code", name: "Kimi K2.7 Code", supportedFormats: ["openai"] },
@@ -59,6 +69,8 @@ export default {
     { id: "longcat-2.5-preview-free", name: "LongCat 2.5 Preview Free", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "space-bunny-free", name: "Space Bunny Free", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "kimi-k3", name: "Kimi K3", targetFormat: "openai", supportedFormats: ["openai"] },
+    // 9Router 5cd4a756; exact ID and Chat lane in OpenCode Go's model table.
+    { id: "kimi-k3.1-pro", name: "Kimi K3.1 Pro", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", targetFormat: "openai", supportedFormats: ["openai"] },
   ],
 };

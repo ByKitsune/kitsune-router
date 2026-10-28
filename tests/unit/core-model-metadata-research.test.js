@@ -74,18 +74,36 @@ describe("provider-scoped primary-evidence core metadata shard", () => {
 
   it("is a standalone finite factual shard with explicit sources on every record", () => {
     expect(Object.keys(core).sort()).toEqual(["anthropic", "claude", "codex", "gemini", "gemini-cli", "grok-cli", "openai", "xai"]);
-    for (const records of Object.values(core)) {
-      for (const record of Object.values(records)) {
+    for (const [provider, records] of Object.entries(core)) {
+      for (const [model, record] of Object.entries(records)) {
         expect(record.sources.length).toBeGreaterThan(0);
         if (record.sources.includes("https://models.dev/api.json")) {
           // Check imported factual records, not JSON parsed out of JavaScript
           // source text. Derived aliases may retain the underlying snapshot's
           // date, while the cross-check itself is pinned independently.
-          expect(record.provenance.catalogCrosscheck).toMatchObject({
-            commit: "020f86d1b0970fe421c5dd7baec94478879d9756",
-            sha256: "079175d89430bbf5ee2a0e271ced1ad4b4d1cf529fdbd0a5db50bb2e857e90a8",
-          });
-          if (record.limits.catalogModelId) expect(record.limits.catalogAsOf).toBe("2026-10-21");
+          if (provider === "openai" && model === "gpt-6.1-terra") {
+            expect(record.provenance.catalogCrosscheck).toMatchObject({
+              url: "https://models.dev/api.json", snapshotDate: "2026-10-29",
+              sha256: "bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f",
+            });
+            expect(record.provenance.modelPage).toMatchObject({
+              url: "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md",
+              capturedAtUtc: "2026-10-28T18:02:00Z",
+              sha256: "cd34faa8904d85961ab5fe270f079b8be45a9c876af6c809b38b2c069f687a7a",
+            });
+            expect(record.provenance.primaryPricing).toMatchObject({
+              url: "https://developers.openai.com/api/docs/pricing.md",
+              capturedAtUtc: "2026-10-28T18:02:28Z",
+              sha256: "93d302a9b7a384877533bc3ab5bb48eebf4b56bd6add0f194095054b2a13f952",
+            });
+            expect(record.limits).toMatchObject({ catalogProvider: "openai", catalogModelId: model, catalogAsOf: "2026-10-29" });
+          } else {
+            expect(record.provenance.catalogCrosscheck).toMatchObject({
+              commit: "020f86d1b0970fe421c5dd7baec94478879d9756",
+              sha256: "079175d89430bbf5ee2a0e271ced1ad4b4d1cf529fdbd0a5db50bb2e857e90a8",
+            });
+            if (record.limits.catalogModelId) expect(record.limits.catalogAsOf).toBe("2026-10-21");
+          }
         }
         expect(record.billing).toHaveProperty("kind");
         const check = value => {

@@ -3,13 +3,15 @@
  */
 
 import { checkFallbackError, classifyAvailabilityError, extractResetsAtMs, formatRetryAfter } from "./accountFallback.js";
-import { FALLBACK_SCOPE } from "../config/errorConfig.js";
+import { FALLBACK_SCOPE, NON_RETRYABLE_ROUTER_CODES } from "../config/errorConfig.js";
 import { createErrorResult, errorResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 import { isOpenAIResponsesTerminalEvent } from "../utils/responsesStreamHelpers.js";
 import { extractReasoningText } from "../translator/concerns/reasoning.js";
+import { CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
 import { cloneRequestBody } from "../utils/requestBody.js";
+import { createSSEParser } from "../utils/sse.js";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -18,40 +20,6 @@ const HARD_CAPS = new Set(["vision", "pdf", "audioInput", "videoInput"]);
 // Prefixes used when flattening tool turns into plain prose for panel models.
 const TOOL_CALL_PREFIX = "[Called tools: ";
 const TOOL_RESULT_PREFIX = "[Tool result: ";
-
-function hasMeaningfulSseData(text) {
-  return String(text || "").split("\n").some(line => frameCarriesContent(line.trim()));
-}
-
-async function rejectFastEmptyStream(response, timeoutMs = 150) {
-  const contentType = response.headers?.get?.("content-type") || "";
-  if (!response.body || !contentType.includes("text/event-stream")) return response;
-
-  const [probe, client] = response.body.tee();
-  const probeResult = (async () => {
-    const reader = probe.getReader();
-    const decoder = new TextDecoder();
-    let text = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) return { empty: !hasMeaningfulSseData(text) };
-      text += decoder.decode(value, { stream: true });
-      if (hasMeaningfulSseData(text)) return { empty: false };
-    }
-  })();
-  const timed = await Promise.race([
-    probeResult,
-    new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), timeoutMs)),
-  ]);
-  if (timed.timedOut) {
-    await probe.cancel().catch(() => {});
-    return new Response(client, { status: response.status, statusText: response.statusText, headers: response.headers });
-  }
-  if (timed.empty) {
-    return errorResponse(503, "Upstream returned an empty stream", { code: "empty_stream" });
-  }
-  return new Response(client, { status: response.status, statusText: response.statusText, headers: response.headers });
-}
 
 // Flatten tool turns into prose so panel models keep the context but can't loop
 // on tools: drop the request's tools, turn tool/function results into assistant
@@ -409,53 +377,136 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {Object} options
  * @param {Object} options.body - Request body
  * @param {string[]} options.models - Array of model strings to try
- * @param {Function} options.handleSingleModel - Function to handle single model: (body, modelStr) => Promise<Response>
+ * @param {Function} options.handleSingleModel - Function to handle a model: (body, modelStr) => Promise<Response>
  * @param {Object} options.log - Logger object
  * @param {string} [options.comboName] - Name of the combo (for round-robin tracking)
  * @param {string} [options.comboStrategy] - Strategy: "fallback" or "round-robin"
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
+ * @param {AbortSignal} [options.signal] - Caller cancellation; attempts must also observe the caller's signal
  * @returns {Promise<Response>}
  */
 
 const SSE_CONTENT_TYPE = "text/event-stream";
 const PEEK_MAX_BYTES = 256 * 1024;
+const PEEK_MAX_CHUNKS = 1024;
+const PEEK_TIMEOUT_MS = 150;
+const PEEK_CANCEL_GRACE_MS = 150;
+const CALLER_ABORTED = Symbol("combo caller aborted");
 
-function frameCarriesContent(line) {
-  if (!line.startsWith("data:")) return false;
-  const payload = line.slice(5).trim();
+function cancelledResponse() {
+  return errorResponse(499, "Client Closed Request", { code: "client_aborted" });
+}
+
+function reportCancellationError(error) {
+  if (error?.code === "usage_acceptance_failed") {
+    console.error("[COMBO] Cancellation accounting could not be accepted");
+  }
+}
+
+async function waitForCaller(promise, signal) {
+  if (!signal) return promise;
+  let onAbort;
+  const aborted = new Promise(resolve => {
+    onAbort = () => resolve(CALLER_ABORTED);
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  try { return await Promise.race([promise, aborted]); }
+  finally { signal.removeEventListener("abort", onAbort); }
+}
+
+function discardResponse(response, reason) {
+  try { void response?.body?.cancel(reason).catch(reportCancellationError); }
+  catch (error) { reportCancellationError(error); }
+}
+
+function terminalResponse(response, { removeRetryAfter = false } = {}) {
+  const headers = new Headers(response.headers);
+  headers.set("x-should-retry", "false");
+  if (removeRetryAfter) headers.delete("retry-after");
+  const exposed = headers.get("access-control-expose-headers");
+  // Fetch treats "*" as a literal name on credentialed CORS requests, so the
+  // terminal header must be listed explicitly even alongside a wildcard.
+  if (!exposed?.split(",").some(value => value.trim().toLowerCase() === "x-should-retry")) {
+    headers.set("access-control-expose-headers", exposed ? `${exposed}, x-should-retry` : "x-should-retry");
+  }
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+function waitForComboDelay(ms, signal) {
+  return new Promise(resolve => {
+    const finish = result => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      resolve(result);
+    };
+    const onAbort = () => finish(false);
+    const timer = setTimeout(() => finish(true), ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+  });
+}
+
+function frameCarriesContent(event) {
+  const payload = event.data.trim();
+  if (event.event === "error") return true;
   if (!payload || payload === "[DONE]") return false;
 
   let parsed;
   try {
     parsed = JSON.parse(payload);
   } catch {
-    return false;
+    return true; // Unknown data must reach the client, not trigger a retry.
   }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return true;
 
-  if (parsed.error || isOpenAIResponsesTerminalEvent(null, parsed)) return true;
+  const type = event.event || parsed.type;
+  if (parsed.error || isOpenAIResponsesTerminalEvent(type, parsed)) return true;
   if (hasIncurredUsage(parsed.usage) || hasIncurredUsage(parsed.response?.usage) ||
-      hasIncurredUsage(parsed.usageMetadata) || hasIncurredUsage(parsed.response?.usageMetadata)) return true;
+      hasIncurredUsage(parsed.message?.usage) || hasIncurredUsage(parsed.usageMetadata) ||
+      hasIncurredUsage(parsed.response?.usageMetadata)) return true;
 
-  const delta = parsed.choices?.[0]?.delta;
-  if (nonEmptyString(delta?.content)) return true;
-  if (extractReasoningText(delta) || nonEmptyString(delta?.refusal)) return true;
-  if (delta?.tool_calls?.length || delta?.function_call) return true;
-
-  if (parsed.type === "content_block_delta") {
-    const d = parsed.delta;
-    if (nonEmptyString(d?.text) || nonEmptyString(d?.partial_json) || nonEmptyString(d?.thinking)) return true;
+  for (const choice of Array.isArray(parsed.choices) ? parsed.choices : []) {
+    const delta = choice?.delta;
+    if (nonEmptyString(delta?.content) || extractReasoningText(delta) || nonEmptyString(delta?.refusal)) return true;
+    if (delta?.reasoning_details?.length || delta?.provider_specific_fields?.reasoning_details?.length) return true;
+    if (delta?.tool_calls?.length || delta?.function_call || delta?.images?.length || delta?.audio) return true;
+    if (["network_error", "error", "server_error", "timeout"].includes(choice?.native_finish_reason || choice?.finish_reason)) return true;
   }
-  if (parsed.type === "content_block_start" && parsed.content_block?.type === "tool_use") return true;
 
-  if (typeof parsed.type === "string" && parsed.type.endsWith(".delta") && nonEmptyString(parsed.delta)) return true;
+  if (type === "content_block_delta") {
+    const d = parsed.delta;
+    if (nonEmptyString(d?.text) || nonEmptyString(d?.partial_json) || nonEmptyString(d?.thinking) || nonEmptyString(d?.signature)) return true;
+  }
+  if (type === "content_block_start") {
+    const block = parsed.content_block;
+    if (block?.type === CLAUDE_BLOCK.TOOL_USE || block?.type === CLAUDE_BLOCK.SERVER_TOOL_USE) return true;
+    if (block?.type === CLAUDE_BLOCK.REDACTED_THINKING && nonEmptyString(block.data)) return true;
+    if (block?.type === CLAUDE_BLOCK.THINKING && (nonEmptyString(block.thinking) || nonEmptyString(block.signature))) return true;
+  }
 
-  const parts = (parsed.candidates || parsed.response?.candidates)?.[0]?.content?.parts;
-  if (Array.isArray(parts) && parts.some(p => nonEmptyString(p?.text) || p?.functionCall || p?.inlineData)) return true;
+  if (type === "response.output_item.added" && [RESPONSES_ITEM.FUNCTION_CALL, RESPONSES_ITEM.CUSTOM_TOOL_CALL].includes(parsed.item?.type)) return true;
+  if (type === "response.output_item.added" && parsed.item?.type === RESPONSES_ITEM.REASONING && nonEmptyString(parsed.item.encrypted_content)) return true;
+  if (typeof type === "string" && type.endsWith(".delta") && nonEmptyString(parsed.delta)) return true;
+
+  const candidates = parsed.candidates || parsed.response?.candidates;
+  if (Array.isArray(candidates) && candidates.some(candidate =>
+    Array.isArray(candidate?.content?.parts) && candidate.content.parts.some(part => nonEmptyString(part?.text) || part?.functionCall || part?.inlineData))) return true;
 
   if (nonEmptyString(parsed.message?.content) || nonEmptyString(parsed.response)) return true;
   if (parsed.message?.tool_calls?.length) return true;
 
   return false;
+}
+
+function frameProvesEmptyTermination(event) {
+  if (event.data.trim() === "[DONE]") return true;
+  if (event.event === "message_stop") return true;
+  try {
+    const parsed = JSON.parse(event.data);
+    return parsed?.type === "message_stop" || (Array.isArray(parsed?.choices) &&
+      parsed.choices.some(choice => choice?.finish_reason === "stop"));
+  } catch { return false; }
 }
 
 function nonEmptyString(v) {
@@ -469,94 +520,147 @@ function hasIncurredUsage(usage) {
     .some(key => Number.isFinite(Number(usage[key])) && Number(usage[key]) > 0);
 }
 
-export async function peekStreamForContent(response, timeoutMs = 45000) {
-  const contentType = response?.headers?.get?.("content-type") || "";
+export async function peekStreamForContent(response, timeoutMs = PEEK_TIMEOUT_MS, { signal } = {}) {
+  const contentType = (response?.headers?.get?.("content-type") || "").toLowerCase();
   if (!contentType.includes(SSE_CONTENT_TYPE) || !response?.body) {
     return { hasContent: true, body: response?.body };
   }
 
   const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+  const parser = createSSEParser({ maxEventChars: PEEK_MAX_BYTES });
   const bufferedChunks = [];
   let bufferedBytes = 0;
-  let textBuffer = "";
   let hasContent = false;
+  let emptyTerminal = false;
+  let ended = false;
+  let pendingRead = null;
+  let readError = null;
+  let readerReleased = false;
+  let cancellation;
+  const releaseReader = () => {
+    if (readerReleased) return;
+    try { reader.releaseLock(); readerReleased = true; } catch {}
+  };
+  const cancelReader = reason => {
+    if (cancellation) return cancellation;
+    let work;
+    try { work = reader.cancel(reason); } catch (error) { work = Promise.reject(error); }
+    // Cancelling resolves pending reads before its underlying cleanup settles.
+    // Release the lock now; do not let a broken source hold the caller forever.
+    releaseReader();
+    let timer;
+    let detached = false;
+    const pending = Promise.resolve(work);
+    void pending.catch(error => {
+      if (detached) reportCancellationError(error);
+    });
+    const grace = new Promise(resolve => { timer = setTimeout(() => { detached = true; resolve(); }, PEEK_CANCEL_GRACE_MS); });
+    cancellation = Promise.race([pending, grace]).finally(() => { clearTimeout(timer); releaseReader(); });
+    return cancellation;
+  };
+  let timerId;
+  const expired = Symbol("combo peek deadline");
+  const deadline = new Promise(resolve => { timerId = setTimeout(() => resolve(expired), timeoutMs); });
+  const inspect = events => {
+    for (const event of events) {
+      if (frameCarriesContent(event)) { hasContent = true; break; }
+      if (frameProvesEmptyTermination(event)) emptyTerminal = true;
+    }
+  };
 
-  const readPromise = (async () => {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        if (textBuffer.trim()) {
-          const lines = textBuffer.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed && frameCarriesContent(trimmed)) {
-              hasContent = true;
-              break;
-            }
-          }
-        }
+  try {
+    while (bufferedBytes < PEEK_MAX_BYTES && bufferedChunks.length < PEEK_MAX_CHUNKS) {
+      if (signal?.aborted) break;
+      pendingRead = reader.read();
+      const result = await waitForCaller(Promise.race([pendingRead, deadline]), signal);
+      if (result === expired || result === CALLER_ABORTED || signal?.aborted) break;
+      pendingRead = null;
+      if (result.done) {
+        ended = true;
+        inspect(parser.end());
         break;
       }
-
-      bufferedChunks.push(value);
-      bufferedBytes += value.byteLength;
-      textBuffer += decoder.decode(value, { stream: true });
-
-      const lines = textBuffer.split("\n");
-      textBuffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && frameCarriesContent(trimmed)) {
-          hasContent = true;
-          break;
-        }
-      }
-
-      if (hasContent || bufferedBytes >= PEEK_MAX_BYTES) break;
+      bufferedChunks.push(result.value);
+      const remaining = PEEK_MAX_BYTES - bufferedBytes;
+      bufferedBytes += result.value.byteLength;
+      inspect(parser.feed(result.value.subarray(0, remaining)));
+      if (hasContent) break;
     }
-  })();
-
-  let timerId = null;
-  const timeoutPromise = new Promise((resolve) => {
-    timerId = setTimeout(resolve, timeoutMs);
-  });
-  await Promise.race([readPromise, timeoutPromise]);
-  if (timerId) clearTimeout(timerId);
-
-  // If timed out without any content, abort reader immediately to prevent background runaway/leak
-  if (!hasContent) {
-    try { await reader.cancel(new Error("peekStreamForContent timeout")); } catch {}
+  } catch (error) {
+    readError = error;
+  } finally {
+    clearTimeout(timerId);
+    parser.reset();
   }
 
+  if (signal?.aborted) {
+    void cancelReader(signal.reason).catch(reportCancellationError);
+    return { aborted: true, body: null };
+  }
+
+  // A deadline, byte limit or read error is not evidence of an empty answer.
+  // Keep the outstanding read and replay the exact bytes with downstream demand.
+  let index = 0;
+  let finished = false;
+  let onReplayAbort;
+  const finish = () => {
+    finished = true;
+    signal?.removeEventListener("abort", onReplayAbort);
+    releaseReader();
+  };
   const replayedStream = new ReadableStream({
-    async start(controller) {
-      for (const chunk of bufferedChunks) {
-        controller.enqueue(chunk);
-      }
+    start(controller) {
+      onReplayAbort = () => {
+        if (finished) return;
+        finished = true;
+        signal.removeEventListener("abort", onReplayAbort);
+        controller.error(signal.reason || new Error("Client closed request"));
+        void cancelReader(signal.reason).catch(reportCancellationError);
+      };
+      signal?.addEventListener("abort", onReplayAbort, { once: true });
+      if (signal?.aborted) onReplayAbort();
     },
     async pull(controller) {
       try {
-        const { done, value } = await reader.read();
+        if (finished) return;
+        if (index < bufferedChunks.length) {
+          const chunk = bufferedChunks[index];
+          bufferedChunks[index++] = null;
+          controller.enqueue(chunk);
+          return;
+        }
+        if (readError) throw readError;
+        if (ended) { finish(); controller.close(); return; }
+        const read = pendingRead || reader.read();
+        pendingRead = null;
+        const { done, value } = await read;
+        if (finished) return;
         if (done) {
+          finish();
           controller.close();
         } else {
           controller.enqueue(value);
         }
       } catch (err) {
+        if (finished) return;
+        finish();
         controller.error(err);
       }
     },
-    async cancel(reason) {
-      try { await reader.cancel(reason); } catch {}
+    cancel(reason) {
+      if (finished) return;
+      finished = true;
+      signal?.removeEventListener("abort", onReplayAbort);
+      return cancelReader(reason);
     }
-  });
+  }, { highWaterMark: 0 });
 
-  return { hasContent, body: replayedStream };
+  // An unmarked EOF may be a client disconnect; do not retry paid work on a
+  // guess. A completed empty stream remains eligible for normal fallback.
+  return { hasContent: hasContent || !ended || !emptyTerminal || !!readError, body: replayedStream };
 }
 
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, modelCapabilities = null }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, modelCapabilities = null, signal = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -578,6 +682,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   let lastResponse = null;
 
   for (let i = 0; i < rotatedModels.length; i++) {
+    if (signal?.aborted) return cancelledResponse();
     const modelStr = rotatedModels[i];
     log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
@@ -585,25 +690,46 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // Clone body so in-place mutations in downstream handlers/translators
       // don't corrupt the request for subsequent fallback models (#3619).
       const modelBody = cloneRequestBody(body);
-      const rawResult = await handleSingleModel(modelBody, modelStr);
-      let result = rawResult?.ok ? await rejectFastEmptyStream(rawResult) : rawResult;
+      const attempt = Promise.resolve().then(() => signal?.aborted ? CALLER_ABORTED : handleSingleModel(modelBody, modelStr));
+      let result = await waitForCaller(attempt, signal);
+      if (result === CALLER_ABORTED || signal?.aborted) {
+        if (result !== CALLER_ABORTED) discardResponse(result, signal?.reason);
+        else void attempt.then(response => discardResponse(response, signal.reason)).catch(() => {});
+        return cancelledResponse();
+      }
+
+      // Preserve the attempt's terminal decision even if later error
+      // classification would otherwise replace its response.
+      const noRetry = result.headers?.get("x-should-retry") === "false";
       
       // Success (2xx) - return response
       if (result.ok) {
         // Empty-stream guard (#3463): verify the stream actually carries content before returning success
-        const peek = await peekStreamForContent(result);
-        if (peek.hasContent) {
-          log.info("COMBO", `Model ${modelStr} succeeded`);
-          return new Response(peek.body, {
+        const peek = await peekStreamForContent(result, PEEK_TIMEOUT_MS, { signal });
+        if (peek.aborted || signal?.aborted) {
+          discardResponse(peek.body ? { body: peek.body } : null, signal?.reason);
+          return cancelledResponse();
+        }
+        if (peek.hasContent || noRetry) {
+          if (peek.hasContent) log.info("COMBO", `Model ${modelStr} succeeded`);
+          else log.warn("COMBO", `Model ${modelStr} returned a terminal empty stream`);
+          const response = new Response(peek.body, {
             status: result.status,
             statusText: result.statusText,
             headers: result.headers,
           });
+          return noRetry ? terminalResponse(response) : response;
         }
         log.warn("COMBO", `Model ${modelStr} returned empty stream (no content frames) -> trying next model`);
-        try { await peek.body?.cancel?.(new Error("combo empty stream")); } catch {}
-        try { await result?.body?.cancel?.(new Error("combo empty stream")); } catch {}
-        continue;
+        try { await peek.body?.cancel?.(new Error("combo empty stream")); }
+        catch (error) {
+          if (error?.code === "usage_acceptance_failed") {
+            return errorResponse(503, error.message, { code: error.code });
+          }
+        }
+        if (signal?.aborted) return cancelledResponse();
+        // Preserve the existing empty-stream diagnostic and normal fallback rules.
+        result = errorResponse(503, "Upstream returned an empty stream", { code: "empty_stream" });
       }
 
       // Extract error info from response
@@ -612,7 +738,11 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       let errorType = null;
       let retryAfter = null;
       try {
-        const errorBody = await result.clone().json();
+        const errorBody = await waitForCaller(result.clone().json(), signal);
+        if (errorBody === CALLER_ABORTED || signal?.aborted) {
+          discardResponse(result, signal?.reason);
+          return cancelledResponse();
+        }
         errorText = errorBody?.error?.message || errorBody?.error || errorBody?.message || errorText;
         const code = errorBody?.error?.code ?? errorBody?.code;
         if (typeof code === "string") errorCode = code;
@@ -625,6 +755,10 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       } catch {
         // Ignore JSON parse errors
       }
+      if (signal?.aborted) {
+        discardResponse(result, signal.reason);
+        return cancelledResponse();
+      }
 
 
       // Normalize error text to string (Worker-safe)
@@ -635,6 +769,11 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // Preserve structured diagnostics for model-dependent request failures,
       // without reclassifying them as account faults or changing the response.
       const errorEvidence = { message: errorText, code: errorCode, type: errorType };
+      // Older/internal producers may omit the terminal header or include a
+      // conflicting retry time. Preserve their code, publish the terminal
+      // decision to clients and do not synthesize a retry time.
+      if (errorCode && NON_RETRYABLE_ROUTER_CODES.has(errorCode.trim().toLowerCase())) return terminalResponse(result, { removeRetryAfter: true });
+      if (noRetry) return terminalResponse(result);
       const availability = classifyAvailabilityError(result.status, errorText, errorEvidence);
       if ((availability.kind || result.status === 503) && retryAfter && (!earliestRetryAfter || Date.parse(retryAfter) < Date.parse(earliestRetryAfter))) earliestRetryAfter = retryAfter;
       const reset = availability.kind || result.status === 503 ? extractResetsAtMs(result, errorText) : null;
@@ -655,7 +794,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       if (!availability.kind && !reset && cooldownMs && cooldownMs > 0 && cooldownMs <= 5000 &&
           (result.status === 503 || result.status === 502 || result.status === 504)) {
         log.info("COMBO", `Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
-        await new Promise(r => setTimeout(r, cooldownMs));
+        if (!await waitForComboDelay(cooldownMs, signal)) return cancelledResponse();
       }
 
       // Fallback to next model
@@ -664,6 +803,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       lastResponse = result;
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
     } catch (error) {
+      if (signal?.aborted) return cancelledResponse();
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       lastStatus = 503;

@@ -222,7 +222,7 @@
     "format": "commandcode",
     "forceStream": true,
     "headers": {
-      "x-command-code-version": "1.86.3",
+      "x-command-code-version": "1.88.0",
       "User-Agent": "cli",
       "x-cli-environment": "production"
     }
@@ -734,12 +734,17 @@
   },
   "opencode-go": {
     "baseUrl": "https://opencode.ai/zen/go/v1/chat/completions",
-    "headers": {},
+    "headers": {
+      "User-Agent": "kitsune-router"
+    },
     "format": "openai",
     "transports": [
       {
         "format": "openai",
         "baseUrl": "https://opencode.ai/zen/go/v1/chat/completions",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
         "auth": {
           "combined": true,
           "header": "Authorization",
@@ -749,6 +754,9 @@
       {
         "format": "claude",
         "baseUrl": "https://opencode.ai/zen/go/v1/messages",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
         "auth": {
           "combined": true,
           "header": "x-api-key",
@@ -759,6 +767,9 @@
       {
         "format": "openai-responses",
         "baseUrl": "https://opencode.ai/zen/go/v1/responses",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
         "auth": {
           "combined": true,
           "header": "Authorization",

@@ -20,9 +20,11 @@ import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "o
 import { classifyAvailabilityError } from "open-sse/services/accountFallback.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy, getCapacityAdapterModels } from "open-sse/services/capacityAdapter.js";
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
+import { findClaudeToolAddition, isGoKimiDeferredToolRoute } from "open-sse/translator/index.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { correlateResponse } from "../utils/requestCorrelation.js";
 import { detectFormatByEndpoint, FORMATS } from "open-sse/translator/formats.js";
+import { detectFormat } from "open-sse/services/provider.js";
 import { ANTIGRAVITY_RETIRED_FLASH_IDS, ANTIGRAVITY_RETIRED_MODEL_ERROR } from "open-sse/config/antigravity.js";
 import { stripThinkingSuffix } from "open-sse/translator/concerns/thinkingUnified.js";
 import { resolveSessionId } from "open-sse/utils/sessionManager.js";
@@ -60,6 +62,80 @@ function withRateLimitHeaders(response, limitInfo) {
   }
 }
 
+// A shortcut runs before model selection. Resolve only shortcut-shaped Claude
+// requests carrying additions so saved aliases, combos, and eligible capacity
+// adapters cannot hide a Go Kimi validation error. Ordinary shortcuts retain
+// their existing fast path, and unrelated models retain their shortcut result.
+async function shortcutMaySelectGoKimi(modelStr, body, settings, signal) {
+  if (typeof modelStr !== "string") return false;
+  const required = detectRequiredCapabilities(body);
+  const pool = getCapacityAdapterModels(settings, required);
+  const pending = [{ model: modelStr, root: true }];
+  const visited = new Set();
+  while (pending.length && !signal?.aborted) {
+    const { model, root } = pending.pop();
+    if (typeof model !== "string" || visited.has(model)) continue;
+    visited.add(model);
+    const combo = await getComboModels(model);
+    if (signal?.aborted) return false;
+    const base = combo || [model];
+    const comboOptions = settings.comboStrategies?.[model];
+    const fusion = !!combo && (comboOptions?.fallbackStrategy || settings.comboStrategy || "fallback") === "fusion";
+    let candidates = base;
+    if (fusion) {
+      // Mirror fusion's input-modality panel filter. If it leaves one panel
+      // member, the configured judge is not called at all.
+      const media = [...required].filter(cap => ["vision", "pdf", "audioInput", "videoInput"].includes(cap));
+      if (media.length) {
+        const caps = await resolveModelCapabilities([...base, ...pool]);
+        if (signal?.aborted) return false;
+        const capable = base.filter(candidate => media.every(cap => caps.get(candidate)?.[cap] === true));
+        if (capable.length) candidates = capable;
+      }
+    }
+    // Fusion uses its original panel, not the augmented capacity-adapter list.
+    if (!fusion && pool.length && (root || combo)) {
+      const caps = await resolveModelCapabilities([...base, ...pool]);
+      if (signal?.aborted) return false;
+      candidates = augmentModelsWithCapacityAdapter(base, required, settings, caps);
+    }
+    if (combo) {
+      pending.push(...candidates.map(candidate => ({ model: candidate, root: false })));
+      // A multi-member fusion can select a separately configured judge that is
+      // not in the panel; it receives the original conversation and tools.
+      if (fusion && candidates.length > 1 && typeof comboOptions?.judgeModel === "string" && comboOptions.judgeModel.trim()) {
+        pending.push({ model: comboOptions.judgeModel.trim(), root: false });
+      }
+      continue;
+    }
+    for (const candidate of candidates) {
+      if (candidate !== model) pending.push({ model: candidate, root: false });
+    }
+    const resolved = await getModelInfo(model);
+    if (signal?.aborted) return false;
+    if (isGoKimiDeferredToolRoute(resolved.provider, resolved.model)) return true;
+  }
+  return false;
+}
+
+// Stop waiting for model lookup as soon as the caller leaves. A late lookup is
+// still observed by Promise.race and the helper stops before its next lookup.
+async function waitForShortcutRoute(modelStr, body, settings, signal) {
+  if (!signal) return shortcutMaySelectGoKimi(modelStr, body, settings, null);
+  if (signal.aborted) return false;
+  let onAbort;
+  const aborted = new Promise(resolve => {
+    onAbort = () => resolve(false);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    if (signal.aborted) return false;
+    return await Promise.race([shortcutMaySelectGoKimi(modelStr, body, settings, signal), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
 /**
  * Handle chat completion request
  * Supports: OpenAI, Claude, Gemini, OpenAI Responses API formats
@@ -67,9 +143,14 @@ function withRateLimitHeaders(response, limitInfo) {
  * options are trusted internal route controls, never client query parameters.
  */
 export async function handleChat(request, clientRawRequest = null, serverRequestId = crypto.randomUUID(), options = {}) {
+  const correlationContext = { sourceFormat: null };
   try {
-    const response = await handleChatInternal(request, clientRawRequest, serverRequestId, options);
-    return correlateResponse(response, serverRequestId);
+    try {
+      const endpointPath = clientRawRequest?.endpoint || (request?.url ? new URL(request.url).pathname : "");
+      correlationContext.sourceFormat = detectFormatByEndpoint(endpointPath);
+    } catch { /* preserve the existing request validation path */ }
+    const response = await handleChatInternal(request, clientRawRequest, serverRequestId, options, correlationContext);
+    return correlateResponse(response, serverRequestId, correlationContext.sourceFormat);
   } catch (error) {
     // Previously a bare `catch {}`: any unexpected exception anywhere in the
     // chat pipeline (translation, executor, DB, streaming) collapsed into
@@ -81,11 +162,11 @@ export async function handleChat(request, clientRawRequest = null, serverRequest
     const detail = `${error?.name || "Error"}: ${error?.message || error}`;
     if (log.errorLine) log.errorLine("CHAT", "❌", `[${serverRequestId}] unhandled failure: ${detail}`);
     if (error?.stack) console.error(`[${serverRequestId}] ${error.stack}`);
-    return correlateResponse(errorResponse(HTTP_STATUS.SERVER_ERROR, "Chat request failed"), serverRequestId);
+    return correlateResponse(errorResponse(HTTP_STATUS.SERVER_ERROR, "Chat request failed"), serverRequestId, correlationContext.sourceFormat);
   }
 }
 
-async function handleChatInternal(request, clientRawRequest = null, serverRequestId, options = {}) {
+async function handleChatInternal(request, clientRawRequest = null, serverRequestId, options = {}, correlationContext = null) {
   if (isShuttingDown()) return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Service is restarting", { code: "service_draining" });
   if (request?.signal?.aborted) {
     return errorResponse(499, "Client Closed Request", { code: "client_aborted" });
@@ -166,7 +247,13 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
   // Per OpenAI Chat Completions API spec, stream defaults to false (#4122)
   const endpointPath = clientRawRequest?.endpoint || (request?.url ? new URL(request.url).pathname : "");
   const sourceFormat = detectFormatByEndpoint(endpointPath, body);
-  const requestContext = { settings, sourceFormat };
+  // chatCore detects non-standard endpoint bodies after replacing model with
+  // provider/model. Mirror that shape without changing routing or the body.
+  try { correlationContext.sourceFormat = sourceFormat || detectFormat({ ...body, model: `/${body.model ?? ""}` }); }
+  catch { /* a malformed body must not change existing routing/error behavior */ }
+  // Keep the decoded source for route-specific validation even if a capacity
+  // adapter later compacts or reorders a private per-attempt copy.
+  const requestContext = { settings, sourceFormat, sourceBody: body };
   if (endpointPath.includes("/chat/completions") && body.stream === undefined) {
     body = { ...body, stream: false };
     if (clientRawRequest?.body) clientRawRequest.body = { ...clientRawRequest.body, stream: false };
@@ -193,7 +280,12 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
   // Bypass naming/warmup requests before combo rotation to avoid wasting rotation slots
   const userAgent = request?.headers?.get("user-agent") || "";
   const bypassResponse = handleBypassRequest(body, modelStr, userAgent, !!settings.ccFilterNaming);
-  if (bypassResponse) return bypassResponse.response || bypassResponse;
+  if (bypassResponse) {
+    const mayNeedAdmission = (sourceFormat || correlationContext?.sourceFormat) === FORMATS.CLAUDE && findClaudeToolAddition(body);
+    const deferBypass = mayNeedAdmission && await waitForShortcutRoute(modelStr, body, settings, request?.signal || null);
+    if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
+    if (!deferBypass) return bypassResponse.response || bypassResponse;
+  }
 
   const requiredCapabilities = detectRequiredCapabilities(body);
 
@@ -247,6 +339,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
         adapterAdded, modelCapabilities
       ),
       log,
+      signal: request?.signal || null,
       comboName: modelStr,
       comboStrategy,
       comboStickyLimit
@@ -270,6 +363,7 @@ async function handleChatInternal(request, clientRawRequest = null, serverReques
         adapterAdded, modelCapabilities
       ),
       log,
+      signal: request?.signal || null,
       comboName: modelStr,
       comboStrategy: getActiveAdapterStrategy(requiredCapabilities, settings)
     });
@@ -347,6 +441,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           adapterAdded, modelCapabilities
         ),
         log,
+        signal: request?.signal || null,
         comboName: modelStr,
         comboStrategy,
         comboStickyLimit
@@ -543,6 +638,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       // Lazily warms the in-process module on first use; null when not installed (fail-open)
       pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
+      sourceBody: requestContext?.sourceBody,
       providerThinking,
       providerServiceTier,
       clientSignal: request?.signal || null,
@@ -598,6 +694,11 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
     });
 
+    // A combo may already have returned 499 while this attempt finishes its
+    // accounting. Keep a privacy-safe operator signal if acceptance failed.
+    if (request?.signal?.aborted && result.diagnostics?.code === "usage_acceptance_failed") {
+      log.error("CHAT", "Durable usage acceptance failed after client cancellation");
+    }
     if (result.success) return withRateLimitHeaders(result.response, rateLimit);
     if (result.credentialsSuperseded === true || result.response?.headers?.get("x-should-retry") === "false") return withRateLimitHeaders(result.response, rateLimit);
 

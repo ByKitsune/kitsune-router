@@ -272,14 +272,57 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
   });
 
   it("returns an accounting error before native HTTP error fallback when acceptance rejects", async () => {
-    state.upstream = async () => Response.json({ error: { code: 429, message: "fixture quota", status: "RESOURCE_EXHAUSTED" }, usageMetadata: metadata }, { status: 429 });
+    let dispatches = 0;
+    state.upstream = async () => {
+      dispatches++;
+      return Response.json({ error: { code: 429, message: "fixture quota", status: "RESOURCE_EXHAUSTED" }, usageMetadata: metadata }, {
+        status: 429, headers: { "Retry-After": "60" },
+      });
+    };
     state.fail = true;
     const response = await dispatchNative();
     expect(response.status).toBe(503);
+    expect(response.headers.get("x-should-retry")).toBe("false");
+    expect(response.headers.get("access-control-expose-headers")).toContain("x-should-retry");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("retry-after")).toBeNull();
     expect((await response.json()).error).toEqual({ code: "usage_acceptance_failed", message: "Usage accounting could not be accepted" });
+    expect(dispatches).toBe(1);
     expect(state.calls).toHaveLength(1);
     expect(state.calls[0].status).toBe("error");
     expect(state.health).toEqual([]);
+    expect(outbox()).toEqual([]);
+  });
+
+  it.each([false, true])("keeps native error accounting terminal when the caller aborts during acceptance (rejected=%s)", async rejected => {
+    let dispatches = 0, accept;
+    state.upstream = async () => {
+      dispatches++;
+      return Response.json({ error: { code: 429, message: "fixture quota", status: "RESOURCE_EXHAUSTED" }, usageMetadata: metadata }, { status: 429 });
+    };
+    state.beforeAccept = () => new Promise(resolve => { accept = resolve; });
+    state.fail = rejected;
+    const caller = new AbortController();
+    const pending = dispatchNative({ signal: caller.signal });
+    try {
+      await vi.waitFor(() => expect(accept).toBeTypeOf("function"));
+      caller.abort(new Error("caller left"));
+      accept();
+      const response = await pending;
+      expect(response.status).toBe(rejected ? 503 : 499);
+      if (rejected) {
+        expect(response.headers.get("x-should-retry")).toBe("false");
+        expect(response.headers.get("retry-after")).toBeNull();
+        expect((await response.json()).error.code).toBe("usage_acceptance_failed");
+      }
+      expect(dispatches).toBe(1);
+      expect(state.calls).toHaveLength(1);
+      expect(state.health).toEqual([]);
+      expect(outbox()).toHaveLength(rejected ? 0 : 1);
+    } finally {
+      accept?.();
+      await pending;
+    }
   });
 
   it("releases the reader and fails EOF when acceptance rejects", async () => {

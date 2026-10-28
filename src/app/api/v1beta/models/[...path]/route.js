@@ -601,7 +601,10 @@ async function forwardAdmittedGeminiNativeRequest(request, body, model, action) 
     });
     try { await usageRecorder.persist("error"); }
     catch {
-      return Response.json({ error: { code: "usage_acceptance_failed", message: "Usage accounting could not be accepted" } }, { status: 503, headers: { "Access-Control-Allow-Origin": "*" } });
+      return Response.json({ error: { code: "usage_acceptance_failed", message: "Usage accounting could not be accepted" } }, {
+        status: 503,
+        headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": API_CORS_HEADERS["Access-Control-Expose-Headers"], "x-should-retry": "false" },
+      });
     }
     if (request.signal?.aborted) {
       return Response.json({ error: { message: "Client closed request" } }, { status: 499 });

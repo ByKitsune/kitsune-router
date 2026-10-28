@@ -10,6 +10,25 @@ for (const [status, diagnostic] of Object.entries(ERROR_TYPES)) {
 }
 const REQUEST_ERROR_CODES = new Set(["invalid_request_error", "unsupported_parameter", "invalid_thinking_budget", "invalid_output_budget", "context_length_exceeded"]);
 
+// Anthropic's documented error types differ from the OpenAI-compatible types
+// in ERROR_TYPES (notably server_error). Keep this mapping at the client
+// serialization boundary so the original failure still drives classification.
+// https://platform.claude.com/docs/en/api/errors#http-errors
+const CLAUDE_ERROR_BY_STATUS = new Map([
+  [400, ERROR_TYPES[400].type],
+  [401, ERROR_TYPES[401].type],
+  [402, ERROR_TYPES[402].type],
+  [403, ERROR_TYPES[403].type],
+  [404, "not_found_error"],
+  [409, "conflict_error"],
+  [413, "request_too_large"],
+  [429, ERROR_TYPES[429].type],
+  [500, "api_error"],
+  [504, "timeout_error"],
+  [529, "overloaded_error"],
+]);
+const CLAUDE_ERROR_TYPES = new Set(CLAUDE_ERROR_BY_STATUS.values());
+
 function errorStatus(error) {
   const raw = error.status ?? error.status_code ?? error.code;
   // Some SSE providers serialize the HTTP status as a string. Accept only
@@ -40,7 +59,12 @@ export function extractResponseError(chunk) {
 export function responseErrorToClient(format, failure, state) {
   const { error, response } = failure;
   const usage = response?.usage ? toOpenAIUsage(response.usage, "responses") : failure.usage;
-  if (format === FORMATS.CLAUDE) return { type: "error", error: { ...error, type: error.type || "api_error" } };
+  if (format === FORMATS.CLAUDE) {
+    const status = Number(failure.status ?? errorStatus(error));
+    const type = CLAUDE_ERROR_TYPES.has(error.type) ? error.type
+      : CLAUDE_ERROR_BY_STATUS.get(status) || (status >= 400 && status < 500 ? ERROR_TYPES[400].type : "api_error");
+    return { type: "error", error: { ...error, type } };
+  }
   if (format === FORMATS.OPENAI_RESPONSES || format === FORMATS.CODEX) {
     const nativeUsage = response?.usage || (usage ? {
       input_tokens: usage.prompt_tokens ?? usage.input_tokens ?? 0,

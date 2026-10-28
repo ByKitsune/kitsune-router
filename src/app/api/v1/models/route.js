@@ -302,7 +302,11 @@ export async function buildModelsList(kindFilter) {
       || staticAlias
     ).trim();
     const providerModels = [...getModelsByProviderId(providerId)];
-    if (AI_PROVIDERS[providerId]?.noAuth) {
+    // Ollama's TTS candidates are stored under ttsConfig, not the unfiltered
+    // general model table used by chat pickers. Keep their kind in this index,
+    // and still apply an operator's enabledModels whitelist below. As with
+    // other static catalogs, a listed tag is not proof that it is installed.
+    if (AI_PROVIDERS[providerId]?.noAuth || providerId === "ollama-local") {
       for (const row of AI_PROVIDERS[providerId]?.ttsConfig?.models || []) {
         if (!providerModels.some((m) => m.id === row.id)) providerModels.push({ ...row, kind: "tts" });
       }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
+import { getModelsDevPricingReference } from "open-sse/providers/pricing.js";
 import { getProviderIdentityTokens } from "open-sse/providers/identity.js";
 import { PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
 
@@ -177,6 +178,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                   Native OpenAI writes keep their separate 30m and 12h lifetimes.
                   Delivered processing-speed tariffs are separate complete quotes; an unconfirmed tier remains unpriced.
                   Time-dependent native rates are shown for the current view; actual usage uses the recorded request timestamp. Saved overrides still win.
+                  A few exact text-only catalog references can supply a local estimate for 24 hours after snapshot verification; unspecified cache and reasoning rates remain unknown.
                 </p>
               </div>
               <label className="block text-sm">
@@ -217,6 +219,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                           {models.map(model => {
                             const reviewed = getReviewedModelMetadata(provider, model);
                             const billing = reviewed?.billing;
+                            const catalog = typeof getModelsDevPricingReference === "function" ? getModelsDevPricingReference(provider, model) : null;
                             return (
                               <tr key={model} className="hover:bg-surface-2/50">
                                 <td className="min-w-64 max-w-sm px-3 py-2 font-medium align-top">
@@ -238,6 +241,17 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                                         )}
                                       </>
                                     ) : <p>Local estimate · billing scope unverified</p>}
+                                    {catalog && (
+                                      <details className="mt-1">
+                                        <summary className="cursor-pointer">models.dev catalog reference · {catalog.snapshotDate}</summary>
+                                        <p className="mt-1">Reference only, not an invoice or a promise that these rates apply. Catalog zero can describe a plan or a different unit. The editable fields show the effective estimate.</p>
+                                        <p>Catalog product/model: {catalog.product} / {catalog.model}</p>
+                                        <p>Raw cost fields: <code className="break-all">{JSON.stringify(catalog.cost)}</code></p>
+                                        <p>File and hash verified: {catalog.verifiedAtUtc} UTC</p>
+                                        <p className="break-all">Snapshot SHA-256: {catalog.sha256}</p>
+                                        <a href={catalog.url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Catalog source</a>
+                                      </details>
+                                    )}
                                   </div>
                                   {pricingData[provider][model].service_tiers && (
                                     <details className="mt-2 text-xs font-normal">

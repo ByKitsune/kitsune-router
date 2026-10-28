@@ -96,6 +96,7 @@ export async function handleImageGeneration(request) {
           onUsageAcceptanceFailure: response => { usageFailureResponse = response; },
         }),
         log,
+        signal: request.signal,
         comboName: modelStr,
         comboStrategy,
         comboStickyLimit,
@@ -122,6 +123,10 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       body, modelInfo: { provider, model }, credentials: null, binaryOutput, clientSignal,
       onUsage: (usage, terminal = {}) => recordImageRequestUsage({ provider, model, apiKey, endpoint, eventId, timestamp, usage, status: terminal.status }),
     });
+    // The combo can return 499 before a cancelled attempt's accounting settles.
+    if (clientSignal?.aborted && result.diagnostics?.code === "usage_acceptance_failed") {
+      log.error("IMAGE", "Durable usage acceptance failed after client cancellation");
+    }
     if (result.localFailure) onUsageAcceptanceFailure?.(result.response);
     return result.response;
   }

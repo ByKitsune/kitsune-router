@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — 2026-10-29 source follow-up
+
+These source changes are separate from the 1.0.2 artifacts; they do not establish
+a release, deployment, live-provider access or invoice accuracy.
+
+- Add GPT-6.1 Terra to the OpenAI and Codex catalogs; the OpenAI route uses
+  Responses to preserve tools. Public API prices are estimates, not Codex invoices.
+- Align CommandCode 1.88 headers and keep translated request sessions isolated
+  while retaining each thread across retries.
+- Preserve valid Google schema array bounds and distinguish the observed Copilot
+  context-window error from an account quota failure.
+- Debounce committed usage updates into selected-period statistics and chart
+  refreshes; stale snapshots retain their period labels and failures offer retry while
+  live request fields stream independently. The browser root cause is unconfirmed.
+- Ollama Local speech and embeddings require an active connection, with an optional
+  API key. Speech defaults to WAV, supports PCM and JSON-wrapped WAV, and rejects
+  MP3; listed tags and embedding discovery do not prove models are installed.
+- Removing unscoped price fallbacks reduces future coverage: some previously
+  numeric subscription or gateway routes are now unknown; stored history stays
+  unchanged. Selected exact provider/model catalog references are not invoices;
+  only a narrow text-only subset supplies estimates within 24 hours of capture.
+
+[Dated source review and limitations](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up)
+
 ## Kitsune Router 1.0.2 — private container published; anonymous pulls pending; npm blocked
 
 Immutable `v1.0.2` is **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merged at `23375bf1`. Exact-source SSH: **9,041 passed, 100 skipped, zero failed assertions/suites**; strict lint, 18 docs tests/static export, app build and pack passed. CI `40468830176` was green on a matching source tree. Local tarball install/runtime/upgrade, six container restart scenarios and exact-source browser checks passed within their recorded scope. The cache test mocks only child `Date`, not production ordering; warning-level logging affects npm publish only, not pack.
@@ -28,9 +52,9 @@ Stop old writers and back up all state before migration. Default startup can ver
 
 The failed attempt did not establish published npm/GHCR artifacts. Preserve its original tag, scope and evidence; see the current pending 1.0.2 follow-up above. [Attempt record](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.0.md) · [Historical technical changelog](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.0.md) · [Migration](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md).
 
-> **Archive boundary:** entries below preserve the original ZenRouter names, artifacts, URLs and dated test claims. They are not retroactive Kitsune 0.x publications or verification of the renamed source. Use [current installation](/en/getting-started/installation/), not archived upgrade commands. The preceding Unreleased source work was recorded before the rebrand proposal.
+> **Archive boundary:** entries below preserve the original ZenRouter names, artifacts, URLs and dated test claims. They are not retroactive Kitsune 0.x publications or verification of the renamed source. Use [current installation](/en/getting-started/installation/), not archived upgrade commands. The following historical source work was recorded before the rebrand proposal.
 
-## Unreleased — October reconciliation
+## Historical pre-rebrand source work — October reconciliation
 
 - Fix recursive calls between Next.js's fetch wrapper and the gateway transport, restoring chat, OAuth refresh, usage and catalog requests without changing account/proxy policy.
 - Check installed direct dependencies against committed lockfiles before source builds/tests. Reinstall with `npm ci` rather than packaging stale Next.js/Undici dependencies. Published 0.9.13 artifacts remain unchanged.

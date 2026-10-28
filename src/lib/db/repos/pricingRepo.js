@@ -5,6 +5,7 @@ import { getScopedCache, readScopeRevision } from "../helpers/scopedCache.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId, getProviderIdentityTokens } from "open-sse/providers/identity.js";
 import { getCustomPricingProvider, PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
 import { getTimeOfUsePricing, parsePricingTimestamp } from "open-sse/config/timeOfUsePricing.js";
+import { hasModelsDevPricingEstimate } from "open-sse/providers/metadata/modelsDevPricing.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
@@ -35,6 +36,15 @@ function resolvePricing(userPricing, provider, model, resolveConst, defaultsMode
 
 function mergeQuote(defaults, saved) {
   const merged = { ...defaults, ...saved };
+  // Imported legacy overrides are not a trusted source of catalog provenance.
+  if (saved && Object.hasOwn(saved, "provenance")) delete merged.provenance;
+  if (defaults?.provenance?.kind === "models-dev-catalog-estimate" && saved) {
+    // The snapshot remains auditable, but operator-owned fields must never be
+    // attributed to the catalog merely because they share its base quote.
+    merged.provenance = { ...defaults.provenance,
+      inheritedFields: defaults.provenance.inheritedFields.filter(field => !Object.hasOwn(saved, field)),
+      overriddenFields: PRICING_RATE_FIELDS.filter(field => Object.hasOwn(saved, field)) };
+  }
   // Explicit null means unknown, not an omitted override.
   if (saved && Object.hasOwn(saved, "output") && !Object.hasOwn(saved, "reasoning")
     && defaults && Object.hasOwn(defaults, "reasoning") && defaults.reasoning === defaults.output) {
@@ -100,7 +110,7 @@ export async function getPricingForModel(provider, model, options = {}) {
   for (;;) {
     const revision = readScopeRevision(db, ["pricing", "nodes"]);
     const userPricing = await getSavedPricing();
-    const [{ getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { getReviewedModelMetadata }, { stripThinkingSuffix }] = await Promise.all([
+    const [{ getPricingForModel: resolveConst, PROVIDER_PRICING }, { getReviewedModelMetadata }, { stripThinkingSuffix }] = await Promise.all([
       import("open-sse/providers/pricing.js"), import("open-sse/providers/metadata/reviewed.js"), import("open-sse/translator/concerns/thinkingUnified.js"),
     ]);
     let node;
@@ -111,19 +121,20 @@ export async function getPricingForModel(provider, model, options = {}) {
     if (readScopeRevision(db, ["pricing", "nodes"]) !== revision) continue;
     return resolveModelPricing(userPricing, provider, model,
       defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
-      (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, node));
   }
 }
 
-function hasLiteralQuote(providerPrices, modelPrices, provider, model) {
-  return getProviderIdentityTokens(provider).some(token => Object.hasOwn(providerPrices[token] || {}, model))
-    || Object.hasOwn(modelPrices, model);
+function hasLiteralQuote(providerPrices, provider, model, node) {
+  const reference = getCustomPricingProvider(node?.baseUrl) || provider;
+  return getProviderIdentityTokens(reference).some(token => Object.hasOwn(providerPrices[token] || {}, model))
+    || hasModelsDevPricingEstimate(reference, model);
 }
 
 function defaultResolver(resolveConst, node, options = {}, getReviewedModelMetadata) {
-  let resolveDefaults = resolveConst;
+  let resolveDefaults = (provider, id) => resolveConst(provider, id, options);
   const reference = getCustomPricingProvider(node?.baseUrl);
-  if (reference) resolveDefaults = (_provider, id) => resolveConst(reference, id);
+  if (reference) resolveDefaults = (_provider, id) => resolveConst(reference, id, options);
   const resolveReference = resolveDefaults;
   return (product, id) => {
     const timed = getTimeOfUsePricing(canonicalizeProviderId(product), getDeclaredUpstreamModelId(product, id), options?.timestamp);
@@ -157,7 +168,9 @@ function resolveModelPricing(userPricing, provider, model, resolveDefaults, stri
   // it as-is missed the base model's exact entry and fell through to a broader
   // glob or to null ($0). Price the variant at its base model's rate — which
   // also honors a user override saved on the base id (9router #4635).
-  if (base === model) {
+  // An independently quoted literal annotated ID is a different product, not
+  // a synthetic thinking suffix. Preserve it before considering the base ID.
+  if (base === model || hasLiteral(provider, model)) {
     return resolvePricing(userPricing, provider, model, resolveDefaults);
   }
   return resolvePricing(userPricing, provider, base, resolveDefaults);
@@ -173,7 +186,7 @@ export async function getConfiguredPricing() {
   const [defaults, nodes, custom, connections] = await Promise.all([
     getPricing(), getProviderNodes(), getCustomModels(), getProviderConnections(),
   ]);
-  const [userPricing, { getPricingForModel: resolveConst, PROVIDER_PRICING, MODEL_PRICING }, { stripThinkingSuffix }, { getReviewedModelMetadata }] = await Promise.all([
+  const [userPricing, { getPricingForModel: resolveConst, PROVIDER_PRICING }, { stripThinkingSuffix }, { getReviewedModelMetadata }] = await Promise.all([
     getSavedPricing(), import("open-sse/providers/pricing.js"), import("open-sse/translator/concerns/thinkingUnified.js"), import("open-sse/providers/metadata/reviewed.js"),
   ]);
   const output = { ...defaults };
@@ -187,8 +200,9 @@ export async function getConfiguredPricing() {
     rows.set(JSON.stringify([id, model]), [id, model]);
   };
   for (const provider of registry) for (const model of provider.models || []) add(provider.id, model.id);
+  // Saved-only native models also need the same timestamped resolution as
+  // runtime, rather than the untimed getPricing() compatibility snapshot.
   for (const [provider, models] of Object.entries(defaults)) {
-    if (!identities.has(provider) && !/^(?:openai|anthropic)-compatible-/.test(provider)) continue;
     for (const model of Object.keys(models || {})) add(provider, model);
   }
   for (const row of custom) add(row.providerAlias, row.id);
@@ -203,9 +217,12 @@ export async function getConfiguredPricing() {
   for (const [provider, model] of rows.values()) {
     const quote = resolveModelPricing(userPricing, provider, model,
       defaultResolver(resolveConst, nodeById.get(provider), { timestamp }, getReviewedModelMetadata), stripThinkingSuffix,
-      (product, id) => hasLiteralQuote(PROVIDER_PRICING, MODEL_PRICING, product, id));
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product)));
     if (!copiedProviders.has(provider)) { output[provider] = Object.assign(Object.create(null), output[provider]); copiedProviders.add(provider); }
-    output[provider][model] = quote || {};
+    // The established pricing API exposes writable rate fields. Provenance is
+    // retained in the runtime/usage quote, not inserted into the PATCH schema.
+    const { provenance: _provenance, ...rates } = quote || {};
+    output[provider][model] = rates;
   }
   return output;
 }

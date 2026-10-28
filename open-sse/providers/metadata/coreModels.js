@@ -3388,6 +3388,52 @@ for (const [provider, models] of Object.entries({ openai, anthropic, gemini, xai
   }
 }
 
+// Terra was released after the 2026-10-21 review above. Keep its later
+// exact-model cross-check and current primary evidence separate from that bundle.
+openai["gpt-6.1-terra"] = {
+  description: "Fast, efficient model for visual reasoning, computer use, and writing.",
+  capabilities: {
+    contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
+    vision: true, pdf: true, audioInput: false, videoInput: false,
+    imageOutput: false, audioOutput: false, tools: true, search: true,
+    structuredOutput: true, reasoning: true, thinkingFormat: "openai",
+    thinkingCanDisable: true, thinkingEffortSupported: true,
+    thinkingEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+  },
+  pricing: {
+    input: 1, output: 5, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5,
+    tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5 },
+  },
+  sources: [
+    "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md",
+    "https://developers.openai.com/api/docs/pricing.md",
+    "https://models.dev/api.json",
+  ],
+  billing: {
+    currency: "USD", unit: "1M tokens", kind: "api",
+    cacheWriteLifetimes: ["30m", "12h"], unverifiedPriceFields: ["cache_creation"],
+    note: "Published native Standard API prices; account entitlement is not established.",
+    qualifiers: [
+      "Prompts with more than 272K input tokens use 2x input and cache rates and 1.5x output for the full request.",
+      "Batch and Flex are 50% of Standard; Fast is 2x Standard. Regional processing adds a 10% premium where available.",
+    ],
+  },
+  limits: {
+    scope: "public-api-specification", authenticatedRouteVerified: false,
+    catalogProvider: "openai", catalogModelId: "gpt-6.1-terra", catalogAsOf: "2026-10-29",
+    supportedApiFormats: ["openai", "openai-responses"], toolCallingRequiresResponses: true,
+    apiDefaultReasoningEffort: "medium", apiReasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+    search: { native: { endpoint: "/v1/responses", apiFormat: "openai-responses", toolType: "web_search" },
+      note: "Search requires an explicit hosted tool on Responses; account availability and tool charges are separate." },
+  },
+  provenance: {
+    reviewedAt: "2026-10-29",
+    modelPage: { url: "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md", capturedAtUtc: "2026-10-28T18:02:00Z", sha256: "cd34faa8904d85961ab5fe270f079b8be45a9c876af6c809b38b2c069f687a7a" },
+    primaryPricing: { url: "https://developers.openai.com/api/docs/pricing.md", capturedAtUtc: "2026-10-28T18:02:28Z", sha256: "93d302a9b7a384877533bc3ab5bb48eebf4b56bd6add0f194095054b2a13f952" },
+    catalogCrosscheck: { url: "https://models.dev/api.json", snapshotDate: "2026-10-29", sha256: "bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f", scope: "Exact openai/gpt-6.1-terra entry only; no OAuth entitlement or route limit implied." },
+  },
+};
+
 const reference = (entry, note) => {
   const result = copy(entry);
   result.billing.kind = "api-reference";
@@ -3607,6 +3653,39 @@ for (const [id, config] of Object.entries(codexConfig)) {
     codex[`${id}[1m]`] = extended;
   }
 }
+// The CLI's context and effort choices are client configuration, not proof of
+// ChatGPT-account limits or USD subscription charges. Ultra appears in the CLI
+// catalog but is not established on this account transport.
+codex["gpt-6.1-terra"] = {
+  description: "GPT-6.1 Terra in the OpenAI Codex CLI catalog; account access and backend limits are unverified.",
+  capabilities: {
+    vision: true, pdf: false, audioInput: false, videoInput: false,
+    imageOutput: false, audioOutput: false, reasoning: true, tools: true,
+    search: true, thinkingFormat: "openai", thinkingCanDisable: false,
+    thinkingEffortSupported: true, thinkingEfforts: ["low", "medium", "high", "xhigh", "max"],
+  },
+  pricing: { input: null, output: null, cached: null, reasoning: null, cache_creation: null, cache_write_30m: null, cache_write_12h: null },
+  sources: ["https://raw.githubusercontent.com/openai/codex/126a0ee92ed2c5e73cd8a8f7e37563e8527552d7/codex-rs/models-manager/models.json"],
+  billing: {
+    kind: "plan", currency: "unknown", unit: "subscription",
+    unverifiedPriceFields: ["input", "output", "cached", "cache_creation", "cache_write_30m", "cache_write_12h"],
+    note: "Codex CLI catalog presence does not establish an account invoice or subscription debit. Native API prices are separate.",
+  },
+  limits: {
+    scope: "codex-cli-catalog", authenticatedRouteVerified: false,
+    cliDefaultContext: 500000, cliMaxContext: 872000, cliDefaultReasoningEffort: "low",
+    cliReasoningEfforts: ["low", "medium", "high", "xhigh", "max", "ultra"],
+    routeReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
+    routeReasoningEffortScope: "CLI-advertised choices excluding Ultra; account route acceptance is unverified.",
+    routeContextWindow: null, routeMaxInput: null, routeMaxOutput: null,
+    unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"],
+    note: "CLI context values are client configuration; they do not establish a backend ceiling. This gateway's Codex wire does not support PDF; actual account access is unverified.",
+  },
+  provenance: {
+    reviewedAt: "2026-10-29",
+    cliBundle: { commit: "126a0ee92ed2c5e73cd8a8f7e37563e8527552d7", capturedAtUtc: "2026-10-28T18:02:00Z", sha256: "1384625c0b6b3e67d3c60da29becea2b017f2c283fc1e2d05b8edafb4698eb10" },
+  },
+};
 // Existing legacy routes: the pinned Codex bundle omits them AND the live
 // ChatGPT-account route rejects them outright ("The 'gpt-5.4' model is not
 // supported when using Codex with a ChatGPT account" — reproduced against the

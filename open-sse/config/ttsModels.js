@@ -48,6 +48,38 @@ const MIMO_VOICES = [
   { id: "Dean",          name: "Dean" },
 ].map((v) => ({ type: "tts", ...v }));
 
+// Phonon catalog from upstream Ollama Local TTS support (31a9d262). These
+// are selectable tags, not a claim that a tag is installed on a given server.
+export const OLLAMA_PHONON_MODELS = [
+  { id: "phonon", name: "Phonon" },
+  { id: "phonon:latest", name: "Phonon (Latest)" },
+  { id: "phonon:multilingual", name: "Phonon Multilingual" },
+  { id: "phonon:40m-multilingual", name: "Phonon 40M Multilingual" },
+  { id: "phonon:en", name: "Phonon English" },
+  { id: "phonon:31m-en", name: "Phonon 31M English" },
+  { id: "phonon:40m-en", name: "Phonon 40M English" },
+  { id: "phonon:de", name: "Phonon German" },
+  { id: "phonon:40m-de", name: "Phonon 40M German" },
+  { id: "phonon:es", name: "Phonon Spanish" },
+  { id: "phonon:40m-es", name: "Phonon 40M Spanish" },
+  { id: "phonon:fr", name: "Phonon French" },
+  { id: "phonon:40m-fr", name: "Phonon 40M French" },
+  { id: "phonon:pt", name: "Phonon Portuguese" },
+  { id: "phonon:40m-pt", name: "Phonon 40M Portuguese" },
+].map((model) => ({ ...model, type: "tts" }));
+
+const PHONON_VOICES = [
+  "default", "Zoey", "Juniper", "Everly", "Harper", "Hadley", "Delia",
+  "Easton", "Micah", "Trevor", "Russell", "Preston", "Miles", "Maeve",
+  "Freya", "Pippa", "Elodie-Rose", "Imogen", "Lottie", "Bryony", "Alfie",
+  "Hugh", "Edwin", "Spencer", "Toby", "Teddy", "Azgorath",
+  "Captain Silas Blackwater", "Fairy Godmother", "Fennick the Young Elf",
+  "Grub the Ogre", "Master Aldric", "Morwenna of the Deep", "Old Mortlake",
+  "Sir Bramwell", "The Snow Queen", "The Thing Under the Stairs",
+  "Vyrmathrax the Ancient",
+].map((id) => ({ id, name: id === "default" ? "Default" : id, type: "tts" }));
+const PHONON_DEFAULT_VOICE = PHONON_VOICES.slice(0, 1);
+
 // ── TTS Config (config-driven, single source of truth) ─────────────────────
 export const TTS_MODELS_CONFIG = {
   openai: {
@@ -142,6 +174,15 @@ export const TTS_MODELS_CONFIG = {
     voices: {
       "mimo-v2.5-tts": MIMO_VOICES,
     },
+  },
+  "ollama-local": {
+    models: OLLAMA_PHONON_MODELS,
+    voices: Object.fromEntries(OLLAMA_PHONON_MODELS.map(({ id }) => [
+      id,
+      ["phonon", "phonon:latest", "phonon:en", "phonon:31m-en", "phonon:40m-en"].includes(id)
+        ? PHONON_VOICES : PHONON_DEFAULT_VOICE,
+    ])),
+    allVoices: PHONON_VOICES,
   },
 };
 

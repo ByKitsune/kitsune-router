@@ -39,6 +39,9 @@ export default {
     // Notices reviewed 2026-10-21; these are future dates, not retired models.
     // https://developers.openai.com/api/docs/models/gpt-6.1-sol.md
     { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    // Chat Completions is supported upstream, but tool calling requires Responses.
+    // Route all client formats through Responses until routing can depend on the request body.
+    { id: "gpt-6.1-terra", name: "GPT-6.1 Terra", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-6-astra", name: "GPT-6 Astra" },
     { id: "gpt-6-sol", name: "GPT-6 Sol" },
     { id: "gpt-6-luna", name: "GPT-6 Luna" },

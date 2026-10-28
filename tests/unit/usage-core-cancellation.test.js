@@ -9,7 +9,8 @@ vi.mock("@/lib/usageDb.js", () => ({ enqueueRequestUsage: async entry => { fixtu
 vi.mock("@/sse/services/model.js", () => ({ getModelInfo: async () => ({ provider: fixture.provider, model: fixture.provider === "codex" ? "gpt-5.6-image" : "fixture" }), getComboModels: async () => null }));
 vi.mock("@/sse/services/auth.js", () => ({
   getProviderCredentials: async () => ({ connectionId: "fixture", accessToken: "synthetic-token", apiKey: "synthetic-key", providerSpecificData: fixture.policy }),
-  extractApiKey: () => null, isValidApiKey: async () => true, clearAccountError: async () => {},
+  extractApiKey: () => null, isValidApiKey: async () => true,
+  clearAccountError: async (...args) => { fixture.health.push(["clear", ...args]); },
   markAccountUnavailable: async (...args) => { fixture.health.push(args); return { shouldFallback: false }; },
 }));
 vi.mock("@/sse/services/tokenRefresh.js", () => ({ checkAndRefreshToken: async (_provider, credentials) => credentials, updateProviderCredentials: async () => false }));
@@ -17,6 +18,7 @@ vi.mock("@/sse/services/tokenRefresh.js", () => ({ checkAndRefreshToken: async (
 import { handleImageGenerationCore } from "../../open-sse/handlers/imageGenerationCore.js";
 import { handleEmbeddingsCore } from "../../open-sse/handlers/embeddingsCore.js";
 import codex from "../../open-sse/handlers/imageProviders/codex.js";
+import { MAX_UPSTREAM_ERROR_BYTES } from "../../open-sse/utils/error.js";
 import { handleImageGeneration } from "@/sse/handlers/imageGeneration.js";
 import { handleEmbeddings } from "@/sse/handlers/embeddings.js";
 
@@ -55,6 +57,55 @@ async function loopback(handler) {
 
 function request(path, body, signal) {
   return new Request(`http://127.0.0.1${path}`, { method: "POST", body: JSON.stringify(body), signal });
+}
+
+// Use the actual reader boundary: the response is one naturally closed chunk,
+// and the caller leaves only after the last data/EOF read or reader cleanup.
+function completeEmbeddingResponse(caller, boundary = "data", status = 200) {
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(JSON.stringify({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } })));
+      controller.close();
+    },
+  }, { highWaterMark: 0 });
+  const response = new Response(stream, { status, headers: { "content-type": "application/json" } });
+  const getReader = stream.getReader.bind(stream);
+  stream.getReader = () => {
+    const reader = getReader();
+    const read = reader.read.bind(reader);
+    const release = reader.releaseLock.bind(reader);
+    let aborted = false;
+    reader.read = async () => {
+      const result = await read();
+      if (!aborted && (boundary === "data" ? !result.done : boundary === "eof" && result.done)) {
+        // Awaiting closed guarantees the body has naturally ended, not merely
+        // that a complete-looking JSON fragment happened to arrive.
+        await reader.closed;
+        aborted = true;
+        caller.abort(new Error("client left"));
+      }
+      return result;
+    };
+    reader.releaseLock = () => {
+      release();
+      if (boundary === "cleanup") caller.abort(new Error("client left"));
+    };
+    return reader;
+  };
+  return { response, stream };
+}
+
+function openEmbeddingResponse(text, status = 200) {
+  let pulled;
+  let controller;
+  const waiting = new Promise(resolve => { pulled = resolve; });
+  const cancel = vi.fn();
+  const stream = new ReadableStream({
+    start(value) { controller = value; value.enqueue(encoder.encode(text)); },
+    pull() { pulled(); },
+    cancel,
+  }, { highWaterMark: 0 });
+  return { response: new Response(stream, { status, headers: { "content-type": "application/json" } }), stream, waiting, cancel, end: () => controller.close() };
 }
 
 describe("Codex image reader terminal ownership", () => {
@@ -197,7 +248,7 @@ describe("image core cancellation and exact provider usage", () => {
     else expect(result.usage).toEqual(usage);
   });
 
-  it.each(["image", "embedding"])("cancels a stalled %s HTTP error body after retaining bounded exact metadata", async kind => {
+  it.each(["image", "embedding"])("cancels a stalled %s HTTP error body", async kind => {
     const caller = new AbortController();
     const usage = kind === "image" ? tokens : { prompt_tokens: 3, total_tokens: 3 };
     const cancel = vi.fn(); let pulled;
@@ -215,7 +266,7 @@ describe("image core cancellation and exact provider usage", () => {
     const result = await pending;
     expect(result.status).toBe(499); expect(stream.locked).toBe(false); expect(cancel).toHaveBeenCalledOnce();
     if (kind === "image") expect(onUsage).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(tokens), { status: "aborted" });
-    else expect(result.usage).toEqual(usage);
+    else expect(result.usage).toBeNull();
   });
 
   it("cancels a Cloudflare reference download before provider dispatch", async () => {
@@ -285,25 +336,192 @@ describe("image core cancellation and exact provider usage", () => {
 describe("embedding incurred usage survives terminal cancellation/error", () => {
   it("keeps parsed positive usage if caller aborts before core return", async () => {
     const caller = new AbortController();
-    const upstream = Response.json({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } });
-    const json = upstream.json.bind(upstream);
-    upstream.json = async () => { const body = await json(); caller.abort(new Error("client left")); return body; };
-    vi.stubGlobal("fetch", vi.fn(async () => upstream));
-    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal }));
+    const upstream = completeEmbeddingResponse(caller, "data");
+    const onRequestSuccess = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal, onRequestSuccess }));
     expect(result.status).toBe(499); expect(result.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+    expect(upstream.stream.locked).toBe(false); expect(onRequestSuccess).not.toHaveBeenCalled(); expect(fetch).toHaveBeenCalledOnce();
   });
 
   it("durably admits embedding usage received just before caller abort without account health mutation", async () => {
     fixture.provider = "openai";
     const caller = new AbortController();
-    const upstream = Response.json({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } });
-    const json = upstream.json.bind(upstream);
-    upstream.json = async () => { const body = await json(); caller.abort(new Error("client left")); return body; };
-    vi.stubGlobal("fetch", vi.fn(async () => upstream));
+    const upstream = completeEmbeddingResponse(caller, "data");
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
     const response = await handleEmbeddings(request("/v1/embeddings", { model: "fixture", input: "fixture" }, caller.signal));
     expect(response.status).toBe(499); expect(fixture.entries).toHaveLength(1);
     expect(fixture.entries[0]).toMatchObject({ status: "aborted", tokens: { prompt_tokens: 3, completion_tokens: 0, total_tokens: 3 } });
-    expect(fixture.health).toEqual([]);
+    expect(fixture.health).toEqual([]); expect(upstream.stream.locked).toBe(false); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each(["eof", "cleanup"])("retains exact usage when cancellation follows the complete %s boundary", async boundary => {
+    const caller = new AbortController();
+    const upstream = completeEmbeddingResponse(caller, boundary);
+    const onRequestSuccess = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal, onRequestSuccess }));
+    expect(result.status).toBe(499); expect(result.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+    expect(upstream.stream.locked).toBe(false); expect(onRequestSuccess).not.toHaveBeenCalled();
+  });
+
+  it.each([401, 404, 429])("retains complete HTTP %s error usage on cancellation without retry", async status => {
+    const caller = new AbortController();
+    const upstream = completeEmbeddingResponse(caller, "data", status);
+    fixture.executor = { noAuth: false, refreshCredentials: vi.fn() };
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal }));
+    expect(result.status).toBe(499); expect(result.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+    expect(fixture.executor.refreshCredentials).not.toHaveBeenCalled();
+    expect(upstream.stream.locked).toBe(false); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each([200, 429])("retains complete HTTP %s usage when the response deadline fires after the final read", async status => {
+    const deadline = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    const upstream = completeEmbeddingResponse(deadline, "data", status);
+    const onRequestSuccess = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const result = await handleEmbeddingsCore(embeddingOptions({ onRequestSuccess }));
+    expect(result.status).toBe(502); expect(result.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+    expect(upstream.stream.locked).toBe(false); expect(onRequestSuccess).not.toHaveBeenCalled(); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["valid-looking JSON", JSON.stringify({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } })],
+    ["truncated JSON", '{"data":[],"usage":{"prompt_tokens":3,"total_tokens":3},"tail":'],
+  ])("never accepts usage from an open, incomplete %s body", async (_label, text) => {
+    fixture.provider = "openai";
+    const caller = new AbortController();
+    const upstream = openEmbeddingResponse(text);
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const pending = handleEmbeddings(request("/v1/embeddings", { model: "fixture", input: "fixture" }, caller.signal));
+    await upstream.waiting;
+    caller.abort(new Error("client left"));
+    expect((await pending).status).toBe(499);
+    expect(upstream.cancel).toHaveBeenCalledOnce(); expect(upstream.stream.locked).toBe(false);
+    expect(fixture.entries).toEqual([]); expect(fixture.health).toEqual([]); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each([401, 404, 429])("does not admit valid-looking usage from an open HTTP %s error body", async status => {
+    fixture.provider = "openai";
+    fixture.executor = { noAuth: false, refreshCredentials: vi.fn() };
+    const caller = new AbortController();
+    const upstream = openEmbeddingResponse(JSON.stringify({ error: "fixture", usage: { prompt_tokens: 3, total_tokens: 3 } }), status);
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const pending = handleEmbeddings(request("/v1/embeddings", { model: "fixture", input: "fixture" }, caller.signal));
+    await upstream.waiting;
+    caller.abort(new Error("client left"));
+    expect((await pending).status).toBe(499);
+    expect(upstream.cancel).toHaveBeenCalledOnce(); expect(upstream.stream.locked).toBe(false);
+    expect(fixture.executor.refreshCredentials).not.toHaveBeenCalled();
+    expect(fixture.entries).toEqual([]); expect(fixture.health).toEqual([]); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("does not accept a valid-looking HTTP error prefix truncated at the diagnostic limit", async () => {
+    const prefix = JSON.stringify({ error: "fixture", usage: { prompt_tokens: 3, total_tokens: 3 } });
+    const text = prefix.padEnd(MAX_UPSTREAM_ERROR_BYTES, " ") + '{"extra":true}';
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(text, { status: 429 })));
+    const result = await handleEmbeddingsCore(embeddingOptions());
+    expect(result.status).toBe(429); expect(result.usage).toBeNull(); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("does not treat a valid JSON prefix as complete when a closed stream still has queued bytes", async () => {
+    const caller = new AbortController();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(JSON.stringify({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } })));
+        controller.enqueue(encoder.encode('{"extra":true}'));
+        controller.close();
+      },
+    }, { highWaterMark: 0 });
+    const response = new Response(stream);
+    const getReader = stream.getReader.bind(stream);
+    stream.getReader = () => {
+      const reader = getReader();
+      const read = reader.read.bind(reader);
+      reader.read = async () => { const result = await read(); caller.abort(new Error("client left")); return result; };
+      return reader;
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => response));
+    const onRequestSuccess = vi.fn();
+    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal, onRequestSuccess }));
+    expect(result.status).toBe(499); expect(result.usage).toBeNull();
+    expect(stream.locked).toBe(false); expect(onRequestSuccess).not.toHaveBeenCalled(); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("retains all chunks when cancellation follows the final read of a complete response", async () => {
+    const caller = new AbortController();
+    const bytes = encoder.encode(JSON.stringify({ data: [], model: "é", usage: { prompt_tokens: 3, total_tokens: 3 } }));
+    const split = bytes.indexOf(0xc3) + 1; // Split the two-byte model character across chunks.
+    const stream = new ReadableStream({
+      start(controller) { controller.enqueue(bytes.subarray(0, split)); controller.enqueue(bytes.subarray(split)); controller.close(); },
+    }, { highWaterMark: 0 });
+    const response = new Response(stream);
+    const getReader = stream.getReader.bind(stream);
+    stream.getReader = () => {
+      const reader = getReader();
+      const read = reader.read.bind(reader);
+      let count = 0;
+      reader.read = async () => {
+        const result = await read();
+        if (!result.done && ++count === 2) { await reader.closed; caller.abort(new Error("client left")); }
+        return result;
+      };
+      return reader;
+    };
+    const onRequestSuccess = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async () => response));
+    const result = await handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal, onRequestSuccess }));
+    expect(result.status).toBe(499); expect(result.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+    expect(stream.locked).toBe(false); expect(onRequestSuccess).not.toHaveBeenCalled(); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("does not mistake a stream closed by an abort listener for a complete response", async () => {
+    fixture.provider = "openai";
+    const caller = new AbortController();
+    const upstream = openEmbeddingResponse(JSON.stringify({ data: [], usage: { prompt_tokens: 3, total_tokens: 3 } }));
+    caller.signal.addEventListener("abort", upstream.end, { once: true });
+    vi.stubGlobal("fetch", vi.fn(async () => upstream.response));
+    const pending = handleEmbeddings(request("/v1/embeddings", { model: "fixture", input: "fixture" }, caller.signal));
+    await upstream.waiting;
+    caller.abort(new Error("client left"));
+    expect((await pending).status).toBe(499);
+    expect(upstream.stream.locked).toBe(false); expect(fixture.entries).toEqual([]);
+    expect(fixture.health).toEqual([]); expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("returns promptly without waiting for a stalled reader cancellation acknowledgment", async () => {
+    const caller = new AbortController();
+    let pulled, releaseCancel;
+    const waiting = new Promise(resolve => { pulled = resolve; });
+    const cancel = vi.fn(() => new Promise(resolve => { releaseCancel = resolve; }));
+    const stream = new ReadableStream({ pull() { pulled(); }, cancel }, { highWaterMark: 0 });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(stream)));
+    let settled = false;
+    const pending = handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal })).then(result => { settled = true; return result; });
+    await waiting;
+    caller.abort(new Error("client left"));
+    try {
+      await vi.waitFor(() => expect(settled).toBe(true), { timeout: 500 });
+      expect(cancel).toHaveBeenCalledOnce(); expect(stream.locked).toBe(false);
+      expect((await pending).status).toBe(499); expect(fetch).toHaveBeenCalledOnce();
+    } finally { releaseCancel?.(); await pending; }
+  });
+
+  it("returns promptly if the caller aborts as response headers arrive", async () => {
+    const caller = new AbortController();
+    let releaseCancel;
+    const cancel = vi.fn(() => new Promise(resolve => { releaseCancel = resolve; }));
+    const stream = new ReadableStream({ cancel });
+    vi.stubGlobal("fetch", vi.fn(async () => { caller.abort(new Error("client left")); return new Response(stream); }));
+    let settled = false;
+    const pending = handleEmbeddingsCore(embeddingOptions({ clientSignal: caller.signal })).then(result => { settled = true; return result; });
+    try {
+      await vi.waitFor(() => expect(settled).toBe(true), { timeout: 500 });
+      expect(cancel).toHaveBeenCalledOnce(); expect(stream.locked).toBe(false);
+      expect((await pending).status).toBe(499); expect(fetch).toHaveBeenCalledOnce();
+    } finally { releaseCancel?.(); await pending; }
   });
 
   it("persists embedding HTTP error usage once through the app without changing upstream diagnostics", async () => {

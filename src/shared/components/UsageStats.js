@@ -226,6 +226,65 @@ const PERIODS = [
   { value: "60d", label: "60D" },
 ];
 
+const USAGE_REFRESH_DELAY_MS = 400;
+const USAGE_FETCH_TIMEOUT_MS = 15000;
+const STREAM_BREAKDOWN_FIELDS = new Set(["byProvider", "byModel", "byAccount", "byApiKey", "byEndpoint"]);
+const STREAM_COMMITTED_FIELDS = [
+  "totalRequests", "totalPromptTokens", "totalCompletionTokens", "totalCachedTokens", "totalCost",
+  "inputCost", "cachedCost", "outputCost", "costCoverage", "latency", ...STREAM_BREAKDOWN_FIELDS,
+];
+const STREAM_VOLATILE_FIELDS = new Set(["pending", "activeRequests", "recentRequests", "errorProvider", "last10Minutes"]);
+
+function committedBreakdown(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  let filtered = null;
+  for (const [key, row] of Object.entries(value)) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    const fields = Object.keys(row);
+    if (!fields.some((field) => STREAM_VOLATILE_FIELDS.has(field))) continue;
+    if (!filtered) filtered = Object.assign(Object.create(null), value);
+    const committedRow = Object.create(null);
+    for (const field of fields) {
+      if (!STREAM_VOLATILE_FIELDS.has(field)) committedRow[field] = row[field];
+    }
+    filtered[key] = committedRow;
+  }
+  return filtered || value;
+}
+
+function committedStreamSnapshot(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const snapshot = {};
+  let hasCommittedField = false;
+  for (const field of STREAM_COMMITTED_FIELDS) {
+    if (!Object.hasOwn(data, field)) continue;
+    hasCommittedField = true;
+    snapshot[field] = STREAM_BREAKDOWN_FIELDS.has(field) ? committedBreakdown(data[field]) : data[field];
+  }
+  return hasCommittedField ? snapshot : null;
+}
+
+// Compare JSON values without sorting or retaining an extra serialized copy.
+function sameStreamSnapshot(previous, next) {
+  const pending = [[previous, next]];
+  while (pending.length) {
+    const [left, right] = pending.pop();
+    if (left === right) continue;
+    if (!left || !right || typeof left !== "object" || typeof right !== "object" || Array.isArray(left) !== Array.isArray(right)) return false;
+    const keys = Object.keys(left);
+    if (keys.length !== Object.keys(right).length) return false;
+    for (const key of keys) {
+      if (!Object.hasOwn(right, key)) return false;
+      if (left[key] !== right[key]) pending.push([left[key], right[key]]);
+    }
+  }
+  return true;
+}
+
+function periodLabel(period) {
+  return PERIODS.find((item) => item.value === period)?.label || period;
+}
+
 export default function UsageStats({ period: periodProp, setPeriod: setPeriodProp, hidePeriodSelector = false } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -233,17 +292,21 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   const sortBy = searchParams.get("sortBy") || "rawModel";
   const sortOrder = searchParams.get("sortOrder") || "asc";
 
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [statsSnapshot, setStatsSnapshot] = useState(null);
+  const [chartSnapshot, setChartSnapshot] = useState(null);
+  const [statsError, setStatsError] = useState(null);
+  const [chartError, setChartError] = useState(null);
+  const [live, setLive] = useState(null);
+  const [streamDisconnected, setStreamDisconnected] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [tableView, setTableView] = useState("model");
   const [viewMode, setViewMode] = useState("costs");
   const [providers, setProviders] = useState([]);
   const [periodLocal, setPeriodLocal] = useState("today");
-  const isInitialLoad = useRef(true);
-  const hasLoadedStats = useRef(false);
+  const refreshRef = useRef(null);
   const period = periodProp ?? periodLocal;
   const setPeriod = setPeriodProp ?? setPeriodLocal;
+  const stats = useMemo(() => statsSnapshot ? { ...statsSnapshot.data, ...live } : null, [statsSnapshot, live]);
 
   // Fetch connected providers once, deduplicate by provider type
   // Always include noAuth free providers (e.g. opencode) regardless of connections
@@ -277,59 +340,150 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       .catch(() => {});
   }, []);
 
-  // Fetch filtered stats via REST when period changes
+  // Both endpoints always use the selected period. Keep the last successful
+  // snapshots (and their period labels) if a refresh fails or a period changes.
   useEffect(() => {
-    // First load: show full spinner; subsequent: show subtle fetching indicator
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      setLoading(true);
-    } else {
-      setFetching(true);
-    }
+    let active = true;
+    let inFlight = false;
+    let dirty = false;
+    let debounceTimer = null;
+    let timeoutTimer = null;
+    let controller = null;
 
-    fetch(`/api/usage/stats?period=${period}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data) {
-          hasLoadedStats.current = true;
-          setStats((prev) => ({ ...prev, ...data }));
+    const schedule = () => {
+      if (!active) return;
+      if (inFlight) { dirty = true; return; }
+      if (debounceTimer) return;
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        refresh();
+      }, USAGE_REFRESH_DELAY_MS);
+    };
+
+    const refresh = async () => {
+      if (!active) return;
+      if (inFlight) { dirty = true; return; }
+      inFlight = true;
+      dirty = false;
+      controller = new AbortController();
+      const signal = controller.signal;
+      let timedOut = false;
+      timeoutTimer = setTimeout(() => { timedOut = true; controller.abort(); }, USAGE_FETCH_TIMEOUT_MS);
+      setFetching(true);
+
+      const load = async (kind) => {
+        try {
+          const response = await fetch(`/api/usage/${kind}?period=${encodeURIComponent(period)}`, { signal, cache: "no-store" });
+          if (!response.ok) throw Object.assign(new Error("Usage request failed"), { status: response.status });
+          const data = await response.json();
+          if (kind === "stats" ? !data || typeof data !== "object" || !Number.isFinite(data.totalRequests) : !Array.isArray(data)) {
+            throw new Error("Invalid usage response");
+          }
+          if (!active) return;
+          if (signal.aborted) {
+            if (timedOut) throw new Error("Usage request timed out");
+            return;
+          }
+          if (kind === "stats") {
+            setStatsSnapshot({ period, data });
+            setStatsError(null);
+          } else {
+            setChartSnapshot({ period, data });
+            setChartError(null);
+          }
+        } catch (error) {
+          if (!active || (signal.aborted && !timedOut)) return;
+          const message = error?.status === 401 || error?.status === 403
+            ? "Your session may have expired. Sign in again and retry."
+            : timedOut ? "The request timed out. Please retry."
+              : error?.status ? "The service returned an error. Please retry." : "Please check your connection and retry.";
+          if (kind === "stats") setStatsError({ period, message });
+          else setChartError({ period, message });
         }
-      })
-      .catch(() => {})
-      .finally(() => {
-        setLoading(false);
+      };
+
+      await Promise.all([load("stats"), load("chart")]);
+      clearTimeout(timeoutTimer);
+      if (!active) return;
+      inFlight = false;
+      controller = null;
+      if (dirty) schedule();
+      else {
         setFetching(false);
-      });
+      }
+    };
+
+    const retry = () => {
+      if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+      void refresh();
+    };
+    refreshRef.current = { schedule, retry };
+    void refresh();
+
+    return () => {
+      active = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      controller?.abort();
+      refreshRef.current = null;
+    };
   }, [period]);
 
-  // SSE connection - real-time updates for activeRequests + recentRequests only
+  // Live fields are independent of period totals, so they remain useful even
+  // when the stats endpoint fails. Pending-only messages do not trigger a refetch.
   useEffect(() => {
     const es = new EventSource("/api/usage/stream");
+    let supportsNamedUpdates = false;
+    let lastStreamSnapshot = null;
+    const onUsageUpdated = () => {
+      supportsNamedUpdates = true;
+      lastStreamSnapshot = null;
+      refreshRef.current?.schedule();
+    };
+    es.addEventListener("usage-updated", onUsageUpdated);
+
+    // Catch commits that occurred before subscription, including on reconnect.
+    es.onopen = () => {
+      supportsNamedUpdates = false;
+      lastStreamSnapshot = null;
+      setStreamDisconnected(false);
+      refreshRef.current?.schedule();
+    };
+    es.onerror = () => setStreamDisconnected(true);
 
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        // Always merge only real-time fields, never overwrite full stats from REST
-        setStats((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            activeRequests: data.activeRequests,
-            recentRequests: data.recentRequests,
-            errorProvider: data.errorProvider,
-            pending: data.pending,
-          };
-        });
-        if (hasLoadedStats.current) setLoading(false);
-      } catch (err) {
-        console.error("[SSE CLIENT] parse error:", err);
+        // Older servers only send all-time snapshots. Committed aggregates and
+        // breakdowns are invalidation hints, never selected-period totals.
+        // Pending-only messages leave the committed snapshot unchanged.
+        if (!supportsNamedUpdates) {
+          const snapshot = committedStreamSnapshot(data);
+          if (snapshot) {
+            if (lastStreamSnapshot === null || !sameStreamSnapshot(lastStreamSnapshot, snapshot)) refreshRef.current?.schedule();
+            lastStreamSnapshot = snapshot;
+          }
+        }
+        const fields = {};
+        for (const key of ["activeRequests", "recentRequests", "errorProvider", "pending"]) {
+          if (Object.hasOwn(data, key)) fields[key] = data[key];
+        }
+        setLive((prev) => ({ ...prev, ...fields }));
+      } catch {
+        console.error("[SSE CLIENT] Could not parse usage stream message.");
       }
     };
 
-    es.onerror = () => setLoading(false);
-
-    return () => es.close();
+    return () => {
+      es.removeEventListener("usage-updated", onUsageUpdated);
+      es.onopen = null;
+      es.onmessage = null;
+      es.onerror = null;
+      es.close();
+    };
   }, []);
+
+  const retry = () => refreshRef.current?.retry();
 
   const toggleSort = useCallback((tableType, field) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -459,13 +613,13 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
     }
   }, [stats, tableView, sortBy, sortOrder]);
 
-  if (!stats && !loading) return <div className="text-text-muted">Failed to load usage statistics.</div>;
-
   const spinner = (
     <div className="flex items-center justify-center py-12 text-text-muted">
       <span className="material-symbols-outlined text-[32px] animate-spin">progress_activity</span>
     </div>
   );
+  const currentStatsError = statsError?.period === period ? statsError : null;
+  const liveStats = stats || live;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -477,7 +631,6 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                disabled={fetching}
                 className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${period === p.value ? "bg-primary text-white shadow-sm" : "text-text-muted hover:bg-bg-hover hover:text-text"}`}
               >
                 {p.label}
@@ -490,27 +643,56 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         </div>
       )}
 
+      {streamDisconnected && (
+        <p role="status" className="text-sm text-text-muted">
+          Live updates disconnected. Reconnecting automatically.{' '}
+          <button type="button" onClick={retry} className="font-semibold text-primary underline">Refresh now</button>
+        </p>
+      )}
+
+      {currentStatsError ? (
+        <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warning/40 bg-bg-subtle p-3 text-sm text-text-main">
+          <span>
+            Could not load {periodLabel(period)} usage statistics. {currentStatsError.message}
+            {statsSnapshot && ` Showing last successful ${periodLabel(statsSnapshot.period)} data.`}
+          </span>
+          <button type="button" onClick={retry} className="font-semibold text-primary underline">Retry statistics</button>
+        </div>
+      ) : statsSnapshot && statsSnapshot.period !== period ? (
+        <p role="status" className="text-sm text-text-muted">
+          Showing {periodLabel(statsSnapshot.period)} data while {periodLabel(period)} loads.
+        </p>
+      ) : null}
+
       {/* Overview cards */}
-      {loading ? spinner : <OverviewCards stats={stats} />}
+      {stats ? <OverviewCards stats={stats} /> : fetching ? spinner : null}
 
       {/* Provider topology + Recent Requests */}
-      {loading ? spinner : (
+      {liveStats ? (
         <div className="grid min-w-0 grid-cols-1 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
           <ProviderTopology
             providers={providers}
-            activeRequests={stats.activeRequests || []}
-            lastProvider={stats.recentRequests?.[0]?.provider || ""}
-            errorProvider={stats.errorProvider || ""}
+            activeRequests={liveStats.activeRequests || []}
+            lastProvider={liveStats.recentRequests?.[0]?.provider || ""}
+            errorProvider={liveStats.errorProvider || ""}
           />
-          <RecentRequests requests={stats.recentRequests || []} />
+          <RecentRequests requests={liveStats.recentRequests || []} />
         </div>
-      )}
+      ) : fetching ? spinner : null}
 
       {/* Token / Cost chart - sync period */}
-      {loading ? spinner : <UsageChart period={period} />}
+      <UsageChart
+        period={period}
+        periodLabel={periodLabel(period)}
+        snapshot={chartSnapshot}
+        snapshotPeriodLabel={chartSnapshot ? periodLabel(chartSnapshot.period) : ""}
+        error={chartError?.period === period ? chartError : null}
+        fetching={fetching}
+        onRetry={retry}
+      />
 
       {/* Table with dropdown selector */}
-      <div className="flex flex-col gap-3">
+      {stats && <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <select
             value={tableView}
@@ -537,7 +719,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
             </button>
           </div>
         </div>
-        {loading ? spinner : activeTableConfig && (
+        {activeTableConfig && (
           <UsageTable
             title=""
             columns={activeTableConfig.columns}
@@ -553,7 +735,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
             emptyMessage={activeTableConfig.emptyMessage}
           />
         )}
-      </div>
+      </div>}
     </div>
   );
 }

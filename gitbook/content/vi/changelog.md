@@ -1,5 +1,29 @@
 # Nhật ký thay đổi
 
+## Chưa phát hành — cập nhật mã nguồn 2026-10-29
+
+Các thay đổi mã nguồn này tách biệt với hiện vật 1.0.2; chúng không chứng minh
+đã phát hành, triển khai, có quyền truy cập thực tế hay khớp hóa đơn.
+
+- Thêm GPT-6.1 Terra vào danh mục OpenAI và Codex; tuyến OpenAI dùng Responses
+  để giữ công cụ. Giá API là ước tính, không phải hóa đơn thuê bao Codex.
+- Đồng bộ header CommandCode 1.88, cách ly phiên của yêu cầu được chuyển đổi và
+  giữ cùng mã phiên khi thử lại.
+- Giữ giới hạn mảng hợp lệ của schema Google và phân biệt lỗi vượt ngữ cảnh
+  Copilot đã quan sát với lỗi hết hạn mức tài khoản.
+- Các cập nhật usage đã ghi được gom để tải lại thống kê và biểu đồ theo kỳ đã
+  chọn; dữ liệu cũ giữ nhãn kỳ và khi lỗi có nút thử lại. Thông tin request trực tiếp vẫn
+  được truyền riêng; nguyên nhân lỗi trình duyệt ban đầu chưa được xác nhận.
+- Tạo giọng và embedding Ollama Local cần kết nối đang hoạt động, khóa API là
+  tùy chọn. Giọng mặc định WAV, hỗ trợ PCM và WAV trong JSON, từ chối MP3; thẻ
+  và danh sách embedding không chứng minh model đã được cài.
+- Bỏ giá dự phòng chung không theo phạm vi làm giảm độ bao phủ cho usage tương
+  lai: một số tuyến thuê bao hoặc gateway từng có giá số nay không rõ; lịch sử đã
+  lưu không đổi. Giá tham khảo theo đúng provider/model không phải hóa đơn; chỉ
+  một nhóm nhỏ model văn bản cho ước tính trong 24 giờ từ lúc ghi nhận.
+
+[Rà soát mã nguồn và giới hạn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up)
+
 ## Kitsune Router 1.0.2 — container private đã xuất bản; pull ẩn danh chờ; npm bị chặn
 
 Tag bất biến **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**, PR #2 merge `23375bf1`. SSH nguồn chính xác: **9.041 qua, 100 skip, không lỗi assertion/suite**; lint nghiêm ngặt, 18 docs tests/export tĩnh, app build và pack qua. CI `40468830176` xanh trên cây nguồn khớp tag. Smoke tarball local, sáu tình huống restart container và browser nguồn chính xác qua trong phạm vi ghi nhận. Chỉ mock child `Date`, không đổi thứ tự production; warning log chỉ cho npm publish, không pack.
@@ -26,7 +50,7 @@ Lần thử lỗi không xuất bản npm/GHCR. Giữ tag, phạm vi và bằng 
 
 > **Lưu trữ lịch sử:** phần sau giữ tên, hiện vật, URL và bằng chứng ZenRouter gốc; không phải phát hành Kitsune 0.x hay xác minh nguồn hiện tại. Dùng [cài đặt mới](/vi/getting-started/installation/), không lệnh nâng cấp cũ. Công việc Unreleased bên dưới được ghi trước đề xuất đổi thương hiệu.
 
-## Chưa phát hành — đối soát tháng Mười
+## Lịch sử trước đổi thương hiệu — đối soát tháng Mười
 
 - Sửa lời gọi đệ quy giữa fetch của Next.js và lớp truyền tải gateway; khôi phục chat, làm mới OAuth, usage và danh mục mà không đổi chính sách tài khoản hoặc proxy.
 - Kiểm tra dependency trực tiếp đã cài so với lockfile trước khi build/test. Cài lại bằng `npm ci` để không đóng gói Next.js/Undici cũ; không thay đổi các gói 0.9.13 đã phát hành.

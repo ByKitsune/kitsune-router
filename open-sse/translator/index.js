@@ -5,17 +5,20 @@ import { cloakClaudeTools, decloakStreamChunk } from "../utils/claudeCloaking.js
 import { compressToolNames, decloakOpenAIChunk } from "../utils/toolCompressor.js";
 import { filterToOpenAIFormat } from "./formats/openai.js";
 import { stripUnsupportedChatExtensions, validateSupportedParams } from "./concerns/paramSupport.js";
-import { applyThinking, captureThinking } from "./concerns/thinkingUnified.js";
+import { applyThinking, captureThinking, stripThinkingSuffix } from "./concerns/thinkingUnified.js";
 import { getThinkingContext, setThinkingContext } from "./concerns/thinking.js";
 import { captureSessionId } from "../utils/sessionManager.js";
 import { PROVIDERS } from "../providers/index.js";
 import { ROLE, GEMINI_ROLE } from "./schema/roles.js";
+import { CLAUDE_BLOCK } from "./schema/index.js";
 import { extractResponseError, responseErrorToClient } from "./concerns/responseError.js";
 import { lowerKimiDeferredTools } from "./concerns/deferredTools.js";
 import { ownRequestBody } from "./concerns/requestOwnership.js";
 import { rejectUnsupportedTranslationMedia } from "./concerns/requestMedia.js";
 import { unsupportedResponseMedia } from "./concerns/responseMedia.js";
 import { compressGeminiToolNames } from "./concerns/geminiToolNames.js";
+import { getModelUpstreamId } from "../config/providerModels.js";
+import { canonicalizeProviderId } from "../providers/identity.js";
 
 // Registry for translators. Lazy-init guards against circular-import order:
 // translator modules call register() (side-effect) before this module's body runs.
@@ -70,9 +73,51 @@ function detectClientLastRole(body) {
   return role === ROLE.ASSISTANT || role === GEMINI_ROLE.MODEL ? ROLE.ASSISTANT : undefined;
 }
 
+export function isGoKimiDeferredToolRoute(provider, model) {
+  return canonicalizeProviderId(provider) === "opencode-go" && typeof model === "string" &&
+    stripThinkingSuffix(getModelUpstreamId("opencode-go", model)) === "kimi-k3.1-pro";
+}
+
+// Inspect only protocol content, never examples in tool arguments or results.
+export function findClaudeToolAddition(body) {
+  // A misplaced addition in the initial system content is invalid too; the
+  // OpenAI bridge otherwise silently drops it while collecting system text.
+  if (Array.isArray(body?.system)) {
+    const index = body.system.findIndex(block => block?.type === CLAUDE_BLOCK.TOOL_ADDITION);
+    if (index !== -1) return `system.${index}`;
+  } else if (body?.system?.type === CLAUDE_BLOCK.TOOL_ADDITION) return "system";
+  if (!Array.isArray(body?.messages)) return null;
+  for (const [messageIndex, message] of body.messages.entries()) {
+    const content = message?.content;
+    if (Array.isArray(content)) {
+      for (const [blockIndex, block] of content.entries()) {
+        if (block?.type !== CLAUDE_BLOCK.TOOL_ADDITION) continue;
+        return `messages.${messageIndex}.content.${blockIndex}`;
+      }
+    } else if (content?.type === CLAUDE_BLOCK.TOOL_ADDITION) {
+      return `messages.${messageIndex}.content`;
+    }
+  }
+  return null;
+}
+
+// Hoisting changes a tool's activation point and cannot represent references or
+// redefinitions. Until those semantics can be carried on this exact Chat route,
+// reject every top-level addition rather than replace it with omitted-block text.
+export function rejectGoKimiDeferredTools(sourceFormat, targetFormat, provider, model, body) {
+  if (sourceFormat !== FORMATS.CLAUDE || targetFormat !== FORMATS.OPENAI || !isGoKimiDeferredToolRoute(provider, model)) return;
+  const param = findClaudeToolAddition(body);
+  if (!param) return;
+  const error = new Error("This destination cannot preserve tool_addition semantics; remove the block or select a route that supports mid-conversation tool changes.");
+  error.code = "unsupported_parameter";
+  error.param = param;
+  throw error;
+}
+
 // Borrowed input is isolated before preparation; owned input is a private mutable attempt.
 export function translateRequest(sourceFormat, targetFormat, model, body, stream = true, credentials = null, provider = null, reqLogger = null, stripList = [], connectionId = null, clientTool = null, capabilities = null, requestContext = null) {
   ensureInitialized();
+  rejectGoKimiDeferredTools(sourceFormat, targetFormat, provider, model, body);
   body = ownRequestBody(body, requestContext);
   validateSupportedParams(provider, model, body, targetFormat);
   rejectUnsupportedTranslationMedia(body, sourceFormat, targetFormat);

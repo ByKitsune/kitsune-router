@@ -30,7 +30,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 // Publisher evidence captured 2026-10-21: Claude native 2.1.306/SDK 0.128.0;
 // Kiro stable manifests 1.4.13/2.33.0; Kimchi v1.17.0 release/tag;
-// CodeBuddy npm 2.171.0 (CN CLI only); integrity-checked Command Code 1.86.3.
+// CodeBuddy npm 2.171.0 (CN CLI only); the earlier Command Code 1.86.3 pin
+// was integrity-checked. 1.88.0 is the newer upstream-reported header identity.
 // All I/O is fixture-only; app releases do not establish unverified SDK pins.
 describe("verified client release migrations", () => {
   it("emits the latest-channel Claude release and its bundled Stainless version", async () => {
@@ -81,13 +82,13 @@ describe("verified client release migrations", () => {
     expect(versions.TRAE_USER_AGENT).toBe("Trae/1.0.0 antigravity-cockpit-tools");
   });
 
-  it("sends verified Command Code headers through its real NDJSON executor", async () => {
+  it("sends the upstream-reported Command Code headers through its real NDJSON executor", async () => {
     proxyAwareFetch.mockResolvedValue(new Response('{"type":"text-delta","delta":"fixture"}\n{"type":"finish","finishReason":"stop"}\n'));
     const result = await new CommandCodeExecutor().execute({ model: "fixture-model", body: { messages: [] }, stream: true, credentials });
     const headers = lastHeaders(proxyAwareFetch);
     expect(proxyAwareFetch.mock.calls[0][0]).toBe("https://api.commandcode.ai/alpha/generate");
     expect(headers.get("x-cli-environment")).toBe("production");
-    expect(headers.get("x-command-code-version")).toBe("1.86.3");
+    expect(headers.get("x-command-code-version")).toBe("1.88.0");
     expect(headers.get("user-agent")).toBe("cli");
     expect(headers.get("authorization")).toBe("Bearer fixture-key");
     expect(headers.get("x-session-id")).toMatch(/^[0-9a-f-]{36}$/);
@@ -100,10 +101,14 @@ describe("verified client release migrations", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ valid: true, error: null });
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(lastHeaders(fetch).get("x-command-code-version")).toBe("1.86.3");
+    expect(lastHeaders(fetch).get("x-command-code-version")).toBe("1.88.0");
     expect(lastHeaders(fetch).get("user-agent")).toBe("cli");
     expect(lastHeaders(fetch).get("x-cli-environment")).toBe("production");
     expect(lastHeaders(fetch).get("authorization")).toBe("Bearer fixture-key");
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(lastHeaders(fetch).get("x-session-id")).toBe(body.threadId);
+    expect(lastHeaders(fetch).get("x-cli-surface")).toBe("cli");
+    expect(lastHeaders(fetch).get("x-taste-learning")).toBe("false");
   });
 
   it("keeps independently verified releases separate from retained SDK pins", () => {

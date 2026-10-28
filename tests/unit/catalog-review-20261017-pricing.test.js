@@ -1,9 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { calculateCostFromTokens, getPricingForModel, MODEL_PRICING, PROVIDER_PRICING } from "../../open-sse/providers/pricing.js";
 
 // Literal facts: models.dev commit 22dc88b304dd15ab1c1692794ead3696bc97994d
 // (2026-10-17T23:21:55Z), cross-checked against the vendors' public price lists.
 // Raw responses, SHA256 and actual fetch dates: docs/audit/data/catalog-review-20261017.json.
+async function expectSavedOverride(provider, model, override) {
+  const dir = await mkdtemp(join(process.env.TMPDIR || "/tmp/opencode", "pricing-catalog-"));
+  const oldDir = process.env.DATA_DIR, previous = Object.getOwnPropertyDescriptor(global, "_dbAdapter");
+  const events = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
+  const listeners = new Map(events.map(event => [event, new Set(process.listeners(event))]));
+  process.env.DATA_DIR = join(dir, "data"); delete global._dbAdapter; vi.resetModules();
+  try {
+    const repo = await import("../../src/lib/db/repos/pricingRepo.js");
+    await repo.updatePricing({ [provider]: { [model]: override } });
+    expect(await repo.getPricingForModel(provider, model)).toMatchObject(override);
+    expect((await repo.getSavedPricing())[provider][model]).toEqual(override);
+    expect(await repo.getPricingForModel("unrelated-price-fixture", model)).toBeNull();
+  } finally {
+    await global._dbAdapter?.instance?.close();
+    for (const event of events) for (const listener of process.listeners(event)) if (!listeners.get(event).has(listener)) process.removeListener(event, listener);
+    if (previous) Object.defineProperty(global, "_dbAdapter", previous); else delete global._dbAdapter;
+    if (oldDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = oldDir;
+    vi.resetModules(); await rm(dir, { recursive: true, force: true });
+  }
+}
+
 describe("2026-10-17 reviewed tariffs at the cost consumer", () => {
   it("uses Haiku 5.5's reviewed tier across supported version spellings", () => {
     // https://platform.claude.com/docs/en/about-claude/pricing.md
@@ -22,28 +45,41 @@ describe("2026-10-17 reviewed tariffs at the cost consumer", () => {
   it.each([
     ["anthropic", "other-vendor/claude-haiku-5.5"],
     ["catalog-unverified", "claude-haiku-5.5"],
-  ])("does not apply native reviewed pricing to %s/%s", (provider, model) => {
-    expect(calculateCostFromTokens({ prompt_tokens: 100000 }, getPricingForModel(provider, model))).toBe(0.1);
+  ])("does not apply native reviewed pricing to %s/%s", async (provider, model) => {
+    // The previous 0.1 was a global leaf/family estimate, not a tariff for
+    // this exact provider and namespace. Unknown is distinct from free.
+    expect(getPricingForModel(provider, model)).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 100000 }, getPricingForModel(provider, model))).toBeNull();
+    await expectSavedOverride(provider, model, { input: 1, output: 5 });
   });
 
-  it("retains explicit tariffs ahead of reviewed version-spelling fallback", () => {
+  it("retains literal provider tariffs ahead of reviewed version-spelling fallback", async () => {
     const model = "claude-haiku-5.5";
     const fullId = "deepseek-ai/deepseek-v4-pro";
     const providerPrice = { input: 7, output: 8 };
     const fullIdPrice = { input: 9, output: 10 };
     const oldProvider = PROVIDER_PRICING.anthropic[model];
     const oldGlobal = MODEL_PRICING[fullId];
+    const oldSilicon = PROVIDER_PRICING.siliconflow[fullId];
+    const hostedPrice = getPricingForModel("siliconflow", fullId);
+    expect(hostedPrice.input).toBe(1.50162);
     try {
       MODEL_PRICING[fullId] = fullIdPrice;
       PROVIDER_PRICING.anthropic[model] = providerPrice;
       expect(calculateCostFromTokens({ prompt_tokens: 1000000 }, getPricingForModel("anthropic", model))).toBe(7);
+      // A global literal ID cannot supersede a different provider's quote.
+      expect(getPricingForModel("siliconflow", fullId)).toEqual(hostedPrice);
+      PROVIDER_PRICING.siliconflow[fullId] = fullIdPrice;
       expect(calculateCostFromTokens({ prompt_tokens: 1000000 }, getPricingForModel("siliconflow", fullId))).toBe(9);
     } finally {
       if (oldProvider === undefined) delete PROVIDER_PRICING.anthropic[model];
       else PROVIDER_PRICING.anthropic[model] = oldProvider;
       if (oldGlobal === undefined) delete MODEL_PRICING[fullId];
       else MODEL_PRICING[fullId] = oldGlobal;
+      if (oldSilicon === undefined) delete PROVIDER_PRICING.siliconflow[fullId];
+      else PROVIDER_PRICING.siliconflow[fullId] = oldSilicon;
     }
+    await expectSavedOverride("siliconflow", fullId, { input: 11, output: 10 });
   });
 
   it.each([

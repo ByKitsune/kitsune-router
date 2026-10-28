@@ -1,30 +1,29 @@
-import { getProviderIdentityTokens, getDeclaredUpstreamModelId } from "./identity.js";
+import { canonicalizeProviderId, getProviderIdentityTokens, getDeclaredUpstreamModelId } from "./identity.js";
 import { REVIEWED_MODEL_METADATA, getReviewedModelMetadata, getReviewedPricing } from "./metadata/reviewed.js";
+import { FREE_MODEL_NAMESPACE_OWNERS, getModelsDevPricingEstimate } from "./metadata/modelsDevPricing.js";
+export { getModelsDevPricingReference } from "./metadata/modelsDevPricing.js";
 import * as openAIProcessingQuotes from "../config/processingSpeedPricing.js";
 import { LITERAL_ONLY_PRICING_PROVIDERS } from "../config/pricingConfig.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
 //
-// Fallback order (first match wins):
-//   1. Literal provider override, then literal full-ID model tariff
-//   2. FREE_MODEL_NAMESPACES — upstream bills these at $0
-//   3. Unambiguous case-insensitive exact / declared upstream alias metadata
-//   4. Canonical leaf price, then PATTERN_PRICING (e.g. "codex-*")
+// Fallback order: exact provider quote, reviewed provider quote/blocker,
+// unambiguous provider spelling or declared upstream alias, provider-owned free
+// namespace, then an explicitly approved, time-bounded exact catalog estimate.
+// Global model/family estimates remain exported as legacy data only.
 
 /**
- * Namespaces upstream meters at $0. A free model must never inherit a paid
- * rate: the vendor-prefix strip in getPricingForModel() would turn
- * "cline-free/deepseek-v4.1-flash" into "deepseek-v4.1-flash" and match
- * MODEL_PRICING, so the namespace is checked before both fallbacks.
+ * Namespaces upstream meters at $0. These names do not establish a free
+ * tariff on another provider, an arbitrary custom host, or a different case.
  */
-export const FREE_MODEL_NAMESPACES = ["cline-free/", "opencode-free/", "mimo-free/"];
+export const FREE_MODEL_NAMESPACES = Object.keys(FREE_MODEL_NAMESPACE_OWNERS);
 
 export const ZERO_PRICING = {
   input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0, cache_creation_1h: 0,
   cache_write_30m: 0, cache_write_12h: 0,
 };
 
-/** True when the model id sits in a namespace upstream bills at $0. */
+/** Legacy namespace-name check only; a free tariff also requires its owning provider. */
 export function isFreeModel(model) {
   if (!model) return false;
   const lower = String(model).toLowerCase();
@@ -32,8 +31,8 @@ export function isFreeModel(model) {
 }
 
 /**
- * Canonical model pricing — provider-agnostic.
- * Cover all known models; deduplicated across providers.
+ * Legacy provider-agnostic model reference data; not used by the resolver as
+ * a provider tariff or evidence of an exhaustive current catalog.
  */
 export const MODEL_PRICING = {
   // === Anthropic / Claude ===
@@ -254,7 +253,7 @@ export const MODEL_PRICING = {
   "minimax-m2.1":                 { input: 0.30,  output: 1.20,  cached: 0.03,  reasoning: 1.20,   cache_creation: 0.30  },
   "minimax-m2.5":                 { input: 0.30,  output: 1.20,  cached: 0.03,  reasoning: 1.20,   cache_creation: 0.30  },
 
-  // === OpenRouter fallback ===
+  // === Legacy OpenRouter reference (not a resolver fallback) ===
   "auto":                         { input: 2.00,  output: 8.00,  cached: 1.00,  reasoning: 12.00,  cache_creation: 2.00  },
 
   // === Misc ===
@@ -313,8 +312,7 @@ export const PROVIDER_PRICING = {
   },
   // TokenRouter — exact rates from https://api.tokenrouter.com/api/pricing ($1/1M tokens).
   // Ratio→USD: input = model_ratio×2, output = model_ratio×completion_ratio×2.
-  // These override the canonical MODEL_PRICING/PATTERN_PRICING, whose rates often
-  // differ from TokenRouter's reseller pricing.
+  // These scoped quotes may differ from the legacy unscoped reference tables.
   tokenrouter: {
     "MiniMax-M3": { input: 0.3, output: 1.2, cached: 0.06, reasoning: 1.2 },
     "anthropic/claude-fable-5": { input: 10, output: 50, cached: 1.0, cache_creation: 12.5, reasoning: 50 },
@@ -611,9 +609,9 @@ export const PROVIDER_PRICING = {
 };
 
 /**
- * Pattern-based pricing fallback — matched when no exact model entry found.
- * Patterns use simple glob: "*" matches any substring.
- * First match wins — order matters.
+ * Legacy pattern references, retained as an export for compatibility. Provider
+ * billing resolution does not use them. Patterns use simple glob: "*" matches
+ * any substring; callers that use the list must account for its order.
  */
 export const PATTERN_PRICING = [
   // --- Codex variants ---
@@ -709,10 +707,8 @@ export const PATTERN_PRICING = [
  * Match a model ID against a glob pattern (* = wildcard). Case-insensitive:
  * registry ids mix casing (e.g. "MiniMax-M2.5" vs "minimax-m2.5").
  *
- * Compiled patterns are cached on the function itself. getPricingForModel walks
- * the whole PATTERN_PRICING list on every lookup, so building each RegExp from
- * scratch paid compilation once per pattern per resolution — measured ~32x
- * slower than the cached form (9router #4628/#4622).
+ * Compiled patterns are cached on the function itself for legacy callers.
+ * Provider billing resolution does not use these unscoped family patterns.
  *
  * The cache hangs off the function rather than a module-scope const: this file
  * is bundled into the server/CLI chunks, and a module-scope binding read during
@@ -737,8 +733,8 @@ for (const [provider, models] of Object.entries(REVIEWED_MODEL_METADATA)) {
   }
 }
 
-// Keep delivered-speed quotes provider-scoped; MODEL_PRICING is also used for
-// subscription/reseller reference estimates that have no matching API invoice.
+// Keep delivered-speed quotes provider-scoped. The unscoped MODEL_PRICING export
+// remains legacy reference data and is not a pricing-resolution fallback.
 const nativeStandardQuotes = openAIProcessingQuotes.OPENAI_STANDARD_TOKEN_PRICING || {};
 for (const [model, quote] of Object.entries(nativeStandardQuotes)) {
   PROVIDER_PRICING.openai[model] = { ...quote };
@@ -762,8 +758,8 @@ function exactPrice(table, model, allowCaseFold = false) {
   return matches.length === 1 ? table[matches[0]] : null;
 }
 
-/** Resolve metadata prices without changing the literal upstream request ID. */
-export function getPricingForModel(provider, model) {
+/** Resolve provider-specific prices without changing the upstream request ID. */
+export function getPricingForModel(provider, model, options = {}) {
   if (!model) return null;
   const providerTables = getProviderIdentityTokens(provider)
     .filter(token => Object.hasOwn(PROVIDER_PRICING, token))
@@ -773,53 +769,40 @@ export function getPricingForModel(provider, model) {
   function resolve(id) {
     if (seen.has(id)) return null;
     seen.add(id);
-    // Explicit provider and full-ID tariffs beat free namespaces and aliases.
+    // Explicit provider tariffs are complete, even when they contain nulls.
     for (const { table } of providerTables) {
       const price = exactPrice(table, id);
       if (price) return price;
     }
     const upstream = getDeclaredUpstreamModelId(provider, id);
     const reviewedPrice = getReviewedPricing(provider, id);
-    // Provider-reviewed native spellings beat generic leaf tariffs. Full-ID
-    // tariffs and registry-declared aliases retain their literal precedence.
-    if (!id.includes("/") && upstream === id && reviewedPrice) return reviewedPrice;
-    const literal = exactPrice(MODEL_PRICING, id);
-    if (literal) return literal;
-    if (isFreeModel(id)) return ZERO_PRICING;
     const reviewed = getReviewedModelMetadata(provider, id);
-    if (reviewed?.billing?.unverifiedPriceFields?.includes("input") &&
-        reviewed.billing.unverifiedPriceFields.includes("output")) return null;
+    if (reviewedPrice) return reviewedPrice;
+    // A reviewed record without a price is also a blocker: its billing scope
+    // may explicitly reject an otherwise plausible alias or catalog reference.
+    if (reviewed) return null;
 
     for (const { table, literalOnly } of providerTables) {
       if (literalOnly) continue;
       const price = exactPrice(table, id, true);
       if (price) return price;
     }
-    const full = exactPrice(MODEL_PRICING, id, true);
-    if (full) return full;
-
     // Only registry-declared aliases: no guessed review/thinking/date stripping.
     if (upstream !== id) {
       const price = resolve(upstream);
       if (price) return price;
     }
-    // Reviewed version spellings keep provider/namespace scope and the complete
-    // quote (tiers and cache TTLs) before falling back to model-family estimates.
-    if (reviewedPrice) return reviewedPrice;
-    const base = id.includes("/") ? id.split("/").pop() : id;
-    const canonical = exactPrice(MODEL_PRICING, base, true);
-    if (canonical) return canonical;
-    for (const { pattern, pricing } of PATTERN_PRICING) {
-      if (matchPattern(pattern, base) || matchPattern(pattern, id)) return pricing;
-    }
-    return null;
+    const owner = canonicalizeProviderId(provider);
+    if (FREE_MODEL_NAMESPACES.some(namespace => FREE_MODEL_NAMESPACE_OWNERS[namespace] === owner && id.startsWith(namespace))) return ZERO_PRICING;
+    return getModelsDevPricingEstimate(provider, id, options);
   }
   return resolve(model);
 }
 
 /**
  * Get all provider pricing (for UI / API).
- * Returns PROVIDER_PRICING — consumers should fall back to MODEL_PRICING for unlisted models.
+ * Returns provider-scoped pricing; unlisted models must not inherit another
+ * provider's global model or family reference.
  */
 export function getDefaultPricing() {
   return PROVIDER_PRICING;

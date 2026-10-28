@@ -12,9 +12,9 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
-import { randomUUID } from "crypto";
 import { ROLE, OPENAI_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { DEFAULT_MAX_TOKENS, COMMANDCODE_MAX_OUTPUT_TOKENS } from "../../config/runtimeConfig.js";
+import { COMMAND_CODE_WORKING_DIR, createCommandCodeSessionId } from "../../shared/commandCodeHeaders.js";
 import { parseDataUri } from "../concerns/image.js";
 import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { splitToolResultContent } from "../concerns/multimodal.js";
@@ -207,10 +207,14 @@ export function openaiToCommandCodeRequest(model, body, stream /* , credentials 
   const today = new Date().toISOString().slice(0, 10);
 
   return {
-    threadId: randomUUID(),
+    // _clientSessionId may be a connection/history fallback or an unscoped
+    // caller value. This translator does not receive a verified client/tenant
+    // identity, and raw Authorization can be unvalidated in local mode. Never
+    // infer continuity until a trusted client scope is passed through the stack.
+    threadId: createCommandCodeSessionId(),
     memory: "",
     config: {
-      workingDir: process.cwd(),
+      workingDir: COMMAND_CODE_WORKING_DIR,
       date: today,
       environment: process.platform,
       structure: [],

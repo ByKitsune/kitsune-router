@@ -3,8 +3,8 @@ import { PROVIDER_MODELS, getModelSupportedFormats } from "../../open-sse/config
 import { PROVIDERS } from "../../open-sse/config/providers.js";
 import { resolveTransport } from "../../open-sse/services/provider.js";
 
-// Chat-only models (no /messages, no /responses support on opencode-go)
-const CHAT_ONLY = ["glm-5.2", "glm-5.1", "kimi-k2.7-code", "kimi-k2.6", "mimo-v2.5", "mimo-v2.5-pro"];
+// Models configured on the Chat Completions lane; other lanes are not inferred.
+const CHAT_ONLY = ["glm-5.3", "glm-5.2", "glm-5.1", "kimi-k2.7-code", "kimi-k2.6", "kimi-k3.1-pro", "mimo-v2.5", "mimo-v2.5-pro"];
 // Models that also expose the Anthropic /messages endpoint
 const CLAUDE_CAPABLE = ["minimax-m3", "minimax-m2.7", "minimax-m2.5", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus"];
 // Models that also expose the OpenAI /responses endpoint
@@ -19,17 +19,17 @@ function pickTransport(provider, sourceFormat, alias, model) {
 }
 
 describe("OpenCode Go model catalog", () => {
-  it("matches the documented model IDs", () => {
+  it("keeps the curated model IDs and their order", () => {
     const ids = (PROVIDER_MODELS["opencode-go"] || []).map((m) => m.id);
     expect(ids).toEqual([
-      "glm-5.3-flash", "glm-5.2", "glm-5.1", "kimi-k2.7-code", "kimi-k2.6",
+      "glm-5.3-flash", "glm-5.3", "glm-5.2", "glm-5.1", "kimi-k2.7-code", "kimi-k2.6",
       "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
       "mimo-v2.5", "mimo-v2.5-pro",
       "minimax-m3", "minimax-m2.7", "minimax-m2.5",
       "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus",
       "grok-4.7", "gpt-6-luna", "qwen3.8-max", "qwen3.8-flash",
       "mimo-v2.6-pro", "mimo-v2.6-flash", "longcat-2.5-preview-free",
-      "space-bunny-free", "kimi-k3", "deepseek-v4.1-flash",
+      "space-bunny-free", "kimi-k3", "kimi-k3.1-pro", "deepseek-v4.1-flash",
     ]);
   });
 });

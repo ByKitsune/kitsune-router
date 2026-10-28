@@ -175,6 +175,21 @@ export function withLocationGateHint(message) {
   return `${message} ${ROUTER_LOCATION_GATE_HINT}`;
 }
 
+// Copilot uses a generic validation code for this specific, model-dependent
+// rejection. Match only its structured, complete error and known wording, not
+// arbitrary text (which can contain quoted request values). Inspect the raw
+// message before redaction so redaction cannot turn a longer value into a match.
+function isCopilotContextOverflow(response, executor, bodyText) {
+  if (response.status !== 400 || executor?.provider !== "github") return false;
+  let error;
+  try { error = JSON.parse(bodyText)?.error; } catch { return false; }
+  if (!error || typeof error !== "object" || Array.isArray(error) || error.code !== "invalid_request_body") return false;
+  const type = error.type ?? error.status;
+  if (type != null && type !== "invalid_request_error") return false;
+  return typeof error.message === "string" &&
+    /^Your input exceeds the context window of this model\.(?:\s+Please adjust your input and try again\.)?$/i.test(error.message.trim());
+}
+
 /**
  * Parse upstream provider error response
  * @param {Response} response - Fetch response from provider
@@ -192,6 +207,10 @@ export async function parseUpstreamError(response, executor = null, onResponseBo
     onResponseBody(object ? accountingEvidence(parsed) : null, { complete: capture.complete, uncertain });
   }
   const generic = parseUpstreamErrorBody(response, bodyText);
+  if (capture.complete && !capture.truncated && !signal?.aborted && capture.body === bodyText &&
+      isCopilotContextOverflow(response, executor, bodyText)) {
+    generic.code = "context_length_exceeded";
+  }
   const { message, ...diagnostics } = generic;
   // Validation diagnostics are authoritative even when rejected input contains
   // quoted quota/reset phrases or a provider-specific parser would expand them.
@@ -208,7 +227,7 @@ export async function parseUpstreamError(response, executor = null, onResponseBo
       if (parsed && typeof parsed === "object") {
         // Antigravity's legacy retry parser expands details as message text.
         // A typed reset adds no public diagnostic fields from that private map.
-        const msg = (structuredReset && message) || safeDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
+        const msg = (structuredReset && message) || safeMessageDiagnostic(parsed.message) || message || DEFAULT_ERROR_MESSAGES[response.status] || `Upstream error: ${response.status}`;
         // Executor parse wins; fill resetsAtMs from generic patterns when absent — PR #3612
         const hint = parsed.resetsAtMs == null ? structuredReset : null;
         const availability = classifyAvailabilityError(response.status, msg, {
@@ -317,7 +336,7 @@ export function parseUpstreamErrorBody(response, bodyText) {
     const json = JSON.parse(bodyText);
     const source = json?.error && typeof json.error === "object" && !Array.isArray(json.error) ? json.error : json;
     return {
-      message: safeDiagnostic(source?.message || json?.message || (typeof json?.error === "string" ? json.error : typeof json === "string" ? json : "")),
+      message: safeMessageDiagnostic(source?.message || json?.message || (typeof json?.error === "string" ? json.error : typeof json === "string" ? json : "")),
       type: safeDiagnostic(source?.type || source?.status),
       param: safeDiagnostic(source?.param),
       code: safeDiagnosticCode(source?.code),
@@ -328,7 +347,7 @@ export function parseUpstreamErrorBody(response, bodyText) {
     // stack trace or arbitrary response body is not a public diagnostic.
     const message = bodyText.length <= 500 && !/<\/?[A-Za-z][^>]*>|[\r\n]|^\s*[\[{]|\b(?:stack|traceback|debug)\b/i.test(bodyText)
       && /\b(?:invalid|unsupported|must|minimum|maximum|quota|rate limit|usage limit|insufficient credits?|not found|unknown model|unavailable)\b/i.test(bodyText)
-      ? safeDiagnostic(bodyText) : undefined;
+      ? safeMessageDiagnostic(bodyText) : undefined;
     return { message, request_id: safeRequestId(response) };
   }
 }
@@ -340,6 +359,41 @@ const RESET_BEARING_STATUSES = new Set([402, 403, 429, 500, 502, 503, 504, 529])
 
 function safeDiagnostic(value) {
   return redactClientDiagnostic(value) || undefined;
+}
+
+// Redaction or the public length limit can cut through a quoted rejected value.
+// Replace that partial value only when the original diagnostic had a complete
+// quotation. Otherwise its quota/context words could become unquoted routing
+// evidence. Never reintroduce the redacted suffix.
+function safeMessageDiagnostic(value) {
+  const message = safeDiagnostic(value);
+  if (!message || typeof value !== "string") return message;
+  const original = value.slice(0, MAX_UPSTREAM_ERROR_BYTES);
+  const quotations = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`/g;
+  const unmatched = new Set(message.replace(quotations, "").match(/["'`]/g) || []);
+  if (!unmatched.size) return message;
+  for (const match of original.matchAll(quotations)) {
+    const delimiter = match[0][0];
+    if (!unmatched.has(delimiter)) continue;
+    const prefix = safeDiagnostic(original.slice(0, match.index + 1));
+    if (!prefix?.endsWith(delimiter) || !message.startsWith(prefix)) continue;
+    const tail = message.slice(prefix.length);
+    const hasClose = delimiter === "`" ? tail.includes("`")
+      : (delimiter === '"' ? /^(?:\\.|[^"\\])*"/ : /^(?:\\.|[^'\\])*'/).test(tail);
+    if (hasClose) continue;
+    const repaired = `${message.slice(0, prefix.length - 1)}${delimiter}[REDACTED]${delimiter}`;
+    // The core adds a status prefix before another 500-character public
+    // sanitization pass. Reserve room and never clip a preceding quotation.
+    let end = 480;
+    for (const quoted of repaired.matchAll(quotations)) {
+      if (quoted.index < end && quoted.index + quoted[0].length > end) {
+        end = quoted.index;
+        break;
+      }
+    }
+    return repaired.slice(0, end).trimEnd() || undefined;
+  }
+  return message;
 }
 
 function safeDiagnosticCode(value) {

@@ -1,6 +1,7 @@
-import { randomUUID } from "crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
+import { buildCommandCodeHeaders, COMMAND_CODE_WORKING_DIR, createCommandCodeSessionId } from "../shared/commandCodeHeaders.js";
 import { commandCodeToOpenAIResponse } from "../translator/response/commandcode-to-openai.js";
 import { FORMATS } from "../translator/formats.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
@@ -10,7 +11,7 @@ import { COMMANDCODE_MAX_OUTPUT_TOKENS } from "../config/runtimeConfig.js";
  * CommandCodeExecutor — talks to https://api.commandcode.ai/alpha/generate
  *
  * Auth: Bearer <user_xxx> API key (stored as the connection's apiKey).
- * Adds the per-request `x-session-id` header expected by CommandCode upstream.
+ * Sends the CLI identity; the session and project headers match the wire body.
  *
  * Upstream returns AI SDK v5 NDJSON (one JSON event per line, no `data:` prefix).
  * We translate each event to an OpenAI chat.completion.chunk and emit it as SSE so
@@ -32,32 +33,63 @@ export class CommandCodeExecutor extends BaseExecutor {
     return body;
   }
 
-  buildHeaders(credentials, stream = true) {
-    const headers = {
-      "Content-Type": "application/json",
-      ...(this.config.headers || {}),
-      "x-session-id": randomUUID(),
-    };
-
-    const token = credentials?.apiKey || credentials?.accessToken;
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    if (stream) headers["Accept"] = "text/event-stream";
-    return headers;
+  buildHeaders(credentials, stream = true, url, model, transformedBody) {
+    return buildCommandCodeHeaders({
+      apiKey: credentials?.apiKey || credentials?.accessToken,
+      sessionId: transformedBody?.threadId,
+      workingDir: transformedBody?.config?.workingDir,
+      headers: this.config.headers,
+      accept: stream ? "text/event-stream" : null,
+    });
   }
 
   async execute(opts) {
+    opts.signal?.throwIfAborted();
+    const input = opts.body;
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      throw new TypeError("CommandCode request body must be an object");
+    }
+    if (input.config != null && (typeof input.config !== "object" || Array.isArray(input.config))) {
+      throw new TypeError("CommandCode config must be an object");
+    }
+    const workingDir = input.config?.workingDir ?? COMMAND_CODE_WORKING_DIR;
+    if (typeof workingDir !== "string") throw new TypeError("CommandCode workingDir must be a string");
+    const threadId = input.threadId == null || input.threadId === ""
+      ? createCommandCodeSessionId() : input.threadId;
+    // HTTP normalizes surrounding whitespace; reject values that cannot be sent
+    // verbatim rather than misaligning the session header and body.
+    if (typeof threadId !== "string" || threadId !== threadId.trim() || !/^[\x20-\x7e\x80-\xff]+$/.test(threadId)) {
+      throw new TypeError("CommandCode threadId must be a header-safe string");
+    }
+    // BaseExecutor mutates stream and params while preparing an attempt. Work on
+    // a request-local envelope, and allocate its fallback ID once for all retries.
+    const body = {
+      ...input,
+      threadId,
+      config: { ...input.config, workingDir },
+      ...(input.params && typeof input.params === "object" && !Array.isArray(input.params)
+        ? { params: { ...input.params } } : {}),
+    };
+    const request = { ...opts, body };
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = await super.execute(opts);
+      opts.signal?.throwIfAborted();
+      const result = await super.execute(request);
       if (!result?.response?.ok || !result.response.body) return result;
 
       const wrappedResponse = await inspectAndWrapCommandCodeResponse(result.response, opts.model);
+      opts.signal?.throwIfAborted();
       if (!wrappedResponse.ok && attempt < maxRetries) {
         const isRetryableStatus = wrappedResponse.status === 502 || wrappedResponse.status === 503 || wrappedResponse.status === 504;
         if (isRetryableStatus) {
           opts.log?.debug?.("RETRY", `CommandCode upstream returned status ${wrappedResponse.status}, retrying ${attempt + 1}/${maxRetries}...`);
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          if (wrappedResponse.body && !wrappedResponse.body.locked) await wrappedResponse.body.cancel().catch(() => {});
+          try {
+            await delay(1000 * (attempt + 1), undefined, { signal: opts.signal });
+          } catch (error) {
+            opts.signal?.throwIfAborted();
+            throw error;
+          }
           continue;
         }
       }

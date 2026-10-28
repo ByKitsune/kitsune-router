@@ -6743,7 +6743,7 @@ const gatewayQuotaReview = {
   },
   "opencode-go": {
     kind: "subscription-reference",
-    sources: ["https://opencode.ai/docs/go/", "https://opencode.ai/zen/go/v1/models"],
+    sources: ["https://opencode.ai/v2/docs/console/go/", "https://opencode.ai/docs/go/", "https://opencode.ai/zen/go/v1/models"],
     referenceUnit: "USD_quota_reference_per_1000000_tokens",
     note: "Go USD 10/month and Go Plus USD 40/month publish model-specific USD-per-million token reference prices that can estimate 5-hour/weekly/monthly quota consumption. They are not marginal cash invoices or separate per-token API charges. Unknown references remain null; an anonymous model listing is not entitlement. Account tier, remaining allowance and client eligibility are unverified. Free model exceptions require a primary quote, not a name or models.dev zero.",
     models: ["glm-5.3-flash", "glm-5.2", "glm-5.1", "kimi-k2.7-code", "kimi-k2.6", "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp", "mimo-v2.5", "mimo-v2.5-pro", "minimax-m3", "minimax-m2.7", "minimax-m2.5", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus", "grok-4.7", "gpt-6-luna", "qwen3.8-max", "qwen3.8-flash", "mimo-v2.6-pro", "mimo-v2.6-flash", "longcat-2.5-preview-free", "space-bunny-free", "kimi-k3", "deepseek-v4.1-flash"],
@@ -6768,12 +6768,34 @@ const gatewayQuotaReview = {
     },
   },
 };
+
+const unknownGoCashPrice = { ...unknownGatewayPrice, cache_write_30m: null, cache_write_12h: null };
+
+// Keep a separately verified cash quote through every Go quota refresh. A
+// subscription reference alone is never evidence of a cash price, including
+// zero. Both inputs remain untouched for callers that retain earlier records.
+function applyGoSubscriptionCashPolicy(previous, record) {
+  const verifiedCash = previous?.billing?.invoiceVerified === true &&
+    previous.pricing && typeof previous.pricing === "object" && !Array.isArray(previous.pricing) &&
+    Object.keys(previous.pricing).length > 0;
+  if (!verifiedCash) {
+    return {
+      ...record, pricing: { ...unknownGoCashPrice },
+      billing: { ...record.billing, invoiceVerified: false, unverifiedPriceFields: Object.keys(unknownGoCashPrice) },
+    };
+  }
+  const billing = { ...previous.billing, ...record.billing, invoiceVerified: true };
+  if (Object.hasOwn(previous.billing, "unverifiedPriceFields")) billing.unverifiedPriceFields = previous.billing.unverifiedPriceFields;
+  else delete billing.unverifiedPriceFields;
+  return { ...record, pricing: { ...previous.pricing }, billing };
+}
+
 for (const [provider, review] of Object.entries(gatewayQuotaReview)) {
   const table = gatewayModels[provider] ||= {};
   const ids = new Set([...(review.models || Object.keys(table)), ...Object.keys(review.references)]);
   for (const model of ids) {
     const previous = table[model] || {};
-    table[model] = {
+    const reviewed = {
       ...previous,
       sources: [...new Set([...(previous.sources || []), ...review.sources])],
       pricing: { ...(review.references[model] || unknownGatewayPrice) },
@@ -6790,7 +6812,91 @@ for (const [provider, review] of Object.entries(gatewayQuotaReview)) {
         limits: { ...previous.limits, authenticatedRouteVerified: false, unverifiedCapabilityFields: ["contextWindow", "maxInput", "maxOutput"] },
       } : {}),
     };
+    table[model] = provider === "opencode-go" ? applyGoSubscriptionCashPolicy(previous, reviewed) : reviewed;
   }
+}
+
+// The provider-owned OpenCode catalog and Go documentation were rechecked for
+// these exact IDs on 2026-10-29. Their published USD-denominated token figures
+// measure plan allowance, not a cash invoice; keep them out of `pricing`, which
+// the usage ledger treats as a per-request monetary cost. Extra Usage can use a
+// separate balance, but neither its activation nor an account invoice is known.
+const goCatalogRefresh = {
+  "glm-5.3": {
+    capabilities: {
+      contextWindow: 1000000, maxOutput: 131072,
+      vision: false, pdf: false, audioInput: false, videoInput: false,
+      imageOutput: false, audioOutput: false, reasoning: true, tools: true,
+      structuredOutput: true, temperature: true,
+      thinkingFormat: "openai", thinkingCanDisable: false,
+      thinkingEffortSupported: true, thinkingEfforts: ["low", "high", "max"],
+    },
+    referencePricing: { input: 1.4, output: 4.4, cached: 0.26 },
+  },
+  "kimi-k3.1-pro": {
+    capabilities: {
+      contextWindow: 1048576, maxOutput: 131072,
+      vision: true, pdf: false, audioInput: false, videoInput: true,
+      imageOutput: false, audioOutput: false, reasoning: true, tools: true,
+      structuredOutput: true, temperature: false,
+      thinkingFormat: "kimi", thinkingCanDisable: false,
+      thinkingEffortSupported: true, thinkingEfforts: ["low", "high", "max"],
+    },
+    referencePricing: { input: 2, output: 10, cached: 0.2, cache_creation: 2 },
+  },
+};
+const goCatalogRefreshSources = [
+  "https://opencode.ai/v2/docs/console/go/",
+  "https://opencode.ai/docs/go/",
+  "https://opencode.ai/zen/go/v1/models",
+  "https://models.opencode.ai/providers/opencode-go",
+  "https://models.dev/api.json",
+];
+const goCatalogRefreshSnapshot = {
+  url: "https://models.dev/api.json", capturedAt: "2026-10-29T01:10:38+07:00",
+  sha256: "a0af14e6709252ef4da167c43df2de1926e6116b0204859fe3c9e865dea5a38a",
+  note: "Exact opencode-go model entries; no independently verified account entitlement or input ceiling.",
+};
+for (const [model, facts] of Object.entries(goCatalogRefresh)) {
+  const previous = gatewayModels["opencode-go"][model] || {};
+  const reviewed = {
+    ...previous,
+    sources: [...new Set([...(previous.sources || []), ...goCatalogRefreshSources,
+      ...(model === "glm-5.3" ? ["https://z.ai/blog/glm-5.3", "https://github.com/proma-ai/Proma/issues/2065"] : ["https://github.com/decolua/9router/commit/5cd4a75696a6c4874c1f5412cb7c21e7e05a5100"]),
+    ])],
+    capabilities: facts.capabilities,
+    limits: {
+      scope: "exact-opencode-go-catalog", catalogProvider: "opencode-go", catalogModelId: model,
+      catalogAsOf: "2026-10-29", supportedFormats: ["openai"], authenticatedRouteVerified: false,
+      unverifiedCapabilityFields: ["maxInput"],
+      note: "Context and output are catalog limits, not an independently established maximum input or an account entitlement.",
+    },
+    pricing: { ...unknownGoCashPrice },
+    billing: {
+      kind: "subscription-reference", currency: "USD", unit: "per_1000000_tokens",
+      referenceUnit: "USD_quota_reference_per_1000000_tokens", estimateBasis: "primary-product-token-reference",
+      referencePricing: facts.referencePricing, reviewedAt: "2026-10-29", invoiceVerified: false,
+      unverifiedPriceFields: Object.keys(unknownGoCashPrice), catalogSnapshot: goCatalogRefreshSnapshot,
+      note: "Published token rates measure Go/Go Plus quota, not per-request cash cost. Extra Usage, remaining allowance, account billing and entitlement are unverified.",
+    },
+    provenance: {
+      ...previous.provenance,
+      reviewedAt: "2026-10-29",
+      v2GoDocumentation: { url: "https://opencode.ai/v2/docs/console/go/", capturedAt: "2026-10-29T01:35:50+07:00", sha256: "018e2296029b538da56c64a7cfb47f49c5c7c73c7df0b240029f3e47860e84b8" },
+      goDocumentation: { url: "https://opencode.ai/docs/go/", capturedAt: "2026-10-29T01:11:24+07:00", sha256: "018e2296029b538da56c64a7cfb47f49c5c7c73c7df0b240029f3e47860e84b8" },
+      providerCatalog: { url: "https://models.opencode.ai/providers/opencode-go", capturedAt: "2026-10-29T01:11:23+07:00", sha256: "944dfbb5fbee786e0c42beff2311afd6a1808596666c9bc16c0c16f8faa05a37" },
+      modelsDevSnapshot: goCatalogRefreshSnapshot,
+    },
+  };
+  gatewayModels["opencode-go"][model] = applyGoSubscriptionCashPolicy(previous, reviewed);
+}
+
+// Subscription allowance references must not enter the cash cost calculator.
+// Preserve the full reference (including tiers) in billing; a separately
+// invoice-verified cash quote, if one is later added, remains authoritative.
+for (const [model, record] of Object.entries(gatewayModels["opencode-go"])) {
+  if (record.billing?.kind !== "subscription-reference") continue;
+  gatewayModels["opencode-go"][model] = applyGoSubscriptionCashPolicy(record, record);
 }
 
 // Exact promotions and dynamic auto prices; never infer provider-global freedom

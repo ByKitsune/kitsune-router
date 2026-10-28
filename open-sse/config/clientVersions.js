@@ -239,10 +239,12 @@ export const KIMCHI_GATEWAY_VERSION = "1.17.0";
 export const KIMCHI_USER_AGENT = `kimchi/${KIMCHI_GATEWAY_VERSION}`;
 
 // ─── Command Code ──────────────────────────────────────────────────────
-// Published 1.86.3 bundle verifies these headers and /alpha/generate; this
-// release identity does not claim live body/stream compatibility.
-export const COMMAND_CODE_VERSION = "1.86.3";
+// Upstream b1effa03 reports the CLI 1.88.0 header identity. This pin does not
+// claim live body/stream compatibility with the newer release.
+export const COMMAND_CODE_VERSION = "1.88.0";
 export const COMMAND_CODE_USER_AGENT = "cli";
+export const COMMAND_CODE_CLI_SURFACE = "cli";
+export const COMMAND_CODE_TASTE_LEARNING = "false";
 
 // ─── Zed ───────────────────────────────────────────────────────────────
 // 1.24.4 (stable channel, 2026-10-20). x-zed-version header fallback when the client

@@ -19,10 +19,10 @@ afterEach(() => { setCatalogSource(null); vi.unstubAllGlobals(); });
 
 describe("hosted billing contracts", () => {
   it.each([
-    ["opencode-go", "grok-4.7", 0.26],
-    ["clinepass", "cline-pass/glm-5.3", 0.184],
-  ])("labels %s/%s as subscription quota rather than a cash token tariff", async (provider, id, expected) => {
-    // https://opencode.ai/docs/go/ and
+    ["opencode-go", "grok-4.7", 0.26, true],
+    ["clinepass", "cline-pass/glm-5.3", 0.184, false],
+  ])("labels %s/%s as subscription quota rather than a cash token tariff", async (provider, id, expected, unknownCash) => {
+    // https://opencode.ai/v2/docs/console/go/ and
     // https://docs.cline.bot/getting-started/clinepass
     const row = (await buildModelsList(["llm"])).find(model => model.id === `${provider}/${id}`);
     expect(row).toMatchObject({ metadata: { billing: {
@@ -30,9 +30,13 @@ describe("hosted billing contracts", () => {
       referenceUnit: "USD_quota_reference_per_1000000_tokens", invoiceVerified: false,
       estimateBasis: "primary-product-token-reference",
     } } });
-    // Exact product reference prices can estimate normalized token usage. The
-    // monthly fee and remaining allowance are not converted into per-call bills.
-    expect(calculateCostFromTokens({ prompt_tokens: 100000, completion_tokens: 10000 }, getPricingForModel(provider, id))).toBeCloseTo(expected, 12);
+    // References can estimate quota usage. Go's reference must not flow into
+    // the cash calculator; the unchanged ClinePass behavior is outside scope.
+    const tokens = { prompt_tokens: 100000, completion_tokens: 10000 };
+    expect(calculateCostFromTokens(tokens, row.metadata.billing.referencePricing)).toBeCloseTo(expected, 12);
+    const cash = calculateCostFromTokens(tokens, getPricingForModel(provider, id));
+    if (unknownCash) expect(cash).toBeNull();
+    else expect(cash).toBeCloseTo(expected, 12);
   });
 
   it.each([

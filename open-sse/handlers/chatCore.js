@@ -1,5 +1,5 @@
 import { detectFormat, getTargetFormat, resolveTransport } from "../services/provider.js";
-import { translateRequest } from "../translator/index.js";
+import { rejectGoKimiDeferredTools, translateRequest } from "../translator/index.js";
 import { applyThinking, extractThinking, parseSuffix, stripThinkingSuffix } from "../translator/concerns/thinkingUnified.js";
 import { FORMATS } from "../translator/formats.js";
 import { normalizeClaudePassthrough, anchorClaudeCache } from "../translator/formats/claude.js";
@@ -81,6 +81,36 @@ function requestParameterError(error) {
   });
 }
 
+// Go asks clients to identify themselves. Keep a specific caller identity
+// unchanged; generic SDK/default agents fall back to the registry's truthful
+// router identity. This carries no session ID or other client headers.
+function goCallerUserAgent(clientRawRequest, userAgent) {
+  const headers = clientRawRequest?.headers;
+  const key = headers && typeof headers.get !== "function"
+    ? Object.keys(headers).find(name => name.toLowerCase() === "user-agent") : null;
+  const raw = userAgent || (typeof headers?.get === "function" ? headers.get("user-agent") : key ? headers[key] : null);
+  if (typeof raw !== "string" || raw.length > 512 || /[^\x20-\x7e]/.test(raw)) return null;
+  const value = raw.trim();
+  if (!value || /^(?:node(?:-fetch)?|undici|curl|wget|python-(?:requests|httpx)|httpx|axios|go-http-client|okhttp|openai\/(?:js|python)|openai-(?:node|python)|anthropic\/(?:js|python)|anthropic-(?:sdk|node|python))(?:\/|\s|$)/i.test(value)) return null;
+  return value;
+}
+
+function goTransportWithCaller(provider, targetTransport, targetFormat, clientRawRequest, userAgent) {
+  if (provider !== "opencode-go") return targetTransport;
+  const caller = goCallerUserAgent(clientRawRequest, userAgent);
+  if (!caller) return targetTransport;
+  const config = PROVIDERS[provider];
+  const transport = targetTransport || { ...config, format: targetFormat };
+  const headerKey = Object.keys(transport.headers || {}).find(name => name.toLowerCase() === "user-agent");
+  const configured = headerKey ? transport.headers[headerKey] : null;
+  const fallbackKey = Object.keys(config.headers || {}).find(name => name.toLowerCase() === "user-agent");
+  if (configured && configured !== config.headers?.[fallbackKey]) return targetTransport;
+  const headers = { ...transport.headers };
+  if (headerKey) delete headers[headerKey];
+  headers["User-Agent"] = caller;
+  return { ...transport, headers };
+}
+
 function permanentDenialEvidence(status, responseBody, diagnostics) {
   const error = responseBody?.error && typeof responseBody.error === "object" && !Array.isArray(responseBody.error) ? responseBody.error : responseBody;
   const details = error?.details;
@@ -92,7 +122,7 @@ function permanentDenialEvidence(status, responseBody, diagnostics) {
   return isPermanentAuthDenial(status, unquoted);
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerServiceTier, clientSignal }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, sourceBody, providerThinking, providerServiceTier, clientSignal }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -152,7 +182,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const targetFormat = useTransport?.format || modelTargetFormat || getTargetFormat(provider, credentials);
   // A model-level translation target needs its matching endpoint as well.
   // Provider-default targets already use the executor's default transport.
-  const targetTransport = useTransport || (modelTargetFormat ? resolveTransport(provider, targetFormat) : null);
+  const targetTransport = goTransportWithCaller(provider,
+    useTransport || (modelTargetFormat ? resolveTransport(provider, targetFormat) : null),
+    targetFormat, clientRawRequest, userAgent);
   if (credentials) {
     if (targetTransport) credentials.runtimeTransport = targetTransport;
     else delete credentials.runtimeTransport; // Reused credentials must not retain a prior request's endpoint.
@@ -240,6 +272,17 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   let hasDocuments;
   try {
     hasDocuments = rejectUnsupportedDocuments(body, capabilities);
+  } catch (error) {
+    const invalidRequest = requestParameterError(error);
+    if (invalidRequest) return invalidRequest;
+    throw error;
+  }
+  // Validate before both the core shortcut and modality filtering: a shortcut
+  // cannot synthesize success for a deferred tool that this route cannot honor,
+  // and the diagnostic must reference the original message content indexes.
+  try {
+    if (sourceBody && sourceBody !== body) rejectGoKimiDeferredTools(sourceFormat, targetFormat, provider, upstreamModel, sourceBody);
+    rejectGoKimiDeferredTools(sourceFormat, targetFormat, provider, upstreamModel, body);
   } catch (error) {
     const invalidRequest = requestParameterError(error);
     if (invalidRequest) return invalidRequest;

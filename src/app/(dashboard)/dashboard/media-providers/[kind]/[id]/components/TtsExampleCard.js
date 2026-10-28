@@ -11,12 +11,26 @@ import { getTtsVoicesForModel } from "open-sse/config/ttsModels.js";
 import { GOOGLE_TTS_LANGUAGES } from "open-sse/config/googleTtsLanguages.js";
 import { Row } from "./exampleShared";
 
-const DEFAULT_TTS_RESPONSE_EXAMPLE = `// Audio will appear here after running.
-// Example JSON response (response_format=json):
-{
-  "format": "mp3",
-  "audio": "//NExAANaAIIAUAAANNNNNNNN..." // base64 encoded MP3
-}`;
+const DEFAULT_TTS_RESPONSE_EXAMPLE = "// Audio will appear here after running.";
+const DEFAULT_FORMAT_OPTIONS = [
+  { value: "mp3", label: "Audio (Binary)" },
+  { value: "json", label: "JSON (Base64)" },
+];
+
+function initialModel(providerId, config) {
+  const configured = AI_PROVIDERS[providerId]?.ttsConfig?.models;
+  if (configured?.length) return configured[0].id;
+  return config.hasModelSelector && config.modelKey ? (getModelsByProviderId(config.modelKey)?.[0]?.id || "") : "";
+}
+
+function formatFromContentType(value) {
+  const type = (value || "").toLowerCase().split(";")[0].trim();
+  if (["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave"].includes(type)) return "wav";
+  if (["audio/pcm", "audio/l16"].includes(type)) return "pcm";
+  if (["audio/mpeg", "audio/mp3"].includes(type)) return "mp3";
+  if (["audio/ogg", "audio/flac", "audio/opus", "audio/aac"].includes(type)) return type.slice(6);
+  return "bin";
+}
 
 export function TtsExampleCard({ providerId }) {
   const providerAlias = getProviderAlias(providerId);
@@ -29,15 +43,9 @@ export function TtsExampleCard({ providerId }) {
   // Voices shown below Voice row after language selected
   const [countryVoices, setCountryVoices]     = useState([]);
   const [selectedLang, setSelectedLang]       = useState("");
-  const [selectedModel, setSelectedModel]     = useState(() => {
-    const cfgModels = AI_PROVIDERS[providerId]?.ttsConfig?.models;
-    if (cfgModels?.length) return cfgModels[0].id;
-    if (config.hasModelSelector && config.modelKey) {
-      const models = getModelsByProviderId(config.modelKey);
-      return models?.[0]?.id || "";
-    }
-    return "";
-  });
+  const [modelSelection, setModelSelection] = useState(() => ({ providerId, value: initialModel(providerId, config) }));
+  const selectedModel = modelSelection.providerId === providerId ? modelSelection.value : initialModel(providerId, config);
+  const setSelectedModel = (value) => setModelSelection({ providerId, value });
 
   // Form state
   const [input, setInput]               = useState("Hello, this is a text to speech test.");
@@ -46,8 +54,12 @@ export function TtsExampleCard({ providerId }) {
   const [useTunnel, setUseTunnel]       = useState(false);
   const [localEndpoint, setLocalEndpoint]   = useState("");
   const [tunnelEndpoint, setTunnelEndpoint] = useState("");
-  const [responseFormat, setResponseFormat] = useState("mp3"); // mp3 | json
+  const formatOptions = config.formatOptions || DEFAULT_FORMAT_OPTIONS;
+  const [formatSelection, setFormatSelection] = useState(() => ({ providerId, value: config.defaultFormat || "mp3" }));
+  const responseFormat = formatSelection.providerId === providerId ? formatSelection.value : (config.defaultFormat || "mp3");
   const [audioUrl, setAudioUrl]         = useState("");
+  const [audioFormat, setAudioFormat]   = useState("");
+  const [audioProvider, setAudioProvider] = useState(providerId);
   const [jsonResponse, setJsonResponse] = useState(null); // Store JSON response
   const [running, setRunning]           = useState(false);
   const [error, setError]               = useState("");
@@ -65,6 +77,8 @@ export function TtsExampleCard({ providerId }) {
   const [languageHint, setLanguageHint]     = useState("");
   // Number of stored provider connections (shown when no dashboard API key)
   const [connectionCount, setConnectionCount] = useState(0);
+
+  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,6 +228,7 @@ export function TtsExampleCard({ providerId }) {
     : languages;
 
   const endpoint = useTunnel ? tunnelEndpoint : localEndpoint;
+  const visibleAudioUrl = audioProvider === providerId ? audioUrl : "";
   // For ElevenLabs/config-driven: prefer manual voiceId (if any), else fall back to selectedVoice
   const activeVoiceId = config.hasVoiceIdInput ? (voiceId || selectedVoice) : selectedVoice;
   const modelFull = (() => {
@@ -229,23 +244,28 @@ export function TtsExampleCard({ providerId }) {
     if (config.hasStyleInput && style.trim()) b.style = style.trim();
     return b;
   })();
-  const curlSnippet = `curl -X POST ${endpoint}/v1/audio/speech${responseFormat === "json" ? "?response_format=json" : ""} \\
+  const formatQuery = responseFormat === "mp3" ? "" : `?response_format=${encodeURIComponent(responseFormat)}`;
+  const outputName = ["wav", "pcm"].includes(responseFormat) ? `speech.${responseFormat}` : "speech";
+  const shellBody = JSON.stringify(ttsBody).replace(/'/g, "'\\''");
+  const curlSnippet = `curl -X POST ${endpoint}/v1/audio/speech${formatQuery} \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey || "YOUR_KEY"}" \\
-  -d '${JSON.stringify(ttsBody)}' \\
-  ${responseFormat === "json" ? "" : "--output speech.mp3"}`;
+  -d '${shellBody}'${responseFormat === "json" ? "" : ` \\
+  --output ${outputName}`}`;
 
   const handleRun = async () => {
     if (!input.trim() || !modelFull) return;
     setRunning(true);
     setError("");
     setAudioUrl("");
+    setAudioFormat("");
+    setAudioProvider(providerId);
     setJsonResponse(null);
     const start = Date.now();
     try {
       const headers = { "Content-Type": "application/json" };
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-      const url = `/api/v1/audio/speech${responseFormat === "json" ? "?response_format=json" : ""}`;
+      const url = `/api/v1/audio/speech${formatQuery}`;
       const res = await fetch(url, {
         method: "POST",
         headers,
@@ -260,12 +280,19 @@ export function TtsExampleCard({ providerId }) {
       
       if (responseFormat === "json") {
         const data = await res.json();
+        if (typeof data?.audio !== "string" || typeof data?.format !== "string" || !/^[a-z0-9]+$/i.test(data.format)) {
+          throw new Error("The response did not contain base64 audio and its format.");
+        }
         setJsonResponse(data); // Store full JSON response
-        const format = data.format || "mp3";
-        const audioBlob = await fetch(`data:audio/${format};base64,${data.audio}`).then(r => r.blob());
+        const format = data.format.toLowerCase();
+        const decoded = atob(data.audio);
+        const audioBytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+        const audioBlob = new Blob([audioBytes], { type: `audio/${format}` });
+        setAudioFormat(format);
         setAudioUrl(URL.createObjectURL(audioBlob));
       } else {
         const blob = await res.blob();
+        setAudioFormat(formatFromContentType(res.headers.get("content-type")));
         setAudioUrl(URL.createObjectURL(blob));
       }
     } catch (e) {
@@ -498,11 +525,11 @@ export function TtsExampleCard({ providerId }) {
           <Row label="Output Format">
             <select
               value={responseFormat}
-              onChange={(e) => setResponseFormat(e.target.value)}
+              onChange={(e) => setFormatSelection({ providerId, value: e.target.value })}
+              aria-label="Output format"
               className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
             >
-              <option value="mp3">MP3 (Binary)</option>
-              <option value="json">JSON (Base64)</option>
+              {formatOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </Row>
 
@@ -533,21 +560,23 @@ export function TtsExampleCard({ providerId }) {
             <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all">{curlSnippet}</pre>
           </div>
 
-          {error && <p className="text-xs text-red-500 break-words">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-500 break-words">{error}</p>}
 
           {/* Audio player */}
-          {audioUrl ? (
+          {visibleAudioUrl ? (
             <div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
                 <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Response {latency && <span className="font-normal normal-case">&#9889; {latency}ms</span>}
                 </span>
-                <a href={audioUrl} download="speech.mp3" className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors">
+                <a href={visibleAudioUrl} download={`speech.${audioFormat || "bin"}`} className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors">
                   <span className="material-symbols-outlined text-[14px]">download</span>
                   Download
                 </a>
               </div>
-              <audio controls src={audioUrl} className="w-full" />
+              {audioFormat === "pcm"
+                ? <p className="text-xs text-text-muted">Raw PCM is available to download; browser playback requires its sample format and rate.</p>
+                : <audio controls src={visibleAudioUrl} className="w-full" />}
               
               {/* JSON Response (if format is json) */}
               {jsonResponse && (

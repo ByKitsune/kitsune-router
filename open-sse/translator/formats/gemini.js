@@ -141,22 +141,71 @@ export function collapseGeminiParts(parts) {
   return parts.some(part => typeof part.extra_content?.google?.thought_signature === "string") ? parts : collapseTextParts(parts);
 }
 
+// Proto JSON can encode int64 values as strings, including exponent notation.
+// Check the decimal digits before converting to Number: rounding can otherwise
+// turn a fractional or unsafe value into an apparently safe integer.
+function schemaArrayBound(value) {
+  if (typeof value === "number") return Number.isSafeInteger(value) && value >= 0 ? (value === 0 ? 0 : value) : null;
+  if (typeof value !== "string") return null;
+  const match = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(value);
+  // `$` can also match before a final line terminator; whitespace is not part
+  // of the protobuf JSON number, even when Number() would accept it.
+  if (!match || match[0] !== value) return null;
+  const fraction = match[3] || "";
+  let digits = (match[2] + fraction).replace(/^0+/, "");
+  if (!digits) return 0;
+  if (match[1]) return null;
+  const exponent = Number(match[4] || 0);
+  if (!Number.isSafeInteger(exponent)) return null;
+  const scale = exponent - fraction.length;
+  if (scale < 0) {
+    const places = -scale;
+    if (places >= digits.length || /[^0]/.test(digits.slice(-places))) return null;
+    digits = digits.slice(0, -places);
+  } else {
+    // No safe integer has more than 16 decimal digits; avoid huge allocations.
+    if (digits.length + scale > 16) return null;
+    digits += "0".repeat(scale);
+  }
+  const number = Number(digits);
+  return Number.isSafeInteger(number) ? number : null;
+}
+
+function invalidSchemaArrayBound(message, param) {
+  return Object.assign(new Error(message), {
+    code: "unsupported_parameter", type: "invalid_request_error", status: 400, param,
+  });
+}
+
 // Gemini's legacy Schema is an OpenAPI/protobuf dialect, not JSON Schema.
-export function geminiSchemaToJSONSchema(schema, preservePropertyOrdering = false) {
+export function geminiSchemaToJSONSchema(schema, preservePropertyOrdering = false, param = "tools") {
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) return schema;
   const { nullable, enumDescriptions, propertyOrdering, ...result } = schema;
   if (preservePropertyOrdering && propertyOrdering !== undefined) result.propertyOrdering = structuredClone(propertyOrdering);
   if (typeof result.type === "string") result.type = result.type.toLowerCase();
-  for (const key of ["properties", "$defs", "definitions", "patternProperties"]) {
-    if (result[key] && typeof result[key] === "object") {
-      result[key] = Object.fromEntries(Object.entries(result[key]).map(([name, child]) => [name, geminiSchemaToJSONSchema(child, preservePropertyOrdering)]));
+  for (const key of ["minItems", "maxItems"]) {
+    if (!Object.hasOwn(result, key)) continue;
+    const bound = schemaArrayBound(result[key]);
+    if (bound === null) throw invalidSchemaArrayBound(`Schema ${key} must be a safe nonnegative integer.`, param);
+    result[key] = bound;
+  }
+  if (result.minItems !== undefined && result.maxItems !== undefined && result.minItems > result.maxItems) {
+    throw invalidSchemaArrayBound("Schema minItems must not exceed maxItems.", param);
+  }
+  const convert = child => geminiSchemaToJSONSchema(child, preservePropertyOrdering, param);
+  // Schema maps have arbitrary property names, which must never be interpreted
+  // as keywords. Dependency arrays are property names, not subschemas.
+  for (const key of ["properties", "$defs", "definitions", "patternProperties", "dependentSchemas", "dependencies"]) {
+    if (result[key] && typeof result[key] === "object" && !Array.isArray(result[key])) {
+      result[key] = Object.fromEntries(Object.entries(result[key]).map(([name, child]) => [name, convert(child)]));
     }
   }
-  for (const key of ["items", "additionalProperties", "not"]) {
-    if (result[key] && typeof result[key] === "object") result[key] = geminiSchemaToJSONSchema(result[key], preservePropertyOrdering);
+  for (const key of ["items", "additionalItems", "additionalProperties", "unevaluatedProperties", "unevaluatedItems", "contains", "not", "if", "then", "else", "propertyNames", "contentSchema"]) {
+    if (key === "items" && Array.isArray(result[key])) result[key] = result[key].map(convert);
+    else if (result[key] && typeof result[key] === "object" && !Array.isArray(result[key])) result[key] = convert(result[key]);
   }
   for (const key of ["anyOf", "oneOf", "allOf", "prefixItems"]) {
-    if (Array.isArray(result[key])) result[key] = result[key].map(child => geminiSchemaToJSONSchema(child, preservePropertyOrdering));
+    if (Array.isArray(result[key])) result[key] = result[key].map(convert);
   }
   if (nullable === true) {
     if (result.type) result.type = [...new Set([...(Array.isArray(result.type) ? result.type : [result.type]), "null"])];
@@ -171,7 +220,7 @@ export function copyGeminiRequestControls(result, request) {
   if (config.seed !== undefined) result.seed = config.seed;
   if (Array.isArray(config.stopSequences)) result.stop = [...config.stopSequences];
   if (config.responseMimeType === "application/json") {
-    const schema = config.responseJsonSchema ?? (config.responseSchema ? geminiSchemaToJSONSchema(config.responseSchema, true) : undefined);
+    const schema = config.responseJsonSchema ?? (config.responseSchema ? geminiSchemaToJSONSchema(config.responseSchema, true, "generationConfig.responseSchema") : undefined);
     result.response_format = schema === undefined ? { type: "json_object" }
       : { type: "json_schema", json_schema: { name: "response", schema } };
   }

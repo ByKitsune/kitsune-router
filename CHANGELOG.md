@@ -5,6 +5,92 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 **History boundary:** 0.x entries retain their original ZenRouter names, package records, release URLs, evidence paths and dated verification. They are not Kitsune publications or proof about the current source. Use the [current installation guide](docs/INSTALLATION.md) and [migration guide](docs/MIGRATION.md), not archived upgrade commands.
 
+## [Unreleased]
+
+Source follow-up dated 2026-10-29: the eleven local commits from `e006f374`
+through `80d33268` after `d1d36d3c`, and the scoped worktree changes below, are
+separate from the immutable 1.0.2 artifacts. They do not establish a release,
+deployment, live-provider acceptance or invoice accuracy. See the [dated upstream
+review and follow-up](docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up).
+
+### Provider and protocol updates
+
+- Add `gpt-6.1-terra` to the public OpenAI and Codex catalog entries. The public
+  API reference specifies **1,050,000 total context**, **922,000 maximum input**
+  and **128,000 maximum output**. The gateway routes the OpenAI model through
+  Responses so Chat and Responses tool requests retain their tool definitions;
+  the upstream Chat endpoint also supports requests without tools. Codex CLI
+  catalog values do not establish account entitlement or backend limits.
+- Record separate native OpenAI Standard, Fast and Flex token estimates for Terra.
+  The higher context tier applies to the entire request only above 272,000 input
+  tokens. The documented regional processing uplift is **not automatically
+  applied** by the estimator. API USD rates are not Codex subscription invoices;
+  unconfirmed or unsupported tier prices remain unknown. See [processing speed](docs/PROCESSING-SPEED.md#gpt-61-terra-public-api-reference).
+- Align CommandCode headers with the upstream CLI 1.88.0 identity and keep the
+  project/session headers consistent with the outbound body. Translated requests
+  get a fresh request-local thread ID, reused for its retries; native thread IDs
+  are retained. No cross-request conversation continuity or live compatibility is
+  inferred.
+- Adapt upstream Gemini schema predicates and preserve valid legacy Google array
+  bounds when converting to JSON Schema; reject invalid bounds locally without
+  treating quoted input as a quota error. Preserve the existing non-strict schema
+  compatibility boundaries.
+- Normalize the specific observed GitHub Copilot context-window error without
+  rotating or locking healthy accounts. Explicit context errors can still advance
+  to an eligible configured combo member; ordinary validation errors remain
+  distinct from quota and context failures.
+- Preserve opaque LLM bulk credentials, add CodeBuddy channel request headers,
+  retain the DeepSeek V4.1 Flash compatibility alias, and apply the reviewed
+  GitHub Copilot Claude 5.5 thinking/tool-choice rules. Keep provider identities,
+  aliases and account-specific eligibility separate.
+- Preserve numeric-string upstream SSE error statuses. A synthetic Codex Core
+  regression observes a text delta before upstream EOF; it does not establish
+  behavior through a deployed server, reverse proxy or live provider.
+- Preserve explicit terminal no-retry decisions across combo error normalization,
+  including empty streams and known accounting-terminal codes. This guard does not
+  repair separate retry or cancellation gaps before the combo boundary; see the
+  [upstream follow-up](docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up).
+- Expose the no-retry header on the native Gemini TTS HTTP error returned when
+  local usage acceptance fails, without changing its status or native error body.
+  A failure after successful streaming headers remains a failed stream.
+- Add Ollama Local speech and embedding adapters requiring an active connection
+  with an optional API key. Public speech defaults to WAV, also supports PCM and
+  JSON-wrapped WAV, and rejects explicit MP3. Embeddings preserve literal model
+  IDs; selectable Phonon tags and embedding discovery are not installed-model
+  inventories. Redirects and unsafe relay configurations are refused. A stalled
+  cancellation acknowledgment no longer holds TTS requests open; interrupted
+  audio is not returned as success, and upstream error classification is retained.
+
+### Usage and pricing
+
+- Debounce committed usage updates into selected-period statistics and chart
+  refreshes, retaining stale snapshots with their actual period labels and offering
+  retry on failure. Live request fields continue to stream independently. Changed
+  legacy stream aggregates or breakdowns can trigger a selected-period refresh
+  without replacing those totals. Tabs opened before an upgrade must be reloaded
+  to use the new client; the original production browser issue's root cause is
+  not confirmed.
+- Remove unscoped vendor-family price fallbacks from provider billing resolution.
+  This avoids cross-product prices but reduces future coverage: some previously
+  numeric Kiro, CodeBuddy and gateway subscription routes now resolve unknown.
+  Historical stored costs are unchanged. Selected exact provider/product and
+  model catalog references are not invoices; only a narrow text-only subset can
+  provide input/output estimates for recorded times within 24 hours of capture,
+  not before or after. Unknown components remain `null`. Final pricing coverage
+  is still under review.
+- OpenCode's provider-reported cost and Go allowance fields are not yet captured
+  by the usage ledger. Missing fields remain unknown; subscription allowance and
+  local estimates must not be treated as a settled cash invoice.
+
+### Packaging and branding
+
+- Include the required `reflect-metadata` runtime dependency in standalone
+  packaging and align dashboard, tray and documentation branding with ByKitsune.
+
+The MiniMax **desktop lease**, OpenCode **TLS/fingerprint integration**, and
+Nace Drex provider remain outside the reviewed source scope as of this follow-up;
+this does not remove existing MiniMax or OpenCode integrations.
+
 ## [1.0.2] — Private container published; anonymous pull pending; npm blocked
 
 Immutable tag `v1.0.2` is **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merged to master at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Exact-source SSH verification: **9,041 passed, 100 skipped, zero failed assertions/suites**; strict lint had zero warnings/errors, and 18 docs tests, docs static export, app build and pack passed. [CI 40468830176](https://github.com/ByKitsune/kitsune-router/actions/runs/40468830176) was green on `641d13efc407e302bddce69d984a8660e2286b03`, whose tree matches the tag. Local tarball/container/browser checks passed within their recorded scope; they are not published registry artifacts.
@@ -65,7 +151,7 @@ First breaking rebrand release attempt: **Kitsune Router — Your models. Your r
 - The tag exists, but the failed workflow did not publish npm/GHCR artifacts. Historical candidate checks are not current verification; release permission and artifact readback must be established separately for each follow-up.
 - See the [attempt record](releases/RELEASE_NOTES_v1.0.0.md), [historical technical changelog](docs/CHANGELOG_v1.0.0.md), [migration](docs/MIGRATION.md) and [rebranding checklist](docs/REBRANDING.md).
 
-## [Unreleased]
+## Historical pre-rebrand source work — formerly [Unreleased]
 
 The source work below predates the rebrand release proposal. Dated counts and legacy identities describe the original implementation checks; they do not certify the renamed source or imply publication.
 

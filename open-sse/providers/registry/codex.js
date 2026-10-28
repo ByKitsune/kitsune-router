@@ -56,6 +56,8 @@ export default {
     { id: "gpt-6-astra-review", name: "GPT 6 Astra Review", upstreamModelId: "gpt-6-astra", quotaFamily: "review" },
     { id: "gpt-6.1-sol", name: "GPT 6.1 Sol" },
     { id: "gpt-6.1-sol-review", name: "GPT 6.1 Sol Review", upstreamModelId: "gpt-6.1-sol", quotaFamily: "review" },
+    // Present in OpenAI's pinned Codex CLI catalog; account entitlement is separate.
+    { id: "gpt-6.1-terra", name: "GPT 6.1 Terra" },
     { id: "gpt-6-sol", name: "GPT 6 Sol" },
     { id: "gpt-6-sol-review", name: "GPT 6 Sol Review", upstreamModelId: "gpt-6-sol", quotaFamily: "review" },
     { id: "gpt-reserve", name: "GPT Reserve" },

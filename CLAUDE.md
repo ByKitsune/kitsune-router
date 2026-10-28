@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Kitsune Router (`kitsune-router-app`) — a local AI routing gateway + Next.js dashboard. It exposes compatible endpoints under `/v1/*` and routes traffic across upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh and quota/usage tracking. Legacy cloud-sync fields remain, but the sync implementation was removed.
 
-Two artifact types live in this one repo; publication of the rebranded packages is pending:
+Two artifact types live in this one repo; npm publication of the rebranded CLI remains blocked:
 - The **dashboard + gateway** (root `package.json`, `kitsune-router-app`) — the Next.js server that does the actual routing.
-- The **CLI launcher** (`cli/`, published as `@bykitsune/router`, binary `kitsune-router`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
+- The **CLI launcher** (`cli/`, intended npm package `@bykitsune/router`, binary `kitsune-router`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
 
 The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the provider-agnostic routing/translation engine), `cli/` (the launcher package), and `tests/`.
 
@@ -90,8 +90,9 @@ Two authoritative docs already exist — read them before working in these areas
 - Never hardcode role/block/model strings — use `open-sse/translator/schema/` and `open-sse/config/` constants. Config-driven and DRY is enforced by convention here.
 
 ### Provider registry (`open-sse/providers/registry/*`)
-- One file per provider. `providers/registry/index.js` is an **auto-generated** static import list — regenerate it with `scripts/migrate-registry.mjs` / `injectDisplayToRegistry.mjs`, don't hand-edit.
-- Add a provider: copy `providers/REGISTRY_TEMPLATE.js`, add models to `config/providerModels.js`. Only add an executor for non-OpenAI-compatible upstreams.
+- One file per provider. `providers/registry/index.js` is a checked-in static import list and array. When adding a provider, add both its import and array entry while preserving deliberately hidden entries. No checked-in index generator has been identified; `scripts/migrate-registry.mjs` and `scripts/injectDisplayToRegistry.mjs` do not generate it.
+- Add a provider: copy `providers/REGISTRY_TEMPLATE.js` and declare its models in the provider's registry entry. `providers/index.js` builds `PROVIDER_MODELS` from the registry plus special TTS tables, and `config/providerModels.js` re-exports it; do not maintain a separate model matrix there. Only add an executor for non-OpenAI-compatible upstreams.
+- After changing provider identities, aliases or declared upstream model IDs, run `node scripts/generate-provider-identity.mjs` and verify with `node scripts/generate-provider-identity.mjs --check`. This generates `open-sse/providers/identity.js`, not the registry index.
 
 ### Persistence
 State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a runtime-specific adapter fallback chain (`driver.js`): Bun uses `bun:sqlite`; Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5). Pure-JS `sql.js` requires explicit `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive single-process ownership of `DATA_DIR`; mixed writers fail closed. A stale `.sqljs-owner` directory requires operator review after confirming no owner remains. `better-sqlite3` stays optional so installation can succeed without build tools.
@@ -113,7 +114,7 @@ Final-provider-body hooks, after translation/native preparation and before dispa
 - Server-side provider probes and model catalogs must use `fetchPublic` or, only after `isLocalRequest`, `fetchTrustedLocal`. A separate DNS check followed by global `fetch` is not safe. Preserve metadata denial, pinned DNS, redirect checks, cancellation and bounded body reads. Image retrieval has its own engine-side public IP policy in `open-sse/config/mediaConfig.js`; it must not import the app layer.
 - The MITM certificate API is asynchronous and uses WebCrypto plus `@peculiar/x509`, not `node-forge`. Await root loading and leaf generation. Existing PKCS#1/PKCS#8 keys and unexpired trusted roots must remain usable without trust-store changes; test only with temporary certificate directories.
 - OpenCode configuration writes use `src/shared/utils/opencodeConfig.js` for JSONC-preserving, serialized atomic updates. Parse/read errors must never become an empty replacement config. Preserve user model/agent settings and use disposable HOME/XDG directories in tests; coexisting `.json`/`.jsonc` files require the operator to resolve the ambiguity.
-- Binary/protobuf upstreams (kiro EventStream, cursor protobuf, commandcode NDJSON) don't round-trip through OpenAI — they're handled inside their own executor, not the translator.
+- Kiro EventStream and Cursor protobuf require executor-level coverage. CommandCode uses the registered OpenAI-to-CommandCode request translator; its executor decodes upstream NDJSON into OpenAI SSE using the response translator. Test both translation and executor behavior.
 - **Security-first on PRs**: Security is the top priority when reviewing or creating PRs. Audit authentication, credential/token storage & leaks, header manipulation (`X-Forwarded-For`), and SSRF risks before functional logic. Always include explicit security warnings/notes when reporting PR reviews or changes to the user.
 - Versioning: root, `cli/`, `tests/` and `gitbook/` manifests and lockfiles must agree before release. `scripts/bump-version.mjs` updates all four manifest/lock pairs but not release notes or publication. Upstream client identities in `open-sse/config/clientVersions.js` are a separate version line. Commit style is Conventional Commits (`fix(translator): …`, `feat(...)`).
 - Catalog provenance: `docs/audit/data/catalog-review-20261017.json` records the October 17 models.dev commit, capture/reconstruction hashes, comparison coverage and unresolved fields. Use exact provider/product identities and primary-source overrides; do not turn missing catalog rows into retirements or assign 1M output because a model has a 1M context window.

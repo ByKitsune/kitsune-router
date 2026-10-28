@@ -77,16 +77,30 @@ describe("review P2: saved reasoning tariff", () => {
     expect(mocks.saved).toEqual(before);
   });
   it("retains a genuinely distinct static reasoning tariff", async () => {
-    const model = "gpt-4";
-    const base = staticPrice("openai", model);
-    expect(base.reasoning).not.toBe(base.output);
-    mocks.saved = { openai: { [model]: { output: 99 } } };
+    // Exercise the merge with a synthetic provider-scoped quote. The old GPT-4
+    // fixture came from an unscoped generic table, not a verified route tariff.
+    const model = "fixture-distinct-reasoning";
+    const { PROVIDER_PRICING, getPricingForModel } = await import("../../open-sse/providers/pricing.js");
+    PROVIDER_PRICING.openai[model] = { input: 9, output: 10, reasoning: 15 };
+    try {
+      const base = getPricingForModel("openai", model);
+      expect(base.reasoning).not.toBe(base.output);
+      mocks.saved = { openai: { [model]: { output: 99 } } };
+      const repo = await import("../../src/lib/db/repos/pricingRepo.js");
+      const pricing = await repo.getPricingForModel("openai", model);
+      expect(pricing.reasoning).toBe(base.reasoning);
+      const tokens = { completion_tokens: 1000000, reasoning_tokens: 1000000 };
+      expect(calculateCostFromTokens(tokens, pricing)).toBe(base.reasoning);
+      expect(calculateCostBreakdown(tokens, pricing).reasoningCost).toBe(base.reasoning);
+    } finally {
+      delete PROVIDER_PRICING.openai[model];
+    }
+  });
+  it("does not inherit the unscoped GPT-4 quote but honors a saved route override", async () => {
+    expect(staticPrice("openai", "gpt-4")).toBeNull();
+    mocks.saved = { openai: { "gpt-4": { input: 8, output: 99, reasoning: null } } };
     const repo = await import("../../src/lib/db/repos/pricingRepo.js");
-    const pricing = await repo.getPricingForModel("openai", model);
-    expect(pricing.reasoning).toBe(base.reasoning);
-    const tokens = { completion_tokens: 1000000, reasoning_tokens: 1000000 };
-    expect(calculateCostFromTokens(tokens, pricing)).toBe(base.reasoning);
-    expect(calculateCostBreakdown(tokens, pricing).reasoningCost).toBe(base.reasoning);
+    expect(await repo.getPricingForModel("openai", "gpt-4")).toEqual({ input: 8, output: 99, reasoning: null });
   });
 });
 

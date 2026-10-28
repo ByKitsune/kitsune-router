@@ -48,6 +48,24 @@ export const TTS_PROVIDER_CONFIG = {
     hasBrowseButton: true,
     voiceSource: "api-language", // from API with language picker
   },
+  "ollama-local": {
+    hasModelSelector: true,
+    hasBrowseButton: false,
+    // The example card keeps a separate manual voice state across model
+    // changes. Use the model-specific chips until that state is synchronized.
+    hasVoiceIdInput: false,
+    voiceSource: "hardcoded",
+    modelKey: "ollama-local-tts-models",
+    voiceKey: "ollama-local-tts-voices",
+    voicesPerModel: true,
+    defaultVoiceId: "default",
+    defaultFormat: "wav",
+    formatOptions: [
+      { value: "wav", label: "WAV (Binary)" },
+      { value: "pcm", label: "PCM (Raw)" },
+      { value: "json", label: "JSON (Base64 WAV)" },
+    ],
+  },
   // ── Config-driven providers (load models from providers.js → ttsConfig.models) ──
   "nvidia": {
     hasModelSelector: true,

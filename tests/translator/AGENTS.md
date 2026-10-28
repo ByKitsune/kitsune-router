@@ -76,8 +76,9 @@ a missing registration cannot masquerade as successful passthrough.
 
 ## 7. Special formats to watch
 
-- `kiro` (binary AWS EventStream), `cursor` (protobuf ConnectRPC), `commandcode` (NDJSON) → responses do NOT round-trip cleanly through openai; test via their executors, not just the translator.
-- Single-provider-two-formats (most fragile): `opencode-go` (minimax models → claude, others openai), `github` (escalates `/chat/completions` → `/responses` at runtime), `xiaomi-tokenplan` (claude alias).
+- `kiro` (binary AWS EventStream) and `cursor` (protobuf ConnectRPC) require executor-level response tests, not just translator tests.
+- CommandCode uses the OpenAI-to-CommandCode request translator; its executor decodes upstream NDJSON into OpenAI SSE using the response translator. Exercise both the translated request and executor response framing.
+- Multi-format providers are model-specific: inspect `opencode-go` registry `supportedFormats` and `targetFormat` rather than assuming one format per model family. Also test `github` (runtime `/chat/completions` → `/responses`) and `xiaomi-tokenplan` (Claude alias) at their actual transport boundaries.
 - `gemini`/`gemini-cli`: inspect all system instructions and typed history, not just the final user message. Include tool images and compaction-shaped inputs.
 
 ## 8. Historical expected failures and current explicit limits

@@ -4,6 +4,8 @@
 // models reach /v1/models and the dashboard picker.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
 
 const MODELS_URL = "https://api.cline.bot/api/v1/models";
 const FEED_URL = "https://api.cline.bot/api/v1/ai/cline/recommended-models";
@@ -107,11 +109,38 @@ describe("cline-free namespace pricing", () => {
     expect(getPricingForModel("cline", "cline-free/muse-spark-1.3-contributor").input).toBe(0);
   });
 
-  it("still bills the paid twin at its published rate", async () => {
-    const { getPricingForModel } = await import("../../open-sse/providers/pricing.js");
-    expect(getPricingForModel("cline", "deepseek/deepseek-v4.1-flash").input).toBe(0.15);
+  it("keeps the paid twin unknown unless a Cline operator supplies its rate", async () => {
+    const { getPricingForModel, calculateCostFromTokens } = await import("../../open-sse/providers/pricing.js");
+    const model = "deepseek/deepseek-v4.1-flash";
+    const usage = { prompt_tokens: 1_000_000, completion_tokens: 100_000 };
+    // The old 0.15 came from the global DeepSeek leaf, not a Cline quote;
+    // presence in Cline's model feed does not establish its billing tariff.
+    expect(getPricingForModel("cline", model)).toBeNull();
+    expect(calculateCostFromTokens(usage, getPricingForModel("cline", model))).toBeNull();
     expect(getPricingForModel("cline", "meta/muse-spark-1.3-contributor")).toBeNull();
-  });
+    const dir = await mkdtemp(join(process.env.TMPDIR || "/tmp/opencode", "pricing-cline-"));
+    const oldDir = process.env.DATA_DIR, previous = Object.getOwnPropertyDescriptor(global, "_dbAdapter");
+    const events = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
+    const listeners = new Map(events.map(event => [event, new Set(process.listeners(event))]));
+    process.env.DATA_DIR = join(dir, "data"); delete global._dbAdapter; vi.resetModules();
+    try {
+      const repo = await import("../../src/lib/db/repos/pricingRepo.js");
+      expect(await repo.getPricingForModel("cline", model)).toBeNull();
+      await repo.updatePricing({ cline: { [model]: { input: 0.15, output: 0.6 } } });
+      expect((await repo.getSavedPricing()).cline[model]).toEqual({ input: 0.15, output: 0.6 });
+      const override = await repo.getPricingForModel("cline", model);
+      expect(override).toMatchObject({ input: 0.15, output: 0.6 });
+      expect(calculateCostFromTokens(usage, override)).toBeCloseTo(0.21, 12);
+      expect(await repo.getPricingForModel("cline", "cline-free/deepseek-v4.1-flash")).toMatchObject({ input: 0, output: 0 });
+      expect(await repo.getPricingForModel("unrelated-price-fixture", model)).toBeNull();
+    } finally {
+      await global._dbAdapter?.instance?.close();
+      for (const event of events) for (const listener of process.listeners(event)) if (!listeners.get(event).has(listener)) process.removeListener(event, listener);
+      if (previous) Object.defineProperty(global, "_dbAdapter", previous); else delete global._dbAdapter;
+      if (oldDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = oldDir;
+      vi.resetModules(); await rm(dir, { recursive: true, force: true });
+    }
+  }, 20000);
 
   it("zero price survives cost calculation over a large usage", async () => {
     const { getPricingForModel, calculateCostFromTokens } = await import("../../open-sse/providers/pricing.js");

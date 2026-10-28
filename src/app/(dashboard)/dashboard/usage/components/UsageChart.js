@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import {
   AreaChart,
@@ -10,7 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import Card from "@/shared/components/Card";
 
@@ -22,35 +21,9 @@ const fmtTokens = (n) => {
 
 const fmtCost = (n) => n === null ? "Not specified" : `$${(n || 0).toFixed(4)}`;
 
-export default function UsageChart({ period = "7d" }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function UsageChart({ period, periodLabel, snapshot, snapshotPeriodLabel, error, fetching, onRetry }) {
   const [viewMode, setViewMode] = useState("tokens");
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/usage/chart?period=${period}`);
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-    } catch (e) {
-      console.error("Failed to fetch chart data:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [period]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      await fetchData();
-      if (cancelled) return;
-    })();
-    return () => { cancelled = true; };
-  }, [fetchData]);
-
+  const data = snapshot?.data || [];
   const hasData = data.some((d) => d.tokens > 0 || d.cost > 0 || d.cost === null);
 
   return (
@@ -70,10 +43,22 @@ export default function UsageChart({ period = "7d" }) {
         </button>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-text-main">
+          <span>
+            Could not load the {periodLabel} chart. {error.message}
+            {snapshot && ` Showing last successful ${snapshotPeriodLabel} data.`}
+          </span>
+          <button type="button" onClick={onRetry} className="font-semibold text-primary underline">Retry chart</button>
+        </div>
+      ) : snapshot && snapshot.period !== period ? (
+        <p role="status" className="text-sm text-text-muted">Showing {snapshotPeriodLabel} chart data while {periodLabel} loads.</p>
+      ) : null}
+
+      {!snapshot ? (fetching && !error ? (
         <div className="h-48 flex items-center justify-center text-text-muted text-sm">Loading...</div>
-      ) : !hasData ? (
-        <div className="h-48 flex items-center justify-center text-text-muted text-sm">No data for this period</div>
+      ) : null) : !hasData ? (
+        <div className="h-48 flex items-center justify-center text-text-muted text-sm">No data for {snapshotPeriodLabel}</div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -144,5 +129,11 @@ export default function UsageChart({ period = "7d" }) {
 }
 
 UsageChart.propTypes = {
-  period: PropTypes.string,
+  period: PropTypes.string.isRequired,
+  periodLabel: PropTypes.string.isRequired,
+  snapshot: PropTypes.shape({ period: PropTypes.string.isRequired, data: PropTypes.array.isRequired }),
+  snapshotPeriodLabel: PropTypes.string.isRequired,
+  error: PropTypes.shape({ message: PropTypes.string.isRequired }),
+  fetching: PropTypes.bool.isRequired,
+  onRetry: PropTypes.func.isRequired,
 };

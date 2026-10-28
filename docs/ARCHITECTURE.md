@@ -154,6 +154,14 @@ The account prefilter and quota-error handler share an exact-model/tier plus fam
 
 Public Argon documentation verifies published capabilities and eligible surfaces, not the authenticated Cloud Code model catalog. The base/tier wire IDs and raw quota-summary schema still require credential-redacted responses from an entitled account. `authenticatedRouteVerified: false` records that boundary; local fixtures do not change it.
 
+### Ollama Local speech and embeddings — 2026-10-29 source follow-up
+
+- The public speech and embedding routes require an active registered Ollama Local connection; its API key is optional. They use its configured HTTP(S) endpoint, including a reverse-proxy path prefix where configured. The caller cannot supply the upstream endpoint in the inference body.
+- Public `/v1/audio/speech` defaults to WAV for Ollama Local. It also accepts raw PCM or JSON containing base64-encoded WAV; an explicit MP3 request is rejected. A `response_format` query parameter takes precedence over the body field. The route forwards the caller's `voice`, `speed`, `instructions` and cancellation signal to the adapter. Listed Phonon tags are selectable candidates, not evidence that they are installed.
+- `/v1/embeddings` forwards the resolved Ollama model ID literally, including namespaces and tags. `/v1/models/embedding` can list operator-declared embedding models and recognizable IDs from a connection's `enabledModels` whitelist, but is not an installed-model inventory. The whitelist filters discovery candidates; custom declarations and aliases may also appear, and this is not a universal request-admission guarantee.
+- Both adapters refuse upstream redirects. They honor the connection's applicable proxy policy, but reject configured relay paths that cannot guarantee redirect refusal instead of silently sending inference data through them or falling back directly.
+- The public speech route dispatches Ollama directly to its adapter. A direct internal `handleTtsCore` call is different: it defaults to MP3, which Ollama rejects, and does not pass the public route's voice, signal, speed or instructions options. Internal callers must explicitly request WAV for the tested WAV path; this is not equivalent to the public route.
+
 
 ## 3) Persistence Layer
 
@@ -201,6 +209,7 @@ Usage and request logs use the same SQLite layer:
 - Native OpenAI cache writes retain independent 30m/12h counters and tariffs. They never become Anthropic 5m/1h writes, and writes remain subsets of inclusive input.
 - Supplemental `costCoverage` preserves known recorded subtotals and exact unpriced row counts. A nullable complete total stays nullable; old daily null snapshots cannot manufacture missing coverage from current prices.
 - Live `today`/`24h` statistics read standard or native input/output counters, then legacy persisted token columns. Native `prompt_cache_hit_tokens` remains consistent with daily summaries; key grouping still uses non-secret IDs or digests.
+- The usage stream emits `usage-updated` after projection commits. The dashboard debounces those events and refetches both `/api/usage/stats` and `/api/usage/chart` for the selected period; it also refreshes on stream open/reconnect. Failed or delayed refreshes retain the last successful snapshots with their original period labels; failures offer retry. Active/recent requests, pending state and error-provider fields are streamed independently, not treated as period totals. The original cause observed in the user's browser remains unconfirmed.
 
 ## 4) Auth + Security Surfaces
 
@@ -690,6 +699,27 @@ missing. Runtime estimates select recorded-time native schedules and published
 replacement rates before saved operator overrides. Existing history is never
 repriced during a metadata refresh. See the
 [client/model/pricing review](audit/18-client-model-pricing-refresh-2026-10.md).
+
+The 2026-10-29 source follow-up removes unscoped generic vendor-family fallbacks
+from provider billing resolution. This avoids borrowing another product's tariff,
+but reduces future estimate coverage: previously numeric routes, including some
+Kiro, CodeBuddy and gateway subscription routes, can now be unknown. Stored
+historical costs remain unchanged. Selected models.dev references are scoped to
+an exact provider/product and literal model ID; they are not invoices or proof of
+availability. Only a narrow text-only subset can supply input/output estimates,
+for recorded times from the captured observation until strictly before 24 hours
+after it. They are not backdated; after expiry those references no longer supply
+an estimate. Other route-specific quotes and operator overrides remain separate.
+Unverified components stay `null`, and final pricing coverage is still under review.
+
+OpenCode's documented `usage.cost` and `usage.opencode` receipt fields are not
+currently retained by the normal usage-accounting path. In particular, Go plan
+allowance consumption is not a cash charge, and a missing receipt does not mean
+zero. Even a provider-reported amount is provisional rather than a settled
+invoice: OpenCode says the eventual charge can be lower. See the [inference
+cost contract](https://opencode.ai/v2/docs/console/api/inference/#cost). Capturing
+those fields safely requires verified transport provenance and separate accounting
+coverage; this source follow-up does not implement that capture.
 
 Runtime visibility sources:
 

@@ -82,7 +82,31 @@ Use a route you have configured and verified for Messages. Shell variables affec
 
 ## OpenCode
 
-The dashboard's legacy-schema preset uses `provider.kitsunerouter`; a manual example:
+For OpenCode V2, add the provider to your existing `opencode.jsonc`, preserving
+other settings. Supply the gateway key through the environment of the OpenCode
+server, and replace `my-route` with a route configured in Kitsune Router:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "kitsunerouter": {
+      "name": "Kitsune Router",
+      "env": ["KITSUNE_ROUTER_API_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": { "baseURL": "http://localhost:20128/v1" },
+      "models": { "my-route": { "name": "My route" } }
+    }
+  },
+  "model": "kitsunerouter/my-route"
+}
+```
+
+This follows the official [V2 custom-provider configuration](https://opencode.ai/v2/docs/providers/#custom).
+For Responses and processing-speed variants, see the [V2 example](PROCESSING-SPEED.md#opencode-v2).
+
+The current dashboard preset still writes the legacy V1 `provider.kitsunerouter`
+schema. For an installation deliberately using V1, the equivalent manual form is:
 
 ```json
 {
@@ -101,7 +125,9 @@ The dashboard's legacy-schema preset uses `provider.kitsunerouter`; a manual exa
 }
 ```
 
-Select the schema for your installed OpenCode major version; V2 uses `providers`, `package` and `settings` instead. See the [V2 Responses/speed example](PROCESSING-SPEED.md#opencode-v2). In either schema the provider key is `kitsunerouter`. Malformed/unreadable or coexisting `.json`/`.jsonc` files require operator resolution, not an empty replacement.
+In either schema the provider key is `kitsunerouter`. The dashboard preset is
+not a V2 configuration generator. Malformed/unreadable or coexisting `.json`/
+`.jsonc` files require operator resolution, not an empty replacement.
 
 ## Remote endpoints and errors
 

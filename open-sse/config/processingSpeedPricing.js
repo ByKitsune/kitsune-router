@@ -9,6 +9,24 @@ export const OPENAI_TOKEN_PRICING_SOURCE = {
   unit: "1M tokens",
 };
 
+// Terra was published after the 2026-10-21 capture. Regional pricing is
+// informational: the current cost calculator has no regional-endpoint input and
+// cannot apply the documented uplift to these global token rates.
+export const OPENAI_TERRA_TOKEN_PRICING_SOURCE = {
+  url: "https://developers.openai.com/api/docs/pricing.md",
+  capturedAtUtc: "2026-10-28T18:02:28Z",
+  sha256: "93d302a9b7a384877533bc3ab5bb48eebf4b56bd6add0f194095054b2a13f952",
+  currency: "USD",
+  unit: "1M tokens",
+  regionalProcessing: {
+    uplift: 0.1,
+    source: "https://developers.openai.com/api/docs/guides/your-data.md",
+    capturedAtUtc: "2026-10-28T18:12:00Z",
+    sha256: "d527075387065bc57754b177f356d86dc65dcf7a7434d67ea4e7fdbeafbc82f3",
+    note: "Eligible regional data-residency endpoints incur a 10% uplift. GPT-6.1 Terra supports US and EU residency; EU supports Standard, Fast, Flex and Batch. Eligibility is account-specific.",
+  },
+};
+
 // A dash/unpublished component is unknown, not free or a Standard fallback.
 // Output includes reasoning. Native 30m/12h writes replace ordinary input for
 // those tokens; they are not Anthropic 5m/1h cache_creation fees.
@@ -32,6 +50,7 @@ const tokenQuotes = rows => Object.fromEntries(Object.entries(rows).map(([model,
 export const OPENAI_STANDARD_TOKEN_PRICING = tokenQuotes({
   "gpt-6-astra": { input: 10, output: 50, cached: 1, cache_write_30m: 12.5, cache_write_12h: 25, tier: { threshold: 272000, inclusive: false, input: 20, output: 75, cached: 2, cache_write_30m: 25, cache_write_12h: 50 } },
   "gpt-6.1-sol": { input: 2, output: 10, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10 } },
+  "gpt-6.1-terra": { input: 1, output: 5, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5 } },
   "gpt-6-luna": { input: 0.1, output: 0.5, cached: 0.01, cache_write_30m: 0.125, cache_write_12h: 0.25, tier: { threshold: 272000, inclusive: false, input: 0.2, output: 0.75, cached: 0.02, cache_write_30m: 0.25, cache_write_12h: 0.5 } },
   "gpt-6-sol": { input: 2, output: 10, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10 } },
   "gpt-5.6-sol": { input: 4, output: 20, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30, cached: 0.8, cache_write_30m: 10, cache_write_12h: 20 } },
@@ -91,6 +110,10 @@ export const OPENAI_PROCESSING_SPEED_PRICING = Object.fromEntries(Object.entries
     fast: { input: 4, cached: 0.2, output: 20, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, cached: 0.4, output: 30, cache_write_30m: 10, cache_write_12h: 20 } },
     ultrafast: { input: 12, cached: 0.6, output: 60, cache_write_30m: 15, cache_write_12h: 30, tier: { threshold: 272000, inclusive: false, input: 24, cached: 1.2, output: 90, cache_write_30m: 30, cache_write_12h: 60 } },
     flex: { input: 1, cached: 0.05, output: 5, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, cached: 0.1, output: 7.5, cache_write_30m: 2.5, cache_write_12h: 5 } },
+  },
+  "gpt-6.1-terra": {
+    fast: { input: 2, cached: 0.1, output: 10, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, cached: 0.2, output: 15, cache_write_30m: 5, cache_write_12h: 10 } },
+    flex: { input: 0.5, cached: 0.025, output: 2.5, cache_write_30m: 0.625, cache_write_12h: 1.25, tier: { threshold: 272000, inclusive: false, input: 1, cached: 0.05, output: 3.75, cache_write_30m: 1.25, cache_write_12h: 2.5 } },
   },
   "gpt-6-luna": {
     fast: { input: 0.2, cached: 0.02, output: 1, cache_write_30m: 0.25, cache_write_12h: 0.5, tier: { threshold: 272000, inclusive: false, input: 0.4, cached: 0.04, output: 1.5, cache_write_30m: 0.5, cache_write_12h: 1 } },
