@@ -480,7 +480,11 @@ function flattenTypeArrays(obj) {
 
   if (obj.type && Array.isArray(obj.type)) {
     const nonNullTypes = obj.type.filter(t => t !== "null");
-    obj.type = nonNullTypes.length > 0 ? nonNullTypes[0] : "string";
+    if (nonNullTypes.length === 0) obj.type = "string";
+    else if (nonNullTypes.length === 1) obj.type = nonNullTypes[0];
+    else if (obj.properties && nonNullTypes.includes("object")) obj.type = "object";
+    else if (obj.items && typeof obj.items === "object" && !Array.isArray(obj.items) && obj.items.type && nonNullTypes.includes("array")) obj.type = "array";
+    else obj.type = ["string", "number", "integer", "boolean"].find(type => nonNullTypes.includes(type)) || nonNullTypes[0];
   }
 
   forEachChildSchema(obj, flattenTypeArrays);
@@ -594,6 +598,28 @@ function ensureArrayItems(obj) {
     obj.items = { type: "string" };
   }
   forEachChildSchema(obj, ensureArrayItems);
+}
+
+// Gemini's Schema proto only permits items on arrays and properties/required
+// on objects. Walk schema nodes rather than property-name maps: a tool may
+// itself declare properties called "items", "properties" or "required".
+function enforceSchemaTypePredicates(obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+
+  if (obj.type === "array") {
+    if (!obj.items || typeof obj.items !== "object" || Array.isArray(obj.items)) {
+      obj.items = { type: "string" };
+    } else if (!obj.items.type) {
+      obj.items.type = obj.items.properties ? "object" : obj.items.items ? "array" : "string";
+    }
+  } else delete obj.items;
+
+  if (obj.type !== "object") {
+    delete obj.properties;
+    delete obj.required;
+  }
+
+  forEachChildSchema(obj, enforceSchemaTypePredicates);
 }
 
 // Expand shorthand string schemas into real Schema objects.
@@ -723,6 +749,9 @@ export function cleanJSONSchemaForAntigravity(schema) {
   }
 
   addPlaceholders(cleaned);
+
+  // Phase 6: remove protobuf fields whose predicate conflicts with the type.
+  enforceSchemaTypePredicates(cleaned);
 
   return cleaned;
 }

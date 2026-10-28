@@ -41,6 +41,98 @@ function nativeParameters(body, requestedModel = model) {
 }
 
 describe("selected Antigravity upstream tool-schema fixes", () => {
+  // Adapted from 9Router 8db1f4ae, retaining Kitsune's schema-map and legacy
+  // placeholder behavior rather than applying the upstream recursive walk.
+  it("enforces Gemini type predicates without corrupting reserved property names", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        items: { type: ["null", "boolean", "object", "array", "number", "string"], items: {} },
+        properties: {
+          type: "object",
+          properties: {
+            items: { type: "string", items: { type: "number" } },
+            required: { type: "boolean", properties: { unwanted: { type: "string" } }, required: ["unwanted"] },
+          },
+          required: ["items", "required"],
+        },
+        rows: { type: "array", items: { type: "integer" }, properties: { unwanted: { type: "string" } }, required: ["unwanted"] },
+      },
+      required: ["items", "properties", "rows"],
+    };
+    const expected = {
+      type: "object",
+      properties: {
+        items: { type: "string" },
+        properties: {
+          type: "object",
+          properties: { items: { type: "string" }, required: { type: "boolean" } },
+          required: ["items", "required"],
+        },
+        rows: { type: "array", items: { type: "integer" } },
+      },
+      required: ["items", "properties", "rows"],
+    };
+    expect(clean(schema)).toEqual(expected);
+    const body = nativeRequest(schema);
+    const original = structuredClone(body);
+    expect(nativeParameters(body)).toEqual(expected);
+    expect(body).toEqual(original);
+  });
+
+  it("prefers a structural union branch when its schema supplies real structure", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        record: { type: ["boolean", "object", "string"], properties: { x: { type: "string" } } },
+        list: { type: ["boolean", "array", "string"], items: { type: "number" } },
+      },
+    };
+    expect(clean(schema)).toEqual({
+      type: "object",
+      properties: {
+        record: { type: "object", properties: { x: { type: "string" } } },
+        list: { type: "array", items: { type: "number" } },
+      },
+    });
+  });
+
+  it.each(["translated Chat", "native passthrough"])("sends a valid predicate-safe schema through Core for %s", async route => {
+    const { handleChatCore } = await import("../../open-sse/handlers/chatCore.js");
+    const schema = {
+      type: "object",
+      properties: { items: { type: ["boolean", "string"], items: { type: "string" } } },
+      required: ["items"],
+    };
+    const native = route === "native passthrough";
+    const body = native ? { ...nativeRequest(schema), userAgent: "antigravity", stream: false } : {
+      messages: [{ role: "user", content: "Use the tool." }], stream: false,
+      tools: [{ type: "function", function: { name: "schema_probe", parameters: schema } }],
+    };
+    const original = structuredClone(body);
+    io.fetch.mockReset();
+    io.fetch.mockImplementation(async () => Response.json({ response: {
+      candidates: [{ content: { role: "model", parts: [{ text: "Offline schema fixture" }] }, finishReason: "STOP" }],
+    } }));
+    try {
+      const result = await handleChatCore({
+        body, modelInfo: { provider: "antigravity", model }, credentials: { ...credentials },
+        sourceFormatOverride: native ? FORMATS.ANTIGRAVITY : FORMATS.OPENAI,
+        clientRawRequest: { endpoint: "/v1/chat/completions", body, headers: native ? { "user-agent": "antigravity/schema-fixture" } : {} },
+        connectionId: credentials.connectionId, log: { debug() {}, info() {}, warn() {} },
+      });
+      expect(result.success).toBe(true);
+      expect(io.fetch).toHaveBeenCalledTimes(1);
+      const wire = JSON.parse(io.fetch.mock.calls[0][1].body);
+      expect(wire.request.tools[0].functionDeclarations[0].parameters).toEqual({
+        type: "object", properties: { items: { type: "string" } }, required: ["items"],
+      });
+      expect(body).toEqual(original);
+    } finally {
+      io.fetch.mockReset();
+    }
+  });
+
   it("omits unrepresentable empty enum values on the final native wire (#4973)", () => {
     const schema = {
       type: "object",
