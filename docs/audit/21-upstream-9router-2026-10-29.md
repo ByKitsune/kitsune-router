@@ -21,7 +21,7 @@ the newest 2026-10-28 commits, not the entire divergent history.
 | `ced0cf6e` NVIDIA reasoning aliases | Kitsune already normalizes readable Chat aliases and rejects contradictory values instead of silently discarding one; the two behaviors are intentionally not identical. |
 | `a199d777` opaque LLM tokens | Adapted in `fcc4ccb4`; two-part named keys and Cloudflare syntax remain supported. |
 | `b1effa03` CommandCode CLI headers | Not ported yet: request/session handling differs and must be reconciled with Kitsune's serializer and existing transport contracts. |
-| `f3e1f716` Copilot Claude 5.5 | Partially covered: Kitsune already handles Sonnet's `between_tools` and explicit display; the upstream GitHub Haiku 5.5 and forced-choice details require route-specific validation. |
+| `f3e1f716` Copilot Claude 5.5 | Partially adapted in `4cba07ec`: GitHub Haiku 5.5 uses adaptive thinking and dotted Opus 5.5 avoids rejected forced choices. Sonnet's `between_tools` and explicit display were already covered. The other provider routes have not been fully compared or probed live. |
 | `3fd925ab` CodeBuddy channel headers | Adapted in `8949ca17` for both existing CodeBuddy executors. No live account was used. |
 | `acb3c080` GPT-6.1 Terra | Not ported yet: new Codex model and pricing need route-specific provenance and metadata validation; do not copy a global price/limit blindly. |
 | `e70ea24d` OpenCode lazy runtime | Not ported: the affected module is absent. New upstream OpenCode TLS/fingerprint changes are a candidate for a separate end-to-end compatibility review. |
@@ -48,6 +48,8 @@ the deployed service is affected. Test those layers during planned maintenance.
 - Gemini schema and related translator suites: 226 passed.
 - SSE error and transport suites: 66 passed.
 - DeepSeek identity and model-contract suites: 82 passed.
+- Copilot/Claude thinking and related capability suites: 133 passed, using
+  synthetic responses rather than a live GitHub account.
 - The offline Codex Core streaming regression passed; no real account was used.
 - Targeted lint passed. A full build and complete repository test suite were not
   run. Changes have not been pushed, deployed, or activated by a service restart.
