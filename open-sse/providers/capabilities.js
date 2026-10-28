@@ -730,11 +730,21 @@ const NATIVE_GEMINI_LEVELS = {
   "gemini-3.8-flash": ["low", "medium", "high"],
 };
 
+// Copilot's Messages shim rejects budgeted thinking for this dotted ID
+// (9Router f3e1f716). Keep all other route-specific facts from the catalog.
+const GITHUB_ADAPTIVE_THINKING_MODELS = new Set(["claude-haiku-5.5"]);
+const GITHUB_NO_FORCED_TOOL_CHOICE_MODELS = new Set(["claude-opus-5.5"]);
+
 export function getCapabilitiesForModel(provider, model) {
   const baseline = resolveBaselineCapabilities(provider, model);
   const nativeProvider = canonicalizeProviderId(provider);
   const reviewed = applyReviewedCapabilities(baseline, provider, model);
-  const caps = isDocumentUnsupportedRoute(nativeProvider, model) ? { ...reviewed, pdf: false } : reviewed;
+  let caps = isDocumentUnsupportedRoute(nativeProvider, model) ? { ...reviewed, pdf: false } : reviewed;
+  const modelId = typeof model === "string" ? model.split("/").pop().replace(/\([^()]+\)\s*$/, "").trim().toLowerCase() : "";
+  if (nativeProvider === "github") {
+    if (GITHUB_ADAPTIVE_THINKING_MODELS.has(modelId)) caps = { ...caps, thinkingFormat: "claude-adaptive" };
+    if (GITHUB_NO_FORCED_TOOL_CHOICE_MODELS.has(modelId)) caps = { ...caps, forcedToolChoice: false };
+  }
   if (nativeProvider !== "gemini" && nativeProvider !== "vertex") return caps;
   const budget = NATIVE_GEMINI_BUDGETS[model];
   const efforts = nativeProvider === "gemini" ? NATIVE_GEMINI_LEVELS[model] : undefined;
