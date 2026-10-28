@@ -5,6 +5,12 @@ on:
   pull_request:
     branches: [master, main]
   workflow_dispatch:
+    inputs:
+      build_candidate:
+        description: "Build an unpublished Node 24.19.0 deployment candidate"
+        type: boolean
+        default: false
+        required: false
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -76,3 +82,74 @@ jobs:
       - run: npm --prefix gitbook run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+  candidate-package:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_candidate }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      RUN_REAL: "0"
+      RUN_E2E: "0"
+      RUN_LIVE_TESTS: "0"
+      AG_CACHE_TEST: "0"
+      MODEL_CATALOG_SYNC: "off"
+      DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
+      KITSUNE_ROUTER_DISABLE_MITM: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+      JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
+      KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.19.0
+      - name: Isolate application state
+        run: node scripts/release-publication-helpers.mjs isolate
+      - name: Check exact source and install locked dependencies
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          npm --prefix cli ci
+          git diff --quiet
+          git diff --cached --quiet
+      - name: Build unpublished CLI package
+        env:
+          NEXT_PHASE: phase-production-build
+          NODE_ENV: production
+        run: |
+          npm run cli:pack
+          git diff --quiet
+          git diff --cached --quiet
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const { createHash } = require('node:crypto');
+          const { execFileSync } = require('node:child_process');
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const version = require('./cli/package.json').version;
+          assert.match(version, /^\d+\.\d+\.\d+$/);
+          assert.equal(process.version, 'v24.19.0');
+          assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), process.env.GITHUB_SHA);
+          const file = `bykitsune-router-${version}.tgz`;
+          const metadata = {
+            sourceSha: process.env.GITHUB_SHA,
+            sourceTree: execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim(),
+            runId: process.env.GITHUB_RUN_ID,
+            node: process.version,
+            platform: process.platform,
+            arch: process.arch,
+            glibc: process.report.getReport().header.glibcVersionRuntime,
+            file,
+            sha256: createHash('sha256').update(readFileSync(file)).digest('hex'),
+          };
+          writeFileSync('candidate-build.json', JSON.stringify(metadata, null, 2) + '\n');
+          NODE
+      - name: Preserve unpublished candidate and build metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: candidate-package-${{ github.sha }}
+          path: |
+            bykitsune-router-*.tgz
+            candidate-build.json
+          if-no-files-found: error
+          retention-days: 7
