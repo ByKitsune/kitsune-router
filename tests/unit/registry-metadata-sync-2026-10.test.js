@@ -133,6 +133,7 @@ describe("October registry metadata reaches effective consumers", () => {
     ["deepseek", "deepseek-v4-pro-max", { maxOutput: 393216 }],
     ["deepseek", "deepseek-v4-pro-none", { maxOutput: 393216 }],
     ["deepseek", "deepseek-v4-flash", { maxOutput: 393216 }],
+    ["deepseek", "deepseek-v4.1-flash", { maxOutput: 393216 }],
     ["nvidia", "minimaxai/minimax-m2.7", { contextWindow: 204800, maxOutput: 131072, thinkingFormat: "openai" }],
     ["nvidia", "z-ai/glm-5.2", { contextWindow: 1000000, maxOutput: 32768, thinkingFormat: "openai" }],
     ["nvidia", "deepseek-ai/deepseek-v4-pro", { contextWindow: 1048576, maxOutput: 16384, thinkingFormat: "openai" }],

@@ -161,7 +161,9 @@ describe("getCapabilitiesForModel", () => {
   it("reports DeepSeek V4.1 Flash with 1M context and vision", () => {
     const caps = getCapabilitiesForModel("deepseek", "deepseek-v4.1-flash");
     expect(caps.contextWindow).toBe(1000000);
-    expect(caps.maxOutput).toBe(384000);
+    // The legacy ID resolves to the reviewed direct-DeepSeek endpoint, whose
+    // documented 384K limit is 393216 tokens rather than decimal 384000.
+    expect(caps.maxOutput).toBe(393216);
     expect(caps.vision).toBe(true);
     expect(caps.reasoning).toBe(true);
   });
