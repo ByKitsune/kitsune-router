@@ -111,3 +111,28 @@ describe("planBulkAdd: robustness", () => {
     expect(out[0].name).toBe("Key 1");
   });
 });
+
+// Adapted from 9Router a199d777: keep the complete provider-issued token.
+describe("planBulkAdd: opaque LLM tokens", () => {
+  it.each(["LLM|example-id|example-secret", "llm|example-id|example-secret"])(
+    "preserves every part of %s", (token) => {
+      const out = planBulkAdd([` ${token} `], ["LLM 1"]);
+      expect(out).toEqual([{ name: "LLM 2", apiKey: token, skipped: false }]);
+    }
+  );
+
+  it("keeps explicit two-part LLM names and named pipe-containing keys working", () => {
+    const out = planBulkAdd(["LLM|simple-key", "Prod|LLM|example-id|example-secret"], []);
+    expect(out.map(({ name, apiKey }) => ({ name, apiKey }))).toEqual([
+      { name: "LLM 1", apiKey: "simple-key" },
+      { name: "Prod 1", apiKey: "LLM|example-id|example-secret" },
+    ]);
+  });
+
+  it("does not reinterpret Cloudflare's name|key|account syntax", () => {
+    expect(planBulkAdd(["LLM|example-key|example-account"], [], { isCloudflareAi: true })[0]).toEqual({
+      name: "LLM 1", apiKey: "example-key", skipped: false,
+      providerSpecificData: { accountId: "example-account" },
+    });
+  });
+});

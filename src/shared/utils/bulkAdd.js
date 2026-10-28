@@ -25,6 +25,11 @@
  */
 function parseLine(line, opts = {}) {
   const { isCloudflareAi = false } = opts;
+  // Some providers issue opaque LLM|id|secret tokens. Keep the full token,
+  // while retaining the documented two-part name|key and Cloudflare formats.
+  if (!isCloudflareAi && /^LLM\|[^|]+\|.+$/i.test(line)) {
+    return { baseName: "LLM", apiKey: line };
+  }
   const parts = line.split("|");
 
   if (isCloudflareAi && parts.length >= 3) {
