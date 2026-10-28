@@ -45,6 +45,9 @@ export default {
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
     { id: "deepseek-v4-pro-max", name: "DeepSeek V4 Pro Max", upstreamModelId: "deepseek-v4-pro" },
     { id: "deepseek-v4-pro-none", name: "DeepSeek V4 Pro No Thinking", upstreamModelId: "deepseek-v4-pro" },
+    // Preserve the 9Router catalog ID for existing clients and saved combos;
+    // the DeepSeek API itself serves this model under deepseek-flash.
+    { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash (legacy id)", upstreamModelId: "deepseek-flash", deprecated: true, deprecationNotice: "Compatibility alias served by DeepSeek V4.1 Flash." },
     { id: "deepseek-v4-flash", name: "DeepSeek V4.1 Flash (legacy id)", upstreamModelId: "deepseek-flash", deprecated: true, deprecationNotice: "Compatibility alias served by DeepSeek V4.1 Flash." },
     { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4.1 Flash Vision (legacy id)", upstreamModelId: "deepseek-flash", deprecated: true, deprecationNotice: "Compatibility alias served by DeepSeek V4.1 Flash." },
   ],

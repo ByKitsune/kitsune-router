@@ -7,7 +7,7 @@ import { getModelUpstreamId } from "../../open-sse/config/providerModels.js";
 // canonical id for V4.1 Flash, and `deepseek-v4-flash` /
 // `deepseek-v4-flash-vision-exp` are retired ids that DeepSeek still routes to
 // the same model for compatibility. All three accept image input.
-const V41_FLASH_IDS = ["deepseek-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"];
+const V41_FLASH_IDS = ["deepseek-flash", "deepseek-v4.1-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"];
 
 const TEXT_ONLY_MODEL = "oc/text-only-model";
 const FALLBACK_POOLS = {
@@ -25,8 +25,13 @@ describe("capacity adapter pooling", () => {
     const models = [`ds/${id}`];
     expect(augmentModelsWithCapacityAdapter(models, ["vision"], FALLBACK_POOLS)).toEqual(models);
   });
-  it.each(["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"])("routes the legacy %s identity to the canonical upstream", (id) => {
+  it.each(["deepseek-v4.1-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"])("routes the legacy %s identity to the canonical upstream", (id) => {
     expect(getModelUpstreamId("deepseek", id)).toBe("deepseek-flash");
+    expect(getModelUpstreamId("deepseek", `${id}(high)`)).toBe("deepseek-flash(high)");
+  });
+
+  it("does not rewrite another provider's dotted DeepSeek identity", () => {
+    expect(getModelUpstreamId("cbai", "deepseek-v4.1-flash")).toBe("deepseek-v4.1-flash");
   });
 
   it("prepends a capable pool model when no requested model covers the capability", () => {

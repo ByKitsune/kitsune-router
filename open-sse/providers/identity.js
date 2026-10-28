@@ -382,7 +382,8 @@ export const DECLARED_UPSTREAM_MODEL_IDS = {
     "deepseek-v4-flash": "deepseek-flash",
     "deepseek-v4-flash-vision-exp": "deepseek-flash",
     "deepseek-v4-pro-max": "deepseek-v4-pro",
-    "deepseek-v4-pro-none": "deepseek-v4-pro"
+    "deepseek-v4-pro-none": "deepseek-v4-pro",
+    "deepseek-v4.1-flash": "deepseek-flash"
   },
   "grok-cli": {
     "grok-4.5-high": "grok-4.5",
