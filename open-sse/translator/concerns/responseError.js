@@ -11,7 +11,10 @@ for (const [status, diagnostic] of Object.entries(ERROR_TYPES)) {
 const REQUEST_ERROR_CODES = new Set(["invalid_request_error", "unsupported_parameter", "invalid_thinking_budget", "invalid_output_budget", "context_length_exceeded"]);
 
 function errorStatus(error) {
-  const explicit = error.status ?? error.status_code ?? error.code;
+  const raw = error.status ?? error.status_code ?? error.code;
+  // Some SSE providers serialize the HTTP status as a string. Accept only
+  // three decimal digits; malformed values still use the existing safe fallback.
+  const explicit = typeof raw === "string" && /^\d{3}$/.test(raw.trim()) ? Number(raw.trim()) : raw;
   if (Number.isInteger(explicit) && explicit >= 400 && explicit <= 599) return explicit;
   if (REQUEST_ERROR_CODES.has(error.code)) return 400;
   return STATUS_BY_CODE.get(error.code) || STATUS_BY_TYPE.get(error.type) || 502;
