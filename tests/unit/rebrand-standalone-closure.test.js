@@ -2,15 +2,49 @@ import { afterEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { copyStandaloneRuntimeAssets } from "../../scripts/copy-standalone-assets.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const directory of fixtures.splice(0)) fs.rmSync(directory, { recursive: true, force: true }); });
 
+function addReflectFixture(project) {
+  const source = path.join(project, "node_modules/reflect-metadata");
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, "package.json"), JSON.stringify({ name: "reflect-metadata", main: "Reflect.js" }));
+  fs.writeFileSync(path.join(source, "Reflect.js"), "module.exports = 'standalone reflect fixture';");
+}
+
 describe("rebranded standalone boot dependency closure", () => {
+  it("retains the external reflect-metadata package needed by dashboard server pages", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune-runtime-closure-"));
+    fixtures.push(root);
+    const project = path.join(root, "project");
+    addReflectFixture(project);
+    const output = path.join(root, "output");
+    fs.mkdirSync(output, { recursive: true });
+
+    copyStandaloneRuntimeAssets({ projectRoot: project, standaloneDir: output });
+
+    const result = spawnSync(process.execPath, ["-e", "if (require('reflect-metadata') !== 'standalone reflect fixture') process.exit(2)"], {
+      cwd: output,
+      env: { PATH: process.env.PATH, HOME: root, NODE_PATH: "" },
+      encoding: "utf8",
+    });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("refuses to package an incomplete required dependency", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune-runtime-closure-"));
+    fixtures.push(root);
+    expect(() => copyStandaloneRuntimeAssets({ projectRoot: root, standaloneDir: path.join(root, "output") }))
+      .toThrow(/reflect-metadata is missing/);
+  });
+
   it("retains missing framework metadata helpers without copying the compiler tree", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune-runtime-closure-"));
     fixtures.push(root);
+    addReflectFixture(root);
     const metadata = path.join(root, "node_modules/next/dist/lib/metadata");
     fs.mkdirSync(metadata, { recursive: true });
     fs.writeFileSync(path.join(metadata, "get-metadata-route.js"), "module.exports = require('./is-metadata-route');");

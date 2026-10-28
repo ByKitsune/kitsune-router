@@ -17,6 +17,9 @@ function createBuildFixture(distDir) {
   mkdirSync(join(buildRoot, "standalone"), { recursive: true });
   mkdirSync(join(buildRoot, "static", "chunks"), { recursive: true });
   mkdirSync(join(projectRoot, "public"), { recursive: true });
+  mkdirSync(join(projectRoot, "node_modules", "reflect-metadata"), { recursive: true });
+  writeFileSync(join(projectRoot, "node_modules", "reflect-metadata", "package.json"), '{"name":"reflect-metadata","main":"Reflect.js"}');
+  writeFileSync(join(projectRoot, "node_modules", "reflect-metadata", "Reflect.js"), "module.exports = {};");
   writeFileSync(join(buildRoot, "static", "chunks", "app.js"), "static asset");
   writeFileSync(join(projectRoot, "public", "favicon.svg"), "public asset");
   return projectRoot;

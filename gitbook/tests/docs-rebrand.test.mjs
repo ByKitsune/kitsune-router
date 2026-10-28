@@ -72,11 +72,13 @@ describe("docs static paths and metadata", () => {
   it("exports the PNG social image statically rather than relying on a server", () => {
     const route = read("../app/brand/social-card.png/route.js");
     assert.match(route, /export const dynamic = "force-static"/);
-    assert.match(route, /new ImageResponse/);
-    assert.doesNotMatch(route, /<img\b|next\/image|(?:eslint|oxlint)-disable/);
-    const logo = read("../public/icons/logo.svg");
-    const logoPaths = [...logo.matchAll(/<path d="([^"]+)"/g)].map(match => match[1]);
-    for (const geometry of logoPaths) assert.ok(route.includes(`d="${geometry}"`), geometry);
+    assert.match(route, /readFileSync/);
+    assert.match(route, /docs-social-card\.png/);
+    assert.doesNotMatch(route, /fetch\(|https?:\/\//);
+    const image = readFileSync(new URL("../public/brand/docs-social-card.png", import.meta.url));
+    assert.equal(image.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+    assert.equal(image.readUInt32BE(16), 1200);
+    assert.equal(image.readUInt32BE(20), 630);
     assert.match(read("../app/layout.js"), /property="og:image" content=\{socialImageUrl\(\)\}/);
   });
 

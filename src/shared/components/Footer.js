@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="max-w-lg">
             <p className="text-xl font-semibold tracking-tight sm:text-2xl">{BRAND.tagline}</p>
             <p className="mt-4 text-base leading-7">
-              Maintained and sponsored by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a>.
+              Maintained and sponsored by <a href={BRAND.sponsorUrl} className="inline-flex items-center rounded-sm bg-[#fffefa] px-1 align-middle"><Image src="/brand/bykitsune-wordmark.webp" alt={BRAND.organization} width={73} height={24} className="h-5 w-auto" /></a>.
               {" "}Choose your own providers. A ByKitsune account is not required.
             </p>
           </div>

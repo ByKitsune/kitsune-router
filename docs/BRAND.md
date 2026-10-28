@@ -11,13 +11,13 @@ Never place a secret, private account identifier or runtime option there.
 
 The existing ByKitsune source was reviewed at `/root/ByKitsuneV2`. Its established
 ink (`#30241d`), paper (`#fffefa`), ember (`#a63f23`), and geometric sans-serif
-typography form the shared family. Kitsune Router uses its own compact fox mark
-with a routing branch. ByKitsune is acknowledged as maintainer and sponsor, not
+typography form the shared family. Kitsune Router uses the same approved
+ByKitsune mascot as the main website. ByKitsune is acknowledged as maintainer and sponsor, not
 as a mandatory API supplier. Use equal treatment for every provider.
 
 ## Visual language
 
-- One clear fox-ear notch appears in the mark and larger landing-page stages.
+- The approved fox mascot and its recognizable ears anchor the product mark.
 - Flat paper/ink fields, ember actions, readable dark-mode counterparts.
 - Plus Jakarta Sans with system fallbacks; code uses the existing monospace.
 - A visible focus outline, comfortable targets, honest empty/loading/error
@@ -34,19 +34,18 @@ than a newly invented default palette.
 
 ## Assets and attribution
 
-- `public/icons/logo.svg`: product mark, authored in source for this rebrand.
-- `public/icons/icon-192.svg`, `icon-512.svg`, `public/favicon.svg`: app variants.
+- `public/icons/logo.svg`, `icon-192.svg`, `icon-512.svg`, and `public/favicon.svg`: stable URLs containing the approved ByKitsune mascot.
 - `public/brand/social-card.svg`: editable share/repository image source.
-- `public/brand/bykitsune-favicon.png`: exact 192px favicon copied from
-  `/root/ByKitsuneV2/public/favicon-192x192.png` at the owner's request for the
-  GitHub README/description header. It is the ByKitsune character artwork,
-  separate from the routing-fox mark used inside the application.
+- `public/brand/bykitsune-favicon.png`, `bykitsune-favicon-512.png`, and
+  `bykitsune-favicon.ico`: original mascot assets from the ByKitsune website,
+  used consistently in the dashboard, app icons, documentation and tray.
+- `public/brand/bykitsune-wordmark.webp`: the original ByKitsune wordmark; use
+  it on a light backing so it remains legible in dark mode.
 - `images/kitsune-router.png`: real packaged-candidate dashboard capture using
   isolated synthetic state. Historical screenshots are identified in
   `images/README.md`, not relabeled as current builds.
-- Bitmap variants are generated from the same SVG, not unrelated artwork.
-  `node scripts/generate-brand-assets.mjs` creates app icons, tray PNG/ICO,
-  browser favicon and a 1200×630 share image from the editable SVGs.
+- `node scripts/generate-brand-assets.mjs` creates app and tray variants, stable
+  SVG wrappers, and 1200×630 app/documentation share images from those originals.
 - Existing provider marks belong to their respective publishers and are not
   redrawn or relabeled as Kitsune Router assets.
 - Preserve upstream MIT copyright and notice requirements. Product sponsorship

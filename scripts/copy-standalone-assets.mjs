@@ -43,6 +43,17 @@ export function assertNoRuntimeState(directory) {
 }
 
 export function copyStandaloneRuntimeAssets({ projectRoot, standaloneDir } = {}) {
+  // Dashboard server bundles and the raw MITM child both load this external
+  // package at runtime. Next's standalone trace can omit it even when build
+  // succeeds, causing authenticated dashboard pages to return HTTP 500.
+  const reflectSource = resolve(projectRoot, "node_modules/reflect-metadata");
+  if (!existsSync(resolve(reflectSource, "package.json")) || !existsSync(resolve(reflectSource, "Reflect.js"))) {
+    throw new Error("Required standalone dependency reflect-metadata is missing; install the locked project dependencies before building");
+  }
+  const reflectDestination = resolve(standaloneDir, "node_modules/reflect-metadata");
+  mkdirSync(dirname(reflectDestination), { recursive: true });
+  cpSync(reflectSource, reflectDestination, { recursive: true, force: true, filter: excludeRuntimeState });
+
   // Next 16's server trace omits its metadata-route helpers even though the
   // production filesystem router requires them at boot. Preserve that narrow
   // framework closure for source standalone and CLI builds alike, rather than
