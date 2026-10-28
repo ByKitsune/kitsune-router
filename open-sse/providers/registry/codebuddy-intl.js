@@ -39,6 +39,7 @@ export default {
       combined: true,
       header: "Authorization",
       scheme: "bearer",
+      hooks: ["codebuddyHeaders"],
     },
     // Intl billing endpoint mirrors CN shape (data.Response.Data.Accounts[]).
     usage: {

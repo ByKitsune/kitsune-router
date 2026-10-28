@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS, PROVIDER_OAUTH } from "../config/providers.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE, selectAnthropicBeta, parseRejectedAnthropicBetaFlags } from "../providers/shared.js";
@@ -76,6 +77,14 @@ function applyAuth(headers, desc, credentials) {
 
 // Provider-specific header quirks kept as small hooks (not pure auth).
 const HEADER_HOOKS = {
+  // The CodeBuddy gateways require the plugin's per-request channel IDs.
+  codebuddyHeaders: (headers) => {
+    const requestId = randomUUID();
+    headers["X-Request-ID"] = requestId;
+    headers["X-Conversation-ID"] = randomUUID();
+    headers["X-Conversation-Request-ID"] = requestId;
+    headers["X-Conversation-Message-ID"] = requestId;
+  },
   // Stable device_id from OAuth connection (CLIProxyAPI KimiTokenStorage.DeviceID)
   kimiHeaders: (h, c) => Object.assign(h, buildKimiHeaders(c?.providerSpecificData?.deviceId)),
   clineHeaders: (h, c) => Object.assign(h, buildClineHeaders(c.apiKey || c.accessToken)),
