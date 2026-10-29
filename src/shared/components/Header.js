@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import PropTypes from "prop-types";
+import { ChevronRight, Menu, Search, UserRound, X } from "lucide-react";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import HeaderMenu from "@/shared/components/HeaderMenu";
 import HeaderLanguage from "@/shared/components/HeaderLanguage";
@@ -178,14 +179,14 @@ const getPageInfo = (pathname) => {
   return { title: "", description: "", breadcrumbs: [] };
 };
 
-export default function Header({ onMenuClick, showMenuButton = true }) {
+export default function Header({ onMenuClick, showMenuButton = true, menuControls, menuExpanded }) {
   const pathname = usePathname();
   const [displayName, setDisplayName] = useState("");
   const [loginMethod, setLoginMethod] = useState("");
 
   // Memoize page info to prevent unnecessary recalculations
   const pageInfo = useMemo(() => getPageInfo(pathname), [pathname]);
-  const { title, description, icon, breadcrumbs } = pageInfo;
+  const { title, description, breadcrumbs } = pageInfo;
 
   useEffect(() => {
     let cancelled = false;
@@ -228,101 +229,31 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
   };
 
   return (
-    <header className="shrink-0 flex items-center justify-between gap-3 px-4 lg:px-8 py-3 bg-surface lg:bg-bg z-20">
-      {/* Mobile menu button */}
-      <div className="flex items-center gap-3 lg:hidden shrink-0">
-        {showMenuButton && (
-          <button
-            type="button"
-            onClick={onMenuClick}
-            aria-label="Open navigation"
-            className="size-11 flex items-center justify-center text-text-main hover:text-primary transition-colors"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-        )}
-      </div>
+    <header className="relative z-20 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-3 border-b border-border-subtle bg-surface/85 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_6px_24px_-24px_rgba(0,0,0,0.3)] backdrop-blur-2xl sm:px-6 lg:px-8 lg:py-5">
+      {showMenuButton && <button type="button" onClick={onMenuClick} aria-label="Open navigation" aria-controls={menuControls} aria-expanded={menuExpanded} className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border-subtle bg-surface/80 text-text-main shadow-soft transition-[background-color,transform] hover:bg-surface-2 active:scale-95 motion-reduce:transform-none lg:hidden"><Menu size={19} aria-hidden="true" /></button>}
 
-      {/* Page title with breadcrumbs */}
-      <div className="flex flex-col min-w-0 flex-1">
+      <div className="min-w-0 flex-1">
+        <p className="mb-1 hidden items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle sm:flex"><span>Workspace</span><ChevronRight size={11} aria-hidden="true" /><span className="truncate">{translate(title || "Dashboard")}</span></p>
         {breadcrumbs.length > 0 ? (
-          <div className="flex items-center gap-2">
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2">
             {breadcrumbs.map((crumb, index) => (
-              <div
-                key={`${crumb.label}-${crumb.href || "current"}`}
-                className="flex items-center gap-2"
-              >
-                {index > 0 && (
-                  <span className="material-symbols-outlined text-text-muted text-base">
-                    chevron_right
-                  </span>
-                )}
-                {crumb.href ? (
-                  <Link
-                    href={crumb.href}
-                    className="text-text-muted hover:text-primary transition-colors"
-                  >
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {crumb.image && (
-                      <ProviderIcon
-                        src={crumb.image}
-                        alt={crumb.label}
-                        size={28}
-                        className="object-contain rounded max-w-[28px] max-h-[28px]"
-                        fallbackText={crumb.label.slice(0, 2).toUpperCase()}
-                      />
-                    )}
-                    <h1 className="text-base lg:text-2xl font-semibold text-text-main tracking-tight truncate">
-                      {translate(crumb.label)}
-                    </h1>
-                  </div>
-                )}
+              <div key={`${crumb.label}-${crumb.href || "current"}`} className={`${index < breadcrumbs.length - 1 ? "hidden md:flex" : "flex"} min-w-0 items-center gap-2`}>
+                {index > 0 && <ChevronRight aria-hidden="true" size={15} className="hidden shrink-0 text-text-subtle md:block" />}
+                {crumb.href ? <Link href={crumb.href} className="truncate rounded text-sm font-medium text-text-muted transition-colors hover:text-primary">{translate(crumb.label)}</Link> : <div className="flex min-w-0 items-center gap-2">{crumb.image && <ProviderIcon src={crumb.image} alt="" size={24} className="size-6 shrink-0 rounded-md object-contain" fallbackText={crumb.label.slice(0, 2).toUpperCase()} />}<h1 className="truncate text-lg font-semibold tracking-[-0.035em] text-text-main sm:text-xl lg:text-[23px]">{translate(crumb.label)}</h1></div>}
               </div>
             ))}
-          </div>
-        ) : title ? (
-          <div>
-            <div className="flex items-center gap-2">
-              {icon && (
-                <span className="material-symbols-outlined text-primary text-xl lg:text-2xl">
-                  {icon}
-                </span>
-              )}
-              <h1 className="text-base lg:text-2xl font-semibold tracking-tight truncate">
-                {translate(title)}
-              </h1>
-            </div>
-            {description && (
-              <p className="hidden lg:block text-sm text-text-muted truncate">
-                {translate(description)}
-              </p>
-            )}
-          </div>
-        ) : null}
+          </nav>
+        ) : <h1 className="truncate text-lg font-semibold tracking-[-0.035em] text-text-main sm:text-xl lg:text-[23px]">{translate(title || "Dashboard")}</h1>}
+        {description && <p className="mt-1 hidden truncate text-xs text-text-muted xl:block">{translate(description)}</p>}
       </div>
 
-      {/* Right actions */}
-      <div className="flex items-center gap-1 shrink-0">
-        {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
-          <div
-            className="hidden sm:flex items-center max-w-[220px] px-3 py-1.5 rounded-full border border-border bg-surface/70 text-xs text-text-muted truncate"
-            title={displayName}
-          >
-            <span className="material-symbols-outlined text-[14px] mr-1.5 text-primary">person</span>
-            <span className="truncate">{displayName}</span>
-            <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-              {loginMethod}
-            </span>
-          </div>
-        )}
-        <HeaderSearch />
-        <ThemeToggle />
+      <div className="ml-auto flex shrink-0 lg:order-last items-center gap-1 rounded-2xl border border-border-subtle bg-surface/75 p-1 shadow-soft sm:gap-1.5">
+        {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && <div className="hidden max-w-[180px] items-center gap-2 border-r border-border-subtle px-2.5 text-xs text-text-muted xl:flex" title={displayName}><UserRound size={15} className="shrink-0 text-primary" aria-hidden="true" /><span className="truncate">{displayName}</span><span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-1 text-[9px] font-semibold uppercase text-primary">{loginMethod}</span></div>}
+        <div className="hidden sm:block"><ThemeToggle className="!rounded-xl" /></div>
         <HeaderLanguage />
         <HeaderMenu onLogout={handleLogout} />
       </div>
+      <HeaderSearch />
     </header>
   );
 }
@@ -336,26 +267,24 @@ function HeaderSearch() {
   if (!visible) return null;
 
   return (
-    <div className="relative w-[160px] sm:w-[220px]">
-      <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-text-muted text-[16px] pointer-events-none">
-        search
-      </span>
+    <div className="relative order-last w-full min-w-0 lg:order-none lg:ml-2 lg:w-[180px] xl:w-[220px]">
+      <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
       <input
         aria-label={placeholder || "Search this page"}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-8 pl-7 pr-7 rounded-lg border border-border bg-surface/60 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+        className="h-11 w-full rounded-xl border border-border-subtle bg-bg-alt/60 pl-9 pr-10 text-sm text-text-main transition-colors placeholder:text-text-subtle hover:border-border focus:border-primary/50 focus:outline-none"
       />
       {query && (
         <button
           type="button"
           onClick={() => setQuery("")}
-          className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main p-0.5 rounded"
+          className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
           aria-label="Clear search"
         >
-          <span className="material-symbols-outlined text-[16px]">close</span>
+          <X size={15} aria-hidden="true" />
         </button>
       )}
     </div>
@@ -365,4 +294,6 @@ function HeaderSearch() {
 Header.propTypes = {
   onMenuClick: PropTypes.func,
   showMenuButton: PropTypes.bool,
+  menuControls: PropTypes.string,
+  menuExpanded: PropTypes.bool,
 };

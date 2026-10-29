@@ -904,6 +904,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
                     size="sm"
                     variant="ghost"
                     icon={copied === "login_url" ? "check" : "content_copy"}
+                    aria-label="Copy authorization URL"
                     onClick={() => copy(deviceLoginUrl, "login_url")}
                     disabled={!deviceLoginUrl}
                   />
@@ -926,6 +927,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
                     size="sm"
                     variant="ghost"
                     icon={copied === "user_code" ? "check" : "content_copy"}
+                    aria-label="Copy authorization code"
                     onClick={() => copy(deviceData.user_code, "user_code")}
                   />
                 </div>

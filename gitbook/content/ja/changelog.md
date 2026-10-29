@@ -1,5 +1,15 @@
 # 変更履歴
 
+## 未リリース — ダッシュボード、モバイルナビゲーション、agent skills
+
+現在のソースはダッシュボード配置、ローカル配信の DM Sans、Usage の動き、
+ByKitsune 公式画像、モバイルのクイックナビゲーション、検索可能な言語選択を
+更新します。全9件のプロジェクト skill を、実際のモデル検出、認証、リクエストと
+レスポンス処理に合わせて見直します。不変の 1.0.2 タグは移動せず、新しい
+npm/コンテナ、ホストされた文書、production 配備の証拠ではありません。
+[ソース変更履歴](https://github.com/ByKitsune/kitsune-router/blob/master/CHANGELOG.md#unreleased) と
+[UI ガイド](https://github.com/ByKitsune/kitsune-router/blob/master/docs/UI-DESIGN.md) を参照してください。
+
 ## Kitsune Router 1.0.2 — private コンテナ配布済み、匿名 pull 未確認、npm ブロック中
 
 不変タグ **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**、PR #2 merge `23375bf1`。exact-source SSH は **9,041 成功、100 skip、assertion/suite 失敗ゼロ**、strict lint、18 docs tests/static export、app build、pack 成功。CI `40468830176` は同一ソースツリーで成功。ローカル tarball の install/runtime/upgrade、六つのコンテナ再起動と exact-source browser 検証は記録範囲で成功しました。mock は子 `Date` のみで本番順序は不変、warning logging は publish のみで pack 不変です。

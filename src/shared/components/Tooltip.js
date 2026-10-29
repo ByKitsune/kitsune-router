@@ -1,25 +1,43 @@
 "use client";
 
+import { isValidElement, useRef, useState } from "react";
+import * as Primitive from "@radix-ui/react-tooltip";
+
+/** Hover and keyboard hints that flip at viewport edges and stay above dialogs. */
 export default function Tooltip({ text, children, position = "top", color }) {
-  const posClass = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-1.5",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-1.5",
-    left: "right-full top-1/2 -translate-y-1/2 mr-1.5",
-    right: "left-full top-1/2 -translate-y-1/2 ml-1.5",
-  }[position];
+  const anchor = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [container, setContainer] = useState(null);
+  const directTrigger = isValidElement(children) && typeof children.type === "string"
+    && ["button", "a", "input"].includes(children.type) && !children.props.disabled;
 
-  const bgStyle = color ? { backgroundColor: color } : {};
-  const bgClass = color ? "" : "bg-gray-900";
-
+  if (!text) return children;
   return (
-    <div className="relative inline-flex group/tt">
-      {children}
-      <div
-        className={`pointer-events-none absolute ${posClass} z-50 w-max max-w-56 rounded px-2 py-1 text-[11px] leading-snug ${bgClass} text-white opacity-0 group-hover/tt:opacity-100 transition-opacity duration-150 whitespace-normal`}
-        style={bgStyle}
-      >
-        {text}
-      </div>
-    </div>
+    <Primitive.Provider delayDuration={250} skipDelayDuration={100}>
+      <Primitive.Root open={open} onOpenChange={(next) => {
+        // Body portals sit below the browser's top layer. Keep hints inside the
+        // nearest native dialog so focus management and visual stacking agree.
+        if (next) setContainer(anchor.current?.closest("dialog[open]") || null);
+        setOpen(next);
+      }}>
+        <span ref={anchor} className="relative inline-flex min-w-0">
+          <Primitive.Trigger asChild>
+            {directTrigger ? children : <span tabIndex={0} className="inline-flex min-w-0 rounded-md outline-offset-4">{children}</span>}
+          </Primitive.Trigger>
+        </span>
+        <Primitive.Portal container={container || undefined}>
+          <Primitive.Content
+            side={position}
+            sideOffset={8}
+            collisionPadding={12}
+            className="workspace-tooltip z-[100] max-w-[min(17rem,calc(100vw-24px))] rounded-xl border border-white/10 bg-text-main px-3 py-2 text-xs leading-relaxed text-bg shadow-elevated outline-none"
+            style={color ? { backgroundColor: color, color: "#fff" } : undefined}
+          >
+            {text}
+            <Primitive.Arrow className="fill-text-main" style={color ? { fill: color } : undefined} width={10} height={5} />
+          </Primitive.Content>
+        </Primitive.Portal>
+      </Primitive.Root>
+    </Primitive.Provider>
   );
 }

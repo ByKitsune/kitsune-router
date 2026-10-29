@@ -1,14 +1,8 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
+import "@fontsource-variable/dm-sans";
 import { DOCS_IDENTITY } from "@/constants/identity.mjs";
 import { createDocsMetadata } from "@/lib/metadata.mjs";
 import { socialImageUrl } from "@/lib/urls.mjs";
 import "./globals.css";
-
-const docsFont = Plus_Jakarta_Sans({
-  subsets: ["latin", "vietnamese"],
-  variable: "--font-kitsune-docs",
-  display: "swap",
-});
 
 export const metadata = createDocsMetadata();
 
@@ -33,7 +27,7 @@ export default function RootLayout({ children }) {
         <meta name="twitter:image" content={socialImageUrl()} />
         <meta name="twitter:image:alt" content={`${DOCS_IDENTITY.name} — ${DOCS_IDENTITY.tagline}`} />
       </head>
-      <body className={docsFont.variable}>
+      <body>
         {children}
       </body>
     </html>

@@ -487,8 +487,13 @@ export default function TokenSaverClient() {
       : "bg-warning/15 text-warning";
 
   return (
-    <div className="space-y-6 p-6">
-      <Card id="rtk">
+    <div className="mx-auto w-full min-w-0 max-w-[1440px] space-y-6">
+      <div className="mb-7 flex min-w-0 flex-col gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Request efficiency</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">Less overhead. More context.</h2>
+        <p className="max-w-2xl text-sm leading-6 text-text-muted">Tune compression and tool-output handling to fit the way your clients work.</p>
+      </div>
+      <Card id="rtk" className="min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">
@@ -670,10 +675,10 @@ export default function TokenSaverClient() {
               Terse-style system prompt → ~65% fewer output tokens (up to 87%)
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex max-w-full flex-wrap items-center gap-3">
             {cavemanEnabled && (
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex max-w-full flex-wrap items-center gap-1.5">
                   {visibleCavemanLevels.map((lvl) => (
                     <button
                       key={lvl.id}
@@ -721,10 +726,10 @@ export default function TokenSaverClient() {
               deletion over addition
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex max-w-full flex-wrap items-center gap-3">
             {ponytailEnabled && (
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex max-w-full flex-wrap items-center gap-1.5">
                   {PONYTAIL_LEVELS.map((lvl) => (
                     <button
                       key={lvl.id}

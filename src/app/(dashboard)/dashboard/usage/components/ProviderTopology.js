@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
+import { useReducedMotion } from "motion/react";
 import Image from "next/image";
 import {
   ReactFlow,
@@ -35,10 +36,10 @@ function ProviderNode({ data }) {
   const [imgError, setImgError] = useState(false);
   return (
     <div
-      className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-2 transition-all duration-300 bg-bg"
+      className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-[border-color,box-shadow] duration-500 bg-surface"
       style={{
         borderColor: active ? color : "var(--color-border)",
-        boxShadow: active ? `0 0 16px ${color}40` : "none",
+        boxShadow: active ? `0 4px 20px ${color}18` : "var(--shadow-soft)",
         minWidth: "150px",
       }}
     >
@@ -335,9 +336,10 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
     [providers]
   );
 
+  const reduceMotion = useReducedMotion();
   const rfInstance = useRef(null);
   const containerRef = useRef(null);
-  const fitOpts = useMemo(() => ({ padding: 0.2, duration: 200 }), []);
+  const fitOpts = useMemo(() => ({ padding: 0.22, duration: reduceMotion ? 0 : 450 }), [reduceMotion]);
   const onInit = useCallback((instance) => {
     rfInstance.current = instance;
     setTimeout(() => instance.fitView(fitOpts), 50);
@@ -363,7 +365,7 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
   }, [nodes.length, fitOpts]);
 
   return (
-    <div ref={containerRef} className="h-[320px] w-full min-w-0 rounded-lg border border-border bg-bg-subtle/30 sm:h-[480px]">
+    <div ref={containerRef} className="usage-topology h-[280px] w-full min-w-0 overflow-hidden rounded-[18px] bg-surface-2/30 sm:h-[340px]">
       {providers.length === 0 ? (
         <div className="h-full flex items-center justify-center text-text-muted text-sm">
           No providers connected

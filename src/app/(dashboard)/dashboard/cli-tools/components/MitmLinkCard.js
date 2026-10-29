@@ -9,10 +9,10 @@ import Image from "next/image";
  */
 export default function MitmLinkCard({ tool }) {
   return (
-    <Link href="/dashboard/mitm" className="block">
-      <Card padding="sm" className="overflow-hidden hover:border-primary/50 transition-colors cursor-pointer">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <Link href="/dashboard/mitm" className="group block min-w-0 rounded-[20px]">
+      <Card padding="sm" className="h-full min-h-[104px] overflow-hidden !rounded-[20px] !p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/35 motion-reduce:transform-none cursor-pointer">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="size-8 flex items-center justify-center shrink-0">
               <Image
                 src={tool.image}
@@ -27,8 +27,8 @@ export default function MitmLinkCard({ tool }) {
               />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-sm">{tool.name}</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold text-sm">{tool.name}</h3>
                 <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full">MITM</span>
               </div>
               <p className="text-xs text-text-muted truncate">{tool.description}</p>

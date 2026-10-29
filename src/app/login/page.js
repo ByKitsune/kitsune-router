@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight, ShieldCheck, Workflow, ChartNoAxesCombined } from "lucide-react";
+import ThemeToggle from "@/shared/components/ThemeToggle";
 import { BRAND } from "../../../branding/identity.mjs";
 
 export default function LoginPage() {
@@ -170,23 +172,37 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-bg text-text-main">
-      <header className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-5 py-6 sm:px-10">
-        <Link href="/landing" className="flex items-center gap-2.5 text-base font-bold tracking-tight sm:text-lg">
+    <div className="login-page flex min-h-svh flex-col bg-bg text-text-main">
+      <header className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-3 px-5 py-6 sm:px-10">
+        <Link href="/landing" className="flex items-center gap-2.5 text-sm font-bold tracking-tight sm:text-lg">
           <Image src="/icons/logo.svg" alt="" width={34} height={34} />
           {BRAND.name}
         </Link>
-        <a href={BRAND.docsUrl} className="inline-flex min-h-11 items-center text-sm font-semibold hover:underline underline-offset-4">Docs</a>
+        <div className="flex items-center gap-3"><ThemeToggle /><a href={BRAND.docsUrl} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold transition-colors hover:bg-surface-2">Documentation <ArrowUpRight size={15} aria-hidden="true" /></a></div>
       </header>
-      <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-center gap-12 px-5 pb-12 pt-8 sm:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-24 lg:py-16">
-        <div className="hidden lg:block">
-          <Image src="/icons/logo.svg" alt="" width={112} height={112} className="mb-8" />
-          <p className="text-[clamp(44px,4.5vw,64px)] font-semibold leading-[1.05] tracking-[-0.06em]">Your models.<br />Your routes.</p>
-          <p className="mt-7 max-w-sm text-base leading-7">Your gateway’s connections, fallback rules and usage. Managed on your installation.</p>
-          <p className="mt-12 max-w-sm text-sm leading-7 text-text-muted">Maintained and sponsored by <a href={BRAND.sponsorUrl} className="font-semibold underline underline-offset-4">{BRAND.organization}</a>. Use the providers you choose.</p>
+      <main className="mx-auto grid w-full max-w-[1240px] flex-1 items-center gap-10 px-5 pb-12 pt-6 sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20 lg:py-12">
+        <div className="workspace-enter hidden min-w-0 lg:block">
+          <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary"><span className="size-1.5 rounded-full bg-primary" /> Your independent AI workspace</span>
+          <h2 className="text-[clamp(44px,4.8vw,72px)] font-semibold leading-[1.04] tracking-[-0.065em]">One workspace.<br /><span className="text-primary">Every possibility.</span></h2>
+          <p className="mt-6 max-w-md text-base leading-7 text-text-muted">Connect the models you love. Shape the routes you need. Keep your tools, connections and usage in one considered space.</p>
+          <div className="mt-10 grid max-w-lg gap-3">
+            {[
+              { icon: Workflow, title: "Routes that work your way", description: "Bring your providers together with flexible fallback and model combos." },
+              { icon: ChartNoAxesCombined, title: "A clearer view of usage", description: "Understand requests, tokens and costs as your workspace grows." },
+              { icon: ShieldCheck, title: "Your installation. Your control.", description: "Manage connections and credentials on your own gateway." },
+            ].map(({ icon: Icon, title, description }) => (
+              <div key={title} className="flex items-start gap-4 rounded-2xl border border-border-subtle bg-surface/70 p-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary"><Icon size={19} strokeWidth={1.6} aria-hidden="true" /></div>
+                <div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-sm leading-6 text-text-muted">{description}</p></div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-7 text-xs text-text-muted">A ByKitsune product. {BRAND.tagline}</p>
         </div>
-        <div className="mx-auto w-full max-w-md bg-bg-alt p-6 sm:p-9">
-          <div className="mb-7">
+        <div className="workspace-enter mx-auto w-full max-w-md rounded-[28px] border border-border-subtle bg-surface p-6 shadow-elev sm:p-10">
+          <div className="mb-8">
+            <Image src="/icons/logo.svg" alt="ByKitsune" width={52} height={52} className="mb-6 rounded-2xl" />
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-primary">Your routing workspace</p>
             <h1 className="text-3xl font-semibold tracking-[-0.05em]">{mustChange ? "Set a new password" : "Open your dashboard"}</h1>
             <p className="mt-3 text-sm leading-6 text-text-muted">
               {mustChange
@@ -200,7 +216,7 @@ export default function LoginPage() {
           </div>
           {mustChange ? (
             <form onSubmit={handleSetNewPassword} className="flex flex-col gap-5" aria-busy={loading}>
-              <div className="bg-surface-2 p-4">
+              <div className="rounded-2xl border border-border-subtle bg-surface-2/70 p-4">
                 <p className="text-sm leading-6">
                   Set a secure password before accessing the dashboard remotely.
                 </p>
@@ -214,7 +230,7 @@ export default function LoginPage() {
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
                   autoComplete="new-password"
-                  className="min-h-12 w-full border border-border bg-surface px-3 text-base text-text-main"
+                  className="min-h-12 w-full rounded-xl border border-border bg-bg px-4 text-base text-text-main transition-shadow focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? "login-error" : undefined}
                   required
@@ -222,20 +238,20 @@ export default function LoginPage() {
                 />
                 <p id="login-error" className="text-sm leading-6 text-red-700 dark:text-red-300" role="alert">{error}</p>
               </div>
-              <button type="submit" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>
+              <button type="submit" className="min-h-12 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-[var(--color-on-primary)] shadow-soft transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.98] motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>
                 {loading ? "Saving password…" : "Set password & continue"}
               </button>
             </form>
           ) : (
           <div className="flex flex-col gap-5">
             {samlAvailable && (
-              <button type="button" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg" onClick={handleSamlLogin}>
+              <button type="button" className="min-h-12 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-[var(--color-on-primary)] shadow-soft transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.98] motion-reduce:transform-none" onClick={handleSamlLogin}>
                 {samlLoginLabel}
               </button>
             )}
 
             {oidcAvailable && (
-              <button type="button" className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg" onClick={handleOidcLogin}>
+              <button type="button" className="min-h-12 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-[var(--color-on-primary)] shadow-soft transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.98] motion-reduce:transform-none" onClick={handleOidcLogin}>
                 {oidcLoginLabel}
               </button>
             )}
@@ -247,7 +263,7 @@ export default function LoginPage() {
             {passwordAvailable ? (
               <form onSubmit={handleLogin} className="flex flex-col gap-5" aria-busy={loading}>
                 {isSsoEnabled && !ssoAvailable && (
-                  <p className="bg-surface-2 p-4 text-sm leading-6">
+                  <p className="rounded-2xl border border-border-subtle bg-surface-2/70 p-4 text-sm leading-6">
                     {activeSsoType === "saml" ? "SAML SSO" : "OIDC"} login is enabled, but configuration is incomplete. Password login is active.
                   </p>
                 )}
@@ -267,7 +283,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(""); }}
                     autoComplete="current-password"
-                    className="min-h-12 w-full border border-border bg-surface px-3 text-base text-text-main"
+                    className="min-h-12 w-full rounded-xl border border-border bg-bg px-4 text-base text-text-main transition-shadow focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
                     aria-invalid={error ? true : undefined}
                     aria-describedby={[error ? "login-error" : "", retryAfter > 0 ? "login-rate-limit" : "", resetHint ? "login-reset-hint" : ""].filter(Boolean).join(" ") || undefined}
                     required
@@ -280,7 +296,7 @@ export default function LoginPage() {
                     </p>
                   )}
                   {resetHint && (
-                    <p id="login-reset-hint" className="bg-surface-2 p-4 text-sm leading-6">
+                    <p id="login-reset-hint" className="rounded-2xl border border-border-subtle bg-surface-2/70 p-4 text-sm leading-6">
                       Forgot your password? Open the <code className="font-mono">{BRAND.binary}</code> CLI, then choose <strong>Settings → Reset Password to Default</strong>.
                     </p>
                   )}
@@ -288,7 +304,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="min-h-12 w-full bg-brand-500 px-5 py-3 text-sm font-bold text-white dark:text-bg disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-12 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-[var(--color-on-primary)] shadow-soft transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.98] motion-reduce:transform-none disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={loading || retryAfter > 0}
                   aria-describedby={retryAfter > 0 ? "login-rate-limit" : undefined}
                 >
@@ -296,7 +312,7 @@ export default function LoginPage() {
                 </button>
 
                 {usesDefaultPassword === true && (
-                  <div className="bg-surface-2 p-4">
+                  <div className="rounded-2xl border border-border-subtle bg-surface-2/70 p-4">
                     <p className="text-sm leading-6">
                       Default password: <code className="font-mono font-semibold">12345678</code>. Change it in Settings after signing in.
                     </p>

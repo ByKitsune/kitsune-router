@@ -69,16 +69,22 @@ export default function ConsoleLogClient() {
   }, [logs]);
 
   return (
-    <div className="">
-      <Card>
-        <div className="flex items-center justify-end px-4 pt-3 pb-2">
+    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+      <div className="mb-7 flex min-w-0 flex-col gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Developer workspace</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">A clear view of the runtime</h2>
+        <p className="max-w-2xl text-sm leading-6 text-text-muted">Inspect local server activity as it happens. Clear the buffer when you need a fresh view.</p>
+      </div>
+      <Card padding="none" className="min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-5 py-4">
+          <div className="flex items-center gap-2 text-xs font-medium text-text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-success" />Console output</div>
           <Button size="sm" variant="outline" icon="delete" onClick={handleClear}>
             Clear
           </Button>
         </div>
         <div
           ref={logRef}
-          className="bg-black rounded-b-lg p-4 text-xs font-mono h-[calc(100vh-220px)] overflow-y-auto"
+          className="h-[max(320px,calc(100dvh-360px))] max-w-full overflow-auto bg-[#15191e] p-4 font-mono text-xs leading-6 text-slate-200 sm:p-6"
         >
           {logs.length === 0 ? (
             <span className="text-text-muted">No console logs yet.</span>

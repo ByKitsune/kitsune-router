@@ -2,10 +2,12 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { useNotificationStore } from "@/store/notificationStore";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import PasswordOnboardingModal from "../PasswordOnboardingModal";
+import MobileNavigation from "../navigation/MobileNavigation";
 
 function getToastStyle(type) {
   if (type === "success") return { border: "border-green-700 dark:border-green-400", icon: "check_circle", color: "text-green-700 dark:text-green-400" };
@@ -16,6 +18,7 @@ function getToastStyle(type) {
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const drawer = useRef(null);
   const drawerId = useId();
   const pathname = usePathname();
@@ -38,13 +41,15 @@ export default function DashboardLayout({ children }) {
   }, []);
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-bg text-text-main">
+    <MotionConfig reducedMotion="user">
+    <div className="dashboard-shell flex h-dvh min-h-0 w-full overflow-hidden bg-bg-alt text-text-main">
       <a href="#dashboard-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[90] focus:bg-surface focus:px-5 focus:py-3 focus:font-semibold">Skip to content</a>
-      <div aria-label="Notifications" className="fixed right-4 top-4 z-[80] flex w-[min(92vw,380px)] flex-col gap-3">
+      <div aria-label="Notifications" className="pointer-events-none fixed right-3 top-3 z-[80] flex w-[min(calc(100vw-24px),380px)] flex-col gap-3 sm:right-5 sm:top-5">
+        <AnimatePresence initial={false}>
         {notifications.map((notification) => {
           const style = getToastStyle(notification.type);
           return (
-            <div key={notification.id} role={notification.type === "error" ? "alert" : "status"} aria-atomic="true" className={`border-l-4 bg-surface px-4 py-3 text-text-main shadow-elevated ${style.border}`}>
+            <motion.div layout initial={{ opacity: 0, y: reduceMotion ? 0 : -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: reduceMotion ? 0 : 20 }} transition={{ duration: reduceMotion ? 0 : 0.22 }} key={notification.id} role={notification.type === "error" ? "alert" : "status"} aria-atomic="true" className={`pointer-events-auto rounded-2xl border border-border-subtle border-l-4 bg-surface px-4 py-3 text-text-main shadow-elevated ${style.border}`}>
               <div className="flex items-start gap-3">
                 <span aria-hidden="true" className={`material-symbols-outlined text-xl leading-6 ${style.color}`}>{style.icon}</span>
                 <div className="min-w-0 flex-1">
@@ -57,35 +62,39 @@ export default function DashboardLayout({ children }) {
                   </button>
                 ) : null}
               </div>
-            </div>
+            </motion.div>
           );
         })}
+        </AnimatePresence>
       </div>
 
-      <div className="hidden shrink-0 lg:flex"><Sidebar /></div>
+      <div className="hidden shrink-0 py-3 pl-3 lg:flex"><div className="overflow-hidden rounded-[22px] border border-border-subtle shadow-soft"><Sidebar /></div></div>
       <dialog
         ref={drawer}
         id={drawerId}
         aria-label="Dashboard navigation"
-        className="m-0 h-dvh max-h-none w-72 max-w-[calc(100vw-24px)] overflow-visible overscroll-contain border-0 bg-sidebar p-0 text-text-main backdrop:bg-black/50 backdrop:overflow-hidden backdrop:overscroll-contain"
+        className="m-0 h-dvh max-h-none w-[min(320px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden overscroll-contain rounded-r-[28px] border-0 border-r border-border-subtle bg-sidebar/95 p-0 text-text-main shadow-[24px_0_80px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop:bg-black/40 backdrop:backdrop-blur-md backdrop:overflow-hidden backdrop:overscroll-contain"
         onClose={() => setSidebarOpen(false)}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (event.clientX > rect.right || event.clientY > rect.bottom || event.clientX < rect.left || event.clientY < rect.top) setSidebarOpen(false);
+        }}
       >
-        {sidebarOpen && <Sidebar onClose={() => setSidebarOpen(false)} />}
+        {sidebarOpen && <motion.div initial={{ x: reduceMotion ? 0 : -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }} className="h-full"><Sidebar onClose={() => setSidebarOpen(false)} /></motion.div>}
       </dialog>
 
-      <div className="relative flex h-full min-w-0 flex-1 flex-col">
-        <div className="flex shrink-0 items-center bg-surface">
-          <button type="button" aria-label="Open navigation" aria-controls={drawerId} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)} className="ml-3 flex min-h-11 shrink-0 items-center gap-2 px-2 text-sm font-semibold lg:hidden">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" /></svg>
-            <span className="sr-only sm:not-sr-only">Menu</span>
-          </button>
-          <div className="min-w-0 flex-1"><Header key={pathname} showMenuButton={false} /></div>
+      <div className="relative flex h-full min-w-0 flex-1 flex-col lg:p-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg lg:rounded-[24px] lg:border lg:border-border-subtle lg:shadow-soft">
+          <Header key={pathname} onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} />
+          <main id="dashboard-content" tabIndex={-1} className={`dashboard-main min-h-0 min-w-0 flex-1 overscroll-contain custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 xl:px-10"}`}>
+            <div key={pathname} className={isChat ? "flex h-full w-full min-w-0 flex-1 flex-col" : "dashboard-page workspace-enter mx-auto w-full min-w-0 max-w-[1600px]"}>{children}</div>
+          </main>
+          <MobileNavigation pathname={pathname} menuOpen={sidebarOpen} menuControls={drawerId} onOpenMenu={() => setSidebarOpen(true)} />
         </div>
-        <main id="dashboard-content" tabIndex={-1} className={`min-h-0 flex-1 custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto p-4 sm:p-6 lg:p-8"}`}>
-          <div className={isChat ? "flex h-full w-full flex-1 flex-col" : "mx-auto max-w-7xl"}>{children}</div>
-        </main>
       </div>
       <PasswordOnboardingModal />
     </div>
+    </MotionConfig>
   );
 }

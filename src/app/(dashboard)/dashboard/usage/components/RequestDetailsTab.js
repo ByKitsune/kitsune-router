@@ -60,6 +60,7 @@ function CollapsibleSection({ title, children, defaultOpen = false, icon = null 
       <button 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
         className="w-full flex items-center justify-between p-3 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -210,7 +211,11 @@ export default function RequestDetailsTab() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <Card padding="md">
+      <Card padding="md" className="min-w-0">
+        <div className="mb-5">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Find a request</p>
+          <h2 className="text-lg font-semibold tracking-tight">Filter your activity</h2>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex min-w-0 flex-col gap-2">
             <label htmlFor="provider-filter" className="text-sm font-medium text-text-main">Provider</label>
@@ -219,7 +224,7 @@ export default function RequestDetailsTab() {
               value={filters.provider}
               onChange={(e) => setFilters({ ...filters, provider: e.target.value })}
               className={cn(
-                "h-9 px-3 rounded-lg border border-black/10 dark:border-white/10 bg-surface",
+                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
                 "text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20",
                 "w-full min-w-0 cursor-pointer"
               )}
@@ -242,7 +247,7 @@ export default function RequestDetailsTab() {
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
               className={cn(
-                "h-9 px-3 rounded-lg border border-black/10 dark:border-white/10 bg-surface",
+                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
                 "w-full min-w-0 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20"
               )}
             />
@@ -256,7 +261,7 @@ export default function RequestDetailsTab() {
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               className={cn(
-                "h-9 px-3 rounded-lg border border-black/10 dark:border-white/10 bg-surface",
+                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
                 "w-full min-w-0 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20"
               )}
             />
@@ -276,10 +281,14 @@ export default function RequestDetailsTab() {
         </div>
       </Card>
 
-      <Card padding="none">
-        <div className="overflow-x-auto">
+      <Card padding="none" className="min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-5 py-5 sm:px-6">
+          <h2 className="text-lg font-semibold tracking-tight">Request history</h2>
+          <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-text-muted">{pagination.totalItems.toLocaleString()} recorded</span>
+        </div>
+        <div className="overflow-x-auto overscroll-x-contain" role="region" aria-label="Request history table" tabIndex={0}>
           <table className="w-full min-w-[880px]">
-            <thead>
+            <thead className="bg-surface-2/60">
               <tr className="border-b border-black/5 dark:border-white/5">
                 <th className="text-left p-4 text-sm font-semibold text-text-main">Timestamp</th>
                 <th className="text-left p-4 text-sm font-semibold text-text-main">Model</th>

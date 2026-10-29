@@ -41,50 +41,39 @@ function TimeAgo({ timestamp }) {
   return <>{timeAgo(timestamp)}</>;
 }
 
-function RecentRequests({ requests = [] }) {
+function RecentRequests({ requests = [], connected = false }) {
   return (
-    <Card className="flex min-w-0 flex-col overflow-hidden" padding="sm" style={{ height: 480 }}>
-      {/* Header */}
-      <div className="px-1 py-2 border-b border-border shrink-0">
-        <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Recent Requests</span>
+    <Card className="flex min-w-0 flex-col overflow-hidden" padding="none">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle p-5 sm:p-6">
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Activity feed</p>
+          <h2 className="text-lg font-semibold tracking-tight">Recent requests</h2>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-2 px-2.5 py-1 text-[10px] font-medium text-text-muted"><span className={`size-1.5 rounded-full ${connected ? "bg-success" : "bg-text-subtle"}`} aria-hidden="true" />{connected ? "Live" : "Recent"}</span>
       </div>
-
       {!requests.length ? (
-        <div className="flex-1 flex items-center justify-center text-text-muted text-sm">No requests yet.</div>
+        <div className="flex min-h-60 flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center">
+          <span aria-hidden="true" className="material-symbols-outlined rounded-2xl bg-surface-2 p-3 text-2xl text-text-subtle">swap_vert</span>
+          <p className="text-sm font-medium text-text-muted">No requests yet</p>
+          <p className="max-w-xs text-xs leading-5 text-text-subtle">Your latest gateway requests will appear here automatically.</p>
+        </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
-          <table className="w-full min-w-[300px] border-collapse text-xs">
-            <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border">
-                <th className="py-1.5 text-left font-semibold text-text-muted w-2"></th>
-                <th className="py-1.5 text-left font-semibold text-text-muted">Model</th>
-                <th className="py-1.5 text-right font-semibold text-text-muted whitespace-nowrap">In / Out</th>
-                <th className="py-1.5 text-right font-semibold text-text-muted">When</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {requests.map((r, i) => {
-                const ok = !r.status || r.status === "ok" || r.status === "success";
-                return (
-                  <tr key={i} className="hover:bg-bg-subtle transition-colors">
-                    <td className="py-1.5">
-                      <span className={`block w-1.5 h-1.5 rounded-full ${ok ? "bg-success" : "bg-error"}`} />
-                    </td>
-                    <td className="py-1.5 font-mono truncate max-w-[120px]" title={r.model}>{r.model}</td>
-                    <td className="py-1.5 text-right whitespace-nowrap">
-                      <Tooltip text={`${fmt(r.promptTokens)} in / ${fmt(r.completionTokens)} out`} position="left">
-                        <span className="inline-flex items-baseline gap-1 tabular-nums">
-                          <span className="text-primary">{fmtCompact(r.promptTokens)}↑</span>
-                          <span className="text-success">{fmtCompact(r.completionTokens)}↓</span>
-                        </span>
-                      </Tooltip>
-                    </td>
-                    <td className="py-1.5 text-right text-text-muted whitespace-nowrap"><TimeAgo timestamp={r.timestamp} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="max-h-[340px] min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6">
+          {requests.map((r) => {
+            const ok = !r.status || r.status === "ok" || r.status === "success";
+            return (
+              <div key={r.id || r.requestId || `${r.timestamp}-${r.model}-${r.provider}`} className="usage-request-row flex min-w-0 items-start gap-3 border-b border-border-subtle py-4 last:border-0">
+                <span aria-label={ok ? "Successful request" : "Request error"} className={`mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl ${ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}><span aria-hidden="true" className="material-symbols-outlined text-[16px]">{ok ? "check" : "priority_high"}</span></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-text-main" title={r.model}>{r.model}</p>
+                  <p className="mt-1 truncate text-[11px] text-text-subtle">{r.provider || "Gateway"} · <TimeAgo timestamp={r.timestamp} /></p>
+                </div>
+                <Tooltip text={`${fmt(r.promptTokens)} in / ${fmt(r.completionTokens)} out`} position="left">
+                  <span className="flex shrink-0 flex-col items-end gap-1 text-[11px] tabular-nums"><span className="text-primary">{fmtCompact(r.promptTokens)} ↑</span><span className="text-text-muted">{fmtCompact(r.completionTokens)} ↓</span></span>
+                </Tooltip>
+              </div>
+            );
+          })}
         </div>
       )}
     </Card>
@@ -236,6 +225,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
+  const [streamConnected, setStreamConnected] = useState(false);
   const [tableView, setTableView] = useState("model");
   const [viewMode, setViewMode] = useState("costs");
   const [providers, setProviders] = useState([]);
@@ -287,24 +277,29 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       setFetching(true);
     }
 
-    fetch(`/api/usage/stats?period=${period}`)
+    const controller = new AbortController();
+    fetch(`/api/usage/stats?period=${period}`, { signal: controller.signal })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data) {
+        if (data && !controller.signal.aborted) {
           hasLoadedStats.current = true;
           setStats((prev) => ({ ...prev, ...data }));
         }
       })
       .catch(() => {})
       .finally(() => {
-        setLoading(false);
-        setFetching(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setFetching(false);
+        }
       });
+    return () => controller.abort();
   }, [period]);
 
   // SSE connection - real-time updates for activeRequests + recentRequests only
   useEffect(() => {
     const es = new EventSource("/api/usage/stream");
+    es.onopen = () => setStreamConnected(true);
 
     es.onmessage = (e) => {
       try {
@@ -326,7 +321,10 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       }
     };
 
-    es.onerror = () => setLoading(false);
+    es.onerror = () => {
+      setStreamConnected(false);
+      setLoading(false);
+    };
 
     return () => es.close();
   }, []);
@@ -468,7 +466,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   );
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6 sm:gap-8">
       {/* Period selector (hidden when controlled by parent) */}
       {!hidePeriodSelector && (
         <div className="flex w-full items-center gap-2 sm:w-auto sm:self-end">
@@ -493,50 +491,66 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       {/* Overview cards */}
       {loading ? spinner : <OverviewCards stats={stats} />}
 
-      {/* Provider topology + Recent Requests */}
+      {/* Analytics leads; live routing remains available below without moving on updates. */}
       {loading ? spinner : (
-        <div className="grid min-w-0 grid-cols-1 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-          <ProviderTopology
-            providers={providers}
-            activeRequests={stats.activeRequests || []}
-            lastProvider={stats.recentRequests?.[0]?.provider || ""}
-            errorProvider={stats.errorProvider || ""}
-          />
-          <RecentRequests requests={stats.recentRequests || []} />
+        <div className="grid min-w-0 grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(260px,1fr)]">
+          <UsageChart period={period} />
+          <RecentRequests requests={stats.recentRequests || []} connected={streamConnected} />
         </div>
       )}
-
-      {/* Token / Cost chart - sync period */}
-      {loading ? spinner : <UsageChart period={period} />}
+      {loading ? spinner : (
+        <Card padding="none" className="min-w-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+            <div>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Routing map</p>
+              <h2 className="text-lg font-semibold tracking-tight">Your connected workspace</h2>
+            </div>
+            <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-text-muted">{providers.length} {providers.length === 1 ? "provider" : "providers"}</span>
+          </div>
+          <div className="p-2 sm:p-3">
+            <ProviderTopology providers={providers} activeRequests={stats.activeRequests || []} lastProvider={stats.recentRequests?.[0]?.provider || ""} errorProvider={stats.errorProvider || ""} />
+          </div>
+        </Card>
+      )}
 
       {/* Table with dropdown selector */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Explore the details</p>
+            <h2 className="text-lg font-semibold tracking-tight">Consumption breakdown</h2>
+          </div>
+          <div className="flex flex-col gap-2 min-[440px]:flex-row">
           <select
+            aria-label="Group usage by"
             value={tableView}
             onChange={(e) => setTableView(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto"
+            className="min-h-11 w-full min-w-0 rounded-xl border border-border-subtle bg-surface px-3 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 min-[440px]:w-auto"
             style={{ colorScheme: 'auto' }}
           >
             {TABLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <div className="grid grid-cols-2 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1 sm:flex">
+          <div className="grid grid-cols-2 items-center gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1">
             <button
               onClick={() => setViewMode("costs")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === "costs" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text hover:bg-bg-hover"}`}
+              aria-pressed={viewMode === "costs"}
+              className={`min-h-9 rounded-lg px-4 text-xs font-semibold transition-colors ${viewMode === "costs" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
             >
               Costs
             </button>
             <button
               onClick={() => setViewMode("tokens")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === "tokens" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text hover:bg-bg-hover"}`}
+              aria-pressed={viewMode === "tokens"}
+              className={`min-h-9 rounded-lg px-4 text-xs font-semibold transition-colors ${viewMode === "tokens" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
             >
               Tokens
             </button>
           </div>
         </div>
+        </div>
+        {fetching && <p role="status" className="text-xs text-text-muted">Updating selected period…</p>}
         {loading ? spinner : activeTableConfig && (
           <UsageTable
             title=""

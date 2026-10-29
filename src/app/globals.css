@@ -12,7 +12,7 @@
    Provider-neutral controls with paired light/dark contrast
    ============================================================ */
 :root {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: 'DM Sans Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --color-brand-50: #fff5ef;
   --color-brand-100: #fbe5d8;
   --color-brand-200: #f3c5ab;
@@ -33,22 +33,22 @@
   --color-primary-hover: var(--color-brand-600);
   --color-on-primary: #fffefa;
 
-  --color-bg: #fffefa;
-  --color-bg-alt: #f7f6f1;
-  --color-surface: #fffefa;
-  --color-surface-2: #f1eee6;
-  --color-surface-3: #ebe7de;
-  --color-sidebar: #f7f6f1;
+  --color-bg: #f6f5f2;
+  --color-bg-alt: #f0eeea;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f3f0;
+  --color-surface-3: #eae7e1;
+  --color-sidebar: #fdfcf9;
 
   /* Borders */
-  --color-border: #d9cfc3;
-  --color-border-subtle: #e8e0d5;
+  --color-border: #dcd9d3;
+  --color-border-subtle: #e9e6e0;
 
   /* Text */
-  --color-text: #30241d;
-  --color-text-main: #30241d;
-  --color-text-muted: #685647;
-  --color-text-subtle: #796452;
+  --color-text: #282723;
+  --color-text-main: #282723;
+  --color-text-muted: #69675f;
+  --color-text-subtle: #77756e;
 
   /* Status */
   --color-danger: #ef4444;
@@ -57,14 +57,14 @@
   --color-info: #3B82F6;
 
   /* Radius */
-  --radius-brand: 8px;
-  --radius-brand-lg: 12px;
+  --radius-brand: 12px;
+  --radius-brand-lg: 22px;
 
   /* Shadows */
-  --shadow-soft: none;
-  --shadow-warm: none;
-  --shadow-elevated: 0 12px 28px -4px rgba(48,36,29,0.12);
-  --shadow-elev: none;
+  --shadow-soft: 0 2px 3px -2px rgb(31 28 23 / 5%), 0 8px 28px -20px rgb(31 28 23 / 12%);
+  --shadow-warm: 0 8px 30px -15px rgb(166 63 35 / 18%);
+  --shadow-elevated: 0 24px 64px -18px rgb(48 36 29 / 24%), 0 8px 24px -12px rgb(48 36 29 / 12%);
+  --shadow-elev: 0 10px 40px -24px rgb(31 28 23 / 22%);
   --shadow-focus: 0 0 0 3px rgba(166,63,35,0.24);
 
   color-scheme: light;
@@ -87,32 +87,32 @@
 
   --color-primary: #df9877;
   --color-primary-hover: #f3c5ab;
-  --color-on-primary: #211c19;
+  --color-on-primary: #141619;
 
-  --color-bg: #211c19;
-  --color-bg-alt: #28211d;
-  --color-surface: #2d2520;
-  --color-surface-2: #372d26;
-  --color-surface-3: #44372e;
-  --color-sidebar: #28211d;
+  --color-bg: #141619;
+  --color-bg-alt: #1a1d21;
+  --color-surface: #1d2024;
+  --color-surface-2: #25292e;
+  --color-surface-3: #31363c;
+  --color-sidebar: #191c20;
 
-  --color-border: #544437;
-  --color-border-subtle: #40342b;
+  --color-border: #383c42;
+  --color-border-subtle: #2c3036;
 
-  --color-text: #fcf8f1;
-  --color-text-main: #fcf8f1;
-  --color-text-muted: #d2bfaa;
-  --color-text-subtle: #b7a38e;
+  --color-text: #f4f2ed;
+  --color-text-main: #f4f2ed;
+  --color-text-muted: #b4b4b6;
+  --color-text-subtle: #979a9f;
 
   --color-danger: #ef4444;
   --color-success: #22c55e;
   --color-warning: #fbbf24;
   --color-info: #60a5fa;
 
-  --shadow-soft: none;
-  --shadow-warm: none;
-  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.65);
-  --shadow-elev: none;
+  --shadow-soft: 0 2px 3px -2px rgb(31 28 23 / 5%), 0 8px 28px -20px rgb(31 28 23 / 12%);
+  --shadow-warm: 0 8px 30px -15px rgb(166 63 35 / 18%);
+  --shadow-elevated: 0 28px 72px -20px rgb(0 0 0 / 72%), 0 0 0 1px rgb(255 255 255 / 3%);
+  --shadow-elev: 0 10px 40px -24px rgb(31 28 23 / 22%);
   --shadow-focus: 0 0 0 3px rgba(223,152,119,0.28);
 
   color-scheme: dark;
@@ -172,17 +172,17 @@ select {
 
   /* Static fallbacks (explicit per-mode usage if needed) */
   --color-bg-light: #fffefa;
-  --color-bg-dark: #211c19;
+  --color-bg-dark: #141619;
   --color-surface-light: #fffefa;
-  --color-surface-dark: #2d2520;
+  --color-surface-dark: #1d2024;
   --color-sidebar-light: #f7f6f1;
-  --color-sidebar-dark: #28211d;
+  --color-sidebar-dark: #191c20;
   --color-border-light: #d9cfc3;
-  --color-border-dark: #544437;
+  --color-border-dark: #383c42;
   --color-text-main-light: #30241d;
   --color-text-main-dark: #fcf8f1;
   --color-text-muted-light: #685647;
-  --color-text-muted-dark: #d2bfaa;
+  --color-text-muted-dark: #b4b4b6;
 
   /* Radius */
   --radius-brand: var(--radius-brand);
@@ -196,12 +196,12 @@ select {
   --shadow-focus: var(--shadow-focus);
 
   /* Resolve the Next font variable on body, where its generated class lives. */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: 'DM Sans Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 /* Base */
 body {
-  --font-sans: var(--font-kitsune, 'Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: 'DM Sans Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-main);
   font-family: var(--font-sans);
@@ -490,4 +490,77 @@ button:disabled,
 
 .react-flow-controls-custom button:hover {
   background: var(--color-bg-alt);
+}
+
+
+/* Workspace foundation. Shared tokens also style detail, settings and media pages. */
+html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-optical-sizing: auto; }
+:where(h1, h2, h3, h4) { text-wrap: balance; }
+:where(p) { text-wrap: pretty; }
+:where(input, select, textarea) { min-width: 0; }
+:where(code, pre) { font-variant-ligatures: none; }
+:where(img, svg, video, canvas) { max-width: 100%; }
+:where(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
+
+.dashboard-page {
+  min-width: 0;
+  isolation: isolate;
+}
+.dashboard-page > * { min-width: 0; }
+.dashboard-page :where(.overflow-x-auto) { overscroll-behavior-x: contain; }
+.dashboard-page :where(table) { font-variant-numeric: tabular-nums; }
+.dashboard-page :where(thead) { color: var(--color-text-muted); }
+.dashboard-page :where(th) { font-size: 0.6875rem; font-weight: 600; letter-spacing: .04em; }
+.dashboard-page :where(td, th) { vertical-align: middle; }
+.dashboard-page :where(textarea, select) { border-radius: 12px; }
+.dashboard-page :where(pre) { max-width: 100%; overflow: auto; border-radius: 14px; }
+.dashboard-page :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+.dashboard-page :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+@media (hover: hover) {
+  .dashboard-page :where(tbody tr) { transition: background-color 150ms ease; }
+  .dashboard-page :where(tbody tr):hover { background-color: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface)); }
+}
+@media (max-width: 639px) {
+  .dashboard-page :where(input, select, textarea) { font-size: 16px; }
+  .dashboard-page :where(.font-mono) { overflow-wrap: anywhere; }
+}
+
+/* Native dialogs retain focus management; their backdrop follows the same visual language. */
+dialog::backdrop { backdrop-filter: blur(6px); }
+@keyframes workspace-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.workspace-enter { animation: workspace-enter 380ms cubic-bezier(.22, 1, .36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-enter { animation: none; }
+}
+
+
+/* Finishing touches: restrained depth, clear focus, and motion without layout shifts. */
+.dashboard-shell {
+  background-image: radial-gradient(ellipse at top left, color-mix(in srgb, var(--color-primary) 4%, transparent), transparent 55%);
+}
+.dashboard-shell header {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-surface) 60%, transparent), 0 8px 24px -24px rgb(30 28 23 / 22%);
+}
+.dashboard-shell aside { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-surface) 75%, transparent); }
+.dashboard-page :where(section[id], div[id]) { scroll-margin-top: 1.25rem; }
+.dashboard-page :where(.shadow-soft) { transition: border-color 200ms ease, box-shadow 200ms ease; }
+.workspace-tooltip {
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  animation: tooltip-appear 160ms cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes tooltip-appear {
+  from { opacity: 0; transform: translateY(3px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-tooltip { animation: none; }
+  .dashboard-page :where(.shadow-soft) { transition: none; }
 }

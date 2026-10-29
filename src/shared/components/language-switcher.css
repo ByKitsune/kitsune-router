@@ -1,0 +1,39 @@
+.language-picker::backdrop {
+  animation: language-backdrop-enter 200ms ease-out both;
+}
+.language-picker[open] .language-picker-content {
+  animation: language-sheet-enter 320ms cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes language-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes language-sheet-enter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 640px) {
+  .language-picker[open] .language-picker-content { animation-name: language-dialog-enter; }
+}
+@keyframes language-dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .language-picker::backdrop,
+  .language-picker[open] .language-picker-content { animation: none; }
+}
+/* Keep results reachable when a mobile keyboard or landscape viewport reduces
+   vertical space. The results remain the only independently scrolling panel. */
+@media (max-height: 540px) {
+  .language-picker .language-picker-header { padding-top: 10px; padding-bottom: 10px; }
+  .language-picker-header-icon, .language-picker-description,
+  .language-picker-preference { display: none; }
+  .language-picker .language-picker-search { padding-bottom: 10px; }
+  .language-picker .language-picker-footer { padding-top: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+.language-picker input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}

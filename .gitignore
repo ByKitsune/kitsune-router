@@ -54,6 +54,7 @@ source/*
 .cursor/*
 docs/*
 !docs/ARCHITECTURE.md
+!docs/UI-DESIGN.md
 !docs/REBRANDING.md
 !docs/MIGRATION.md
 !docs/BRAND.md
@@ -123,3 +124,7 @@ graphify-out/*
 # Audit/knowledge-map docs (see docs/audit/README.md)
 !docs/audit/
 !docs/audit/**
+
+# Browser verification artifacts
+/playwright-report/
+/test-results/

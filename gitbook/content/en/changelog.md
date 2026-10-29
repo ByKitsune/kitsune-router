@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — dashboard, mobile navigation and agent skills
+
+Current source development refreshes the dashboard layout, local DM Sans fonts,
+Usage transitions, official ByKitsune artwork, mobile quick navigation and the
+searchable language picker. All nine project agent skills document
+gateway discovery, authentication, requests and response handling.
+These changes do not move the immutable 1.0.2 tag or imply a new npm/container,
+hosted docs or production deployment. See the [source changelog](https://github.com/ByKitsune/kitsune-router/blob/master/CHANGELOG.md#unreleased)
+and [UI design guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/UI-DESIGN.md).
+
 ## Kitsune Router 1.0.2 — private container published; anonymous pulls pending; npm blocked
 
 Immutable `v1.0.2` is **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merged at `23375bf1`. Exact-source SSH: **9,041 passed, 100 skipped, zero failed assertions/suites**; strict lint, 18 docs tests/static export, app build and pack passed. CI `40468830176` was green on a matching source tree. Local tarball install/runtime/upgrade, six container restart scenarios and exact-source browser checks passed within their recorded scope. The cache test mocks only child `Date`, not production ordering; warning-level logging affects npm publish only, not pack.

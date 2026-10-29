@@ -1,197 +1,163 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { LOCALES, LOCALE_COOKIE, normalizeLocale } from "@/i18n/config";
-import { reloadTranslations } from "@/i18n/runtime";
+import { useState, useEffect, useRef, useCallback, useId, useSyncExternalStore } from "react";
+import { Languages, Search, X, Check, ChevronRight, LoaderCircle } from "lucide-react";
+import { LOCALE_NAMES } from "@/i18n/config";
+import { onLocaleChange, reloadTranslations } from "@/i18n/runtime";
+import { LANGUAGE_OPTIONS, readDisplayLocale, searchLanguages } from "@/shared/constants/locales";
+import LocaleBadge from "./LocaleBadge";
+import "./language-switcher.css";
 
-function getLocaleFromCookie() {
-  if (typeof document === "undefined") return "en";
-  const cookie = document.cookie
-    .split(";")
-    .find((c) => c.trim().startsWith(`${LOCALE_COOKIE}=`));
-  const value = cookie ? decodeURIComponent(cookie.split("=")[1]) : "en";
-  return normalizeLocale(value);
-}
-
-// Locale display names and flags - will be translated by runtime i18n
-const getLocaleInfo = (locale) => {
-  const locales = {
-    "en": { name: "English", flag: "🇺🇸" },
-    "vi": { name: "Tiếng Việt", flag: "🇻🇳" },
-    "zh-CN": { name: "简体中文", flag: "🇨🇳" },
-    "zh-TW": { name: "繁體中文", flag: "🇹🇼" },
-    "ja": { name: "日本語", flag: "🇯🇵" },
-    "pt-BR": { name: "Português (Brasil)", flag: "🇧🇷" },
-    "pt-PT": { name: "Português (Portugal)", flag: "🇵🇹" },
-    "ko": { name: "한국어", flag: "🇰🇷" },
-    "es": { name: "Español", flag: "🇪🇸" },
-    "de": { name: "Deutsch", flag: "🇩🇪" },
-    "fr": { name: "Français", flag: "🇫🇷" },
-    "he": { name: "עברית", flag: "🇮🇱" },
-    "ar": { name: "العربية", flag: "🇸🇦" },
-    "ru": { name: "Русский", flag: "🇷🇺" },
-    "pl": { name: "Polski", flag: "🇵🇱" },
-    "cs": { name: "Čeština", flag: "🇨🇿" },
-    "nl": { name: "Nederlands", flag: "🇳🇱" },
-    "tr": { name: "Türkçe", flag: "🇹🇷" },
-    "uk": { name: "Українська", flag: "🇺🇦" },
-    "tl": { name: "Tagalog", flag: "🇵🇭" },
-    "id": { name: "Indonesia", flag: "🇮🇩" },
-    "th": { name: "ไทย", flag: "🇹🇭" },
-    "km": { name: "ខ្មែរ", flag: "🇰🇭" },
-    "hi": { name: "हिन्दी", flag: "🇮🇳" },
-    "bn": { name: "বাংলা", flag: "🇧🇩" },
-    "ur": { name: "اردو", flag: "🇵🇰" },
-    "ro": { name: "Română", flag: "🇷🇴" },
-    "sv": { name: "Svenska", flag: "🇸🇪" },
-    "it": { name: "Italiano", flag: "🇮🇹" },
-    "el": { name: "Ελληνικά", flag: "🇬🇷" },
-    "hu": { name: "Magyar", flag: "🇭🇺" },
-    "fi": { name: "Suomi", flag: "🇫🇮" },
-    "da": { name: "Dansk", flag: "🇩🇰" },
-    "no": { name: "Norsk", flag: "🇳🇴" },
-    "fa": { name: "فارسی", flag: "🇮🇷" }
-  };
-  return locales[locale] || { name: locale, flag: "🌐" };
-};
+const serverLocale = () => "en";
 
 export default function LanguageSwitcher({ className = "", isOpen: controlledOpen, onClose, hideTrigger = false }) {
-  const [locale, setLocale] = useState("en");
+  const locale = useSyncExternalStore(onLocaleChange, readDisplayLocale, serverLocale);
   const [isPending, setIsPending] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
-  const modalRef = useRef(null);
-
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
+  const dialogRef = useRef(null);
+  const searchRef = useRef(null);
+  const choicesRef = useRef([]);
+  const selecting = useRef(false);
+  const titleId = useId();
+  const helpId = useId();
   const isControlled = typeof controlledOpen === "boolean";
   const isOpen = isControlled ? controlledOpen : internalOpen;
-  const setIsOpen = useCallback((value, nextLocale = locale) => {
-    if (isControlled) {
-      if (!value && onClose) onClose(nextLocale);
-    } else {
-      setInternalOpen(value);
-    }
+  const options = searchLanguages(query);
+
+  const close = useCallback((nextLocale = locale) => {
+    setQuery("");
+    setError("");
+    if (isControlled) onClose?.(nextLocale);
+    else setInternalOpen(false);
   }, [isControlled, onClose, locale]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const next = getLocaleFromCookie();
-      if (!cancelled) setLocale(next);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+      searchRef.current?.focus({ preventScroll: true });
+    }
+    if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen]);
 
-  // Close modal when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isOpen, setIsOpen]);
+  const open = () => {
+    setQuery("");
+    setError("");
+    setInternalOpen(true);
+  };
 
   const handleSetLocale = async (nextLocale) => {
-    if (nextLocale === locale || isPending) return;
-
+    if (selecting.current) return;
+    if (nextLocale === locale) { close(); return; }
+    selecting.current = true;
     setIsPending(true);
+    setError("");
     try {
-      await fetch("/api/locale", {
+      const response = await fetch("/api/locale", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: nextLocale }),
       });
-      
-      // Reload translations without full page reload
+      if (!response.ok) throw new Error("Locale update failed");
+      // The endpoint sets the cookie; the runtime broadcasts its new value to
+      // every trigger, including preferences changed from Settings.
       await reloadTranslations();
-      setLocale(nextLocale);
-      setIsOpen(false, nextLocale);
-    } catch (err) {
-      console.error("Failed to set locale:", err);
+      close(nextLocale);
+    } catch {
+      setError("Could not change language. Check your connection and try again.");
     } finally {
+      selecting.current = false;
       setIsPending(false);
     }
   };
 
+  const navigateChoices = (event, index) => {
+    const deltas = { ArrowDown: 1, ArrowUp: -1, Home: -index, End: options.length - 1 - index };
+    if (!(event.key in deltas) || !options.length) return;
+    event.preventDefault();
+    const next = (index + deltas[event.key] + options.length) % options.length;
+    choicesRef.current[next]?.focus();
+  };
+
   return (
     <div className={className}>
-      {/* Trigger button */}
       {!hideTrigger && (
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={isPending}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-text-muted hover:text-text-main hover:bg-surface/60 transition-colors"
-          title="Language"
-          data-i18n-skip="true"
-        >
-          <span className="material-symbols-outlined text-[20px]">language</span>
-          <span className="text-sm font-medium">{getLocaleInfo(locale).name}</span>
-          <span className="text-lg">{getLocaleInfo(locale).flag}</span>
+        <button type="button" onClick={open} disabled={isPending} className="inline-flex min-h-11 max-w-full items-center gap-3 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-text-main shadow-soft transition-colors hover:bg-surface-2 motion-reduce:transition-none" aria-haspopup="dialog" aria-expanded={isOpen} data-i18n-skip="true">
+          <LocaleBadge locale={locale} compact />
+          <span className="truncate text-sm font-medium">{LOCALE_NAMES[locale]}</span>
+          <ChevronRight size={15} className="text-text-muted" aria-hidden="true" />
         </button>
       )}
-
-      {/* Portal modal - renders at document.body to avoid parent layout constraints */}
-      {isOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-i18n-skip="true">
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* Modal content */}
-          <div
-            ref={modalRef}
-            className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-2xl flex flex-col max-h-[80vh]"
-          >
-            {/* Modal header */}
-            <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
-              <h2 className="text-lg font-semibold text-text-main">Select Language</h2>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-text-muted hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                aria-label="Close"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={titleId}
+        aria-describedby={helpId}
+        onCancel={(event) => { event.preventDefault(); close(); }}
+        onClose={() => { if (isOpen) close(); }}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
+        }}
+        className="language-picker fixed inset-x-0 bottom-0 top-auto m-0 max-h-[min(90dvh,760px)] w-full max-w-none overflow-hidden rounded-t-[28px] border border-border-subtle bg-surface p-0 text-text-main shadow-elevated backdrop:bg-black/40 backdrop:backdrop-blur-md sm:inset-0 sm:m-auto sm:w-[calc(100%_-_2rem)] sm:max-w-[620px] sm:rounded-[28px]"
+        data-i18n-skip="true"
+      >
+        {isOpen && (
+          <div className="language-picker-content flex max-h-[min(90dvh,760px)] min-w-0 flex-col">
+            <div className="mx-auto mb-1 mt-3 h-1 w-9 shrink-0 rounded-full bg-border sm:hidden" aria-hidden="true" />
+            <div className="language-picker-header flex shrink-0 items-start gap-3 px-5 pb-4 pt-4 sm:px-7 sm:pt-6">
+              <div className="language-picker-header-icon flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/10 bg-primary/8 text-primary"><Languages size={22} strokeWidth={1.6} aria-hidden="true" /></div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h2 id={titleId} className="text-xl font-semibold tracking-[-0.035em]">Your workspace, your language.</h2>
+                <p id={helpId} className="language-picker-description mt-1 text-xs leading-5 text-text-muted">Choose the language that feels right for your workspace.</p>
+              </div>
+              <button type="button" onClick={() => close()} aria-label="Close language selector" className="-mr-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main motion-reduce:transition-none"><X size={19} aria-hidden="true" /></button>
             </div>
-
-            {/* Modal body - fixed grid columns, equal sizing */}
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
-                {LOCALES.map((item) => {
-                  const active = locale === item;
-                  const info = getLocaleInfo(item);
+            <div className="language-picker-search shrink-0 border-b border-border-subtle px-5 pb-5 sm:px-7">
+              <div className="relative">
+                <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-subtle" aria-hidden="true" />
+                <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "ArrowDown" && options.length) { event.preventDefault(); choicesRef.current[0]?.focus(); } }} aria-label="Search languages" placeholder="Search languages or locale codes…" className="h-12 w-full min-w-0 rounded-2xl border border-border-subtle bg-bg-alt/70 pl-10 pr-4 text-base text-text-main outline-none transition-shadow placeholder:text-text-subtle focus:border-primary/40 focus:ring-4 focus:ring-primary/8 sm:text-sm" />
+              </div>
+              <div className="language-picker-preference mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted"><span>Current: <span className="font-semibold text-text-main" lang={locale} dir="auto">{LOCALE_NAMES[locale]}</span></span><span>{LANGUAGE_OPTIONS.length} languages</span></div>
+            </div>
+            {error && <p role="alert" className="mx-5 mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-sm leading-6 text-danger sm:mx-7">{error}</p>}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 custom-scrollbar sm:px-5" aria-busy={isPending}>
+              <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2" aria-label="Available languages">
+                {options.map((option, index) => {
+                  const active = locale === option.locale;
                   return (
-                    <button
-                      key={item}
-                      onClick={() => handleSetLocale(item)}
-                      disabled={isPending}
-                      className={`flex flex-col items-center justify-start gap-1 px-2 py-3 rounded-lg text-xs font-medium transition-colors w-full ${
-                        active
-                          ? "bg-primary/15 text-primary ring-2 ring-primary"
-                          : "text-text-main hover:bg-black/5 dark:hover:bg-white/5"
-                      } ${isPending ? "opacity-70 cursor-wait" : ""}`}
-                      title={info.name}
-                    >
-                      <span className="text-2xl">{info.flag}</span>
-                      {/* Fixed 2-line height so all cards are uniform */}
-                      <span className="text-center leading-tight line-clamp-2 h-8 flex items-center">{info.name}</span>
-                      {active && (
-                        <span className="material-symbols-outlined text-sm">check</span>
-                      )}
-                    </button>
+                    <li key={option.locale} className="min-w-0">
+                      <button
+                        ref={(node) => { choicesRef.current[index] = node; }}
+                        type="button"
+                        onClick={() => handleSetLocale(option.locale)}
+                        onKeyDown={(event) => navigateChoices(event, index)}
+                        disabled={isPending}
+                        aria-pressed={active}
+                        lang={option.locale}
+                        aria-label={`${option.name}, ${option.englishName}`}
+                        className={`group flex min-h-[68px] w-full min-w-0 items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-[background-color,border-color,box-shadow] duration-200 disabled:cursor-wait motion-reduce:transition-none ${active ? "border-primary/20 bg-primary/7" : "border-transparent hover:border-border-subtle hover:bg-surface-2"}`}
+                      >
+                        <span dir="ltr" className={`flex h-9 min-w-11 shrink-0 items-center justify-center rounded-xl border px-1.5 text-[10px] font-semibold tracking-wide ${active ? "border-primary/10 bg-primary/10 text-primary" : "border-border-subtle bg-bg-alt text-text-muted"}`}>{option.code}</span>
+                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold" dir={option.direction}>{option.name}</span><span className="mt-1 block truncate text-[10px] text-text-muted" lang="en" dir="ltr">{option.englishName}</span></span>
+                        {active && <Check size={16} strokeWidth={2} className="shrink-0 text-primary" aria-hidden="true" />}
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
+              {options.length === 0 && <div className="px-3 py-10 text-center" role="status"><Search size={23} strokeWidth={1.5} className="mx-auto mb-3 text-text-subtle" aria-hidden="true" /><p className="text-sm font-medium">No matching languages</p><p className="mt-2 text-xs leading-5 text-text-muted">Try a native name, English name, or code such as “ID”.</p><button type="button" onClick={() => { setQuery(""); searchRef.current?.focus(); }} className="mt-4 min-h-11 rounded-xl px-4 text-xs font-semibold text-primary hover:bg-primary/5">Clear search</button></div>}
+            </div>
+            <div className="language-picker-footer flex shrink-0 items-center justify-between gap-3 border-t border-border-subtle bg-bg-alt/40 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-[11px] text-text-muted sm:px-7">
+              <p role="status" className="flex items-center gap-2">{isPending ? <><LoaderCircle size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Applying your language…</> : "Your preference stays with this browser."}</p>
+              <span className="hidden rounded-md border border-border-subtle bg-surface px-1.5 py-1 font-mono text-[10px] sm:inline" aria-hidden="true">esc</span>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+        )}
+      </dialog>
     </div>
   );
 }

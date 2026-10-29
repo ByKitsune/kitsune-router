@@ -149,53 +149,57 @@ export default function UsageTable({
   const totalColSpan = columns.length + valueColumns.length;
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 border-b border-border bg-bg-subtle/50">
-        <h3 className="font-semibold">{title}</h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-bg-subtle/30 text-text-muted uppercase text-xs">
+    <Card padding="none" className="min-w-0 overflow-hidden">
+      {title && <div className="border-b border-border-subtle p-5 sm:px-6">
+        <h3 className="font-semibold tracking-tight">{title}</h3>
+      </div>}
+      <div className="overflow-x-auto overscroll-x-contain" role="region" aria-label={title || "Usage breakdown table"} tabIndex={0}>
+        <table className="w-full min-w-[760px] text-left text-xs">
+          <thead className="bg-surface-2/60 text-[10px] font-medium uppercase tracking-wider text-text-subtle">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.field}
-                  className={`px-6 py-3 cursor-pointer hover:bg-bg-subtle/50 ${col.align === "right" ? "text-right" : ""}`}
-                  onClick={() => onToggleSort(tableType, col.field)}
+                  scope="col"
+                  aria-sort={sortBy === col.field ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+                  className={`px-6 py-2 ${col.align === "right" ? "text-right" : ""}`}
                 >
-                  {col.label}{" "}
-                  <SortIcon field={col.field} currentSort={sortBy} currentOrder={sortOrder} />
+                  <button type="button" onClick={() => onToggleSort(tableType, col.field)} className="min-h-10 whitespace-nowrap text-left hover:text-primary">
+                    {col.label}{" "}<SortIcon field={col.field} currentSort={sortBy} currentOrder={sortOrder} />
+                  </button>
                 </th>
               ))}
               {valueColumns.map((col) => (
                 <th
                   key={col.field}
-                  className="px-6 py-3 text-right cursor-pointer hover:bg-bg-subtle/50"
-                  onClick={() => onToggleSort(tableType, col.field)}
+                  scope="col"
+                  aria-sort={sortBy === col.field ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+                  className="px-6 py-2 text-right"
                 >
-                  {col.label}{" "}
-                  <SortIcon field={col.field} currentSort={sortBy} currentOrder={sortOrder} />
+                  <button type="button" onClick={() => onToggleSort(tableType, col.field)} className="min-h-10 whitespace-nowrap hover:text-primary">
+                    {col.label}{" "}<SortIcon field={col.field} currentSort={sortBy} currentOrder={sortOrder} />
+                  </button>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border-subtle">
             {groupedData.map((group) => (
               <Fragment key={group.groupKey}>
                 {/* Group summary row */}
                 <tr
-                  className="group-summary cursor-pointer hover:bg-bg-subtle/50 transition-colors"
+                  className="group-summary cursor-pointer transition-colors hover:bg-surface-2/60"
                   onClick={() => toggleGroup(group.groupKey)}
                 >
                   <td className="px-6 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined text-[18px] text-text-muted transition-transform ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
+                    <button type="button" aria-expanded={expanded.has(group.groupKey)} onClick={(event) => { event.stopPropagation(); toggleGroup(group.groupKey); }} className="flex min-h-9 max-w-xs items-center gap-2 text-left">
+                      <span aria-hidden="true" className={`material-symbols-outlined shrink-0 text-[18px] text-text-muted transition-transform duration-300 ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
                         chevron_right
                       </span>
-                      <span className={`font-medium transition-colors ${group.summary.pending > 0 ? "text-primary" : ""}`}>
+                      <span className={`truncate font-semibold transition-colors ${group.summary.pending > 0 ? "text-primary" : ""}`}>
                         {group.groupKey}
                       </span>
-                    </div>
+                    </button>
                   </td>
                   {renderSummaryCells(group)}
                   <ValueCells item={group.summary} viewMode={viewMode} isSummary />
@@ -204,7 +208,7 @@ export default function UsageTable({
                 {expanded.has(group.groupKey) && group.items.map((item) => (
                   <tr
                     key={`detail-${item.key}`}
-                    className="group-detail hover:bg-bg-subtle/20 transition-colors"
+                    className="group-detail usage-request-row bg-surface-2/20 transition-colors hover:bg-surface-2/50"
                   >
                     {renderDetailCells(item)}
                     <ValueCells item={item} viewMode={viewMode} />
@@ -214,7 +218,7 @@ export default function UsageTable({
             ))}
             {groupedData.length === 0 && (
               <tr>
-                <td colSpan={totalColSpan} className="px-6 py-8 text-center text-text-muted">
+                <td colSpan={totalColSpan} className="px-6 py-14 text-center text-text-muted">
                   {emptyMessage}
                 </td>
               </tr>

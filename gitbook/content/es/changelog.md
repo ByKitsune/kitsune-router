@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## Sin publicar — dashboard, navegación móvil y agent skills
+
+El código actual renueva el dashboard, la fuente DM Sans incluida localmente,
+las transiciones de Usage, las imágenes oficiales de ByKitsune, la navegación
+móvil rápida y el selector de idioma con búsqueda. Se revisan las nueve skills
+según el descubrimiento, la autenticación, las solicitudes y las respuestas reales
+del gateway. Esto no mueve el tag inmutable 1.0.2 ni confirma una nueva publicación
+npm/container, documentación alojada o despliegue de producción. Véanse el
+[changelog fuente](https://github.com/ByKitsune/kitsune-router/blob/master/CHANGELOG.md#unreleased)
+y la [guía de UI](https://github.com/ByKitsune/kitsune-router/blob/master/docs/UI-DESIGN.md).
+
 ## Kitsune Router 1.0.2 — contenedor privado publicado; pull anónimo pendiente; npm bloqueado
 
 Tag inmutable **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merge `23375bf1`. SSH exacto: **9.041 aprobados, 100 omitidos, cero fallos de assertions/suites**; lint estricto, 18 tests docs/export estático, build app y pack pasaron. CI `40468830176` verde con árbol igual al tag. Smoke del tarball local, seis reinicios de contenedor y navegador pasaron en su alcance. Mock solo de `Date` del hijo, orden de producción intacto; log warning de npm publish, no pack.
