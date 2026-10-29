@@ -186,8 +186,9 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
     page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (error) => console.error("Synthetic browser error:", error.stack || error.message));
     const startupError = new Promise((_, reject) => page.once("pageerror", reject));
-    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);
-    await Promise.race([page.locator(".usage-metric").first().waitFor({ state: "attached", timeout: 10000 }), startupError]);
+    const ready = page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`)
+      .then(() => page.locator(".usage-metric").first().waitFor({ state: "attached", timeout: 10000 }));
+    await Promise.race([ready, startupError]);
   });
 
   afterEach(async () => {
