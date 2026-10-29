@@ -18,39 +18,40 @@ export default function Card({
     none: "",
     xs: "p-3",
     sm: "p-4",
-    md: "p-6",
-    lg: "p-8",
+    md: "p-4 sm:p-6",
+    lg: "p-5 sm:p-8",
   };
 
   return (
     <div
       className={cn(
-        "bg-surface border border-border-subtle",
-        elev ? "rounded-[14px] shadow-[var(--shadow-elev)]" : "rounded-[14px] shadow-[var(--shadow-soft)]",
-        hover && "hover:shadow-[var(--shadow-warm)] hover:border-brand-500/30 transition-all cursor-pointer",
+        "min-w-0 bg-surface border border-border-subtle",
+        elev ? "rounded-[22px] shadow-[var(--shadow-elev)]" : "rounded-[22px] shadow-[var(--shadow-soft)]",
+        "transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none",
+        hover && "hover:shadow-[var(--shadow-warm)] hover:border-brand-500/30 cursor-pointer",
         paddings[padding],
         className
       )}
       {...props}
     >
-      {(title || action) && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+      {(title || subtitle || action) && (
+        <div className="mb-5 flex min-w-0 flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-1 basis-40 items-start gap-3">
             {icon && (
-              <div className="p-2 rounded-[10px] bg-bg text-text-muted">
-                <span className="material-symbols-outlined text-[20px]">{icon}</span>
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-primary">
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">{icon}</span>
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               {title && (
-                <h3 className="text-text-main font-semibold">{title}</h3>
+                <h3 className="font-semibold leading-6 tracking-[-0.025em] text-text-main break-words">{title}</h3>
               )}
               {subtitle && (
-                <p className="text-sm text-text-muted">{subtitle}</p>
+                <p className="mt-1 text-sm leading-6 text-text-muted break-words">{subtitle}</p>
               )}
             </div>
           </div>
-          {action}
+          {action && <div className="flex max-w-full flex-wrap items-center gap-2">{action}</div>}
         </div>
       )}
       {children}
@@ -62,7 +63,7 @@ Card.Section = function CardSection({ children, className, ...props }) {
   return (
     <div
       className={cn(
-        "p-4 rounded-[10px]",
+        "min-w-0 p-4 rounded-2xl",
         "bg-bg border border-border-subtle",
         className
       )}
@@ -77,7 +78,7 @@ Card.Row = function CardRow({ children, className, ...props }) {
   return (
     <div
       className={cn(
-        "p-3 -mx-3 px-3 transition-colors",
+        "min-w-0 rounded-xl p-3 -mx-3 px-3 transition-colors duration-200 motion-reduce:transition-none",
         "border-b border-border-subtle last:border-b-0",
         "hover:bg-surface-2/50",
         className
@@ -98,7 +99,7 @@ Card.ListItem = function CardListItem({
   return (
     <div
       className={cn(
-        "group flex items-center justify-between p-3 -mx-3 px-3",
+        "group flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl p-3 -mx-3 px-3",
         "border-b border-border-subtle last:border-b-0",
         "hover:bg-surface-2/50 transition-colors",
         className
@@ -107,7 +108,7 @@ Card.ListItem = function CardListItem({
     >
       <div className="flex-1 min-w-0">{children}</div>
       {actions && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex max-w-full flex-wrap items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
           {actions}
         </div>
       )}

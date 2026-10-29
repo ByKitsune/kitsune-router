@@ -12,7 +12,10 @@ let playwright;
 try {
   playwright = require(process.env.PLAYWRIGHT_MODULE_PATH || "playwright");
 } catch {
-  // The repository does not depend on Playwright; CI may supply it separately.
+  // Lightweight local installations may omit the optional browser fixture.
+}
+if (process.env.KITSUNE_REQUIRE_BROWSER_TESTS === "1" && !playwright) {
+  throw new Error("The required synthetic usage browser tests need Playwright");
 }
 
 const browserDescribe = playwright ? describe : describe.skip;
@@ -85,7 +88,8 @@ function fixturePlugin(state) {
         const url = new URL(req.url, "http://127.0.0.1");
         if (url.pathname === "/") {
           res.setHeader("Content-Type", "text/html");
-          res.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/usage-fixture.js"></script></body></html>');
+          // This fixture does not load Tailwind; give Recharts a real drawing box.
+          res.end('<!doctype html><html><head><style>.usage-chart > div:last-child { width: min(800px, 100%); height: 280px; }</style></head><body><div id="root"></div><script type="module" src="/usage-fixture.js"></script></body></html>');
           return;
         }
         if (url.pathname === "/api/providers" || url.pathname === "/api/provider-nodes") {
@@ -175,7 +179,8 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
   beforeEach(async () => {
     Object.assign(state, { counts: { today: 0, "7d": 8 }, calls: [], aborts: [], delivered: [], recent: [], fail: {}, hold: null, streamHandler: null, streamGate: null });
     state.statsOverrides = {};
-    page = await browser.newPage();
+    // These tests exercise request ordering, not count-up animation timing.
+    page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (error) => console.error("Synthetic browser error:", error.message));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);
   });
@@ -196,7 +201,7 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
   });
 
   const requests = (kind, period) => state.calls.filter((call) => call.kind === kind && call.period === period).length;
-  const total = () => page.getByText("Total Requests", { exact: true }).locator("..").locator("span").nth(1).innerText();
+  const total = () => page.locator(".usage-metric").filter({ hasText: /Total requests/i }).locator(".tabular-nums").innerText();
   const emit = (event) => { for (const stream of state.streams) stream.write(event); };
   const emitSnapshot = (data) => emit(`data: ${JSON.stringify(data)}\n\n`);
   const waitForInitialRefresh = async () => {
@@ -516,7 +521,7 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
     await page.getByText(/Could not load Today usage statistics/).waitFor();
     await page.getByText(/Could not load the Today chart/).waitFor();
     await page.getByText("synthetic-live", { exact: true }).waitFor();
-    expect(await page.getByText("Total Requests", { exact: true }).count()).toBe(0);
+    expect(await page.getByText(/^Total requests$/i).count()).toBe(0);
     expect(await page.getByText("No data for Today", { exact: true }).count()).toBe(0);
     state.fail = {};
     await page.getByRole("button", { name: "Retry statistics" }).click();

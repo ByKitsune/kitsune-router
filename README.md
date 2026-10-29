@@ -8,6 +8,19 @@
 
 Kitsune Router connects coding tools, agents and SDKs to the providers **you choose** through a local dashboard and compatible APIs. Configure accounts, model combos, fallback, translation and usage tracking without a required ByKitsune account or a prescribed provider order. Requests still go to the upstreams you configure; local-first does not mean offline inference.
 
+## Current source development
+
+The source dashboard now uses locally bundled DM Sans, a responsive workspace
+layout, smoother Usage interactions and the official ByKitsune artwork. Mobile
+quick navigation and a searchable language picker refine small-screen access.
+The [agent skills](skills/README.md) cover setup and eight API capabilities with
+model discovery and authenticated request guidance. See the current
+[unreleased changes](CHANGELOG.md#unreleased) and [UI design guide](docs/UI-DESIGN.md).
+
+These source changes are separate from the published-artifact record below.
+They do not imply that a newer npm package, container or hosted documentation
+has been released.
+
 ## Release status
 
 **1.0.2 container published; anonymous pulls pending; npm blocked.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. The [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) is still **private** at last read: the owner selected making it Public but has not confirmed completion, and anonymous grants return HTTP 401. npm remains unavailable after E403; user-managed token replacement is not confirmed. No GitHub Release 1.0.2 or production deployment occurred. [Distribution evidence](releases/RELEASE_NOTES_v1.0.2.md).
@@ -52,6 +65,8 @@ PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 The canonical repository is available; an existing checkout can also be used. The launcher can bind beyond loopback by default; for a local-only session use `kitsune-router --host 127.0.0.1` (or append `--host 127.0.0.1` to NPX). Set a strong `INITIAL_PASSWORD` in your private environment before exposing the service. Open `http://localhost:20128/dashboard`, connect a permitted upstream, create/copy a gateway API key, and select a model actually listed by your installation.
+
+Application and documentation fonts are included in their locked dependency trees; their builds do not fetch Google Fonts. Install dependencies before building.
 
 Review `.env` before startup: use a writable **absolute** state path and fresh private API/identity secrets rather than published example values on a new install; keep all existing values on upgrades. Never commit `.env` or print its secrets in logs/issues.
 
@@ -99,7 +114,8 @@ Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the datab
 
 - [Installation](docs/INSTALLATION.md) · [Integrations](docs/INTEGRATIONS.md) · [Operations](docs/OPERATIONS.md)
 - [Architecture](docs/ARCHITECTURE.md) · [Processing speed](docs/PROCESSING-SPEED.md) · [Reasoning](docs/REASONING-BUDGETS.md) · [Web search](docs/WEB-SEARCH.md)
-- [Tests and verification boundaries](tests/README.md) · [Contributor/agent guidance](CLAUDE.md)
+- [Tests and verification boundaries](tests/README.md) · [UI design and responsive review](docs/UI-DESIGN.md)
+- [Agent skills and API workflows](skills/README.md) · [Contributor/agent guidance](CLAUDE.md)
 - [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 
 The [release evidence](docs/CHANGELOG_v1.0.2.md) separates runtime source, recovery tooling, both npm tarballs and the published image. Authenticated GHCR readback/smoke passed; anonymous pulls and npm acceptance remain separate unmet gates.

@@ -1,4 +1,4 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
+import "@fontsource-variable/dm-sans";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "material-symbols/outlined.css";
 import "./globals.css";
@@ -11,11 +11,6 @@ import { BRAND } from "../../branding/identity.mjs";
 
 // Hook console immediately at module load time (server-side only, runs once)
 initConsoleLogCapture();
-
-const productFont = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-kitsune",
-});
 
 const metadataBase = new URL(process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:20128");
 
@@ -46,7 +41,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#fffefa" }, { media: "(prefers-color-scheme: dark)", color: "#211c19" }],
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f6f5f2" }, { media: "(prefers-color-scheme: dark)", color: "#141619" }],
 };
 
 export default function RootLayout({ children }) {
@@ -67,7 +62,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={`${productFont.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider>
           <RuntimeI18nProvider>
             {children}

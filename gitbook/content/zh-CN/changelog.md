@@ -18,6 +18,15 @@
 
 [源码审查与限制](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up)
 
+## 未发布 — 仪表盘、移动导航与 agent skills
+
+当前源码更新仪表盘布局、本地打包的 DM Sans 字体、Usage 动效、ByKitsune 官方
+图像、移动快捷导航和可搜索的语言选择器。全部九个项目 skill 均按网关实际的
+模型发现、认证、请求与响应处理进行审查。这些变更不会移动不可变的 1.0.2 标签，
+也不代表新的 npm/容器、托管文档或生产部署。参见
+[源码变更日志](https://github.com/ByKitsune/kitsune-router/blob/master/CHANGELOG.md#unreleased)
+和 [UI 设计指南](https://github.com/ByKitsune/kitsune-router/blob/master/docs/UI-DESIGN.md)。
+
 ## Kitsune Router 1.0.2 — 私有容器已发布，匿名访问待确认，npm 受阻
 
 不可变标签 **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**；PR #2 合并于 `23375bf1`。精确源码 SSH **9,041 通过、100 跳过、断言/套件零失败**；严格 lint、18 项 docs 测试/静态导出、app 构建和 pack 通过。CI `40468830176` 在相同源码树通过。本地 tarball 安装/运行/升级、六种容器重启及精确源码浏览器检查通过，但不是已发布产物。测试只 mock 子进程 `Date`，不改变生产排序；warning 仅影响 npm publish，不改变 pack。

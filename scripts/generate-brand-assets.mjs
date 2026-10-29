@@ -1,50 +1,77 @@
 #!/usr/bin/env node
-// Reproducible exports from the approved ByKitsune mascot and favicon.
+// Reproducible dashboard assets from the retained official ByKitsune artwork.
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
 const root = path.resolve(import.meta.dirname, "..");
-const mascot192 = path.join(root, "public/brand/bykitsune-favicon.png");
-const mascot512 = path.join(root, "public/brand/bykitsune-favicon-512.png");
-const originalIco = path.join(root, "public/brand/bykitsune-favicon.ico");
-const embedded = (await fs.readFile(mascot192)).toString("base64");
-const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title">\n  <title id="title">Kitsune Router — ByKitsune</title>\n  <image width="192" height="192" href="data:image/png;base64,${embedded}"/>\n</svg>\n`;
-
-// Keep existing SVG URLs working while using the same official mascot on every
-// surface. The embedded bitmap works when the SVG itself is loaded as an image.
-for (const destination of ["public/icons/logo.svg", "public/icons/icon-192.svg", "public/icons/icon-512.svg", "public/favicon.svg", "gitbook/public/icons/logo.svg"]) {
-  await fs.writeFile(path.join(root, destination), logo);
+const source = path.join(root, "public/brand/bykitsune-favicon.png");
+const source512 = path.join(root, "public/brand/bykitsune-favicon-512.png");
+const officialArtwork = await fs.readFile(source);
+const imageHref = `data:image/png;base64,${officialArtwork.toString("base64")}`;
+const image = (x, y, width, height) => `<image x="${x}" y="${y}" width="${width}" height="${height}" href="${imageHref}"/>`;
+const appSvg = (size, padding = 0, background = false) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <title>Kitsune Router — ByKitsune</title>
+  ${background ? `<rect width="${size}" height="${size}" rx="${size * 0.22}" fill="#fffaf5"/>` : ""}
+  ${image(padding, padding, size - padding * 2, size - padding * 2)}
+</svg>
+`;
+for (const destination of ["public/icons/logo.svg", "public/favicon.svg"]) {
+  await fs.writeFile(path.join(root, destination), appSvg(192).replace(/^[ \t]+$/gm, ""));
 }
-for (const [source, destination] of [
-  [mascot192, "public/icons/icon-192.png"],
-  [mascot192, "gitbook/public/brand/bykitsune-favicon.png"],
-  [mascot512, "public/icons/icon-512.png"],
-  [originalIco, "public/favicon.ico"],
-  [originalIco, "src/app/favicon.ico"],
-  [originalIco, "cli/src/cli/tray/icon.ico"],
-]) {
-  await fs.copyFile(source, path.join(root, destination));
+for (const size of [192, 512]) {
+  await fs.writeFile(path.join(root, `public/icons/icon-${size}.svg`), appSvg(size, size * 0.1, true));
+  await sharp(path.join(root, `public/icons/icon-${size}.svg`)).resize(size, size).png()
+    .toFile(path.join(root, `public/icons/icon-${size}.png`));
 }
-await sharp(mascot512).resize(180, 180).png().toFile(path.join(root, "public/icons/apple-touch-icon.png"));
-await sharp(mascot512).resize(64, 64).png().toFile(path.join(root, "cli/src/cli/tray/icon.png"));
-const safeMascot = await sharp(mascot512).resize(408, 408).png().toBuffer();
-await sharp({ create: { width: 512, height: 512, channels: 4, background: "#fffefa" } })
+await sharp(source).resize(180, 180).png().toFile(path.join(root, "public/icons/apple-touch-icon.png"));
+await sharp(source).resize(64, 64).png().toFile(path.join(root, "cli/src/cli/tray/icon.png"));
+const images = await Promise.all([16, 32, 48, 64, 128, 256].map(async (size) => ({
+  size, png: await sharp(source).resize(size, size).png().toBuffer(),
+})));
+const header = Buffer.alloc(6 + images.length * 16);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(images.length, 4);
+let offset = header.length;
+for (const [index, { size, png }] of images.entries()) {
+  const entry = 6 + index * 16;
+  header.writeUInt8(size === 256 ? 0 : size, entry);
+  header.writeUInt8(size === 256 ? 0 : size, entry + 1);
+  header.writeUInt16LE(1, entry + 4);
+  header.writeUInt16LE(32, entry + 6);
+  header.writeUInt32LE(png.length, entry + 8);
+  header.writeUInt32LE(offset, entry + 12);
+  offset += png.length;
+}
+const ico = Buffer.concat([header, ...images.map(({ png }) => png)]);
+for (const destination of ["src/app/favicon.ico", "public/favicon.ico", "cli/src/cli/tray/icon.ico"]) {
+  await fs.writeFile(path.join(root, destination), ico);
+}
+// Retain the separate Android maskable icon and the higher-resolution source.
+const safeMascot = await sharp(source512).resize(408, 408).png().toBuffer();
+await sharp({ create: { width: 512, height: 512, channels: 4, background: "#fffaf5" } })
   .composite([{ input: safeMascot, left: 52, top: 52 }]).png()
   .toFile(path.join(root, "public/icons/icon-512-maskable.png"));
 
-const socialMascot = await sharp(mascot512).resize(330, 330).png().toBuffer();
-for (const [template, destination] of [
-  ["public/brand/social-card.svg", "public/brand/social-card.png"],
-  ["gitbook/public/brand/social-card.svg", "gitbook/public/brand/docs-social-card.png"],
-]) {
-  const svg = await fs.readFile(path.join(root, template), "utf8");
-  const marker = /<image\s+data-brand-mascot="true"[^>]*\/>/;
-  if (!marker.test(svg)) throw new Error(`Missing mascot marker in ${template}`);
-  // Composite from the local original instead of relying on an external SVG
-  // image fetch, which is often blocked during image rendering.
-  await sharp(Buffer.from(svg.replace(marker, "")))
-    .composite([{ input: socialMascot, left: 825, top: 115 }]).png()
-    .toFile(path.join(root, destination));
+const socialSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#fffaf5"/>
+  <rect x="822" y="80" width="302" height="470" rx="48" fill="#f4e7df"/>
+  ${image(836, 162, 276, 276)}
+  <g fill="#30241d" font-family="Arial, Helvetica, sans-serif">
+    <text x="72" y="118" font-size="32" font-weight="700">Kitsune Router</text>
+    <text x="72" y="282" font-size="76" font-weight="700" letter-spacing="-3">Your models.</text>
+    <text x="72" y="368" font-size="76" font-weight="700" letter-spacing="-3">Your routes.</text>
+    <text x="72" y="452" font-size="29">A provider-neutral AI gateway.</text>
+    <text x="72" y="560" font-size="25">Open source. Self-hosted. By ByKitsune.</text>
+  </g>
+</svg>
+`;
+for (const destination of ["public/brand/social-card.svg", "gitbook/public/brand/social-card.svg"]) {
+  await fs.writeFile(path.join(root, destination), socialSvg);
 }
-console.log("Exported ByKitsune mascot, app, tray, favicon, and social artwork.");
+for (const destination of ["public/brand/social-card.png", "gitbook/public/brand/docs-social-card.png"]) {
+  await sharp(Buffer.from(socialSvg)).png().toFile(path.join(root, destination));
+}
+await fs.copyFile(path.join(root, "public/icons/logo.svg"), path.join(root, "gitbook/public/icons/logo.svg"));
+await fs.copyFile(source, path.join(root, "gitbook/public/brand/bykitsune-favicon.png"));
+console.log("Exported Kitsune Router assets from the official ByKitsune artwork.");

@@ -24,6 +24,16 @@ Các thay đổi mã nguồn này tách biệt với hiện vật 1.0.2; chúng 
 
 [Rà soát mã nguồn và giới hạn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up)
 
+## Chưa phát hành — giao diện, điều hướng di động và agent skills
+
+Nguồn hiện tại cập nhật bố cục dashboard, phông DM Sans đóng gói cục bộ, chuyển
+động Usage, hình ảnh chính thức ByKitsune, điều hướng nhanh trên di động và bộ
+chọn ngôn ngữ có tìm kiếm. Cả chín agent skill được rà soát theo discovery,
+xác thực, request và response thực tế của gateway. Các thay đổi không di chuyển
+tag 1.0.2 bất biến và không xác nhận phát hành npm/container, docs hay production.
+Xem [changelog nguồn](https://github.com/ByKitsune/kitsune-router/blob/master/CHANGELOG.md#unreleased)
+và [hướng dẫn UI](https://github.com/ByKitsune/kitsune-router/blob/master/docs/UI-DESIGN.md).
+
 ## Kitsune Router 1.0.2 — container private đã xuất bản; pull ẩn danh chờ; npm bị chặn
 
 Tag bất biến **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**, PR #2 merge `23375bf1`. SSH nguồn chính xác: **9.041 qua, 100 skip, không lỗi assertion/suite**; lint nghiêm ngặt, 18 docs tests/export tĩnh, app build và pack qua. CI `40468830176` xanh trên cây nguồn khớp tag. Smoke tarball local, sáu tình huống restart container và browser nguồn chính xác qua trong phạm vi ghi nhận. Chỉ mock child `Date`, không đổi thứ tự production; warning log chỉ cho npm publish, không pack.

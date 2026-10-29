@@ -25,17 +25,17 @@ export default function Input({
   const inputId = id || generatedId;
   const descriptionId = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-text-main">
+        <label htmlFor={inputId} className="text-[13px] font-semibold leading-5 text-text-main">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <div className="relative">
+      <div className="relative min-w-0">
         {icon && (
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-text-muted">
-            <span className="material-symbols-outlined text-[20px]">{icon}</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">{icon}</span>
           </div>
         )}
         <input
@@ -49,10 +49,10 @@ export default function Input({
           aria-invalid={error ? true : invalid}
           aria-describedby={[describedBy, descriptionId].filter(Boolean).join(" ") || undefined}
           className={cn(
-            "w-full py-2.5 px-3 text-sm text-text-main bg-surface-2 rounded-[10px]",
-            "border border-transparent placeholder-text-muted/70",
+            "min-h-11 w-full min-w-0 rounded-xl bg-surface px-3.5 py-2.5 text-sm text-text-main shadow-sm",
+            "border border-border placeholder:text-text-subtle hover:border-text-subtle/50",
             "focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40",
-            "transition-all duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed",
+            "transition-[background-color,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50",
             // iOS zoom fix
             "text-[16px] sm:text-sm",
             icon && "pl-10",
@@ -64,12 +64,12 @@ export default function Input({
       </div>
       {error && (
         <p id={`${inputId}-error`} role="alert" className="text-xs text-red-500 flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">error</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
           {error}
         </p>
       )}
       {hint && !error && (
-        <p id={`${inputId}-hint`} className="text-xs text-text-muted">{hint}</p>
+        <p id={`${inputId}-hint`} className="text-xs leading-5 text-text-muted">{hint}</p>
       )}
     </div>
   );

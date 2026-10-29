@@ -230,15 +230,16 @@ export default function TranslatorPage() {
   };
 
   return (
-    <div className="p-8 space-y-3">
+    <div className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-7 flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-main">Translator Debug</h1>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Developer workspace</p>
+          <h1 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">Follow every transformation</h1>
           <p className="text-sm text-text-muted mt-1">Replay request flow — matches log files</p>
         </div>
         {meta && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 xl:max-w-lg xl:justify-end">
             <MetaBadge label="src" value={meta.sourceFormat} color="blue" />
             <span className="material-symbols-outlined text-text-muted text-[14px]">arrow_forward</span>
             <MetaBadge label="dst" value={meta.targetFormat} color="orange" />
@@ -254,22 +255,22 @@ export default function TranslatorPage() {
         const content = contents[step.id] || "";
 
         return (
-          <Card key={step.id}>
-            <div className="p-4 space-y-3">
+          <Card key={step.id} padding="none" className="min-w-0 overflow-hidden">
+            <div className="space-y-4 p-4 sm:p-6">
               {/* Step header */}
-              <div className="flex items-center justify-between">
-                <button onClick={() => toggle(step.id)} className="flex items-center gap-2 flex-1 text-left group">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button onClick={() => toggle(step.id)} className="group flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
                   <span className="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">
                     {isExpanded ? "expand_more" : "chevron_right"}
                   </span>
                   <span className="text-xs font-mono text-text-muted/60 w-4">{step.id}</span>
                   <h3 className="text-sm font-semibold text-text-main">{step.label}</h3>
-                  <span className="text-xs text-text-muted/60 font-mono">{step.file}</span>
+                  <span className="hidden min-w-0 truncate font-mono text-xs text-text-muted/60 md:inline">{step.file}</span>
                   {content && <span className="text-xs text-green-500">({content.length} chars)</span>}
                 </button>
                 {!isExpanded && (
                   <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" icon="folder_open" loading={loading[`load-${step.id}`]} onClick={() => handleLoad(step.id)} />
+                    <Button aria-label={`Load ${step.label}`} size="sm" variant="ghost" icon="folder_open" loading={loading[`load-${step.id}`]} onClick={() => handleLoad(step.id)} />
                     {action}
                   </div>
                 )}
@@ -315,7 +316,7 @@ function MetaBadge({ label, value, color }) {
     purple: "bg-purple-500/10 text-purple-500",
   };
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono ${colors[color]}`}>
+    <span className={`inline-flex min-w-0 max-w-full items-center gap-1 break-all rounded-lg px-2.5 py-1.5 font-mono text-xs ${colors[color]}`}>
       <span className="text-text-muted/70 font-sans text-[10px]">{label}:</span>{value}
     </span>
   );

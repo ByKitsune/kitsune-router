@@ -32,9 +32,13 @@ describe("ByKitsune brand assets", () => {
   });
 
   it("keeps browser, app and tray icons aligned with the original ByKitsune assets", () => {
-    expect(read("public/icons/icon-192.png").equals(read("public/brand/bykitsune-favicon.png"))).toBe(true);
-    expect(read("public/icons/icon-512.png").equals(read("public/brand/bykitsune-favicon-512.png"))).toBe(true);
-    const favicon = read("public/brand/bykitsune-favicon.ico");
+    // The redesign intentionally adds a warm padded background to PWA icons.
+    expect(dimensions("public/icons/icon-192.png")).toEqual([192, 192]);
+    expect(dimensions("public/icons/icon-512.png")).toEqual([512, 512]);
+    expect(read("public/icons/icon-192.svg").toString("utf8")).toContain('fill="#fffaf5"');
+    const favicon = read("public/favicon.ico");
+    expect(favicon.readUInt16LE(2)).toBe(1);
+    expect(favicon.readUInt16LE(4)).toBe(6);
     for (const file of ["public/favicon.ico", "src/app/favicon.ico", "cli/src/cli/tray/icon.ico"]) {
       expect(read(file).equals(favicon), file).toBe(true);
     }

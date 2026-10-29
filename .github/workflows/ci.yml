@@ -22,6 +22,7 @@ jobs:
       MODEL_CATALOG_SYNC: "off"
       DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
       KITSUNE_ROUTER_DISABLE_MITM: "1"
+      KITSUNE_REQUIRE_BROWSER_TESTS: "1"
       NEXT_TELEMETRY_DISABLED: "1"
       JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
       KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
@@ -40,8 +41,12 @@ jobs:
         run: |
           npm ci
           npm --prefix tests ci
+      - name: Install Chromium for isolated browser checks
+        run: npx playwright install --with-deps chromium
       - name: Verify exact source with shared release gates
         run: node scripts/release-publication-helpers.mjs verify-source
+      - name: Test the production dashboard with synthetic state
+        run: npm run test:ui
       - name: Preserve exact-SHA test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -49,6 +54,14 @@ jobs:
           name: verification-${{ github.sha }}
           path: verification/${{ github.sha }}/
           if-no-files-found: warn
+      - name: Preserve synthetic browser evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-verification-${{ github.sha }}
+          path: verification/ui-playwright/
+          if-no-files-found: warn
+          retention-days: 7
   dependency-security:
     runs-on: ubuntu-latest
     permissions:

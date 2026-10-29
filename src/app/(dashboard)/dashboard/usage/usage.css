@@ -1,0 +1,39 @@
+.usage-workspace {
+  --usage-ease: cubic-bezier(.22, 1, .36, 1);
+}
+.usage-metric {
+  position: relative;
+  transition: border-color 240ms ease, box-shadow 240ms ease, transform 240ms var(--usage-ease);
+}
+.usage-metric:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-subtle));
+  transform: translateY(-2px);
+}
+.usage-cost-card {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 7%, var(--color-surface)), var(--color-surface));
+}
+.usage-workspace table {
+  font-variant-numeric: tabular-nums;
+}
+.usage-workspace .recharts-wrapper:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.usage-request-row {
+  animation: usage-request-enter 360ms var(--usage-ease) both;
+}
+@keyframes usage-request-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.usage-topology .react-flow__controls {
+  box-shadow: var(--shadow-soft);
+}
+.usage-topology .react-flow__renderer {
+  border-radius: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-metric, .usage-request-row { animation: none; transition: none; }
+  .usage-metric:hover { transform: none; }
+}

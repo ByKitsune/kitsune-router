@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import WorkspaceIntro from "../components/WorkspaceIntro";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -225,23 +226,32 @@ export default function CombosPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-text-muted mt-1">
-            Group models under one name, then pick a strategy per combo:
-          </p>
-          <ul className="text-sm text-text-muted mt-2 flex flex-col gap-1">
-            <li><span className="font-medium text-text-main">Fallback</span> — tries models in order (next on failure)</li>
-            <li><span className="font-medium text-text-main">Round Robin</span> — rotates models across requests to spread load</li>
-            <li><span className="font-medium text-text-main">Fusion</span> — queries all models in parallel, then a judge synthesizes one answer. Best quality, but costs the most: every request bills all panel models + the judge (N+1 calls)</li>
-          </ul>
-        </div>
-        <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto whitespace-nowrap">
-          Create Combo
-        </Button>
-      </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <WorkspaceIntro
+        eyebrow="Routing studio"
+        icon="conversion_path"
+        title="Build a route that works for you."
+        description="Give a group of models one name. Choose how requests move between them, then add capability adapters for the inputs they need."
+        action={<Button icon="add" onClick={() => setShowCreateModal(true)}>Create Combo</Button>}
+        metrics={[
+          { label: "Model combos", value: combos.length, icon: "layers" },
+          { label: "Connected accounts", value: activeProviders.length, icon: "deployed_code" },
+          { label: "Routing strategies", value: STRATEGY_OPTIONS.length, icon: "route" },
+        ]}
+      />
+      <section aria-label="Routing strategies" className="grid min-w-0 gap-3 md:grid-cols-3">
+        {[
+          { icon: "route", name: "Fallback", description: "Try your models in order. Continue to the next model when a request fails." },
+          { icon: "sync", name: "Round Robin", description: "Rotate requests across the models in a combo to distribute the load." },
+          { icon: "merge", name: "Fusion", description: "Run the full panel and a judge. Each request bills all panel models plus the judge (N+1 calls)." },
+        ].map((strategy) => (
+          <div key={strategy.name} className="min-w-0 rounded-[20px] border border-border-subtle bg-surface p-5">
+            <span aria-hidden="true" className="material-symbols-outlined mb-3 text-[22px] text-primary">{strategy.icon}</span>
+            <h3 className="text-sm font-semibold">{strategy.name}</h3>
+            <p className="mt-1.5 text-xs leading-5 text-text-muted">{strategy.description}</p>
+          </div>
+        ))}
+      </section>
 
       {/* Combos List */}
       {combos.length === 0 ? (
@@ -332,7 +342,7 @@ function ComboCard({ combo, getCaps, comboByName = {}, activeProviders = [], cop
   const isFusion = current === "fusion";
 
   return (
-    <Card padding="sm" className="group">
+    <Card padding="sm" className="group min-w-0 !p-5 sm:!p-6">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
           <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

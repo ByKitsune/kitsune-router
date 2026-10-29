@@ -91,6 +91,54 @@ The MiniMax **desktop lease**, OpenCode **TLS/fingerprint integration**, and
 Nace Drex provider remain outside the reviewed source scope as of this follow-up;
 this does not remove existing MiniMax or OpenCode integrations.
 
+These changes describe the current source checkout. They do not change the
+immutable 1.0.2 tag or establish a new npm package, container image, GitHub
+Release, documentation deployment or production deployment.
+
+### Dashboard and navigation
+
+- Redesign the dashboard shell, grouped sidebar, page headers, shared controls
+  and principal page layouts with warm neutral surfaces, ember accents and
+  paired light/dark themes. Use locally bundled variable DM Sans, Lucide icons
+  and Motion for supported interactions; application font loading no longer
+  requires Google Fonts during a build.
+- Add mobile quick navigation for Gateway, Providers and Usage, with the full
+  navigation available through More. Respect device safe areas, maintain a
+  keyboard-accessible drawer and keep the navigation outside scrolling content.
+- Replace flag-based language controls with language icons, locale codes and
+  searchable native/English language names across 35 supported locales. Support
+  diacritic-insensitive search, RTL labels, keyboard choice navigation and a
+  mobile sheet; retain persisted preferences and show apply errors for retry.
+- Refine borders, elevation, translucent surfaces, touch targets and keyboard
+  focus across navigation, forms, cards and dialogs. Add Radix UI tooltips with
+  keyboard interaction and viewport-aware placement. Honor reduced motion and
+  keep server-rendered page content visible before animation initialization.
+
+### Usage and analytics
+
+- Reorganize consumption metrics, charts, recent activity and routing details.
+  Animate metric changes from the previous displayed value, preserve stable
+  request rows and avoid redrawing the chart for unrelated stream updates.
+- Retain the previous chart during period changes, cancel stale requests and
+  prevent a late success or failure from replacing a newer period. Report
+  fetch errors clearly. Keep unknown prices, known subtotals and genuine zero
+  costs distinct; estimates remain separate from upstream billing.
+
+### Brand and agent skills
+
+- Replace the former custom routing-fox artwork in app, favicon, PWA, tray and
+  social assets with the official ByKitsune character already preserved in the
+  repository. Make asset generation reproduce that artwork. The live site was
+  proxy-blocked; this is reuse of the documented official source, not a newly
+  downloaded or redrawn vector logo.
+- Review all nine project agent skills against the gateway handlers. Improve
+  authenticated capability discovery, request examples, response handling,
+  bounded retries and polling, file/output handling and credential guidance.
+  The entry skill and index explain which capability to choose and distinguish
+  local gateway health from upstream account/model availability.
+- Document the current design system and review workflow in
+  [UI-DESIGN.md](docs/UI-DESIGN.md). Existing release evidence remains below.
+
 ## [1.0.2] — Private container published; anonymous pull pending; npm blocked
 
 Immutable tag `v1.0.2` is **`65c8b97d783becab3f1e1210d2ab9ce67992e13b`**; PR #2 merged to master at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Exact-source SSH verification: **9,041 passed, 100 skipped, zero failed assertions/suites**; strict lint had zero warnings/errors, and 18 docs tests, docs static export, app build and pack passed. [CI 40468830176](https://github.com/ByKitsune/kitsune-router/actions/runs/40468830176) was green on `641d13efc407e302bddce69d984a8660e2286b03`, whose tree matches the tag. Local tarball/container/browser checks passed within their recorded scope; they are not published registry artifacts.

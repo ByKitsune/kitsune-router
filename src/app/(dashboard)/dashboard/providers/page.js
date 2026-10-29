@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import WorkspaceIntro from "../components/WorkspaceIntro";
 import PropTypes from "prop-types";
 import {
   Card,
@@ -385,12 +386,25 @@ export default function ProvidersPage() {
     anthropicCompatibleProviders.length > 0;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
-      <div className="flex items-center justify-end">
+    <div className="flex min-w-0 flex-col gap-8">
+      <WorkspaceIntro
+        eyebrow="Provider library"
+        icon="deployed_code"
+        title="Your models start here."
+        description="Connect the providers you choose. Keep accounts, compatible endpoints, and connection controls together in one place."
+        metrics={[
+          { label: "Saved connections", value: connections.length, icon: "link" },
+          { label: "Custom endpoints", value: providerNodes.length, icon: "api" },
+          { label: "API key providers", value: Object.keys(APIKEY_PROVIDERS).length, icon: "vpn_key" },
+        ]}
+        links={[{ href: "#custom-providers", label: "Custom endpoints" }, { href: "#oauth-providers", label: "OAuth" }, { href: "#api-key-providers", label: "API keys" }]}
+      />
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-3">
+        <p className="text-xs leading-5 text-text-muted">Browse providers or narrow the library by connection status.</p>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-8 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary outline-none transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
+          className="min-h-11 max-w-full rounded-xl border border-border bg-bg-alt px-3 text-sm text-text-main transition-colors hover:border-primary/40"
           aria-label="Filter providers by connection status"
         >
           {STATUS_FILTER_OPTIONS.map((option) => (
@@ -413,12 +427,12 @@ export default function ProvidersPage() {
       )}
 
       {/* Custom Providers (OpenAI/Anthropic Compatible) — dynamic */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section id="custom-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-5 rounded-[24px] border border-border-subtle bg-bg-alt/60 p-4 sm:p-6">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            Custom Providers (OpenAI/Anthropic Compatible){" "}
+            Custom endpoints{" "}
           </h2>
-          <div className="grid grid-cols-1 gap-2 sm:flex sm:w-auto">
+          <div className="grid grid-cols-1 gap-2 min-[480px]:flex min-[480px]:flex-wrap min-[480px]:w-auto">
             <Button
               size="sm"
               icon="add"
@@ -432,7 +446,7 @@ export default function ProvidersPage() {
               variant="secondary"
               icon="add"
               onClick={() => setShowAddCompatibleModal(true)}
-              className="w-full !bg-white !text-black hover:!bg-gray-100 sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Add OpenAI Compatible
             </Button>
@@ -440,12 +454,12 @@ export default function ProvidersPage() {
         </div>
         {compatibleProviders.length === 0 &&
         anthropicCompatibleProviders.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-2 border border-dashed border-border rounded-xl text-text-muted text-sm">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-5 py-8 text-center text-sm leading-6 text-text-muted sm:flex-row">
             <span className="material-symbols-outlined text-[18px]">extension</span>
             <span>No custom providers — use buttons above to add OpenAI/Anthropic compatible endpoints</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
             {[...compatibleProviders, ...anthropicCompatibleProviders].map(
               (info) => (
                 <ApiKeyProviderCard
@@ -462,12 +476,12 @@ export default function ProvidersPage() {
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* OAuth Providers */}
       {oauthEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section id="oauth-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             OAuth Providers
           </h2>
@@ -493,7 +507,7 @@ export default function ProvidersPage() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
           {oauthEntries.map(([key, info]) => {
             const authTypes = dualAuthTypes(info, key);
             return (
@@ -508,13 +522,13 @@ export default function ProvidersPage() {
             );
           })}
         </div>
-      </div>
+      </section>
       )}
 
       {/* Free Tier Providers */}
       {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             Free Tier Providers
           </h2>
@@ -537,7 +551,7 @@ export default function ProvidersPage() {
             {testingMode === "free" ? "Testing..." : "Test All"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
           {freeEntries.map(([key, info]) => {
             // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
             // card total matches the provider detail page.
@@ -574,8 +588,8 @@ export default function ProvidersPage() {
 
       {/* API Key Providers — fixed list */}
       {apikeyEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section id="api-key-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             API Key Providers{" "}
           </h2>
@@ -598,7 +612,7 @@ export default function ProvidersPage() {
             {testingMode === "apikey" ? "Testing..." : "Test All"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
           {visibleApikeyEntries.map(([key, info]) => (
             <ApiKeyProviderCard
               key={key}
@@ -619,7 +633,7 @@ export default function ProvidersPage() {
             Show all {apikeyEntries.length} providers
           </button>
         )}
-      </div>
+      </section>
       )}
 
       {/* Web Cookie Providers — use browser subscription cookie instead of API key */}
@@ -711,10 +725,10 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
   };
 
   return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0">
+    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0 rounded-[20px] focus-visible:outline-offset-4">
       <Card
         padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
+        className={`h-full min-h-[104px] !rounded-[20px] !p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft motion-reduce:transform-none cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
       >
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -763,7 +777,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
           <div className="flex shrink-0 items-center gap-2">
             {stats.total > 0 && (
               <div
-                className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                className="opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -839,10 +853,10 @@ function ApiKeyProviderCard({
   };
 
   return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0">
+    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0 rounded-[20px] focus-visible:outline-offset-4">
       <Card
         padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
+        className={`h-full min-h-[104px] !rounded-[20px] !p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft motion-reduce:transform-none cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
       >
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -901,7 +915,7 @@ function ApiKeyProviderCard({
           <div className="flex shrink-0 items-center gap-2">
             {stats.total > 0 && (
               <div
-                className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                className="opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
