@@ -42,7 +42,9 @@ jobs:
           npm ci
           npm --prefix tests ci
       - name: Install Chromium for isolated browser checks
-        run: npx playwright install --with-deps chromium
+        run: npm exec -- playwright install --with-deps chromium
+      - name: Run synthetic Usage browser regressions first
+        run: npm test -- --maxWorkers=1 tests/unit/upstream-usage-dashboard-browser.test.js
       - name: Verify exact source with shared release gates
         run: node scripts/release-publication-helpers.mjs verify-source
       - name: Test the production dashboard with synthetic state

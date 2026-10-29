@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { createServer } from "vite";
 import { createRequire } from "node:module";
 import { EventEmitter } from "node:events";
+import { tmpdir } from "node:os";
 import { existsSync, realpathSync } from "node:fs";
 import { mkdtemp, rm, symlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -159,7 +160,7 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
   let state;
 
   beforeAll(async () => {
-    directory = await mkdtemp(join(process.env.TMPDIR || "/tmp/opencode", "usage-dashboard-browser-"));
+    directory = await mkdtemp(join(process.env.RUNNER_TEMP || tmpdir(), "usage-dashboard-browser-"));
     await symlink(realpathSync(join(root, "node_modules")), join(directory, "node_modules"), "dir");
     state = { streams: new Set() };
     server = await createServer({
