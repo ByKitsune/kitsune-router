@@ -168,7 +168,9 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
       logLevel: "error", plugins: [fixturePlugin(state)],
       resolve: { dedupe: ["react", "react-dom"] },
       server: { host: "127.0.0.1", port: 0, fs: { allow: [root, directory, realpathSync(join(root, "node_modules"))] } },
-      optimizeDeps: { noDiscovery: true, include: ["react", "react/jsx-runtime", "react-dom/client", "prop-types", "recharts"] },
+      // Explicit optimization keeps CommonJS transitive dependencies usable in
+      // the browser when discovery is disabled for this isolated fixture.
+      optimizeDeps: { noDiscovery: true, include: ["react", "react/jsx-runtime", "react-dom/client", "prop-types", "recharts", "motion/react", "@radix-ui/react-tooltip"] },
     });
     await server.listen();
     browser = await playwright.chromium.launch({
@@ -182,8 +184,10 @@ browserDescribe("usage dashboard in a synthetic browser fixture", () => {
     state.statsOverrides = {};
     // These tests exercise request ordering, not count-up animation timing.
     page = await browser.newPage({ reducedMotion: "reduce" });
-    page.on("pageerror", (error) => console.error("Synthetic browser error:", error.message));
+    page.on("pageerror", (error) => console.error("Synthetic browser error:", error.stack || error.message));
+    const startupError = new Promise((_, reject) => page.once("pageerror", reject));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);
+    await Promise.race([page.locator(".usage-metric").first().waitFor({ state: "attached", timeout: 10000 }), startupError]);
   });
 
   afterEach(async () => {
