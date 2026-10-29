@@ -5,7 +5,7 @@ import { getScopedCache, readScopeRevision } from "../helpers/scopedCache.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId, getProviderIdentityTokens } from "open-sse/providers/identity.js";
 import { getCustomPricingProvider, PRICING_RATE_FIELDS } from "open-sse/config/pricingConfig.js";
 import { getTimeOfUsePricing, parsePricingTimestamp } from "open-sse/config/timeOfUsePricing.js";
-import { hasModelsDevPricingEstimate } from "open-sse/providers/metadata/modelsDevPricing.js";
+import { hasModelsDevPricingEstimate, getModelsDevPricingStatus } from "open-sse/providers/metadata/modelsDevPricing.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
 
@@ -179,7 +179,7 @@ function resolveModelPricing(userPricing, provider, model, resolveDefaults, stri
 // Effective editor rows include configured custom/native IDs, but public
 // references are never persisted as operator overrides. Resolve node identity
 // freshly so changing/importing a URL cannot retain another host's quote.
-export async function getConfiguredPricing() {
+export async function getConfiguredPricing(options = {}) {
   const [{ getProviderNodes }, { getCustomModels }, { getProviderConnections }, { default: registry }] = await Promise.all([
     import("./nodesRepo.js"), import("./aliasRepo.js"), import("./connectionsRepo.js"), import("open-sse/providers/registry/index.js"),
   ]);
@@ -190,6 +190,8 @@ export async function getConfiguredPricing() {
     getSavedPricing(), import("open-sse/providers/pricing.js"), import("open-sse/translator/concerns/thinkingUnified.js"), import("open-sse/providers/metadata/reviewed.js"),
   ]);
   const output = { ...defaults };
+  const diagnostics = Object.create(null);
+  const summary = { models: 0, priced: 0, partial: 0, unknown: 0, operatorOverrides: 0, catalogEstimates: 0, referenceOnly: 0, expiredCatalog: 0 };
   const identities = new Map(nodes.flatMap(node => [[node.id, node.id], ...(node.prefix ? [[node.prefix, node.id]] : [])]));
   const nativeTokens = new Set(registry.flatMap(provider => [provider.id, provider.alias, provider.uiAlias, ...(provider.aliases || [])].filter(Boolean)));
   const nodeById = new Map(nodes.map(node => [node.id, node]));
@@ -223,8 +225,47 @@ export async function getConfiguredPricing() {
     // retained in the runtime/usage quote, not inserted into the PATCH schema.
     const { provenance: _provenance, ...rates } = quote || {};
     output[provider][model] = rates;
+    if (options.diagnostics) {
+      const diagnostic = describeConfiguredQuote({ provider, model, quote, userPricing, stripThinkingSuffix,
+        hasLiteral: (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product)),
+        timestamp, getReviewedModelMetadata, referenceProvider: getCustomPricingProvider(nodeById.get(provider)?.baseUrl) || provider });
+      if (!diagnostics[provider]) diagnostics[provider] = Object.create(null);
+      diagnostics[provider][model] = diagnostic;
+      summary.models++;
+      summary[diagnostic.status]++;
+      if (diagnostic.overriddenFields.length) summary.operatorOverrides++;
+      if (diagnostic.source === "catalog-estimate") summary.catalogEstimates++;
+      if (diagnostic.catalog?.status === "reference-only") summary.referenceOnly++;
+      if (diagnostic.catalog?.status === "expired") summary.expiredCatalog++;
+    }
   }
-  return output;
+  return options.diagnostics ? { generatedAt: timestamp, summary, providers: diagnostics } : output;
+}
+
+function describeConfiguredQuote({ provider, model, quote, userPricing, stripThinkingSuffix, hasLiteral, timestamp, getReviewedModelMetadata, referenceProvider }) {
+  const fields = PRICING_RATE_FIELDS;
+  const knownFields = fields.filter(field => Number.isFinite(quote?.[field]) && quote[field] >= 0);
+  const base = stripThinkingSuffix(model);
+  const savedModel = hasUserOverride(userPricing, provider, model) || hasLiteral(provider, model) ? model : base;
+  let saved;
+  for (const token of getProviderIdentityTokens(provider)) {
+    if (Object.hasOwn(userPricing[token] || {}, savedModel)) { saved = userPricing[token][savedModel]; break; }
+  }
+  const overriddenFields = [...fields, "tier", "service_tiers"].filter(field => Object.hasOwn(saved || {}, field));
+  const status = knownFields.includes("input") && knownFields.includes("output") ? "priced" : knownFields.length ? "partial" : "unknown";
+  const catalogStatus = typeof getModelsDevPricingStatus === "function" ? getModelsDevPricingStatus(referenceProvider, model, { timestamp }) : null;
+  const billing = getReviewedModelMetadata(provider, model)?.billing;
+  return {
+    status,
+    source: overriddenFields.length ? "operator-override" : quote?.provenance?.kind === "models-dev-catalog-estimate" ? "catalog-estimate" : knownFields.length ? "built-in-estimate" : "unpriced",
+    knownFields,
+    missingFields: fields.filter(field => !knownFields.includes(field)),
+    overriddenFields,
+    // Diagnostic metadata is read-only and is never accepted by PATCH.
+    ...(quote?.provenance ? { provenance: quote.provenance } : {}),
+    ...(catalogStatus ? { catalog: { status: catalogStatus.status, eligible: catalogStatus.eligible, observedAtUtc: catalogStatus.observedAtUtc, expiresAtUtc: catalogStatus.expiresAtUtc } } : {}),
+    ...(billing ? { billing: { kind: billing.kind, unit: billing.unit, currency: billing.currency } } : {}),
+  };
 }
 
 function hasUserOverride(userPricing, provider, model) {

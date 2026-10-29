@@ -6,22 +6,19 @@ import { initRuntimeI18n, reloadTranslations } from "./runtime";
 
 export function RuntimeI18nProvider({ children }) {
   const pathname = usePathname();
-
   useEffect(() => {
-    initRuntimeI18n();
+    let mounted = true;
+    let cleanup;
+    initRuntimeI18n().then((stop) => { if (mounted) cleanup = stop; else stop(); });
+    return () => { mounted = false; cleanup?.(); };
   }, []);
-
-  // Re-process DOM when route changes
   useEffect(() => {
-    if (pathname) {
-      // Double RAF to ensure React has committed changes to DOM
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          reloadTranslations();
-        });
-      });
-    }
+    if (!pathname) return;
+    let nextFrame;
+    const frame = requestAnimationFrame(() => {
+      nextFrame = requestAnimationFrame(() => { reloadTranslations().catch(() => {}); });
+    });
+    return () => { cancelAnimationFrame(frame); if (nextFrame !== undefined) cancelAnimationFrame(nextFrame); };
   }, [pathname]);
-
   return <>{children}</>;
 }

@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 import { UI_TEST_ORIGIN } from "./test-settings.mjs";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
+// The runner's health probe must reach its own loopback fixture, including in
+// cloud/corporate shells that route ordinary HTTP through an egress proxy.
+// Preserve every existing exclusion; add only the fixture's local hostnames.
+for (const key of ["NO_PROXY", "no_proxy"]) {
+  process.env[key] = [...new Set([...(process.env[key] || "").split(",").filter(Boolean), "127.0.0.1", "localhost"])].join(",");
+}
 export default defineConfig({
   testDir: fileURLToPath(new URL(".", import.meta.url)),
   testMatch: "**/*.spec.mjs",

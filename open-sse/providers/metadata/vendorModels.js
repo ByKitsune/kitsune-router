@@ -409,14 +409,14 @@ export default {
     "ministral-14b-2512": { capabilities: caps(262144, null, { vision: true, reasoning: false, tools: true, structuredOutput: true }), pricing: { input: 0.2, output: 0.2 }, sources: ["https://docs.mistral.ai/models/ministral-3-14b-25-12"] },
     "ministral-8b-2512": { capabilities: caps(262144, null, { vision: true, reasoning: false, tools: true, structuredOutput: true }), pricing: { input: 0.15, output: 0.15 }, sources: ["https://docs.mistral.ai/models/ministral-3-8b-25-12"] },
     "ministral-3b-2512": {
-      capabilities: caps(262144, null, { vision: true, reasoning: false, tools: true, structuredOutput: true }), pricing: { input: 0.1, output: 0.1 },
-      limits: { contextWindowStatus: "Current API page specifies256K; official architecture declares262144, overriding the stale131072 catalog entry.", fieldSources: { contextWindow: "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json" } },
+      capabilities: caps(131072, null, { vision: true, reasoning: false, tools: true, structuredOutput: true }), pricing: { input: 0.1, output: 0.1 },
+      limits: { architectureContextWindow: 262144, contextWindowStatus: "The current exact-provider catalog records the native API /v1/models ceiling as131072 while model documentation/weights describe262144. Advertise the smaller API-route reference, not the architecture maximum; no new authenticated API probe was performed.", fieldSources: { contextWindow: "https://models.dev/api.json" } },
       sources: ["https://docs.mistral.ai/models/ministral-3-3b-25-12", "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json"],
     },
     "mistral-large-latest": { capabilities: caps(262144, null, { vision: true, reasoning: false, tools: true }), pricing: { input: 0.5, output: 1.5 }, sources: ["https://docs.mistral.ai/models/mistral-large-3-25-12.md"] },
     "mistral-medium-latest": { capabilities: caps(262144, null, { vision: true, reasoning: true, tools: true, structuredOutput: true }), pricing: { input: 1.5, output: 7.5 }, sources: ["https://docs.mistral.ai/models/mistral-medium-3-5-26-04.md"] },
     "mistral-small-latest": { capabilities: caps(262144, null, { vision: true, reasoning: true, tools: true }), pricing: { input: 0.15, output: 0.6 }, sources: ["https://docs.mistral.ai/models/mistral-small-4-0-26-03.md"] },
-    "codestral-latest": { capabilities: caps(128000, null, { reasoning: false, tools: true }), pricing: { input: 0.3, output: 0.9 }, sources: ["https://docs.mistral.ai/models/codestral-25-08.md"] },
+    "codestral-latest": { capabilities: caps(null, null, { reasoning: false, tools: true }), pricing: { input: 0.3, output: 0.9 }, limits: { contextWindowStatus: "The exact native catalog publishes256000 for codestral-latest while its declared Codestral2508 base/documentation reference publishes128000. The changing alias ceiling is unresolved; no new authenticated API probe was performed.", contextWindowConflict: { catalog: 256000, documentedBase: 128000, asOf: "2026-10-29" } }, sources: ["https://docs.mistral.ai/models/codestral-25-08.md"] },
   }, {
     catalogProvider: "mistral", sources: [mistralPricing, catalogSource],
     billing: { currency: "USD", unit: "per_1000000_tokens", kind: "payg", quoteStatus: "quote-verified", region: "Mistral-hosted", note: mistralNote },

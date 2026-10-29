@@ -7,6 +7,7 @@ import mediaModels from "./mediaModels.js";
 import antigravityModels from "./antigravityModels.js";
 import oauthModels from "./oauthModels.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
+import { applyExactCatalogCapabilities, getCapabilityVerification, getPublicCapabilityCatalogReference } from "./modelsDevCapabilityResolution.js";
 
 export const REVIEWED_MODEL_METADATA = {};
 for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antigravityModels, oauthModels]) {
@@ -16,6 +17,20 @@ for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antig
       if (Object.hasOwn(target, model)) throw new Error(`Conflicting reviewed metadata: ${provider}/${model}`);
       target[model] = record;
     }
+  }
+}
+
+// A later tariff review may add pricing URLs to `sources` without revisiting
+// the capability facts. Refresh records explicitly tagged as catalog imports
+// here as well as in the resolver: discovery reapplies reviewed metadata after
+// merging registry declarations and must not resurrect an older catalog row.
+for (const [provider, models] of Object.entries(REVIEWED_MODEL_METADATA)) {
+  for (const [model, record] of Object.entries(models)) {
+    if (record.limits?.scope !== "exact-route-modelsdev-catalog") continue;
+    models[model] = {
+      ...record,
+      capabilities: applyExactCatalogCapabilities(record.capabilities || {}, provider, model, record),
+    };
   }
 }
 
@@ -50,12 +65,15 @@ function publicMetadataValue(value) {
     .filter(([, item]) => item !== undefined));
 }
 
-export function getPublicModelMetadata(provider, model, capabilities) {
+export function getPublicModelMetadata(provider, model, capabilities, declaredCapabilities) {
   const record = getReviewedModelMetadata(provider, model);
-  if (!record) return null;
-  const result = publicMetadataValue(record);
+  const capabilityCatalog = getPublicCapabilityCatalogReference(provider, model);
+  if (!record && !capabilityCatalog && !capabilities) return null;
+  const result = publicMetadataValue(record || {});
+  if (capabilityCatalog) result.capabilityCatalog = capabilityCatalog;
   if (capabilities) result.capabilities = publicMetadataValue(capabilities);
-  if (!Number.isFinite((capabilities || record.capabilities)?.maxInput)) {
+  if (capabilities) result.capabilityVerification = getCapabilityVerification(provider, model, capabilities, record, declaredCapabilities);
+  if (!Number.isFinite((capabilities || record?.capabilities)?.maxInput)) {
     result.limits = {
       ...result.limits,
       maxInputStatus: result.limits?.maxInputStatus || result.limits?.contextWindowStatus

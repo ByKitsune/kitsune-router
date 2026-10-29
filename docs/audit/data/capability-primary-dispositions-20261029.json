@@ -1,0 +1,923 @@
+{
+  "generatedAt": "2026-10-29T06:51:48.276Z",
+  "scope": "Every one of the51 baseline fields previously excused as a primary-source override; source URLs are not assumed field verification.",
+  "source": {
+    "sourceUrl": "https://models.dev/api.json",
+    "retrieval": "Rebuilt published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API capture",
+    "repository": "https://github.com/anomalyco/models.dev",
+    "commit": "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd",
+    "commitTime": "2026-10-29T05:22:56Z",
+    "retrievedAtUtc": "2026-10-29T06:10:02.283074+00:00",
+    "sha256": "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b",
+    "providers": 233,
+    "models": 8908,
+    "bunVersion": "1.4.4",
+    "dependencies": {
+      "zod": "3.24.2",
+      "remeda": "2.33.7"
+    },
+    "allViewSha256": "ca0e74e1f0a083b3d075b33626ade80656e3f5081d565b42c54ed0712bbb1c9b"
+  },
+  "summary": {
+    "fields": 51,
+    "dispositions": {
+      "corrected-secondary-catalog-fact": 24,
+      "retained-unresolved-primary-reference-conflict": 22,
+      "corrected-api-route-versus-architecture": 1,
+      "unknown-changing-alias-source-conflict": 1,
+      "retained-field-bound-primary-reference": 2,
+      "unknown-account-conditional-client-tools": 1
+    }
+  },
+  "limitations": "No authenticated inference or account-specific entitlement probes. Primary links and source-repository observations are reference evidence only; retained unresolved conflicts are explicit non-passes.",
+  "rows": [
+    {
+      "provider": "clinepass",
+      "model": "cline-pass/qwen3.7-max",
+      "field": "maxOutput",
+      "previous": 65536,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.cline.bot/getting-started/clinepass"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro-max",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro-none",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4.1-flash",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash-vision-exp",
+      "field": "contextWindow",
+      "previous": 1000000,
+      "reference": 1048576,
+      "current": 1000000,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative decimal1000000 ceiling from native pricing/model references rather than silently widening to the catalog binary1048576. The conflicting exact integer was not independently resolved; URLs alone are not a field verification and the report records a non-pass.",
+      "references": [
+        "https://api-docs.deepseek.com/quick_start/pricing",
+        "https://api-docs.deepseek.com/api/create-chat-completion",
+        "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "field": "contextWindow",
+      "previous": 131042,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://console.groq.com/docs/models",
+        "https://console.groq.com/docs/prompt-caching",
+        "Fresh exact provider TOML cites the model page and /openai/v1/models response for 131072."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-large-4",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/mistral-large-4-0.md"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "ministral-14b-2512",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/ministral-3-14b-25-12"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "ministral-8b-2512",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/ministral-3-8b-25-12"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "ministral-3b-2512",
+      "field": "contextWindow",
+      "previous": 262144,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-api-route-versus-architecture",
+      "rationale": "The fresh exact native API provider source explicitly records /v1/models max_context_length131072 while model documentation and weights describe architecture262144. Advertise131072; preserve262144 as architectureContextWindow. This is referenced catalog evidence, not a new authenticated API capture.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/ministral-3-3b-25-12",
+        "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json",
+        "providers/mistral/models/ministral-3b-2512.toml at the pinned official catalog source commit"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "ministral-3b-2512",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/ministral-3-3b-25-12",
+        "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-large-latest",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/mistral-large-3-25-12.md"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-small-latest",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/mistral-small-4-0-26-03.md"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "codestral-latest",
+      "field": "contextWindow",
+      "previous": 128000,
+      "reference": 256000,
+      "current": null,
+      "currentAuditStatus": "unknown-not-advertised",
+      "disposition": "unknown-changing-alias-source-conflict",
+      "rationale": "The fresh exact native provider alias publishes256000, while its declared Codestral2508 base-model/documentation reference publishes128000. Current primary documentation could not be fetched (HTTP403), and no authenticated alias response was obtained. Mark public context unknown and preserve both claims in limits.contextWindowConflict.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/codestral-25-08.md",
+        "providers/mistral/models/codestral-latest.toml and models/mistral/codestral-2508.toml at the pinned official catalog source commit"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "codestral-latest",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/codestral-25-08.md"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-medium-latest",
+      "field": "pdf",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the conservative false PDF flag: the current catalog says PDF, but this run did not establish native inline-PDF chat serialization/acceptance from primary documentation (HTTP403). Existing whole-record source URLs do not constitute independent PDF verification; the report records a non-pass.",
+      "references": [
+        "https://docs.mistral.ai/inference/pricing",
+        "https://models.dev/api.json",
+        "https://docs.mistral.ai/models/mistral-medium-3-5-26-04.md"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "nvidia",
+      "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative false video flag for this exact hosted product pending a primary request-schema/transport acceptance check. The fresh catalog describes video support, but broad model-list/pricing URLs alone do not settle the gateway wire behavior; record the conflict as unresolved, not verified.",
+      "references": [
+        "https://integrate.api.nvidia.com/v1/models",
+        "https://build.nvidia.com/explore/discover"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "minimax-m3.1-flash",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain conservative videoInput=false: the actual Ollama serializer forwards only text and image content, while the catalog may describe the underlying model capability. No native video serialization or authenticated route acceptance is established.",
+      "references": [
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "kimi-k3",
+      "field": "structuredOutput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "kimi-k2.7-code",
+      "field": "structuredOutput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "glm-5.3",
+      "field": "structuredOutput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "glm-5.3-flash",
+      "field": "pdf",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "glm-5.3-flash",
+      "field": "structuredOutput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "ollama",
+      "model": "glm-5.2",
+      "field": "structuredOutput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://ollama.com/pricing",
+        "https://ollama.com/api/tags",
+        "The repository Ollama request serializer forwards text/images and does not serialize response_format or native PDF blocks; this independently supports the conservative false values, without proving account acceptance."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "opencode-go",
+      "model": "glm-5.3-flash",
+      "field": "pdf",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://opencode.ai/v2/docs/console/go/",
+        "https://opencode.ai/docs/go/",
+        "https://opencode.ai/zen/go/v1/models"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "opencode",
+      "model": "minimax-m3.1-flash-free",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative false video flag for this exact hosted product pending a primary request-schema/transport acceptance check. The fresh catalog describes video support, but broad model-list/pricing URLs alone do not settle the gateway wire behavior; record the conflict as unresolved, not verified.",
+      "references": [
+        "https://opencode.ai/docs/zen/",
+        "https://opencode.ai/zen/v1/models"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "siliconflow",
+      "model": "Qwen/Qwen3.5-122B-A10B",
+      "field": "vision",
+      "previous": false,
+      "reference": true,
+      "current": true,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.siliconflow.com/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "siliconflow",
+      "model": "zai-org/GLM-5",
+      "field": "maxOutput",
+      "previous": 205000,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.siliconflow.com/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "siliconflow",
+      "model": "openai/gpt-oss-120b",
+      "field": "tools",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.siliconflow.com/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "meta-models/Muse-Spark-Open-816B-A42B",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "Retain the existing conservative false video flag for this exact hosted product pending a primary request-schema/transport acceptance check. The fresh catalog describes video support, but broad model-list/pricing URLs alone do not settle the gateway wire behavior; record the conflict as unresolved, not verified.",
+      "references": [
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "moonshotai/Kimi-K3",
+      "field": "videoInput",
+      "previous": true,
+      "reference": false,
+      "current": false,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "zai-org/GLM-5.3",
+      "field": "contextWindow",
+      "previous": 1048576,
+      "reference": 1048575,
+      "current": 1048575,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "Qwen/Qwen3.7-Max",
+      "field": "maxOutput",
+      "previous": 500000,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "Qwen/Qwen3.7-Max",
+      "field": "reasoning",
+      "previous": false,
+      "reference": true,
+      "current": true,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "Qwen/Qwen3.6-Plus",
+      "field": "maxOutput",
+      "previous": 500000,
+      "reference": 65536,
+      "current": 65536,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "Qwen/Qwen3.5-9B",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": true,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "MiniMaxAI/MiniMax-M3",
+      "field": "maxOutput",
+      "previous": 250000,
+      "reference": 524288,
+      "current": 524288,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing",
+        "Fresh exact provider TOML records a prior October21 source-author API observation of 524288 max_tokens. This audit did not repeat inference."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "together",
+      "model": "MiniMaxAI/MiniMax-M3",
+      "field": "videoInput",
+      "previous": false,
+      "reference": true,
+      "current": true,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://docs.together.ai/docs/serverless-models",
+        "https://www.together.ai/pricing",
+        "Fresh exact provider TOML records a prior October21 source-author API observation of 524288 max_tokens. This audit did not repeat inference."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "vertex-partner",
+      "model": "deepseek-ai/deepseek-v3.2-maas",
+      "field": "reasoning",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-source-override",
+      "disposition": "retained-field-bound-primary-reference",
+      "rationale": "The existing managed Vertex MaaS record binds reasoning to an exact provider model document that explicitly excludes Thinking; this product-specific restriction is retained over the vendor-family catalog flag. The reference was previously pinned and is not a new live route verification.",
+      "references": [
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/maas/deepseek/deepseek-v32",
+        "https://models.dev/api.json",
+        "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "Oct 16 primary quotas: 163,840 context and 65,536 output. Function calling and structured output supported; Thinking explicitly not supported."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "vertex-partner",
+      "model": "zai-org/glm-5-maas",
+      "field": "reasoning",
+      "previous": false,
+      "reference": true,
+      "current": false,
+      "currentAuditStatus": "primary-source-override",
+      "disposition": "retained-field-bound-primary-reference",
+      "rationale": "The existing managed Vertex MaaS record binds reasoning to an exact provider model document that explicitly excludes Thinking; this product-specific restriction is retained over the vendor-family catalog flag. The reference was previously pinned and is not a new live route verification.",
+      "references": [
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/maas/zaiorg/glm-5",
+        "https://models.dev/api.json",
+        "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/maas/deepseek/deepseek-v32",
+        "Oct 16 primary quotas: 200,000 context and 128,000 output. Function calling and structured output supported; Thinking explicitly not supported. A scheduled retirement is not proof of shutdown on this audit date."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "xai",
+      "model": "grok-4.20-multi-agent-0309",
+      "field": "tools",
+      "previous": true,
+      "reference": false,
+      "current": null,
+      "currentAuditStatus": "unknown-not-advertised",
+      "disposition": "unknown-account-conditional-client-tools",
+      "rationale": "The fresh exact native provider source explicitly records that client-side function tools require beta access and that the model accepts Responses. Hosted search is separate. The old unrestricted true flag is removed; tools is unknown with an account-beta condition, and an entitled operator may explicitly override tools=true. No account probe was performed.",
+      "references": [
+        "https://docs.x.ai/developers/models/grok-4.20-multi-agent-0309",
+        "https://docs.x.ai/developers/pricing",
+        "https://models.dev/api.json",
+        "providers/xai/models/grok-4.20-multi-agent-0309.toml at the pinned official catalog source commit"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "xiaomi-mimo",
+      "model": "mimo-v2.5-pro",
+      "field": "vision",
+      "previous": true,
+      "reference": false,
+      "current": true,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "The model ID is retired per the October21 official retirement notice and is preserved for compatibility/history with no current native availability claim. Its old multimodal architecture/reference flags conflict with fresh catalog base-model modalities; current endpoint capability is not verified, and no V2.6 route facts are silently inherited.",
+      "references": [
+        "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "xiaomi-mimo",
+      "model": "mimo-v2.5-pro",
+      "field": "audioInput",
+      "previous": true,
+      "reference": false,
+      "current": true,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "The model ID is retired per the October21 official retirement notice and is preserved for compatibility/history with no current native availability claim. Its old multimodal architecture/reference flags conflict with fresh catalog base-model modalities; current endpoint capability is not verified, and no V2.6 route facts are silently inherited.",
+      "references": [
+        "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "xiaomi-mimo",
+      "model": "mimo-v2.5-pro",
+      "field": "videoInput",
+      "previous": true,
+      "reference": false,
+      "current": true,
+      "currentAuditStatus": "primary-reference-conflict",
+      "disposition": "retained-unresolved-primary-reference-conflict",
+      "rationale": "The model ID is retired per the October21 official retirement notice and is preserved for compatibility/history with no current native availability claim. Its old multimodal architecture/reference flags conflict with fresh catalog base-model modalities; current endpoint capability is not verified, and no V2.6 route facts are silently inherited.",
+      "references": [
+        "https://mimo.mi.com/docs/en-US/quick-start/summary/model",
+        "https://mimo.mi.com/docs/en-US/price/pay-as-you-go",
+        "https://models.dev/api.json"
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "morph",
+      "model": "morph-v3-large",
+      "field": "contextWindow",
+      "previous": 32000,
+      "reference": 262144,
+      "current": 262144,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.morphllm.com/api/models/json",
+        "https://docs.morphllm.com/sdk/components/fast-models",
+        "Fresh exact provider TOML records the October25 model-limit refresh; no new API probe was performed by this audit."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "morph",
+      "model": "morph-v3-large",
+      "field": "maxOutput",
+      "previous": 32000,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.morphllm.com/api/models/json",
+        "https://docs.morphllm.com/sdk/components/fast-models",
+        "Fresh exact provider TOML records the October25 model-limit refresh; no new API probe was performed by this audit."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "morph",
+      "model": "morph-v3-fast",
+      "field": "contextWindow",
+      "previous": 16000,
+      "reference": 262144,
+      "current": 262144,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.morphllm.com/api/models/json",
+        "https://docs.morphllm.com/sdk/components/fast-models",
+        "Fresh exact provider TOML records the October25 model-limit refresh; no new API probe was performed by this audit."
+      ],
+      "authenticatedRouteVerified": false
+    },
+    {
+      "provider": "morph",
+      "model": "morph-v3-fast",
+      "field": "maxOutput",
+      "previous": 16000,
+      "reference": 131072,
+      "current": 131072,
+      "currentAuditStatus": "agree",
+      "disposition": "corrected-secondary-catalog-fact",
+      "rationale": "The record explicitly identifies imported catalog capabilities. Pricing/help URLs added to the shared source list do not independently verify capability fields; the fresh exact provider/product model fact now replaces the older import.",
+      "references": [
+        "https://models.dev/api.json",
+        "https://www.morphllm.com/api/models/json",
+        "https://docs.morphllm.com/sdk/components/fast-models",
+        "Fresh exact provider TOML records the October25 model-limit refresh; no new API probe was performed by this audit."
+      ],
+      "authenticatedRouteVerified": false
+    }
+  ]
+}

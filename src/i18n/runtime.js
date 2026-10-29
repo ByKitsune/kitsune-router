@@ -2,161 +2,192 @@
 
 import { DEFAULT_LOCALE, LOCALE_COOKIE, normalizeLocale } from "./config";
 
-let translationMap = {};
+const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label", "aria-description", "alt"];
+const SKIP_SELECTOR = "[data-i18n-skip],script,style,code,pre,kbd,samp,textarea,[contenteditable=true],.font-mono,.material-symbols-outlined";
+const dictionaryRequests = new Map();
+const subscribers = new Set();
+const textSources = new WeakMap();
+const attributeSources = new WeakMap();
+const pendingNodes = new Set();
+let translationMap = Object.create(null);
+let messageTemplates = [];
 let currentLocale = DEFAULT_LOCALE;
-let reloadCallbacks = [];
+let requestVersion = 0;
+let observer;
+let animationFrame;
+let consumers = 0;
 
-// Read locale from cookie
 function getLocaleFromCookie() {
   if (typeof document === "undefined") return DEFAULT_LOCALE;
-  const cookie = document.cookie
-    .split(";")
-    .find((c) => c.trim().startsWith(`${LOCALE_COOKIE}=`));
-  const value = cookie ? decodeURIComponent(cookie.split("=")[1]) : DEFAULT_LOCALE;
-  return normalizeLocale(value);
-}
-
-// Load translation map
-async function loadTranslations(locale) {
-  if (locale === "en") {
-    translationMap = {};
-    return;
-  }
-  
+  const entry = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${LOCALE_COOKIE}=`));
   try {
-    const response = await fetch(`/i18n/literals/${locale}.json`);
-    translationMap = await response.json();
-  } catch (err) {
-    console.error("Failed to load translations:", err);
-    translationMap = {};
+    return normalizeLocale(entry ? decodeURIComponent(entry.slice(LOCALE_COOKIE.length + 1)) : DEFAULT_LOCALE);
+  } catch {
+    return DEFAULT_LOCALE;
   }
 }
 
-// Translate text - exported for use in components
-export function translate(text) {
-  if (!text || typeof text !== "string") return text;
-  const trimmed = text.trim();
-  if (!trimmed) return text;
-  if (currentLocale === "en") return text;
-  return translationMap[trimmed] || text;
+async function loadTranslations(locale) {
+  if (locale === DEFAULT_LOCALE) return Object.create(null);
+  if (!dictionaryRequests.has(locale)) {
+    const request = fetch(`/i18n/literals/${locale}.json`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Translation dictionary unavailable (${response.status})`);
+        const dictionary = await response.json();
+        if (!dictionary || typeof dictionary !== "object" || Array.isArray(dictionary)
+          || Object.values(dictionary).some((value) => typeof value !== "string")) {
+          throw new Error("Invalid translation dictionary");
+        }
+        return Object.assign(Object.create(null), dictionary);
+      })
+      .catch((error) => { dictionaryRequests.delete(locale); throw error; });
+    dictionaryRequests.set(locale, request);
+  }
+  return dictionaryRequests.get(locale);
 }
 
-// Get current locale - exported for use in components
-export function getCurrentLocale() {
-  return currentLocale;
+const interpolate = (message, parameters) => message.replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g,
+  (placeholder, name) => parameters && Object.hasOwn(parameters, name) ? String(parameters[name]) : placeholder);
+const escapePattern = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function compileMessageTemplates(dictionary) {
+  return Object.entries(dictionary).filter(([key]) => /\{[A-Za-z][A-Za-z0-9_]*\}/.test(key)
+      && key.replace(/\{[A-Za-z][A-Za-z0-9_]*\}/g, "").trim().length >= 3)
+    .map(([key, value]) => {
+      const names = [];
+      const pattern = key.split(/(\{[A-Za-z][A-Za-z0-9_]*\})/).map((part) => {
+        if (/^\{[A-Za-z][A-Za-z0-9_]*\}$/.test(part)) {
+          const name = part.slice(1, -1);
+          names.push(name);
+          return name === "count" || name === "index" ? "([0-9]+(?:[.,][0-9]+)*)" : "(.*?)";
+        }
+        return escapePattern(part);
+      }).join("");
+      return { pattern: new RegExp(`^${pattern}$`), names, value };
+    });
 }
 
-// Register callback for locale changes
+/** Translate a source literal or a named template without changing identifiers. */
+export function translate(text, parameters) {
+  if (typeof text !== "string" || !text.trim()) return text;
+  const source = text.trim();
+  let translated = source;
+  if (currentLocale !== DEFAULT_LOCALE) {
+    if (Object.hasOwn(translationMap, source)) translated = translationMap[source];
+    else if (Object.hasOwn(translationMap, source.replace(/\s+/g, " "))) translated = translationMap[source.replace(/\s+/g, " ")];
+    else if (!parameters) {
+      for (const { pattern, names, value } of messageTemplates) {
+        const match = source.match(pattern);
+        if (match) {
+          translated = interpolate(value, Object.fromEntries(names.map((name, index) => [name, match[index + 1]])));
+          break;
+        }
+      }
+    }
+  }
+  translated = interpolate(translated, parameters);
+  return text.slice(0, text.length - text.trimStart().length) + translated + text.slice(text.trimEnd().length);
+}
+
+export function getCurrentLocale() { return currentLocale; }
 export function onLocaleChange(callback) {
-  reloadCallbacks.push(callback);
+  subscribers.add(callback);
+  return () => subscribers.delete(callback);
+}
+
+function skipped(element) { return !element || Boolean(element.closest(SKIP_SELECTOR)); }
+function processTextNode(node) {
+  const parent = node.parentElement;
+  if (skipped(parent) || !node.nodeValue?.trim()) return;
+  // React may replace a text node's value without inserting a new node. Preserve
+  // its newest source rather than restoring an obsolete count/status on reload.
+  const previous = textSources.get(node);
+  const source = previous && node.nodeValue === previous.rendered ? previous.source : node.nodeValue;
+  const rendered = translate(source);
+  textSources.set(node, { source, rendered });
+  if (node.nodeValue !== rendered) node.nodeValue = rendered;
+}
+function processAttributes(element) {
+  if (skipped(element)) return;
+  let sources = attributeSources.get(element);
+  if (!sources) { sources = new Map(); attributeSources.set(element, sources); }
+  for (const name of TRANSLATABLE_ATTRIBUTES) {
+    const value = element.getAttribute(name);
+    if (value === null) { sources.delete(name); continue; }
+    const previous = sources.get(name);
+    const source = previous && value === previous.rendered ? previous.source : value;
+    const rendered = translate(source);
+    sources.set(name, { source, rendered });
+    if (value !== rendered) element.setAttribute(name, rendered);
+  }
+}
+function processElement(element) {
+  if (!element) return;
+  if (element.nodeType === Node.TEXT_NODE) { processTextNode(element); return; }
+  if (element.nodeType !== Node.ELEMENT_NODE || skipped(element)) return;
+  processAttributes(element);
+  for (const child of element.querySelectorAll("*")) processAttributes(child);
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) processTextNode(node);
+}
+function schedule(node) {
+  pendingNodes.add(node);
+  if (animationFrame !== undefined) return;
+  animationFrame = requestAnimationFrame(() => {
+    animationFrame = undefined;
+    const work = [...pendingNodes];
+    pendingNodes.clear();
+    for (const target of work) processElement(target);
+  });
+}
+function ensureObserver() {
+  if (observer) return;
+  observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === "characterData" || mutation.type === "attributes") schedule(mutation.target);
+      else for (const node of mutation.addedNodes) schedule(node);
+    }
+  });
+  observer.observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: TRANSLATABLE_ATTRIBUTES,
+  });
+}
+
+// One observer per document, even during React strict-mode remounts.
+export async function initRuntimeI18n() {
+  if (typeof window === "undefined") return () => {};
+  consumers++;
+  ensureObserver();
+  try { await reloadTranslations(); }
+  catch { /* Keep the visible source language; selection UI can report retries. */ }
+  let disposed = false;
   return () => {
-    reloadCallbacks = reloadCallbacks.filter(cb => cb !== callback);
+    if (disposed) return;
+    disposed = true;
+    consumers--;
+    if (!consumers) {
+      observer?.disconnect();
+      observer = undefined;
+      if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
+      animationFrame = undefined;
+      pendingNodes.clear();
+    }
   };
 }
 
-// Process text node
-function processTextNode(node) {
-  if (!node.nodeValue || !node.nodeValue.trim()) return;
-  
-  // Skip if parent is script, style, code, or structural elements
-  const parent = node.parentElement;
-  if (!parent) return;
-  
-  // Skip if parent or any ancestor has data-i18n-skip attribute
-  let element = parent;
-  while (element) {
-    if (element.hasAttribute && element.hasAttribute('data-i18n-skip')) {
-      return;
-    }
-    element = element.parentElement;
-  }
-  
-  const tagName = parent.tagName?.toLowerCase();
-  
-  // Skip elements that don't allow text nodes
-  const skipTags = [
-    "script", "style", "code", "pre",
-    "colgroup", "table", "thead", "tbody", "tfoot", "tr",
-    "select", "datalist", "optgroup"
-  ];
-  
-  if (skipTags.includes(tagName)) return;
-  
-  // Store original text if not already stored
-  if (!node._originalText) {
-    node._originalText = node.nodeValue;
-  }
-  
-  // Use original text for translation
-  const original = node._originalText;
-  const translated = translate(original);
-  
-  // Only update if different to avoid unnecessary DOM mutations
-  if (translated !== node.nodeValue) {
-    node.nodeValue = translated;
-  }
-}
-
-// Process all text nodes in element
-function processElement(element) {
-  if (!element) return;
-  
-  const walker = document.createTreeWalker(
-    element,
-    NodeFilter.SHOW_TEXT,
-    null,
-    false
-  );
-  
-  let node;
-  const nodesToProcess = [];
-  
-  // Collect all nodes first to avoid live collection issues
-  while ((node = walker.nextNode())) {
-    nodesToProcess.push(node);
-  }
-  
-  // Process collected nodes
-  nodesToProcess.forEach(processTextNode);
-}
-
-// Initialize runtime i18n
-export async function initRuntimeI18n() {
-  if (typeof window === "undefined") return;
-  
-  currentLocale = getLocaleFromCookie();
-  await loadTranslations(currentLocale);
-  
-  // Process existing DOM
-  processElement(document.body);
-  
-  // Watch for new nodes
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          processElement(node);
-        } else if (node.nodeType === Node.TEXT_NODE) {
-          processTextNode(node);
-        }
-      });
-    });
-  });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-// Reload translations when locale changes
 export async function reloadTranslations() {
-  currentLocale = getLocaleFromCookie();
-  await loadTranslations(currentLocale);
-  
-  // Notify all registered callbacks
-  reloadCallbacks.forEach(callback => callback());
-  
-  // Re-process entire DOM (will use stored original text)
+  if (typeof document === "undefined") return false;
+  const version = ++requestVersion;
+  const locale = getLocaleFromCookie();
+  const dictionary = await loadTranslations(locale);
+  // A slower earlier locale fetch cannot overwrite a more recent selection.
+  if (version !== requestVersion) return false;
+  translationMap = dictionary;
+  messageTemplates = compileMessageTemplates(dictionary);
+  currentLocale = locale;
+  document.documentElement.lang = locale;
   processElement(document.body);
+  for (const callback of subscribers) callback();
+  return true;
 }

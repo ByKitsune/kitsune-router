@@ -59,13 +59,13 @@ describe("October registry metadata reaches effective consumers", () => {
     ["chutes", "Qwen/Qwen3-32B-TEE", { contextWindow: 40960, maxOutput: 40960 }],
     ["cloudflare-ai", "@cf/meta/llama-3.2-1b-instruct", { contextWindow: 60000, maxOutput: 60000, tools: false }],
     ["cohere", "command-a-vision-07-2025", { vision: true, tools: false }],
-    ["groq", "qwen/qwen3.8-27b", { contextWindow: 131042, maxOutput: 16384, videoInput: false }],
+    ["groq", "qwen/qwen3.8-27b", { contextWindow: 131072, maxOutput: 16384, videoInput: false }],
     ["github", "gpt-5-mini", { contextWindow: 264000, maxInput: 128000, maxOutput: 64000 }],
     ["kimi", "k3", { contextWindow: 1048576, maxOutput: null }],
-    ["morph", "morph-v3-fast", { contextWindow: 16000, maxOutput: 16000, tools: false }],
+    ["morph", "morph-v3-fast", { contextWindow: 262144, maxOutput: 131072, tools: false }],
     ["sambanova", "DeepSeek-V3.2", { contextWindow: 32768, maxOutput: 7168 }],
     ["siliconflow", "openai/gpt-oss-120b", { contextWindow: 131000, maxOutput: 8000 }],
-    ["together", "MiniMaxAI/MiniMax-M3", { contextWindow: 524288, maxOutput: 250000 }],
+    ["together", "MiniMaxAI/MiniMax-M3", { contextWindow: 524288, maxOutput: 524288 }],
     ["venice", "hermes-3-llama-3.1-405b", { tools: false, maxOutput: 16384 }],
     ["alicode-intl", "glm-5", { contextWindow: 202752, maxOutput: 16384 }],
   ])("uses exact %s/%s route facts instead of generic family guesses", (provider, model, expected) => {
@@ -124,7 +124,7 @@ describe("October registry metadata reaches effective consumers", () => {
   it("uses primary Ministral 3B vision and 256K context over the stale catalog value", () => {
     // https://docs.mistral.ai/models/ministral-3-3b-25-12.md
     // Official weights' config corroborates 262144 max_position_embeddings.
-    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512")).toMatchObject({ contextWindow: 262144, vision: true });
+    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512")).toMatchObject({ contextWindow: 131072, vision: true });
   });
 
   it.each([

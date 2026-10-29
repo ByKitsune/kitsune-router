@@ -86,6 +86,26 @@ function savedPricing(provider) {
 }
 
 describe("pricing API rate and tier validation", () => {
+  it("exposes read-only pricing diagnostics without changing the rate or override contracts", async () => {
+    const quote = { input: 0, output: null, cached: null };
+    expect((await patch({ "pricing-api-fixture": { diagnostic: quote } })).status).toBe(200);
+    const response = await pricingRoute.GET(new NextRequest("http://localhost:20128/api/pricing?view=diagnostics"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const diagnostic = await response.json();
+    expect(diagnostic.summary.models).toBeGreaterThan(0);
+    expect(diagnostic.summary.priced + diagnostic.summary.partial + diagnostic.summary.unknown).toBe(diagnostic.summary.models);
+    expect(diagnostic.providers["pricing-api-fixture"].diagnostic).toMatchObject({
+      status: "partial", source: "operator-override", knownFields: ["input"],
+      overriddenFields: ["input", "output", "cached"],
+    });
+    const defaults = await pricingRoute.GET();
+    expect((await defaults.json())["pricing-api-fixture"].diagnostic).toEqual(quote);
+    expect(savedPricing("pricing-api-fixture").diagnostic).toEqual(quote);
+    expect((await patch({ "pricing-api-fixture": { diagnostic: diagnostic.providers["pricing-api-fixture"].diagnostic } })).status).toBe(400);
+    expect(savedPricing("pricing-api-fixture").diagnostic).toEqual(quote);
+  });
+
   it("retains dashboard authentication before saving hourly tariffs", async () => {
     const response = await patch({ "pricing-api-fixture": { hourly: { cache_creation_1h: 8 } } }, false);
     expect(response.status).toBe(401);

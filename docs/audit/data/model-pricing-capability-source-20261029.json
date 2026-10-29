@@ -1,0 +1,25 @@
+{
+  "sourceUrl": "https://models.dev/api.json",
+  "retrieval": "Rebuilt published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API capture",
+  "repository": "https://github.com/anomalyco/models.dev",
+  "commit": "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd",
+  "commitTime": "2026-10-29T05:22:56Z",
+  "retrievedAtUtc": "2026-10-29T06:10:02.283074+00:00",
+  "sha256": "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b",
+  "providers": 233,
+  "models": 8908,
+  "bunVersion": "1.4.4",
+  "dependencies": {
+    "zod": "3.24.2",
+    "remeda": "2.33.7"
+  },
+  "allViewSha256": "ca0e74e1f0a083b3d075b33626ade80656e3f5081d565b42c54ed0712bbb1c9b",
+  "scope": "Official v1 default API view; all-view hash is separate and must not be substituted for the default snapshot hash.",
+  "allViewProviders": 233,
+  "allViewModels": 8974,
+  "limitations": [
+    "Direct models.dev/api.json retrieval returned proxy HTTP403; this is a reconstruction from official pinned Git source, not an HTTP response capture.",
+    "Source presence does not establish provider account entitlement, serving availability, billed usage or invoice accuracy.",
+    "Observation time is not an asserted tariff effective-from time."
+  ]
+}

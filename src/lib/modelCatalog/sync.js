@@ -1,4 +1,4 @@
-// Daily refresh of model capabilities from models.dev.
+// Periodic refresh of model capabilities and dated price observations.
 //
 // Downloads the catalog, keeps only what differs from the hand-written tables,
 // and writes it next to the database. Failures are swallowed on purpose: a
@@ -6,13 +6,18 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { DATA_DIR } from "@/lib/dataDir.js";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 import { getModelsDevProviderId } from "open-sse/providers/catalogProviders.js";
+import { installPricingObservationStore, parseModelsDevCatalog, readModelsDevResponse } from "./pricingObservations.js";
 
 const CATALOG_URL = "https://models.dev/api.json";
 const FETCH_TIMEOUT_MS = 60000;
 
-export const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// Refresh before the 24h price validity window expires, without extending an
+// old capture's timestamp or using a 304 as evidence for unvalidated rows.
+export const SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const STARTUP_DELAY_MS = 60 * 1000;   // let the server boot and serve first requests
 const RETRY_DELAY_MS = 30 * 60 * 1000;
 
@@ -25,6 +30,11 @@ let timer = null;
 let activeSync = null;
 let syncController = null;
 let stopped = false;
+let pricingStore;
+
+function getPricingStore() {
+  return pricingStore ||= installPricingObservationStore(path.join(DATA_DIR, "model-pricing-observations"));
+}
 
 export function getSyncState() {
   return { ...state, file: CATALOG_FILE, url: CATALOG_URL, intervalMs: SYNC_INTERVAL_MS };
@@ -33,8 +43,13 @@ export function getSyncState() {
 
 function writeAtomic(file, contents) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(`${file}.tmp`, contents, "utf8");
-  fs.renameSync(`${file}.tmp`, file);
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporary, contents, { encoding: "utf8", flag: "wx", mode: 0o600 });
+    fs.renameSync(temporary, file);
+  } finally {
+    try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
 }
 
 // Trimmed copy of the upstream catalog, kept for the add-models skill: same
@@ -169,25 +184,30 @@ export function syncModelCatalog() {
 async function runSync(signal) {
   try {
     const headers = { accept: "application/json" };
-    // A file written by an older schema has to be rebuilt even when upstream is
-    // unchanged, so only ask upstream for a 304 when the file is current.
-    if (state.etag && state.fileVersion === CATALOG_VERSION) headers["if-none-match"] = state.etag;
-    const response = await fetch(CATALOG_URL, { headers, signal: AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]) });
+    const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]);
+    const response = await fetch(CATALOG_URL, { headers, signal: requestSignal });
 
     let result;
     if (response.status === 304) {
-      result = { status: "unchanged" };
+      throw new Error("Pricing refresh requires a complete catalog response");
     } else if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     } else {
       // ~23ms to parse, once a day, on a server that is otherwise idle at this
       // point — not worth a worker thread.
-      const catalog = await response.json();
+      const bytes = await readModelsDevResponse(response, requestSignal);
+      const catalog = parseModelsDevCatalog(bytes);
       const etag = response.headers.get("etag") || null;
       const entries = await collectEntries();
       signal.throwIfAborted();
       const { models, providers } = build(catalog, entries);
       const serialized = JSON.stringify({ v: CATALOG_VERSION, etag, syncedAt: Date.now(), models, providers });
+
+      const pricing = getPricingStore().publish(catalog, {
+        url: CATALOG_URL, verifiedAtUtc: new Date().toISOString(),
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+        retrieval: "validated-https-response",
+      });
 
       writeAtomic(CATALOG_FILE, serialized);
       writeAtomic(CATALOG_RAW_FILE, JSON.stringify(slim(catalog)));
@@ -201,6 +221,7 @@ async function runSync(signal) {
         bytes: Buffer.byteLength(serialized),
         models: Object.keys(models).length,
         providers: Object.keys(providers).length,
+        pricingReferences: Object.values(pricing.references).reduce((count, rows) => count + Object.keys(rows).length, 0),
       };
       console.log(`[modelCatalog] ${result.models} models, ${result.providers} providers, ${(result.bytes / 1024).toFixed(1)}KB`);
     }
@@ -236,6 +257,8 @@ function restoreEtag() {
 
 // Schedule the recurring sync. Disable entirely with MODEL_CATALOG_SYNC=off.
 export function startModelCatalogSync() {
+  // Restored observations must remain readable even when outbound sync is off.
+  getPricingStore();
   if (timer || stopped) return;
   if (String(process.env.MODEL_CATALOG_SYNC || "").toLowerCase() === "off") return;
   restoreEtag();

@@ -1,5 +1,20 @@
 # Nhật ký thay đổi
 
+## Chưa phát hành — kiểm tra giá, capability và bản địa hóa
+
+- Kiểm tra toàn bộ 1.302 dòng registry theo bản dựng từ mã nguồn models.dev
+  chính thức đã ghim. Bỏ giới hạn token chung không có bằng chứng, sửa capability
+  theo sản phẩm và giới hạn output của CommandCode/combo.
+- Thêm quan sát giá bất biến đã xác minh, thử cập nhật mỗi sáu giờ và áp dụng
+  trong 24 giờ theo thời gian request. Giá chưa rõ, gói đăng ký hoặc đơn vị khác
+  không trở thành chi phí miễn phí.
+- Giải thích nguồn giá và khoảng thiếu dữ liệu qua chẩn đoán chỉ đọc;
+  giữ bộ đếm cache Ollama và bổ sung đường đọc quota/balance Cloud.
+- Sửa dịch văn bản/thuộc tính động, bảo vệ mã và ID, mở rộng danh mục văn bản UI
+  cùng các từ điển.
+
+[Báo cáo đầy đủ và giới hạn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/22-pricing-capability-localization-2026-10.md).
+
 ## Chưa phát hành — cập nhật mã nguồn 2026-10-29
 
 Các thay đổi mã nguồn này tách biệt với hiện vật 1.0.2; chúng không chứng minh

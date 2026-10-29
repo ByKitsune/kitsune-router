@@ -7,6 +7,7 @@ import { getProviderAlias } from "@/shared/constants/providers";
 import { getModelKind, PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import { canonicalizeProviderId } from "open-sse/providers/identity.js";
 import { getCapabilitiesForModel, withDeclaredCapabilities } from "open-sse/providers/capabilities.js";
+import { getCapabilityVerification } from "open-sse/providers/metadata/modelsDevCapabilityResolution.js";
 
 // GET /api/models - Get models with aliases
 export async function GET() {
@@ -54,7 +55,10 @@ export async function GET() {
         routedModel: `${providerAlias}/${m.model}`,
         alias: aliasesByModel.get(key) || m.model,
         caps: c,
-        ...(metadata ? { metadata } : {}),
+        metadata: {
+          ...metadata,
+          capabilityVerification: getCapabilityVerification(providerId, m.model, c, metadata, custom?.caps),
+        },
       });
     }
 

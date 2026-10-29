@@ -73,6 +73,7 @@ const eslintConfig = defineConfig([
     "**/.next-cli-build/**",
     "**/out/**",
     "**/build/**",
+    "verification/ui-playwright/**",
     "next-env.d.ts",
   ]),
   // Data-definition modules intentionally use anonymous default exports:

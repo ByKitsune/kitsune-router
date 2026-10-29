@@ -7,6 +7,7 @@ import { getProviderIdentityTokens } from "../../open-sse/providers/identity.js"
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { getModelsDevPricingReference } from "../../open-sse/providers/metadata/modelsDevPricing.js";
 import * as pricingConfig from "../../open-sse/config/pricingConfig.js";
+import { translate } from "../../src/i18n/runtime.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -32,6 +33,7 @@ function fixture(data, overrides = {}) {
     module: mod, exports: mod.exports, fetch, console, confirm: () => true, alert: vi.fn(),
     require(id) {
       if (id === "react") return hooks;
+      if (id === "@/i18n/runtime") return { translate };
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "open-sse/providers/pricing.js") return { getModelsDevPricingReference };
       if (id === "open-sse/providers/metadata/reviewed.js") return { getReviewedModelMetadata };
@@ -69,7 +71,7 @@ describe("models.dev reference attribution in the pricing editor", () => {
     expect(text(target)).toContain("models.dev catalog reference · 2026-10-29");
     expect(text(target)).toContain("Reference only, not an invoice");
     expect(text(target)).toContain('"input":0.59');
-    expect(text(target)).toContain("bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f");
+    expect(text(target)).toContain("d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b");
     await modal.save();
     expect(modal.fetch.mock.calls.some(([, options]) => options?.method === "PATCH")).toBe(false);
   });

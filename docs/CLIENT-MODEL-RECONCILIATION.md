@@ -4,6 +4,11 @@ This is a dated source-reconciliation report retained by Kitsune Router. Catalog
 
 Research date: 2026-10-06 (Asia/Jakarta). Source baseline: `ff469a0768a854ebe7d6d5936702c669c5cd91f5`.
 
+For the later all-registry pricing/capability review and runtime-localization
+follow-up, see [audit 22](audit/22-pricing-capability-localization-2026-10.md).
+Its pinned source reconstruction and coverage reports are separate from the
+dated inventories below; neither snapshot establishes account access or invoices.
+
 ## Scope and evidence
 
 The baseline inventory contains 119 active provider definitions and 1,044 static provider/model rows. The resulting registry contains 1,164 rows: 120 additions (100 chat, 8 image, 6 embedding, 6 TTS), with no baseline rows removed. Reviewed factual metadata has 342 exact provider/model records across 36 providers. Some factual records describe compatibility variants rather than standalone registry rows.
@@ -131,7 +136,7 @@ This addendum describes the current worktree, not a rewrite of the dated records
 
 Provider billing resolution no longer uses unscoped generic vendor-family fallbacks as if they were a route's tariff. This avoids cross-product price attribution but reduces future cost coverage: a read-only comparison of the same pre-change static LLM registry found many previously numeric routes now resolve unknown, especially among Kiro, CodeBuddy and gateway subscription routes. This observation is scoped to that comparison, not a complete inventory. Previously stored historical costs are unchanged.
 
-The selected [models.dev](https://models.dev/api.json) snapshot references use exact provider/product and literal model IDs, not generic family matches. Verification against the captured payload found 146 distinct matching provider/model pairs across 149 registry rows with catalog costs under the selected product mappings; all are included among 163 extracted references. This does not claim coverage of other products, dynamic models, or later catalog changes. References are informational and are not account invoices, entitlements or availability claims. A narrower opt-in set of 16 text-only hosted pairs may provide input/output estimates for recorded timestamps from the captured observation until strictly before 24 hours later. The capture time is `2026-10-28T18:11:32.422Z`; estimates are not backdated and expire after that window. Other route-specific quotes and operator overrides are separate. Unverified used cost components remain `null`, so a known subtotal is not necessarily a complete total.
+The earlier selected [models.dev](https://models.dev/api.json) snapshot references use exact provider/product and literal model IDs, not generic family matches. Verification against the captured payload found 146 distinct matching provider/model pairs across 149 registry rows with catalog costs under the selected product mappings; all are included among 163 extracted references. This does not claim coverage of other products, dynamic models, or later catalog changes. References are informational and are not account invoices, entitlements or availability claims. A narrower opt-in set of 16 text-only hosted pairs may provide input/output estimates for recorded timestamps from the captured observation until strictly before 24 hours later. The capture time is `2026-10-28T18:11:32.422Z`; estimates are not backdated and expire after that window. Other route-specific quotes and operator overrides are separate. Unverified used cost components remain `null`, so a known subtotal is not necessarily a complete total.
 
 `node scripts/verify-modelsdev-pricing.mjs --extraction-only` checks the compact extraction's integrity; providing the original captured JSON additionally checks its pinned hash and snapshot coverage. The compact extraction cannot independently establish the full payload's provenance, completeness or estimate eligibility, and a later download of the changing endpoint cannot reproduce the original snapshot by itself.
 
@@ -142,3 +147,31 @@ The DeepSeek time-of-day limitation in the 2026-10-06 record is historical. Curr
 The usage dashboard debounces committed-update events and refetches selected-period statistics and chart data. Retained snapshots keep their original period labels, and failures offer retry. Live request fields stream independently. The original cause of the user's browser issue remains unconfirmed.
 
 Ollama Local speech and embeddings require an active registered connection, with an optional API key. Public speech defaults to WAV, supports PCM and JSON-wrapped WAV, and rejects explicit MP3; listed Phonon tags are selectable, not evidence of installation. The embedding adapter forwards literal IDs. Its discovery shows operator-declared embeddings and recognizable whitelist IDs, not an installed inventory; `enabledModels` filters discovery candidates rather than proving universal request enforcement, and custom declarations and aliases can also appear. Both adapters reject redirects and relay configurations that cannot guarantee redirect refusal. Direct internal `handleTtsCore` calls retain their separate MP3 default and do not forward the public route's voice, cancellation, speed or instructions options; explicit WAV is the tested internal path.
+
+
+### Later complete-registry audit and observation refresh
+
+The [subsequent audit](audit/22-pricing-capability-localization-2026-10.md) records
+all 1,302 registry rows against the pinned official source reconstruction at
+`91395aca0144ed1a54cdd527dc9d7eb682e1e4cd`, rather than reusing the earlier capture.
+It corrects unsupported generic numeric capability defaults and exact-product
+Boolean mismatches while preserving qualified primary-source limits and unknowns.
+
+The fresh pricing observation has 1,411 exact reference IDs across 30 products;
+297 configured rows have a reference. These are coverage counts, not invoice
+proof. The eligibility rules admit 359 public text-token IDs, including dynamic
+catalog entries, rather than promoting subscription, media, conditional or
+quote-only prices into token charges. The row-level audit explicitly records
+481 rows with known input/output rates, 28 with partial rates and 793 without a
+usable token reference; known input/output does not imply that cache, reasoning
+or other incurred components have a price.
+
+The scheduler now validates a complete fresh payload before publishing a
+private immutable observation. It normally attempts refresh every six hours;
+304 responses and failed fetches do not renew the 24-hour estimate window.
+Request timestamps select the applicable whole observation, including prior
+observations for in-flight work. Removed rows cannot fall back to obsolete
+prices after a newer observation applies. Operator overrides and recorded
+history remain separate. The source reconstruction was used because this
+environment's direct API request returned HTTP 403; synthetic refresh tests are not
+live HTTP acceptance evidence.

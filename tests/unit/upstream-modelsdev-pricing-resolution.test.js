@@ -4,7 +4,7 @@ import REGISTRY from "../../open-sse/providers/registry/index.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "../../open-sse/providers/metadata/modelsDevPricingRegistry.js";
 import {
-  getModelsDevPricingReference,
+  getModelsDevPricingReference as readModelsDevPricingReference,
   getModelsDevPricingEstimate,
   MODELS_DEV_PRICING_PRODUCTS,
   MODELS_DEV_PRICING_ESTIMATE_MODELS,
@@ -13,7 +13,10 @@ import {
 } from "../../open-sse/providers/metadata/modelsDevPricing.js";
 
 const model = "nvidia/nemotron-3-super-120b-a12b";
-const snapshotTime = { timestamp: "2026-10-29T12:00:00Z" };
+// Historical extraction contract: events before the next observed source retain
+// the original capture. Current/versioned semantics have dedicated regressions.
+const snapshotTime = { timestamp: "2026-10-29T00:00:00Z" };
+const getModelsDevPricingReference = (provider, id) => readModelsDevPricingReference(provider, id, snapshotTime);
 
 describe("models.dev exact-product pricing references", () => {
   it("keeps the same literal model separate across OpenRouter and Vercel", () => {
@@ -94,7 +97,7 @@ describe("models.dev exact-product pricing references", () => {
     expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-28T18:11:32.421Z" })).toBeNull();
     expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-28T18:11:32.422Z" })).toMatchObject({ input: 0.3 });
     expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-29T18:11:32.421Z" })).toMatchObject({ input: 0.3 });
-    expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-29T18:11:32.422Z" })).toBeNull();
+    expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-29T18:11:32.422Z" }).provenance.sha256).not.toBe(MODELS_DEV_PRICING_SOURCE.sha256);
     expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-29T12:00:00" })).toBeNull();
     expect(getPricingForModel("openrouter", model, { timestamp: "2026-10-29T15:00:00+03:00" })).toMatchObject({ input: 0.3 });
     expect(getModelsDevPricingReference("openrouter", model)).not.toBeNull();

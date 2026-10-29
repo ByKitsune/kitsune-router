@@ -19,18 +19,18 @@ describe("windows corrected against models.dev", () => {
     expect(getCapabilitiesForModel("cohere", "command-a-translate-08-2025").maxOutput).toBe(8000);
   });
 
-  it("keeps Ministral 3 sizes at their current primary 256K window", () => {
-    // The current 3B API page and official weights specify 256K/262144;
-    // models.dev's 131072 context entry is stale for this native route.
-    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512").contextWindow).toBe(262144);
+  it("keeps the API route ceiling distinct from the Ministral architecture window", () => {
+    // The current exact-provider catalog records /v1/models as131072 for3B,
+    // even though the model documentation/weights describe262144.
+    expect(getCapabilitiesForModel("mistral", "ministral-3b-2512").contextWindow).toBe(131072);
     expect(getCapabilitiesForModel("mistral", "ministral-8b-2512").contextWindow).toBe(262144);
     expect(getCapabilitiesForModel("mistral", "ministral-14b-2512").contextWindow).toBe(262144);
   });
 
-  it("uses the current Codestral window for the unversioned id", () => {
-    // Current primary /models/codestral-25-08.md explicitly maps codestral-latest
-    // to codestral-2508 and prints128k. Do not override it with secondary256k.
-    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: 128000, maxOutput: null });
+  it("leaves the changing Codestral alias limit unknown when exact references conflict", () => {
+    // The same provider catalog publishes256k for latest but its declared
+    // Codestral2508 base/reference says128k; neither is a fresh route probe.
+    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: null, maxOutput: null });
   });
 });
 

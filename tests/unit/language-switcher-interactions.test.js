@@ -85,7 +85,7 @@ function fixture({ cookie = "locale=en", initiallyOpen = true } = {}) {
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "lucide-react") return Object.fromEntries(["Languages", "Search", "X", "Check", "ChevronRight", "LoaderCircle"].map((name) => [name, name]));
       if (id === "@/i18n/config") return localeConfig;
-      if (id === "@/i18n/runtime") return { onLocaleChange: () => () => {}, reloadTranslations };
+      if (id === "@/i18n/runtime") return { onLocaleChange: () => () => {}, reloadTranslations, translate: (value) => value };
       if (id === "@/shared/constants/locales") return { ...localeHelpers, readDisplayLocale: () => localeHelpers.readDisplayLocale(cookie) };
       if (id === "./LocaleBadge") return { __esModule: true, default: "LocaleBadge" };
       if (id.endsWith(".css")) return {};

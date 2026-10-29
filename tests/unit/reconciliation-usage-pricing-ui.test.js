@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import * as formatting from "../../src/shared/utils/format.js";
 import * as costs from "../../src/shared/utils/cost.js";
+import { translate } from "../../src/i18n/runtime.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -23,6 +24,7 @@ function component(relativePath, extra = "") {
     module: fixtureModule, exports: fixtureModule.exports, console,
     require(id) {
       if (id === "react") return React;
+      if (id === "@/i18n/runtime") return { translate };
       if (id === "react/jsx-runtime") return require(id);
       if (id === "prop-types") return require(id);
       if (id === "@/shared/utils/format") return formatting;
@@ -39,6 +41,7 @@ function component(relativePath, extra = "") {
 }
 
 const UsageTable = component("../../src/app/(dashboard)/dashboard/usage/components/UsageTable.js").default;
+const UsageCost = component("../../src/shared/components/UsageCost.js").default;
 const OverviewCards = component("../../src/app/(dashboard)/dashboard/usage/components/OverviewCards.js").default;
 // Exercise the existing real aggregation functions without adding test-only
 // exports or reproducing their implementation in a fixture.
@@ -79,6 +82,26 @@ describe("usage costs retain known estimates beside unpriced requests", () => {
     });
     expect(html).toContain("5 unpriced");
     expect(html).toContain("Not specified");
+  });
+
+  it("keeps absent and invalid costs unknown, including available known subtotals", () => {
+    for (const value of [undefined, NaN, Infinity, -1]) {
+      const html = renderToStaticMarkup(React.createElement(UsageCost, { value }));
+      expect(html).toContain("Not specified");
+      expect(html).not.toContain("$0.00");
+    }
+    const subtotal = renderToStaticMarkup(React.createElement(UsageCost, { coverage: { knownCost: 1.75, unknownRequests: 3 } }));
+    expect(subtotal).toContain("$1.75");
+    expect(subtotal).toContain("known subtotal");
+    expect(subtotal).toContain("3 unpriced");
+  });
+
+  it("does not let a numeric legacy summary hide its explicit unpriced coverage", () => {
+    const html = renderToStaticMarkup(React.createElement(UsageCost, { value: 3.5, coverage: { knownCost: 3.5, unknownRequests: 2 } }));
+    expect(html).toContain("$3.50");
+    expect(html).toContain("known subtotal");
+    expect(html).toContain("2 unpriced");
+    expect(html).not.toContain("local estimate");
   });
 
   it("keeps genuine free and sub-cent paid charges visibly different", () => {

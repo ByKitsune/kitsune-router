@@ -1,0 +1,3058 @@
+{
+  "sourceRepository": "https://github.com/decolua/9router",
+  "head": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+  "headDate": "2026-10-28T16:43:56+07:00",
+  "issueQuery": "is:issue created:>=2026-10-01",
+  "issuePages": 12,
+  "issueCount": 295,
+  "scope": "Complete fetched October-created issue title inventory and October commit inventory. Inventory is not a claim that every issue was reproduced or integrated. Selected detailed dispositions are in the dated audit.",
+  "issues": [
+    {
+      "number": 5309,
+      "title": "[Feature] Privacy-safe diagnostic trace: per-request timeline + shareable bundle (allowlist-only, no content, no secrets)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T20:04:00Z",
+      "updatedAt": "2026-10-28T20:04:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5309"
+    },
+    {
+      "number": 5307,
+      "title": "[Bug/Feature] Combo stalls under concurrent sessions until client timeout; add first-token failover and combo-to-combo fallback chain",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T19:47:39Z",
+      "updatedAt": "2026-10-28T19:47:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5307"
+    },
+    {
+      "number": 5303,
+      "title": "[Security] Add SECURITY.md and enable private vulnerability reporting",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T19:39:35Z",
+      "updatedAt": "2026-10-28T19:39:35Z",
+      "permalink": "https://github.com/decolua/9router/issues/5303"
+    },
+    {
+      "number": 5302,
+      "title": "[Feature] Expose the served route in response headers (x-9router-provider / -model / -combo / -attempts)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T19:39:34Z",
+      "updatedAt": "2026-10-28T19:39:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/5302"
+    },
+    {
+      "number": 5300,
+      "title": "[Bug] DeepSeek Web fails on the npm build: open-sse/lib/deepseek-pow-hash.js is missing from the packaged app",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T18:26:37Z",
+      "updatedAt": "2026-10-28T18:26:37Z",
+      "permalink": "https://github.com/decolua/9router/issues/5300"
+    },
+    {
+      "number": 5299,
+      "title": "feat(custom-providers): user-defined response rules - auto-disable an exhausted account instead of retrying it into a ban",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T17:03:14Z",
+      "updatedAt": "2026-10-28T17:04:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5299"
+    },
+    {
+      "number": 5296,
+      "title": "Streaming on codex lane fully buffered until after upstream EOF - client receives whole response ~2s late (v0.5.109)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T15:24:40Z",
+      "updatedAt": "2026-10-28T15:24:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5296"
+    },
+    {
+      "number": 5295,
+      "title": "[Feature/Bug] Automatic background model synchronization for connected providers (OAuth/API) and dynamic /v1/models catalog refresh",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:48:25Z",
+      "updatedAt": "2026-10-28T14:50:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/5295"
+    },
+    {
+      "number": 5294,
+      "title": "HTTP 502: [502]: wreq-js unavailable (Failed to load native module for win32-x64-msvc.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:37:51Z",
+      "updatedAt": "2026-10-29T03:17:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/5294"
+    },
+    {
+      "number": 5291,
+      "title": "[Bug] Tray fails to start on macOS: spawn Unknown system error -86",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T09:47:17Z",
+      "updatedAt": "2026-10-28T09:47:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5291"
+    },
+    {
+      "number": 5287,
+      "title": "Codex provider rejects Antigravity-format requests: \"Invalid schema for function 'send_message'\" / \"response protection is unavailable\" (IN 0 / OUT 0)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T07:47:06Z",
+      "updatedAt": "2026-10-28T08:25:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/5287"
+    },
+    {
+      "number": 5285,
+      "title": "Dashboard \"Enable Observability\" is silently overridden by ENABLE_REQUEST_LOGS env var",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T06:34:53Z",
+      "updatedAt": "2026-10-28T06:34:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5285"
+    },
+    {
+      "number": 5282,
+      "title": "opencode HTTP 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T03:37:05Z",
+      "updatedAt": "2026-10-28T06:37:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5282"
+    },
+    {
+      "number": 5281,
+      "title": "Bug: Kiro AI OAuth connections frequently failed: Token expired and refresh failed",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T01:56:30Z",
+      "updatedAt": "2026-10-28T17:24:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/5281"
+    },
+    {
+      "number": 5278,
+      "title": "[Bug] Copilot context overflow becomes generic bad_request, blocking Codex Responses recovery",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T20:36:28Z",
+      "updatedAt": "2026-10-28T00:58:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/5278"
+    },
+    {
+      "number": 5275,
+      "title": "[Bug] OpenCode Free via proxy pool bypasses wreq-js TLS impersonation (native fetch) — still 429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T16:02:27Z",
+      "updatedAt": "2026-10-29T05:09:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/5275"
+    },
+    {
+      "number": 5273,
+      "title": "Opencode Fix 502/429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T15:50:13Z",
+      "updatedAt": "2026-10-27T20:55:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5273"
+    },
+    {
+      "number": 5270,
+      "title": "MITM Not Working in Mac Sequoia",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T14:15:37Z",
+      "updatedAt": "2026-10-27T14:15:37Z",
+      "permalink": "https://github.com/decolua/9router/issues/5270"
+    },
+    {
+      "number": 5268,
+      "title": "`/v1/models` advertises `maxOutput: 384000` for `cmc/*` models but chat endpoint rejects `max_tokens > 200000`",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T10:06:42Z",
+      "updatedAt": "2026-10-28T19:39:22Z",
+      "permalink": "https://github.com/decolua/9router/issues/5268"
+    },
+    {
+      "number": 5262,
+      "title": "Add native OpenAI Responses API support",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T02:53:50Z",
+      "updatedAt": "2026-10-27T11:30:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/5262"
+    },
+    {
+      "number": 5259,
+      "title": "proxy/relay error",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T01:01:06Z",
+      "updatedAt": "2026-10-27T01:01:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/5259"
+    },
+    {
+      "number": 5253,
+      "title": "Identify errors that could lead to a 429 status code on OpenCode",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T16:05:11Z",
+      "updatedAt": "2026-10-26T16:55:22Z",
+      "permalink": "https://github.com/decolua/9router/issues/5253"
+    },
+    {
+      "number": 5252,
+      "title": "[Bug] Patch applied via ExecStartPre dies on upgrade: server chunk 8499.js was renamed to 2380.js in 0.5.111",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T13:51:04Z",
+      "updatedAt": "2026-10-26T13:51:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/5252"
+    },
+    {
+      "number": 5249,
+      "title": "Non-streaming path returns HTTP 200 for SSE error chunks (missing parsed.error check in nonStreamingHandler)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T13:29:37Z",
+      "updatedAt": "2026-10-27T00:14:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5249"
+    },
+    {
+      "number": 5245,
+      "title": "[Bug] OpenCode Free fails with HTTP 502 — wreq-js unavailable (resolve is undefined)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-26T11:42:49Z",
+      "updatedAt": "2026-10-28T09:44:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/5245"
+    },
+    {
+      "number": 5243,
+      "title": "Opencode still not working",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T09:39:34Z",
+      "updatedAt": "2026-10-27T05:28:16Z",
+      "permalink": "https://github.com/decolua/9router/issues/5243"
+    },
+    {
+      "number": 5242,
+      "title": "PicoClaw issues using 9Router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T09:15:55Z",
+      "updatedAt": "2026-10-26T09:15:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/5242"
+    },
+    {
+      "number": 5236,
+      "title": "Bug: Thinking content always empty for claude-opus-5-5 (cc/ lane) — thinking.display dropped for thinkingCanDisable:false models",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T08:34:17Z",
+      "updatedAt": "2026-10-26T08:34:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5236"
+    },
+    {
+      "number": 5232,
+      "title": "Notice: Independent AI-assisted report published for decolua/9router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T02:53:21Z",
+      "updatedAt": "2026-10-26T02:53:21Z",
+      "permalink": "https://github.com/decolua/9router/issues/5232"
+    },
+    {
+      "number": 5228,
+      "title": "Codebuddy Error",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T01:28:33Z",
+      "updatedAt": "2026-10-26T01:28:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/5228"
+    },
+    {
+      "number": 5227,
+      "title": "Tailscale can not be enabled",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-26T00:54:24Z",
+      "updatedAt": "2026-10-26T07:50:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5227"
+    },
+    {
+      "number": 5224,
+      "title": "codebuddy-intl",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T19:24:06Z",
+      "updatedAt": "2026-10-25T19:24:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/5224"
+    },
+    {
+      "number": 5218,
+      "title": "OpenCode Fix 429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T15:47:03Z",
+      "updatedAt": "2026-10-27T16:15:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5218"
+    },
+    {
+      "number": 5216,
+      "title": "feat(token-saver): optional compression of tool schemas and repeated content across turns",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T13:16:32Z",
+      "updatedAt": "2026-10-25T13:16:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/5216"
+    },
+    {
+      "number": 5215,
+      "title": "feat(combos): session stickiness for fallback and round-robin combos (prompt-cache retention)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T13:16:31Z",
+      "updatedAt": "2026-10-29T03:53:44Z",
+      "permalink": "https://github.com/decolua/9router/issues/5215"
+    },
+    {
+      "number": 5214,
+      "title": "feat(combos): advance to the next member when the first token does not arrive in time",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T13:16:30Z",
+      "updatedAt": "2026-10-25T13:16:30Z",
+      "permalink": "https://github.com/decolua/9router/issues/5214"
+    },
+    {
+      "number": 5205,
+      "title": "Free usage limit reached. Subscribe to OpenCode Go to keep going: https://opencode.ai/go",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T07:26:07Z",
+      "updatedAt": "2026-10-25T18:06:10Z",
+      "permalink": "https://github.com/decolua/9router/issues/5205"
+    },
+    {
+      "number": 5202,
+      "title": "[Feature Request] Custom routing instructions per combo for Smart Router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T23:03:23Z",
+      "updatedAt": "2026-10-25T10:01:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/5202"
+    },
+    {
+      "number": 5201,
+      "title": "[Bug] DeepSeek Web \"Login via Browser\" fails on the npm build: Cannot read properties of undefined (reading resolve)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T20:54:58Z",
+      "updatedAt": "2026-10-24T20:55:35Z",
+      "permalink": "https://github.com/decolua/9router/issues/5201"
+    },
+    {
+      "number": 5196,
+      "title": "env variables",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T17:06:45Z",
+      "updatedAt": "2026-10-24T17:06:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/5196"
+    },
+    {
+      "number": 5195,
+      "title": "Provider configuration file import/ export",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T17:05:58Z",
+      "updatedAt": "2026-10-24T17:05:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/5195"
+    },
+    {
+      "number": 5190,
+      "title": "[Bug] Image-to-Image (img2img) flow silently drops reference image URLs and lacks /v1/images/edits endpoint",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:31:03Z",
+      "updatedAt": "2026-10-24T14:31:03Z",
+      "permalink": "https://github.com/decolua/9router/issues/5190"
+    },
+    {
+      "number": 5188,
+      "title": "Client disconnect not seen before streaming starts: upstream keeps running, late errors fall back",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:18:40Z",
+      "updatedAt": "2026-10-28T19:39:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/5188"
+    },
+    {
+      "number": 5187,
+      "title": "Combo empty-content peek re-runs thinking-only answers, hides stream errors, holds headers up to 45 s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:18:19Z",
+      "updatedAt": "2026-10-24T14:18:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/5187"
+    },
+    {
+      "number": 5186,
+      "title": "GPT-5.6 / GPT-6 on OpenAI Compatible nodes: effort \"max\" is silently sent as \"xhigh\"",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-24T14:17:58Z",
+      "updatedAt": "2026-10-26T09:13:59Z",
+      "permalink": "https://github.com/decolua/9router/issues/5186"
+    },
+    {
+      "number": 5185,
+      "title": "Claude clients get upstream failures as successful answers on translated Responses routes",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:17:38Z",
+      "updatedAt": "2026-10-24T14:17:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/5185"
+    },
+    {
+      "number": 5184,
+      "title": "Claude Code passthrough drops redacted_thinking and blank-text thinking (not covered by #5129)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:17:17Z",
+      "updatedAt": "2026-10-24T14:17:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5184"
+    },
+    {
+      "number": 5183,
+      "title": "Claude passthrough rewrites Haiku 5.5 adaptive thinking to \"enabled\" → 400 from the Anthropic API",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-24T14:16:56Z",
+      "updatedAt": "2026-10-26T09:13:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/5183"
+    },
+    {
+      "number": 5177,
+      "title": "Bug Report: Severe Latency Overhead when Routing via MITM / 9router Compared to Direct Path",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T13:49:53Z",
+      "updatedAt": "2026-10-24T13:49:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5177"
+    },
+    {
+      "number": 5173,
+      "title": "[Bug] Claude / Anthropic endpoints fail with HTTP 400 \"reasoning_effort: Extra inputs are not permitted\" when providerThinking is enabled",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T12:56:45Z",
+      "updatedAt": "2026-10-24T12:56:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/5173"
+    },
+    {
+      "number": 5171,
+      "title": "[Bug] normalizeThinkingConfig drops the `thinking` object on OpenAI tool-result turns (reasoning_effort unaffected)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T12:40:19Z",
+      "updatedAt": "2026-10-28T19:39:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/5171"
+    },
+    {
+      "number": 5170,
+      "title": "[Bug] Claude OAuth tool cloaking causes double-suffix loop (_ide_ide) across multi-turn sessions",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T12:39:51Z",
+      "updatedAt": "2026-10-28T19:39:10Z",
+      "permalink": "https://github.com/decolua/9router/issues/5170"
+    },
+    {
+      "number": 5169,
+      "title": "Live routing ignores valid Atria provider credentials (observed on v0.5.104)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T11:38:09Z",
+      "updatedAt": "2026-10-24T11:38:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/5169"
+    },
+    {
+      "number": 5149,
+      "title": "[Bug] Do not test OpenCode Free in Dashboard",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T20:29:47Z",
+      "updatedAt": "2026-10-24T09:22:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/5149"
+    },
+    {
+      "number": 5144,
+      "title": "[FEATURE REQUEST] Disable selected button in provider dashboard",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T18:24:47Z",
+      "updatedAt": "2026-10-24T17:03:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/5144"
+    },
+    {
+      "number": 5143,
+      "title": "fix(codebuddy-intl): HTTP 400 Code 11128 \"request illegal\" due to failed channel verification",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T18:09:23Z",
+      "updatedAt": "2026-10-24T03:14:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/5143"
+    },
+    {
+      "number": 5142,
+      "title": "fix(codebuddy-intl): HTTP 400 Code 11128 \"request illegal\" due to failed channel verification",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T18:04:16Z",
+      "updatedAt": "2026-10-25T08:30:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/5142"
+    },
+    {
+      "number": 5139,
+      "title": "[Bug] DeepSeek provider forwards response_format json_schema → HTTP 400 \"This response_format type is unavailable now\"",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T17:19:24Z",
+      "updatedAt": "2026-10-28T19:51:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/5139"
+    },
+    {
+      "number": 5138,
+      "title": "Fix HTTP 429: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T16:37:49Z",
+      "updatedAt": "2026-10-24T02:12:56Z",
+      "permalink": "https://github.com/decolua/9router/issues/5138"
+    },
+    {
+      "number": 5137,
+      "title": "ollama-local: response content dropped & usage reported as 2000/0 (non-stream)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T15:54:15Z",
+      "updatedAt": "2026-10-24T13:20:29Z",
+      "permalink": "https://github.com/decolua/9router/issues/5137"
+    },
+    {
+      "number": 5136,
+      "title": "Error 404 from NVIDIA",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T15:49:12Z",
+      "updatedAt": "2026-10-25T02:58:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/5136"
+    },
+    {
+      "number": 5128,
+      "title": "Have any body got this error HTTP 429: [429]: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T09:08:48Z",
+      "updatedAt": "2026-10-26T09:40:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/5128"
+    },
+    {
+      "number": 5126,
+      "title": "Vision Adapter cannot be used in Codex.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T06:30:35Z",
+      "updatedAt": "2026-10-23T06:33:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/5126"
+    },
+    {
+      "number": 5125,
+      "title": "bug(translator): image_url in OpenAI tool messages not converted for Claude, 400 \"Input tag 'image_url' ... does not match\"",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T06:16:20Z",
+      "updatedAt": "2026-10-26T11:08:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/5125"
+    },
+    {
+      "number": 5120,
+      "title": "[Bug] HTTP 503 Cline",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T20:31:30Z",
+      "updatedAt": "2026-10-24T14:12:13Z",
+      "permalink": "https://github.com/decolua/9router/issues/5120"
+    },
+    {
+      "number": 5119,
+      "title": "Ponytail prompt is frozen at v1.0.0 (v0.5.6) — measured against v5.3.2, plus the override that stops it rotting",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-22T20:23:30Z",
+      "updatedAt": "2026-10-24T14:27:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/5119"
+    },
+    {
+      "number": 5114,
+      "title": "[Bug / Investigation] Kiro cache usage is never reported; verify Claude Code session affinity and upstream conversation IDs",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T16:34:09Z",
+      "updatedAt": "2026-10-22T16:36:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/5114"
+    },
+    {
+      "number": 5113,
+      "title": "[Bug] Fix the default initial password in docker image",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T14:26:57Z",
+      "updatedAt": "2026-10-22T14:26:57Z",
+      "permalink": "https://github.com/decolua/9router/issues/5113"
+    },
+    {
+      "number": 5112,
+      "title": "Add controls for thinking modes and model API parameters",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T12:36:09Z",
+      "updatedAt": "2026-10-22T12:36:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/5112"
+    },
+    {
+      "number": 5111,
+      "title": "在代理池添加socks5超时，怎么处理",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T09:59:25Z",
+      "updatedAt": "2026-10-22T09:59:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5111"
+    },
+    {
+      "number": 5108,
+      "title": "[Bug] thinkingFormat: \"deepseek\" drops the client's budget_tokens and emits thinking:{type:\"enabled\"} → 400 on strict OpenAI-compatible upstreams",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T07:44:07Z",
+      "updatedAt": "2026-10-28T19:39:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5108"
+    },
+    {
+      "number": 5107,
+      "title": "OpenCode Issue",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-22T06:37:43Z",
+      "updatedAt": "2026-10-25T11:12:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5107"
+    },
+    {
+      "number": 5097,
+      "title": "[Bug] oc/deepseek-v4.1-flash-free publishes context_length 1000000 but the backend rejects above ~330K tokens; body-size cap is misreported as context_length_exceeded",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T17:31:47Z",
+      "updatedAt": "2026-10-29T04:22:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/5097"
+    },
+    {
+      "number": 5083,
+      "title": "[Feature] \"fastest\" combo strategy: order combo models by measured tokens/s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T12:13:46Z",
+      "updatedAt": "2026-10-21T12:13:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5083"
+    },
+    {
+      "number": 5081,
+      "title": "GPT/Codex requests fail in Antigravity: `\"1\" is not of type \"integer\"` in tool schemas",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T10:59:00Z",
+      "updatedAt": "2026-10-21T10:59:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5081"
+    },
+    {
+      "number": 5080,
+      "title": "OpenCode FreeUsageLimitError, Rate limit exceeded. Please try again later",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T10:40:25Z",
+      "updatedAt": "2026-10-23T16:48:03Z",
+      "permalink": "https://github.com/decolua/9router/issues/5080"
+    },
+    {
+      "number": 5078,
+      "title": "opencode has more models...",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T09:55:00Z",
+      "updatedAt": "2026-10-21T09:55:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5078"
+    },
+    {
+      "number": 5076,
+      "title": "Cursor rejects a second account on one machine ID with an empty AgentService turn",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T09:34:14Z",
+      "updatedAt": "2026-10-21T09:34:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/5076"
+    },
+    {
+      "number": 5074,
+      "title": "feat(stt): support Codex OAuth audio transcription",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T09:14:02Z",
+      "updatedAt": "2026-10-21T09:14:44Z",
+      "permalink": "https://github.com/decolua/9router/issues/5074"
+    },
+    {
+      "number": 5072,
+      "title": "feat(usage): Cursor Quota Tracker — per-model API tokens and billed cost",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T08:50:54Z",
+      "updatedAt": "2026-10-21T08:51:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/5072"
+    },
+    {
+      "number": 5068,
+      "title": "Cursor AgentService returns empty turns for OpenAI cu/* chat completions",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T06:23:57Z",
+      "updatedAt": "2026-10-21T06:33:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/5068"
+    },
+    {
+      "number": 5065,
+      "title": "OpenCodeGo  gemini-4-argon-contributor Not support",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T02:00:47Z",
+      "updatedAt": "2026-10-21T02:00:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/5065"
+    },
+    {
+      "number": 5061,
+      "title": "[auth] Login bằng sso chưa có cơ chế white list cho phép truy cập kết nối google login thì email nào cũng đăng nhập được",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-20T07:54:25Z",
+      "updatedAt": "2026-10-20T07:54:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5061"
+    },
+    {
+      "number": 5059,
+      "title": "是不让调用api吗？",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-20T04:28:14Z",
+      "updatedAt": "2026-10-20T04:28:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/5059"
+    },
+    {
+      "number": 5056,
+      "title": "[Bug] usageHistory over-reports input tokens: the request-body estimate wins the max-merge over the provider's authoritative usage",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-20T00:26:19Z",
+      "updatedAt": "2026-10-20T00:26:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/5056"
+    },
+    {
+      "number": 5052,
+      "title": "KEY1",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T23:38:32Z",
+      "updatedAt": "2026-10-21T09:28:13Z",
+      "permalink": "https://github.com/decolua/9router/issues/5052"
+    },
+    {
+      "number": 5047,
+      "title": "[Bug] capabilities.maxOutput is Math.max over combo seats while max_completion_tokens is Math.min — same combo publishes 524k and 32k",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-19T20:31:31Z",
+      "updatedAt": "2026-10-20T09:44:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/5047"
+    },
+    {
+      "number": 5045,
+      "title": "Expose capability provenance in /api/models (catalog vs pattern pin vs default)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T19:40:49Z",
+      "updatedAt": "2026-10-23T05:58:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/5045"
+    },
+    {
+      "number": 5043,
+      "title": "bug antigravity argon",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T17:14:37Z",
+      "updatedAt": "2026-10-26T12:23:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/5043"
+    },
+    {
+      "number": 5041,
+      "title": "[BUG] codebuddy-intl: all requests refused with 400 (11128) — independent verification + a second upstream gate",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T15:18:34Z",
+      "updatedAt": "2026-10-19T15:18:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/5041"
+    },
+    {
+      "number": 5036,
+      "title": "Claude prompt cache: the conversation tail (and final tool results) should use ttl \"1h\", not the default 5m",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T14:40:39Z",
+      "updatedAt": "2026-10-24T14:19:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5036"
+    },
+    {
+      "number": 5035,
+      "title": "create Agent or Asistent page within 9route",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T13:30:21Z",
+      "updatedAt": "2026-10-19T13:30:21Z",
+      "permalink": "https://github.com/decolua/9router/issues/5035"
+    },
+    {
+      "number": 5034,
+      "title": "Kiro 限速问题",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T12:16:31Z",
+      "updatedAt": "2026-10-19T12:16:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/5034"
+    },
+    {
+      "number": 5033,
+      "title": "opencode detected abusive traffic from this IP address.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T11:17:05Z",
+      "updatedAt": "2026-10-20T14:36:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5033"
+    },
+    {
+      "number": 5031,
+      "title": "[Bug] Codex combo presets publish stale 272k context window",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-19T10:14:07Z",
+      "updatedAt": "2026-10-19T10:26:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/5031"
+    },
+    {
+      "number": 5030,
+      "title": "`/v1/chat/completions` streaming to Claude: response usage omits `prompt_tokens_details.cached_tokens` although the upstream request was cached (usageHistory records it)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T10:12:42Z",
+      "updatedAt": "2026-10-19T10:12:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/5030"
+    },
+    {
+      "number": 5027,
+      "title": "OpenCode 免费模型检测到该 IP 地址存在滥用流量",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T07:32:06Z",
+      "updatedAt": "2026-10-19T18:20:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/5027"
+    },
+    {
+      "number": 5025,
+      "title": "[Bug] Quota Tracker shows \"No usage limits reported\" for Ollama Cloud — no quota displayed",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T04:33:17Z",
+      "updatedAt": "2026-10-24T14:14:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5025"
+    },
+    {
+      "number": 5024,
+      "title": "accountFallback: codebuddy-intl 400 code 11128 hits the unmatched-4xx catch-all (cooldownMs: 0) — WAF block never expires",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-19T03:42:46Z",
+      "updatedAt": "2026-10-22T02:10:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/5024"
+    },
+    {
+      "number": 5018,
+      "title": "Codex zstd-compressed Responses requests fail with Invalid JSON body",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T23:13:05Z",
+      "updatedAt": "2026-10-18T23:13:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/5018"
+    },
+    {
+      "number": 5016,
+      "title": "Provider \"opencode\" forwards invalid \"thinking\" field to OpenAI endpoint causing HTTP 400 unknown field \"thinking\" on GLM models",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T17:36:36Z",
+      "updatedAt": "2026-10-21T09:15:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/5016"
+    },
+    {
+      "number": 5014,
+      "title": "It says api key can only be viewed once, and then you can just press the eye to see it again",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T16:28:34Z",
+      "updatedAt": "2026-10-18T16:28:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/5014"
+    },
+    {
+      "number": 5013,
+      "title": "cli-tools/pi-settings: POST fails with \"existingProvider is not defined\" (undeclared variable in shipped 0.5.104 bundle)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T16:25:14Z",
+      "updatedAt": "2026-10-24T14:11:37Z",
+      "permalink": "https://github.com/decolua/9router/issues/5013"
+    },
+    {
+      "number": 5012,
+      "title": "OpenCode Free Model Gateway Detect Abuse Traffic",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T13:29:59Z",
+      "updatedAt": "2026-10-19T07:40:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5012"
+    },
+    {
+      "number": 5011,
+      "title": "Tool shell incorrectly renamed to shell_client on Windows causing OpenCode error: \"No tool named 'shell_client'\"",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T13:10:36Z",
+      "updatedAt": "2026-10-19T14:44:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/5011"
+    },
+    {
+      "number": 5007,
+      "title": "Model search: /regex/g patterns intermittently drop matching models (lastIndex state)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-18T09:20:44Z",
+      "updatedAt": "2026-10-24T15:14:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/5007"
+    },
+    {
+      "number": 5005,
+      "title": "CodeBuddy Intl: HTTP 400 code 11128 — channel verification requires X-Conversation-* header family since 2026-10-15",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T08:40:22Z",
+      "updatedAt": "2026-10-25T14:59:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/5005"
+    },
+    {
+      "number": 5002,
+      "title": "OpenCode Free Unable to Use",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T03:44:34Z",
+      "updatedAt": "2026-10-18T16:07:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5002"
+    },
+    {
+      "number": 5001,
+      "title": "CodeBuddy - msg\":\"request illegal",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T02:05:11Z",
+      "updatedAt": "2026-10-18T06:39:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5001"
+    },
+    {
+      "number": 5000,
+      "title": "bug gemni?",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-18T01:34:09Z",
+      "updatedAt": "2026-10-18T01:34:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/5000"
+    },
+    {
+      "number": 4997,
+      "title": "Opencode Free cant connect when i enable proxy",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T19:28:54Z",
+      "updatedAt": "2026-10-18T01:33:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/4997"
+    },
+    {
+      "number": 4995,
+      "title": "qoder-cn: system prompt is ignored upstream (breaks Codex auto-review)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T17:43:43Z",
+      "updatedAt": "2026-10-24T14:18:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/4995"
+    },
+    {
+      "number": 4994,
+      "title": "response-side alias restore for `shell_client` is per-request flaky (~73% of calls fail); persists across OpenCode 2.0.31→2.0.32 upgrade + full service restart",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T17:23:45Z",
+      "updatedAt": "2026-10-17T17:23:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4994"
+    },
+    {
+      "number": 4993,
+      "title": "opencode is sad again - cat and mouse series episode 1274",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T14:17:03Z",
+      "updatedAt": "2026-10-18T03:41:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4993"
+    },
+    {
+      "number": 4992,
+      "title": "[Bug] Passthrough forwards a delta.tool_calls fragment that opens a new index without an id — breaks @ai-sdk/openai-compatible clients",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-17T13:22:02Z",
+      "updatedAt": "2026-10-25T04:26:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4992"
+    },
+    {
+      "number": 4990,
+      "title": "[Bug] Vision images silently stripped for custom models whose name misses heuristics (e.g. *-EXL3), user vision toggle ignored",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T12:48:32Z",
+      "updatedAt": "2026-10-24T14:18:13Z",
+      "permalink": "https://github.com/decolua/9router/issues/4990"
+    },
+    {
+      "number": 4986,
+      "title": "opencode free tier: aliased caller tool (read → read_client) is never restored on openai→openai streaming passthrough",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T11:15:12Z",
+      "updatedAt": "2026-10-24T14:11:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4986"
+    },
+    {
+      "number": 4985,
+      "title": "oc/glm-5.3-flash-free returns HTTP 400: upstream rejects injected thinking field",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T08:17:19Z",
+      "updatedAt": "2026-10-24T16:54:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/4985"
+    },
+    {
+      "number": 4983,
+      "title": "Two days later, OpenCode Zen has adjusted its policy again, and the latest version 5104 has returned to 403",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T06:29:58Z",
+      "updatedAt": "2026-10-20T07:39:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/4983"
+    },
+    {
+      "number": 4980,
+      "title": "Opencode Stream Errror",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T05:20:40Z",
+      "updatedAt": "2026-10-17T05:20:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4980"
+    },
+    {
+      "number": 4979,
+      "title": "Antigravity 403",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-17T03:28:25Z",
+      "updatedAt": "2026-10-24T17:25:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/4979"
+    },
+    {
+      "number": 4974,
+      "title": "Cli",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-16T18:27:21Z",
+      "updatedAt": "2026-10-21T19:00:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/4974"
+    },
+    {
+      "number": 4971,
+      "title": "opencode free tier: fingerprint pass renames the caller's `shell` to `shell_client` and leaks a placeholder note, because the captured definition is Linux-only",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T17:20:05Z",
+      "updatedAt": "2026-10-19T19:46:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/4971"
+    },
+    {
+      "number": 4964,
+      "title": "--skip-update still prints the 'New version available' notice",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T14:15:23Z",
+      "updatedAt": "2026-10-16T14:15:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/4964"
+    },
+    {
+      "number": 4963,
+      "title": "v0.5.104 packaging defect: quotaAutoPing.js imports ./quotaPingSchedule — missing from the published tarball",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T14:15:21Z",
+      "updatedAt": "2026-10-24T13:20:30Z",
+      "permalink": "https://github.com/decolua/9router/issues/4963"
+    },
+    {
+      "number": 4962,
+      "title": "Opencode Stream Errror",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T13:31:23Z",
+      "updatedAt": "2026-10-16T14:10:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/4962"
+    },
+    {
+      "number": 4961,
+      "title": "[Enhancement] Strengthen native Qwen / Alibaba Studio integration: workspace endpoints, quota-only safety, model capabilities and multi-connection routing",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T12:40:01Z",
+      "updatedAt": "2026-10-16T12:40:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/4961"
+    },
+    {
+      "number": 4952,
+      "title": "[Security] SSRF in POST /api/oauth/gitlab/pat — client baseUrl fetched without a guard (internal response body reflected)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T11:09:45Z",
+      "updatedAt": "2026-10-16T11:09:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4952"
+    },
+    {
+      "number": 4950,
+      "title": "gh/ embeddings: bare string input returns 400, array input works",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T10:50:45Z",
+      "updatedAt": "2026-10-16T10:50:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4950"
+    },
+    {
+      "number": 4946,
+      "title": "codebuddy国际版反代报错【这次调用没通过渠道校验，可能不是官方客户端发出的。请用官方版本重新发送】",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T08:04:10Z",
+      "updatedAt": "2026-10-16T08:11:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/4946"
+    },
+    {
+      "number": 4941,
+      "title": "*step-* pattern pin caps every Step-5 route at 128k context",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T05:37:38Z",
+      "updatedAt": "2026-10-19T19:39:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4941"
+    },
+    {
+      "number": 4940,
+      "title": "ds/deepseek-v4.1-flash fails: DeepSeek API rejects the model name, only \"deepseek-flash\" is accepted",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-16T04:44:31Z",
+      "updatedAt": "2026-10-26T09:14:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/4940"
+    },
+    {
+      "number": 4939,
+      "title": "ds/deepseek-v4.1-flash fails: DeepSeek API rejects the model name, only \"deepseek-flash\" is accepted",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-16T04:42:42Z",
+      "updatedAt": "2026-10-16T04:43:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4939"
+    },
+    {
+      "number": 4936,
+      "title": "Unsupported parameter Providers Azure OpenAI",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T03:57:25Z",
+      "updatedAt": "2026-10-16T03:57:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/4936"
+    },
+    {
+      "number": 4931,
+      "title": "[Bug] Silent thinking-effort downgrade: (max) is clamped to high for step-* models without any notice",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T00:57:42Z",
+      "updatedAt": "2026-10-21T00:03:16Z",
+      "permalink": "https://github.com/decolua/9router/issues/4931"
+    },
+    {
+      "number": 4921,
+      "title": "Quota Tracker: provider order cannot be changed — `priority` is a per-provider rank, so every provider ties at 1 and the alphabetical tiebreak pins one provider to the top",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T19:12:05Z",
+      "updatedAt": "2026-10-15T19:12:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/4921"
+    },
+    {
+      "number": 4919,
+      "title": "[Observability Bug] Synchronous Table Count & Deletion Inside SQLite Write Batch Locks Event Loop Under Load",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:19:01Z",
+      "updatedAt": "2026-10-24T11:31:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4919"
+    },
+    {
+      "number": 4918,
+      "title": "[Protocol Bug] Tool Call Index and ID Desynchronization in OpenAI-to-Anthropic Streaming Breaks Client-Side Agents",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:18:46Z",
+      "updatedAt": "2026-10-20T09:48:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4918"
+    },
+    {
+      "number": 4917,
+      "title": "[Data Corruption Bug] Unescaped Null Bytes (\\u0000) in Prompts and Tool Outputs Crash better-sqlite3 Driver",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:18:31Z",
+      "updatedAt": "2026-10-24T10:58:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/4917"
+    },
+    {
+      "number": 4916,
+      "title": "[Interop Bug] Leaking Unsupported Reasoning Parameters (reasoning_effort, thinking) to Standard Models Triggers Upstream 400 Bad Request",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:18:17Z",
+      "updatedAt": "2026-10-20T09:47:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4916"
+    },
+    {
+      "number": 4915,
+      "title": "[Data Integrity Bug] Deleting Provider Connection Leaves Orphaned Models in Combos Causing Unhandled 500 Crashes",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:18:05Z",
+      "updatedAt": "2026-10-28T19:39:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/4915"
+    },
+    {
+      "number": 4914,
+      "title": "[Cost & Latency Bug] Arbitrary 500ms Delay in Stream Disconnect Handler Leaks Upstream Tokens and Socket Descriptors",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:17:50Z",
+      "updatedAt": "2026-10-28T19:39:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4914"
+    },
+    {
+      "number": 4913,
+      "title": "[Performance Bug] Missing Index on usageHistory(apiKey) Causes Severe SQLite Full-Table Scans on Key-Scoped Queries",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:17:35Z",
+      "updatedAt": "2026-10-24T10:58:22Z",
+      "permalink": "https://github.com/decolua/9router/issues/4913"
+    },
+    {
+      "number": 4912,
+      "title": "[State Bug] Combo Round-Robin State Stored in Ephemeral Memory Map (comboRotationState) Loses Rotation on Restarts & Multi-Process Clusters",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:17:19Z",
+      "updatedAt": "2026-10-15T18:17:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/4912"
+    },
+    {
+      "number": 4911,
+      "title": "[Resilience Bug] Combo Fallback Aborts Prematurely on HTTP 408 (Request Timeout) and 499 (Client Closed Request)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:17:04Z",
+      "updatedAt": "2026-10-24T00:36:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/4911"
+    },
+    {
+      "number": 4910,
+      "title": "[Critical Bug] Race Condition & Thundering Herd in Proactive OAuth Token Refresh Destroys Active Accounts on Token Rotation",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:16:50Z",
+      "updatedAt": "2026-10-24T00:43:08Z",
+      "permalink": "https://github.com/decolua/9router/issues/4910"
+    },
+    {
+      "number": 4909,
+      "title": "[Security] Per-Key CORS Origin Restrictions to Prevent API Key Exfiltration in Browser-Based Apps",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:10:01Z",
+      "updatedAt": "2026-10-24T13:53:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/4909"
+    },
+    {
+      "number": 4908,
+      "title": "[Resilience] Production Circuit Breaker: Automatic State Transition (Closed -> Open -> Half-Open) on Cascading Upstream 5xx Failures",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:09:48Z",
+      "updatedAt": "2026-10-24T13:53:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4908"
+    },
+    {
+      "number": 4907,
+      "title": "[Security & Compliance] Automated PII & Secret Redaction in Request Logs + Configurable Database Retention TTL",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:09:31Z",
+      "updatedAt": "2026-10-24T13:53:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/4907"
+    },
+    {
+      "number": 4906,
+      "title": "[Protocol Interop] Bidirectional Google Gemini API Adapter (Native Support for Google GenAI SDK & Vertex AI Clients)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:09:14Z",
+      "updatedAt": "2026-10-24T13:53:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/4906"
+    },
+    {
+      "number": 4905,
+      "title": "[Cost Guard] Spend & Token Quota Limits per API Key (Daily/Monthly Budget Caps with HTTP 429 Hard-Stop)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:09:01Z",
+      "updatedAt": "2026-10-24T13:52:57Z",
+      "permalink": "https://github.com/decolua/9router/issues/4905"
+    },
+    {
+      "number": 4904,
+      "title": "[DevOps / GitOps] Headless Declarative Configuration: Bi-Directional Export/Import of Combos, Providers & Keys via YAML",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:08:43Z",
+      "updatedAt": "2026-10-24T13:52:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/4904"
+    },
+    {
+      "number": 4903,
+      "title": "[Agent Stability] Streaming Tool-Call Aggregator & Real-Time JSON Auto-Repair for Autonomous Agent Workflows",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:08:28Z",
+      "updatedAt": "2026-10-24T13:52:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/4903"
+    },
+    {
+      "number": 4902,
+      "title": "[Architecture Proposal] Automatic Model Capability Detection (Vision, Tool-Calling, Structured Outputs) to Prevent Runtime 400 Errors",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:07:38Z",
+      "updatedAt": "2026-10-24T13:52:51Z",
+      "permalink": "https://github.com/decolua/9router/issues/4902"
+    },
+    {
+      "number": 4901,
+      "title": "[Reliability] Synthetic SSE Keep-Alive Comments (': ping') to Prevent Cloudflare/Nginx 524 Gateway Timeouts During Model Cold Starts",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:07:21Z",
+      "updatedAt": "2026-10-24T13:52:30Z",
+      "permalink": "https://github.com/decolua/9router/issues/4901"
+    },
+    {
+      "number": 4900,
+      "title": "[Feature Request] Weighted Load Balancing & Percentage-Based Traffic Splitting in Combos",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:07:05Z",
+      "updatedAt": "2026-10-24T13:52:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/4900"
+    },
+    {
+      "number": 4899,
+      "title": "[High-Traffic Performance] Decouple Telemetry/Request Logging from Core DB via In-Memory Ring Buffer & Async Batch Writer (Fix SQLITE_BUSY)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:04:27Z",
+      "updatedAt": "2026-10-24T13:52:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/4899"
+    },
+    {
+      "number": 4898,
+      "title": "[Security & UX] \"Probe-on-Save\" Provider Key Validation & Auto-Exclusion of Inactive/Broken Providers from Combo Builder",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:04:07Z",
+      "updatedAt": "2026-10-24T13:52:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/4898"
+    },
+    {
+      "number": 4897,
+      "title": "[Reliability] Automated 429 Rate-Limit Recovery: Honor Upstream 'Retry-After' Header & Implement Jittered Backoff",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:03:47Z",
+      "updatedAt": "2026-10-24T13:52:44Z",
+      "permalink": "https://github.com/decolua/9router/issues/4897"
+    },
+    {
+      "number": 4896,
+      "title": "[Architecture Proposal] Universal Reasoning & Thinking Protocol Interop (Cross-Translate <think>, reasoning_content, and Anthropic thinking Blocks)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:03:29Z",
+      "updatedAt": "2026-10-24T13:52:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/4896"
+    },
+    {
+      "number": 4895,
+      "title": "[RFC / Feature Request] Fast Per-Node TTFT SLA & First-Token Watchdog for Instant Combo Failover",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:03:08Z",
+      "updatedAt": "2026-10-24T13:52:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4895"
+    },
+    {
+      "number": 4894,
+      "title": "[Feature Request] Proxy Pool Deletion: Report Bound Connections in 409 & Support Force/Cascade Unbind",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T17:54:30Z",
+      "updatedAt": "2026-10-24T13:52:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4894"
+    },
+    {
+      "number": 4893,
+      "title": "[Feature Request] Cascade Cleanup on Combo Deletion & Strict Combos-Only Filtering in Restricted API Keys",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T17:54:00Z",
+      "updatedAt": "2026-10-24T13:52:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/4893"
+    },
+    {
+      "number": 4892,
+      "title": "CodeBuddy Deepseek v4.1 Flash Error 400",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T17:45:42Z",
+      "updatedAt": "2026-10-17T02:37:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4892"
+    },
+    {
+      "number": 4891,
+      "title": "[Feature Request] Batch \"Test All Models\" with Auto-Prune & Bulk Disable for Dead/Non-Functional Models",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T17:42:19Z",
+      "updatedAt": "2026-10-24T13:52:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4891"
+    },
+    {
+      "number": 4890,
+      "title": "[Feature Request] Dynamic \"Sync / Refresh Models\" button in Provider ModelsCard to auto-pull upstream catalogs",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T17:41:42Z",
+      "updatedAt": "2026-10-24T13:52:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/4890"
+    },
+    {
+      "number": 4888,
+      "title": "Embedding quota tracker",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T15:36:40Z",
+      "updatedAt": "2026-10-15T15:36:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4888"
+    },
+    {
+      "number": 4875,
+      "title": "[Bug / Feature Request] Incompatibility with latest VS Code Copilot Chat Update in Agent Mode (Tool Calling / Context Issue)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T13:00:28Z",
+      "updatedAt": "2026-10-22T14:48:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/4875"
+    },
+    {
+      "number": 4873,
+      "title": "error after cleaned /C:",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T11:49:40Z",
+      "updatedAt": "2026-10-15T14:16:21Z",
+      "permalink": "https://github.com/decolua/9router/issues/4873"
+    },
+    {
+      "number": 4865,
+      "title": "Request for additional collaborators to improve issue turnaround and triage",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T10:15:38Z",
+      "updatedAt": "2026-10-25T21:54:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/4865"
+    },
+    {
+      "number": 4862,
+      "title": "[Cursor] AgentService drops multi-turn history: cu/* models only see the last user message",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T09:13:48Z",
+      "updatedAt": "2026-10-15T09:13:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/4862"
+    },
+    {
+      "number": 4861,
+      "title": "Opencode Zen not working anymore",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T08:18:04Z",
+      "updatedAt": "2026-10-15T11:08:22Z",
+      "permalink": "https://github.com/decolua/9router/issues/4861"
+    },
+    {
+      "number": 4858,
+      "title": "Disabled models hidden from /v1/models but still listed as combo members and selectable in combo editor",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T07:51:56Z",
+      "updatedAt": "2026-10-24T14:39:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4858"
+    },
+    {
+      "number": 4853,
+      "title": "Silent max_tokens injection/clamping overrides client intent — please respect client behavior",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T06:03:28Z",
+      "updatedAt": "2026-10-15T06:03:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/4853"
+    },
+    {
+      "number": 4847,
+      "title": "[Bug] Image generation/editing fails with \"Body exceeded 1 MB limit\" when uploading Base64 images",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T18:57:44Z",
+      "updatedAt": "2026-10-28T19:39:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/4847"
+    },
+    {
+      "number": 4846,
+      "title": "Claude Code não encaminha chamadas ao provedor Anthropic Compatible",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T18:31:52Z",
+      "updatedAt": "2026-10-14T18:31:52Z",
+      "permalink": "https://github.com/decolua/9router/issues/4846"
+    },
+    {
+      "number": 4845,
+      "title": "[Bug] OpenCode Free (oc/) 403 FreeTierError is not a header problem: the gate checks who originated the request, and no header/session fix can pass it",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-14T17:52:44Z",
+      "updatedAt": "2026-10-15T13:00:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4845"
+    },
+    {
+      "number": 4841,
+      "title": "Feature request: normalize reasoning/reasoning_content alias collision before forwarding to OpenAI-compat upstreams (z-ai GLM, Moonshot Kimi 400)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T15:46:21Z",
+      "updatedAt": "2026-10-15T11:43:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/4841"
+    },
+    {
+      "number": 4839,
+      "title": "OpenCode Fail",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T14:36:04Z",
+      "updatedAt": "2026-10-15T17:42:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/4839"
+    },
+    {
+      "number": 4838,
+      "title": "Cloudflare prompt error",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T14:27:22Z",
+      "updatedAt": "2026-10-14T14:27:22Z",
+      "permalink": "https://github.com/decolua/9router/issues/4838"
+    },
+    {
+      "number": 4837,
+      "title": "Today, OpenCode was updated again, and the previous custom request header is no longer valid",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-14T13:59:19Z",
+      "updatedAt": "2026-10-16T08:16:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/4837"
+    },
+    {
+      "number": 4836,
+      "title": "9router was detected by OpenCode as missing essential fingerprints",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-14T13:58:42Z",
+      "updatedAt": "2026-10-15T04:22:29Z",
+      "permalink": "https://github.com/decolua/9router/issues/4836"
+    },
+    {
+      "number": 4833,
+      "title": "Custom provider prefixes such as constructor crash the terminal model picker",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T12:15:15Z",
+      "updatedAt": "2026-10-15T11:43:03Z",
+      "permalink": "https://github.com/decolua/9router/issues/4833"
+    },
+    {
+      "number": 4832,
+      "title": "CLI API requests hang when the server closes a response early",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T12:12:36Z",
+      "updatedAt": "2026-10-15T11:43:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/4832"
+    },
+    {
+      "number": 4829,
+      "title": "Feature request: support GitHub Copilot \"Auto\" model selection (Free/Student plans) in the GitHub provider",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T11:00:12Z",
+      "updatedAt": "2026-10-17T04:07:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/4829"
+    },
+    {
+      "number": 4822,
+      "title": "Docker image missing for v0.5.99",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T07:02:22Z",
+      "updatedAt": "2026-10-14T09:51:52Z",
+      "permalink": "https://github.com/decolua/9router/issues/4822"
+    },
+    {
+      "number": 4819,
+      "title": "[Bug]: 9router ignores local model's modalities(vision capability) despite the model publishing them properly",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T06:06:27Z",
+      "updatedAt": "2026-10-16T13:42:51Z",
+      "permalink": "https://github.com/decolua/9router/issues/4819"
+    },
+    {
+      "number": 4816,
+      "title": "Update gemini 4.0 argon for Antigravity ",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T03:02:57Z",
+      "updatedAt": "2026-10-23T19:17:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4816"
+    },
+    {
+      "number": 4815,
+      "title": "OpenCode Now Unable to Access on Third Party",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-14T02:57:37Z",
+      "updatedAt": "2026-10-14T17:10:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/4815"
+    },
+    {
+      "number": 4812,
+      "title": "[ENHANCEMENT] Make request/response payloads viewable for debugging via opt-in admin flag",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T02:31:50Z",
+      "updatedAt": "2026-10-14T02:31:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4812"
+    },
+    {
+      "number": 4811,
+      "title": "bugs",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T00:43:44Z",
+      "updatedAt": "2026-10-14T07:05:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/4811"
+    },
+    {
+      "number": 4809,
+      "title": "[Bug] Headroom savings are real but unverifiable from outside: phantom-savings warn false positive + ENABLE_REQUEST_LOGS ignored via systemd (v0.5.99)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T23:26:23Z",
+      "updatedAt": "2026-10-24T14:39:41Z",
+      "permalink": "https://github.com/decolua/9router/issues/4809"
+    },
+    {
+      "number": 4808,
+      "title": "[Bug] Request logger writes provider auth headers to disk in clear text (v0.5.99)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-13T23:26:22Z",
+      "updatedAt": "2026-10-24T00:43:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/4808"
+    },
+    {
+      "number": 4807,
+      "title": "decolua/9router:latest",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T23:18:11Z",
+      "updatedAt": "2026-10-13T23:18:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/4807"
+    },
+    {
+      "number": 4804,
+      "title": "fix(opencode): 400 missing_required_parameter 'messages[N].reasoning_content' on multi-turn oc/ chats",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T21:05:47Z",
+      "updatedAt": "2026-10-24T14:15:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/4804"
+    },
+    {
+      "number": 4803,
+      "title": "reasoning-content injector re-injects reasoning_content on assistant messages that already carry it (thinking upstreams reject: duplicate field)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T19:35:58Z",
+      "updatedAt": "2026-10-19T09:36:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/4803"
+    },
+    {
+      "number": 4802,
+      "title": "[Vertex] Tool call followed by user turn merges functionResponse + text → 400 \"Requests ending with a model turn are not supported\" on Gemini 4",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T19:22:09Z",
+      "updatedAt": "2026-10-13T19:22:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4802"
+    },
+    {
+      "number": 4801,
+      "title": "ollama-local",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T18:34:57Z",
+      "updatedAt": "2026-10-13T19:10:29Z",
+      "permalink": "https://github.com/decolua/9router/issues/4801"
+    },
+    {
+      "number": 4796,
+      "title": "[BUG] Fallback combo return 400 instead of trying next model after context overflow",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T14:21:30Z",
+      "updatedAt": "2026-10-13T16:26:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/4796"
+    },
+    {
+      "number": 4795,
+      "title": "PROVIDER_CAPABILITIES[\"qoder\"] is referenced but never defined, disabling vision for all Qoder models",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T13:13:51Z",
+      "updatedAt": "2026-10-19T21:23:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/4795"
+    },
+    {
+      "number": 4792,
+      "title": "GitHub Copilot embeddings fail: models.github.ai was retired (Invalid JSON response from github)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T12:50:12Z",
+      "updatedAt": "2026-10-13T12:50:12Z",
+      "permalink": "https://github.com/decolua/9router/issues/4792"
+    },
+    {
+      "number": 4790,
+      "title": "cli coder",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T09:45:34Z",
+      "updatedAt": "2026-10-13T09:45:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/4790"
+    },
+    {
+      "number": 4788,
+      "title": "[Bug] oc/space-bunny-free publishes context_length 200000 but accepts >1M prompt tokens; no API to correct per-model limits",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T08:36:14Z",
+      "updatedAt": "2026-10-13T08:36:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/4788"
+    },
+    {
+      "number": 4783,
+      "title": "Docker image for v0.5.99 is not published on Docker Hub (latest still points to 0.5.95)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-13T05:01:06Z",
+      "updatedAt": "2026-10-13T05:03:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/4783"
+    },
+    {
+      "number": 4781,
+      "title": "HTTP 403: [403]: {\"type\":\"error\",\"error\":{\"type\":\"FreeTierError\",\"message\":\"OpenCode's free tier can only be used from within OpenCode. Download it at https://opencode.ai and keep building.\"}}",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T04:36:43Z",
+      "updatedAt": "2026-10-16T15:36:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/4781"
+    },
+    {
+      "number": 4780,
+      "title": "[Bug] Free tier 403 FreeTierError for all non-OpenCode clients: resolveOpencodeSession falls back to a digest-derived ses_ id",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-13T04:19:58Z",
+      "updatedAt": "2026-10-15T14:49:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4780"
+    },
+    {
+      "number": 4778,
+      "title": "[Bug] OpenCode Free Tier returns 403 when using Space Bunny through 9router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T03:48:59Z",
+      "updatedAt": "2026-10-13T07:54:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/4778"
+    },
+    {
+      "number": 4777,
+      "title": "FreeTierError  oc/mimo-v2.6-flash-free",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T03:43:58Z",
+      "updatedAt": "2026-10-13T07:54:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/4777"
+    },
+    {
+      "number": 4773,
+      "title": "web 无法展开菜单",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-13T01:26:16Z",
+      "updatedAt": "2026-10-15T08:07:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/4773"
+    },
+    {
+      "number": 4771,
+      "title": "[Bug] thinkingFormat: \"zai\" emits thinking without mandatory budget_tokens → every GLM-5.3 turn 400s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T17:33:16Z",
+      "updatedAt": "2026-10-12T17:33:16Z",
+      "permalink": "https://github.com/decolua/9router/issues/4771"
+    },
+    {
+      "number": 4767,
+      "title": "Bug Report: Quota Tracker Ignore Settings Should Be Independent Per Account",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T13:03:45Z",
+      "updatedAt": "2026-10-12T13:03:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4767"
+    },
+    {
+      "number": 4766,
+      "title": "[Feature] : Support Manual Model Ordering in Combos",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T12:59:04Z",
+      "updatedAt": "2026-10-12T12:59:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4766"
+    },
+    {
+      "number": 4765,
+      "title": "[Bug] Antigravity Claude models drop image_url / inlineData in OpenAI -> Antigravity converter",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T11:08:28Z",
+      "updatedAt": "2026-10-12T11:08:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/4765"
+    },
+    {
+      "number": 4760,
+      "title": "HTTP 402: [402]: Payment required DEPLOYMENT_DISABLED sin1::8vnng-1791790176865-706b18328586",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T07:31:13Z",
+      "updatedAt": "2026-10-13T14:25:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/4760"
+    },
+    {
+      "number": 4756,
+      "title": "[Feature Request] Adjustable usage limit/quota per API key",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T06:09:06Z",
+      "updatedAt": "2026-10-12T06:09:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/4756"
+    },
+    {
+      "number": 4745,
+      "title": "Nous inference API requires an attribution user tag on some models; 400 looks like a dead model",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T03:33:42Z",
+      "updatedAt": "2026-10-24T17:22:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/4745"
+    },
+    {
+      "number": 4744,
+      "title": "Quota tracker: Claude cards spin forever after auto-refresh (throttled connections never clear loading)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-12T03:15:36Z",
+      "updatedAt": "2026-10-12T03:15:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4744"
+    },
+    {
+      "number": 4743,
+      "title": "[Feature / Fix] Enable Native Image Generation in Codex Desktop via ChatGPT Provider (imagegen skill & gpt-image-2 combo mapping)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T20:28:03Z",
+      "updatedAt": "2026-10-11T20:28:03Z",
+      "permalink": "https://github.com/decolua/9router/issues/4743"
+    },
+    {
+      "number": 4741,
+      "title": "plase make prefix  optional",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T16:25:06Z",
+      "updatedAt": "2026-10-11T16:25:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/4741"
+    },
+    {
+      "number": 4739,
+      "title": "anthropic (API key) provider always sends claude-code-20250219 beta -> 400 'credit balance is too low'",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T10:18:50Z",
+      "updatedAt": "2026-10-11T10:18:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4739"
+    },
+    {
+      "number": 4738,
+      "title": "feat: add native OpenAI Decisions API support (/v1/decisions)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T08:01:27Z",
+      "updatedAt": "2026-10-11T08:01:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4738"
+    },
+    {
+      "number": 4736,
+      "title": "[combo] Zero-content HTTP 200s count as success and defeat fallback",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T06:46:10Z",
+      "updatedAt": "2026-10-11T07:26:59Z",
+      "permalink": "https://github.com/decolua/9router/issues/4736"
+    },
+    {
+      "number": 4735,
+      "title": "[gateway-compat] Pass through safeguards / safeguard_results so Claude Code server-side classifier checks work",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T06:46:03Z",
+      "updatedAt": "2026-10-11T06:46:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/4735"
+    },
+    {
+      "number": 4734,
+      "title": "[Feature Request] Support PostgreSQL as an alternative database backend (configurable external host)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T05:03:04Z",
+      "updatedAt": "2026-10-11T05:03:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4734"
+    },
+    {
+      "number": 4733,
+      "title": "Non-streaming /v1/chat/completions requests receive an SSE-framed body; client parse fails and usage is lost",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T04:49:02Z",
+      "updatedAt": "2026-10-22T02:45:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4733"
+    },
+    {
+      "number": 4732,
+      "title": "# Bug: ClinePass Authentication Fails After Updating to the Latest 9Router Version",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T00:21:49Z",
+      "updatedAt": "2026-10-11T00:21:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/4732"
+    },
+    {
+      "number": 4731,
+      "title": "[Feature Request] Support Custom Providers for System One (`/v1/systemone`)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T21:49:49Z",
+      "updatedAt": "2026-10-22T18:27:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/4731"
+    },
+    {
+      "number": 4730,
+      "title": "[Feature Request] Add Huggingface as provider",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T20:19:10Z",
+      "updatedAt": "2026-10-10T20:19:10Z",
+      "permalink": "https://github.com/decolua/9router/issues/4730"
+    },
+    {
+      "number": 4728,
+      "title": "Feature request: optional setting to show full request/response payloads in Usage -> Request Details (opt-out of payload redaction)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T13:46:04Z",
+      "updatedAt": "2026-10-10T13:46:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4728"
+    },
+    {
+      "number": 4726,
+      "title": "[Bug] Deleted compatible-provider node leaves orphan custom models; picker shows raw UUID as provider name",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T12:02:48Z",
+      "updatedAt": "2026-10-24T14:14:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4726"
+    },
+    {
+      "number": 4714,
+      "title": "[BUG] Cannot save combo edits with numeric IDs unless the name changes",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T03:12:44Z",
+      "updatedAt": "2026-10-10T03:19:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4714"
+    },
+    {
+      "number": 4713,
+      "title": "[BUG] Fallback combo stops on HTTP 400 \"insufficient credits\"",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-10T03:12:17Z",
+      "updatedAt": "2026-10-23T08:24:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/4713"
+    },
+    {
+      "number": 4712,
+      "title": "[Bug / Enhancement] Codex Desktop: Existing threads bypass 9Router and fail with 401 Unauthorized during compaction",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T21:50:50Z",
+      "updatedAt": "2026-10-09T21:50:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4712"
+    },
+    {
+      "number": 4707,
+      "title": "[Feature] Unified prompt-compression pipeline with fidelity classes (lossless/standard/aggressive) — generalise the Token Savers beyond tool_result",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T19:00:44Z",
+      "updatedAt": "2026-10-10T02:07:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4707"
+    },
+    {
+      "number": 4705,
+      "title": "v0.5.99 is on main, but Docker Hub \"latest\" still points to v0.5.95 — image not published yet?",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T15:58:36Z",
+      "updatedAt": "2026-10-14T07:47:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4705"
+    },
+    {
+      "number": 4703,
+      "title": "Codex compaction fails when history contains hosted `web_search_call` (request is sent via Responses Lite without `web_search`)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T14:43:45Z",
+      "updatedAt": "2026-10-09T14:43:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4703"
+    },
+    {
+      "number": 4701,
+      "title": "bug streaming",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T14:36:15Z",
+      "updatedAt": "2026-10-09T14:36:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/4701"
+    },
+    {
+      "number": 4700,
+      "title": "Additional reproduction: function_call_output image payload is stringified into text, causing massive context usage",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T12:34:03Z",
+      "updatedAt": "2026-10-09T15:54:30Z",
+      "permalink": "https://github.com/decolua/9router/issues/4700"
+    },
+    {
+      "number": 4687,
+      "title": "Tunel is Not openning (faild fetch)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T06:33:36Z",
+      "updatedAt": "2026-10-09T06:33:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4687"
+    },
+    {
+      "number": 4684,
+      "title": "[Feature] mong muốn có thể bổ sung tính năng theo dõi sử dụng theo api key",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T04:06:39Z",
+      "updatedAt": "2026-10-09T04:06:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/4684"
+    },
+    {
+      "number": 4683,
+      "title": "[Bug] One seat's request-scoped error (400/406/413) aborts the whole combo without trying the remaining seats; a 200 with an empty stream counts as success",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-09T00:19:53Z",
+      "updatedAt": "2026-10-24T11:29:12Z",
+      "permalink": "https://github.com/decolua/9router/issues/4683"
+    },
+    {
+      "number": 4682,
+      "title": "[Bug] Combo context_length / max_completion_tokens come from the weakest seat, and nothing adapts the request to the seat that actually serves",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T00:15:25Z",
+      "updatedAt": "2026-10-19T20:52:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/4682"
+    },
+    {
+      "number": 4681,
+      "title": "[Bug] Model picker offers models from providers with no active credentials (404 \"No active credentials for provider: X\")",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-09T00:02:56Z",
+      "updatedAt": "2026-10-09T00:02:56Z",
+      "permalink": "https://github.com/decolua/9router/issues/4681"
+    },
+    {
+      "number": 4677,
+      "title": "Add health-checked automatic Docker updates with Freshdock",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T23:34:53Z",
+      "updatedAt": "2026-10-08T23:34:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/4677"
+    },
+    {
+      "number": 4673,
+      "title": "Inflated Prompt Tokens and Distorted Cache Metrics for Anthropic/Claude Upstream",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T21:24:26Z",
+      "updatedAt": "2026-10-25T13:15:03Z",
+      "permalink": "https://github.com/decolua/9router/issues/4673"
+    },
+    {
+      "number": 4672,
+      "title": "Image providers not working",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T20:05:40Z",
+      "updatedAt": "2026-10-08T20:05:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4672"
+    },
+    {
+      "number": 4671,
+      "title": "Claude usage credits return a 400 error which prevents fallback combos from working",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-08T20:04:43Z",
+      "updatedAt": "2026-10-23T16:55:35Z",
+      "permalink": "https://github.com/decolua/9router/issues/4671"
+    },
+    {
+      "number": 4670,
+      "title": "No claude model ships with pdf: true in capabilities, even though they are all capable",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T20:03:16Z",
+      "updatedAt": "2026-10-23T16:55:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/4670"
+    },
+    {
+      "number": 4664,
+      "title": "Streaming OpenAI requests: input tokens saved as an inflated estimate instead of real usage (images/PDFs counted as text)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T15:47:09Z",
+      "updatedAt": "2026-10-08T15:47:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4664"
+    },
+    {
+      "number": 4663,
+      "title": "allRateLimited on an anthropic-compatible (OpenAI-compatible) provider relays the upstream 429 as a synthetic 503 — same mechanism as #4140 but provider-agnostic",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T14:20:16Z",
+      "updatedAt": "2026-10-09T02:23:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4663"
+    },
+    {
+      "number": 4662,
+      "title": "`/v1/chat/completions` rejects function tool JSON Schema whose `pattern` uses regex lookaround (`(?!...)`)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T13:57:06Z",
+      "updatedAt": "2026-10-24T14:41:59Z",
+      "permalink": "https://github.com/decolua/9router/issues/4662"
+    },
+    {
+      "number": 4661,
+      "title": "Structure output failure",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-08T12:19:02Z",
+      "updatedAt": "2026-10-08T12:19:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/4661"
+    },
+    {
+      "number": 4655,
+      "title": "feat: Add SenseNova provider and GitHub Copilot CLI agent support",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-07T17:09:17Z",
+      "updatedAt": "2026-10-23T12:34:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/4655"
+    },
+    {
+      "number": 4648,
+      "title": "No active credentials for provider error",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-07T12:50:16Z",
+      "updatedAt": "2026-10-07T12:50:16Z",
+      "permalink": "https://github.com/decolua/9router/issues/4648"
+    },
+    {
+      "number": 4647,
+      "title": "[FEATURE REQUEST] Better way to mass apply proxy.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-07T09:58:14Z",
+      "updatedAt": "2026-10-07T10:06:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/4647"
+    },
+    {
+      "number": 4645,
+      "title": "MUSE Meta Oauth error",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-07T08:12:25Z",
+      "updatedAt": "2026-10-21T03:03:05Z",
+      "permalink": "https://github.com/decolua/9router/issues/4645"
+    },
+    {
+      "number": 4640,
+      "title": "cbcn (codebuddy-cn) Chat SSE: empty-string finish_reason + double [DONE], terminal chunk dropped on long turns",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T20:27:42Z",
+      "updatedAt": "2026-10-15T20:44:57Z",
+      "permalink": "https://github.com/decolua/9router/issues/4640"
+    },
+    {
+      "number": 4639,
+      "title": "[FEATURE REQUEST] Total quota per provider in Quota Tracker",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T20:04:38Z",
+      "updatedAt": "2026-10-06T20:04:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/4639"
+    },
+    {
+      "number": 4638,
+      "title": "[Bug] Audio adapter model picker is always empty — capFilter uses chat capabilities, STT-registry models never appear",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T14:26:47Z",
+      "updatedAt": "2026-10-12T09:02:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4638"
+    },
+    {
+      "number": 4637,
+      "title": "Responses→Chat translation forwards the Responses-only text field, and glm-5.3-flash rejects it",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T11:22:20Z",
+      "updatedAt": "2026-10-15T20:44:56Z",
+      "permalink": "https://github.com/decolua/9router/issues/4637"
+    },
+    {
+      "number": 4631,
+      "title": "Nix package for 9Router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T09:30:26Z",
+      "updatedAt": "2026-10-06T09:30:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/4631"
+    },
+    {
+      "number": 4624,
+      "title": "[Bug] Muse provider fails with 400 `unknown parameter \"input\"` — broken targetFormat routing",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-06T02:07:33Z",
+      "updatedAt": "2026-10-06T02:07:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/4624"
+    },
+    {
+      "number": 4622,
+      "title": "getPricingForModel builds a new RegExp per pattern per call (15-25x slower than precompiled)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T21:33:15Z",
+      "updatedAt": "2026-10-28T19:39:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/4622"
+    },
+    {
+      "number": 4618,
+      "title": "models.dev sync can never emit limits for user-defined openai-compatible nodes, so they keep the 200K default (220 models under-report on a live instance)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T17:30:15Z",
+      "updatedAt": "2026-10-05T17:30:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/4618"
+    },
+    {
+      "number": 4604,
+      "title": "Ollama Cloud cached tokens always 0 — prompt_eval_cached_count is dropped by usage extractors",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T07:51:33Z",
+      "updatedAt": "2026-10-24T14:39:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4604"
+    },
+    {
+      "number": 4603,
+      "title": "[Bug] [OpenAI Compatible] Custom OpenAI Compatible (Responses) sends reasoning_effort instead of reasoning.effort to Meta API",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T07:17:23Z",
+      "updatedAt": "2026-10-08T01:19:37Z",
+      "permalink": "https://github.com/decolua/9router/issues/4603"
+    },
+    {
+      "number": 4602,
+      "title": "[Bug] [Muse (Meta Model API)] unknown parameter `input`",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T06:56:50Z",
+      "updatedAt": "2026-10-05T06:56:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4602"
+    },
+    {
+      "number": 4597,
+      "title": "Codex native subagents unavailable through 9Router Responses provider",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T04:40:03Z",
+      "updatedAt": "2026-10-05T05:37:12Z",
+      "permalink": "https://github.com/decolua/9router/issues/4597"
+    },
+    {
+      "number": 4595,
+      "title": "[Bug] Codex Desktop / CLI subagent tools (`spawn_agent`) not exposed or forwarded, causing model fallback to terminal tools (herdr/claude/codex CLI)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-05T04:24:18Z",
+      "updatedAt": "2026-10-05T04:40:52Z",
+      "permalink": "https://github.com/decolua/9router/issues/4595"
+    },
+    {
+      "number": 4588,
+      "title": "feat(dashboard): add custom url suffix until user can customize openai-compatible-chat-<this_is_user_custom_suffix>",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T01:39:00Z",
+      "updatedAt": "2026-10-05T01:39:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/4588"
+    },
+    {
+      "number": 4572,
+      "title": "Tailscale fail connection",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-04T16:21:45Z",
+      "updatedAt": "2026-10-04T16:21:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4572"
+    },
+    {
+      "number": 4570,
+      "title": "please add webproviders to api support as shown in omniroute",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-04T15:36:10Z",
+      "updatedAt": "2026-10-04T15:36:10Z",
+      "permalink": "https://github.com/decolua/9router/issues/4570"
+    },
+    {
+      "number": 4568,
+      "title": "feat(providers): add Kiro Sonnet 5.5 and Antigravity Opus/Sonnet 5.5",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-04T14:40:50Z",
+      "updatedAt": "2026-10-24T14:15:10Z",
+      "permalink": "https://github.com/decolua/9router/issues/4568"
+    },
+    {
+      "number": 4562,
+      "title": "[Bug] Google Antigravity Provider – All Accounts Returning HTTP 401 and Unable to Connect New Accounts",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-04T04:13:27Z",
+      "updatedAt": "2026-10-04T04:13:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4562"
+    },
+    {
+      "number": 4558,
+      "title": "Coalesce Anthropic content_block_delta SSE events before forwarding to Claude Code",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T22:03:44Z",
+      "updatedAt": "2026-10-03T22:03:44Z",
+      "permalink": "https://github.com/decolua/9router/issues/4558"
+    },
+    {
+      "number": 4557,
+      "title": "[Bug] Claude Code `tool_addition` blocks (mid-session MCP tools) forwarded to Kimi → 400 \"Invalid request Error\"",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T21:55:01Z",
+      "updatedAt": "2026-10-03T21:55:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/4557"
+    },
+    {
+      "number": 4556,
+      "title": "[perf] requestDetails stores full request/response blobs per request and is never pruned (10 GB/year)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-03T18:05:21Z",
+      "updatedAt": "2026-10-03T18:05:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/4556"
+    },
+    {
+      "number": 4555,
+      "title": "New Claude model 5.5 in Antigravity IDE is not available",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T17:28:57Z",
+      "updatedAt": "2026-10-08T13:44:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4555"
+    },
+    {
+      "number": 4554,
+      "title": "Kiro model take to long to respond",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T16:35:25Z",
+      "updatedAt": "2026-10-03T16:35:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/4554"
+    },
+    {
+      "number": 4553,
+      "title": "Dashboard TTS example card sends an Edge voice as the model for Self-hosted TTS",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T14:03:24Z",
+      "updatedAt": "2026-10-24T14:14:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/4553"
+    },
+    {
+      "number": 4552,
+      "title": "Headroom not working on CommandCode",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T13:11:09Z",
+      "updatedAt": "2026-10-22T04:42:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/4552"
+    },
+    {
+      "number": 4549,
+      "title": "[Bug] cursor provider: every tool-using turn aborts with \"Cursor AgentService requested an unsupported IDE tool\"",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T12:41:55Z",
+      "updatedAt": "2026-10-03T12:41:55Z",
+      "permalink": "https://github.com/decolua/9router/issues/4549"
+    },
+    {
+      "number": 4548,
+      "title": "feat(antigravity2): add Claude Opus 5.5 and Sonnet 5.5 support",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T10:57:20Z",
+      "updatedAt": "2026-10-24T14:15:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4548"
+    },
+    {
+      "number": 4544,
+      "title": "GLM-5.3 Flash in Combo shows only a 200k context window",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-03T03:06:50Z",
+      "updatedAt": "2026-10-03T03:06:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4544"
+    },
+    {
+      "number": 4542,
+      "title": "[Bug] Codex tool normalization drops explicit strict flags",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-02T22:55:31Z",
+      "updatedAt": "2026-10-02T22:55:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/4542"
+    },
+    {
+      "number": 4535,
+      "title": "feat(providers): add freebuff provider support and OAuth authentication",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-02T07:52:42Z",
+      "updatedAt": "2026-10-02T07:52:42Z",
+      "permalink": "https://github.com/decolua/9router/issues/4535"
+    },
+    {
+      "number": 4532,
+      "title": "fix(adapter/gemini): 400 INVALID_ARGUMENT when conversation history contains duplicate tool_call_ids",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-02T04:15:44Z",
+      "updatedAt": "2026-10-16T22:28:24Z",
+      "permalink": "https://github.com/decolua/9router/issues/4532"
+    },
+    {
+      "number": 4529,
+      "title": "Claude Code stream stalls, then non-streaming retry returns OpenAI JSON on /v1/messages",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T22:32:46Z",
+      "updatedAt": "2026-10-14T03:14:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/4529"
+    },
+    {
+      "number": 4528,
+      "title": "claude-3-haiku-20240307 has been retired (route.js)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T19:42:57Z",
+      "updatedAt": "2026-10-01T20:23:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/4528"
+    },
+    {
+      "number": 4527,
+      "title": "Azure: the per-connection model pool is display-only and never affects dispatch",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T18:00:47Z",
+      "updatedAt": "2026-10-01T18:00:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/4527"
+    },
+    {
+      "number": 4520,
+      "title": "Reasoning effort is not works in request logs GPT 6.1 SOL ?",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T10:27:26Z",
+      "updatedAt": "2026-10-01T10:30:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/4520"
+    },
+    {
+      "number": 4517,
+      "title": "function_call_output input_image is sent as text instead of an Anthropic image block.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T08:23:50Z",
+      "updatedAt": "2026-10-01T08:24:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/4517"
+    },
+    {
+      "number": 4516,
+      "title": "Qoder PAT connections are unstable — 5 confirmed bugs at distinct code paths",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T06:17:34Z",
+      "updatedAt": "2026-10-01T06:17:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/4516"
+    },
+    {
+      "number": 4509,
+      "title": "[Bug] Windows Startup (tray mode): 9Router stops working after a while and never recovers due to missing attachServerEvents()",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T03:24:51Z",
+      "updatedAt": "2026-10-01T03:27:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/4509"
+    },
+    {
+      "number": 4508,
+      "title": "Grok CLI (Grok Build) error",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-01T03:13:17Z",
+      "updatedAt": "2026-10-01T17:06:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/4508"
+    }
+  ],
+  "commits": [
+    {
+      "commit": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+      "authoredAt": "2026-10-28T16:43:56+07:00",
+      "subject": "# v0.5.112 (2026-10-28)"
+    },
+    {
+      "commit": "85d73bd60ebd3950f8a0bc603f4b79a2856cc141",
+      "authoredAt": "2026-10-28T16:14:35+07:00",
+      "subject": "feat(minimax-code): lease auth mode via desktop app named-pipe broker"
+    },
+    {
+      "commit": "d7bb71ced4bd9aac1fcb53a91cb3776144ebedb7",
+      "authoredAt": "2026-10-28T16:13:13+07:00",
+      "subject": "fix(deepseek): use noble-hashes port for DeepSeek PoW hash"
+    },
+    {
+      "commit": "3b7acf72a5611705b9a5f5923430175ad159d3c1",
+      "authoredAt": "2026-10-28T16:07:43+07:00",
+      "subject": "fix(docker): bundle lazy runtime deps so OpenCode Free resolves"
+    },
+    {
+      "commit": "56dbf466f10787d284b09bd28e35c0f7171b6d06",
+      "authoredAt": "2026-10-28T16:07:59+07:00",
+      "subject": "fix(chat): reject SSE errors in non-streaming responses"
+    },
+    {
+      "commit": "8db1f4ae58429a9d0c13449d3a9a72d9aafa89dc",
+      "authoredAt": "2026-10-28T16:01:40+07:00",
+      "subject": "fix(translator): enforce Gemini protobuf type predicates on schema items and properties"
+    },
+    {
+      "commit": "f7f6f5ed11e6c10f3c7a2a90c4cc6f6fe4859561",
+      "authoredAt": "2026-10-28T16:01:03+07:00",
+      "subject": "feat: add Nace Drex provider to the System One lane"
+    },
+    {
+      "commit": "ced0cf6e6c5583e82d7d66e2555712b5dbbf7809",
+      "authoredAt": "2026-10-28T16:00:50+07:00",
+      "subject": "fix(nvidia): normalize reasoning aliases for NIM"
+    },
+    {
+      "commit": "a199d777d6e304f560777aecb10c74d0e058e17e",
+      "authoredAt": "2026-10-28T16:00:04+07:00",
+      "subject": "fix(providers): treat LLM|id|secret as opaque token in bulk-add, not name|key"
+    },
+    {
+      "commit": "b1effa03c12b76e1df6c6014fe274044f7b46b17",
+      "authoredAt": "2026-10-28T15:52:25+07:00",
+      "subject": "feat(commandcode): align request headers with official CLI 1.88.0"
+    },
+    {
+      "commit": "f3e1f716a3bf522ed74e6566f9049e52c28d2f93",
+      "authoredAt": "2026-10-28T15:51:52+07:00",
+      "subject": "fix(github): apply Claude 5.5 thinking rules to Copilot's dotted model ids"
+    },
+    {
+      "commit": "3fd925abfabb7cbe95e602cddff67a62246a13e6",
+      "authoredAt": "2026-10-28T15:51:23+07:00",
+      "subject": "fix(codebuddy): send plugin request/conversation id headers"
+    },
+    {
+      "commit": "acb3c080ddcafc9e32971af8b8240214b5950952",
+      "authoredAt": "2026-10-28T15:51:53+07:00",
+      "subject": "feat(codex): add GPT-6.1 Terra"
+    },
+    {
+      "commit": "e70ea24d4e2399f59680bbdc71159195ffbdc500",
+      "authoredAt": "2026-10-28T15:49:55+07:00",
+      "subject": "Fix OpenCode"
+    },
+    {
+      "commit": "3a978a631ad65529c06e48ce495092d5bba29f46",
+      "authoredAt": "2026-10-26T16:12:55+07:00",
+      "subject": "# v0.5.111 (2026-10-26)"
+    },
+    {
+      "commit": "483c10f597120d22295b091dea79fc38febe2b12",
+      "authoredAt": "2026-10-26T15:44:49+07:00",
+      "subject": "fix(opencode): normalize colliding fingerprint tool definitions in place"
+    },
+    {
+      "commit": "95009651275a6cee93ef7cb4db577a0eb5dd8a4a",
+      "authoredAt": "2026-10-26T15:38:59+07:00",
+      "subject": "fix(translator): convert image_url parts inside tool messages to Claude images"
+    },
+    {
+      "commit": "10cd6c089d6286f0f891efc857c2154094457620",
+      "authoredAt": "2026-10-26T15:36:30+07:00",
+      "subject": "feat(ollama): add embedding provider adapter and endpoint support"
+    },
+    {
+      "commit": "50dcaa0ccc99f5ede9a50cb38d7b21a0b229ea04",
+      "authoredAt": "2026-10-26T15:25:25+07:00",
+      "subject": "fix(cli-tools): keep a hand-set Pi model name across Apply"
+    },
+    {
+      "commit": "72cb589e1805ebd75114c3f08b51e9eecd91faca",
+      "authoredAt": "2026-10-26T15:24:09+07:00",
+      "subject": "fix(cli-tools): stop resetting Pi model caps and let users pick them"
+    },
+    {
+      "commit": "5cd4a75696a6c4874c1f5412cb7c21e7e05a5100",
+      "authoredAt": "2026-10-26T15:17:45+07:00",
+      "subject": "feat(opencode-go): add Kimi K3.1 Pro"
+    },
+    {
+      "commit": "b9c2722540d42cd2c16663567825546aef42c54e",
+      "authoredAt": "2026-10-26T15:16:59+07:00",
+      "subject": "feat(providers): add Runcrate"
+    },
+    {
+      "commit": "31a9d2620d0dc329a14d587974391315f4f32dc6",
+      "authoredAt": "2026-10-26T15:14:23+07:00",
+      "subject": "feat(tts): add Ollama Local TTS provider support (Phonon)"
+    },
+    {
+      "commit": "2924e0559e563ae21e42114d96a874f36616d196",
+      "authoredAt": "2026-10-26T15:11:48+07:00",
+      "subject": "fix(deepseek): send the upstream model id the API actually accepts"
+    },
+    {
+      "commit": "763fb687fa1afa595e23773b2eabb5d57a2b02e2",
+      "authoredAt": "2026-10-26T15:00:13+07:00",
+      "subject": "fix(thinking): keep effort max for GPT-5.6 / GPT-6 on OpenAI Compatible nodes"
+    },
+    {
+      "commit": "0ad0a722b87ce6adcd0d2dbbcb696bdd2f129cd5",
+      "authoredAt": "2026-10-26T14:55:38+07:00",
+      "subject": "fix(claude): keep adaptive thinking for Haiku 5.5 on the passthrough"
+    },
+    {
+      "commit": "1da5b0d7a9a0fe18cda36ca84f2ea7bd0e7bf62b",
+      "authoredAt": "2026-10-26T14:54:23+07:00",
+      "subject": "fix(opencode): cap oc/deepseek-v4.1-flash-free context window at 330k"
+    },
+    {
+      "commit": "86adae35c38182b2a0a097db5a5d2b65e2af0e2d",
+      "authoredAt": "2026-10-26T14:54:36+07:00",
+      "subject": "fix(headroom): preserve native Claude PDFs and tool history"
+    },
+    {
+      "commit": "a3bdaf6dd4216e89abf1efa61f0c98dcc984b557",
+      "authoredAt": "2026-10-26T14:53:56+07:00",
+      "subject": "feat(commandcode): add Kimi K3.1 Pro to the model catalog"
+    },
+    {
+      "commit": "fbac122069194b316f6dcf2886a06eeae8467db0",
+      "authoredAt": "2026-10-26T11:41:52+07:00",
+      "subject": "fix(codex-image): drive image_generation from gpt-6-sol"
+    },
+    {
+      "commit": "ce060c79b9133b08c90ae7f7aaea49aa79afbfb3",
+      "authoredAt": "2026-10-26T11:08:32+07:00",
+      "subject": "fix(opencode): restore the free tier with the TLS client Hello it accepts"
+    },
+    {
+      "commit": "f39d8f07481ae8518e93175f0ecaaafa61573c6c",
+      "authoredAt": "2026-10-23T15:24:06+07:00",
+      "subject": "# v0.5.109 (2026-10-23)"
+    },
+    {
+      "commit": "f3f86fdd52f9e9e9538847dddf233293224733d2",
+      "authoredAt": "2026-10-23T14:43:09+07:00",
+      "subject": "feat(combos): add Smart Router (System One) with adaptive session stickiness (#4975)"
+    },
+    {
+      "commit": "161e34939ab878cb79dfdf241a696ec292508af4",
+      "authoredAt": "2026-10-23T14:37:35+07:00",
+      "subject": "feat(image, mitm): support reference image inputs for Gemini and ensure MITM directory (#4981)"
+    },
+    {
+      "commit": "82aeb907941baf9806689a46fe2248b2b865a76d",
+      "authoredAt": "2026-10-23T14:37:13+07:00",
+      "subject": "fix(antigravity): resolve tiered models from client reasoning effort"
+    },
+    {
+      "commit": "31b8439bdf51858598aa4fd838e08e396a457cba",
+      "authoredAt": "2026-10-23T14:34:48+07:00",
+      "subject": "fix(usage): support /api/balance for ollama cloud quota tracking (#5026)"
+    },
+    {
+      "commit": "9b4ea9eb697a267babd96ae33c814e86c80a9c64",
+      "authoredAt": "2026-10-23T14:30:30+07:00",
+      "subject": "feat(combos): search box for the combo list"
+    },
+    {
+      "commit": "32c5f30a0a2074269d7d4cb269d93e7db59d9877",
+      "authoredAt": "2026-10-23T14:30:04+07:00",
+      "subject": "fix(capabilities): send reasoning_effort for OpenCode's glm-5.3-flash-free"
+    },
+    {
+      "commit": "f172c3c4a622dc531b4ce47a24f7a61ed0f530da",
+      "authoredAt": "2026-10-23T14:26:36+07:00",
+      "subject": "fix(antigravity): use hub/2.24.0 User-Agent and add Gemini 4 Argon medium/low tiers (#4816)"
+    },
+    {
+      "commit": "313559f4709368aee020f598747593ef57a462a8",
+      "authoredAt": "2026-10-23T13:59:00+07:00",
+      "subject": "fix(opencode): honor low|high|max reasoning efforts for zen free deepseek-v4.1-flash"
+    },
+    {
+      "commit": "5a4e812e44680b18a2ffe4d21386df2c0f426d8a",
+      "authoredAt": "2026-10-23T13:55:12+07:00",
+      "subject": "fix(db): strip NUL bytes from bound strings"
+    },
+    {
+      "commit": "95c9d03ed2fced1e01a1d0c6ba510f9b33c65f85",
+      "authoredAt": "2026-10-23T12:55:27+07:00",
+      "subject": "fix(stream): fill missing tool-call ids and restore renamed tool names (#4992, #4986)"
+    },
+    {
+      "commit": "5cdcddf55f4b08fbd45c3798c712608544c569d2",
+      "authoredAt": "2026-10-23T12:56:38+07:00",
+      "subject": "fix(combo): advance past a request-scoped 4xx instead of ending the combo"
+    },
+    {
+      "commit": "5853a88a22f68119a8f491f22bfa0df54fcad542",
+      "authoredAt": "2026-10-23T12:54:58+07:00",
+      "subject": "fix(search): reset regex state between model matches"
+    },
+    {
+      "commit": "dbdbb64897234f595fd2ebbdc53cf5f1f2ca26ea",
+      "authoredAt": "2026-10-23T12:45:10+07:00",
+      "subject": "fix(github): refresh Copilot fallback model catalog"
+    },
+    {
+      "commit": "b833128338ab5c1af7a994767167c3ed0daf8ab5",
+      "authoredAt": "2026-10-23T12:43:55+07:00",
+      "subject": "fix(opencode-free): full reasoning support for oc/mimo-v2.6-flash-free"
+    },
+    {
+      "commit": "2720cd2a06e1154804b33ca5f7cdbb47a1792336",
+      "authoredAt": "2026-10-23T12:33:01+07:00",
+      "subject": "fix(qoder): stop failing queued models, route Sonus/Cantus, restore capabilities"
+    },
+    {
+      "commit": "b82f5c4a2e5f53c2723d49fe993062f9e7dba54a",
+      "authoredAt": "2026-10-23T12:03:44+07:00",
+      "subject": "fix(combos): try the next model when credits run out"
+    },
+    {
+      "commit": "b0655314b79c7a7bfb7288982cddb98503641429",
+      "authoredAt": "2026-10-23T12:04:17+07:00",
+      "subject": "fix(capabilities): give Grok 4.7 its 500k context window"
+    },
+    {
+      "commit": "a3ca2f9b5cb090f1babf11a8781d5c6148f83411",
+      "authoredAt": "2026-10-23T12:04:56+07:00",
+      "subject": "fix(dashboard): correct API key visibility guidance"
+    },
+    {
+      "commit": "351b04cb528d2270a527aba18a4be78fdeadafaa",
+      "authoredAt": "2026-10-23T11:59:42+07:00",
+      "subject": "feat(provider): add SenseNova provider support"
+    },
+    {
+      "commit": "b6a9ca43f1aed8bf903c23b6df62da96a6c389bc",
+      "authoredAt": "2026-10-23T11:57:23+07:00",
+      "subject": "test: triage master's failing suite; fix GLM-5.2 effort, gpt-6.1-sol context, dead SSRF tests"
+    },
+    {
+      "commit": "b08f12d5fd80d44e23f8266338ea6707d15b2cf7",
+      "authoredAt": "2026-10-23T11:55:00+07:00",
+      "subject": "fix(codex-image): skip ChatGPT Free accounts and use a Go-compatible main model"
+    },
+    {
+      "commit": "5883110b9d9db32b76d113a378c0ec2abf5943d7",
+      "authoredAt": "2026-10-23T11:26:51+07:00",
+      "subject": "fix(deps): upgrade Monaco to 0.57.0 and pin the copy the dashboard loads"
+    },
+    {
+      "commit": "7c42d8f87bac934184f633f985c8a944c8c6336e",
+      "authoredAt": "2026-10-23T11:25:01+07:00",
+      "subject": "fix(openai): rename max_tokens to max_completion_tokens"
+    },
+    {
+      "commit": "3ce2b828f33bce0c88374077bc20b6b24382a1fd",
+      "authoredAt": "2026-10-23T11:16:07+07:00",
+      "subject": "fix(kiro): normalize Anthropic model ids onto Kiro upstream aliases"
+    },
+    {
+      "commit": "a440ef43b5e670aa041f7cc35081e9989fc997db",
+      "authoredAt": "2026-10-23T11:06:04+07:00",
+      "subject": "fix(headroom): compress native Gemini and Responses tool outputs"
+    },
+    {
+      "commit": "792f4719859b50ac1e7a797ee40ceb4383d491b0",
+      "authoredAt": "2026-10-23T11:05:55+07:00",
+      "subject": "fix(headroom): support native CommandCode requests"
+    },
+    {
+      "commit": "bc4a3cc7342104172a150735b991e11982323e75",
+      "authoredAt": "2026-10-23T10:59:52+07:00",
+      "subject": "feat(ollama): support System One decision models (clef, clef-flash)"
+    },
+    {
+      "commit": "08ef047f8c2ede799294ca4d3ccac4548f63452b",
+      "authoredAt": "2026-10-23T10:33:25+07:00",
+      "subject": "fix(security): bump undici to 7.30.1 and bind headroom to loopback"
+    },
+    {
+      "commit": "8a8420430fb19aeb41119b2225d0ee97c5c2a9d2",
+      "authoredAt": "2026-10-23T10:23:49+07:00",
+      "subject": "feat(rtk): add a user-authored custom system prompt"
+    },
+    {
+      "commit": "ca7b54011daf4532b3b7ececa90a125bafb99056",
+      "authoredAt": "2026-10-23T10:01:34+07:00",
+      "subject": "fix(combo): fall through on empty-content streaming responses"
+    },
+    {
+      "commit": "00dd3dfcbe76e967ace4f7166a017f3dcea45800",
+      "authoredAt": "2026-10-23T10:11:10+07:00",
+      "subject": "fix(media-providers): keep the connection card for non-STT OAuth media pages"
+    },
+    {
+      "commit": "421f226261750e52323e15d2d26fc964113d96a5",
+      "authoredAt": "2026-10-23T09:50:18+07:00",
+      "subject": "feat(stt): add Codex OAuth transcription provider"
+    },
+    {
+      "commit": "32a064e2080b6e4e6f8db02b1c4bf8c93ddac85e",
+      "authoredAt": "2026-10-23T10:09:47+07:00",
+      "subject": "fix(docker): pin Node 22.23.4 to patch October 2026 security CVEs"
+    },
+    {
+      "commit": "4a76b8de02f7711dfb8d78b6146dab94d21468bb",
+      "authoredAt": "2026-10-23T09:38:28+07:00",
+      "subject": "fix(commandcode): correct quota display and connection test"
+    },
+    {
+      "commit": "3b137aa6d513babcab45650e86554a0ec3176f98",
+      "authoredAt": "2026-10-22T11:47:40+07:00",
+      "subject": "fix(codebuddy): back off blocked international connections"
+    },
+    {
+      "commit": "d07e5bc3fbfd80ba870e91acb2a93f40f6a58f9f",
+      "authoredAt": "2026-10-22T11:45:53+07:00",
+      "subject": "fix(thinking): let a transport declare its thinking shape; nest reasoning on OpenCode Go /responses"
+    },
+    {
+      "commit": "342ecb0dd18454f4f623bed2ca1310ef17d8cf16",
+      "authoredAt": "2026-10-22T11:38:54+07:00",
+      "subject": "fix(pi-settings): declare existingProvider before use in POST"
+    },
+    {
+      "commit": "38a0c4490a843b27a0985be32cd23cb5fe2aca79",
+      "authoredAt": "2026-10-22T11:15:52+07:00",
+      "subject": "feat(web-cookie): add web provider executors, browser pool and login capture"
+    },
+    {
+      "commit": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+      "authoredAt": "2026-10-15T21:51:19+07:00",
+      "subject": "# v0.5.104 (2026-10-15)"
+    },
+    {
+      "commit": "6ed886857da125f4908a8a3c3e64f7f1d8ff8366",
+      "authoredAt": "2026-10-15T21:43:37+07:00",
+      "subject": "Revert \"feat(keys): per-key token quotas and pattern-based model access\""
+    },
+    {
+      "commit": "3c48d275ab2c26dc517e15bb42e3f95baf54ee6c",
+      "authoredAt": "2026-10-15T21:42:38+07:00",
+      "subject": "Features:"
+    },
+    {
+      "commit": "2aa9307f5030b563bd2e5aa339847bba9d697533",
+      "authoredAt": "2026-10-15T21:23:34+07:00",
+      "subject": "feat(keys): per-key token quotas and pattern-based model access"
+    },
+    {
+      "commit": "fb30246ce769c31e2a6097c3c3d70c3b35239f28",
+      "authoredAt": "2026-10-15T21:18:24+07:00",
+      "subject": "fix(tests): isolate zed-native-auth DATA_DIR so it stops writing to the real DB"
+    },
+    {
+      "commit": "d95bb8ea25958f9cb01b3d3110b97c15d1ef5e56",
+      "authoredAt": "2026-10-15T21:11:04+07:00",
+      "subject": "fix(dashboard): unclip proxy dropdown and tooltips via body portal"
+    },
+    {
+      "commit": "813a0121b09c4181712a902e47e1ed418a88c473",
+      "authoredAt": "2026-10-15T21:09:06+07:00",
+      "subject": "fix(usage): token fallback for input_tokens rows and stable key masking in stats"
+    },
+    {
+      "commit": "da1756a823f682aba8a02198fd17535e0401ad65",
+      "authoredAt": "2026-10-15T21:00:11+07:00",
+      "subject": "feat(ui): model picker regex/negation search, batch select, provider filtering"
+    },
+    {
+      "commit": "a8f63f4d7167b094e0baadcc2637d1a9eba9a016",
+      "authoredAt": "2026-10-15T20:43:13+07:00",
+      "subject": "fix(models): expose no-auth free providers in /v1/models and prune custom models on node deletion"
+    },
+    {
+      "commit": "eb3730170ce4cd5d999566e7b4873c0f523cf0ea",
+      "authoredAt": "2026-10-15T20:53:52+07:00",
+      "subject": "fix(gemini): drop sampling params and order functionResponse-last for Gemini 4 (#4802)"
+    },
+    {
+      "commit": "28d4015966f2d71a67d665bad803ce7e98b1e9b2",
+      "authoredAt": "2026-10-15T20:12:55+07:00",
+      "subject": "feat(quota): unify auto-ping mode selection and default to local timezone"
+    },
+    {
+      "commit": "db81a8c9f0dbb8037d00751d06ba31fa82a67250",
+      "authoredAt": "2026-10-15T16:30:43+07:00",
+      "subject": "fix(headroom): avoid false compression warnings when tools dominate body (#4855)"
+    },
+    {
+      "commit": "7e0043def28da0aeedffbd566c4970d883fbb553",
+      "authoredAt": "2026-10-15T16:42:41+07:00",
+      "subject": "Merge branch 'chore/codex-drop-gpt-5.5'"
+    },
+    {
+      "commit": "7878f53ba29dd32707083408fcbfcb3b6e3cadd2",
+      "authoredAt": "2026-10-15T16:36:11+07:00",
+      "subject": "fix(codex): drop retired gpt-5.5 from registry, image and auto-ping"
+    },
+    {
+      "commit": "be51142b4aca48d0599ec00b45bd9ccaaed420dd",
+      "authoredAt": "2026-10-15T14:44:00+07:00",
+      "subject": "feat(quota): anchored auto-ping schedule at fixed local times (#4848)"
+    },
+    {
+      "commit": "5bdcd5e7674d8f8f1139c07104e72c8ac094f6b4",
+      "authoredAt": "2026-10-15T09:31:48+07:00",
+      "subject": "fix(opencode): move free tier to /inference/v1 with the v2 client fingerprint (#4842)"
+    },
+    {
+      "commit": "e964e4826715f3f9590d55314e968bcdfca194b6",
+      "authoredAt": "2026-10-15T09:31:45+07:00",
+      "subject": "fix(opencode): inject reasoning_content placeholder for Zen multi-turn chats (#4805)"
+    },
+    {
+      "commit": "165f9b90a254cdbbe31a579687a82d2b61b401df",
+      "authoredAt": "2026-10-15T09:20:06+07:00",
+      "subject": "feat(providers): add Nous Research OAuth + free-tier provider"
+    },
+    {
+      "commit": "29fc880ec090464e4181befff1f65477274d4db7",
+      "authoredAt": "2026-10-14T16:32:31+07:00",
+      "subject": "feat(gemini): add Gemini 4 Argon (gemini/vertex/antigravity)"
+    },
+    {
+      "commit": "51a1827e2d1e5170eb5e13e421dcca3409245d78",
+      "authoredAt": "2026-10-14T15:17:16+07:00",
+      "subject": "fix(github): route Copilot embeddings to api.githubcopilot.com (#4793)"
+    },
+    {
+      "commit": "9c1419100c2c3db083e850f9572968d942fac7f9",
+      "authoredAt": "2026-10-14T15:06:15+07:00",
+      "subject": "fix(vertex): honor API-key project/location for Gemini 4 Argon (#4821)"
+    },
+    {
+      "commit": "1d4335d44d94f18b4d8c1dde70db800c2600e88b",
+      "authoredAt": "2026-10-13T18:01:10+07:00",
+      "subject": "fix(translator): return Claude messages for forced SSE JSON responses (#4789)"
+    },
+    {
+      "commit": "c86443689135c624fe4afd1d990b503a27eed10c",
+      "authoredAt": "2026-10-13T17:54:36+07:00",
+      "subject": "fix(opencode-go): route claude-haiku-5-5 to /messages with adaptive thinking (#4727)"
+    },
+    {
+      "commit": "d6431f8b7518eab30084940b48b5632b2748c266",
+      "authoredAt": "2026-10-13T17:48:31+07:00",
+      "subject": "feat(cli-tools): Hermes audio transcription via 9router (#4763)"
+    },
+    {
+      "commit": "8f4e380073151d2626e5104afbee2d95738eaf26",
+      "authoredAt": "2026-10-13T17:46:22+07:00",
+      "subject": "fix(combo): fallback when model returns HTTP 200 with zero usable content (#4750)"
+    },
+    {
+      "commit": "59e9b5264c52f3e8bdceed0858888affb41bdb41",
+      "authoredAt": "2026-10-13T17:41:31+07:00",
+      "subject": "fix(opencode-zen): use attested free-tier identity for -free models on keyed lane (#4784)"
+    },
+    {
+      "commit": "b2aaf83bbc4cd6c566cf5262f0af9527c6242ef6",
+      "authoredAt": "2026-10-13T17:33:49+07:00",
+      "subject": "fix(qoder): surface add-on (free-credit promo) quota in the quota tracker (#4758)"
+    },
+    {
+      "commit": "4c58e7f318fcd0a59cd05a10fa8f777c258b8b0c",
+      "authoredAt": "2026-10-11T09:13:37+02:00",
+      "subject": "fix(capabilities): add missing OpenCode Free reasoning entries (space-bunny & co)"
+    },
+    {
+      "commit": "90f89471c0415daf294863f5d8f8f6fb2dc8880a",
+      "authoredAt": "2026-10-13T17:28:41+07:00",
+      "subject": "fix(nous): add API-key attribution tags (#4770)"
+    },
+    {
+      "commit": "468aa7d9ed8f34c4a94255def591e99634bfecb9",
+      "authoredAt": "2026-10-13T04:17:22Z",
+      "subject": "fix(param-support): drop response_format for opencode-go deepseek models"
+    },
+    {
+      "commit": "f5f880394eee7719a36181a0e9be9dfb18ba4161",
+      "authoredAt": "2026-10-13T17:23:25+07:00",
+      "subject": "fix(capabilities): advertise PDF input for current Claude models (#4761)"
+    },
+    {
+      "commit": "ef4679dfa4a160c6e0977e0ad0a101e89fc3db4f",
+      "authoredAt": "2026-10-13T11:49:18+07:00",
+      "subject": "fix(opencode): encode inverted timestamp in translated session IDs (#4780)"
+    },
+    {
+      "commit": "cfd8c61849ae8968f57794ebf1e2a01ae8cf95e1",
+      "authoredAt": "2026-10-11T09:29:37+07:00",
+      "subject": "fix(cursor): hold strictProxy on the AgentService h2 path (#4696)"
+    },
+    {
+      "commit": "f7708c9d724d49d9207ae8d03699552a1caca6f2",
+      "authoredAt": "2026-10-11T09:22:40+07:00",
+      "subject": "test(cursor): lock KV ack metadata echo with round-trip tests (#4694)"
+    },
+    {
+      "commit": "f6c26d8ea3eb1c35fabc6d33c817116953bd4da9",
+      "authoredAt": "2026-10-11T09:17:33+07:00",
+      "subject": "feat(cursor): resolve Auto (Server Picks) to the account's default agent model (#4692)"
+    },
+    {
+      "commit": "e7f41c1332fdeca313af664be01a2f1169ae494f",
+      "authoredAt": "2026-10-11T09:13:57+07:00",
+      "subject": "fix(cursor): recover long sessions from empty AgentService turns (#4690)"
+    },
+    {
+      "commit": "cff2b1d976528860521781f42c8da468bc49a9e4",
+      "authoredAt": "2026-10-11T09:10:47+07:00",
+      "subject": "feat(antigravity): bump IDE version to 2.22.0"
+    },
+    {
+      "commit": "3ef4d8e311ee17c8d0280b73eef3618011d7426e",
+      "authoredAt": "2026-10-11T09:10:36+07:00",
+      "subject": "feat(usage): Cursor IDE quota via DashboardService (spend + request buckets) (#4689)"
+    },
+    {
+      "commit": "ce4460ef79382bfddb4aa5fc0ff9f3cb0d5f95a8",
+      "authoredAt": "2026-10-08T19:48:53+07:00",
+      "subject": "# v0.5.99 (2026-10-08)"
+    },
+    {
+      "commit": "24034f69c7cc0a3f106c6ead6e24d9d6c7cf24a6",
+      "authoredAt": "2026-10-08T17:37:05+07:00",
+      "subject": "feat(antigravity): refresh model catalog and update MITM defaults to Gemini 3.8"
+    },
+    {
+      "commit": "eea082157b382d25f8425e262c84aa02c3104523",
+      "authoredAt": "2026-10-08T17:35:44+07:00",
+      "subject": "fix(dashboard): fix mobile layouts for endpoint, provider models and cli-tools"
+    },
+    {
+      "commit": "2d94d3ab8eac8a509190cda5eca178428b6b0b09",
+      "authoredAt": "2026-10-08T16:39:22+07:00",
+      "subject": "feat(dashboard): open 9Remote sidebar item directly to website"
+    },
+    {
+      "commit": "a9c9f68364fa929f9217c58fccabf2ed854a061f",
+      "authoredAt": "2026-10-08T16:29:05+07:00",
+      "subject": "feat(hermes): per-profile configuration across API, Dashboard and CLI (#4660)"
+    },
+    {
+      "commit": "a9d0ad269f1c904b0e420d95f669b0fff1305912",
+      "authoredAt": "2026-10-08T16:16:40+07:00",
+      "subject": "feat(bedrock): add AWS Bedrock provider with AWS SSO credential support (#4157)"
+    },
+    {
+      "commit": "09f6d3956cd9abc176832ea5db5703fe992eab67",
+      "authoredAt": "2026-10-08T16:02:44+07:00",
+      "subject": "fix(gemini): do not treat properties map as schema node when tool param named properties (#4620)"
+    },
+    {
+      "commit": "c61ee37dde5bc0bfff8ea50fcefb57c54a8c3a82",
+      "authoredAt": "2026-10-08T15:46:11+07:00",
+      "subject": "fix(capabilities): GLM-5.3 cannot disable thinking (#4656)"
+    },
+    {
+      "commit": "6a1573ebafd1b9cc1b509650e15d3d669e56df94",
+      "authoredAt": "2026-10-08T15:45:37+07:00",
+      "subject": "fix(combo): show compatible node models in picker without a connection (#4659)"
+    },
+    {
+      "commit": "2f827bcf7cf426f76d2ae9f28204a475e7bfc2cf",
+      "authoredAt": "2026-10-07T20:06:16+07:00",
+      "subject": "feat(elevenlabs): add Scribe speech-to-text support (#4537)"
+    },
+    {
+      "commit": "0f7f6e72a9a63678e2d7801be0cd907fc67df739",
+      "authoredAt": "2026-10-07T20:04:49+07:00",
+      "subject": "fix(capabilities): GLM-5.2/5.3 context is 1M, not the stale 200k pin (#4544)"
+    },
+    {
+      "commit": "8a90d3c9d644f82484e2b4fd9b7edbe641e2ac89",
+      "authoredAt": "2026-10-07T20:01:18+07:00",
+      "subject": "fix(cli): take `connect` models from the server; add `show`, `--save`, Pi and Oh My Pi"
+    },
+    {
+      "commit": "3125ac2bd127d925873fd6c4ef788b4262dad112",
+      "authoredAt": "2026-10-07T19:57:59+07:00",
+      "subject": "fix(kimi): route Responses clients to the Kimi Code /responses endpoint"
+    },
+    {
+      "commit": "d8c585fb7def1ea674ec23b518af6213585ef5c0",
+      "authoredAt": "2026-10-07T19:49:09+07:00",
+      "subject": "feat(keys): per-API-key access control: restrict a key to selected combos and models"
+    },
+    {
+      "commit": "4fa46034abcdcb22981137c09a7f9d15e8a5bc48",
+      "authoredAt": "2026-10-07T19:48:28+07:00",
+      "subject": "feat(proxy-pools): add Netlify relay proxy pool"
+    },
+    {
+      "commit": "ee3234003a4b3e0f665753c9ef9e39e24295dc8d",
+      "authoredAt": "2026-10-07T19:44:46+07:00",
+      "subject": "fix(tts): accept server model and voice in self-hosted example"
+    },
+    {
+      "commit": "6e4f82db33cf944d544fb2c2c4d698a21c180616",
+      "authoredAt": "2026-10-07T19:40:30+07:00",
+      "subject": "fix(translator): uniquify duplicate tool_call_ids for Gemini (#4532)"
+    },
+    {
+      "commit": "a07ed95beae8ce295907082220c386e8e7db138b",
+      "authoredAt": "2026-10-07T19:29:50+07:00",
+      "subject": "feat(antigravity): add Claude Sonnet 5.5 and Opus 5.5 support"
+    },
+    {
+      "commit": "466272490beec96bef0cde1f454c344b559cedc7",
+      "authoredAt": "2026-10-07T19:30:00+07:00",
+      "subject": "fix(ollama): report prompt_eval_cached_count as cached_tokens in usage tracking"
+    },
+    {
+      "commit": "b00ba1aa4b2bf4290fa0e9772cba7ffe8db23d8e",
+      "authoredAt": "2026-10-07T19:15:15+07:00",
+      "subject": "fix(muse): route Responses-only models to their declared transport + nest reasoning effort"
+    },
+    {
+      "commit": "63de82b8e5a17f0b87b47bf12fabdab7158dd62e",
+      "authoredAt": "2026-10-07T19:21:18+07:00",
+      "subject": "feat(codebuddy-cn): sync catalog with 2026-09-30 server config"
+    },
+    {
+      "commit": "0dd4d6be24a1f996be73b9bc470cb0861ac2df75",
+      "authoredAt": "2026-10-07T19:20:20+07:00",
+      "subject": "fix(codex): preserve explicit tool strict flags"
+    },
+    {
+      "commit": "b677bfce34ddc072d797f5997c7baae66d4acdd4",
+      "authoredAt": "2026-10-07T19:15:08+07:00",
+      "subject": "fix(cli): store model IDs in TUI combos"
+    },
+    {
+      "commit": "18ad1a89ff4f91636b4f08135b8efcfcc36af7c7",
+      "authoredAt": "2026-10-07T19:12:19+07:00",
+      "subject": "fix(cursor): forward reasoning effort to AgentService Run"
+    },
+    {
+      "commit": "cbd594acaea2a3cc30ac09f5177b7a97ec880458",
+      "authoredAt": "2026-10-07T19:11:31+07:00",
+      "subject": "fix(cursor): reject empty AgentService turns without successful stop"
+    },
+    {
+      "commit": "85bc33ceafefda393bc039f0a6b0c8fc4657ac14",
+      "authoredAt": "2026-10-07T19:03:53+07:00",
+      "subject": "feat(providers): add MiniMax Code (mcode) credits provider"
+    },
+    {
+      "commit": "625df74db62e3f6725be3ae141f0fd6d1dbc92c1",
+      "authoredAt": "2026-10-07T18:59:09+07:00",
+      "subject": "fix(gemini): rename $ref keys in functionResponse payloads"
+    },
+    {
+      "commit": "e10da16031cf1d327f84b88747f19219f9bfb4ec",
+      "authoredAt": "2026-10-07T18:48:11+07:00",
+      "subject": "fix(usage): track exact Codex image token usage"
+    },
+    {
+      "commit": "d2f9017758485f6ab0ffeaaa72f66831c6cd9d26",
+      "authoredAt": "2026-10-07T18:51:36+07:00",
+      "subject": "feat(systemone): support Cloudflare AI clef-flash endpoint"
+    }
+  ]
+}

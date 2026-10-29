@@ -102,3 +102,21 @@ describe("DeepSeek native time-of-use estimates use recorded request time", () =
     expect(db.get("SELECT cost FROM usageHistory").cost).toBeCloseTo(0.03612, 12);
   });
 });
+
+describe("Ollama Cloud time-of-use estimates in durable usage", () => {
+  const sample = { prompt_tokens: 100, cached_tokens: 80, completion_tokens: 20, reasoning_tokens: 0 };
+  it.each([
+    ["2026-10-29T11:59:59Z", 0.00005456],
+    ["2026-10-29T12:00:00Z", 0.00010912],
+    ["2026-10-29T18:00:00Z", 0.00005456],
+    ["2026-10-31T14:00:00Z", 0.00005456],
+  ])("freezes the cloud credit estimate at request time %s", async (timestamp, expected) => {
+    await usage.saveRequestUsage({ provider: "ollama", model: "deepseek-v4-pro", timestamp, tokens: sample });
+    expect(db.get("SELECT cost FROM usageHistory").cost).toBeCloseTo(expected, 12);
+  });
+  it("keeps an operator's explicit rates above the scheduled defaults", async () => {
+    await pricing.updatePricing({ ollama: { "deepseek-v4-pro": { input: 7, output: 0 } } });
+    await usage.saveRequestUsage({ provider: "ollama", model: "deepseek-v4-pro", timestamp: "2026-10-29T06:00:00Z", tokens: sample });
+    expect(db.get("SELECT cost FROM usageHistory").cost).toBeCloseTo(0.00014176, 12);
+  });
+});

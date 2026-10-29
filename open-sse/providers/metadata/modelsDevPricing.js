@@ -6,7 +6,16 @@
 import { canonicalizeProviderId } from "../identity.js";
 import { parsePricingTimestamp } from "../../config/timeOfUsePricing.js";
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "./modelsDevPricingRegistry.js";
+import currentObservation from "./modelsDevPricingCurrent.js";
+import {
+  freezePricingObservation, getObservedPricingEstimate,
+  getObservedPricingReference, getObservedPricingStatus, selectPricingObservation,
+  validatePricingObservation,
+} from "./modelsDevPricingObservation.js";
+export { createPricingObservation as createModelsDevPricingObservation, validatePricingObservation as validateModelsDevPricingObservation, MODELS_DEV_PRICING_PRODUCT_POLICY } from "./modelsDevPricingObservation.js";
 
+// Historical observation export kept for reproducible earlier usage. New captures
+// are separate immutable versions; never retimestamp these original bytes.
 export const MODELS_DEV_PRICING_SOURCE = Object.freeze({
   url: "https://models.dev/api.json",
   // Filename date is local to the snapshot, not an asserted UTC fetch date.
@@ -140,7 +149,7 @@ freezeTree(MODELS_DEV_PRICING_ESTIMATE_MODELS);
 freezeTree(MODELS_DEV_REGISTRY_PRICING_REFERENCES);
 
 /** Exact provider/product and literal ID only; never rewrite a wire ID. */
-export function getModelsDevPricingReference(provider, model) {
+function getLegacyPricingReference(provider, model) {
   if (typeof provider !== "string" || typeof model !== "string" || !model) return null;
   const id = canonicalizeProviderId(provider);
   if (!Object.hasOwn(MODELS_DEV_PRICING_PRODUCTS, id) || !Object.hasOwn(MODELS_DEV_PRICING_REFERENCES, id)) return null;
@@ -150,20 +159,20 @@ export function getModelsDevPricingReference(provider, model) {
 }
 
 /** Whether a literal provider/model pair is eligible, regardless of date. */
-export function hasModelsDevPricingEstimate(provider, model) {
+function hasLegacyPricingEstimate(provider, model) {
   const id = canonicalizeProviderId(provider);
   return Object.hasOwn(MODELS_DEV_PRICING_ESTIMATE_MODELS, id) && MODELS_DEV_PRICING_ESTIMATE_MODELS[id].includes(model);
 }
 
 /** A short-lived text-token reference, never a complete provider invoice. */
-export function getModelsDevPricingEstimate(provider, model, options = {}) {
-  if (!hasModelsDevPricingEstimate(provider, model)) return null;
+function getLegacyPricingEstimate(provider, model, options = {}) {
+  if (!hasLegacyPricingEstimate(provider, model)) return null;
   // Observation is not proof of when a tariff began or ended. Do not backdate
   // the reference, and bound its use after the file/hash were observed.
   const date = parsePricingTimestamp(options?.timestamp);
   const start = Date.parse(MODELS_DEV_PRICING_SOURCE.verifiedAtUtc);
   if (!date || date.getTime() < start || date.getTime() >= start + MODELS_DEV_PRICING_SOURCE.maxEstimateAgeMs) return null;
-  const reference = getModelsDevPricingReference(provider, model);
+  const reference = getLegacyPricingReference(provider, model);
   const cost = reference?.cost;
   if (!cost || !Number.isFinite(cost.input) || cost.input <= 0 || !Number.isFinite(cost.output) || cost.output <= 0
     || Object.keys(cost).some(field => !["input", "output", "cache_read"].includes(field))) return null;
@@ -174,4 +183,72 @@ export function getModelsDevPricingEstimate(provider, model, options = {}) {
     provenance: { kind: "models-dev-catalog-estimate", product: reference.product, model: reference.model,
       url: reference.url, snapshotDate: reference.snapshotDate, verifiedAtUtc: reference.verifiedAtUtc,
       sha256: reference.sha256, inheritedFields: ["input", "output"] } };
+}
+
+
+// The original snapshot remains immutable for historical/in-flight requests.
+// New observations replace the complete catalog view at their observation time.
+const legacyObservation = freezePricingObservation({
+  format: "kitsune-modelsdev-pricing-observation-v1", source: MODELS_DEV_PRICING_SOURCE,
+  products: MODELS_DEV_PRICING_PRODUCTS,
+  references: Object.fromEntries(Object.entries(MODELS_DEV_PRICING_REFERENCES).map(([provider, rows]) => [provider,
+    Object.fromEntries(Object.entries(rows).map(([id, cost]) => [id, { cost, input: ["text"], output: ["text"] }]))])),
+  estimates: MODELS_DEV_PRICING_ESTIMATE_MODELS,
+});
+export const BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS = Object.freeze([legacyObservation, validatePricingObservation(currentObservation)]);
+// Next bundles pricing into instrumentation and API chunks independently. Use
+// one process-wide reader, and read it on every lookup so clearing it also
+// detaches copies which previously consulted the old source.
+const OBSERVATION_SOURCE = Symbol.for("kitsune.modelsDevPricingObservationSource");
+
+/** Install a synchronous, already-validated immutable observation history reader. */
+export function setModelsDevPricingObservationSource(reader) {
+  if (reader !== null && typeof reader !== "function") throw new TypeError("Pricing observation source must be a function or null");
+  globalThis[OBSERVATION_SOURCE] = reader;
+}
+
+function observations(options = {}) {
+  const extra = globalThis[OBSERVATION_SOURCE]?.(options);
+  if (extra != null && !Array.isArray(extra)) throw new Error("Invalid pricing observation history");
+  return extra?.length ? [...BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS, ...extra] : BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS;
+}
+function latestObservation(history) {
+  return selectPricingObservation(history, 8640000000000000);
+}
+function observationFor(options = {}) {
+  const history = observations(options);
+  return options.timestamp == null ? latestObservation(history) : selectPricingObservation(history, options.timestamp);
+}
+
+/** Exact product/literal ID reference, optionally selected at a recorded instant. */
+export function getModelsDevPricingReference(provider, model, options = {}) {
+  if (typeof provider !== "string" || typeof model !== "string" || !model) return null;
+  try { return getObservedPricingReference(observationFor(options), canonicalizeProviderId(provider), model); }
+  catch { return null; }
+}
+
+export function hasModelsDevPricingEstimate(provider, model, options = {}) {
+  const state = getModelsDevPricingStatus(provider, model, options);
+  return state.eligible;
+}
+
+/** Stable status keys let translated consumers explain unknowns without guessing. */
+export function getModelsDevPricingStatus(provider, model, options = {}) {
+  try {
+    const selected = observationFor(options);
+    const observation = selected || latestObservation(observations(options));
+    return getObservedPricingStatus(observation, canonicalizeProviderId(provider), model, options);
+  } catch {
+    return { status: "source-unavailable", reference: null, eligible: false, observedAtUtc: null, expiresAtUtc: null };
+  }
+}
+
+/** A dated catalog estimate; no global family guesses, invoice or plan conversion. */
+export function getModelsDevPricingEstimate(provider, model, options = {}) {
+  try {
+    const observation = observationFor(options);
+    if (!observation) return null;
+    if (observation === legacyObservation) return getLegacyPricingEstimate(provider, model, options);
+    return getObservedPricingEstimate(observation, canonicalizeProviderId(provider), model, options);
+  } catch { return null; }
 }

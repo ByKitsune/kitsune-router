@@ -18,7 +18,7 @@ Nếu tải lại thất bại, dashboard giữ dữ liệu thành công gần n
 
 ## Phạm vi giá
 
-Việc bỏ giá chung không gắn với sản phẩm giúp tránh dùng giá của nhà cung cấp khác, nhưng một số route từng có giá số có thể trở thành chưa rõ giá. Chỉ 16 cặp nhà cung cấp/model chính xác, dành cho văn bản, được dùng giá tham khảo models.dev để ước tính input/output trong 24 giờ sau quan sát. Khoảng hiện tại kết thúc lúc **2026-10-29 18:11:32.422 UTC** và không có cập nhật giá tự động. Sau đó có thể dùng giá theo route đã được rà soát hoặc override do người vận hành xác minh. Chi phí đã ghi không được định giá lại; giá tham khảo không phải hóa đơn.
+Tham chiếu models.dev giữ đúng sản phẩm/nhà cung cấp và ID nguyên gốc của model. Chỉ giá token văn bản trả theo mức sử dụng tương thích mới được dùng để ước tính; gói đăng ký, đơn vị media hoặc giá có điều kiện không tự trở thành giá token. Bộ lập lịch thử tải và xác minh toàn bộ catalog mỗi sáu giờ. Mỗi quan sát chỉ áp dụng từ thời điểm quan sát thực tế đến trước 24 giờ sau đó, theo thời gian đã ghi của request. Lỗi tải và HTTP 304 không gia hạn quan sát; `MODEL_CATALOG_SYNC=off` tắt cập nhật qua mạng nhưng vẫn cho đọc quan sát đã lưu. Chi phí lịch sử không bị tính lại; thành phần chưa có giá vẫn là chưa rõ và giá tham chiếu không phải hóa đơn. Xem [bản kiểm tra toàn bộ registry hiện tại](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/22-pricing-capability-localization-2026-10.md).
 
 Sổ usage chưa lưu `usage.cost` và các trường hạn mức Go do OpenCode báo. Hãy xem dashboard của nhà cung cấp để biết các giá trị đó; hạn mức không phải khoản tiền đã thu.
 

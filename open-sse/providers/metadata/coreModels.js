@@ -3339,6 +3339,19 @@ for (const [id, reasoning] of [["grok-4.20-0309-reasoning", true], ["grok-4.20-0
   entry.capabilities.reasoning = reasoning;
   entry.sources = [`https://docs.x.ai/developers/models/${id}`, primaryPricing.xai.url, catalogCrosscheck.url];
   Object.assign(entry.limits, { catalogModelId: id, unverifiedCapabilityFields: ["maxInput", "maxOutput"] });
+  if (id === "grok-4.20-multi-agent-0309") {
+    // Hosted search does not imply unrestricted client-side function tools.
+    // The exact provider reference records an account beta requirement; keep
+    // unknown until an operator explicitly declares that account entitlement.
+    entry.capabilities.tools = null;
+    entry.limits.unverifiedCapabilityFields.push("tools");
+    entry.limits.conditionalCapabilities = {
+      tools: {
+        status: "account-beta-required", api: "responses", operatorOverrideSupported: true,
+        note: "Client-side function tools require account beta access; hosted search is a separate capability. General client-tool support is unknown without account evidence. An operator may declare tools support for an entitled account. No authenticated probe was performed.",
+      },
+    };
+  }
   xai[id] = entry;
 }
 for (const id of ["grok-4.7", "grok-4.6", "grok-4.5"]) {

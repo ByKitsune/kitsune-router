@@ -51,12 +51,13 @@ function validateServiceTiers(tiers, model) {
 /**
  * GET /api/pricing
  * Merged rates by default; ?view=overrides returns only explicit saved fields.
+ * ?view=diagnostics returns read-only source, coverage and freshness information.
  */
 export async function GET(request) {
   try {
-    const overrides = request?.url && new URL(request.url).searchParams.get("view") === "overrides";
-    const pricing = overrides ? await getSavedPricing() : await getConfiguredPricing();
-    return NextResponse.json(pricing);
+    const view = request?.url ? new URL(request.url).searchParams.get("view") : null;
+    const pricing = view === "overrides" ? await getSavedPricing() : await getConfiguredPricing({ diagnostics: view === "diagnostics" });
+    return NextResponse.json(pricing, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error fetching pricing:", error);
     return NextResponse.json(
@@ -159,7 +160,7 @@ export async function DELETE(request) {
     }
 
     const pricing = await getConfiguredPricing();
-    return NextResponse.json(pricing);
+    return NextResponse.json(pricing, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error resetting pricing:", error);
     return NextResponse.json(

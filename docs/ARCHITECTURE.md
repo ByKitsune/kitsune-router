@@ -700,17 +700,34 @@ replacement rates before saved operator overrides. Existing history is never
 repriced during a metadata refresh. See the
 [client/model/pricing review](audit/18-client-model-pricing-refresh-2026-10.md).
 
-The 2026-10-29 source follow-up removes unscoped generic vendor-family fallbacks
-from provider billing resolution. This avoids borrowing another product's tariff,
-but reduces future estimate coverage: previously numeric routes, including some
-Kiro, CodeBuddy and gateway subscription routes, can now be unknown. Stored
-historical costs remain unchanged. Selected models.dev references are scoped to
-an exact provider/product and literal model ID; they are not invoices or proof of
-availability. Only a narrow text-only subset can supply input/output estimates,
-for recorded times from the captured observation until strictly before 24 hours
-after it. They are not backdated; after expiry those references no longer supply
-an estimate. Other route-specific quotes and operator overrides remain separate.
-Unverified components stay `null`, and final pricing coverage is still under review.
+Provider billing resolution does not use unscoped vendor-family fallbacks.
+A public API price must not become a subscription or reseller tariff merely
+because the model names match. Exact models.dev product/model observations are
+references; only compatible public pay-as-you-go text-token rows can supply
+catalog estimates. Reviewed route-specific conditions and operator overrides
+remain separate. Unverified used components remain `null`, not free, and
+already accepted usage is never repriced by a catalog refresh.
+
+The catalog scheduler attempts a fresh, bounded full models.dev response every
+six hours. A successful complete response is validated and hashed before
+publishing an immutable pricing observation under
+`DATA_DIR/model-pricing-observations/`. HTTP 304 does not extend an observation's
+age. A catalog estimate is usable from its actual observation time until strictly
+before 24 hours later; no rate is backdated. Newest-applicable observations are
+selected by the original recorded request timestamp, preserving prior
+observations for in-flight work. Missing rows in a newer observation do not revive
+older tariffs. Private content-addressed files allow independent workers to
+publish without shared-manifest overwrite races; unreadable or corrupt state
+fails closed. Disabling outbound sync with `MODEL_CATALOG_SYNC=off` leaves restored
+observations readable but does not renew them.
+
+The pricing editor explains effective sources and reference-only, expired and
+unmapped states. `GET /api/pricing?view=diagnostics` is a read-only view of known
+and missing fields, override fields and provenance; it is separate from writable
+rates and rejected by PATCH. Missing or invalid displayed costs remain unknown,
+and known subtotals retain explicit unpriced coverage. The
+[all-registry follow-up](audit/22-pricing-capability-localization-2026-10.md)
+records the source pin, exact coverage and validation boundaries.
 
 OpenCode's documented `usage.cost` and `usage.opencode` receipt fields are not
 currently retained by the normal usage-accounting path. In particular, Go plan

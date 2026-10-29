@@ -18,7 +18,7 @@ export function hasInvalidUsageCounters(raw, kind) {
   values.push(raw.completion_tokens_details?.reasoning_tokens, raw.output_tokens_details?.reasoning_tokens);
   if (kind === "gemini") values.push(raw.promptTokenCount, raw.candidatesTokenCount, raw.totalTokenCount, raw.cachedContentTokenCount, raw.thoughtsTokenCount);
   if (kind === "kiro") values.push(raw.inputTokens, raw.outputTokens, raw.cachedTokens);
-  if (kind === "ollama") values.push(raw.prompt_eval_count, raw.eval_count);
+  if (kind === "ollama") values.push(raw.prompt_eval_count, raw.eval_count, raw.prompt_eval_cached_count);
   if (kind === "commandcode") values.push(raw.inputTokens, raw.outputTokens, raw.totalTokens, raw.cachedInputTokens,
     raw.cacheReadTokens, raw.reasoningTokens, raw.inputTokenDetails?.cacheReadTokens,
     raw.inputTokenDetails?.cacheWriteTokens, raw.outputTokenDetails?.reasoningTokens);
@@ -183,8 +183,12 @@ const USAGE_EXTRACTORS = {
     return out;
   },
   ollama(raw) {
-    const input = n(raw.prompt_eval_count), output = n(raw.eval_count);
-    return { promptTokens: input, completionTokens: output, totalTokens: input + output };
+    const count = value => validCount(value) ? Number(value) : n(value);
+    const input = count(raw.prompt_eval_count), output = count(raw.eval_count);
+    // Ollama's prompt count is cache-inclusive. The cache counter is a subset,
+    // never additional input, and must survive both JSON and NDJSON conversion.
+    const cached = count(raw.prompt_eval_cached_count);
+    return { promptTokens: input, completionTokens: output, totalTokens: input + output, cachedTokens: cached };
   },
   commandcode(raw) {
     const input = n(raw.inputTokens), output = n(raw.outputTokens);

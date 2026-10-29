@@ -359,11 +359,9 @@ export function extractUsage(chunk) {
   // Ollama NDJSON format (raw from provider, before translation)
   // Ollama sends: {"model":"...","done":true,"prompt_eval_count":N,"eval_count":M}
   if (chunk.done === true && typeof chunk.prompt_eval_count === "number") {
-    return normalizeUsage({
-      prompt_tokens: chunk.prompt_eval_count ?? 0,
-      completion_tokens: chunk.eval_count ?? 0,
-      total_tokens: (chunk.prompt_eval_count ?? 0) + (chunk.eval_count ?? 0)
-    });
+    // Reuse the native converter: it preserves cache-inclusive input and the
+    // invalid-counter marker instead of dropping cache or coercing it to zero.
+    return normalizeUsage(toOpenAIUsage(chunk, "ollama"));
   }
 
   return null;

@@ -624,16 +624,24 @@ export function parseQuotaData(provider, data) {
         break;
 
       case "ollama":
-        // Session (5h) / Weekly (7d) usage % from ollama.com/api/usage.
-        // remainingPercentage only — no absolute remaining (UI treats remaining as %).
+        // Percent quota windows and USD balances have different units. A balance
+        // has no observed original budget or spent amount; retain that distinction.
         if (data.quotas) {
           Object.entries(data.quotas).forEach(([name, quota]) => {
+            if (quota.isCreditBalance === true) {
+              if (typeof quota.balance === "number" && Number.isFinite(quota.balance) && quota.balance >= 0) {
+                normalizedQuotas.push({ name, balance: quota.balance, isCreditBalance: true, currency: quota.currency, unit: quota.unit });
+              }
+              return;
+            }
             normalizedQuotas.push({
               name,
               used: quota.used || 0,
               total: quota.total || 0,
               resetAt: quota.resetAt || null,
               remainingPercentage: quota.remainingPercentage,
+              unit: quota.unit,
+              unlimited: quota.unlimited,
             });
           });
         }

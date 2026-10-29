@@ -21,6 +21,16 @@ const peakQuotes = {
 };
 const unknownQuote = { input: null, output: null, cached: null, reasoning: null, cache_creation: null };
 
+// The Ollama Cloud usage-credit product has a different peak window from the
+// native DeepSeek API. These exact route rates were already reviewed in
+// gatewayModels.js (2026-10-21); the 2026-10-29 models.dev ollama-cloud capture
+// independently matches their off-peak halves. Credits are not cash invoices.
+const ollamaOffPeakQuotes = {
+  "deepseek-v4-pro": { input: 0.66, cached: 0.022, output: 1.98, reasoning: 1.98 },
+  "deepseek-v4.1-flash": { input: 0.15, cached: 0.003, output: 0.6, reasoning: 0.6 },
+};
+const OLLAMA_SCHEDULE_REVIEW_FROM = Date.parse("2026-10-21T00:00:00Z");
+
 /** A billing instant must not silently roll a nonexistent civil date forward. */
 export function parsePricingTimestamp(value) {
   if (typeof value === "string") {
@@ -42,6 +52,15 @@ export function parsePricingTimestamp(value) {
  * Undefined means this is not one of the reviewed native scheduled routes.
  */
 export function getTimeOfUsePricing(provider, upstreamModel, timestamp) {
+  if (provider === "ollama" && Object.hasOwn(ollamaOffPeakQuotes, upstreamModel) && timestamp !== undefined) {
+    const date = parsePricingTimestamp(timestamp);
+    if (!date) return { ...unknownQuote };
+    // Do not retroactively change older requests based on a later review.
+    if (date.getTime() < OLLAMA_SCHEDULE_REVIEW_FROM) return undefined;
+    const weekday = date.getUTCDay() >= 1 && date.getUTCDay() <= 5;
+    const peak = weekday && date.getUTCHours() >= 12 && date.getUTCHours() < 18;
+    return peak ? undefined : { ...ollamaOffPeakQuotes[upstreamModel] };
+  }
   if (provider !== "deepseek" || !Object.hasOwn(peakQuotes, upstreamModel) || timestamp === undefined) return undefined;
   const date = parsePricingTimestamp(timestamp);
   if (!date) return { ...unknownQuote };

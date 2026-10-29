@@ -13,6 +13,61 @@ separate from the immutable 1.0.2 artifacts. They do not establish a release,
 deployment, live-provider acceptance or invoice accuracy. See the [dated upstream
 review and follow-up](docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-source-follow-up).
 
+### Catalog, pricing and localization audit
+
+- Enumerate all 1,302 configured registry rows against a complete default
+  models.dev view reconstructed from official source commit
+  `91395aca0144ed1a54cdd527dc9d7eb682e1e4cd`. Preserve exact product/model
+  identity, separate non-chat units, primary-source overrides and unresolved
+  references. The API request was proxy-blocked; the report records a source
+  reconstruction, not an original HTTP capture.
+- Remove unsupported generic 200,000-token context and 64,000-token output
+  defaults from 97 registry rows. Add 397 exact provider/model capability
+  references covering 400 rows; correct 20 wrong Boolean fields, fill 454
+  unspecified Boolean fields and refresh 24 stale secondary-catalog claims
+  that had been incorrectly treated as primary. Keep 174 unknown fields and
+  22 unresolved primary-reference conflicts explicit, with per-field evidence. This is metadata validation, not account
+  entitlement or live inference verification.
+- Align five CommandCode advertised output limits with the existing shared
+  200,000-token executor ceiling. Compute combo UI output limits conservatively
+  from member limits, matching public discovery instead of taking the largest
+  member's output allowance.
+- Import a fresh immutable pricing observation with 1,411 exact reference IDs
+  across 30 products and 297 matching registry rows. Keep public token-estimate
+  eligibility separate from subscription, modality, conditional and quote-only
+  billing; known input/output rates do not establish every incurred component.
+  Keep three material conflicts with older primary quotes unresolved rather than
+  certify those prices as current.
+- Refresh validated whole pricing observations with the six-hour catalog
+  scheduler. Preserve 24-hour applicability, recorded-time selection, prior
+  observations for in-flight work and fail-closed handling of removed or corrupt
+  rows. Failed or 304 responses do not renew rates, and saved history is not
+  repriced.
+- Resolve exact Ollama Cloud DeepSeek usage-credit estimates at the recorded
+  peak/off-peak instant, preserving the separate native DeepSeek schedule,
+  explicit overrides and frozen accepted history.
+- Keep the full before/after row reports and source provenance in the
+  [pricing, capability and localization follow-up](docs/audit/22-pricing-capability-localization-2026-10.md).
+- Keep undefined, non-finite, negative and nonnumeric cost values unknown rather
+  than formatting them as `$0.00`. Preserve known subtotals and explicit
+  unpriced coverage without changing genuine zero rates.
+- Add a read-only pricing diagnostics view and explain effective source,
+  operator override, catalog reference, expiry and unmapped states in the pricing
+  editor. Keep diagnostics separate from writable rates, show reset/save errors
+  without losing edits, and use native dialog focus handling. Paginate the editor
+  without losing edits across pages/search; refresh the parent after reset and
+  before closing a successful save so keyboard focus returns correctly.
+- Inventory 137 October upstream commits and 295 October-created issues visible
+  at collection, with selected issue-level dispositions. Reuse existing Kitsune
+  fixes instead of duplicate cherry-picks; the inventory is not a claim that
+  every issue was reproduced or resolved.
+- Repair runtime translation of React text changes and accessible attributes,
+  stale dictionary races, template parameters and nested code/identifier
+  protection. Register 1,868 measured UI literals and supply Indonesian entries
+  for that full scope. Expand shared pricing/navigation vocabulary in all 34
+  non-English dictionaries; other locales retain explicitly measured English
+  fallbacks rather than being advertised as fully translated.
+
 ### Provider and protocol updates
 
 - Add `gpt-6.1-terra` to the public OpenAI and Codex catalog entries. The public
@@ -60,6 +115,13 @@ review and follow-up](docs/audit/21-upstream-9router-2026-10-29.md#2026-10-29-so
   inventories. Redirects and unsafe relay configurations are refused. A stalled
   cancellation acknowledgment no longer holds TTS requests open; interrupted
   audio is not returned as success, and upstream error classification is retained.
+- Adapt the Ollama Cloud quota migration with bounded read-only balance fallback
+  when legacy windows are missing or removed. Validate finite observations and
+  keep plan allowances distinct from purchased balances; unknown quota data is
+  not a full allowance.
+- Preserve native Ollama cached-prompt counters through NDJSON conversion,
+  accounting, client JSON/SSE and request details. Input remains cache-inclusive
+  and totals are unchanged; invalid counters do not establish a definite cost.
 
 ### Usage and pricing
 

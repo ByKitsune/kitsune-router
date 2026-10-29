@@ -10,12 +10,12 @@ describe("unknown limits are not silently made numeric", () => {
     expect(result.contextWindow).toBeNull();
     expect(result.maxOutput).toBeNull();
   });
-  it("retains the established policy when all member limits are known", () => {
+  it("uses a conservative cap supported by every member when all limits are known", () => {
     const result = aggregateComboCapabilities(["fixture/a", "fixture/b"], null, id => id.endsWith("/a")
       ? { contextWindow: 1000000, maxOutput: 128000 }
       : { contextWindow: 200000, maxOutput: 32000 });
     expect(result.contextWindow).toBe(200000);
-    expect(result.maxOutput).toBe(128000);
+    expect(result.maxOutput).toBe(32000);
   });
   it("never fabricates limits for an ID-only live Grok Build row", () => {
     expect(parseGrokCliModels({ models: [{ id: "grok-build" }] })).toEqual([{ id: "grok-build", name: "grok-build" }]);

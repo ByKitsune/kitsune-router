@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## Sin publicar — auditoría de precios, capacidades y traducción
+
+- Revisar las 1.302 filas del registro con una reconstrucción fijada del código
+  oficial de models.dev. Eliminar límites genéricos sin evidencia y corregir
+  capacidades por producto y los límites de salida de CommandCode y combos.
+- Añadir observaciones de precios inmutables y verificadas, con intentos de
+  actualización cada seis horas y una ventana de 24 horas. Un costo desconocido,
+  de suscripción o de otra unidad no se convierte en un cargo gratuito.
+- Mostrar el origen y las limitaciones del precio en diagnósticos de solo lectura;
+  conservar los contadores de caché de Ollama y adaptar las cuotas de Cloud.
+- Corregir traducción de texto y atributos dinámicos, proteger código e
+  identificadores y ampliar el catálogo de textos y los diccionarios.
+
+[Auditoría completa y límites](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/22-pricing-capability-localization-2026-10.md).
+
 ## Sin publicar — seguimiento del código del 2026-10-29
 
 Estos cambios son de código fuente y están separados de los artefactos 1.0.2;

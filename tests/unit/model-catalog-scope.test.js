@@ -152,7 +152,7 @@ describe("catalog schema", () => {
     const realFetch = globalThis.fetch;
     globalThis.fetch = async (_url, options) => {
       sent.push(options?.headers || {});
-      return { ok: true, status: 200, headers: new Map([["etag", 'W/"new"']]), json: async () => upstream };
+      return new Response(JSON.stringify(upstream), { headers: { etag: 'W/"new"' } });
     };
     try {
       expect((await syncModelCatalog()).status).toBe("updated");
@@ -164,18 +164,20 @@ describe("catalog schema", () => {
     expect(written.models["glm:glm-4.6v"]).toMatchObject({ vision: true });
   });
 
-  it("asks upstream for a 304 once the file is current", async () => {
+  it("requires the full source instead of extending price freshness with a 304", async () => {
     const sent = [];
+    const before = fs.readFileSync(catalogFile, "utf8");
     const realFetch = globalThis.fetch;
     globalThis.fetch = async (_url, options) => {
       sent.push(options?.headers || {});
-      return { ok: false, status: 304, headers: new Map(), json: async () => ({}) };
+      return new Response(null, { status: 304 });
     };
     try {
-      expect((await syncModelCatalog()).status).toBe("unchanged");
+      expect(await syncModelCatalog()).toBeNull();
     } finally {
       globalThis.fetch = realFetch;
     }
-    expect(sent[0]["if-none-match"]).toBe('W/"new"');
+    expect(sent[0]["if-none-match"]).toBeUndefined();
+    expect(fs.readFileSync(catalogFile, "utf8")).toBe(before);
   });
 });

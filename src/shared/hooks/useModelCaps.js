@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 import { canonicalizeProviderId } from "open-sse/providers/identity.js";
+import { getReviewedModelMetadata } from "open-sse/providers/metadata/reviewed.js";
+import { getCapabilityVerification } from "open-sse/providers/metadata/modelsDevCapabilityResolution.js";
 
 // Module cache: one /api/models fetch shared by every useModelCaps instance.
 let cache = null; // { byFull, byId } | null
@@ -18,13 +20,15 @@ function buildMaps(models) {
   const byId = {};
   for (const m of models || []) {
     if (!m.caps) continue;
+    const caps = m.metadata?.capabilityVerification
+      ? { ...m.caps, capabilityVerification: m.metadata.capabilityVerification } : m.caps;
     for (const key of [m.fullModel, m.routedModel]) {
       if (key) {
-        byFull[key] = m.caps;
-        byFull[canonicalKey(key)] = m.caps;
+        byFull[key] = caps;
+        byFull[canonicalKey(key)] = caps;
       }
     }
-    if (m.model) byId[m.model] = m.caps;
+    if (m.model) byId[m.model] = caps;
   }
   return { byFull, byId };
 }
@@ -64,6 +68,7 @@ function resolveCaps(byFull, byId, key) {
     contextWindow: c.contextWindow,
     maxOutput: c.maxOutput,
     ...(c.maxInput != null ? { maxInput: c.maxInput } : {}),
+    capabilityVerification: getCapabilityVerification(provider, bare, c, getReviewedModelMetadata(provider, bare)),
   };
 }
 

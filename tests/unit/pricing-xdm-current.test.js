@@ -31,8 +31,9 @@ describe("Mistral exact and legacy model identities", () => {
   });
   it("uses the primary Codestral2508 page's128K window rather than a secondary256K claim", () => {
     // https://docs.mistral.ai/models/codestral-25-08.md: API names include
-    // codestral-latest; context128k. No independent output-token cap is given.
-    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: 128000, maxOutput: null });
+    // codestral-latest has conflicting128k/256k references; neither is a
+    // newly verified alias ceiling. Output remains independently unknown.
+    expect(getCapabilitiesForModel("mistral", "codestral-latest")).toMatchObject({ contextWindow: null, maxOutput: null });
     // The versioned legacy build keeps its own smaller window.
     expect(getCapabilitiesForModel("mistral", "codestral-2405").contextWindow).toBe(128000);
   });

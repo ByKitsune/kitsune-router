@@ -1,0 +1,244 @@
+{
+  "scope": "Static text/accessible attributes/component UI labels in src/app (excluding APIs) and src/shared/components; excludes marked identity/code regions. Dynamic/backend strings and linguistic quality require separate review.",
+  "sourceLiterals": 1868,
+  "coverage": [
+    {
+      "locale": "vi",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "zh-CN",
+      "dictionaryKeys": 1449,
+      "sourceLiterals": 1868,
+      "translated": 965,
+      "missing": 903
+    },
+    {
+      "locale": "zh-TW",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ja",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "pt-BR",
+      "dictionaryKeys": 1044,
+      "sourceLiterals": 1868,
+      "translated": 808,
+      "missing": 1060
+    },
+    {
+      "locale": "pt-PT",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ko",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "es",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "de",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "fr",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "he",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ar",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ru",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "pl",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "cs",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "nl",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "tr",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "uk",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "tl",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "id",
+      "dictionaryKeys": 2422,
+      "sourceLiterals": 1868,
+      "translated": 1868,
+      "missing": 0
+    },
+    {
+      "locale": "km",
+      "dictionaryKeys": 1453,
+      "sourceLiterals": 1868,
+      "translated": 969,
+      "missing": 899
+    },
+    {
+      "locale": "th",
+      "dictionaryKeys": 1448,
+      "sourceLiterals": 1868,
+      "translated": 965,
+      "missing": 903
+    },
+    {
+      "locale": "hi",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "bn",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ur",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "ro",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "sv",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "it",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "el",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "hu",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "fi",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "da",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "no",
+      "dictionaryKeys": 256,
+      "sourceLiterals": 1868,
+      "translated": 164,
+      "missing": 1704
+    },
+    {
+      "locale": "fa",
+      "dictionaryKeys": 1448,
+      "sourceLiterals": 1868,
+      "translated": 965,
+      "missing": 903
+    }
+  ]
+}

@@ -2,13 +2,15 @@ import { canonicalizeProviderId } from "./identity.js";
 
 // Model capabilities — what each model can read/do beyond plain text.
 //
-// Fallback order (first match wins), result merged over DEFAULT_CAPABILITIES:
+// Baseline fallback order (first match wins), merged over DEFAULT_CAPABILITIES:
 //   1. PROVIDER_CAPABILITIES[provider][model]  — provider-specific override
 //   2. MODEL_CAPABILITIES[model]               — canonical exact id (handles exceptions)
 //   3. PATTERN_CAPABILITIES                     — glob match, ordered specific -> generic
-//   4. DEFAULT_CAPABILITIES                     — safe floor (always returned)
+//   4. DEFAULT_CAPABILITIES                     — shape with unknown numeric limits
 //
-// Exact/provider facts remain authoritative. The synced catalog can fill missing
+// Primary/provider facts remain authoritative. A pinned exact-product catalog
+// reference corrects vendor-family guesses without changing explicit unknowns.
+// The synced catalog can fill missing
 // modality facts for the same provider + literal model; explicit false is not
 // absence. Pattern/default results also accept catalog limits and modality flags.
 // The server installs that reader via setCatalogSource(), keeping this module
@@ -36,10 +38,13 @@ import { applyReviewedCapabilities, getReviewedModelMetadata } from "./metadata/
 import { normalizeModelId } from "./models/schema.js";
 import { looksLikeVisionModel } from "./visionPatterns.js";
 import { isDocumentUnsupportedRoute } from "../config/documentConfig.js";
+import { applyExactCatalogCapabilities } from "./metadata/modelsDevCapabilityResolution.js";
+import { COMMANDCODE_MAX_OUTPUT_TOKENS } from "../config/runtimeConfig.js";
 
 /**
- * Safe floor — every resolved result is merged over this so consumers
- * never need null-checks. Most modern LLMs meet these limits.
+ * Shape defaults, not an advertised model specification. A model without an
+ * independently declared limit must remain unknown; a generic 200K/64K pair
+ * previously leaked into custom models and partial provider overrides.
  */
 export const DEFAULT_CAPABILITIES = {
   // input modalities
@@ -63,9 +68,9 @@ export const DEFAULT_CAPABILITIES = {
   thinkingEfforts: null,    // exact supported ordinal values; null = not independently declared
   fixedThinkingEffort: null, // named tier cannot be overridden by a conflicting effort
   // limits (tokens)
-  contextWindow: 200000,
+  contextWindow: null,
   maxInput: null,       // unknown unless the provider documents a separate input ceiling
-  maxOutput: 64000,
+  maxOutput: null,
 };
 
 // User-added model metadata can carry dashboard service kinds instead of the
@@ -241,8 +246,8 @@ export const PROVIDER_CAPABILITIES = {
   // Codex deliberately has NO numeric entry here.
   //
   // This table is consulted BEFORE reviewed metadata, and an entry is merged
-  // over DEFAULT_CAPABILITIES — so a partial entry (flags without numbers)
-  // would silently publish the 200k default window instead of the real one,
+  // over DEFAULT_CAPABILITIES — a partial entry (flags without numbers)
+  // previously published an invented 200k default window instead of the real one,
   // while a stale numeric entry would override the corrected facts. The
   // authoritative limits for this provider live in
   // providers/metadata/coreModels.js (apiContextWindow 1,050,000 /
@@ -586,7 +591,7 @@ export const PATTERN_CAPABILITIES = [
  * Union:        vision, pdf, audioInput, videoInput, imageOutput, audioOutput, search
  * Intersection: tools
  * Primary:      reasoning fields from the first (primary) model
- * Conservative: contextWindow = min; maxOutput = max
+ * Conservative: contextWindow and maxOutput = min across every eligible member
  *
  * @param {string[]} comboModels
  * @param {Object|null} [comboLookup] optional map of combo name → models array for nested resolution
@@ -631,7 +636,7 @@ export function aggregateComboCapabilities(comboModels, comboLookup = null, reso
     contextWindow: allCaps.every((c) => Number.isFinite(c.contextWindow) && c.contextWindow > 0)
       ? Math.min(...allCaps.map((c) => c.contextWindow)) : null,
     maxOutput: allCaps.every((c) => Number.isFinite(c.maxOutput) && c.maxOutput > 0)
-      ? Math.max(...allCaps.map((c) => c.maxOutput)) : null,
+      ? Math.min(...allCaps.map((c) => c.maxOutput)) : null,
   };
 }
 
@@ -742,8 +747,14 @@ export function getCapabilitiesForModel(provider, model) {
   // Otherwise a suffixed request can bypass a route's explicitly unknown limits.
   const cleanModel = typeof model === "string" ? model.replace(/\([^()]+\)\s*$/, "").trim() : model;
   const reviewedModel = getReviewedModelMetadata(provider, model) ? model : cleanModel;
-  const reviewed = applyReviewedCapabilities(baseline, provider, reviewedModel);
+  const reviewedRecord = getReviewedModelMetadata(provider, reviewedModel);
+  const providerOverride = getProviderCapabilityOverride(nativeProvider, model);
+  const reviewed = applyExactCatalogCapabilities(
+    applyReviewedCapabilities(baseline, provider, reviewedModel), provider, reviewedModel,
+    reviewedRecord, providerOverride,
+  );
   let caps = isDocumentUnsupportedRoute(nativeProvider, model) ? { ...reviewed, pdf: false } : reviewed;
+  caps = applyGatewayOutputCeiling(caps, nativeProvider, model);
   const modelId = typeof model === "string" ? model.split("/").pop().replace(/\([^()]+\)\s*$/, "").trim().toLowerCase() : "";
   if (nativeProvider === "github") {
     if (GITHUB_ADAPTIVE_THINKING_MODELS.has(modelId)) caps = { ...caps, thinkingFormat: "claude-adaptive" };
@@ -753,6 +764,26 @@ export function getCapabilitiesForModel(provider, model) {
   const budget = NATIVE_GEMINI_BUDGETS[model];
   const efforts = nativeProvider === "gemini" ? NATIVE_GEMINI_LEVELS[model] : undefined;
   return { ...caps, ...budget, ...(efforts ? { thinkingEfforts: efforts } : {}) };
+}
+
+function getProviderCapabilityOverride(provider, model) {
+  if (!provider || typeof model !== "string") return null;
+  const base = model.split("/").pop();
+  const variant = stripVariantSuffix(base);
+  const table = PROVIDER_CAPABILITIES[provider];
+  for (const id of [model, base, normalizeModelId(base), variant, variant ? normalizeModelId(variant) : null]) {
+    if (id && table?.[id]) return table[id];
+  }
+  return null;
+}
+
+function applyGatewayOutputCeiling(capabilities, provider, model) {
+  const reviewedCeiling = getReviewedModelMetadata(provider, model)?.limits?.gatewayMaxOutput;
+  const configuredCeiling = canonicalizeProviderId(provider) === "commandcode" ? COMMANDCODE_MAX_OUTPUT_TOKENS : null;
+  const ceilings = [reviewedCeiling, configuredCeiling].filter(value => Number.isFinite(value) && value > 0);
+  if (!ceilings.length || !Number.isFinite(capabilities?.maxOutput)) return capabilities;
+  const ceiling = Math.min(...ceilings);
+  return capabilities.maxOutput > ceiling ? { ...capabilities, maxOutput: ceiling } : capabilities;
 }
 
 function resolveBaselineCapabilities(provider, model) {
@@ -835,9 +866,5 @@ export function withDeclaredCapabilities(base, declared, provider, model) {
   if (isDocumentUnsupportedRoute(canonicalizeProviderId(provider), model) && result?.pdf !== false) {
     result = { ...result, pdf: false };
   }
-  const ceiling = getReviewedModelMetadata(provider, model)?.limits?.gatewayMaxOutput;
-  if (Number.isFinite(ceiling) && ceiling > 0 && Number.isFinite(result?.maxOutput) && result.maxOutput > ceiling) {
-    return { ...result, maxOutput: ceiling };
-  }
-  return result;
+  return applyGatewayOutputCeiling(result, provider, model);
 }

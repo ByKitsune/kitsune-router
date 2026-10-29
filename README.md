@@ -17,6 +17,11 @@ The [agent skills](skills/README.md) cover setup and eight API capabilities with
 model discovery and authenticated request guidance. See the current
 [unreleased changes](CHANGELOG.md#unreleased) and [UI design guide](docs/UI-DESIGN.md).
 
+The [current pricing and capability audit](docs/audit/22-pricing-capability-localization-2026-10.md)
+distinguishes exact catalog facts, route limits, operator overrides and unknown
+charges. A model name shared with another provider is not a compatible tariff,
+and a local usage estimate is not a provider invoice.
+
 These source changes are separate from the published-artifact record below.
 They do not imply that a newer npm package, container or hosted documentation
 has been released.

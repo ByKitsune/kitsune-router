@@ -46,6 +46,11 @@ The Kitsune-era [9Router upstream review and 2026-10-29 source follow-up](21-ups
 record selected adaptations, deferred work and evidence limits. They are not a
 claim that the reviewed source was released or deployed.
 
+The [pricing, capability and localization follow-up](22-pricing-capability-localization-2026-10.md)
+reviews the complete configured registry against a pinned official models.dev
+source reconstruction, distinguishes price references from usable estimates,
+and records the subsequent runtime-localization and upstream issue review.
+
 ## Read in this order
 
 | # | Document | Covers |

@@ -476,7 +476,7 @@ export async function buildModelsList(kindFilter) {
       };
       const caps = withDeclaredCapabilities(baseCaps, declared, providerId, modelId);
       if (Number.isFinite(declared.maxInput) && declared.maxInput > 0) caps.maxInput = declared.maxInput;
-      const metadata = getPublicModelMetadata(providerId, modelId, caps);
+      const metadata = getPublicModelMetadata(providerId, modelId, caps, declared);
       if (metadata) model.metadata = metadata;
       if (kindFilter.includes("imageToText") && !kindFilter.includes(LLM_KIND)
         && (kind === LLM_KIND || kind === "imageToText") && !caps?.vision) continue;

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useId, useSyncExternalStore } from "react";
 import { Languages, Search, X, Check, ChevronRight, LoaderCircle } from "lucide-react";
 import { LOCALE_NAMES } from "@/i18n/config";
-import { onLocaleChange, reloadTranslations } from "@/i18n/runtime";
+import { onLocaleChange, reloadTranslations, translate } from "@/i18n/runtime";
 import { LANGUAGE_OPTIONS, readDisplayLocale, searchLanguages } from "@/shared/constants/locales";
 import LocaleBadge from "./LocaleBadge";
 import "./language-switcher.css";
@@ -85,9 +85,9 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
   return (
     <div className={className}>
       {!hideTrigger && (
-        <button type="button" onClick={open} disabled={isPending} className="inline-flex min-h-11 max-w-full items-center gap-3 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-text-main shadow-soft transition-colors hover:bg-surface-2 motion-reduce:transition-none" aria-haspopup="dialog" aria-expanded={isOpen} data-i18n-skip="true">
+        <button type="button" onClick={open} disabled={isPending} className="inline-flex min-h-11 max-w-full items-center gap-3 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-text-main shadow-soft transition-colors hover:bg-surface-2 motion-reduce:transition-none" aria-haspopup="dialog" aria-expanded={isOpen}>
           <LocaleBadge locale={locale} compact />
-          <span className="truncate text-sm font-medium">{LOCALE_NAMES[locale]}</span>
+          <span className="truncate text-sm font-medium" data-i18n-skip="true">{LOCALE_NAMES[locale]}</span>
           <ChevronRight size={15} className="text-text-muted" aria-hidden="true" />
         </button>
       )}
@@ -103,7 +103,6 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
           if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
         }}
         className="language-picker fixed inset-x-0 bottom-0 top-auto m-0 max-h-[min(90dvh,760px)] w-full max-w-none overflow-hidden rounded-t-[28px] border border-border-subtle bg-surface p-0 text-text-main shadow-elevated backdrop:bg-black/40 backdrop:backdrop-blur-md sm:inset-0 sm:m-auto sm:w-[calc(100%_-_2rem)] sm:max-w-[620px] sm:rounded-[28px]"
-        data-i18n-skip="true"
       >
         {isOpen && (
           <div className="language-picker-content flex max-h-[min(90dvh,760px)] min-w-0 flex-col">
@@ -121,11 +120,11 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
                 <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-subtle" aria-hidden="true" />
                 <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "ArrowDown" && options.length) { event.preventDefault(); choicesRef.current[0]?.focus(); } }} aria-label="Search languages" placeholder="Search languages or locale codes…" className="h-12 w-full min-w-0 rounded-2xl border border-border-subtle bg-bg-alt/70 pl-10 pr-4 text-base text-text-main outline-none transition-shadow placeholder:text-text-subtle focus:border-primary/40 focus:ring-4 focus:ring-primary/8 sm:text-sm" />
               </div>
-              <div className="language-picker-preference mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted"><span>Current: <span className="font-semibold text-text-main" lang={locale} dir="auto">{LOCALE_NAMES[locale]}</span></span><span>{LANGUAGE_OPTIONS.length} languages</span></div>
+              <div className="language-picker-preference mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted"><span>Current: <span className="font-semibold text-text-main" data-i18n-skip="true" lang={locale} dir="auto">{LOCALE_NAMES[locale]}</span></span><span>{LANGUAGE_OPTIONS.length} languages</span></div>
             </div>
             {error && <p role="alert" className="mx-5 mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-sm leading-6 text-danger sm:mx-7">{error}</p>}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 custom-scrollbar sm:px-5" aria-busy={isPending}>
-              <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2" aria-label="Available languages">
+              <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2" aria-label={translate("Available languages")} data-i18n-skip="true">
                 {options.map((option, index) => {
                   const active = locale === option.locale;
                   return (

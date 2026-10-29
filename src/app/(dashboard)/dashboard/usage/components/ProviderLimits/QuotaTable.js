@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { formatResetTime, getRemainingPercentage } from "./utils";
+import { onLocaleChange, translate } from "@/i18n/runtime";
+import { readDisplayLocale } from "@/shared/constants/locales";
+
+const serverLocale = () => "en";
+const formatAmount = (value, unit, locale) => new Intl.NumberFormat(locale, unit === "USD" ? { style: "currency", currency: "USD" } : {}).format(value);
 
 const PAGE_SIZE = 10;
 
 /**
  * Format reset time display (Today, 12:00 PM)
  */
-function formatResetTimeDisplay(resetTime) {
+function formatResetTimeDisplay(resetTime, locale) {
   if (!resetTime) return null;
 
   try {
@@ -20,17 +25,16 @@ function formatResetTimeDisplay(resetTime) {
 
     let dayStr = "";
     if (date >= today && date < tomorrow) {
-      dayStr = "Today";
+      dayStr = translate("Today");
     } else if (date >= tomorrow && date < new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000)) {
-      dayStr = "Tomorrow";
+      dayStr = translate("Tomorrow");
     } else {
-      dayStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      dayStr = date.toLocaleDateString(locale, { month: "short", day: "numeric" });
     }
 
-    const timeStr = date.toLocaleTimeString("en-US", {
+    const timeStr = date.toLocaleTimeString(locale, {
       hour: "numeric",
       minute: "2-digit",
-      hour12: true,
     });
 
     return `${dayStr}, ${timeStr}`;
@@ -92,6 +96,7 @@ export default function QuotaTable({
   onHideQuota = null,
 }) {
   const [page, setPage] = useState(1);
+  const locale = useSyncExternalStore(onLocaleChange, readDisplayLocale, serverLocale);
 
   const normalizedQuotas = useMemo(
     () => quotas.map((quota, index) => ({
@@ -159,9 +164,12 @@ export default function QuotaTable({
       <div className="space-y-px">
         {currentPageRows.map((quota) => {
           const isUnlimited = quota.unlimited === true;
-          const colors = getColorClasses(quota.remaining);
+          const isBalance = quota.isCreditBalance === true;
+          const used = formatAmount(quota.used, quota.unit, locale);
+          const total = formatAmount(quota.total, quota.unit, locale);
+          const colors = getColorClasses(isBalance ? (quota.balance > 0 ? 100 : 0) : quota.remaining);
           const countdown = formatResetTime(quota.resetAt);
-          const resetDisplay = formatResetTimeDisplay(quota.resetAt);
+          const resetDisplay = formatResetTimeDisplay(quota.resetAt, locale);
           // recurring defaults true: a missing flag means the quota
           // refreshes at resetAt. Bonus/one-shot packs set recurring:false
           // and their resetAt is a hard expiry, so word it as "expires".
@@ -183,7 +191,7 @@ export default function QuotaTable({
 
               {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                {!isUnlimited && (
+                {!isUnlimited && !isBalance && (
                 <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden border ${colors.bgLight} ${
                   quota.remaining === 0 ? "border-black/10 dark:border-white/10" : "border-transparent"
                 }`}>
@@ -198,24 +206,28 @@ export default function QuotaTable({
                   <span
                     className="text-text-muted truncate"
                     title={
-                      isUnlimited
-                        ? `${quota.used.toLocaleString()} used · Unlimited`
-                        : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`
+                      isBalance
+                        ? translate("Remaining balance")
+                        : isUnlimited
+                          ? translate("{used} used · Unlimited", { used })
+                          : `${used} / ${quota.total > 0 ? total : "∞"}`
                     }
                   >
-                    {isUnlimited
-                      ? `${quota.used.toLocaleString()} used · Unlimited`
-                      : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
+                    {isBalance
+                      ? translate("Remaining balance")
+                      : isUnlimited
+                        ? translate("{used} used · Unlimited", { used })
+                        : `${used} / ${quota.total > 0 ? total : "∞"}`}
                   </span>
                   <span className={`font-medium ${isUnlimited ? "text-green-600 dark:text-green-400" : colors.text} shrink-0`}>
-                    {isUnlimited ? "Unlimited" : `${quota.remaining}%`}
+                    {isBalance ? formatAmount(quota.balance, quota.unit, locale) : isUnlimited ? translate("Unlimited") : `${quota.remaining}%`}
                   </span>
                 </div>
               </div>
 
               {/* Reset time */}
               <div className="min-w-0 shrink">
-                {countdown !== "-" || resetDisplay ? (
+                {isBalance ? <span aria-hidden="true" className="text-text-muted">—</span> : countdown !== "-" || resetDisplay ? (
                   compact ? (
                     <div
                       className={`${resetPrimary} text-text-primary font-medium truncate`}

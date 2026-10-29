@@ -27,8 +27,8 @@ describe("usage cost formatting", () => {
     expect(fmtCost(0)).toBe("$0.00");
   });
 
-  it("preserves recorded numeric costs and legacy missing-cost behavior", () => {
+  it("preserves recorded numeric costs without presenting missing or invalid data as free", () => {
     expect(fmtCost(12.34)).toBe("$12.34");
-    expect(fmtCost(undefined)).toBe("$0.00");
+    for (const value of [undefined, NaN, Infinity, -Infinity, -1, "0"]) expect(fmtCost(value)).toBe("Not specified");
   });
 });

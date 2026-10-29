@@ -41,6 +41,8 @@ jobs:
         run: |
           npm ci
           npm --prefix tests ci
+      - name: Check UI translation coverage
+        run: npm run check:i18n
       - name: Install Chromium for isolated browser checks
         run: npm exec -- playwright install --with-deps chromium
       - name: Run synthetic Usage browser regressions first

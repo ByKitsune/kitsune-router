@@ -47,7 +47,7 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     const effective = await repo.getConfiguredPricing();
     for (const [provider, id, cost] of MODELS_DEV_REGISTRY_PRICING_REFERENCES) {
       expect(Object.hasOwn(effective[provider] || {}, id), `${provider}/${id}`).toBe(true);
-      expect(getModelsDevPricingReference(provider, id).cost, `${provider}/${id}`).toEqual(cost);
+      expect(getModelsDevPricingReference(provider, id, { timestamp: "2026-10-29T00:00:00Z" }).cost, `${provider}/${id}`).toEqual(cost);
       expect(effective[provider][id]).not.toHaveProperty("provenance");
     }
     expect(await repo.getSavedPricing()).toEqual({});
@@ -58,7 +58,7 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     const effective = await repo.getConfiguredPricing();
     const quote = await repo.getPricingForModel("openrouter", model, { timestamp: time });
     expect(effective.openrouter[model]).toEqual(rateFields(quote));
-    expect(quote).toMatchObject({ input: 0.3, output: 2.4, cached: null, reasoning: null });
+    expect(quote).toMatchObject({ input: 0.3, output: 2.4, cached: 0.15, reasoning: null });
     expect(await repo.getSavedPricing()).toEqual({});
     const { GET, PATCH } = await import("../../src/app/api/pricing/route.js");
     const response = await GET(new Request("http://localhost/api/pricing"));
@@ -91,8 +91,8 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     expect((await repo.getSavedPricing()).glm[id]).toEqual({ input: 0, output: 1.25, cached: null });
     expect(await repo.getPricingForModel("glm", id, { timestamp: time })).toMatchObject({ input: 0, output: 1.25, cached: null });
     expect((await repo.getConfiguredPricing()).glm[id]).toMatchObject({ input: 0, output: 1.25, cached: null });
-    vi.setSystemTime(new Date("2026-10-30T00:00:00Z"));
-    expect(await repo.getPricingForModel("glm", id, { timestamp: "2026-10-30T00:00:00Z" })).toMatchObject({ input: 0, output: 1.25, cached: null });
+    vi.setSystemTime(new Date("2026-10-31T00:00:00Z"));
+    expect(await repo.getPricingForModel("glm", id, { timestamp: "2026-10-31T00:00:00Z" })).toMatchObject({ input: 0, output: 1.25, cached: null });
     expect(getModelsDevPricingReference("glm", id)).toEqual(reference);
   });
 
@@ -107,7 +107,7 @@ describe("models.dev reference at the persistence and editor boundary", () => {
   it("does not attribute an imported override to a forged catalog source", async () => {
     await repo.updatePricing({ openrouter: { [model]: { input: 8, provenance: { kind: "models-dev-catalog-estimate", sha256: "forged" } } } });
     const quote = await repo.getPricingForModel("openrouter", model, { timestamp: time });
-    expect(quote.provenance).toMatchObject({ sha256: "bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f", inheritedFields: ["output"], overriddenFields: ["input"] });
+    expect(quote.provenance).toMatchObject({ sha256: "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b", inheritedFields: ["output", "cached"], overriddenFields: ["input"] });
     expect(quote.input).toBe(8);
   });
 
@@ -143,8 +143,8 @@ describe("models.dev reference at the persistence and editor boundary", () => {
 
   it("does not apply a snapshot-day quote to usage from another day", async () => {
     await custom.addCustomModel({ providerAlias: "openrouter", id: model });
-    expect(await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-30T00:00:00Z" })).toBeNull();
-    vi.setSystemTime(new Date("2026-10-30T00:00:00Z"));
+    expect(await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-31T00:00:00Z" })).toBeNull();
+    vi.setSystemTime(new Date("2026-10-31T00:00:00Z"));
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual({});
     expect(await repo.getSavedPricing()).toEqual({});
   });
@@ -153,8 +153,8 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     await repo.updatePricing({ openrouter: { [model]: { input: 3 } } });
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual(rateFields(await repo.getPricingForModel("openrouter", model, { timestamp: time })));
     expect((await repo.getConfiguredPricing()).openrouter[model]).toMatchObject({ input: 3, output: 2.4 });
-    vi.setSystemTime(new Date("2026-10-30T00:00:00Z"));
-    const expired = await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-30T00:00:00Z" });
+    vi.setSystemTime(new Date("2026-10-31T00:00:00Z"));
+    const expired = await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-31T00:00:00Z" });
     expect(expired).toEqual({ input: 3 });
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual(expired);
   });
@@ -166,7 +166,7 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     const saved = db.get("SELECT cost, meta FROM usageHistory WHERE eventId = ?", ["synthetic-modelsdev-usage"]);
     const first = saved.cost;
     expect(first).toBeCloseTo(2.7, 12);
-    expect(JSON.parse(saved.meta).quote.pricing.provenance).toMatchObject({ kind: "models-dev-catalog-estimate", inheritedFields: ["input", "output"], sha256: "bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f" });
+    expect(JSON.parse(saved.meta).quote.pricing.provenance).toMatchObject({ kind: "models-dev-catalog-estimate", inheritedFields: ["input", "output", "cached"], sha256: "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b" });
     await repo.updatePricing({ openrouter: { [model]: { input: 99, output: 99 } } });
     expect(db.get("SELECT cost FROM usageHistory WHERE eventId = ?", ["synthetic-modelsdev-usage"]).cost).toBe(first);
   });

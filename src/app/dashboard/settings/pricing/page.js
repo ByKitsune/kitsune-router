@@ -1,86 +1,89 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { translate } from "@/i18n/runtime";
 import Card from "@/shared/components/Card";
 import PricingModal from "@/shared/components/PricingModal";
 
 export default function PricingSettingsPage() {
-  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [currentPricing, setCurrentPricing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [diagnostics, setDiagnostics] = useState(null);
+  const pending = useRef(null);
 
-  const loadPricing = async () => {
-    setLoading(true);
+  const loadPricing = useCallback(async () => {
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
     try {
-      const response = await fetch("/api/pricing");
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentPricing(data);
-      }
+      const [response, diagnosticResponse] = await Promise.all([
+        fetch("/api/pricing", { signal: controller.signal }),
+        fetch("/api/pricing?view=diagnostics", { signal: controller.signal }).catch(() => null),
+      ]);
+      if (!response.ok) throw new Error("Pricing request failed");
+      const [data, metadata] = await Promise.all([response.json(),
+        diagnosticResponse?.ok ? diagnosticResponse.json().catch(() => null) : null]);
+      if (controller.signal.aborted) return;
+      setLoadError("");
+      setCurrentPricing(data);
+      setDiagnostics(metadata?.summary ? metadata : null);
     } catch (error) {
-      console.error("Failed to load pricing:", error);
+      if (!controller.signal.aborted) {
+        console.error("Failed to load pricing:", error);
+        setLoadError("Pricing could not be loaded. Retry to view current estimates.");
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      await loadPricing();
-      if (cancelled) return;
-    })();
-    return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    queueMicrotask(() => { if (!disposed) loadPricing(); });
+    return () => { disposed = true; pending.current?.abort(); };
+  }, [loadPricing]);
+
   const handlePricingUpdated = () => {
-    loadPricing();
+    setLoading(true);
+    setLoadError("");
+    return loadPricing();
   };
 
-  // Count total models with pricing
-  const getModelCount = () => {
-    if (!currentPricing) return 0;
-    let count = 0;
-    for (const provider in currentPricing) {
-      count += Object.keys(currentPricing[provider]).length;
-    }
-    return count;
-  };
-
-  // Get providers list
-  const getProviders = () => {
-    if (!currentPricing) return [];
-    return Object.keys(currentPricing).sort();
-  };
+  const providers = Object.keys(currentPricing || {}).sort();
+  const rows = providers.flatMap(provider => Object.values(currentPricing[provider] || {}));
+  const fullyPriced = diagnostics?.summary?.priced ?? rows.filter(quote => Number.isFinite(quote?.input) && Number.isFinite(quote?.output)).length;
+  const incomplete = diagnostics?.summary ? diagnostics.summary.partial + diagnostics.summary.unknown : rows.length - fullyPriced;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="dashboard-page mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Pricing Settings</h1>
           <p className="text-text-muted mt-1">
-            Configure pricing rates for cost tracking and calculations
+            Review effective token estimates, missing rates and saved overrides
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          className="min-h-11 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-[var(--color-on-primary)] transition-colors hover:bg-primary-hover"
+          disabled={loading || Boolean(loadError)}
         >
           Edit Pricing
         </button>
       </div>
 
+      {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger/5 p-4 text-sm"><p>{loadError}</p><button type="button" onClick={handlePricingUpdated} className="min-h-11 rounded-xl border border-border px-4 py-2 font-semibold">Retry</button></div>}
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="text-text-muted text-sm uppercase font-semibold">
-            Total Models
+            Models with input and output rates
           </div>
           <div className="text-2xl font-bold mt-1">
-            {loading ? "..." : getModelCount()}
+            {loading || loadError ? "…" : fullyPriced}
           </div>
         </Card>
         <Card className="p-4">
@@ -88,18 +91,20 @@ export default function PricingSettingsPage() {
             Providers
           </div>
           <div className="text-2xl font-bold mt-1">
-            {loading ? "..." : getProviders().length}
+            {loading || loadError ? "…" : providers.length}
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-text-muted text-sm uppercase font-semibold">
-            Status
+            Unknown or partial rates
           </div>
-          <div className="text-2xl font-bold mt-1 text-success">
-            {loading ? "..." : "Active"}
+          <div className="text-2xl font-bold mt-1 text-text-main">
+            {loading || loadError ? "…" : incomplete}
           </div>
         </Card>
       </div>
+
+      <p className="text-xs leading-5 text-text-muted">Model rows describe pricing configuration, not available accounts or provider entitlement. A known input and output rate does not guarantee every cache, reasoning, media or processing-speed charge is covered.</p>
 
       {/* Info Section */}
       <Card className="p-6">
@@ -132,11 +137,12 @@ export default function PricingSettingsPage() {
 
       {/* Current Pricing Preview */}
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">Current Pricing Overview</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="text-primary hover:underline text-sm"
+            className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+            disabled={loading || Boolean(loadError)}
           >
             View Full Details
           </button>
@@ -144,19 +150,19 @@ export default function PricingSettingsPage() {
 
         {loading ? (
           <div className="text-center py-4 text-text-muted">Loading pricing data...</div>
-        ) : currentPricing ? (
+        ) : loadError ? <p className="text-sm text-text-muted">Current pricing is unavailable.</p> : currentPricing ? (
           <div className="space-y-3">
             {Object.keys(currentPricing).slice(0, 5).map(provider => (
               <div key={provider} className="text-sm">
                 <span className="font-semibold">{provider.toUpperCase()}:</span>{" "}
                 <span className="text-text-muted">
-                  {Object.keys(currentPricing[provider]).length} models
+                  {translate("{count} model rows", { count: Object.keys(currentPricing[provider]).length })}
                 </span>
               </div>
             ))}
             {Object.keys(currentPricing).length > 5 && (
               <div className="text-sm text-text-muted">
-                + {Object.keys(currentPricing).length - 5} more providers
+                {translate("{count} more providers", { count: Object.keys(currentPricing).length - 5 })}
               </div>
             )}
           </div>
@@ -166,13 +172,11 @@ export default function PricingSettingsPage() {
       </Card>
 
       {/* Pricing Modal */}
-      {showModal && (
-        <PricingModal
+      <PricingModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           onSave={handlePricingUpdated}
         />
-      )}
     </div>
   );
 }

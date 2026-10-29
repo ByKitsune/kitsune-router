@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — pricing, capability and localization audit
+
+- Enumerate all 1,302 configured registry rows against a pinned official
+  models.dev source reconstruction. Remove unsupported generic token limits,
+  correct exact-product capability facts and align CommandCode/combo output
+  declarations with their gateway limits.
+- Add validated immutable pricing observations and six-hour refresh attempts.
+  Recorded request time selects an observation within its 24-hour window;
+  unknown, subscription and non-token costs do not become free charges.
+- Explain effective pricing sources and reference/expiry gaps in a read-only
+  diagnostics view and the editor. Missing or invalid costs remain unknown.
+- Preserve native Ollama cache counters and adapt Cloud balance/quota fallback.
+- Repair dynamic text/attribute localization, preserve code and identifiers,
+  register source UI literals and expand dictionary coverage.
+
+[Complete audit, row reports and limits](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/22-pricing-capability-localization-2026-10.md).
+
 ## Unreleased — 2026-10-29 source follow-up
 
 These source changes are separate from the 1.0.2 artifacts; they do not establish

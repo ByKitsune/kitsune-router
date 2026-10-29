@@ -13,16 +13,21 @@ export default function CapacityBadges({ caps, className = "", colorOverride, si
 
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`}>
-      {active.map((k) => (
-        <Tooltip key={k} text={`${CAPACITY_META[k].label} — ${CAPACITY_META[k].desc}`}>
+      {active.map((k) => {
+        const kind = caps.capabilityVerification?.[k]?.kind;
+        const inferred = kind === "inferred";
+        const label = kind === "operator-declared" ? "Operator-declared capability" : inferred ? "Inferred capability" : "Provider model reference";
+        return <Tooltip key={k} text={<><span>{CAPACITY_META[k].label}</span>{" — "}<span>{CAPACITY_META[k].desc}</span>{kind && <span className="mt-1 block border-t border-white/15 pt-1 text-[10px]">{label}</span>}</>}>
           <span
-            className={`material-symbols-outlined leading-none cursor-help ${colorOverride || CAPACITY_META[k].color}`}
-            style={{ fontSize: `${size}px` }}
+            role="img"
+            aria-label={CAPACITY_META[k].label}
+            data-capability-confidence={caps.capabilityVerification?.[k]?.kind}
+            className={`inline-flex leading-none cursor-help ${inferred ? "opacity-60" : ""} ${colorOverride || CAPACITY_META[k].color}`}
           >
-            {CAPACITY_META[k].icon}
+            <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: `${size}px` }}>{CAPACITY_META[k].icon}</span>
           </span>
-        </Tooltip>
-      ))}
+        </Tooltip>;
+      })}
     </span>
   );
 }

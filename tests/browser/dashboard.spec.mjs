@@ -123,7 +123,7 @@ test("language picker searches, supports keyboard choice and persists the select
   await openUsage(page);
   const trigger = page.getByRole("button", { name: "Choose language, current: English", exact: true });
   await trigger.click();
-  const picker = page.getByRole("dialog", { name: "Your workspace, your language.", exact: true });
+  const picker = page.locator("dialog.language-picker");
   const search = picker.getByRole("searchbox", { name: "Search languages", exact: true });
   await expect(search).toBeFocused();
   await search.fill("Indonesian");
@@ -134,10 +134,10 @@ test("language picker searches, supports keyboard choice and persists the select
   await expect(picker).not.toBeVisible();
   await expect.poll(async () => (await page.context().cookies()).find(cookie => cookie.name === "locale")?.value).toBe("id");
   await page.reload();
-  const selected = page.getByRole("button", { name: "Choose language, current: Indonesia", exact: true });
+  const selected = page.getByRole("button", { name: "Pilih bahasa, saat ini: Indonesia", exact: true });
   await expect(selected).toBeVisible();
   await selected.click();
-  await expect(picker.getByRole("searchbox", { name: "Search languages", exact: true })).toBeFocused();
+  await expect(picker.getByRole("searchbox", { name: "Cari bahasa", exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(picker).not.toBeVisible();
   await expect(selected).toBeFocused();
@@ -176,4 +176,63 @@ test("keyboard hints stay in bounds when mobile content scrolls near a viewport 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("tooltip")).not.toBeVisible();
   await expect(hintTrigger).toBeFocused();
+});
+
+
+test("Indonesian UI updates labels and counters without translating code or model identifiers", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.request.post("/api/locale", { data: { locale: "id" } });
+  await openUsage(page);
+  await expect(page.getByRole("heading", { name: "Setiap permintaan, dalam perspektif.", exact: true })).toBeVisible();
+  await expect(page.locator(".usage-metrics")).toContainText("Total permintaan");
+  await expect(page.getByRole("button", { name: "Buka navigasi", exact: true })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "id");
+  // A synthetic subtree exercises the same observer paths as asynchronously
+  // inserted React views. Values and code remain source text; no API is called.
+  await page.evaluate(() => {
+    const fixture = document.createElement("section");
+    fixture.id = "localization-fixture";
+    fixture.innerHTML = '<p id="localized-state">Estimated cost</p><input id="localized-search" placeholder="Search models..." title="Source 1" aria-label="Find provider or model"><span id="localized-count">2 requests</span><code><span id="preserved-code">Not specified</span></code><span data-i18n-skip id="preserved-model">Not specified</span>';
+    document.querySelector("main").prepend(fixture);
+  });
+  await expect(page.locator("#localized-state")).toHaveText("Perkiraan biaya");
+  await expect(page.locator("#localized-search")).toHaveAttribute("placeholder", "Cari model...");
+  await expect(page.locator("#localized-search")).toHaveAttribute("title", "Sumber 1");
+  await expect(page.locator("#localized-search")).toHaveAttribute("aria-label", "Cari penyedia atau model");
+  await expect(page.locator("#localized-count")).toHaveText("2 permintaan");
+  await expect(page.locator("#preserved-code")).toHaveText("Not specified");
+  await expect(page.locator("#preserved-model")).toHaveText("Not specified");
+  await page.evaluate(() => {
+    document.querySelector("#localized-state").firstChild.nodeValue = "Not specified";
+    document.querySelector("#localized-count").firstChild.nodeValue = "7 requests";
+    document.querySelector("#localized-search").setAttribute("title", "Source 2");
+  });
+  await expect(page.locator("#localized-state")).toHaveText("Belum ditentukan");
+  await expect(page.locator("#localized-count")).toHaveText("7 permintaan");
+  await expect(page.locator("#localized-search")).toHaveAttribute("title", "Sumber 2");
+  await page.getByRole("button", { name: "Pilih bahasa, saat ini: Indonesia", exact: true }).click();
+  const picker = page.locator("dialog.language-picker");
+  await expect(picker.getByRole("heading", { name: "Ruang kerja Anda, bahasa Anda.", exact: true })).toBeVisible();
+  await picker.getByRole("searchbox", { name: "Cari bahasa", exact: true }).fill("English");
+  await picker.getByRole("button", { name: "English, English", exact: true }).click();
+  await expect(page.locator("#localized-state")).toHaveText("Not specified");
+  await expect(page.locator("#localized-count")).toHaveText("7 requests");
+  await expect(page.locator("#localized-search")).toHaveAttribute("title", "Source 2");
+  await expect(page.locator("#preserved-code")).toHaveText("Not specified");
+});
+
+test("Japanese pricing states and accessible labels use the selected dictionary", async ({ page }) => {
+  await page.request.post("/api/locale", { data: { locale: "ja" } });
+  await openUsage(page);
+  await expect(page.locator(".usage-metrics")).toContainText("総リクエスト数");
+  await page.evaluate(() => {
+    const element = document.createElement("p");
+    element.id = "localized-japanese";
+    element.textContent = "Not specified";
+    element.setAttribute("title", "Find provider or model");
+    document.querySelector("main").prepend(element);
+  });
+  await expect(page.locator("#localized-japanese")).toHaveText("未指定");
+  await expect(page.locator("#localized-japanese")).toHaveAttribute("title", "プロバイダーまたはモデルを検索");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
 });

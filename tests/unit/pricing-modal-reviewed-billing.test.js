@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { getProviderIdentityTokens } from "../../open-sse/providers/identity.js";
 import * as pricingConfig from "../../open-sse/config/pricingConfig.js";
+import { translate } from "../../src/i18n/runtime.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -17,7 +18,7 @@ const code = babel.transformSync(readFileSync(filename, "utf8"), {
 
 // Execute the actual component, including loading effects and rendered event
 // callbacks. Only React scheduling, network, and imported catalog data are seams.
-function fixture(data, metadata = {}, { fallback = false, overrides = {} } = {}) {
+function fixture(data, metadata = {}, { fallback = false, overrides = {}, diagnostics = null, failReset = false } = {}) {
   const slots = [];
   const effects = [];
   let cursor = 0;
@@ -40,7 +41,7 @@ function fixture(data, metadata = {}, { fallback = false, overrides = {} } = {})
       }
     },
   };
-  const fetch = vi.fn(async (url, options) => ({ ok: !!options || !fallback, json: async () => url.includes("view=overrides") ? overrides : data }));
+  const fetch = vi.fn(async (url, options) => ({ ok: options?.method === "DELETE" ? !failReset : !!options || !fallback, json: async () => url.includes("view=overrides") ? overrides : url.includes("view=diagnostics") ? diagnostics : data }));
   const props = { isOpen: true, onClose: vi.fn(), onSave: vi.fn() };
   const jsx = (type, props) => ({ type, props: props || {} });
   const fixtureModule = { exports: {} };
@@ -49,6 +50,7 @@ function fixture(data, metadata = {}, { fallback = false, overrides = {} } = {})
     confirm: () => true, alert: vi.fn(),
     require(id) {
       if (id === "react") return hooks;
+      if (id === "@/i18n/runtime") return { translate };
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "open-sse/providers/pricing.js") return { getDefaultPricing: () => data };
       if (id === "open-sse/providers/metadata/reviewed.js") return { getReviewedModelMetadata: (provider, model) => metadata[provider]?.[model] ?? null };
@@ -89,6 +91,84 @@ function fields(tree, model) {
 const sample = () => ({ fixture: { "known-model": { input: 1.5, output: 6, cached: 0 } } });
 
 describe("PricingModal reviewed billing behavior", () => {
+  it("bounds rendered rate inputs while retaining edits across pages and search", async () => {
+    const rows = Object.fromEntries(Array.from({ length: 45 }, (_, index) => [`model-${String(index).padStart(3, "0")}`, { input: 1, output: 2 }]));
+    const modal = fixture({ fixture: rows });
+    let tree = await modal.mount();
+    expect(nodes(tree).filter(node => node.type === "input" && node.props.type === "number")).toHaveLength(40 * pricingConfig.PRICING_RATE_FIELDS.length);
+    expect(fields(tree, "model-044")).toHaveLength(0);
+    fields(tree, "model-000")[0].props.onChange({ target: { value: "0.000024" } });
+    tree = modal.render();
+    nodes(tree).find(node => node.props["aria-label"] === "Next page").props.onClick();
+    tree = modal.render();
+    expect(fields(tree, "model-000")).toHaveLength(0);
+    fields(tree, "model-044")[0].props.onChange({ target: { value: "3" } });
+    tree = modal.render();
+    nodes(tree).find(node => node.type === "input" && node.props.type === "search").props.onChange({ target: { value: "model-000" } });
+    tree = modal.render();
+    expect(fields(tree, "model-000")[0].props.value).toBe(0.000024);
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "model-000": { input: 0.000024 }, "model-044": { input: 3 } } });
+  });
+
+  it("explains effective sources and freshness without saving diagnostic metadata", async () => {
+    const diagnostics = { summary: { priced: 0, partial: 1, unknown: 0, operatorOverrides: 1 }, providers: {
+      fixture: { "known-model": { status: "partial", source: "operator-override", catalog: { status: "expired" } } },
+    } };
+    const modal = fixture({ fixture: { "known-model": { input: 0, output: null } } }, {}, { overrides: { fixture: { "known-model": { input: 0 } } }, diagnostics });
+    let tree = await modal.mount();
+    expect(text(tree)).toContain("Saved pricing coverage");
+    expect(text(tree)).toContain("Operator override");
+    expect(text(tree)).toContain("Catalog estimate expired");
+    expect(text(tree)).toContain("Some token components remain unknown.");
+    fields(tree, "known-model")[0].props.onChange({ target: { value: "2" } });
+    tree = modal.render();
+    expect(text(tree)).toContain("Unsaved override");
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 2 } } });
+  });
+
+  it("shows reset failures without discarding the current edits", async () => {
+    const modal = fixture(sample(), {}, { failReset: true });
+    const tree = await modal.mount();
+    fields(tree, "known-model")[0].props.onChange({ target: { value: "4" } });
+    await nodes(modal.render()).find(node => node.type === "button" && text(node) === "Reset to Defaults").props.onClick();
+    const after = modal.render();
+    expect(text(nodes(after).find(node => node.props.role === "alert"))).toBe("Failed to reset pricing");
+    expect(fields(after, "known-model")[0].props.value).toBe(4);
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 4 } } });
+  });
+
+  it("refreshes the parent after a persisted reset even when closed without further edits", async () => {
+    const modal = fixture(sample());
+    const tree = await modal.mount();
+    fields(tree, "known-model")[0].props.onChange({ target: { value: "4" } });
+    let finishRefresh;
+    modal.props.onSave.mockImplementation(() => new Promise(resolve => { finishRefresh = resolve; }));
+    const resetting = nodes(modal.render()).find(node => node.type === "button" && text(node) === "Reset to Defaults").props.onClick();
+    await new Promise(setImmediate);
+    expect(modal.props.onSave).toHaveBeenCalledOnce();
+    expect(modal.props.onClose).not.toHaveBeenCalled();
+    expect(nodes(modal.render()).find(node => node.type === "button" && text(node) === "Saving...").props.disabled).toBe(true);
+    finishRefresh();
+    await resetting;
+    expect(fields(modal.render(), "known-model")[0].props.value).toBe(1.5);
+    await modal.save();
+    expect(modal.props.onClose).toHaveBeenCalledOnce();
+    expect(modal.fetch.mock.calls.some(([, options]) => options?.method === "PATCH")).toBe(false);
+  });
+
+  it("accepts sub-cent per-million rates without imposing a cent-sized input step", async () => {
+    const modal = fixture(sample());
+    const tree = await modal.mount();
+    const input = fields(tree, "known-model")[0];
+    expect(input.props.step).toBe("any");
+    input.props.onChange({ target: { value: "0.000024" } });
+    await modal.save();
+    expect(modal.payload()).toEqual({ fixture: { "known-model": { input: 0.000024 } } });
+  });
+
   it("edits explicit saved rows and clears an override without fabricating zero", async () => {
     const data = sample();
     const original = structuredClone(data);

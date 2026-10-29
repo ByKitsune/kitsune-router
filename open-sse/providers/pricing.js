@@ -4,6 +4,7 @@ import { FREE_MODEL_NAMESPACE_OWNERS, getModelsDevPricingEstimate } from "./meta
 export { getModelsDevPricingReference } from "./metadata/modelsDevPricing.js";
 import * as openAIProcessingQuotes from "../config/processingSpeedPricing.js";
 import { LITERAL_ONLY_PRICING_PROVIDERS } from "../config/pricingConfig.js";
+import { getTimeOfUsePricing } from "../config/timeOfUsePricing.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
 //
@@ -761,6 +762,8 @@ function exactPrice(table, model, allowCaseFold = false) {
 /** Resolve provider-specific prices without changing the upstream request ID. */
 export function getPricingForModel(provider, model, options = {}) {
   if (!model) return null;
+  const timed = getTimeOfUsePricing(canonicalizeProviderId(provider), getDeclaredUpstreamModelId(provider, model), options.timestamp);
+  if (timed !== undefined) return timed;
   const providerTables = getProviderIdentityTokens(provider)
     .filter(token => Object.hasOwn(PROVIDER_PRICING, token))
     .map(token => ({ table: PROVIDER_PRICING[token], literalOnly: LITERAL_ONLY_PRICING_PROVIDERS.includes(token) }));
@@ -842,7 +845,7 @@ export function resolveEffectivePricing(pricing, inputTokens) {
  * @returns {string}
  */
 export function formatCost(cost) {
-  if (cost === null || cost === undefined || isNaN(cost)) return "$0.00";
+  if (!Number.isFinite(cost) || cost < 0) return "Not specified";
   return `$${cost.toFixed(2)}`;
 }
 
