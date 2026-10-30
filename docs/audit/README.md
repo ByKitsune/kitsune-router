@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [client compatibility and catalog sync follow-up](25-client-compatibility-and-catalog-sync-2026-10-31.md)
+records verified client/SDK identities, source-backed model changes, per-account
+discovery and the boundaries of blocked publisher sources.
+
 The [recorded pricing accuracy and dashboard motion follow-up](24-recorded-pricing-accuracy-and-dashboard-motion-2026-10-31.md)
 records current corrections to dynamic-model pricing configuration, durable
 usage identity, token/detail accuracy and animated dashboard navigation/maps.

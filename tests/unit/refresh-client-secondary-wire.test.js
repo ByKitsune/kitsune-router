@@ -40,7 +40,8 @@ afterEach(() => {
 });
 
 // Literal publisher expectations: secondary-clients/{REPORT.md,survey.json}
-// captures 2026-10-21. Keep real consumers below the network boundary so these
+// captures 2026-10-21, with VS Code/Copilot and Zed rechecked 2026-10-31.
+// Keep real consumers below the network boundary so these
 // catch stale headers, accidental desktop/SDK coupling and employee-only claims.
 describe("secondary release identities at their outbound boundaries", () => {
   it("pairs Copilot token probes with the stable editor's bundled extension, retaining the token API date", async () => {
@@ -49,9 +50,9 @@ describe("secondary release identities at their outbound boundaries", () => {
     await refreshCopilotToken("fixture-service-token");
     expect(captured()).toHaveLength(2);
     for (const request of captured()) {
-      expect(request.headers.get("user-agent")).toBe("GitHubCopilotChat/0.71.0");
-      expect(request.headers.get("editor-version")).toBe("vscode/1.143.0");
-      expect(request.headers.get("editor-plugin-version")).toBe("copilot-chat/0.71.0");
+      expect(request.headers.get("user-agent")).toBe("GitHubCopilotChat/0.72.0");
+      expect(request.headers.get("editor-version")).toBe("vscode/1.144.0");
+      expect(request.headers.get("editor-plugin-version")).toBe("copilot-chat/0.72.0");
       expect(request.headers.get("x-github-api-version")).toBe("2025-04-01");
     }
   });
@@ -148,7 +149,7 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect(PROVIDERS.windsurf).toBeUndefined();
   });
 
-  it.each([[undefined, "1.24.4"], ["caller-app-version", "caller-app-version"]])("sends Zed's release fallback without overwriting configured appVersion %s", async (override, expected) => {
+  it.each([[undefined, "1.26.2"], ["caller-app-version", "caller-app-version"]])("sends Zed's release fallback without overwriting configured appVersion %s", async (override, expected) => {
     proxyAwareFetch.mockImplementation(async (url) => {
       if (url.endsWith("/client/llm_tokens")) return json({ token: "fixture-llm-token" });
       if (url.endsWith("/models")) return json({ models: [{ id: "fixture-grok", provider: "XAi" }] });
@@ -165,7 +166,7 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect(request.headers.get("authorization")).toBe("Bearer fixture-llm-token");
   });
 
-  it.each([[{}, "opencode/1.19.3"], [{ "user-agent": "opencode/9.8.7", "x-opencode-client": "caller-cli", "x-opencode-project": "caller-project" }, "opencode/9.8.7"]])("updates OpenCode's fallback while preserving real downstream identity %j", async (rawHeaders, expected) => {
+  it.each([[{}, "opencode/1.19.5"], [{ "user-agent": "opencode/9.8.7", "x-opencode-client": "caller-cli", "x-opencode-project": "caller-project" }, "opencode/9.8.7"]])("updates OpenCode's fallback while preserving real downstream identity %j", async (rawHeaders, expected) => {
     await new OpenCodeExecutor().execute({ model: "fixture-model", body: { messages: [{ role: "user", content: "fixture" }], max_tokens: 37 }, stream: false, credentials: { rawHeaders, connectionId: "fixture-opencode" } });
     const request = lastRequest();
     expect(request.headers.get("user-agent")).toBe(expected);
@@ -183,11 +184,11 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect(result.providerSpecificData.userId).toBe("fixture-user");
     const requests = captured();
     expect(requests).toHaveLength(2);
-    expect(requests[0].headers.get("user-agent")).toBe("qodercli/1.1.75");
+    expect(requests[0].headers.get("user-agent")).toBe("qoder/1.1.81");
     expect(requests[0].headers.get("cosy-version")).toBe("1.0.0");
     expect(requests[0].headers.get("cosy-clienttype")).toBe("5");
     expect(JSON.parse(requests[0].body)).toEqual({ personal_token: "pt-secondary-refresh-fixture" });
-    expect(requests[1].headers.get("user-agent")).toBe("qodercli/1.1.75");
+    expect(requests[1].headers.get("user-agent")).toBe("qoder/1.1.81");
     expect(requests[1].headers.get("authorization")).toBe("Bearer jt-fixture-job");
   });
 

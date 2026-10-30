@@ -1,0 +1,1252 @@
+{
+  "review_date": "2026-10-31",
+  "timezone": "Asia/Jakarta",
+  "captured_at_utc": "2026-10-30T19:25:43.649527+00:00",
+  "fork_base": "5ca4aaf0b307ae527f472e597b4d390a05df14da",
+  "upstream_repository": "https://github.com/decolua/9router",
+  "upstream_head": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+  "new_commits_since_prior_review": 0,
+  "scope": "Fresh normal GitHub website first25 latest-created plus first25 latest-updated actual issues; itemType verified ISSUE, no PRs.39unique. Six newly surfaced/updated bodies and initially loaded comments re-read; unchanged items retain earlier captured review.85latest commit subjects inventoried, prior55dispositions retained, three additional relevant actual diffs rechecked; not every diff line of85commits.",
+  "prior_inventory": "docs/audit/data/9router-stability-inventory-20261031.json",
+  "issue_sources": [
+    {
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue%20sort%3Acreated-desc",
+      "capturedAtUtc": "2026-10-30T19:15:50.269179+00:00",
+      "sha256": "1ce522c6a3646b72649d1ab1a17e324742986bdca41cb753bbec7d78e0c958a2",
+      "bytes": 311773
+    },
+    {
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue%20sort%3Aupdated-desc",
+      "capturedAtUtc": "2026-10-30T19:15:50.951258+00:00",
+      "sha256": "3cb0a1f2bcf43cfafa8565e77e6dd6c4254e9914244982b5c75604dfb25d6f9d",
+      "bytes": 319052
+    }
+  ],
+  "issues": [
+    {
+      "number": 5345,
+      "title": "[Bug] Opencode streaming tool_calls delta arrives with missing id / name / arguments, breaks tool-call reconstruction",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-30T15:36:47Z",
+      "updatedAt": "2026-10-30T15:41:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5345",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "reproduced-and-fixed",
+      "prior_analysis": "Reproduced null/index-only Chat tool placeholders in the real SSE pipeline. Filter only semantically empty tool entries before native translator state and client framing; preserve valid fragments, opaque metadata, usage and native terminals. New nine-case regression and existing stream contracts pass locally; live provider acceptance was not tested.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5334,
+      "title": "[BUG] OpenCode streaming requests are hard-cut off after 120s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T23:39:42Z",
+      "updatedAt": "2026-10-30T06:31:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/5334",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "upstream-specific",
+      "prior_analysis": "Report targets open-sse/services/opencodeTlsClient.js/wreq-js, absent from Kitsune. Our OpenCode executor uses BaseExecutor; its response-header timeout is cleared after headers. No equivalent hard120s TLS deadline was found. Later comment references a PR, not reviewed.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5333,
+      "title": "[Feature] Select OpenAI/Codex service tier via model ID variants",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T23:07:49Z",
+      "updatedAt": "2026-10-29T23:07:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/5333",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "feature-design",
+      "prior_analysis": "Fork already supports independent body service_tier/provider defaults. A new (fast) suffix syntax is a new API feature and must not be confused with thinking effort or inserted as a transparent bugfix.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5332,
+      "title": "Still no access to Haiku 5.5",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T20:27:41Z",
+      "updatedAt": "2026-10-29T20:27:41Z",
+      "permalink": "https://github.com/decolua/9router/issues/5332",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "route-entitlement-boundary",
+      "prior_analysis": "Native anthropic/claude-haiku-5-5 exists with reviewed metadata and native adaptive tests. Claude Code OAuth catalog intentionally does not claim that model; registry-metadata-sync tests explicitly preserve this distinction. A public vendor model does not establish subscription-route entitlement.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5325,
+      "title": "[Bug] opencode free tier TLS fingerprint mismatch    +fix 429",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-29T16:15:41Z",
+      "updatedAt": "2026-10-29T19:32:24Z",
+      "permalink": "https://github.com/decolua/9router/issues/5325",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-provider-transport",
+      "prior_analysis": "Report proposes native/Bun transport to bypass remote acceptance gates. Fork lacks the same wreq module. No paid/entitled live acceptance evidence was collected; no new native dependency or insecure direct-egress fallback is justified by a public claim.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5319,
+      "title": "[Bug] OpenCode free tier 429s whenever a declared tool name contains \"terminal\" — 9Router forwards tool names untouched",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T14:36:19Z",
+      "updatedAt": "2026-10-30T03:10:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5319",
+      "commentCount": 3,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-provider-acceptance",
+      "prior_analysis": "User-controlled declaration-name gate is reported, but no entitled live reproduction for this fork exists. Existing name restoration/typed-tool semantics must survive any future transport adaptation. Do not silently change tool safety descriptions or rotate egress to evade explicit quota/abuse denial.",
+      "prior_loaded_comments": 3,
+      "prior_total_comments": 3
+    },
+    {
+      "number": 5318,
+      "title": "Problem: can't reliably generate Threads captions",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T14:17:13Z",
+      "updatedAt": "2026-10-29T14:17:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/5318",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "insufficient-reproduction",
+      "prior_analysis": "No exact route, wire body, request/response or terminal frame is supplied. Existing empty-output/terminal/combo fixtures are relevant, but cannot prove this user scenario fixed. No blanket fallback or answer fabrication added.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5317,
+      "title": "[Bug]: DeepSeek API key validation fails as \"Invalid\" in provider settings",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T12:25:53Z",
+      "updatedAt": "2026-10-29T12:25:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5317",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-environment",
+      "prior_analysis": "Both current add-key validation and retest use authenticated GET https://api.deepseek.com/models with res.ok. This matches reporter successful curl. No contradictory endpoint bug reproduced; would need redacted failing status/transport evidence rather than another key or guessing a chat model.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5315,
+      "title": "Feature Request: Official Community Hub for Verified Working Providers, Models, and Configurations",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T06:56:40Z",
+      "updatedAt": "2026-10-29T06:56:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5315",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "governance-feature",
+      "prior_analysis": "Discord/Telegram/community creation is external governance, not a routing stability bug. No messages or external community changes authorized/performed.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5309,
+      "title": "[Feature] Privacy-safe diagnostic trace: per-request timeline + shareable bundle (allowlist-only, no content, no secrets)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T20:04:00Z",
+      "updatedAt": "2026-10-28T20:04:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5309",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "partial-existing-plus-feature",
+      "prior_analysis": "Kitsune already replaces payloads/stream content with bounded structural metadata and strips URL query/userinfo; upstream claim that full payloads are always dumped does not match current fork. Headers still have explicit masking policy, not a universal safety proof. New exportable trace bundle needs separate allowlist/privacy/cardinality design.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5307,
+      "title": "[Bug/Feature] Combo stalls under concurrent sessions until client timeout; add first-token failover and combo-to-combo fallback chain",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T19:47:39Z",
+      "updatedAt": "2026-10-30T12:49:52Z",
+      "permalink": "https://github.com/decolua/9router/issues/5307",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "confirmed-design-gap-no-blind-port",
+      "prior_analysis": "Kitsune peek is150ms, not upstream45s, and preserves paid reasoning/unknown/error streams. New Oct30 comment identifies real shared retry arithmetic:60s*(1+3)+3*3s=249s before account/combo can advance. Fork shares the same502 defaults. Whole-seat connect/TTFT budgets are not yet implemented; parent notified as performance candidate. Retrying/cancelling paid work must be reconciled before changing defaults. No default retry/deadline change applied: a whole-attempt policy requires separate cross-account/combo billing and cancellation semantics; local translator CPU results do not fix provider/header wait.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5303,
+      "title": "[Security] Add SECURITY.md and enable private vulnerability reporting",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-28T19:39:35Z",
+      "updatedAt": "2026-10-30T17:23:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5303",
+      "commentCount": null,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 0,
+      "disposition": "deferred-feature",
+      "analysis": "Repository has historical security audits, but no standalone SECURITY.md/private reporting policy was found. Maintainer reporting contacts/settings must not be invented or enabled as part of a source patch; recommended documentation/admin follow-up."
+    },
+    {
+      "number": 5302,
+      "title": "[Feature] Expose the served route in response headers (x-9router-provider / -model / -combo / -attempts)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-28T19:39:34Z",
+      "updatedAt": "2026-10-30T17:22:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/5302",
+      "commentCount": null,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 0,
+      "disposition": "deferred-feature",
+      "analysis": "Opt-in served-route headers can improve diagnosis, but require authenticated exposure policy and clear attempts/served-identity semantics. Deferred as a separate additive API feature; no connection/account details added to responses."
+    },
+    {
+      "number": 5300,
+      "title": "[Bug] DeepSeek Web fails on the npm build: open-sse/lib/deepseek-pow-hash.js is missing from the packaged app",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T18:26:37Z",
+      "updatedAt": "2026-10-28T18:26:37Z",
+      "permalink": "https://github.com/decolua/9router/issues/5300",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "not-applicable",
+      "prior_analysis": "DeepSeek Web executor/PoW worker modules do not exist in current direct API lane. Current DeepSeek uses official API and exact upstreamModelId aliases. Adding browser-auth provider is not a packaging bugfix.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5299,
+      "title": "feat(custom-providers): user-defined response rules - auto-disable an exhausted account instead of retrying it into a ban",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T17:03:14Z",
+      "updatedAt": "2026-10-28T17:04:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5299",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "feature-design",
+      "prior_analysis": "Kitsune distinguishes request-scoped validation from account faults and terminal accounting failures. Generic regex/path rules with disable/retry actions are a new policy/security surface; blindly adopting them can cause charged replay, ReDoS, secret logging and healthy-account mutation.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5296,
+      "title": "Streaming on codex lane fully buffered until after upstream EOF - client receives whole response ~2s late (v0.5.109)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T15:24:40Z",
+      "updatedAt": "2026-10-28T15:24:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5296",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "Current codex-stream-before-eof.test.js exercises real chatCore/translator with an upstream deliberately held open; it passes. Native executor peek is bounded1s/256KiB. This proves synthetic core delivery, not live reverse-proxy/Next production behavior or entitlement.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5295,
+      "title": "[Feature/Bug] Automatic background model synchronization for connected providers (OAuth/API) and dynamic /v1/models catalog refresh",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:48:25Z",
+      "updatedAt": "2026-10-28T14:50:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/5295",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-partially-implemented",
+      "prior_analysis": "Current /v1/models uses provider live resolvers and generic authenticated API-key catalogs with credential/proxy/import fences; explicit enabledModels selection is retained. Global models.dev metadata/price synchronization is distinct. A new background connected-provider scheduler is not required to describe existing dynamic discovery honestly.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5294,
+      "title": "HTTP 502: [502]: wreq-js unavailable (Failed to load native module for win32-x64-msvc.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:37:51Z",
+      "updatedAt": "2026-10-29T03:17:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/5294",
+      "commentCount": 3,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "upstream-specific-platform",
+      "prior_analysis": "Kitsune has no wreq dependency/lazy TLS module. Adding unofficial/native binaries is a packaging feature, not a direct patch for this checkout. Native Windows validation unavailable here.",
+      "prior_loaded_comments": 3,
+      "prior_total_comments": 3
+    },
+    {
+      "number": 5291,
+      "title": "[Bug] Tray fails to start on macOS: spawn Unknown system error -86",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T09:47:17Z",
+      "updatedAt": "2026-10-28T09:47:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5291",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-native-platform",
+      "prior_analysis": "Current launcher uses maintained systray2 runtime, with executable-bit repair, but Apple Silicon native acceptance cannot be reproduced on Linux. Do not assert that newer package or chmod solves architecture/signing/Rosetta issues.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5287,
+      "title": "Codex provider rejects Antigravity-format requests: \"Invalid schema for function 'send_message'\" / \"response protection is unavailable\" (IN 0 / OUT 0)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T07:47:06Z",
+      "updatedAt": "2026-10-28T08:25:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/5287",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "Six string-encoded numeric constraint types are normalized at Google schema ingress with safe-integer handling. upstream-google-schema-conversion/public fixtures pass; response-protection entitlement remains independently unverified.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5285,
+      "title": "Dashboard \"Enable Observability\" is silently overridden by ENABLE_REQUEST_LOGS env var",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T06:34:53Z",
+      "updatedAt": "2026-10-28T06:34:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5285",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "reproduced-and-fixed",
+      "prior_analysis": "Reproduced actual Profile SSR showing saved true while effective false, and inverse feature-flag override. Found second root cause: generic PATCH intentionally drops protected enableObservability while UI optimistically reported success. Added precise source/effective metadata, explicit guarded Boolean JSON route, effective/disabled UI with environment explanation, saved preference retained, truthful save errors; regression tests added.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 5282,
+      "title": "opencode HTTP 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T03:37:05Z",
+      "updatedAt": "2026-10-28T06:37:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5282",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "upstream-specific",
+      "prior_analysis": "Reported missing native loader is absent in fork. Comment about Codex rotation is separate incomplete reproduction; do not conflate provider authentication/affinity with wreq packaging.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5281,
+      "title": "Bug: Kiro AI OAuth connections frequently failed: Token expired and refresh failed",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T01:56:30Z",
+      "updatedAt": "2026-10-28T17:24:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/5281",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-account-refresh",
+      "prior_analysis": "Current refresh distinguishes external_idp/AWS IDC/social, retains client region, deduplicates by credential and transport, and applies stale commit fences. Report provides400 invalid_request but no redacted client-registration validity/region to establish source defect. Refresh transport fixtures pass; revocation/expiry still requires reauthorization.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5278,
+      "title": "[Bug] Copilot context overflow becomes generic bad_request, blocking Codex Responses recovery",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T20:36:28Z",
+      "updatedAt": "2026-10-28T00:58:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/5278",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "Structured context_length_exceeded survives parser, account/combo routing and final Responses error event. Current upstream-context-overflow parser/routing fixtures pass. No live Codex compaction success claimed.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5275,
+      "title": "[Bug] OpenCode Free via proxy pool bypasses wreq-js TLS impersonation (native fetch) — still 429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T16:02:27Z",
+      "updatedAt": "2026-10-29T11:28:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5275",
+      "commentCount": 10,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "upstream-specific-plus-transport-boundary",
+      "prior_analysis": "Specific wreq direct/proxy split is absent in Kitsune. Our strict/noauth proxy policy deliberately fails closed and does not retry quota/abuse via another IP. Comments claim session-level proxies/rotation success; not copied without native transport and policy review.",
+      "prior_loaded_comments": 10,
+      "prior_total_comments": 10
+    },
+    {
+      "number": 4681,
+      "title": "[Bug] Model picker offers models from providers with no active credentials (404 \"No active credentials for provider: X\")",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-09T00:02:56Z",
+      "updatedAt": "2026-10-30T17:24:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4681",
+      "commentCount": null,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 0,
+      "disposition": "reproduced-and-fixed-related-gaps",
+      "analysis": "Base disabled-provider/no-auth-hidden group filtering already exists. Reproduced five related actual picker regressions: disabled-account live catalogs, stale scope, ignored passthrough discovery, disabled prefix and peer Cursor failure. Fixed with enabled connection snapshots + live passthrough merge, preserving kind filters and operator names."
+    },
+    {
+      "number": 5045,
+      "title": "Expose capability provenance in /api/models (catalog vs pattern pin vs default)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-19T19:40:49Z",
+      "updatedAt": "2026-10-30T17:23:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/5045",
+      "commentCount": 1,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 1,
+      "disposition": "already-partially-covered",
+      "analysis": "Current /api/models already returns metadata.capabilityVerification alongside reviewed metadata; this is per-fact reference provenance rather than the exact proposed capsSource schema. No behavior-changing blanket limit inferred from provider/model names."
+    },
+    {
+      "number": 3356,
+      "title": "[Feature Request] Custom JSON/JS Provider Adapters for Unofficial Endpoints",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-15T20:39:32Z",
+      "updatedAt": "2026-10-30T17:22:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/3356",
+      "commentCount": 3,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 3,
+      "disposition": "deferred-feature",
+      "analysis": "Custom JSON/JS adapter loader/hot reload is a new execution/secret-handling contract, not a bounded compatibility fix; deferred."
+    },
+    {
+      "number": 5215,
+      "title": "feat(combos): session stickiness for fallback and round-robin combos (prompt-cache retention)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-25T13:16:31Z",
+      "updatedAt": "2026-10-30T17:18:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/5215",
+      "commentCount": 1,
+      "body_review": "fresh body and initially loaded comments",
+      "total_comments": 1,
+      "disposition": "deferred-feature",
+      "analysis": "Account- and model-aware sticky sessions can reduce cache churn, but alter route order, fairness and model/account ownership. No silent change to existing fallback/round-robin behavior; deferred."
+    },
+    {
+      "number": 1441,
+      "title": "Antigravity MITM error",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-05-26T07:19:25Z",
+      "updatedAt": "2026-10-30T13:18:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/1441",
+      "commentCount": null,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-source",
+      "prior_analysis": "Current proxyFetch.js explicitly imports Readable from node:stream and uses Readable.toWeb. Historical v22.18 environment is below current>=22.19 runtime minimum. No current missing-import defect found; Windows packaged behavior remains separate.",
+      "prior_loaded_comments": 0,
+      "prior_total_comments": 0
+    },
+    {
+      "number": 4248,
+      "title": "NVIDIA upstream connect timeouts (~250s) surface as 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-22T12:36:46Z",
+      "updatedAt": "2026-10-30T13:04:29Z",
+      "permalink": "https://github.com/decolua/9router/issues/4248",
+      "commentCount": 2,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "confirmed-design-gap-plus-provider-latency",
+      "prior_analysis": "Original body reports direct-provider slowness; new Oct30 comment exposes shared60s x4 retry multiplier. Fork BaseExecutor has same defaults. Caller abort remains terminal, but configured upstream connect/stall budgets can exceed common external deadlines. Parent notified; no claim provider network latency can be optimized by translator changes. No default retry/deadline change applied: a whole-attempt policy requires separate cross-account/combo billing and cancellation semantics; local translator CPU results do not fix provider/header wait.",
+      "prior_loaded_comments": 2,
+      "prior_total_comments": 2
+    },
+    {
+      "number": 5143,
+      "title": "fix(codebuddy-intl): HTTP 400 Code 11128 \"request illegal\" due to failed channel verification",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T18:09:23Z",
+      "updatedAt": "2026-10-30T10:27:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/5143",
+      "commentCount": 2,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-adapted-unverified-acceptance",
+      "prior_analysis": "Canonical request/conversation/channel headers already adapted for both executors. Structured remote channel rejection can reflect account/WAF acceptance, not generic request validation. No broad substring backoff or new impersonation guarantees copied.",
+      "prior_loaded_comments": 2,
+      "prior_total_comments": 2
+    },
+    {
+      "number": 936,
+      "title": "[FEATURE] Add rerank endpoint support",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-05-07T14:48:49Z",
+      "updatedAt": "2026-10-30T04:25:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/936",
+      "commentCount": 2,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "feature-design",
+      "prior_analysis": "A new service kind/route/adapter/accounting contract; absent current rerank route is an unimplemented feature, not existing translation correctness bug. Linked PRs not reviewed.",
+      "prior_loaded_comments": 2,
+      "prior_total_comments": 2
+    },
+    {
+      "number": 5218,
+      "title": "OpenCode Fix 429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T15:47:03Z",
+      "updatedAt": "2026-10-30T04:01:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5218",
+      "commentCount": 19,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-provider-acceptance",
+      "prior_analysis": "Body combines protocol fingerprint, native transport, session-clock, proxy identity, automatic quota egress rotation and packaging. Current fork has its own stable request-local session/decoy semantics and fail-closed proxy contract. Do not wholesale port this multi-feature external fork or change paid/quota semantics as a latency tweak.",
+      "prior_loaded_comments": 19,
+      "prior_total_comments": 19
+    },
+    {
+      "number": 5128,
+      "title": "Have any body got this error HTTP 429: [429]: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T09:08:48Z",
+      "updatedAt": "2026-10-30T02:07:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/5128",
+      "commentCount": 31,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-provider-quota",
+      "prior_analysis": "Reported response combines quota, acceptance and TLS possibilities. Requires actual authorized account/transport evidence. It does not justify automatic IP/session rotation around exhausted or blocked quota; current noauth policy retains denial boundaries.",
+      "prior_loaded_comments": 26,
+      "prior_total_comments": 31
+    },
+    {
+      "number": 5081,
+      "title": "GPT/Codex requests fail in Antigravity: `\"1\" is not of type \"integer\"` in tool schemas",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T10:59:00Z",
+      "updatedAt": "2026-10-29T19:14:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5081",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "Current Google schema conversion normalizes six known int64 fields recursively, retains unsafe large values explicitly rather than rounds them, and preserves unrelated defaults. Relevant conversion/public fixtures pass.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5187,
+      "title": "Combo empty-content peek re-runs thinking-only answers, hides stream errors, holds headers up to 45 s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:18:19Z",
+      "updatedAt": "2026-10-29T19:13:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/5187",
+      "commentCount": 1,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "Current combo PEEK_TIMEOUT_MS150 and tests preserve reasoning, tools, opaque thought, paid usage, native errors, fragmented bytes and read-error/deadline streams. Existing timeout/caller suites pass. No45s peek copied; last-member/one-member shortcuts and exact terminal proof retained.",
+      "prior_loaded_comments": 1,
+      "prior_total_comments": 1
+    },
+    {
+      "number": 5273,
+      "title": "Opencode Fix 502/429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T15:50:13Z",
+      "updatedAt": "2026-10-29T18:46:08Z",
+      "permalink": "https://github.com/decolua/9router/issues/5273",
+      "commentCount": 8,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "unverified-provider-acceptance",
+      "prior_analysis": "Issue and mixed success/failure comments point to external forks/native TLS dependencies. Same module gap as5325/5275; no proof that installing package alone establishes access, especially through configured proxy.",
+      "prior_loaded_comments": 8,
+      "prior_total_comments": 8
+    },
+    {
+      "number": 4733,
+      "title": "Non-streaming /v1/chat/completions requests receive an SSE-framed body; client parse fails and usage is lost",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T04:49:02Z",
+      "updatedAt": "2026-10-29T14:17:13Z",
+      "permalink": "https://github.com/decolua/9router/issues/4733",
+      "commentCount": 2,
+      "body_review": "unchanged updatedAt; retained prior captured body/comment review",
+      "prior_disposition": "already-covered-synthetic",
+      "prior_analysis": "App defaults omitted Chat stream=false, core preserves native JSON and aggregates forced SSE when needed. Current nonstream/public protocol/usage contracts cover this boundary; no first-JSON-object truncation used because it loses tools/usage/errors.",
+      "prior_loaded_comments": 2,
+      "prior_total_comments": 2
+    }
+  ],
+  "commits": [
+    {
+      "sha": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+      "committer_date": "2026-10-28T16:43:56+07:00",
+      "subject": "# v0.5.112 (2026-10-28)",
+      "url": "https://github.com/decolua/9router/commit/1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+      "prior_disposition": "release only",
+      "prior_analysis": "Do not import upstream version or branding."
+    },
+    {
+      "sha": "85d73bd60ebd3950f8a0bc603f4b79a2856cc141",
+      "committer_date": "2026-10-28T16:15:49+07:00",
+      "subject": "feat(minimax-code): lease auth mode via desktop app named-pipe broker",
+      "url": "https://github.com/decolua/9router/commit/85d73bd60ebd3950f8a0bc603f4b79a2856cc141",
+      "prior_disposition": "defer: new feature",
+      "prior_analysis": "MiniMax desktop named-pipe lease broker is not the current direct API path."
+    },
+    {
+      "sha": "d7bb71ced4bd9aac1fcb53a91cb3776144ebedb7",
+      "committer_date": "2026-10-28T16:14:54+07:00",
+      "subject": "fix(deepseek): use noble-hashes port for DeepSeek PoW hash",
+      "url": "https://github.com/decolua/9router/commit/d7bb71ced4bd9aac1fcb53a91cb3776144ebedb7",
+      "prior_disposition": "not applicable",
+      "prior_analysis": "DeepSeek Web PoW module is absent; direct API does not use it."
+    },
+    {
+      "sha": "3b7acf72a5611705b9a5f5923430175ad159d3c1",
+      "committer_date": "2026-10-28T16:08:28+07:00",
+      "subject": "fix(docker): bundle lazy runtime deps so OpenCode Free resolves",
+      "url": "https://github.com/decolua/9router/commit/3b7acf72a5611705b9a5f5923430175ad159d3c1",
+      "prior_disposition": "defer: transport/package feature",
+      "prior_analysis": "Upstream lazyRuntime.js/wreq native closure differs from this fork; no dependency transplant."
+    },
+    {
+      "sha": "56dbf466f10787d284b09bd28e35c0f7171b6d06",
+      "committer_date": "2026-10-28T16:08:04+07:00",
+      "subject": "fix(chat): reject SSE errors in non-streaming responses",
+      "url": "https://github.com/decolua/9router/commit/56dbf466f10787d284b09bd28e35c0f7171b6d06",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "nonStreamingHandler classifies framed errors, status strings and incurred usage; upstream early return would lose accounting."
+    },
+    {
+      "sha": "8db1f4ae58429a9d0c13449d3a9a72d9aafa89dc",
+      "committer_date": "2026-10-28T16:01:50+07:00",
+      "subject": "fix(translator): enforce Gemini protobuf type predicates on schema items and properties",
+      "url": "https://github.com/decolua/9router/commit/8db1f4ae58429a9d0c13449d3a9a72d9aafa89dc",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Gemini schema traversal preserves literal maps; see upstream-google-schema-* and gemini-schema-maps suites."
+    },
+    {
+      "sha": "f7f6f5ed11e6c10f3c7a2a90c4cc6f6fe4859561",
+      "committer_date": "2026-10-28T16:01:47+07:00",
+      "subject": "feat: add Nace Drex provider to the System One lane",
+      "url": "https://github.com/decolua/9router/commit/f7f6f5ed11e6c10f3c7a2a90c4cc6f6fe4859561",
+      "prior_disposition": "defer: new provider",
+      "prior_analysis": "Nace transport/accounting requires separate trusted usage coverage, not a translator bugfix."
+    },
+    {
+      "sha": "ced0cf6e6c5583e82d7d66e2555712b5dbbf7809",
+      "committer_date": "2026-10-28T16:01:34+07:00",
+      "subject": "fix(nvidia): normalize reasoning aliases for NIM",
+      "url": "https://github.com/decolua/9router/commit/ced0cf6e6c5583e82d7d66e2555712b5dbbf7809",
+      "prior_disposition": "already adapted, stricter",
+      "prior_analysis": "NVIDIA aliases use existing normalization/conflict rejection; do not silently choose conflicting caller controls."
+    },
+    {
+      "sha": "a199d777d6e304f560777aecb10c74d0e058e17e",
+      "committer_date": "2026-10-28T16:00:19+07:00",
+      "subject": "fix(providers): treat LLM|id|secret as opaque token in bulk-add, not name|key",
+      "url": "https://github.com/decolua/9router/commit/a199d777d6e304f560777aecb10c74d0e058e17e",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Opaque LLM tokens supported by bulkAdd; retain named-key/Cloudflare syntax."
+    },
+    {
+      "sha": "b1effa03c12b76e1df6c6014fe274044f7b46b17",
+      "committer_date": "2026-10-28T15:54:12+07:00",
+      "subject": "feat(commandcode): align request headers with official CLI 1.88.0",
+      "url": "https://github.com/decolua/9router/commit/b1effa03c12b76e1df6c6014fe274044f7b46b17",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "CommandCode CLI headers/thread isolation covered by upstream-commandcode-* tests."
+    },
+    {
+      "sha": "f3e1f716a3bf522ed74e6566f9049e52c28d2f93",
+      "committer_date": "2026-10-28T15:53:35+07:00",
+      "subject": "fix(github): apply Claude 5.5 thinking rules to Copilot's dotted model ids",
+      "url": "https://github.com/decolua/9router/commit/f3e1f716a3bf522ed74e6566f9049e52c28d2f93",
+      "prior_disposition": "already adapted by route",
+      "prior_analysis": "GitHub exact dotted Haiku5.5 adaptive and Opus forced-choice restrictions have real executor fixtures."
+    },
+    {
+      "sha": "3fd925abfabb7cbe95e602cddff67a62246a13e6",
+      "committer_date": "2026-10-28T15:52:44+07:00",
+      "subject": "fix(codebuddy): send plugin request/conversation id headers",
+      "url": "https://github.com/decolua/9router/commit/3fd925abfabb7cbe95e602cddff67a62246a13e6",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Both CodeBuddy executors use canonical per-request channel identifiers."
+    },
+    {
+      "sha": "acb3c080ddcafc9e32971af8b8240214b5950952",
+      "committer_date": "2026-10-28T15:52:19+07:00",
+      "subject": "feat(codex): add GPT-6.1 Terra",
+      "url": "https://github.com/decolua/9router/commit/acb3c080ddcafc9e32971af8b8240214b5950952",
+      "prior_disposition": "already adapted with reviewed facts",
+      "prior_analysis": "Terra route/capability/pricing has provider-scoped source provenance; no blanket catalog copy."
+    },
+    {
+      "sha": "e70ea24d4e2399f59680bbdc71159195ffbdc500",
+      "committer_date": "2026-10-28T15:49:55+07:00",
+      "subject": "Fix OpenCode",
+      "url": "https://github.com/decolua/9router/commit/e70ea24d4e2399f59680bbdc71159195ffbdc500",
+      "prior_disposition": "defer: transport/package feature",
+      "prior_analysis": "Free-tier TLS/fingerprint/lazy-runtime redesign differs from current fork and needs end-to-end review."
+    },
+    {
+      "sha": "3a978a631ad65529c06e48ce495092d5bba29f46",
+      "committer_date": "2026-10-26T16:12:55+07:00",
+      "subject": "# v0.5.111 (2026-10-26)",
+      "url": "https://github.com/decolua/9router/commit/3a978a631ad65529c06e48ce495092d5bba29f46",
+      "prior_disposition": "release only",
+      "prior_analysis": "Do not import upstream version or branding."
+    },
+    {
+      "sha": "483c10f597120d22295b091dea79fc38febe2b12",
+      "committer_date": "2026-10-26T15:44:49+07:00",
+      "subject": "fix(opencode): normalize colliding fingerprint tool definitions in place",
+      "url": "https://github.com/decolua/9router/commit/483c10f597120d22295b091dea79fc38febe2b12",
+      "prior_disposition": "do not blindly port",
+      "prior_analysis": "Fingerprint normalizer overwrites caller safety descriptions and widens argument schema; module absent in fork."
+    },
+    {
+      "sha": "95009651275a6cee93ef7cb4db577a0eb5dd8a4a",
+      "committer_date": "2026-10-26T15:40:34+07:00",
+      "subject": "fix(translator): convert image_url parts inside tool messages to Claude images",
+      "url": "https://github.com/decolua/9router/commit/95009651275a6cee93ef7cb4db577a0eb5dd8a4a",
+      "prior_disposition": "already covered, broader",
+      "prior_analysis": "Typed image tool results survive destination serializers; see vision-tool-output/translator-media suites."
+    },
+    {
+      "sha": "10cd6c089d6286f0f891efc857c2154094457620",
+      "committer_date": "2026-10-26T15:37:40+07:00",
+      "subject": "feat(ollama): add embedding provider adapter and endpoint support",
+      "url": "https://github.com/decolua/9router/commit/10cd6c089d6286f0f891efc857c2154094457620",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Ollama Local embeddings public-route/native-ID/proxy/cancellation fixtures exist."
+    },
+    {
+      "sha": "50dcaa0ccc99f5ede9a50cb38d7b21a0b229ea04",
+      "committer_date": "2026-10-26T15:25:25+07:00",
+      "subject": "fix(cli-tools): keep a hand-set Pi model name across Apply",
+      "url": "https://github.com/decolua/9router/commit/50dcaa0ccc99f5ede9a50cb38d7b21a0b229ea04",
+      "prior_disposition": "not applicable",
+      "prior_analysis": "Pi integration route/card absent; do not add a new integration only to claim this port."
+    },
+    {
+      "sha": "72cb589e1805ebd75114c3f08b51e9eecd91faca",
+      "committer_date": "2026-10-26T15:24:31+07:00",
+      "subject": "fix(cli-tools): stop resetting Pi model caps and let users pick them",
+      "url": "https://github.com/decolua/9router/commit/72cb589e1805ebd75114c3f08b51e9eecd91faca",
+      "prior_disposition": "not applicable",
+      "prior_analysis": "Pi integration route/card absent; explicit caps remain endpoint-specific."
+    },
+    {
+      "sha": "5cd4a75696a6c4874c1f5412cb7c21e7e05a5100",
+      "committer_date": "2026-10-26T15:18:42+07:00",
+      "subject": "feat(opencode-go): add Kimi K3.1 Pro",
+      "url": "https://github.com/decolua/9router/commit/5cd4a75696a6c4874c1f5412cb7c21e7e05a5100",
+      "prior_disposition": "catalog feature, no blind copy",
+      "prior_analysis": "New KimiK3.1Pro row needs verified exact deployment/model ID and limits."
+    },
+    {
+      "sha": "b9c2722540d42cd2c16663567825546aef42c54e",
+      "committer_date": "2026-10-26T15:17:48+07:00",
+      "subject": "feat(providers): add Runcrate",
+      "url": "https://github.com/decolua/9router/commit/b9c2722540d42cd2c16663567825546aef42c54e",
+      "prior_disposition": "defer: new provider",
+      "prior_analysis": "Runcrate new transport requires accounting/redirect/retry review; prior candidate not accepted."
+    },
+    {
+      "sha": "31a9d2620d0dc329a14d587974391315f4f32dc6",
+      "committer_date": "2026-10-26T15:15:31+07:00",
+      "subject": "feat(tts): add Ollama Local TTS provider support (Phonon)",
+      "url": "https://github.com/decolua/9router/commit/31a9d2620d0dc329a14d587974391315f4f32dc6",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Ollama Local TTS public route preserves WAV/PCM/JSON, selected connection and options."
+    },
+    {
+      "sha": "2924e0559e563ae21e42114d96a874f36616d196",
+      "committer_date": "2026-10-26T15:13:46+07:00",
+      "subject": "fix(deepseek): send the upstream model id the API actually accepts",
+      "url": "https://github.com/decolua/9router/commit/2924e0559e563ae21e42114d96a874f36616d196",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Direct DeepSeek legacy aliases map to canonical deepseek-flash."
+    },
+    {
+      "sha": "763fb687fa1afa595e23773b2eabb5d57a2b02e2",
+      "committer_date": "2026-10-26T15:00:41+07:00",
+      "subject": "fix(thinking): keep effort max for GPT-5.6 / GPT-6 on OpenAI Compatible nodes",
+      "url": "https://github.com/decolua/9router/commit/763fb687fa1afa595e23773b2eabb5d57a2b02e2",
+      "prior_disposition": "do not blindly port",
+      "prior_analysis": "Do not grant Codex-only max to every custom GPT-named endpoint; keep exact declared efforts authoritative."
+    },
+    {
+      "sha": "0ad0a722b87ce6adcd0d2dbbcb696bdd2f129cd5",
+      "committer_date": "2026-10-26T14:56:56+07:00",
+      "subject": "fix(claude): keep adaptive thinking for Haiku 5.5 on the passthrough",
+      "url": "https://github.com/decolua/9router/commit/0ad0a722b87ce6adcd0d2dbbcb696bdd2f129cd5",
+      "prior_disposition": "adapted in this worktree",
+      "prior_analysis": "Preserve native Anthropic reviewed Haiku5.5 adaptive/effort by destination caps; preserve old/unverified routes."
+    },
+    {
+      "sha": "1da5b0d7a9a0fe18cda36ca84f2ea7bd0e7bf62b",
+      "committer_date": "2026-10-26T14:56:07+07:00",
+      "subject": "fix(opencode): cap oc/deepseek-v4.1-flash-free context window at 330k",
+      "url": "https://github.com/decolua/9router/commit/1da5b0d7a9a0fe18cda36ca84f2ea7bd0e7bf62b",
+      "prior_disposition": "reviewed metadata already",
+      "prior_analysis": "Current provider/model metadata overrides are scoped; no global1M family correction."
+    },
+    {
+      "sha": "86adae35c38182b2a0a097db5a5d2b65e2af0e2d",
+      "committer_date": "2026-10-26T14:54:46+07:00",
+      "subject": "fix(headroom): preserve native Claude PDFs and tool history",
+      "url": "https://github.com/decolua/9router/commit/86adae35c38182b2a0a097db5a5d2b65e2af0e2d",
+      "prior_disposition": "already covered, broader",
+      "prior_analysis": "Headroom preserves native PDF/tool histories with current final-body hook contracts."
+    },
+    {
+      "sha": "a3bdaf6dd4216e89abf1efa61f0c98dcc984b557",
+      "committer_date": "2026-10-26T14:54:13+07:00",
+      "subject": "feat(commandcode): add Kimi K3.1 Pro to the model catalog",
+      "url": "https://github.com/decolua/9router/commit/a3bdaf6dd4216e89abf1efa61f0c98dcc984b557",
+      "prior_disposition": "catalog feature, no blind copy",
+      "prior_analysis": "New CommandCode model requires exact route facts; header/session stability already adapted separately."
+    },
+    {
+      "sha": "fbac122069194b316f6dcf2886a06eeae8467db0",
+      "committer_date": "2026-10-26T11:41:52+07:00",
+      "subject": "fix(codex-image): drive image_generation from gpt-6-sol",
+      "url": "https://github.com/decolua/9router/commit/fbac122069194b316f6dcf2886a06eeae8467db0",
+      "prior_disposition": "route/catalog review required",
+      "prior_analysis": "Do not conflate direct OpenAI image API, Codex OAuth eligibility and declared provider model support."
+    },
+    {
+      "sha": "ce060c79b9133b08c90ae7f7aaea49aa79afbfb3",
+      "committer_date": "2026-10-26T11:08:32+07:00",
+      "subject": "fix(opencode): restore the free tier with the TLS client Hello it accepts",
+      "url": "https://github.com/decolua/9router/commit/ce060c79b9133b08c90ae7f7aaea49aa79afbfb3",
+      "prior_disposition": "defer: transport feature",
+      "prior_analysis": "TLS fingerprint mimicry plus native packaging is not safe to cherry-pick independently."
+    },
+    {
+      "sha": "f39d8f07481ae8518e93175f0ecaaafa61573c6c",
+      "committer_date": "2026-10-23T15:24:06+07:00",
+      "subject": "# v0.5.109 (2026-10-23)",
+      "url": "https://github.com/decolua/9router/commit/f39d8f07481ae8518e93175f0ecaaafa61573c6c",
+      "prior_disposition": "release only",
+      "prior_analysis": "Do not import upstream version or branding."
+    },
+    {
+      "sha": "f3f86fdd52f9e9e9538847dddf233293224733d2",
+      "committer_date": "2026-10-23T14:46:07+07:00",
+      "subject": "feat(combos): add Smart Router (System One) with adaptive session stickiness (#4975)",
+      "url": "https://github.com/decolua/9router/commit/f3f86fdd52f9e9e9538847dddf233293224733d2",
+      "prior_disposition": "defer: new routing feature",
+      "prior_analysis": "SystemOne semantic classifier/stickiness is distinct from existing explicit combo/capacity-adapter logic."
+    },
+    {
+      "sha": "161e34939ab878cb79dfdf241a696ec292508af4",
+      "committer_date": "2026-10-23T14:39:36+07:00",
+      "subject": "feat(image, mitm): support reference image inputs for Gemini and ensure MITM directory (#4981)",
+      "url": "https://github.com/decolua/9router/commit/161e34939ab878cb79dfdf241a696ec292508af4",
+      "prior_disposition": "partly separate feature/already hardened",
+      "prior_analysis": "Reference-image feature needs adapter contract; current MITM private directories already hardened."
+    },
+    {
+      "sha": "82aeb907941baf9806689a46fe2248b2b865a76d",
+      "committer_date": "2026-10-23T14:38:38+07:00",
+      "subject": "fix(antigravity): resolve tiered models from client reasoning effort",
+      "url": "https://github.com/decolua/9router/commit/82aeb907941baf9806689a46fe2248b2b865a76d",
+      "prior_disposition": "already covered by exact routes",
+      "prior_analysis": "Antigravity tier resolution, explicit effort and quota identities have dedicated fixtures."
+    },
+    {
+      "sha": "31b8439bdf51858598aa4fd838e08e396a457cba",
+      "committer_date": "2026-10-23T14:35:54+07:00",
+      "subject": "fix(usage): support /api/balance for ollama cloud quota tracking (#5026)",
+      "url": "https://github.com/decolua/9router/commit/31b8439bdf51858598aa4fd838e08e396a457cba",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Ollama balance fallback validates finite observations; subscription balance is not free tokens."
+    },
+    {
+      "sha": "9b4ea9eb697a267babd96ae33c814e86c80a9c64",
+      "committer_date": "2026-10-23T14:34:31+07:00",
+      "subject": "feat(combos): search box for the combo list",
+      "url": "https://github.com/decolua/9router/commit/9b4ea9eb697a267babd96ae33c814e86c80a9c64",
+      "prior_disposition": "UI feature, not latency fix",
+      "prior_analysis": "Combo search box is separate product addition; no hot-path translator effect."
+    },
+    {
+      "sha": "32c5f30a0a2074269d7d4cb269d93e7db59d9877",
+      "committer_date": "2026-10-23T14:32:20+07:00",
+      "subject": "fix(capabilities): send reasoning_effort for OpenCode's glm-5.3-flash-free",
+      "url": "https://github.com/decolua/9router/commit/32c5f30a0a2074269d7d4cb269d93e7db59d9877",
+      "prior_disposition": "already adapted",
+      "prior_analysis": "Exact OpenCode free GLM5.3Flash hosted reasoning dialect; opencode-free-glm-thinking-format suite."
+    },
+    {
+      "sha": "f172c3c4a622dc531b4ce47a24f7a61ed0f530da",
+      "committer_date": "2026-10-23T14:28:33+07:00",
+      "subject": "fix(antigravity): use hub/2.24.0 User-Agent and add Gemini 4 Argon medium/low tiers (#4816)",
+      "url": "https://github.com/decolua/9router/commit/f172c3c4a622dc531b4ce47a24f7a61ed0f530da",
+      "prior_disposition": "partly adapted, identity intentionally differs",
+      "prior_analysis": "Argon medium/low routes exist; native minimal CLI identity is intentionally separate from IDE/Hub profile."
+    },
+    {
+      "sha": "313559f4709368aee020f598747593ef57a462a8",
+      "committer_date": "2026-10-23T14:00:41+07:00",
+      "subject": "fix(opencode): honor low|high|max reasoning efforts for zen free deepseek-v4.1-flash",
+      "url": "https://github.com/decolua/9router/commit/313559f4709368aee020f598747593ef57a462a8",
+      "prior_disposition": "existing provider behavior must stay scoped",
+      "prior_analysis": "Current declared effort sets/provider dialect mapping supersede broad DeepSeek alias conversion."
+    },
+    {
+      "sha": "5a4e812e44680b18a2ffe4d21386df2c0f426d8a",
+      "committer_date": "2026-10-23T13:57:38+07:00",
+      "subject": "fix(db): strip NUL bytes from bound strings",
+      "url": "https://github.com/decolua/9router/commit/5a4e812e44680b18a2ffe4d21386df2c0f426d8a",
+      "prior_disposition": "reject blind global mutation",
+      "prior_analysis": "Global NUL stripping changes model/credential identities; require driver roundtrip reproducer before boundary fix."
+    },
+    {
+      "sha": "95c9d03ed2fced1e01a1d0c6ba510f9b33c65f85",
+      "committer_date": "2026-10-23T13:20:11+07:00",
+      "subject": "fix(stream): fill missing tool-call ids and restore renamed tool names (#4992, #4986)",
+      "url": "https://github.com/decolua/9router/commit/95c9d03ed2fced1e01a1d0c6ba510f9b33c65f85",
+      "prior_disposition": "already replaced by stronger contracts",
+      "prior_analysis": "Current stream request-local IDs/name restoration/native framing differs; repeated IDs on every delta violates strict consumer tests."
+    },
+    {
+      "sha": "5cdcddf55f4b08fbd45c3798c712608544c569d2",
+      "committer_date": "2026-10-23T13:08:17+07:00",
+      "subject": "fix(combo): advance past a request-scoped 4xx instead of ending the combo",
+      "url": "https://github.com/decolua/9router/commit/5cdcddf55f4b08fbd45c3798c712608544c569d2",
+      "prior_disposition": "already adapted with narrower policy",
+      "prior_analysis": "Combo vs account fallback scopes distinguish destination-dependent incompatibility from terminal caller errors."
+    },
+    {
+      "sha": "5853a88a22f68119a8f491f22bfa0df54fcad542",
+      "committer_date": "2026-10-23T12:56:23+07:00",
+      "subject": "fix(search): reset regex state between model matches",
+      "url": "https://github.com/decolua/9router/commit/5853a88a22f68119a8f491f22bfa0df54fcad542",
+      "prior_disposition": "not applicable to current helper",
+      "prior_analysis": "Affected modelSearchFilter.js upstream file absent in fork; do not add unused helper as bugfix."
+    },
+    {
+      "sha": "dbdbb64897234f595fd2ebbdc53cf5f1f2ca26ea",
+      "committer_date": "2026-10-23T12:46:01+07:00",
+      "subject": "fix(github): refresh Copilot fallback model catalog",
+      "url": "https://github.com/decolua/9router/commit/dbdbb64897234f595fd2ebbdc53cf5f1f2ca26ea",
+      "prior_disposition": "catalog review, no blind copy",
+      "prior_analysis": "Current GitHub catalog/review metadata is newer and exact-account availability remains unverified."
+    },
+    {
+      "sha": "b833128338ab5c1af7a994767167c3ed0daf8ab5",
+      "committer_date": "2026-10-23T12:45:25+07:00",
+      "subject": "fix(opencode-free): full reasoning support for oc/mimo-v2.6-flash-free",
+      "url": "https://github.com/decolua/9router/commit/b833128338ab5c1af7a994767167c3ed0daf8ab5",
+      "prior_disposition": "already covered by current dialect tests",
+      "prior_analysis": "OpenCode MiMo reasoning behavior uses current provider/format-specific preparation."
+    },
+    {
+      "sha": "2720cd2a06e1154804b33ca5f7cdbb47a1792336",
+      "committer_date": "2026-10-23T12:44:44+07:00",
+      "subject": "fix(qoder): stop failing queued models, route Sonus/Cantus, restore capabilities",
+      "url": "https://github.com/decolua/9router/commit/2720cd2a06e1154804b33ca5f7cdbb47a1792336",
+      "prior_disposition": "already covered by current queue/error work",
+      "prior_analysis": "Qoder preheader peek budget1s/256KiB, queue code10605 and no fabricated success terminal."
+    },
+    {
+      "sha": "b82f5c4a2e5f53c2723d49fe993062f9e7dba54a",
+      "committer_date": "2026-10-23T12:06:53+07:00",
+      "subject": "fix(combos): try the next model when credits run out",
+      "url": "https://github.com/decolua/9router/commit/b82f5c4a2e5f53c2723d49fe993062f9e7dba54a",
+      "prior_disposition": "already adapted, narrower accounting policy",
+      "prior_analysis": "Credit fallback exists while local usage_acceptance_failed/x-should-retry:false remain terminal."
+    },
+    {
+      "sha": "b0655314b79c7a7bfb7288982cddb98503641429",
+      "committer_date": "2026-10-23T12:06:49+07:00",
+      "subject": "fix(capabilities): give Grok 4.7 its 500k context window",
+      "url": "https://github.com/decolua/9router/commit/b0655314b79c7a7bfb7288982cddb98503641429",
+      "prior_disposition": "reviewed metadata already",
+      "prior_analysis": "Current Grok4.7 exact provider limits supersede generic pattern assumptions."
+    },
+    {
+      "sha": "a3ca2f9b5cb090f1babf11a8781d5c6148f83411",
+      "committer_date": "2026-10-23T12:06:16+07:00",
+      "subject": "fix(dashboard): correct API key visibility guidance",
+      "url": "https://github.com/decolua/9router/commit/a3ca2f9b5cb090f1babf11a8781d5c6148f83411",
+      "prior_disposition": "UI guidance only",
+      "prior_analysis": "Current gateway-key/provider-key distinctions in docs are explicit; not translator/runtime improvement."
+    },
+    {
+      "sha": "351b04cb528d2270a527aba18a4be78fdeadafaa",
+      "committer_date": "2026-10-23T12:01:37+07:00",
+      "subject": "feat(provider): add SenseNova provider support",
+      "url": "https://github.com/decolua/9router/commit/351b04cb528d2270a527aba18a4be78fdeadafaa",
+      "prior_disposition": "defer: new provider",
+      "prior_analysis": "SenseNova candidate previously failed uncertain-usage/redirect safety review; do not add as stability fix."
+    },
+    {
+      "sha": "b6a9ca43f1aed8bf903c23b6df62da96a6c389bc",
+      "committer_date": "2026-10-23T11:59:56+07:00",
+      "subject": "test: triage master's failing suite; fix GLM-5.2 effort, gpt-6.1-sol context, dead SSRF tests",
+      "url": "https://github.com/decolua/9router/commit/b6a9ca43f1aed8bf903c23b6df62da96a6c389bc",
+      "prior_disposition": "historical test/catalog triage",
+      "prior_analysis": "Do not replace current green-report gates or pinned exact metadata with old test expectations."
+    },
+    {
+      "sha": "b08f12d5fd80d44e23f8266338ea6707d15b2cf7",
+      "committer_date": "2026-10-23T11:57:26+07:00",
+      "subject": "fix(codex-image): skip ChatGPT Free accounts and use a Go-compatible main model",
+      "url": "https://github.com/decolua/9router/commit/b08f12d5fd80d44e23f8266338ea6707d15b2cf7",
+      "prior_disposition": "route/account eligibility review",
+      "prior_analysis": "Codex image capability/Free-account policy is separate from direct image transport; no blind new entitlement."
+    },
+    {
+      "sha": "5883110b9d9db32b76d113a378c0ec2abf5943d7",
+      "committer_date": "2026-10-23T11:27:05+07:00",
+      "subject": "fix(deps): upgrade Monaco to 0.57.0 and pin the copy the dashboard loads",
+      "url": "https://github.com/decolua/9router/commit/5883110b9d9db32b76d113a378c0ec2abf5943d7",
+      "prior_disposition": "already installed",
+      "prior_analysis": "Root lock already pins Monaco0.57.0; do not churn locked graph."
+    },
+    {
+      "sha": "7c42d8f87bac934184f633f985c8a944c8c6336e",
+      "committer_date": "2026-10-23T11:26:22+07:00",
+      "subject": "fix(openai): rename max_tokens to max_completion_tokens",
+      "url": "https://github.com/decolua/9router/commit/7c42d8f87bac934184f633f985c8a944c8c6336e",
+      "prior_disposition": "already handled by endpoint dialect",
+      "prior_analysis": "Current param support/OpenAI request converters retain max_completion_tokens precedence and explicit caps."
+    },
+    {
+      "sha": "3ce2b828f33bce0c88374077bc20b6b24382a1fd",
+      "committer_date": "2026-10-23T11:16:23+07:00",
+      "subject": "fix(kiro): normalize Anthropic model ids onto Kiro upstream aliases",
+      "url": "https://github.com/decolua/9router/commit/3ce2b828f33bce0c88374077bc20b6b24382a1fd",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "a440ef43b5e670aa041f7cc35081e9989fc997db",
+      "committer_date": "2026-10-23T11:09:15+07:00",
+      "subject": "fix(headroom): compress native Gemini and Responses tool outputs",
+      "url": "https://github.com/decolua/9router/commit/a440ef43b5e670aa041f7cc35081e9989fc997db",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "792f4719859b50ac1e7a797ee40ceb4383d491b0",
+      "committer_date": "2026-10-23T11:08:43+07:00",
+      "subject": "fix(headroom): support native CommandCode requests",
+      "url": "https://github.com/decolua/9router/commit/792f4719859b50ac1e7a797ee40ceb4383d491b0",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "bc4a3cc7342104172a150735b991e11982323e75",
+      "committer_date": "2026-10-23T11:01:11+07:00",
+      "subject": "feat(ollama): support System One decision models (clef, clef-flash)",
+      "url": "https://github.com/decolua/9router/commit/bc4a3cc7342104172a150735b991e11982323e75",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "08ef047f8c2ede799294ca4d3ccac4548f63452b",
+      "committer_date": "2026-10-23T10:33:25+07:00",
+      "subject": "fix(security): bump undici to 7.30.1 and bind headroom to loopback",
+      "url": "https://github.com/decolua/9router/commit/08ef047f8c2ede799294ca4d3ccac4548f63452b",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "8a8420430fb19aeb41119b2225d0ee97c5c2a9d2",
+      "committer_date": "2026-10-23T10:23:49+07:00",
+      "subject": "feat(rtk): add a user-authored custom system prompt",
+      "url": "https://github.com/decolua/9router/commit/8a8420430fb19aeb41119b2225d0ee97c5c2a9d2",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "ca7b54011daf4532b3b7ececa90a125bafb99056",
+      "committer_date": "2026-10-23T10:13:35+07:00",
+      "subject": "fix(combo): fall through on empty-content streaming responses",
+      "url": "https://github.com/decolua/9router/commit/ca7b54011daf4532b3b7ececa90a125bafb99056",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "00dd3dfcbe76e967ace4f7166a017f3dcea45800",
+      "committer_date": "2026-10-23T10:11:10+07:00",
+      "subject": "fix(media-providers): keep the connection card for non-STT OAuth media pages",
+      "url": "https://github.com/decolua/9router/commit/00dd3dfcbe76e967ace4f7166a017f3dcea45800",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "421f226261750e52323e15d2d26fc964113d96a5",
+      "committer_date": "2026-10-23T10:10:33+07:00",
+      "subject": "feat(stt): add Codex OAuth transcription provider",
+      "url": "https://github.com/decolua/9router/commit/421f226261750e52323e15d2d26fc964113d96a5",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "32a064e2080b6e4e6f8db02b1c4bf8c93ddac85e",
+      "committer_date": "2026-10-23T10:09:47+07:00",
+      "subject": "fix(docker): pin Node 22.23.4 to patch October 2026 security CVEs",
+      "url": "https://github.com/decolua/9router/commit/32a064e2080b6e4e6f8db02b1c4bf8c93ddac85e",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "4a76b8de02f7711dfb8d78b6146dab94d21468bb",
+      "committer_date": "2026-10-23T09:42:43+07:00",
+      "subject": "fix(commandcode): correct quota display and connection test",
+      "url": "https://github.com/decolua/9router/commit/4a76b8de02f7711dfb8d78b6146dab94d21468bb",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "3b137aa6d513babcab45650e86554a0ec3176f98",
+      "committer_date": "2026-10-22T11:48:57+07:00",
+      "subject": "fix(codebuddy): back off blocked international connections",
+      "url": "https://github.com/decolua/9router/commit/3b137aa6d513babcab45650e86554a0ec3176f98",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "d07e5bc3fbfd80ba870e91acb2a93f40f6a58f9f",
+      "committer_date": "2026-10-22T11:46:28+07:00",
+      "subject": "fix(thinking): let a transport declare its thinking shape; nest reasoning on OpenCode Go /responses",
+      "url": "https://github.com/decolua/9router/commit/d07e5bc3fbfd80ba870e91acb2a93f40f6a58f9f",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "342ecb0dd18454f4f623bed2ca1310ef17d8cf16",
+      "committer_date": "2026-10-22T11:39:04+07:00",
+      "subject": "fix(pi-settings): declare existingProvider before use in POST",
+      "url": "https://github.com/decolua/9router/commit/342ecb0dd18454f4f623bed2ca1310ef17d8cf16",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "38a0c4490a843b27a0985be32cd23cb5fe2aca79",
+      "committer_date": "2026-10-22T11:15:52+07:00",
+      "subject": "feat(web-cookie): add web provider executors, browser pool and login capture",
+      "url": "https://github.com/decolua/9router/commit/38a0c4490a843b27a0985be32cd23cb5fe2aca79",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+      "committer_date": "2026-10-15T21:52:09+07:00",
+      "subject": "# v0.5.104 (2026-10-15)",
+      "url": "https://github.com/decolua/9router/commit/87a74e1bda3677193c6f71a7e2100c90311f0689",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "6ed886857da125f4908a8a3c3e64f7f1d8ff8366",
+      "committer_date": "2026-10-15T21:43:37+07:00",
+      "subject": "Revert \"feat(keys): per-key token quotas and pattern-based model access\"",
+      "url": "https://github.com/decolua/9router/commit/6ed886857da125f4908a8a3c3e64f7f1d8ff8366",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "3c48d275ab2c26dc517e15bb42e3f95baf54ee6c",
+      "committer_date": "2026-10-15T21:42:38+07:00",
+      "subject": "Features:",
+      "url": "https://github.com/decolua/9router/commit/3c48d275ab2c26dc517e15bb42e3f95baf54ee6c",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "2aa9307f5030b563bd2e5aa339847bba9d697533",
+      "committer_date": "2026-10-15T21:23:54+07:00",
+      "subject": "feat(keys): per-key token quotas and pattern-based model access",
+      "url": "https://github.com/decolua/9router/commit/2aa9307f5030b563bd2e5aa339847bba9d697533",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "fb30246ce769c31e2a6097c3c3d70c3b35239f28",
+      "committer_date": "2026-10-15T21:18:24+07:00",
+      "subject": "fix(tests): isolate zed-native-auth DATA_DIR so it stops writing to the real DB",
+      "url": "https://github.com/decolua/9router/commit/fb30246ce769c31e2a6097c3c3d70c3b35239f28",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "d95bb8ea25958f9cb01b3d3110b97c15d1ef5e56",
+      "committer_date": "2026-10-15T21:11:04+07:00",
+      "subject": "fix(dashboard): unclip proxy dropdown and tooltips via body portal",
+      "url": "https://github.com/decolua/9router/commit/d95bb8ea25958f9cb01b3d3110b97c15d1ef5e56",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "813a0121b09c4181712a902e47e1ed418a88c473",
+      "committer_date": "2026-10-15T21:09:13+07:00",
+      "subject": "fix(usage): token fallback for input_tokens rows and stable key masking in stats",
+      "url": "https://github.com/decolua/9router/commit/813a0121b09c4181712a902e47e1ed418a88c473",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "da1756a823f682aba8a02198fd17535e0401ad65",
+      "committer_date": "2026-10-15T21:00:27+07:00",
+      "subject": "feat(ui): model picker regex/negation search, batch select, provider filtering",
+      "url": "https://github.com/decolua/9router/commit/da1756a823f682aba8a02198fd17535e0401ad65",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "a8f63f4d7167b094e0baadcc2637d1a9eba9a016",
+      "committer_date": "2026-10-15T20:54:00+07:00",
+      "subject": "fix(models): expose no-auth free providers in /v1/models and prune custom models on node deletion",
+      "url": "https://github.com/decolua/9router/commit/a8f63f4d7167b094e0baadcc2637d1a9eba9a016",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "eb3730170ce4cd5d999566e7b4873c0f523cf0ea",
+      "committer_date": "2026-10-15T20:53:52+07:00",
+      "subject": "fix(gemini): drop sampling params and order functionResponse-last for Gemini 4 (#4802)",
+      "url": "https://github.com/decolua/9router/commit/eb3730170ce4cd5d999566e7b4873c0f523cf0ea",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "28d4015966f2d71a67d665bad803ce7e98b1e9b2",
+      "committer_date": "2026-10-15T20:12:55+07:00",
+      "subject": "feat(quota): unify auto-ping mode selection and default to local timezone",
+      "url": "https://github.com/decolua/9router/commit/28d4015966f2d71a67d665bad803ce7e98b1e9b2",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "db81a8c9f0dbb8037d00751d06ba31fa82a67250",
+      "committer_date": "2026-10-15T16:43:40+07:00",
+      "subject": "fix(headroom): avoid false compression warnings when tools dominate body (#4855)",
+      "url": "https://github.com/decolua/9router/commit/db81a8c9f0dbb8037d00751d06ba31fa82a67250",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "7e0043def28da0aeedffbd566c4970d883fbb553",
+      "committer_date": "2026-10-15T16:42:41+07:00",
+      "subject": "Merge branch 'chore/codex-drop-gpt-5.5'",
+      "url": "https://github.com/decolua/9router/commit/7e0043def28da0aeedffbd566c4970d883fbb553",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "7878f53ba29dd32707083408fcbfcb3b6e3cadd2",
+      "committer_date": "2026-10-15T16:36:11+07:00",
+      "subject": "fix(codex): drop retired gpt-5.5 from registry, image and auto-ping",
+      "url": "https://github.com/decolua/9router/commit/7878f53ba29dd32707083408fcbfcb3b6e3cadd2",
+      "disposition": "subject-inventory; selected diffs only"
+    },
+    {
+      "sha": "be51142b4aca48d0599ec00b45bd9ccaaed420dd",
+      "committer_date": "2026-10-15T14:47:25+07:00",
+      "subject": "feat(quota): anchored auto-ping schedule at fixed local times (#4848)",
+      "url": "https://github.com/decolua/9router/commit/be51142b4aca48d0599ec00b45bd9ccaaed420dd",
+      "disposition": "subject-inventory; selected diffs only"
+    }
+  ],
+  "additional_selected_diffs": [
+    {
+      "sha": "9b4ea9eb697a267babd96ae33c814e86c80a9c64",
+      "disposition": "defer optional UX",
+      "analysis": "Combo name/member search is useful with many chains; current fork lacks upstream bulk-selection UI, so copying its select-all changes is not a standalone patch. No hot-path stability effect."
+    },
+    {
+      "sha": "00dd3dfcbe76e967ace4f7166a017f3dcea45800",
+      "disposition": "already covered by different media layout",
+      "analysis": "Current media provider detail keeps ConnectionsCard for API-key media lanes instead of incorrectly short-circuiting on general chat OAuth support."
+    },
+    {
+      "sha": "ca7b54011daf4532b3b7ececa90a125bafb99056",
+      "disposition": "already adapted with stronger accounting/latency guarantees",
+      "analysis": "Current combo.js uses150ms bounded peek, considers reasoning, tool events, usage and native errors committed, and never treats deadline/read error as empty proof. The upstream45s peek and reasoning-exclusion would regress TTFT/accounting."
+    }
+  ],
+  "implemented": {
+    "files": [
+      "src/shared/components/ModelSelectModal.js",
+      "tests/unit/model-picker-live-scope.test.js",
+      "tests/browser/model-picker-catalog.spec.mjs"
+    ],
+    "red": "Original five actual-component regressions all failed",
+    "green": "Seven new tests plus54 existing selector/catalog contracts:61 passed in5 files; scoped composed lint zero warnings",
+    "production_browser": "Production browser gate passed:27/27 cases including actual Combo->AddModel synthetic enabled-account ByKitsune/Cursor catalog case; no real provider credentials or paid inference."
+  },
+  "limitations": [
+    "No paid inference or account-availability validation",
+    "No native transport/fingerprint dependency transplant, no TLS verification bypass",
+    "Prior #5128 capture loaded26/31comments; no claim to all paginated comments",
+    "No external issues/comments/settings changed"
+  ]
+}

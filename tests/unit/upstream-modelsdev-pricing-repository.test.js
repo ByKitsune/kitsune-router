@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
+import currentObservation from "../../open-sse/providers/metadata/modelsDevPricingCurrent.js";
 
 const model = "nvidia/nemotron-3-super-120b-a12b";
 const time = "2026-10-29T12:00:00Z";
+const expiredTimestamp = new Date(Date.parse(currentObservation.source.verifiedAtUtc) + 86400000).toISOString();
 const events = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
 const globals = ["_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers", "_requestFailureCounts"];
 let directory, previousGlobals, listeners, repo, custom, db;
@@ -141,10 +143,11 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     }
   });
 
-  it("does not apply a snapshot-day quote to usage from another day", async () => {
+  it("does not apply an observation after its full24-hour validity window", async () => {
     await custom.addCustomModel({ providerAlias: "openrouter", id: model });
-    expect(await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-31T00:00:00Z" })).toBeNull();
-    vi.setSystemTime(new Date("2026-10-31T00:00:00Z"));
+    expect(await repo.getPricingForModel("openrouter", model, { timestamp: Date.parse(expiredTimestamp) - 1 })).toMatchObject({ input: 0.3, output: 2.4 });
+    expect(await repo.getPricingForModel("openrouter", model, { timestamp: expiredTimestamp })).toBeNull();
+    vi.setSystemTime(new Date(expiredTimestamp));
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual({});
     expect(await repo.getSavedPricing()).toEqual({});
   });
@@ -153,8 +156,8 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     await repo.updatePricing({ openrouter: { [model]: { input: 3 } } });
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual(rateFields(await repo.getPricingForModel("openrouter", model, { timestamp: time })));
     expect((await repo.getConfiguredPricing()).openrouter[model]).toMatchObject({ input: 3, output: 2.4 });
-    vi.setSystemTime(new Date("2026-10-31T00:00:00Z"));
-    const expired = await repo.getPricingForModel("openrouter", model, { timestamp: "2026-10-31T00:00:00Z" });
+    vi.setSystemTime(new Date(expiredTimestamp));
+    const expired = await repo.getPricingForModel("openrouter", model, { timestamp: expiredTimestamp });
     expect(expired).toEqual({ input: 3 });
     expect((await repo.getConfiguredPricing()).openrouter[model]).toEqual(expired);
   });

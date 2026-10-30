@@ -20,10 +20,12 @@ for (const f of ADDED_FIELDS) {
   for (const id of Object.keys(baseline)) delete baseline[id][f];
 }
 
-// Host-dependent header values vary with the OS/arch running the verify, so
+// Host-dependent header values vary with the OS/arch/runtime running the verify, so
 // normalize them on BOTH sides — the baseline is authored once on one machine
 // and must stay comparable everywhere.
-const HOST_DEPENDENT_HEADERS = new Set(["X-Stainless-Arch", "X-Stainless-Os"]);
+// Native Stainless derives runtime-version from the executing process; its
+// exact outbound value is covered by the client wire-consumer regressions.
+const HOST_DEPENDENT_HEADERS = new Set(["X-Stainless-Arch", "X-Stainless-Os", "X-Stainless-Runtime-Version"]);
 function normalizeHostDependent(providers) {
   for (const p of Object.values(providers)) {
     const h = p?.headers;

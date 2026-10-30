@@ -16,6 +16,9 @@ export default {
   transport: {
     baseUrl: "https://api.mistral.ai/v1/chat/completions",
     validateUrl: "https://api.mistral.ai/v1/models",
+    // Native model cards expose max_context_length and capability booleans;
+    // their type:"base" discriminator is not a gateway service kind.
+    modelsFetcher: { url: "https://api.mistral.ai/v1/models", type: "mistral" },
     // This endpoint accepts reasoning_effort, not the hosted model's native dialect.
     thinkingFormat: "openai",
     quirks: {

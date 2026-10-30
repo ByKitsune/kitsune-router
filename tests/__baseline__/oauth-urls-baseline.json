@@ -9,8 +9,8 @@
       "auth": "https://auth.openai.com/oauth/authorize"
     },
     "anthropic": {
-      "token": "https://api.anthropic.com/v1/oauth/token",
-      "auth": "https://api.anthropic.com/v1/oauth/authorize"
+      "token": "https://platform.claude.com/v1/oauth/token",
+      "auth": "https://platform.claude.com/oauth/authorize"
     },
     "iflow": {
       "token": "https://iflow.cn/oauth/token",
@@ -23,7 +23,7 @@
     }
   },
   "tokenUrls": {
-    "claude": "https://api.anthropic.com/v1/oauth/token",
+    "claude": "https://platform.claude.com/v1/oauth/token",
     "codex": "https://auth.openai.com/oauth/token",
     "iflow": "https://iflow.cn/oauth/token",
     "kiro": "https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken",

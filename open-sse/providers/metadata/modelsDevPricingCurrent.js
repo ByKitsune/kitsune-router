@@ -5,11 +5,11 @@ export default {
   "format": "kitsune-modelsdev-pricing-observation-v1",
   "source": {
     "url": "https://models.dev/api.json",
-    "snapshotDate": "2026-10-29",
-    "verifiedAtUtc": "2026-10-29T06:10:02.283074+00:00",
-    "sha256": "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b",
-    "retrieval": "Rebuilt published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API capture",
-    "repositoryCommit": "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd",
+    "snapshotDate": "2026-10-30",
+    "verifiedAtUtc": "2026-10-30T19:22:30.959Z",
+    "sha256": "d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c",
+    "retrieval": "Reconstructed published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API response capture",
+    "repositoryCommit": "971a07c53cdb688185015776b76151d514b7bde5",
     "repositoryUrl": "https://github.com/anomalyco/models.dev"
   },
   "products": {
@@ -2446,9 +2446,24 @@ export default {
       },
       "mistral-large-4": {
         "cost": {
-          "input": 1.36,
-          "output": 4.18,
-          "cache_read": 0.14
+          "input": 0.7,
+          "output": 2.1,
+          "cache_read": 0.07
+        },
+        "input": [
+          "text",
+          "image",
+          "pdf"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "mistral-large-4-0-8": {
+        "cost": {
+          "input": 0.7,
+          "output": 2.1,
+          "cache_read": 0.07
         },
         "input": [
           "text",
@@ -3712,9 +3727,9 @@ export default {
       },
       "deepseek/deepseek-v4-pro": {
         "cost": {
-          "input": 0.95526,
-          "output": 1.91052,
-          "cache_read": 0.079605
+          "input": 0.9483,
+          "output": 1.8966,
+          "cache_read": 0.079025
         },
         "input": [
           "text"
@@ -3778,9 +3793,9 @@ export default {
       },
       "deepseek/deepseek-v3.2": {
         "cost": {
-          "input": 0.28,
-          "output": 0.42,
-          "cache_read": 0.028
+          "input": 0.26,
+          "output": 0.38,
+          "cache_read": 0.13
         },
         "input": [
           "text"
@@ -3978,9 +3993,9 @@ export default {
       },
       "google/gemma-4-26b-a4b-it": {
         "cost": {
-          "input": 0.0765,
-          "output": 0.255,
-          "cache_read": 0.0425
+          "input": 0.09,
+          "output": 0.3,
+          "cache_read": 0.05
         },
         "input": [
           "image",
@@ -4967,9 +4982,9 @@ export default {
       },
       "minimax/minimax-m3.1-flash": {
         "cost": {
-          "input": 0.15,
-          "output": 0.6,
-          "cache_read": 0.015
+          "input": 0.075,
+          "output": 0.3,
+          "cache_read": 0.0075
         },
         "input": [
           "text",
@@ -5236,9 +5251,9 @@ export default {
       },
       "mistralai/mistral-large-4-0": {
         "cost": {
-          "input": 1.36,
-          "output": 4.18,
-          "cache_read": 0.14
+          "input": 0.7,
+          "output": 2.1,
+          "cache_read": 0.07
         },
         "input": [
           "text",
@@ -5417,8 +5432,8 @@ export default {
       },
       "moonshotai/kimi-k2.7-code": {
         "cost": {
-          "input": 0.56,
-          "output": 3.1,
+          "input": 0.6,
+          "output": 3.5,
           "cache_read": 0.15
         },
         "input": [
@@ -6931,9 +6946,9 @@ export default {
       },
       "particle-ai/particle-1": {
         "cost": {
-          "input": 0.25,
-          "output": 1,
-          "cache_read": 0.03
+          "input": 0.05,
+          "output": 0.5,
+          "cache_read": 0.003
         },
         "input": [
           "text",
@@ -7178,9 +7193,9 @@ export default {
       },
       "qwen/qwen3.8-27b": {
         "cost": {
-          "input": 0.039,
-          "output": 1.25,
-          "cache_read": 0.0039
+          "input": 0.15,
+          "output": 1.875,
+          "cache_read": 0.0375
         },
         "input": [
           "text",
@@ -7368,8 +7383,8 @@ export default {
       },
       "qwen/qwen3.6-27b": {
         "cost": {
-          "input": 0.45,
-          "output": 2.7
+          "input": 0.32,
+          "output": 3.2
         },
         "input": [
           "text",
@@ -8082,9 +8097,9 @@ export default {
       },
       "tencent/hy4-preview": {
         "cost": {
-          "input": 0.834,
-          "output": 2.501,
-          "cache_read": 0.042
+          "input": 0.7506,
+          "output": 2.2509,
+          "cache_read": 0.0378
         },
         "input": [
           "text"
@@ -8095,9 +8110,9 @@ export default {
       },
       "tencent/hy3": {
         "cost": {
-          "input": 0.132,
-          "output": 0.528,
-          "cache_read": 0.033
+          "input": 0.0825,
+          "output": 0.33,
+          "cache_read": 0.020625
         },
         "input": [
           "text"
@@ -8308,19 +8323,6 @@ export default {
           "input": 0.15,
           "output": 0.6,
           "cache_read": 0.03
-        },
-        "input": [
-          "text"
-        ],
-        "output": [
-          "text"
-        ]
-      },
-      "upstage/solar-pro-3": {
-        "cost": {
-          "input": 0.15,
-          "output": 0.6,
-          "cache_read": 0.015
         },
         "input": [
           "text"
@@ -8690,9 +8692,9 @@ export default {
       },
       "z-ai/glm-5.3": {
         "cost": {
-          "input": 0.0699,
-          "output": 1.4,
-          "cache_read": 0.0689
+          "input": 0.08,
+          "output": 3.6,
+          "cache_read": 0.076
         },
         "input": [
           "text"
@@ -8731,9 +8733,9 @@ export default {
       },
       "z-ai/glm-5.3-flash": {
         "cost": {
-          "input": 0.0457,
-          "output": 0.0742,
-          "cache_read": 0.03
+          "input": 0.018,
+          "output": 0.1402,
+          "cache_read": 0.018
         },
         "input": [
           "text",
@@ -8812,7 +8814,7 @@ export default {
         "cost": {
           "input": 0.3,
           "output": 0.9,
-          "cache_read": 0.05
+          "cache_read": 0.055
         },
         "input": [
           "text",
@@ -8954,9 +8956,9 @@ export default {
       },
       "~deepseek/deepseek-v4-flash-latest": {
         "cost": {
-          "input": 0.0475,
-          "output": 0.1568,
-          "cache_read": 0.028
+          "input": 0.0388,
+          "output": 0.3,
+          "cache_read": 0.0378
         },
         "input": [
           "text"
@@ -8968,7 +8970,7 @@ export default {
       "~deepseek/deepseek-pro-latest": {
         "cost": {
           "input": 0.1035,
-          "output": 8,
+          "output": 4,
           "cache_read": 0.1
         },
         "input": [
@@ -8980,9 +8982,9 @@ export default {
       },
       "~deepseek/deepseek-flash-latest": {
         "cost": {
-          "input": 0.016,
-          "output": 1.44,
-          "cache_read": 0.0132
+          "input": 0.022,
+          "output": 0.192,
+          "cache_read": 0.004
         },
         "input": [
           "text",
@@ -9050,9 +9052,9 @@ export default {
       },
       "~moonshotai/kimi-latest": {
         "cost": {
-          "input": 0.1824,
-          "output": 9.3388,
-          "cache_read": 0.18
+          "input": 0.1529,
+          "output": 9.75,
+          "cache_read": 0.15
         },
         "input": [
           "text",
@@ -9274,9 +9276,9 @@ export default {
       },
       "~z-ai/glm-flash-latest": {
         "cost": {
-          "input": 0.0457,
-          "output": 0.0742,
-          "cache_read": 0.03
+          "input": 0.018,
+          "output": 0.1402,
+          "cache_read": 0.018
         },
         "input": [
           "text",
@@ -10137,19 +10139,6 @@ export default {
           "text"
         ]
       },
-      "arcee-ai/trinity-large-thinking": {
-        "cost": {
-          "input": 0.25,
-          "output": 0.8,
-          "cache_read": 0.06
-        },
-        "input": [
-          "text"
-        ],
-        "output": [
-          "text"
-        ]
-      },
       "bytedance/seed-2.1-turbo": {
         "cost": {
           "input": 0.5,
@@ -10242,9 +10231,9 @@ export default {
       },
       "deepseek/deepseek-v4.1-flash": {
         "cost": {
-          "input": 0.075,
-          "output": 0.3,
-          "cache_read": 0.0015
+          "input": 0.3,
+          "output": 1.2,
+          "cache_read": 0.007
         },
         "input": [
           "text",
@@ -10271,9 +10260,9 @@ export default {
       },
       "deepseek/deepseek-v4.1-flash-1017": {
         "cost": {
-          "input": 0.075,
-          "output": 0.3,
-          "cache_read": 0.0015
+          "input": 0.3,
+          "output": 1.2,
+          "cache_read": 0.007
         },
         "input": [
           "text",
@@ -10920,6 +10909,18 @@ export default {
           "text"
         ]
       },
+      "inclusionai/ling-3.1-flash-1019": {
+        "cost": {
+          "input": 0,
+          "output": 0
+        },
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
       "inclusionai/ling-3.0-flash": {
         "cost": {
           "input": 0.021,
@@ -11415,9 +11416,9 @@ export default {
       },
       "mistral/mistral-large-4": {
         "cost": {
-          "input": 1.36,
-          "output": 4.18,
-          "cache_read": 0.14
+          "input": 0.7,
+          "output": 2.1,
+          "cache_read": 0.07
         },
         "input": [
           "text",
@@ -18727,21 +18728,6 @@ export default {
           "text"
         ]
       },
-      "claude-sonnet-4-5": {
-        "cost": {
-          "input": 3,
-          "output": 15,
-          "cache_read": 0.3,
-          "cache_write": 3.75
-        },
-        "input": [
-          "text",
-          "image"
-        ],
-        "output": [
-          "text"
-        ]
-      },
       "claude-opus-5": {
         "cost": {
           "input": 5,
@@ -23480,7 +23466,6 @@ export default {
       "thedrummer/unslopnemo-12b",
       "undi95/remm-slerp-l2-13b",
       "upstage/solar-mini4",
-      "upstage/solar-pro-3",
       "upstage/solar-pro4",
       "writer/palmyra-x5",
       "xiaomi/mimo-v2.5-pro",
@@ -23508,7 +23493,6 @@ export default {
       "alibaba/qwen3-coder-next",
       "alibaba/qwen3-next-80b-a3b-instruct",
       "alibaba/qwen3-next-80b-a3b-thinking",
-      "arcee-ai/trinity-large-thinking",
       "cohere/command-a",
       "deepseek/deepseek-r1",
       "deepseek/deepseek-v3.1",

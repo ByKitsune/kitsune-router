@@ -1,0 +1,128 @@
+// Route additions in official OpenCode v1.19.5 documentation. Exact paths and
+// Free prices are verified independently from unsupplied model capabilities.
+// No consent, private endpoint, or account entitlement is inferred.
+export default {
+  "opencode": {
+    "cat-jam-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "step-5-preview-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "exo-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "mimo-v2.5-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "ling-3.0-flash-fin-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "nemotron-3-ultra-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+    "nemotron-3.5-lightning-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/zen.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": 0, "output": 0, "cached": 0},
+      billing: {"kind": "free", "note": "Publisher lists Free input/output/cache-read; cache-write is unspecified. Limited-time availability is not guaranteed."},
+    },
+  },
+  "opencode-go": {
+    "grok-4.6": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "gpt-5.6-luna": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "claude-haiku-5-5": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "longcat-2.0": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "step-5-preview-free": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "muse-spark-1.3-contributor": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "muse-spark-1.2-contributor": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "hy4-preview": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "hy3": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+    "space-bunny": {
+      sources: ["https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/web/src/content/docs/go.mdx"],
+      limits: {"scope": "publisher-documented-hosted-route", "catalogAsOf": "2026-10-31", "authenticatedRouteVerified": false, "unverifiedCapabilityFields": ["contextWindow", "maxInput", "maxOutput", "vision", "tools", "reasoning", "pdf", "audioInput", "videoInput", "imageOutput", "audioOutput", "thinkingFormat", "thinkingEfforts", "thinkingCanDisable"], "note": "Official endpoint table verifies this literal route, not model limits, modalities or account availability."},
+      capabilities: {"contextWindow": null, "maxInput": null, "maxOutput": null, "vision": null, "tools": null, "reasoning": null, "pdf": null, "audioInput": null, "videoInput": null, "imageOutput": null, "audioOutput": null, "thinkingFormat": null, "thinkingEfforts": null, "thinkingCanDisable": null},
+      pricing: {"input": null, "output": null},
+      billing: {"kind": "subscription-credits", "note": "Go plan quota reference rates are not per-request cash charges; upstream workspace/training permissions remain authoritative."},
+    },
+  },
+};

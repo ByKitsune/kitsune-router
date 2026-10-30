@@ -30,6 +30,10 @@ describe("OpenCode Go model catalog", () => {
       "grok-4.7", "gpt-6-luna", "qwen3.8-max", "qwen3.8-flash",
       "mimo-v2.6-pro", "mimo-v2.6-flash", "longcat-2.5-preview-free",
       "space-bunny-free", "kimi-k3", "kimi-k3.1-pro", "deepseek-v4.1-flash",
+      // Official v1.19.5 endpoint-table additions preserve the existing prefix/default.
+      "grok-4.6", "gpt-5.6-luna", "claude-haiku-5-5", "longcat-2.0",
+      "step-5-preview-free", "muse-spark-1.3-contributor", "muse-spark-1.2-contributor",
+      "hy4-preview", "hy3", "space-bunny",
     ]);
   });
 });

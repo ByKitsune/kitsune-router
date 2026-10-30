@@ -1,0 +1,2964 @@
+{
+  "reviewDate": "2026-10-31",
+  "timezone": "Asia/Jakarta",
+  "forkBase": "5ca4aaf0b307ae527f472e597b4d390a05df14da",
+  "scope": "All declared versioned client surfaces and all121 registered provider entries; publisher release/tag/artifact and account-specific catalog contracts, not live account acceptance.",
+  "releasePinChanges": [
+    {
+      "constant": "CLAUDE_CODE_VERSION",
+      "previous": "2.1.306",
+      "selected": "2.1.314",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "codexClaude"
+    },
+    {
+      "constant": "CODEX_CLI_VERSION",
+      "previous": "0.163.0",
+      "selected": "0.166.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "codexClaude"
+    },
+    {
+      "constant": "GEMINI_CLI_VERSION",
+      "previous": "0.65.0",
+      "selected": "0.66.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "google"
+    },
+    {
+      "constant": "VSCODE_VERSION",
+      "previous": "1.143.0",
+      "selected": "1.144.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "ides"
+    },
+    {
+      "constant": "COPILOT_CHAT_VERSION",
+      "previous": "0.71.0",
+      "selected": "0.72.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "ides"
+    },
+    {
+      "constant": "ZED_VERSION",
+      "previous": "1.24.4",
+      "selected": "1.26.2",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "ides"
+    },
+    {
+      "constant": "OPENCODE_VERSION",
+      "previous": "1.19.3",
+      "selected": "1.19.5",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "cliProviders"
+    },
+    {
+      "constant": "COMMAND_CODE_VERSION",
+      "previous": "1.88.0",
+      "selected": "1.88.2",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "cliProviders"
+    },
+    {
+      "constant": "CODEBUDDY_CLI_VERSION",
+      "previous": "2.171.0",
+      "selected": "2.179.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "cliProviders"
+    },
+    {
+      "constant": "KIMCHI_GATEWAY_VERSION",
+      "previous": "1.17.0",
+      "selected": "1.25.0",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "cliProviders"
+    },
+    {
+      "constant": "QODER_CLI_VERSION",
+      "previous": "1.1.75",
+      "selected": "1.1.81",
+      "channel": "publisher non-prerelease stable/latest; each product independently reviewed",
+      "evidenceReview": "cliProviders"
+    }
+  ],
+  "identityPolicies": {
+    "claudeStainless": "Bundled SDK0.128.0 unchanged; runtime-version derives from the executing process.version, not a captured host default. API version2023-06-01 stays independently verified.",
+    "githubCopilot": "VSCode1.144.0 pairs with bundledCopilot0.72.0; copilot-api0.5.2 retains mainAPI2026-08-01 and tokenAPI2025-04-01.",
+    "qoder": "Unsigned OpenAPI UA qoder/<release>; signature-bound Cosy version and algorithms unchanged.",
+    "google": "GeminiCLI OAuth uses bundled google-auth-library10.9.0, GenAI1.30.0 is a separate API-key branch; model-specific CLIUA is request-local.",
+    "genericApis": "API-key and gateway routes retain their documented auth/product identity. No universal browser fingerprint or client entitlement flag was assigned.",
+    "webServices": "Existing GrokWeb Chrome136 and PerplexityWeb Chrome130 wire profiles are unverified browser compatibility pins, not current app releases; not silently refreshed."
+  },
+  "retainedOrBlocked": [
+    {
+      "surfaces": [
+        "Antigravity IDE2.5.5",
+        "Antigravity CLI1.4.0"
+      ],
+      "status": "latest-not-verified",
+      "reason": "official changelog host policy-blocked; SDK does not establish CloudCode OAuth surface versions"
+    },
+    {
+      "surfaces": [
+        "Cursor3.24.18",
+        "KiroIDE1.4.13",
+        "KiroCLI2.33.0",
+        "Windsurf/Devin3.10.67",
+        "Windsurfmetadataextension1.48.2",
+        "Trae3.6.4"
+      ],
+      "status": "latest-not-verified",
+      "reason": "publisher downloads/changelogs policy-blocked; hidden/inactive routes not reactivated"
+    },
+    {
+      "surfaces": [
+        "GrokCLI1.0.62"
+      ],
+      "status": "latest-not-verified",
+      "reason": "officialstable feed blocked; publisherGitHubmain lacks reliable injected stable release version"
+    },
+    {
+      "surfaces": [
+        "CodeBuddyINTLwire2.161.1",
+        "QoderCosy1.0.0",
+        "CursorConnect1.6.1",
+        "KiroSDK/runtime3.0.0"
+      ],
+      "status": "retained-independent-wire-pins",
+      "reason": "A newer app/region release does not verify these independent signed/runtime/SDK surfaces"
+    },
+    {
+      "surfaces": [
+        "iFlow"
+      ],
+      "status": "shutdown-confirmed",
+      "reason": "publisherREADME records service shutdown2026-04-17; no reactivation"
+    }
+  ],
+  "modelsDevSource": {
+    "sourceUrl": "https://models.dev/api.json",
+    "repository": "https://github.com/anomalyco/models.dev",
+    "retrieval": "Reconstructed published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API response capture",
+    "commit": "971a07c53cdb688185015776b76151d514b7bde5",
+    "commitTime": "2026-10-30T18:30:43Z",
+    "retrievedAtUtc": "2026-10-30T19:22:30.959Z",
+    "bunVersion": "1.4.4",
+    "dependencies": {
+      "zod": "3.24.2",
+      "remeda": "2.33.7"
+    },
+    "sha256": "d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c",
+    "providers": 234,
+    "models": 8930,
+    "allViewSha256": "57a8112105997e077b044d7db003d7f126998e986d67b1aac16cf562e8df96ca",
+    "allViewProviders": 234,
+    "allViewModels": 8998,
+    "limitations": [
+      "Source reconstruction is not an original HTTPS response capture.",
+      "Presence does not establish account availability, entitlement, retirement or invoice accuracy.",
+      "Source/retrieval timestamp is not a historical tariff effective-from claim."
+    ]
+  },
+  "pricingObservationDelta": {
+    "before": {
+      "references": 1411,
+      "eligible": 359
+    },
+    "after": {
+      "references": 1410,
+      "eligible": 357
+    },
+    "changes": [
+      {
+        "provider": "mistral",
+        "model": "mistral-large-4",
+        "before": {
+          "cost": {
+            "input": 1.36,
+            "output": 4.18,
+            "cache_read": 0.14
+          },
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.7,
+            "output": 2.1,
+            "cache_read": 0.07
+          },
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "mistral",
+        "model": "mistral-large-4-0-8",
+        "before": null,
+        "after": {
+          "cost": {
+            "input": 0.7,
+            "output": 2.1,
+            "cache_read": 0.07
+          },
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v3.2",
+        "before": {
+          "cost": {
+            "input": 0.28,
+            "output": 0.42,
+            "cache_read": 0.028
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.26,
+            "output": 0.38,
+            "cache_read": 0.13
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4-pro",
+        "before": {
+          "cost": {
+            "input": 0.95526,
+            "output": 1.91052,
+            "cache_read": 0.079605
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.9483,
+            "output": 1.8966,
+            "cache_read": 0.079025
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "google/gemma-4-26b-a4b-it",
+        "before": {
+          "cost": {
+            "input": 0.0765,
+            "output": 0.255,
+            "cache_read": 0.0425
+          },
+          "input": [
+            "image",
+            "text",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.09,
+            "output": 0.3,
+            "cache_read": 0.05
+          },
+          "input": [
+            "image",
+            "text",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "minimax/minimax-m3.1-flash",
+        "before": {
+          "cost": {
+            "input": 0.15,
+            "output": 0.6,
+            "cache_read": 0.015
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.075,
+            "output": 0.3,
+            "cache_read": 0.0075
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "mistralai/mistral-large-4-0",
+        "before": {
+          "cost": {
+            "input": 1.36,
+            "output": 4.18,
+            "cache_read": 0.14
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.7,
+            "output": 2.1,
+            "cache_read": 0.07
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "moonshotai/kimi-k2.7-code",
+        "before": {
+          "cost": {
+            "input": 0.56,
+            "output": 3.1,
+            "cache_read": 0.15
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.6,
+            "output": 3.5,
+            "cache_read": 0.15
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "particle-ai/particle-1",
+        "before": {
+          "cost": {
+            "input": 0.25,
+            "output": 1,
+            "cache_read": 0.03
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.05,
+            "output": 0.5,
+            "cache_read": 0.003
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3.6-27b",
+        "before": {
+          "cost": {
+            "input": 0.45,
+            "output": 2.7
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.32,
+            "output": 3.2
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3.8-27b",
+        "before": {
+          "cost": {
+            "input": 0.039,
+            "output": 1.25,
+            "cache_read": 0.0039
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.15,
+            "output": 1.875,
+            "cache_read": 0.0375
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "tencent/hy3",
+        "before": {
+          "cost": {
+            "input": 0.132,
+            "output": 0.528,
+            "cache_read": 0.033
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.0825,
+            "output": 0.33,
+            "cache_read": 0.020625
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "tencent/hy4-preview",
+        "before": {
+          "cost": {
+            "input": 0.834,
+            "output": 2.501,
+            "cache_read": 0.042
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.7506,
+            "output": 2.2509,
+            "cache_read": 0.0378
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "upstage/solar-pro-3",
+        "before": {
+          "cost": {
+            "input": 0.15,
+            "output": 0.6,
+            "cache_read": 0.015
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": null
+      },
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-4.6v",
+        "before": {
+          "cost": {
+            "input": 0.3,
+            "output": 0.9,
+            "cache_read": 0.05
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.3,
+            "output": 0.9,
+            "cache_read": 0.055
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3",
+        "before": {
+          "cost": {
+            "input": 0.0699,
+            "output": 1.4,
+            "cache_read": 0.0689
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.08,
+            "output": 3.6,
+            "cache_read": 0.076
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "before": {
+          "cost": {
+            "input": 0.0457,
+            "output": 0.0742,
+            "cache_read": 0.03
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.018,
+            "output": 0.1402,
+            "cache_read": 0.018
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "~deepseek/deepseek-flash-latest",
+        "before": {
+          "cost": {
+            "input": 0.016,
+            "output": 1.44,
+            "cache_read": 0.0132
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.022,
+            "output": 0.192,
+            "cache_read": 0.004
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "~deepseek/deepseek-pro-latest",
+        "before": {
+          "cost": {
+            "input": 0.1035,
+            "output": 8,
+            "cache_read": 0.1
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.1035,
+            "output": 4,
+            "cache_read": 0.1
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "~deepseek/deepseek-v4-flash-latest",
+        "before": {
+          "cost": {
+            "input": 0.0475,
+            "output": 0.1568,
+            "cache_read": 0.028
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.0388,
+            "output": 0.3,
+            "cache_read": 0.0378
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "~moonshotai/kimi-latest",
+        "before": {
+          "cost": {
+            "input": 0.1824,
+            "output": 9.3388,
+            "cache_read": 0.18
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.1529,
+            "output": 9.75,
+            "cache_read": 0.15
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "openrouter",
+        "model": "~z-ai/glm-flash-latest",
+        "before": {
+          "cost": {
+            "input": 0.0457,
+            "output": 0.0742,
+            "cache_read": 0.03
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.018,
+            "output": 0.1402,
+            "cache_read": 0.018
+          },
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "venice",
+        "model": "claude-sonnet-4-5",
+        "before": {
+          "cost": {
+            "input": 3,
+            "output": 15,
+            "cache_read": 0.3,
+            "cache_write": 3.75
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": null
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "model": "arcee-ai/trinity-large-thinking",
+        "before": {
+          "cost": {
+            "input": 0.25,
+            "output": 0.8,
+            "cache_read": 0.06
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": null
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "before": {
+          "cost": {
+            "input": 0.075,
+            "output": 0.3,
+            "cache_read": 0.0015
+          },
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.3,
+            "output": 1.2,
+            "cache_read": 0.007
+          },
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "model": "deepseek/deepseek-v4.1-flash-1017",
+        "before": {
+          "cost": {
+            "input": 0.075,
+            "output": 0.3,
+            "cache_read": 0.0015
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.3,
+            "output": 1.2,
+            "cache_read": 0.007
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "model": "inclusionai/ling-3.1-flash-1019",
+        "before": null,
+        "after": {
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "model": "mistral/mistral-large-4",
+        "before": {
+          "cost": {
+            "input": 1.36,
+            "output": 4.18,
+            "cache_read": 0.14
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "after": {
+          "cost": {
+            "input": 0.7,
+            "output": 2.1,
+            "cache_read": 0.07
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        }
+      }
+    ]
+  },
+  "staticCatalogComparison": {
+    "rows": 1322,
+    "exactMatchedRows": 409,
+    "unmatchedRows": 796,
+    "nonChatRows": 117,
+    "agreeingFields": 4503,
+    "primaryOverrides": 2,
+    "primaryConflicts": 22,
+    "routeOverrides": 0,
+    "unknownFields": 339,
+    "actionableFields": 0
+  },
+  "providerCoverageFile": "provider-catalog-coverage-20261031.json",
+  "upstreamReviewFile": "9router-client-refresh-review-20261031.json",
+  "networkRequirements": {
+    "draftSaved": true,
+    "appliedToCurrentRuntime": false,
+    "requiresUserReviewSaveAndPublish": true,
+    "officialDomains": [
+      "antigravity.google",
+      "opencode.ai",
+      "commandcode.ai",
+      "x.ai",
+      "update.code.visualstudio.com",
+      "prod.download.desktop.kiro.dev",
+      "prod.download.cli.kiro.dev",
+      "cursor.com",
+      "api2.cursor.sh",
+      "docs.devin.ai",
+      "icube-normal.trae.ai",
+      "models.dev",
+      "code.claude.com",
+      "platform.claude.com",
+      "developers.openai.com",
+      "ai.google.dev",
+      "kiro.dev"
+    ]
+  },
+  "limitations": [
+    "No paid inference, real OAuth login, native app execution or subscription entitlement verification.",
+    "Some publisher hosts remain blocked; retained versions are not claimed latest.",
+    "Model catalogs are endpoint/account/product specific; static labels, missing entries or a family name do not confer account access.",
+    "The fullmodelsdev payload is a reconstruction using pinnedofficialgenerator/defaultfilter, not an original HTTP API capture.",
+    "22 older primary-reference capability conflicts remain explicit; missingexactlimits remainunknown.",
+    "Pricing observation timestamps are verification times, not historical tariff-effective dates; old wholeobservations and acceptedusage quotes remain preserved."
+  ],
+  "evidenceReviews": {
+    "codexClaude": {
+      "asOfLocal": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "capturedAtUtc": "2026-10-30T19:32:46.484732+00:00",
+      "codex": {
+        "oldVersion": "0.163.0",
+        "selectedVersion": "0.166.0",
+        "channel": "npm latest; non-prerelease GitHub rust-v0.166.0",
+        "publishedAtUtc": "2026-10-29T19:56:19.746Z",
+        "npmMetadata": {
+          "url": "https://registry.npmjs.org/@openai%2fcodex",
+          "sha256": "86da76f934c806348eca95874a072fcb04130ac4e3912cfd5a9139dbd7126125"
+        },
+        "source": {
+          "repository": "https://github.com/openai/codex",
+          "oldTag": "rust-v0.163.0",
+          "oldCommit": "83086188ae0614bd882818ff1aa23f3194962012",
+          "selectedTag": "rust-v0.166.0",
+          "selectedCommit": "6ff1e1ca3b30fc8b914720681fcf5fe62e95f856",
+          "diffFile": "codex-wire-source-diff.patch",
+          "diffLines": 1206
+        },
+        "changelogs": [
+          {
+            "version": "0.164.0",
+            "url": "https://github.com/openai/codex/releases/tag/rust-v0.164.0",
+            "sha256": "ae643b681076fb52bbe03a4cb24df6f6ed7d82e56787becc6e25da5ec10d96cc",
+            "lines": 355,
+            "review": "Reviewed release summary and complete listed change inventory; selected wire/catalog source diff against0.163.0. TUI/exec-server/sandbox/embeddedruntime features are not gateway patches."
+          },
+          {
+            "version": "0.165.0",
+            "url": "https://github.com/openai/codex/releases/tag/rust-v0.165.0",
+            "sha256": "6c7e28581ca8a4b4d5cba75478318e0b864e688a6955e5aa9de7c875400e9023",
+            "lines": 89,
+            "review": "Reviewed release summary and complete listed change inventory; selected wire/catalog source diff against0.163.0. TUI/exec-server/sandbox/embeddedruntime features are not gateway patches."
+          },
+          {
+            "version": "0.166.0",
+            "url": "https://github.com/openai/codex/releases/tag/rust-v0.166.0",
+            "sha256": "c457ba990428d565dde7a714ec50292c97114ed64d76736c62a41703eac1b7f9",
+            "lines": 292,
+            "review": "Reviewed release summary and complete listed change inventory; selected wire/catalog source diff against0.163.0. TUI/exec-server/sandbox/embeddedruntime features are not gateway patches."
+          }
+        ],
+        "catalog": {
+          "oldTag": "rust-v0.163.0",
+          "newTag": "rust-v0.166.0",
+          "added": [
+            "gpt-6.1-terra"
+          ],
+          "removed": [],
+          "catalog": [
+            {
+              "slug": "gpt-6-astra",
+              "display_name": "GPT-6-Astra",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-6.1-sol",
+              "display_name": "GPT-6.1-Sol",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-6.1-terra",
+              "display_name": "GPT-6.1 Terra",
+              "visibility": "list",
+              "context_window": 500000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "description": "Fast responses with lighter reasoning",
+                  "effort": "low"
+                },
+                {
+                  "description": "Balances speed and reasoning depth for everyday tasks",
+                  "effort": "medium"
+                },
+                {
+                  "description": "Greater reasoning depth for complex problems",
+                  "effort": "high"
+                },
+                {
+                  "description": "Extra high reasoning depth for complex problems",
+                  "effort": "xhigh"
+                },
+                {
+                  "description": "Maximum reasoning depth for the hardest problems",
+                  "effort": "max"
+                },
+                {
+                  "description": "Maximum reasoning with automatic task delegation",
+                  "effort": "ultra"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-6-sol",
+              "display_name": "GPT-6-Sol",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-6-luna",
+              "display_name": "GPT-6-Luna",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-5.6-sol",
+              "display_name": "GPT-5.6-Sol",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-5.6-terra",
+              "display_name": "GPT-5.6-Terra",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-5.6-luna",
+              "display_name": "GPT-5.6-Luna",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-daybreak-blue-latest",
+              "display_name": "Daybreak Blue",
+              "visibility": "hide",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-daybreak-red-latest",
+              "display_name": "Daybreak Red",
+              "visibility": "hide",
+              "context_window": 372000,
+              "max_context_window": 372000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                },
+                {
+                  "effort": "ultra",
+                  "description": "Maximum reasoning with automatic task delegation"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "gpt-5.5",
+              "display_name": "GPT-5.5",
+              "visibility": "list",
+              "context_window": 272000,
+              "max_context_window": 272000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            },
+            {
+              "slug": "codex-auto-review",
+              "display_name": "Codex Auto Review",
+              "visibility": "hide",
+              "context_window": 272000,
+              "max_context_window": 872000,
+              "supported_reasoning_levels": [
+                {
+                  "effort": "low",
+                  "description": "Fast responses with lighter reasoning"
+                },
+                {
+                  "effort": "medium",
+                  "description": "Balances speed and reasoning depth for everyday tasks"
+                },
+                {
+                  "effort": "high",
+                  "description": "Greater reasoning depth for complex problems"
+                },
+                {
+                  "effort": "xhigh",
+                  "description": "Extra high reasoning depth for complex problems"
+                },
+                {
+                  "effort": "max",
+                  "description": "Maximum reasoning depth for the hardest problems"
+                }
+              ],
+              "input_modalities": [
+                "text",
+                "image"
+              ]
+            }
+          ],
+          "sha256": "1384625c0b6b3e67d3c60da29becea2b017f2c283fc1e2d05b8edafb4698eb10"
+        },
+        "decisions": [
+          "Update release version once so executor User-Agent/version and model-list client_version query stay coherent.",
+          "Add the selected destination account binding and CODEX_USER_AGENT to model discovery.",
+          "The new bundled catalog adds GPT-6.1 Terra, already present in Router; no new static Codex ID is required.",
+          "Keep hidden daybreak rows hidden and historical saved aliases retained; absence from this catalog is not model retirement.",
+          "CLI context/defaultmax and reasoning choices do not prove ChatGPT account transport limits or Ultra entitlement.",
+          "Do not adopt experimental/runtime auth headers, platform fingerprints, V8/Node/Rust build versions or CLI sandbox features as gateway transport defaults."
+        ],
+        "liveResolver": {
+          "module": "open-sse/services/codexModels.js",
+          "config": "open-sse/config/codexModels.js",
+          "result": "{models,complete:true} on complete successful metadata, including empty/hidden-only; null on non-strict failed metadata",
+          "identityScope": [
+            "fixedendpoint/clientrelease",
+            "connectionid",
+            "accesstokenhash",
+            "selectedaccount",
+            "effectiveproxypolicyhash",
+            "databaseimportgeneration"
+          ],
+          "metadataOnly": true,
+          "publicCredentialRefresh": false,
+          "dashboardRefresh": "Existing explicit401/403 callback retained; bound to selected connection/account/proxy/import. Wholeoperationdeadline/callerabort propagated.",
+          "bounds": {
+            "wholeMetadataTimeoutMs": 5000,
+            "responseBytes": 8388608,
+            "cacheTtlMs": 300000,
+            "cacheMaxEntries": 256,
+            "cacheMaxBytes": 16777216,
+            "redirect": "error"
+          },
+          "visibility": {
+            "source": [
+              "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/protocol/src/openai_models.rs#L300",
+              "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/protocol/src/openai_models.rs#L1053",
+              "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/tui/src/chatwidget/model_popups.rs#L89"
+            ],
+            "behavior": "Exclude explicit hide/none from discovered suggestions; legacy missingfield accepted. Existing static/manualroutes retained. supported_in_api false doesnotexcludeChatGPT-authcatalog asnativefilteruseschatgpt_mode||supported_in_api."
+          },
+          "publicFacts": "Knownlimits require safe positive integers; capabilityflags require actualbooleans. Otheroptionalnativefields preservedinresolver; publicbuilderprojects explicitfacts only.",
+          "reviewAliases": "Generate gateway-reviewalias onlyforchat,donotoverwrite literalnative-review IDs or synthesize mediareview IDs.",
+          "firstDispatchFence": "Rechecks selected scope/import/generation inside the queued transport and explicit refresh callback before dispatch, preventing same-turn mutable policy changes from sending proof."
+        }
+      },
+      "claude": {
+        "oldVersion": "2.1.306",
+        "selectedVersion": "2.1.314",
+        "channel": "npm non-prerelease latest/next, consistent with existing Router policy",
+        "delayedStableVersion": "2.1.308",
+        "publishedAtUtc": "2026-10-30T00:12:56.911Z",
+        "npmMetadata": {
+          "url": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code",
+          "sha256": "3bf612a8d025c9309929d5624921e1feb3479ac7071a0ca4623aca13803b1836"
+        },
+        "nativeArtifact": {
+          "metadataUrl": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code-linux-x64/2.1.314",
+          "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.314.tgz",
+          "integrity": "sha512-Yg0a5mpdkGClK0rgFMxbCWZW3wZtqgOhYjbISALqyL5tfADHhX9Ms6ExA0/effgSJ9MaWfHMPntryeOG6Mk6HQ==",
+          "integrityVerified": true,
+          "archiveBytes": 137217467,
+          "executableSha256": "4487042b4c4f5d88d4568f68ae98aae0b1ffae58864cf57fb868641bc5f84594",
+          "executed": false,
+          "embeddedSourceGitSha": "5c99a5b6399766569a32979c715862fdb61c7efa",
+          "embeddedBuildTimeUtc": "2026-10-29T20:53:59Z"
+        },
+        "changelog": {
+          "url": "https://github.com/anthropics/claude-code/raw/refs/heads/main/CHANGELOG.md",
+          "sha256": "1786d423ae4312abf0dcdf9ea0ae15c07919bb3957caf34f84a7d1c2ccd047a5",
+          "versionsReviewed": [
+            "2.1.314",
+            "2.1.312",
+            "2.1.311",
+            "2.1.310",
+            "2.1.309",
+            "2.1.308",
+            "2.1.307"
+          ],
+          "published2_1_313": false,
+          "excerptFile": "claude-changelog-reviewed.json"
+        },
+        "sdk": {
+          "bundle_version": "2.1.314",
+          "sdk_version": "0.128.0",
+          "sdk_offset": 248164816,
+          "runtime_header_offset": 248165717,
+          "runtime_header_source": "if(e===\"node\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":ax,\"X-Stainless-OS\":b(globalThis.process.platform??\"unknown\"),\"X-Stainless-Arch\":x(globalThis.process.arch??\"unknown\"),\"X-Stainless-Runtime\":\"node\",\"X-Stainless-Runtime-Version\":globalThis.process.version??\"unknown\"}",
+          "native_sha256": "4487042b4c4f5d88d4568f68ae98aae0b1ffae58864cf57fb868641bc5f84594",
+          "runtime_interpretation": "The bundled SDK checks the executing runtime and on node uses globalThis.process.version. Native Bun compatibility process.version is not proven by static versionstrings; gateway Node should report its actual process.version consistently with OS/arch rather than retain a made-up pinned runtime."
+        },
+        "oauth": {
+          "productionConfigSource": "claude-oauth-url-source-excerpts.txt",
+          "activeSelectorSource": "claude-oauth-selector-source-excerpts.txt",
+          "selection": "Qao prod returns production a; TZr loginWithClaudeAi chooses CLAUDE_AI_AUTHORIZE_URL; Uns exchange and vae refresh use TOKEN_URL.",
+          "clientId": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+          "authorizeUrl": "https://claude.com/cai/oauth/authorize",
+          "tokenUrl": "https://platform.claude.com/v1/oauth/token",
+          "consoleAuthorizeUrl": "https://platform.claude.com/oauth/authorize",
+          "nativeManualRedirectUrl": "https://platform.claude.com/oauth/code/callback",
+          "routerRedirectBehavior": "Preserves caller-provided loopback/manual redirect; no hardcoded default redirect changed.",
+          "scopesPreserved": [
+            "org:create_api_key",
+            "user:profile",
+            "user:inference"
+          ],
+          "broaderNativeScopesNotRequested": [
+            "user:sessions:claude_code",
+            "user:mcp_servers",
+            "user:file_upload",
+            "user:plugins"
+          ],
+          "liveAuthenticationVerified": false
+        },
+        "catalog": {
+          "url": "https://api.anthropic.com/v1/models",
+          "apiKeyAuth": "x-api-key; Anthropic-Version2023-06-01; no OAuth/CLI identity",
+          "oauthAuth": "Authorization Bearer; oauth-2025-04-20; current Claude CLI User-Agent",
+          "pagination": "Registry-owned bounded shared pagination; do not publish partial/failing catalog as successful.",
+          "sourceExpression": "n.models.list({betas:kt()?[Fc]:void0,limit:1000}); Fc=oauth-2025-04-20.",
+          "entitlementBoundary": "Read-only discovery authentication is not proof a returned model is inferable on an OAuth subscription.",
+          "staticOAuthHaiku55Added": false
+        },
+        "decisions": [
+          "Keep bundledSDK0.128.0; native2.1.314 source still declares it.",
+          "Use executing gateway process.version for Stainless runtime, consistent with verified SDK source and dynamic OS/arch.",
+          "Keep Anthropic-Version2023-06-01:2026-10-21 appears in a skill/API migration tool, not native message/client headers.",
+          "Do not add newly found account-gated beta strings or broaden scopes from bundle strings.",
+          "Existing per-account rejected-beta fallback matches current changelog; preserve caller explicit effort and output cap instead of silently applying CLI auto-downgrade/model fallback.",
+          "Do not advertise Haiku5.5 as entitled on ClaudeOAuth merely because current bundle recognizes its native ID."
+        ]
+      },
+      "ownedImplementationFiles": [
+        "src/app/api/providers/[id]/models/route.js (Claude/Codex branches only)",
+        "open-sse/providers/registry/claude.js",
+        "open-sse/config/appConstants.js (anthropic OAuth endpoint field only)",
+        "tests/unit/refresh-client-primary-wire.test.js (Claude/Codex sections only)",
+        "tests/unit/codex-catalog-account-identity.test.js",
+        "tests/unit/claude-client-current-contract.test.js",
+        "tests/unit/claude-client-current-contract.test.js (8cases)",
+        "open-sse/providers/registry/claude.js (OAuthproductionendpoints+catalogauthdescriptor)",
+        "open-sse/services/codexModels.js",
+        "open-sse/config/codexModels.js",
+        "tests/unit/codex-live-catalog.test.js (26 lifecycle/parser/bounds cases)"
+      ],
+      "verification": {
+        "codexBefore": "6failed",
+        "codexAfter": "6passed",
+        "claudeEndpointBefore": "4failed,4passed",
+        "primaryAndAdjacent": "45passed/5files before adding ClaudeOAuth migration tests",
+        "sharedCatalogProfiles": "9passed",
+        "finalFocused": "65passed across6files with local loopback access; source frozen",
+        "scopedLint": "passed zero warnings",
+        "paidInference": false,
+        "liveOAuthLogin": false,
+        "operatorCredentialsRead": false,
+        "scopeNote": "Initial restricted run could not bind existing cancellation-fixture loopback listeners; retry used supported local process access without weakening test assertions/timeouts.",
+        "nativeLiveFinal": "72passed across5files after final first-dispatch scope fence;27Codexservice lifecyclecases",
+        "refreshBindingRegression": "2failed/1passed before new proxy/connection binding guard; final casesgreen",
+        "finalScopedLint": "passed zero warnings after final first-dispatch and refresh callback guards",
+        "dispatchBindingRegression": "1failed beforeguard (mutableproxy dispatched1request); afterguardpassesrequiringzero dispatch"
+      }
+    },
+    "google": {
+      "review_date": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "captured_at_utc": "2026-10-30T19:19:52.964970+00:00",
+      "gemini_cli": {
+        "previous": "0.65.0",
+        "verified_stable": "0.66.0",
+        "published_at_utc": "2026-10-27T20:26:28Z",
+        "tag": "v0.66.0",
+        "commit": "970413207732f5d4d8c50540c7fc359c44fdaaf2",
+        "sources": [
+          "https://registry.npmjs.org/@google/gemini-cli/latest",
+          "https://registry.npmjs.org/@google/gemini-cli-core/0.66.0",
+          "https://github.com/google-gemini/gemini-cli/releases/tag/v0.66.0",
+          "https://github.com/google-gemini/gemini-cli/tree/v0.66.0"
+        ],
+        "bundled_sdk": {
+          "genai": "1.30.0",
+          "google_auth_library": "10.9.0",
+          "changed": false,
+          "core_tgz_integrity_verified": true,
+          "core_tgz_sha256": "6c18c4dfcfbb59cbe9692aee06f5e45ad80dc475d378fb42876d16dae7b4ba46"
+        },
+        "proposed_client_version_changes": {
+          "GEMINI_CLI_VERSION": "0.66.0"
+        },
+        "retained_identity": {
+          "GEMINI_AUTH_LIBRARY_VERSION": "10.9.0",
+          "x_goog_api_client": "gl-node/<actual executing Node version>",
+          "surface": "terminal",
+          "auth_branch": "OAuth Code Assist, not the public GenAI API-key path"
+        },
+        "critical_unchanged_files": [
+          {
+            "path": "packages/core/src/core/contentGenerator.ts",
+            "unchanged": true,
+            "sha256": "dabe49427724e2aeca5de10a886ce52fccfc7073ed729048e5250122d0ae4a6e"
+          },
+          {
+            "path": "packages/core/src/code_assist/server.ts",
+            "unchanged": true,
+            "sha256": "c142a19cbecfe34a38cb6a4472bf846d5f8ce7cf23e81acb6f23d0f0fd16bd99"
+          },
+          {
+            "path": "packages/core/src/code_assist/oauth2.ts",
+            "unchanged": true,
+            "sha256": "a3f8c55ad885656ed62144fb74e3f737117f58606a98c095f5e96f0707d9fd68"
+          },
+          {
+            "path": "packages/core/src/config/models.ts",
+            "unchanged": true,
+            "sha256": "5712e7247b81304e1c559c8675f8fb2a86fd8981e17b4d8949f2f3eaeb11ef68"
+          },
+          {
+            "path": "packages/core/src/config/defaultModelConfigs.ts",
+            "unchanged": true,
+            "sha256": "fada79b63ff50638e15fa5fec09f0ee54e08e0b53107fed683a369559200d4d8"
+          }
+        ],
+        "changed_files": [
+          ".github/workflows/unassign-inactive-assignees.yml",
+          "README.md",
+          "ROADMAP.md",
+          "docs/changelogs/index.md",
+          "docs/changelogs/latest.md",
+          "docs/changelogs/preview.md",
+          "docs/cli/plan-mode.md",
+          "docs/reference/configuration.md",
+          "docs/reference/keyboard-shortcuts.md",
+          "docs/tools/mcp-server.md",
+          "package-lock.json",
+          "package.json",
+          "packages/a2a-server/package.json",
+          "packages/cli/index.ts",
+          "packages/cli/package.json",
+          "packages/cli/src/config/extensions/github.test.ts",
+          "packages/cli/src/config/settings.test.ts",
+          "packages/cli/src/config/settings.ts",
+          "packages/cli/src/config/settingsSchema.ts",
+          "packages/cli/src/gemini.test.tsx",
+          "packages/cli/src/interactiveCli.tsx",
+          "packages/cli/src/services/CommandService.test.ts",
+          "packages/cli/src/services/CommandService.ts",
+          "packages/cli/src/services/SlashCommandConflictHandler.test.ts",
+          "packages/cli/src/services/SlashCommandConflictHandler.ts",
+          "packages/cli/src/ui/AppContainer.test.tsx",
+          "packages/cli/src/ui/AppContainer.tsx",
+          "packages/cli/src/ui/components/CliSpinner.test.tsx",
+          "packages/cli/src/ui/components/CliSpinner.tsx",
+          "packages/cli/src/ui/components/Composer.test.tsx",
+          "packages/cli/src/ui/components/Composer.tsx",
+          "packages/cli/src/ui/components/DetailedMessagesDisplay.test.tsx",
+          "packages/cli/src/ui/components/DetailedMessagesDisplay.tsx",
+          "packages/cli/src/ui/components/GeminiRespondingSpinner.tsx",
+          "packages/cli/src/ui/components/GeminiSpinner.tsx",
+          "packages/cli/src/ui/components/HistoryItemDisplay.test.tsx",
+          "packages/cli/src/ui/components/HistoryItemDisplay.tsx",
+          "packages/cli/src/ui/components/LoadingIndicator.tsx",
+          "packages/cli/src/ui/components/MainContent.test.tsx",
+          "packages/cli/src/ui/components/MainContent.tsx",
+          "packages/cli/src/ui/components/StatusRow.tsx",
+          "packages/cli/src/ui/components/messages/DenseToolMessage.test.tsx",
+          "packages/cli/src/ui/components/messages/DenseToolMessage.tsx",
+          "packages/cli/src/ui/components/messages/ToolResultDisplay.test.tsx",
+          "packages/cli/src/ui/components/messages/ToolResultDisplay.tsx",
+          "packages/cli/src/ui/hooks/useGeminiStream.test.tsx",
+          "packages/cli/src/ui/hooks/useGeminiStream.ts",
+          "packages/cli/src/ui/key/keyBindings.test.ts",
+          "packages/cli/src/ui/key/keyBindings.ts",
+          "packages/cli/src/ui/utils/formatters.test.ts",
+          "packages/cli/src/ui/utils/formatters.ts",
+          "packages/cli/src/utils/activityLogger.test.ts",
+          "packages/cli/src/utils/activityLogger.ts",
+          "packages/cli/src/utils/handleAutoUpdate.test.ts",
+          "packages/cli/src/utils/handleAutoUpdate.ts",
+          "packages/cli/src/utils/processUtils.test.ts",
+          "packages/cli/src/utils/processUtils.ts",
+          "packages/cli/src/utils/relaunch.test.ts",
+          "packages/cli/src/utils/relaunch.ts",
+          "packages/cli/test-setup.ts",
+          "packages/core/package.json",
+          "packages/core/src/mcp/oauth-private-network.test.ts",
+          "packages/core/src/mcp/oauth-provider.ts",
+          "packages/core/src/mcp/oauth-utils.ts",
+          "packages/core/src/mcp/stored-token-provider.ts",
+          "packages/core/src/scheduler/scheduler.test.ts",
+          "packages/core/src/scheduler/scheduler.ts",
+          "packages/core/src/scheduler/scheduler_parallel.test.ts",
+          "packages/core/src/scheduler/types.ts",
+          "packages/core/src/services/shellExecutionService.test.ts",
+          "packages/core/src/services/shellExecutionService.ts",
+          "packages/core/src/skills/skillLoader.test.ts",
+          "packages/core/src/skills/skillLoader.ts",
+          "packages/core/src/tools/mcp-client.test.ts",
+          "packages/core/src/tools/mcp-client.ts",
+          "packages/core/src/utils/editor.test.ts",
+          "packages/core/src/utils/editor.ts",
+          "packages/core/src/utils/errors.test.ts",
+          "packages/core/src/utils/errors.ts",
+          "packages/core/src/utils/fetch.ts",
+          "packages/core/src/utils/gitUtils.test.ts",
+          "packages/core/src/utils/gitUtils.ts",
+          "packages/core/src/utils/oauth-flow.ts",
+          "packages/core/src/utils/stdio.test.ts",
+          "packages/core/src/utils/stdio.ts",
+          "packages/devtools/package.json",
+          "packages/sdk/package.json",
+          "packages/test-utils/package.json",
+          "packages/vscode-ide-companion/package.json",
+          "schemas/settings.schema.json"
+        ],
+        "changelog_dispositions": [
+          {
+            "item": "Synchronized terminal output, spinner isolation, scrollback and Windows terminal fixes",
+            "decision": "CLI-local UI, no router terminal implementation to copy"
+          },
+          {
+            "item": "Tool scheduler call groups and parallel scheduler changes",
+            "decision": "CLI agent execution loop, not gateway SSE tool event mapping; preserve existing per-request tool identity"
+          },
+          {
+            "item": "StringDecoder for streamed Node HTTP activity chunks",
+            "decision": "CLI activity logger only; gateway already uses streaming TextDecoder and retains native UTF8 fixtures"
+          },
+          {
+            "item": "Bootstrap parent forwards termination signals",
+            "decision": "Gateway launcher already has independently verified managed drain; no CLI bootstrap copy"
+          },
+          {
+            "item": "isAuthenticationError prevents false positive HTTP401 matches",
+            "decision": "MCP OAuth error classifier in upstream CLI, not provider error/body contract; preserve gateway exact structured matching"
+          },
+          {
+            "item": "Private network MCP OAuth opt-in and secure git environment",
+            "decision": "Different client-side network/tool execution boundary; no gateway SSRF/proxy-policy weakening"
+          },
+          {
+            "item": "README warns CLI is not optimized for Gemini4 Argon",
+            "decision": "Do not advertise Antigravity Gemini4 on GeminiCLI solely from API/AG availability; no new CLI model rows justified"
+          }
+        ],
+        "catalog_change": "No diff in model definitions between stable tags; preserve existing exact IDs and account-specific discovery",
+        "new_live_provider_validation": false,
+        "tagged_docs_latest_page": "Stale v0.64.0 page inside v0.66.0 tag; used exact official v0.66.0 release notes and published package instead."
+      },
+      "antigravity": {
+        "ide_pin_retained": "2.5.5",
+        "cli_pin_retained": "1.4.0",
+        "previous_documented_app": "2.24.0",
+        "new_release_verification": "blocked",
+        "blocked_url": "https://antigravity.google/docs/changelog.md",
+        "failure": "Session proxy explicitly denied CONNECT403; no bypass attempted",
+        "publisher_fallback_checked": "https://github.com/google-antigravity/antigravity-sdk-python",
+        "fallback_scope": "SDK README exposes API-key and Vertex/ADC/runtime binary integration, not OAuth CloudCode IDE/App/CLI release identities",
+        "decision": "Preserve independent pins and prior model retirement/capability facts; do not substitute SDK version or community claims"
+      },
+      "runtime_hardening": {
+        "files": [
+          "open-sse/executors/gemini-cli.js",
+          "tests/unit/google-client-identity-scope.test.js"
+        ],
+        "change": "GeminiCLI User-Agent uses explicit request model passed by BaseExecutor, not mutable _currentModel instance state",
+        "classification": "Request preparation isolation hardening; Base.execute synchronous transform/header section had no reproduced current concurrent race",
+        "red_evidence": "2 failed / 1 passed on old executor; native concurrent wire case already passed",
+        "tests_pending": false,
+        "final_tests": "79 passed in7files, including3new identity scope cases",
+        "scoped_lint": "passed Oxlint+ESLint with zero warnings",
+        "notes": "First broad sandbox attempt hit EPERM on reasoning loopback listener; required local-process rerun passed. Concurrent central Claude/Codex pin changes briefly made their old assertions fail; final coordinated primary wire file passed."
+      },
+      "oauth_catalog_sync": {
+        "files": [
+          "open-sse/services/googleOAuthModels.js",
+          "src/app/api/providers/[id]/models/route.js",
+          "tests/unit/google-oauth-live-catalog.test.js"
+        ],
+        "source_contracts": [
+          "Existing GeminiCLI dashboard POST CloudCode v1internal:fetchAvailableModels using OAuth auth-library UA and selected project",
+          "Existing Antigravity usage.google.js fetchAvailableModels using registered quotaApiUrl, CLI UA, X-Client-Name and X-Client-Version; no load/onboard or inference"
+        ],
+        "scope": "Provider, access proof, selected connection, normalized project, proxy/relay policy, import generation and refresh policy; key digested, no raw credentials stored as keys",
+        "limits": {
+          "whole_fetch_and_body_deadline_ms": 5000,
+          "maximum_body_bytes": 8388608,
+          "cache_max_entries": 256,
+          "cache_max_serialized_bytes": 16777216,
+          "redirect": "error"
+        },
+        "empty_semantics": "Only exact validated complete models array/map establishes complete:true, including internal-only/retired-only empties; malformed/missing data remains null/fallback. Cache preserves complete flag.",
+        "projection": "Exact IDs/name/description/kind, explicit contextWindow only, separate input/output ceilings, recognized explicit Boolean capabilities includingfalse; no ambiguous maxTokens context inference, quota or proof fields.",
+        "public_policy": "No token refresh, onboarding, paid call, endpoint substitution or entitlement inference. Caller abort terminal; one cancelled subscriber cannot abort another. Deferred operation snapshots proof/project/proxy and ignores an already-cancelled predecessor.",
+        "dashboard_policy": "CLI keeps existing401/403 refresh+credentialcommit through separately keyed optional callback. Refreshed proof is not cached under old proof. AG live-or-static fallback preserves existing unavailable/no-token behavior.",
+        "tests": "16 new catalog cases plus3identity cases; final90passed8files includingactualdashboard metadata/nativeidentity consumers. Public GET consumer integration delegatedcatalogagent.",
+        "primary_genai_api_contract": {
+          "package": "@google/genai1.30.0",
+          "tgz_sha256": "e80b67c689c07b0f55acb6ee0103427ddf709454e4a70a95fc40bd0beec81ab7",
+          "integrity_verified": true,
+          "source_lines": "dist/node/index.mjs10122(pageToken/pageSize),10175(nextPageToken),10237(model name/displayName/limits/supportedGenerationMethods),11201(v1beta),15815/15845(x-goog-api-key)",
+          "decision": "Confirmed Gemini API-key descriptor andparser contract forcatalogagent; never substitute API-key models for Google OAuthsurface."
+        }
+      }
+    },
+    "ides": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "capturedAtUtc": "2026-10-30T19:22:48.382148+00:00",
+      "forkBase": "5ca4aaf0b307ae527f472e597b4d390a05df14da",
+      "releases": [
+        {
+          "product": "VS Code",
+          "before": "1.143.0",
+          "verifiedStable": "1.144.0",
+          "sourceCommit": "2c33b50b16c472efe58357d1d2a8a5414bc23fbf",
+          "source": "https://github.com/microsoft/vscode/releases/tag/1.144.0",
+          "releaseDate": "2026-10-28",
+          "constants": {
+            "VSCODE_VERSION": "1.144.0"
+          },
+          "action": "update"
+        },
+        {
+          "product": "Bundled GitHub Copilot Chat",
+          "before": "0.71.0",
+          "verifiedStable": "0.72.0",
+          "source": "https://github.com/microsoft/vscode/blob/2c33b50b16c472efe58357d1d2a8a5414bc23fbf/extensions/copilot/package.json",
+          "bundledSdk": "@vscode/copilot-api0.5.2",
+          "sdkIntegrityVerified": true,
+          "constants": {
+            "COPILOT_CHAT_VERSION": "0.72.0"
+          },
+          "retain": {
+            "COPILOT_API_VERSION": "2026-08-01",
+            "COPILOT_TOKEN_API_VERSION": "2025-04-01"
+          },
+          "action": "update app/editor pair; retain exact bundled API semantics",
+          "rejectedAlternative": "Standalone vscode-copilot-chat repo latestv0.43.0 is not current VS Code bundled release.",
+          "sdkArtifact": {
+            "url": "https://registry.npmjs.org/@vscode/copilot-api/-/copilot-api-0.5.2.tgz",
+            "integrity": "sha512-U+2jyi0/Hpum2ZnED47cVFKgx5+p+thRhOPDKc1+t2PVAzsKlr3aJPKxMeMLOIXGWyLuQcng5BuFvj1vxD1d8w==",
+            "lockVerifiedVersion": "0.5.2"
+          }
+        },
+        {
+          "product": "Zed",
+          "before": "1.24.4",
+          "verifiedStable": "1.26.2",
+          "sourceCommit": "c4273271092b0287f7d181f616bd5171e0a2f70c",
+          "source": "https://github.com/zed-industries/zed/releases/tag/v1.26.2",
+          "constants": {
+            "ZED_VERSION": "1.26.2"
+          },
+          "interveningStableTags": [
+            "v1.25.1",
+            "v1.25.2",
+            "v1.25.3",
+            "v1.26.2"
+          ],
+          "notesLimit": "v1.25.1 has no available release body; all other available release bodies reviewed. No tags1.25.0/1.26.0/1.26.1 returned by official ls-remote.",
+          "action": "update fallback only; caller appVersion preserved; fixed gateway UA retained"
+        },
+        {
+          "product": "Cursor",
+          "before": "3.24.18",
+          "bundledConnectPin": "1.6.1",
+          "action": "retain; publisher changelog/download domain blocked; no newer authenticated artifact verified"
+        },
+        {
+          "product": "Kiro IDE/CLI",
+          "before": {
+            "IDE": "1.4.13",
+            "CLI": "2.33.0"
+          },
+          "retainedLegacySdkPin": "3.0.0",
+          "action": "retain; both stable publisher manifests blocked; GitHub issue/support repo has no release manifest"
+        },
+        {
+          "product": "Windsurf/Devin Desktop",
+          "before": {
+            "desktop": "3.10.67",
+            "metadataExtension": "1.48.2"
+          },
+          "action": "retain; publisher changelog/artifact domain blocked; provider remains inactive; no protobuf layout claims"
+        },
+        {
+          "product": "Trae",
+          "before": "3.6.4",
+          "action": "retain inactive source pin; stable manifest domain blocked; do not activate"
+        }
+      ],
+      "changelogDispositions": [
+        {
+          "product": "VS Code1.144",
+          "read": "complete publisher v1_144.md raw630lines",
+          "relevant": [
+            "Bundled Copilot pair upgraded",
+            "Fusion GA High/Max and model comparisons require account/organization availability and can incur multiplemodel charges",
+            "Image2.5Flare preview uses image billing/plan entitlements",
+            "Copilot harness/Agent Host Protocol1.0 are host/session features, not drop-in chat proxy wire changes",
+            "Permissions/org managed defaults remain caller controls"
+          ],
+          "notCopied": [
+            "Cloud automations/memory/connectors/computer use/customization and UI features do not establish hostedmodel IDs, authorization or required headers",
+            "No private HMAC, invented device metadata or new beta/entitlement claims"
+          ]
+        },
+        {
+          "product": "Zed1.25.2",
+          "relevant": [
+            "Added GPT6Astra/ClaudeFable5.1/ClaudeOpus5.5 to Bedrock provider only",
+            "Gemini tool-result image handling fix",
+            "ACP session notices/compaction",
+            "Secret env leakage in external agent remote process list fixed in native client"
+          ],
+          "disposition": "No inference that hosted Zed catalog exposes Bedrock product list. Existing typed tool media contracts retained. Client process/security fixes are not router process features."
+        },
+        {
+          "product": "Zed1.25.3",
+          "relevant": [
+            "Native dependency security updates #66023,#65963"
+          ],
+          "disposition": "No router dependency changes by transitive name/version inference"
+        },
+        {
+          "product": "Zed1.26.2",
+          "relevant": [
+            "DeepSeek reasoning replay/Google thinking disable OpenCode compatibility",
+            "Per-effort thinking disable availability",
+            "Avoid duplicate reasoning/reasoning_content",
+            "MistralLarge4 OpenAIcompatible fix",
+            "Claude adaptive thinking block binding OpenCode fix"
+          ],
+          "disposition": "Hosted cloud model mapper verified against exact tagged schema, including supportedEffortLevels subobjects; no guessed hosted IDs or capability inflation. Relevant gateway concerns already have separate native/tool contracts, no wholesale client adapter import."
+        }
+      ],
+      "modelCatalogs": {
+        "github": {
+          "staticRows": 12,
+          "source": "authenticated /models; chat capability + enabled policy filter; 5min credential/proxy scoped cache",
+          "action": "Remove8 explicitly retired fallback rows only; fresh authenticated discovery, direct stored routes and explicit operator declarations remain authoritative.",
+          "staticRowsBefore": 20,
+          "retiredFallbackRows": [
+            {
+              "id": "gpt-5.5",
+              "product": "GPT-5.5",
+              "retirementDate": "2026-10-19"
+            },
+            {
+              "id": "gpt-5.4",
+              "product": "GPT-5.4",
+              "retirementDate": "2026-10-19"
+            },
+            {
+              "id": "gpt-5.4-mini",
+              "product": "GPT-5.4 mini",
+              "retirementDate": "2026-10-19"
+            },
+            {
+              "id": "gpt-5-mini",
+              "product": "GPT-5 mini",
+              "retirementDate": "2026-10-19"
+            },
+            {
+              "id": "claude-opus-4.7",
+              "product": "Claude Opus4.7",
+              "retirementDate": "2026-10-02"
+            },
+            {
+              "id": "gemini-3.6-flash",
+              "product": "Gemini3.6Flash",
+              "retirementDate": "2026-10-02"
+            },
+            {
+              "id": "gemini-3.7-flash",
+              "product": "Gemini3.7Flash",
+              "retirementDate": "2026-10-19"
+            },
+            {
+              "id": "oswe-vscode-prime",
+              "product": "RaptorMini",
+              "retirementDate": "2026-09-01"
+            }
+          ],
+          "retirementSource": "https://github.com/github/docs/blob/6167b6d08e8548a411a2ab1e0f3627fe6f89aaec/data/tables/copilot/model-deprecation-history.yml",
+          "unchanged": "Other providers and accepted pricing/capability history untouched; Sonnet4.6 annual-plan exception not generalized."
+        },
+        "zed": {
+          "staticRows": 0,
+          "source": "tagged cloud_llm_client LanguageModel,ListModelsResponse schema; authenticated cloud.zed.dev/models with x-zed-client-supports-x-ai",
+          "action": "retain live passthrough; mapper matches exact latest schema; disabled filter + per-effort metadata preserved"
+        },
+        "cursor": {
+          "staticRows": 25,
+          "action": "retain; no latest publisher artifact/live authenticated catalog available"
+        },
+        "kiro": {
+          "staticRows": 49,
+          "action": "retain exact known IDs; no new availability inferred from supportrepo or missing manifests"
+        },
+        "windsurf": {
+          "staticRows": 75,
+          "action": "retain inactive registry; no catalog freshness claim"
+        },
+        "trae": {
+          "staticRows": 9,
+          "action": "retain inactive registry; no activation"
+        }
+      },
+      "networkEvidence": [
+        {
+          "name": "vscode-stable",
+          "url": "https://update.code.visualstudio.com/api/update/win32-x64-user/stable/latest",
+          "exit": 56,
+          "result": "000\nhttps://update.code.visualstudio.com/api/update/win32-x64-user/stable/latest",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "kiro-ide-stable",
+          "url": "https://prod.download.desktop.kiro.dev/stable/metadata-win32-x64-user-stable.json",
+          "exit": 56,
+          "result": "000\nhttps://prod.download.desktop.kiro.dev/stable/metadata-win32-x64-user-stable.json",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "kiro-cli-stable",
+          "url": "https://prod.download.cli.kiro.dev/stable/latest/manifest.json",
+          "exit": 56,
+          "result": "000\nhttps://prod.download.cli.kiro.dev/stable/latest/manifest.json",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "cursor-changelog",
+          "url": "https://cursor.com/changelog",
+          "exit": 56,
+          "result": "000\nhttps://cursor.com/changelog",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "windsurf-changelog",
+          "url": "https://docs.devin.ai/desktop/changelog.md",
+          "exit": 56,
+          "result": "000\nhttps://docs.devin.ai/desktop/changelog.md",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "trae-stable",
+          "url": "https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+          "exit": 56,
+          "result": "000\nhttps://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+          "error": "curl: (56) CONNECT tunnel failed, response 403\n"
+        },
+        {
+          "name": "zed-latest",
+          "url": "https://github.com/zed-industries/zed/releases/latest",
+          "exit": 0,
+          "result": "200\nhttps://github.com/zed-industries/zed/releases/tag/v1.26.2",
+          "error": ""
+        },
+        {
+          "name": "vscode-releases",
+          "url": "https://github.com/microsoft/vscode/releases/latest",
+          "exit": 0,
+          "result": "200\nhttps://github.com/microsoft/vscode/releases/tag/1.144.0",
+          "error": ""
+        },
+        {
+          "name": "copilot-chat-releases",
+          "url": "https://github.com/microsoft/vscode-copilot-chat/releases/latest",
+          "exit": 0,
+          "result": "200\nhttps://github.com/microsoft/vscode-copilot-chat/releases/tag/v0.43.0",
+          "error": ""
+        },
+        {
+          "name": "kiro-cli-github",
+          "url": "https://github.com/kirodotdev/Kiro/releases/latest",
+          "exit": 0,
+          "result": "200\nhttps://github.com/kirodotdev/Kiro/releases",
+          "error": ""
+        }
+      ],
+      "captures": [
+        {
+          "file": "copilot-api-0.5.2.tgz",
+          "bytes": 21396,
+          "sha256": "7a817c4d468abb7811964af047de00aeee13e70ac97e1f698d3b774d1580d6a4"
+        },
+        {
+          "file": "copilot-api-npm.body",
+          "bytes": 2814,
+          "sha256": "2e89039373620cdd53210c765a4546c64fa916a1fcda71bc68e51c495cd52412"
+        },
+        {
+          "file": "copilot-chat-releases-notes.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "copilot-chat-releases.body",
+          "bytes": 160574,
+          "sha256": "b2bd520535d533cb00af90b938535079a37aeb13387736661b1bf7c871d4ac1b"
+        },
+        {
+          "file": "cursor-github.body",
+          "bytes": 210475,
+          "sha256": "abc8eddc9caaf4dc30a8ab8ffddc81803016325a140d793fd515f18845fc1c4d"
+        },
+        {
+          "file": "cursor-readme.body",
+          "bytes": 622,
+          "sha256": "0c3bb694474f6ba546248c089a44b28d7d6b21e1cd258d836a361b84a523a164"
+        },
+        {
+          "file": "github-docs-head.txt",
+          "bytes": 46,
+          "sha256": "f3bceba5caca9b6b0584a74087a187055852aa66c16f30563055caac63c29d85"
+        },
+        {
+          "file": "github-model-availability-table.body",
+          "bytes": 14,
+          "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+        },
+        {
+          "file": "github-model-deprecation-table-pinned.body",
+          "bytes": 4989,
+          "sha256": "76219aa8ca29aa24c1fd761c0ff96a645e8a6b7a440c1b35e54abc8ab3c7b5b9"
+        },
+        {
+          "file": "github-model-deprecation-table.body",
+          "bytes": 4989,
+          "sha256": "76219aa8ca29aa24c1fd761c0ff96a645e8a6b7a440c1b35e54abc8ab3c7b5b9"
+        },
+        {
+          "file": "github-model-doc-pinned.body",
+          "bytes": 21607,
+          "sha256": "7e0924490c7e5d878b767c609e9313f3fac665905c9cbcb513923a5f22e33c89"
+        },
+        {
+          "file": "github-model-doc.body",
+          "bytes": 21607,
+          "sha256": "7e0924490c7e5d878b767c609e9313f3fac665905c9cbcb513923a5f22e33c89"
+        },
+        {
+          "file": "github-model-release-table-pinned.body",
+          "bytes": 2502,
+          "sha256": "930ebcc20a2414b977e9d9849de0822bf63b9935032d888ea82000074d760f6f"
+        },
+        {
+          "file": "github-model-release-table.body",
+          "bytes": 2502,
+          "sha256": "930ebcc20a2414b977e9d9849de0822bf63b9935032d888ea82000074d760f6f"
+        },
+        {
+          "file": "github-model-variables-pinned.body",
+          "bytes": 11578,
+          "sha256": "241a4b3165b36144fee0d75345744a560faa5240b3b6cb9532a9de61d782f446"
+        },
+        {
+          "file": "github-model-variables.body",
+          "bytes": 11578,
+          "sha256": "241a4b3165b36144fee0d75345744a560faa5240b3b6cb9532a9de61d782f446"
+        },
+        {
+          "file": "github-models-reference-tree.body",
+          "bytes": 186173,
+          "sha256": "c31f846846bf3d29fc3776896c31316032353eacb83b05ecfbf764c63c571d01"
+        },
+        {
+          "file": "github-models-reusable.body",
+          "bytes": 14,
+          "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+        },
+        {
+          "file": "github-models-tree.body",
+          "bytes": 163138,
+          "sha256": "932f43c02dcf3a97d48b4237a156109254a2bc95d661400a6cf0ff84fb26d925"
+        },
+        {
+          "file": "kiro-cli-github.body",
+          "bytes": 137071,
+          "sha256": "1ca32267e053f60902ca0ce9f2c38986c55de6d0d424af56bbf3b69bb1864ddb"
+        },
+        {
+          "file": "kiro-cli-repo.body",
+          "bytes": 230675,
+          "sha256": "ee98b6bfc35a9d7dc7d40ad09e9fa3e313b75b7c6d54d11291a308de9baaa994"
+        },
+        {
+          "file": "kiro-org.body",
+          "bytes": 228988,
+          "sha256": "3c1a176df12ebe603bf0d0bf0127f997318185b6ce84ffa79563ee17475b18ca"
+        },
+        {
+          "file": "kiro-readme.body",
+          "bytes": 6618,
+          "sha256": "5794693fbfa530d6eb602b69703d2d50c54780281a6db450a1d79eccee1cdb21"
+        },
+        {
+          "file": "vscode-bundled-copilot.body",
+          "bytes": 288175,
+          "sha256": "0006be00196847dee96d00ea60b2dc02378ef7521f95bdd47498828078de1f62"
+        },
+        {
+          "file": "vscode-copilot-api.body",
+          "bytes": 626405,
+          "sha256": "d7b6ba80717268a4c4a81107ebe06a6bc12c400e7027a3b7ef84c01ce87e58a5"
+        },
+        {
+          "file": "vscode-package.body",
+          "bytes": 15770,
+          "sha256": "6529eb9164da5d1c108edaab1210636affcaf19f5600980dfa46272323239679"
+        },
+        {
+          "file": "vscode-product.body",
+          "bytes": 8032,
+          "sha256": "104a252a18d584b91176d24d20a12b7e08ce9225cf0cb176906928c068c1a945"
+        },
+        {
+          "file": "vscode-release-notes.body",
+          "bytes": 50087,
+          "sha256": "0a6b8f03beeadcccd69f47a0e6b9413f9f5ec8fba319f5983b105199de4d9918"
+        },
+        {
+          "file": "vscode-releases-notes.txt",
+          "bytes": 44,
+          "sha256": "1760a15dd7dbe3176f46332a1aaf7501d49f1e4557237c52fe95ee0f1d83d89f"
+        },
+        {
+          "file": "vscode-releases.body",
+          "bytes": 167122,
+          "sha256": "d7f8ddfada61f82b13ca6e51c9f2b9032daa317c529204ffbbc3e692f614ce67"
+        },
+        {
+          "file": "windsurf-github.body",
+          "bytes": 9,
+          "sha256": "0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"
+        },
+        {
+          "file": "windsurf-marketplace-github.body",
+          "bytes": 161984,
+          "sha256": "3fd20c08da8086c17578778efb9f79bf44f3a20eb1788f2978e58139a0104943"
+        },
+        {
+          "file": "zed-cargo.body",
+          "bytes": 44589,
+          "sha256": "fbf021692539627987d560a0b1490cb6495e466d41aeedcec0bf8160edc343b8"
+        },
+        {
+          "file": "zed-latest-notes.txt",
+          "bytes": 4447,
+          "sha256": "d3b6b3ed6c41a3cdcd92e42739051eb0159eeb13d3af42db8e20c3e810cad9eb"
+        },
+        {
+          "file": "zed-latest.body",
+          "bytes": 176923,
+          "sha256": "d220dd049588bd014707a2a290475a619b6b824b84226119bbfa0643522ede4a"
+        },
+        {
+          "file": "zed-release-tags.txt",
+          "bytes": 917,
+          "sha256": "fb75bc4ca3c2d657d6bcb69441fbcb454fae445572de1661d36c26f0c51e3b5a"
+        },
+        {
+          "file": "zed-source/cloud_llm_client.rs",
+          "bytes": 13667,
+          "sha256": "054918299f6a4b50662527ef978c4da397f86ed4128ae0d5ae8a3c4321a24755"
+        },
+        {
+          "file": "zed-source/crates__language_models__src__provider__cloud.rs",
+          "bytes": 41806,
+          "sha256": "5ed6f86f062fee2791750010bca65867e421f3e770d40abdf484021f5e6f53eb"
+        },
+        {
+          "file": "zed-source/crates__language_models__src__provider__copilot_chat.rs",
+          "bytes": 7278,
+          "sha256": "8a9ebc5a8a78e22ad0098d0456eb57daca43eed961821d24c5455f61c9e1bd99"
+        },
+        {
+          "file": "zed-source/crates__language_models__src__provider__open_ai_compatible.rs",
+          "bytes": 23596,
+          "sha256": "d1589758a2cba19aac35d486b76096d859b289f606a75b312bd25f4a8218c461"
+        },
+        {
+          "file": "zed-source/crates__language_models__src__provider__opencode.rs",
+          "bytes": 60576,
+          "sha256": "23963dd2cf353afa7676abf482db2aaed9631136a1b6e7e3c8603b20fec25950"
+        },
+        {
+          "file": "zed-source/crates__language_models_cloud__src__language_models_cloud.rs",
+          "bytes": 104672,
+          "sha256": "64a35dc345167a74365c62cb20ed640a454fe7286d318bfa98ac503cc14ff358"
+        },
+        {
+          "file": "zed-v1.25.1-notes.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "zed-v1.25.1.html",
+          "bytes": 173133,
+          "sha256": "c988d47e8ef6d24e47d78d4bb07b410d81011000b3d94f04211a869ed3991b0e"
+        },
+        {
+          "file": "zed-v1.25.2-notes.txt",
+          "bytes": 5979,
+          "sha256": "04e1a8ec077d45cb257501e67401a394902305f2461216ddfbdeb0aba5dc0f1f"
+        },
+        {
+          "file": "zed-v1.25.2.html",
+          "bytes": 178812,
+          "sha256": "b810ac622abc9ddb544ce415117f908f3911497efca8c40e9dea8f66b9e015a5"
+        },
+        {
+          "file": "zed-v1.25.3-notes.txt",
+          "bytes": 99,
+          "sha256": "4d34ff42526993ae8fe841d96e2a54f83ccac8de845d9d83b5cfc8cc5088076a"
+        },
+        {
+          "file": "zed-v1.25.3.html",
+          "bytes": 165711,
+          "sha256": "661ac761f096bc28049c4c34f0290e85140d6bfb0092e154a461d6258c7f9fe0"
+        }
+      ],
+      "limitations": [
+        "No paid inference or user provider credentials used",
+        "No TLS bypass, proxy bypass or random fingerprint rotations",
+        "Source artifact checks establish compatibility identity, not live subscription entitlement or invoice accuracy"
+      ],
+      "verification": {
+        "ideFocusedOutbound": "15/15 full secondary boundary cases passed; includes coordinated OpenCode/Qoder version changes",
+        "scopedLint": "final5ownedfiles passed zero warnings",
+        "whitespace": "passed",
+        "adjacentSuites": "30/30 passed in6files with required local HTTP2/ownedNode access",
+        "retirementBefore": "2failed/2passed before source correction",
+        "retirementAfter": "4/4 passed after source correction",
+        "finalCombined": "142/142 passed across7files; includes publicretirement, exactidentity, billing/history and restored intermediateobservation checks",
+        "sourceStatus": "frozen",
+        "historicalMembershipCorrection": "37/37 passed across4files; exact reviewed retirements only; unapproved missing pairs, altered costs, duplicates and missing full-snapshot membership rejected; scoped lint zero warnings"
+      },
+      "publisherModelDocs": {
+        "sourceCommit": "6167b6d08e8548a411a2ab1e0f3627fe6f89aaec",
+        "pinnedCaptures": [
+          {
+            "url": "https://raw.githubusercontent.com/github/docs/6167b6d08e8548a411a2ab1e0f3627fe6f89aaec/content/copilot/reference/ai-models/supported-models.md",
+            "sha256": "7e0924490c7e5d878b767c609e9313f3fac665905c9cbcb513923a5f22e33c89",
+            "matchesOriginal": true
+          },
+          {
+            "url": "https://raw.githubusercontent.com/github/docs/6167b6d08e8548a411a2ab1e0f3627fe6f89aaec/data/tables/copilot/model-release-status.yml",
+            "sha256": "930ebcc20a2414b977e9d9849de0822bf63b9935032d888ea82000074d760f6f",
+            "matchesOriginal": true
+          },
+          {
+            "url": "https://raw.githubusercontent.com/github/docs/6167b6d08e8548a411a2ab1e0f3627fe6f89aaec/data/tables/copilot/model-deprecation-history.yml",
+            "sha256": "76219aa8ca29aa24c1fd761c0ff96a645e8a6b7a440c1b35e54abc8ab3c7b5b9",
+            "matchesOriginal": true
+          },
+          {
+            "url": "https://raw.githubusercontent.com/github/docs/6167b6d08e8548a411a2ab1e0f3627fe6f89aaec/data/variables/copilot.yml",
+            "sha256": "241a4b3165b36144fee0d75345744a560faa5240b3b6cb9532a9de61d782f446",
+            "matchesOriginal": true
+          }
+        ],
+        "currentProductNamesOnly": [
+          "GPT-6Astra",
+          "GPT-6Luna",
+          "GPT-6Sol",
+          "GPT-6.1Sol",
+          "GPT-6.1Terra",
+          "ClaudeFable5.1",
+          "ClaudeHaiku5.5",
+          "ClaudeOpus5.5",
+          "ClaudeSonnet5.5",
+          "Gemini3.8Flash",
+          "Gemini4Argon"
+        ],
+        "noInventedNewIds": true,
+        "accountRestrictions": "Plan, surface, enabled policies; Fable5/5.1 require explicit enterprise/org enrollment and model enabling; do not infer EFS/ZDR entitlement or new endpoint headers."
+      },
+      "historicalReferenceBoundary": {
+        "retainedImmutableCounts": {
+          "registryPricingReferences": 123,
+          "estimateModels": 16,
+          "referenceModels": 163
+        },
+        "currentRegistryCoveredRowsBefore": 149,
+        "currentRegistryCoveredRowsAfter": 142,
+        "currentRegistryCoveredUniqueBefore": 146,
+        "currentRegistryCoveredUniqueAfter": 139,
+        "reason": "7of8explicitly retired Copilot IDs occur in the immutable legacy references; RaptorMini has no such reference. All immutable source records and timestamp/quote assertions preserved.",
+        "verifierCorrection": "Current advertisement can omit only exact publisher-reviewed GitHub retirement pairs; immutable extraction counts and all product, uniqueness, literal cost, source digest and supplied full-snapshot checks stay mandatory."
+      },
+      "ownedFiles": [
+        "open-sse/providers/registry/github.js",
+        "open-sse/services/copilotModels.js (comment only)",
+        "tests/unit/refresh-client-secondary-wire.test.js",
+        "tests/unit/copilot-retired-fallback-catalog.test.js",
+        "tests/unit/upstream-modelsdev-pricing-resolution.test.js (historical-membership/current-coverage hunk only)"
+      ]
+    },
+    "cliProviders": {
+      "verified_at": "2026-10-31 Asia/Jakarta",
+      "releases": [
+        {
+          "constant": "OPENCODE_VERSION",
+          "old": "1.19.3",
+          "version": "1.19.5",
+          "publisher_metadata_url": "https://registry.npmjs.org/opencode-ai/latest",
+          "artifact": {
+            "url": "https://registry.npmjs.org/opencode-ai/-/opencode-ai-1.19.5.tgz",
+            "sha512_integrity": "sha512-tEqMvQahfhdDj8vceYpXtoIrvjPXm5XRfetWnPN5YISueU7adNx9JcUA3zZ+2GKuDVgDpGdQe1ZLtCZDjqodvA==",
+            "sha256": "1f97e49381f8a42a629482eff8be98aa96d62e2e94410a8ec98e738f9c787680",
+            "integrity_verified": true
+          }
+        },
+        {
+          "constant": "COMMAND_CODE_VERSION",
+          "old": "1.88.0",
+          "version": "1.88.2",
+          "publisher_metadata_url": "https://registry.npmjs.org/command-code/latest",
+          "artifact": {
+            "url": "https://registry.npmjs.org/command-code/-/command-code-1.88.2.tgz",
+            "sha512_integrity": "sha512-B/+JVQecxHlkouzsVnFsRlxZ3e8VY35Grr934T1fx+c8aq4Em9kxI79B1gQ195xW50f3Svq8qc8j0QThSpNjWw==",
+            "sha256": "ee178cc79f0dbb7efb2f34871b9abda7286f0a339cf7c2bb1cb9e1339a38ed96",
+            "integrity_verified": true
+          }
+        },
+        {
+          "constant": "QODER_CLI_VERSION",
+          "old": "1.1.75",
+          "version": "1.1.81",
+          "publisher_metadata_url": "https://registry.npmjs.org/@qoder-ai%2fqodercli/latest",
+          "artifact": {
+            "url": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.81.tgz",
+            "sha512_integrity": "sha512-Ve//jnhP5W4M+KU9USGjGNvoF/4LP6R/Kcu2SmSya5APlYKb0Qps9DkBz5RtG0JfWFwoI8IEn2mf48+uE+o4mw==",
+            "sha256": "be9358de5600e3a93925709cb0e7e979b38e67dcde5d028128bfd0b16892f357",
+            "integrity_verified": true
+          }
+        },
+        {
+          "constant": "CODEBUDDY_CLI_VERSION",
+          "old": "2.171.0",
+          "version": "2.179.0",
+          "publisher_metadata_url": "https://registry.npmjs.org/@tencent-ai%2fcodebuddy-code/latest",
+          "artifact": {
+            "url": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/-/codebuddy-code-2.179.0.tgz",
+            "sha512_integrity": "sha512-LN5JEeR3hQgnGMVTg7Nir6l9Mf1LV0VjVc7QEksnsobzYSMpLufLrcOXlMibhX3w+AgryJmd3MDbnIv+boYWFg==",
+            "sha256": "c5b9070277d7ad9330edb70121b6b6aef35440aaab2592e26512b61fa6d89a03",
+            "integrity_verified": true
+          }
+        },
+        {
+          "constant": "KIMCHI_GATEWAY_VERSION",
+          "old": "1.17.0",
+          "version": "1.25.0",
+          "url": "https://github.com/getkimchi/kimchi/releases/tag/v1.25.0",
+          "source_sha": "38ee582b0222d7451c18b1fccf3dd5de8e47dc41",
+          "released_at": "2026-10-30T12:35:05Z",
+          "wire_evidence": "src/cli.ts:785 userAgent: `kimchi/${getVersion()}`; getVersion uses injected release version, package.json0.0.0 is development placeholder"
+        }
+      ],
+      "additional_exports": {
+        "QODER_CLI_USER_AGENT": "`qoder/${QODER_CLI_VERSION}`"
+      },
+      "retained": [
+        "CODEBUDDY_INTL_WIRE_VERSION2.161.1 independent IDE release not proven by CN CLI",
+        "GROK_CLI_VERSION1.0.62 stable feed policy-blocked",
+        "IFLOW_USER_AGENT iFlow-Cli static; official service shut down, do notreactivate",
+        "QODER_IDE_VERSION1.0.0 signature-bound legacy contract remains separate; newbundlehasdynamic1.1.81 but algorithm/livecompatnotcertified"
+      ],
+      "wire_contracts": {
+        "OpenCode": "versionedopencodeUA, session/client/request/project identities retained, Go directrouteridentityunchanged",
+        "CommandCode": "CLIversion frompackage version; User-Agent cli; environmentprod normalizesproduction; session/taste/surfacecontractunchanged",
+        "CodeBuddyCN": "UserAgentHttpInterceptor constructs platform/version then applicationName-or-productName/version. DefaultClientInfo CLI + CodeBuddy bothpackageversion. No guessed extra telemetry",
+        "Qoder": "buildOpenApiJsonRequest unsigned User-Agent qoder/${await ei()} verified; legacy COSY signing unchanged"
+      },
+      "source_revisions": {
+        "opencode": {
+          "url": "https://github.com/anomalyco/opencode",
+          "tag": "v1.19.5",
+          "sha": "810c0eba1a7348036f8bdf61e6632d0c36c6876c"
+        },
+        "kimchi": {
+          "url": "https://github.com/getkimchi/kimchi",
+          "tag": "v1.25.0",
+          "sha": "38ee582b0222d7451c18b1fccf3dd5de8e47dc41"
+        },
+        "grok_build": {
+          "url": "https://github.com/xai-org/grok-build",
+          "sha": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+          "source_rev": "559751fdcec02d413e4c57c8832ab275e4f44980",
+          "commit_at": "2026-09-29T16:57:09Z",
+          "release_verified": false,
+          "reason": "Source publishes no stable tags/releases and Grok version is injected at releasebuild; blockedcurrentstablefeed cannot be replaced by this stale sourcecommit."
+        }
+      },
+      "changelog_review": {
+        "opencode": {
+          "releases": [
+            {
+              "version": "1.19.4",
+              "url": "https://github.com/anomalyco/opencode/releases/tag/v1.19.4",
+              "released_at": "2026-10-22T13:03:41Z",
+              "sha256": "966e17fb13d83a81ea41c49e35f0d7555e73b35a4d6bf9c45e82463290c1b952",
+              "body": "Core\n\nImprovements\n\n\nUpgraded the bundled Bun runtime to 1.4.4, which includes security fixes for Brotli, TLS, HTTP/1.1, HTTP/2, HTTP/3, WebSocket, and fetch, and updates root certificates to NSS 3.131.1."
+            },
+            {
+              "version": "1.19.5",
+              "url": "https://github.com/anomalyco/opencode/releases/tag/v1.19.5",
+              "released_at": "2026-10-28T06:17:49Z",
+              "sha256": "848c35e0d892178b1e93e57ad4bb986e4284e350364f1e3c6c37e1a41df5dfcd",
+              "body": "Core\n\nBugfixes\n\n\nFailed TUI worker requests now return an error instead of leaving the caller hanging. (@Nowaker)\n\n\nThank you to 1 community contributor:\n\n\n@Nowaker:\n\n\nfix(opencode): answer a failed TUI worker request instead of hanging (#54936)"
+            }
+          ],
+          "disposition": "1.19.4 bundles Bun1.4.4 transport/security/certificate fixes;1.19.5 fixes failedTUIworker replies. Updateversionedreleaseidentity, retain Nodegateway transport; do not claim bundledBunTLSfingerprint or importCLIworker changes."
+        },
+        "commandcode": {
+          "source": "integrity-verified npm1.88.2 CHANGELOG.md",
+          "releases": [
+            "1.88.1",
+            "1.88.2"
+          ],
+          "changes": [
+            "bulkimagecontext refactor",
+            "tastepush packageheading preservation",
+            "freshinstall/update launchcrash"
+          ],
+          "disposition": "CLIidentity1.88.2, same verified authheader/productionenvironment/cliUA contract; no upstreamtool/session/callerbody rewrite."
+        },
+        "codebuddy_cn": {
+          "source": "integrity-verified npm2.179.0 CHANGELOG.md",
+          "releases": [
+            "2.179.0",
+            "2.178.1",
+            "2.178.0",
+            "2.177.1",
+            "2.177.0",
+            "2.176.0",
+            "2.175.0",
+            "2.174.0",
+            "2.173.0",
+            "2.172.1"
+          ],
+          "relevant_themes": [
+            "bounded auxiliarymodel fallback and cancellation",
+            "accurate cache/inputusage display",
+            "explicit emptytool allowlists",
+            "model-bound contextcompaction",
+            "nativeclient requestorigin classification",
+            "no repeated imagepath injection",
+            "localtools/sandbox permission integrity",
+            "streamstatus ordering/notification recovery"
+          ],
+          "disposition": "UpdateCNCLIidentity only; exactINTLfallbackcatalog maybe reused independently, while INTLIDEversion staysunverified. Do not copy localtoolpermission, automaticmodel retry, telemetry or native sandbox behavior into gateway."
+        },
+        "kimchi": {
+          "release_count": 31,
+          "notes_file": "kimchi-release-notes.json",
+          "selected_changes": [
+            "tri-state thinkingcuration1.17.1",
+            "pi1.3.0 upgrade1.18.0",
+            "CASTAI SSO1.19.0 + login.kimchi.dev1.19.1 + audience/credentialselection fixes",
+            "selfhostedendpoint discovery1.19.2",
+            "PRcost ledger/bridge1.22 with laterremovalofgatewayprice lookups1.23.0",
+            "ACPstable1.9 migration1.24",
+            "curatedthinkingselection1.24.3",
+            "secure0600exportworkspace1.25"
+          ],
+          "disposition": "UpdateCLIidentity; honor explicit endpoint/org consistently and scope TTLcache metadata by actualcredentials. Preserve existing personaltokenauth; no guessedSSO entitlement or nativeAnthropicadapter."
+        },
+        "qoder": {
+          "source": "integrity-verified npm1.1.81 README+bundledsource (no packaged changelog)",
+          "disposition": "UnsignedOpenAPI identity is qoder/<release> ratherthan qodercli/<release>/Gohttpclient; updatebothOAuth andPATdiscovery. Latest signedCOSY1.1.81 value observed but coordinatedsignature/livevalidation unavailable, so retainedlegacy1.0.0 contractexplicit."
+        },
+        "iflow": {
+          "publisher_package_version": "0.5.19",
+          "disposition": "StaticIFLOW_USER_AGENTnotsemver; servicewasofficiallyshutdown2026-04-17, retaininactive route ratherthan inventnewactiveprovider."
+        },
+        "grok": {
+          "disposition": "Stablefeed blocked; officialpublicsourcestale/no releasechannelvalue, retain1.0.62. No guessedversionfromsourcecrate or unofficialnpm packages."
+        }
+      },
+      "model_changes": {
+        "codebuddy-intl": {
+          "added": [
+            "hy4-preview",
+            "hy3",
+            "kimi-k2.8-preview",
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.5",
+            "gpt-5.4",
+            "gemini-3.5-flash",
+            "glm-5.3-flash",
+            "glm-5.3"
+          ],
+          "source": "npm2.179.0 product.json",
+          "not_account_entitlement": true,
+          "runtime_catalog_note": "/v3/config can differ; default context budgets may be lower than opt-in1M options",
+          "separate_input_limit": "unknown",
+          "cash_prices": "unknown; creditmultipliers notUSD"
+        },
+        "opencode": {
+          "added": [
+            "cat-jam-free",
+            "step-5-preview-free",
+            "exo-free",
+            "mimo-v2.5-free",
+            "ling-3.0-flash-fin-free",
+            "nemotron-3-ultra-free",
+            "nemotron-3.5-lightning-free"
+          ],
+          "source": "pinnedv1.19.5 zen.mdx exactendpoint+Freepricingtables",
+          "unsupported_protocol_excluded": [
+            "jev-1.13-free/systemone"
+          ],
+          "not_account_availability": true
+        },
+        "opencode-go": {
+          "added": [
+            "grok-4.6",
+            "gpt-5.6-luna",
+            "claude-haiku-5-5",
+            "longcat-2.0",
+            "step-5-preview-free",
+            "muse-spark-1.3-contributor",
+            "muse-spark-1.2-contributor",
+            "hy4-preview",
+            "hy3",
+            "space-bunny"
+          ],
+          "source": "pinnedv1.19.5 go.mdx endpointtable",
+          "cash_prices": "unknownsubscription/ExtraUsage conditions",
+          "training_consent": "Upstreamworkspacesettings notautomaticallyenabled"
+        },
+        "retained_missing_rows": "Absence from one table does not establish retirement; existingFledge/KimiK3.1 rows retained."
+      },
+      "implementation": {
+        "kimchi": [
+          "bounded100catalogs+5minTTL",
+          "credentialtoken+endpoint+explicitorganization cachekey",
+          "exactcase/slashmodelIDs",
+          "matchingorganizationheader oncatalog+chat",
+          "sameconfiguredbasepath fordiscovery+inference",
+          "HTTP(S)only endpointvalidation, noembeddeduserinfo/query/hash",
+          "no globalunscopedliveclassification; exactproviderclassification beatsnameheuristic",
+          "explicitkeypriority alignsdiscovery withDefaultExecutor"
+        ],
+        "qoder": [
+          "centralizedqoderUA fordevicepoll/userinfo/PATexchange; signedCOSYunchanged"
+        ],
+        "metadata_shards": [
+          "metadata/codebuddyModels.js",
+          "metadata/opencodeRefreshModels.js"
+        ]
+      },
+      "tests": {
+        "kimchi_before": "7 failed/7",
+        "kimchi_after": "9 passed",
+        "related_group": "158passed/12files before9thKimchicase",
+        "final_egress_group": "65passed/5files includingstrictproxy/callerabort andall9Kimchicases",
+        "opencode_route_group": "18 passed after metadata registration; real handleChatCore + real executors, only HTTP/usage persistence mocked.",
+        "lint": "scopedcomposedOxlint+ESLint zero warnings",
+        "live_inference": "none",
+        "operator_data": "notaccessed; isolatedsyntheticruntime teststate",
+        "final_new_consumer_group": "42 passed across4 files after default-order preservation (Kimchi9,CodeBuddy14,Qoder1,OpenCode18)",
+        "default_preservation": "Existing glm-5.2 / muse-spark-1.2-contributor-free / glm-5.3-flash defaults preserved; new rows appended."
+      },
+      "lifecycle_evidence": {
+        "iflow": {
+          "url": "https://raw.githubusercontent.com/iflow-ai/iflow-cli/main/README.md",
+          "sha256": "351dd79882ef1b80d2659db46d7e1ec3cf651cfa0235fa4a7cc8d7cd5fdf460c",
+          "notice": "iFlow CLI will be shutting down on April 17, 2026 (UTC+8)."
+        }
+      }
+    },
+    "catalog": {
+      "scope": {
+        "registeredProviders": 121,
+        "transportProviders": 83,
+        "otherProviders": 38,
+        "registeredModelRows": 1322,
+        "publicProviderSpecific": 12,
+        "publicGenericCandidates": 60,
+        "publicStaticOperator": 49,
+        "dashboardConfigured": 27,
+        "dashboardSpecific": 14,
+        "dashboardGeneric": 34,
+        "dashboardStatic": 46
+      },
+      "source_snapshot": {
+        "sourceUrl": "https://models.dev/api.json",
+        "repository": "https://github.com/anomalyco/models.dev",
+        "retrieval": "Reconstructed published v1 default view with official generateCatalog + filterProvidersByModelType(default), not an HTTP API response capture",
+        "commit": "971a07c53cdb688185015776b76151d514b7bde5",
+        "commitTime": "2026-10-30T18:30:43Z",
+        "retrievedAtUtc": "2026-10-30T19:22:30.959Z",
+        "bunVersion": "1.4.4",
+        "dependencies": {
+          "zod": "3.24.2",
+          "remeda": "2.33.7"
+        },
+        "sha256": "d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c",
+        "providers": 234,
+        "models": 8930,
+        "allViewSha256": "57a8112105997e077b044d7db003d7f126998e986d67b1aac16cf562e8df96ca",
+        "allViewProviders": 234,
+        "allViewModels": 8998,
+        "limitations": [
+          "Source reconstruction is not an original HTTPS response capture.",
+          "Presence does not establish account availability, entitlement, retirement or invoice accuracy.",
+          "Source/retrieval timestamp is not a historical tariff effective-from claim."
+        ]
+      },
+      "native_contract_sources": [
+        {
+          "repository": "https://github.com/anthropics/anthropic-sdk-typescript",
+          "commit": "cb5fba419808e3844fa6407e59577ab7ba346b79",
+          "sourceUrl": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/cb5fba419808e3844fa6407e59577ab7ba346b79/src/resources/models.ts",
+          "sha256": "7d197d76d11035c2e35e548454e72184c40d719215ff5d7cfeda83940729354d",
+          "scope": "Native public API model-list field and cursor contract; not Claude Code OAuth entitlement evidence."
+        },
+        {
+          "sourceUrl": "https://registry.npmjs.org/@mistralai%2fmistralai/latest",
+          "version": "3.4.0",
+          "tarball": "https://registry.npmjs.org/@mistralai/mistralai/-/mistralai-3.4.0.tgz",
+          "integrity": "sha512-zgfg+ppFm8F99jog31dUehktW2tLEq9HG7/tDxAve+Lett/MTYRiPcWwdN5bUo/NRRhI60OVQAQvtR6AotPhZQ==",
+          "scope": "Read-only publisher SDK model-list field/object-kind contract, not a request client identity pin."
+        },
+        {
+          "sourceUrl": "https://registry.npmjs.org/@google%2fgenai/1.30.0",
+          "version": "1.30.0",
+          "tarball": "https://registry.npmjs.org/@google/genai/-/genai-1.30.0.tgz",
+          "integrity": "sha512-3MRcgczBFbUat1wIlZoLJ0vCCfXgm7Qxjh59cZi2X08RgWLtm9hKOspzp7TOg1TV2e26/MLxR2GR5yD5GmBV2w==",
+          "sha256": "e80b67c689c07b0f55acb6ee0103427ddf709454e4a70a95fc40bd0beec81ab7",
+          "scope": "Native API-key model list field/auth/header/page-token contract, independent from Gemini CLI Code Assist OAuth."
+        }
+      ],
+      "fixes": [
+        "Native API model discovery uses registry-owned authentication profiles and correct API-key/OAuth precedence, never guessed headers or arbitrary caller URLs.",
+        "Native Anthropic and Gemini cursor pages are complete, bounded, same-origin, credential-preserving and never follow redirected authentication.",
+        "Native object discriminators no longer become gateway service kinds; independent input/output/context facts, typed negative flags and supported Google/Mistral methods retain their exact meaning.",
+        "Shared full-response reader bounds timeout/body bytes, rejects invalid UTF-8 and sanitizes parser errors without raw private JSON.",
+        "Generic cache has serialized byte/cardinality limits, TTL/LRU eviction, defensive copies, credential/profile separation and existing import-generation fencing.",
+        "Public catalogs now consult actual Claude/Codex/GeminiCLI/Antigravity account resolvers while retaining manual whitelists and strict egress policy.",
+        "Explicit valid complete-empty native OAuth results do not resurrect static account models; failed or malformed responses retain static fallback.",
+        "Native Anthropic/Gemini/Mistral dashboard endpoints reuse the same parser and preserve sanitized HTTP auth/rate-limit errors and truthful empty versus malformed status."
+      ],
+      "verification": {
+        "red_reproduction": "Original generic helper:6 failed/1 passed of7 initial native contract cases.",
+        "final_target": "229 passed across9 files, zero failed; isolated SQLite import and real strict-proxy fixtures included.",
+        "log": "/workspace/kitsune-router-local/client-refresh-20261031/catalog/discovery-final-complete.log",
+        "lint": "Final scoped Oxlint/ESLint passed with --max-warnings=0; whitespace check passed. Parent owns full CI/build gates."
+      },
+      "limitations": [
+        "No real provider keys/accounts or paid inference were used. Local fixtures cannot establish current account entitlement, serving availability or invoice accuracy.",
+        "models.dev default API payload was reconstructed from official pinned Git generator, not captured from blocked HTTPS API.",
+        "Generic derived endpoint candidates in inventory are code candidates, not independently verified native API contracts for every vendor.",
+        "Whole catalog generation reports400 matched chat rows against the prior registry with22 preexisting primary-reference conflicts and174 unknown fields; source absence is not retirement.",
+        "No automatic SDK latest substitution, static-model mass copying or cross-provider native-price inheritance was introduced."
+      ]
+    }
+  },
+  "finalVerification": {
+    "status": "passed local integrated gates",
+    "startedAtUtc": "2026-10-30T20:25:37.696Z",
+    "completedAtUtc": "2026-10-30T20:30:11.354Z",
+    "vitest": {
+      "passed": 10201,
+      "failed": 0,
+      "skipped": 100,
+      "total": 10301,
+      "files": 815,
+      "exitCode": 0,
+      "strictNoRegressionReportValidator": "passed",
+      "reportSha256": "a08e3a5cf354a3828f93ecbc4c8c885500e77e56190ab5e8b232c161c0b64011",
+      "configuration": "CI=1; KITSUNE_REQUIRE_BROWSER_TESTS=1; installed Chromium; synthetic runtime secrets; isolated DATA_DIR; live inference/refresh opt-ins disabled"
+    },
+    "productionBuild": {
+      "command": "NEXT_DIST_DIR=.next-cli-build npm run build",
+      "exitCode": 0,
+      "standaloneAssets": "copied and exercised by production fixture",
+      "applicationSourceFrozenBeforeBuild": true
+    },
+    "productionBrowser": {
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 55.0,
+      "exitCode": 0,
+      "providerCatalogCase": "Actual combo model picker with synthetic enabled ByKitsune/Cursor accounts"
+    },
+    "lint": {
+      "fullComposed": "passed with --max-warnings=0",
+      "subsequentTestAndAuditToolCorrections": "passed composed strict lint with --max-warnings=0"
+    },
+    "otherChecks": {
+      "docsNodeTestsPassed": 18,
+      "commonJsCompatibilityTestsPassed": 1,
+      "providerBaselineEntries": 83,
+      "aliasBaselineTokens": 117,
+      "oauthUrlBaseline": "passed intentional production surface migration",
+      "identity": "passed",
+      "i18nSourceLiterals": 1892,
+      "indonesianMissing": 0,
+      "whitespace": "passed"
+    },
+    "firstIntegratedRun": {
+      "passed": 10186,
+      "failed": 8,
+      "skipped": 100,
+      "files": 815,
+      "resolution": "Updated dated catalog/pricing golden expectations and exact retired-model historical/current-advertisement boundary. Original extraction hash, costs,123registry/16eligible/163reference counts and supplied full-snapshot checks remain mandatory. Added7verifier regression assertions; focused56/56passed across6previously failing files before complete rerun."
+    },
+    "independentFinalReview": "No concrete introduced blocker found in scoped catalog authentication/cache fencing, public projection, historical pricing retention and retirement verification; separate audit consistency review passed.",
+    "liveProviderAcceptance": "Not performed: no real OAuth login, paid inference, customer database or operator credentials used."
+  },
+  "catalogCounts": {
+    "registeredProviders": 121,
+    "transportProviders": 83,
+    "otherProviders": 38,
+    "registeredModelRows": 1322,
+    "publicProviderSpecific": 12,
+    "publicGenericCandidates": 60,
+    "publicStaticOperator": 49,
+    "dashboardConfigured": 27,
+    "dashboardSpecific": 14,
+    "dashboardGeneric": 34,
+    "dashboardStatic": 46
+  }
+}

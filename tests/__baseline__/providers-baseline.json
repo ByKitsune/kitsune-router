@@ -21,6 +21,15 @@
     "headers": {
       "anthropic-version": "2023-06-01",
       "Anthropic-Beta": "interleaved-thinking-2025-05-14"
+    },
+    "modelsFetcher": {
+      "url": "https://api.anthropic.com/v1/models",
+      "type": "anthropic",
+      "authHeader": "x-api-key",
+      "headers": {
+        "anthropic-version": "2023-06-01"
+      },
+      "pagination": "anthropic"
     }
   },
   "antigravity": {
@@ -97,11 +106,11 @@
       "Anthropic-Version": "2023-06-01",
       "Anthropic-Beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05,structured-outputs-2025-12-15,fast-mode-2026-02-01,redact-thinking-2026-02-12,tool-search-tool-2025-10-19,dangerous-tool-use-2026-09-03,inline-tools-2026-09-15,advanced-tool-use-2025-11-20,effort-2025-11-24",
       "Anthropic-Dangerous-Direct-Browser-Access": "true",
-      "User-Agent": "claude-cli/2.1.306 (external, sdk-cli)",
+      "User-Agent": "claude-cli/2.1.314 (external, sdk-cli)",
       "X-App": "cli",
       "X-Stainless-Helper-Method": "stream",
       "X-Stainless-Retry-Count": "0",
-      "X-Stainless-Runtime-Version": "v24.14.0",
+      "X-Stainless-Runtime-Version": "v24.19.0",
       "X-Stainless-Package-Version": "0.128.0",
       "X-Stainless-Runtime": "node",
       "X-Stainless-Lang": "js",
@@ -128,7 +137,26 @@
       "settingsUrl": "https://api.anthropic.com/v1/settings"
     },
     "clientId": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-    "tokenUrl": "https://api.anthropic.com/v1/oauth/token"
+    "tokenUrl": "https://platform.claude.com/v1/oauth/token",
+    "modelsFetcher": {
+      "url": "https://api.anthropic.com/v1/models",
+      "type": "anthropic",
+      "pagination": "anthropic",
+      "authHeader": "x-api-key",
+      "headers": {
+        "anthropic-version": "2023-06-01"
+      },
+      "authProfiles": {
+        "oauth": {
+          "authHeader": "Authorization",
+          "authPrefix": "Bearer ",
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20",
+            "User-Agent": "claude-cli/2.1.314 (external, sdk-cli)"
+          }
+        }
+      }
+    }
   },
   "cline": {
     "baseUrl": "https://api.cline.bot/api/v1/chat/completions",
@@ -175,7 +203,7 @@
     "forceStream": true,
     "thinkingFormat": "openai",
     "headers": {
-      "User-Agent": "CLI/2.171.0 CodeBuddy/2.171.0",
+      "User-Agent": "CLI/2.179.0 CodeBuddy/2.179.0",
       "X-Product": "SaaS",
       "X-IDE-Type": "CLI",
       "X-IDE-Name": "CLI",
@@ -199,7 +227,7 @@
     "forceStream": true,
     "headers": {
       "originator": "codex_cli_rs",
-      "User-Agent": "codex_cli_rs/0.163.0"
+      "User-Agent": "codex_cli_rs/0.166.0"
     },
     "usage": {
       "url": "https://chatgpt.com/backend-api/wham/usage",
@@ -222,7 +250,7 @@
     "format": "commandcode",
     "forceStream": true,
     "headers": {
-      "x-command-code-version": "1.88.0",
+      "x-command-code-version": "1.88.2",
       "User-Agent": "cli",
       "x-cli-environment": "production"
     }
@@ -288,7 +316,7 @@
   "gemini-cli": {
     "baseUrl": "https://cloudcode-pa.googleapis.com/v1internal",
     "format": "gemini-cli",
-    "cliVersion": "0.62.0",
+    "cliVersion": "0.66.0",
     "apiClient": "google-genai-sdk/1.30.0 gl-node/v22.19.0",
     "usage": {
       "quotaUrl": "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
@@ -312,6 +340,12 @@
         "header": "Authorization",
         "scheme": "bearer"
       }
+    },
+    "modelsFetcher": {
+      "url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "type": "gemini",
+      "authHeader": "x-goog-api-key",
+      "pagination": "google"
     }
   },
   "github": {
@@ -320,9 +354,9 @@
     "messagesUrl": "https://api.githubcopilot.com/v1/messages",
     "headers": {
       "copilot-integration-id": "vscode-chat",
-      "editor-version": "vscode/1.143.0",
-      "editor-plugin-version": "copilot-chat/0.71.0",
-      "user-agent": "GitHubCopilotChat/0.71.0",
+      "editor-version": "vscode/1.144.0",
+      "editor-plugin-version": "copilot-chat/0.72.0",
+      "user-agent": "GitHubCopilotChat/0.72.0",
       "openai-intent": "conversation-panel",
       "x-github-api-version": "2026-08-01",
       "x-vscode-user-agent-library-version": "electron-fetch",
@@ -331,9 +365,9 @@
       "Content-Type": "application/json"
     },
     "copilot": {
-      "vscodeVersion": "1.143.0",
-      "chatVersion": "0.71.0",
-      "userAgent": "GitHubCopilotChat/0.71.0",
+      "vscodeVersion": "1.144.0",
+      "chatVersion": "0.72.0",
+      "userAgent": "GitHubCopilotChat/0.72.0",
       "apiVersion": "2026-08-01"
     },
     "usage": {
@@ -490,7 +524,7 @@
     "baseUrl": "https://llm.kimchi.dev/openai/v1/chat/completions",
     "format": "openai",
     "headers": {
-      "User-Agent": "kimchi/1.17.0"
+      "User-Agent": "kimchi/1.25.0"
     },
     "auth": {
       "combined": true,
@@ -689,7 +723,11 @@
     "quirks": {
       "dropClientMetadata": true
     },
-    "format": "openai"
+    "format": "openai",
+    "modelsFetcher": {
+      "url": "https://api.mistral.ai/v1/models",
+      "type": "mistral"
+    }
   },
   "mmf": {
     "baseUrl": "https://api.xiaomimimo.com/api/free-ai/openai/chat",
@@ -728,8 +766,14 @@
     },
     "format": "openai",
     "transports": [
-      { "format": "openai", "baseUrl": "https://api.openai.com/v1/chat/completions" },
-      { "format": "openai-responses", "baseUrl": "https://api.openai.com/v1/responses" }
+      {
+        "format": "openai",
+        "baseUrl": "https://api.openai.com/v1/chat/completions"
+      },
+      {
+        "format": "openai-responses",
+        "baseUrl": "https://api.openai.com/v1/responses"
+      }
     ]
   },
   "opencode-go": {

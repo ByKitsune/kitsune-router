@@ -73,18 +73,19 @@ describe("pinned exact-product capability refresh", () => {
   it("publishes source scope and date without publishing raw capture identifiers", () => {
     const result = getPublicModelMetadata(...catalogModel, getCapabilitiesForModel(...catalogModel));
     expect(result.capabilityCatalog).toMatchObject({
-      source: "https://models.dev/api.json", asOf: "2026-10-29", product: "perplexity-agent",
+      source: "https://models.dev/api.json", asOf: "2026-10-30", product: "perplexity-agent",
       model: "google/gemini-3.8-flash", authenticatedRouteVerified: false,
     });
     expect(JSON.stringify(result.capabilityCatalog)).not.toMatch(/[a-f0-9]{40,64}/);
-    expect(MODELS_DEV_CAPABILITY_SOURCE.retrieval).toMatch(/not an HTTP API capture/);
+    expect(MODELS_DEV_CAPABILITY_SOURCE.retrieval).toMatch(/not an HTTP API (?:response )?capture/);
+    expect(MODELS_DEV_CAPABILITY_SOURCE.commit).toBe("971a07c53cdb688185015776b76151d514b7bde5");
     expect(MODELS_DEV_CAPABILITY_SOURCE.sha256).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("stores one valid record per exact provider/model identity", () => {
     const identities = MODELS_DEV_CAPABILITY_REFERENCES.map(([provider, model]) => `${provider}\0${model}`);
-    expect(new Set(identities).size).toBe(397);
-    expect(identities).toHaveLength(397);
+    expect(new Set(identities).size).toBe(406);
+    expect(identities).toHaveLength(406);
     for (const [, , product, model, caps] of MODELS_DEV_CAPABILITY_REFERENCES) {
       expect(product).toBeTruthy();
       expect(model).toBeTruthy();

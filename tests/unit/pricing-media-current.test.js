@@ -61,10 +61,11 @@ describe("search quotas", () => {
 describe("github copilot + ollama cloud lineups", () => {
   it("github dropped retired models and added current ones", () => {
     const gh = ids(githubRegistry);
-    for (const id of ["gpt-5.2", "gpt-5.2-codex", "claude-opus-4.5", "claude-sonnet-4.6", "grok-code-fast-1", "gemini-2.5-pro"]) {
+    for (const id of ["gpt-5.2", "gpt-5.2-codex", "claude-opus-4.5", "claude-sonnet-4.6", "grok-code-fast-1", "gemini-2.5-pro",
+      "gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5-mini", "claude-opus-4.7", "gemini-3.6-flash", "gemini-3.7-flash", "oswe-vscode-prime"]) {
       expect(gh).not.toContain(id);
     }
-    for (const id of ["gpt-5.5", "gpt-5.6-sol", "claude-opus-5", "claude-sonnet-5", "gemini-3.6-flash", "kimi-k3"]) {
+    for (const id of ["gpt-5.3-codex", "gpt-5.6-sol", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4.5", "kimi-k3"]) {
       expect(gh).toContain(id);
     }
   });

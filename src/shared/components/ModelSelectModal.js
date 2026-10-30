@@ -17,6 +17,8 @@ const PROVIDER_ORDER = [
   ...Object.keys(FREE_TIER_PROVIDERS),
   ...Object.keys(APIKEY_PROVIDERS),
 ];
+const EMPTY_MODELS = [];
+const EMPTY_LIVE_CATALOG = {};
 
 export default function ModelSelectModal({
   isOpen,
@@ -60,56 +62,69 @@ export default function ModelSelectModal({
   const [providerNodes, setProviderNodes] = useState([]);
   const [customModels, setCustomModels] = useState([]);
   const [disabledModels, setDisabledModels] = useState({});
-  const [cursorModels, setCursorModels] = useState([]);
-  const [liveModelsByProvider, setLiveModelsByProvider] = useState({});
+  const [cursorCatalog, setCursorCatalog] = useState({ scope: null, models: EMPTY_MODELS });
+  const [liveCatalog, setLiveCatalog] = useState({ scope: null, models: EMPTY_LIVE_CATALOG });
 
   // Cursor exposes the usable catalog per account. Keep the static catalog only
   // as a fallback, since it quickly becomes stale and different accounts can
   // have different model entitlements.
   const cursorConnectionIds = useMemo(
-    () => activeProviders
+    () => filteredActiveProviders
       .filter((provider) => provider.provider === "cursor" && provider.id)
       .map((provider) => provider.id),
-    [activeProviders],
+    [filteredActiveProviders],
   );
+  const cursorScope = JSON.stringify(cursorConnectionIds);
+  const cursorModels = cursorCatalog.scope === cursorScope ? cursorCatalog.models : EMPTY_MODELS;
+  const liveConnections = useMemo(
+    () => filteredActiveProviders.filter((provider) => provider.provider !== "cursor" && provider.id),
+    [filteredActiveProviders],
+  );
+  const liveScope = JSON.stringify(liveConnections.map(({ provider, id }) => [provider, id]));
+  // Catalogs belong to the connections that supplied them. Do not offer a
+  // disabled account's old models while its replacement is still loading.
+  const liveModelsByProvider = liveCatalog.scope === liveScope ? liveCatalog.models : EMPTY_LIVE_CATALOG;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!isOpen || cursorConnectionIds.length === 0) {
-        if (!cancelled) setCursorModels([]);
         return;
       }
       try {
         const modelLists = await Promise.all(cursorConnectionIds.map(async (connectionId) => {
-          const response = await fetch(`/api/providers/${connectionId}/models`, { cache: "no-store" });
-          if (!response.ok) return [];
-          const data = await response.json();
-          return Array.isArray(data.models) ? data.models : [];
+          try {
+            const response = await fetch(`/api/providers/${connectionId}/models`, { cache: "no-store" });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return Array.isArray(data.models) ? data.models : [];
+          } catch {
+            return [];
+          }
         }));
         if (cancelled) return;
         const seen = new Set();
-        setCursorModels(modelLists.flat().filter((model) => {
+        setCursorCatalog({ scope: cursorScope, models: modelLists.flat().filter((model) => {
           if (!model?.id || seen.has(model.id)) return false;
           seen.add(model.id);
           return true;
-        }));
+        }) });
       } catch (error) {
         // Do not hide the static fallback when the account catalog is unavailable.
         console.warn("Unable to load Cursor models for selector:", error);
-        if (!cancelled) setCursorModels([]);
+        if (!cancelled) setCursorCatalog({ scope: cursorScope, models: EMPTY_MODELS });
       }
     })();
 
     return () => { cancelled = true; };
-  }, [isOpen, cursorConnectionIds]);
+  }, [isOpen, cursorConnectionIds, cursorScope]);
 
   // Live catalogs for the other connected providers (nvidia, openrouter, kiro,
   // ...). The provider detail page fetches the same endpoint, and the selector
   // needs the union so newly released models can be picked into combos.
   useEffect(() => {
     if (!isOpen) return undefined;
-    const connections = activeProviders.filter((p) => p.provider !== "cursor" && p.id);
+    const connections = liveConnections;
     if (connections.length === 0) return undefined;
 
     let cancelled = false;
@@ -137,10 +152,10 @@ export default function ModelSelectModal({
           }
           byProvider[result.provider] = existing;
         }
-        setLiveModelsByProvider(byProvider);
+        setLiveCatalog({ scope: liveScope, models: byProvider });
       });
     return () => { cancelled = true; };
-  }, [isOpen, activeProviders]);
+  }, [isOpen, liveConnections, liveScope]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -271,6 +286,12 @@ export default function ModelSelectModal({
       }
 
       if (providerInfo.passthroughModels) {
+        const liveModels = (liveModelsByProvider[providerId] || []).map((model) => ({
+          id: model.id,
+          name: model.name || model.id,
+          value: `${alias}/${model.id}`,
+          kind: getModelKind(model),
+        }));
         const aliasModels = Object.entries(modelAliases)
           .filter(([, fullModel]) => fullModel.startsWith(`${alias}/`))
           .map(([aliasName, fullModel]) => ({
@@ -298,6 +319,7 @@ export default function ModelSelectModal({
             .filter((m) => getModelKind(m) === kindFilter)
             .map((m) => ({ id: m.id, name: m.name, value: `${alias}/${m.id}`, kind: getModelKind(m) }))
             .filter((m) => !registeredTyped.some((registered) => registered.value === m.value)),
+            ...liveModels.filter((model) => getModelKind(model) === kindFilter),
           ];
           // Fallback: provider-as-model when no hardcoded models match (tts/image/webFetch only)
           if (combined.length === 0 && ALLOW_PROVIDER_FALLBACK_KINDS.has(kindFilter)) {
@@ -312,8 +334,20 @@ export default function ModelSelectModal({
             .filter((m) => !getModelKind(m) || getModelKind(m) === "llm")
             .map((m) => ({ id: m.id, name: m.name, value: `${alias}/${m.id}`, kind: getModelKind(m) }))
             .filter((m) => !seen.has(m.value));
-          combined = [...registeredLlms, ...aliasModels.filter((m) => !registeredLlms.some((registered) => registered.value === m.value)), ...hardcoded];
+          combined = [
+            ...registeredLlms,
+            ...aliasModels.filter((m) => !registeredLlms.some((registered) => registered.value === m.value)),
+            ...hardcoded,
+            ...liveModels.filter((model) => !getModelKind(model) || getModelKind(model) === "llm"),
+          ];
         }
+
+        const seen = new Set();
+        combined = combined.filter((model) => {
+          if (seen.has(model.value)) return false;
+          seen.add(model.value);
+          return true;
+        });
 
         if (combined.length > 0) {
           // Check for custom name from providerNodes (for compatible providers)
@@ -331,7 +365,7 @@ export default function ModelSelectModal({
         // Custom (openai/anthropic-compatible) providers are LLM-only — skip for typed media kinds
         if (kindFilter && TYPED_KINDS.has(kindFilter)) return;
         // Find connection object to get prefix synchronously without waiting for providerNodes fetch
-        const connection = activeProviders.find(p => p.provider === providerId);
+        const connection = filteredActiveProviders.find(p => p.provider === providerId);
         const matchedNode = providerNodes.find(node => node.id === providerId);
         const displayName = matchedNode?.name || connection?.name || providerInfo.name;
         const nodePrefix = connection?.providerSpecificData?.prefix || matchedNode?.prefix || providerId;
@@ -468,7 +502,7 @@ export default function ModelSelectModal({
     });
 
     return groups;
-  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, activeProviders, cursorModels, liveModelsByProvider, noAuthProviderIds]);
+  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, cursorModels, liveModelsByProvider, noAuthProviderIds]);
 
   // Filter combos by search query (and hide combos when kindFilter is set — combos are LLM-only by design)
   const filteredCombos = useMemo(() => {

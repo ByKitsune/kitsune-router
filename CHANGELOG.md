@@ -7,6 +7,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Client compatibility and provider catalog sync
+
+- Refresh eleven independently verified client/editor release pins while
+  retaining separately verified SDK/API and signed wire identities. Align
+  Qoder's unsigned User-Agent and Claude's runtime/OAuth production surfaces.
+- Unify bounded native and OAuth model discovery across dashboard/public
+  catalogs, preserving account/project/proxy isolation, explicit whitelists and
+  authoritative empty results. Fix disabled-account and passthrough picker
+  inconsistencies, including discovered ByKitsune models.
+- Add 11 CodeBuddy INTL and 17 OpenCode documented model routes without
+  changing existing defaults; remove eight explicitly retired Copilot fallback
+  entries while retaining operator/live selections and historical evidence.
+- Refresh the pinned reference catalog and preserve the previous complete
+  pricing observation for historical/in-flight instants. See the
+  [compatibility review](docs/audit/25-client-compatibility-and-catalog-sync-2026-10-31.md)
+  for exact sources, blocked pins and validation boundaries.
+
 ### Recorded usage accuracy and dashboard motion
 
 - Retain accepted native numeric-string usage counters, explicit zeroes and

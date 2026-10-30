@@ -7,6 +7,7 @@ import { canonicalizeProviderId } from "../identity.js";
 import { parsePricingTimestamp } from "../../config/timeOfUsePricing.js";
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "./modelsDevPricingRegistry.js";
 import currentObservation from "./modelsDevPricingCurrent.js";
+import october29Observation from "./modelsDevPricing20261029.js";
 import {
   freezePricingObservation, getObservedPricingEstimate,
   getObservedPricingReference, getObservedPricingStatus, selectPricingObservation,
@@ -195,7 +196,11 @@ const legacyObservation = freezePricingObservation({
     Object.fromEntries(Object.entries(rows).map(([id, cost]) => [id, { cost, input: ["text"], output: ["text"] }]))])),
   estimates: MODELS_DEV_PRICING_ESTIMATE_MODELS,
 });
-export const BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS = Object.freeze([legacyObservation, validatePricingObservation(currentObservation)]);
+// Keep the previously shipped whole observation available for its recorded
+// instants; refreshing the current seed must not replace an in-flight quote.
+export const BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS = Object.freeze([
+  legacyObservation, validatePricingObservation(october29Observation), validatePricingObservation(currentObservation),
+]);
 // Next bundles pricing into instrumentation and API chunks independently. Use
 // one process-wide reader, and read it on every lookup so clearing it also
 // detaches copies which previously consulted the old source.

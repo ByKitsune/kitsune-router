@@ -34,13 +34,21 @@ describe("models.dev exact-product pricing references", () => {
     expect(Object.isFrozen(MODELS_DEV_PRICING_REFERENCES.openrouter[model])).toBe(true);
   });
 
-  it("tracks the exact registry pairs as immutable reference-only records", () => {
+  it("retains exact historical registry references independently of current advertisement", () => {
     const pair = (provider, id) => JSON.stringify([provider, id]);
     const registryPairs = new Set(REGISTRY.flatMap(provider => (provider.models || []).map(entry => pair(provider.id, entry.id))));
+    // Explicit publisher retirements remove only current Copilot fallbacks;
+    // they must not delete the immutable reference used by historical quotes.
+    // github/docs@6167b6d08e8548a411a2ab1e0f3627fe6f89aaec,
+    // data/tables/copilot/model-deprecation-history.yml. No other exemptions.
+    const retiredCopilotPairs = new Set([
+      "gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5-mini", "claude-opus-4.7",
+      "gemini-3.6-flash", "gemini-3.7-flash", "oswe-vscode-prime",
+    ].map(id => pair("github", id)));
     const extracted = new Set();
     for (const [provider, id, cost] of MODELS_DEV_REGISTRY_PRICING_REFERENCES) {
       const key = pair(provider, id);
-      expect(registryPairs.has(key), key).toBe(true);
+      expect(registryPairs.has(key) || retiredCopilotPairs.has(key), key).toBe(true);
       expect(extracted.has(key), key).toBe(false);
       extracted.add(key);
       expect(getModelsDevPricingReference(provider, id), key).toMatchObject({ product: MODELS_DEV_PRICING_PRODUCTS[provider], model: id, cost });
@@ -51,12 +59,13 @@ describe("models.dev exact-product pricing references", () => {
     expect(Object.values(MODELS_DEV_PRICING_ESTIMATE_MODELS).flat()).toHaveLength(16);
     expect(Object.values(MODELS_DEV_PRICING_REFERENCES).reduce((count, models) => count + Object.keys(models).length, 0)).toBe(163);
 
-    // This checks the extraction against the current registry, not whether an
-    // omitted snapshot row exists; the full-payload verifier checks that.
+    // Current advertisement excludes seven retired Copilot products covered by
+    // this old reference (Raptor Mini has no record here). Immutable snapshot
+    // counts above stay unchanged; the full-payload verifier checks omissions.
     const covered = REGISTRY.flatMap(provider => (provider.models || []).filter(entry => Object.hasOwn(MODELS_DEV_PRICING_REFERENCES[provider.id] || {}, entry.id))
       .map(entry => pair(provider.id, entry.id)));
-    expect(covered).toHaveLength(149);
-    expect(new Set(covered).size).toBe(146);
+    expect(covered).toHaveLength(142);
+    expect(new Set(covered).size).toBe(139);
     expect(Object.isFrozen(MODELS_DEV_REGISTRY_PRICING_REFERENCES)).toBe(true);
     const tiered = MODELS_DEV_REGISTRY_PRICING_REFERENCES.find(([provider, id]) => provider === "github" && id === "gpt-5.6-luna");
     expect(Object.isFrozen(tiered)).toBe(true);

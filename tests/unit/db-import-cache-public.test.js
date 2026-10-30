@@ -287,7 +287,11 @@ describe("public database import consistency", () => {
     expect(response.status).toBe(400);
     expect(await declared.getDeclaredModelCaps("openai", "import-declared")).toBe(caps);
     expect(await modelList()).toEqual(models);
-    expect(await live.fetchProviderLiveModels("openai", "provider-old")).toBe(catalog);
+    // A rolled-back import keeps the old cached facts (the upstream now serves
+    // "new"), while each consumer receives its own mutable snapshot.
+    const retainedCatalog = await live.fetchProviderLiveModels("openai", "provider-old");
+    expect(retainedCatalog).toEqual(catalog);
+    expect(retainedCatalog).not.toBe(catalog);
     expect(await aliasFile()).toEqual({ claude: { chat: "openai/import-custom-old" } });
     expect(await db.validateApiKey("sk-test-admin-old")).toBe(true);
   });

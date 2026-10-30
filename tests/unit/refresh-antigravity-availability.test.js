@@ -18,6 +18,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/localDb", () => db);
 vi.mock("@/lib/disabledModelsDb", () => ({ getDisabledModels: db.getDisabledModels }));
 vi.mock("@/sse/services/tokenRefresh", () => ({ updateProviderCredentials: vi.fn() }));
+// This suite verifies pinned plan/lifecycle metadata, not account-specific
+// discovery. Live account behavior has separate resolver/consumer tests.
+vi.mock("open-sse/services/googleOAuthModels.js", () => ({ resolveGoogleOAuthModels: async () => null }));
 vi.mock("@/lib/network/connectionProxy", () => ({
   resolveConnectionProxyConfig: vi.fn(async () => ({})),
   pickProxyPoolId: vi.fn(),

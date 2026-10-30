@@ -1,5 +1,7 @@
 import { DefaultExecutor } from "./default.js";
 import { getCachedKimchiModelMetadata } from "../services/kimchiModels.js";
+import { KIMCHI_ORGANIZATION_HEADER, normalizeKimchiEndpoint, readKimchiOrganizationId,
+  readKimchiToken } from "../config/kimchiConfig.js";
 
 const TOP_LEVEL_OPENAI_GATEWAY_DROPS = [
   "anthropic_version",
@@ -86,15 +88,32 @@ export function stripReasoningContent(body) {
   }
 }
 
-function isAnthropicBackedKimchiModel(model) {
-  const meta = getCachedKimchiModelMetadata(model);
-  if (meta?.provider === "anthropic" || meta?.upstreamProvider === "anthropic") return true;
+function isAnthropicBackedKimchiModel(model, credentials) {
+  const meta = getCachedKimchiModelMetadata(model, credentials);
+  const provider = meta?.upstreamProvider || meta?.provider;
+  if (provider) return provider === "anthropic";
   return /(^|[-_/])(?:claude|anthropic)(?:[-_/]|$)/i.test(String(model || ""));
 }
 
 export class KimchiExecutor extends DefaultExecutor {
   constructor() {
     super("kimchi");
+  }
+
+  buildUrl(model, stream, urlIndex = 0, credentials = null) {
+    const endpoint = credentials?.providerSpecificData?.kimchiEndpoint;
+    if (!endpoint || credentials?.runtimeTransport?.baseUrl) return super.buildUrl(model, stream, urlIndex, credentials);
+    return `${normalizeKimchiEndpoint(endpoint)}/openai/v1/chat/completions`;
+  }
+
+  buildHeaders(credentials, stream = true, url, model, body = null) {
+    const token = readKimchiToken(credentials);
+    const resolved = !credentials?.apiKey && !credentials?.accessToken && token
+      ? { ...credentials, apiKey: token } : credentials;
+    const headers = super.buildHeaders(resolved, stream, url, model, body);
+    const organizationId = readKimchiOrganizationId(credentials);
+    if (organizationId) headers[KIMCHI_ORGANIZATION_HEADER] = organizationId;
+    return headers;
   }
 
   transformRequest(model, body, stream, credentials) {
@@ -107,7 +126,7 @@ export class KimchiExecutor extends DefaultExecutor {
     }
     delete transformed.system;
 
-    if (isAnthropicBackedKimchiModel(model)) {
+    if (isAnthropicBackedKimchiModel(model, credentials)) {
       delete transformed.reasoning_effort;
       delete transformed.reasoning;
       delete transformed.thinking;

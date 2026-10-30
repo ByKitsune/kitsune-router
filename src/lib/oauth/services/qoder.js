@@ -5,6 +5,7 @@ import {
 } from "../../qoder/constants.js";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import { QODER_CLI_USER_AGENT } from "open-sse/config/clientVersions.js";
 
 /**
  * Qoder OAuth Service
@@ -104,7 +105,7 @@ export class QoderService {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "Go-http-client/2.0",
+        "User-Agent": QODER_CLI_USER_AGENT,
       },
     });
 
@@ -160,7 +161,7 @@ export class QoderService {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: "application/json",
-          "User-Agent": "Go-http-client/2.0",
+          "User-Agent": QODER_CLI_USER_AGENT,
         },
       });
       if (!response.ok) return { name: "", email: "" };

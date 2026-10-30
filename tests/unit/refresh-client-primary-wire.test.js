@@ -32,8 +32,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// Publisher captures 2026-10-21: Claude npm latest 2.1.306 (delayed stable
-// 2.1.304), Codex rust-v0.163.0, Gemini v0.65.0. Literal expectations are
+// Publisher captures 2026-10-31: Claude npm latest 2.1.314 (delayed stable
+// 2.1.308), Codex rust-v0.166.0; Google expectations retain their own evidence.
+// Literal expectations are
 // independent of the constants under test. These catch stale wire identities,
 // a separately stale catalog query, and accidental SDK/runtime co-bumps.
 describe("refreshed primary client wire identities", () => {
@@ -48,7 +49,7 @@ describe("refreshed primary client wire identities", () => {
     const expectedPayload = {
       ...structuredClone(body),
       system: [
-        { type: "text", text: expect.stringMatching(/^x-anthropic-billing-header: cc_version=2\.1\.306\.[0-9a-f]{3}; cc_entrypoint=cli; cch=00000;$/) },
+        { type: "text", text: expect.stringMatching(/^x-anthropic-billing-header: cc_version=2\.1\.314\.[0-9a-f]{3}; cc_entrypoint=cli; cch=00000;$/) },
         { type: "text", text: "Keep the caller's instruction." },
       ],
     };
@@ -63,12 +64,12 @@ describe("refreshed primary client wire identities", () => {
     const request = outbound();
     const payload = JSON.parse(request.body);
     expect(request.url).toBe("https://api.anthropic.com/v1/messages?beta=true");
-    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.306 (external, sdk-cli)");
+    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.314 (external, sdk-cli)");
     expect(payload).toEqual(expectedPayload);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-claude-oauth");
     expect(request.headers.get("x-claude-code-session-id")).toBe("caller-session");
     expect(request.headers.get("x-stainless-package-version")).toBe("0.128.0");
-    expect(request.headers.get("x-stainless-runtime-version")).toBe("v24.14.0");
+    expect(request.headers.get("x-stainless-runtime-version")).toBe(process.version);
     expect(request.headers.get("anthropic-beta")).not.toContain("timing-2026-09-09");
   });
 
@@ -91,8 +92,8 @@ describe("refreshed primary client wire identities", () => {
     });
     const request = outbound();
     expect(request.url).toBe("https://chatgpt.com/backend-api/codex/responses");
-    expect(request.headers.get("user-agent")).toBe("codex_cli_rs/0.163.0");
-    expect(request.headers.get("version")).toBe("0.163.0");
+    expect(request.headers.get("user-agent")).toBe("codex_cli_rs/0.166.0");
+    expect(request.headers.get("version")).toBe("0.166.0");
     expect(request.headers.get("originator")).toBe("codex_cli_rs");
     expect(request.headers.get("chatgpt-account-id")).toBe("caller-workspace");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-codex-oauth");
@@ -111,8 +112,8 @@ describe("refreshed primary client wire identities", () => {
 
   it("uses the same stable Codex release on the image header builder", () => {
     const headers = new Headers(codexImages.buildHeaders({ accessToken: "fixture-image-token", providerSpecificData: { chatgptAccountId: "fixture-image-account" } }));
-    expect(headers.get("user-agent")).toBe("codex_cli_rs/0.163.0");
-    expect(headers.get("version")).toBe("0.163.0");
+    expect(headers.get("user-agent")).toBe("codex_cli_rs/0.166.0");
+    expect(headers.get("version")).toBe("0.166.0");
     expect(headers.get("chatgpt-account-id")).toBe("fixture-image-account");
     expect(headers.get("authorization")).toBe("Bearer fixture-image-token");
   });
@@ -124,7 +125,7 @@ describe("refreshed primary client wire identities", () => {
     expect(response.status).toBe(200);
     expect((await response.json()).models).toContainEqual(expect.objectContaining({ id: "fixture-model" }));
     const request = outbound();
-    expect(request.url).toBe("https://chatgpt.com/backend-api/codex/models?client_version=0.163.0");
+    expect(request.url).toBe("https://chatgpt.com/backend-api/codex/models?client_version=0.166.0");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-codex-oauth");
     expect(request.headers.get("originator")).toBe("codex_cli_rs");
@@ -139,7 +140,7 @@ describe("refreshed primary client wire identities", () => {
     await new GeminiCLIExecutor().execute({ model: "fixture-model", body, stream: false, credentials: { accessToken: "fixture-google-oauth", projectId: "caller-project" } });
     const request = outbound();
     expect(request.url).toBe("https://cloudcode-pa.googleapis.com/v1internal:generateContent");
-    expect(request.headers.get("user-agent")).toBe(`GeminiCLI/0.65.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) google-api-nodejs-client/10.9.0`);
+    expect(request.headers.get("user-agent")).toBe(`GeminiCLI/0.66.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) google-api-nodejs-client/10.9.0`);
     expect(request.headers.get("x-goog-api-client")).toBe(`gl-node/${process.version.replace(/^v/, "")}`);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-google-oauth");
     expect(JSON.parse(request.body)).toEqual(expectedPayload);
@@ -163,7 +164,7 @@ describe("unchanged primary client boundaries", () => {
     proxyAwareFetch.mockResolvedValue(json({ models: [{ id: "fixture-model" }] }));
     const response = await getModels({ nextUrl: new URL("http://localhost/api/providers/fixture-gemini/models?refresh=1") }, { params: Promise.resolve({ id: "fixture-gemini" }) });
     expect(response.status).toBe(200);
-    expect((await response.json()).models).toEqual([{ id: "fixture-model", name: "fixture-model" }]);
+    expect((await response.json()).models).toEqual([{ id: "fixture-model", name: "fixture-model", kind: "llm" }]);
     const request = outbound();
     expect(request.url).toBe("https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels");
     expect(request.headers.get("user-agent")).toBe("google-api-nodejs-client/10.9.0");

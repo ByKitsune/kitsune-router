@@ -1,4 +1,5 @@
-import { CLAUDE_CLI_SPOOF_HEADERS } from "../shared.js";
+import { ANTHROPIC_API_VERSION, CLAUDE_CLI_SPOOF_HEADERS } from "../shared.js";
+import { CLAUDE_CLI_USER_AGENT, CLAUDE_OAUTH_BETA_FLAG } from "../../config/clientVersions.js";
 
 export default {
   id: "claude",
@@ -22,6 +23,23 @@ export default {
     format: "claude",
     urlSuffix: "?beta=true",
     headers: { ...CLAUDE_CLI_SPOOF_HEADERS },
+    modelsFetcher: {
+      url: "https://api.anthropic.com/v1/models",
+      type: "anthropic",
+      pagination: "anthropic",
+      authHeader: "x-api-key",
+      headers: { "anthropic-version": ANTHROPIC_API_VERSION },
+      authProfiles: {
+        oauth: {
+          authHeader: "Authorization",
+          authPrefix: "Bearer ",
+          headers: {
+            "anthropic-beta": CLAUDE_OAUTH_BETA_FLAG,
+            "User-Agent": CLAUDE_CLI_USER_AGENT,
+          },
+        },
+      },
+    },
     quirks: {
       cloakToolsOnOAuth: true,
     },
@@ -57,8 +75,10 @@ export default {
   ],
   oauth: {
     clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-    authorizeUrl: "https://claude.ai/oauth/authorize",
-    tokenUrl: "https://api.anthropic.com/v1/oauth/token",
+    // Native 2.1.314 production ClaudeAI login and shared token exchange.
+    // The existing client grant, narrow scopes and caller redirect stay intact.
+    authorizeUrl: "https://claude.com/cai/oauth/authorize",
+    tokenUrl: "https://platform.claude.com/v1/oauth/token",
     scopes: [
       "org:create_api_key",
       "user:profile",

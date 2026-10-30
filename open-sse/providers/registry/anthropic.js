@@ -16,6 +16,15 @@ export default {
   transport: {
     baseUrl: "https://api.anthropic.com/v1/messages",
     format: "claude",
+    // Native API-key model discovery is not Claude Code OAuth or a public
+    // unauthenticated suggested-model feed. Cursor pages use this same origin.
+    modelsFetcher: {
+      url: "https://api.anthropic.com/v1/models",
+      type: "anthropic",
+      authHeader: "x-api-key",
+      headers: { "anthropic-version": "2023-06-01" },
+      pagination: "anthropic",
+    },
     headers: {
       "anthropic-version": "2023-06-01",
       // Native API-key traffic is not the Claude Code OAuth product.

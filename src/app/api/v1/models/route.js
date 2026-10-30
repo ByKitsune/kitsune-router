@@ -14,6 +14,8 @@ import { resolveCopilotModels } from "open-sse/services/copilotModels.js";
 import { resolveClinepassModels } from "open-sse/services/clinepassModels.js";
 import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
+import { resolveCodexModels } from "open-sse/services/codexModels.js";
+import { resolveGoogleOAuthModels } from "open-sse/services/googleOAuthModels.js";
 import { resolveZedModels } from "open-sse/shared/zedAuth.js";
 import { fetchProviderLiveModels } from "@/shared/utils/providerLiveModels";
 import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
@@ -31,6 +33,17 @@ import { errorResponse } from "open-sse/utils/error.js";
 // returns { models: [{ id, name? }, ...] } | null on failure.
 // Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
+  codex: (conn, proxyOptions) => resolveCodexModels(conn, { proxyOptions }),
+  "gemini-cli": (conn, proxyOptions) => resolveGoogleOAuthModels("gemini-cli", conn, { proxyOptions }),
+  antigravity: (conn, proxyOptions) => resolveGoogleOAuthModels("antigravity", conn, { proxyOptions }),
+  claude: async (conn, proxyOptions) => {
+    const proof = conn.apiKey || conn.accessToken;
+    const models = await fetchProviderLiveModels("claude", proof, {
+      authProfile: conn.apiKey ? undefined : "oauth",
+      proxyOptions,
+    });
+    return models?.length ? { models } : null;
+  },
   kiro: async (conn, proxyOptions) => {
     const result = await resolveKiroModels({
       accessToken: conn.accessToken,
@@ -342,7 +355,11 @@ export async function buildModelsList(kindFilter) {
     if (conn && liveResolver && !hasExplicitEnabledModels) {
       try {
         const live = await liveResolver(conn, proxyOptions);
-        if (live?.models?.length) {
+        // New native resolvers explicitly distinguish a complete empty account
+        // catalog from a failed/unknown lookup. Do not revive static models the
+        // account's complete response hid; older empty/null resolvers keep their
+        // established fallback policy. Explicit operator whitelists skip this.
+        if (Array.isArray(live?.models) && (live.models.length > 0 || live.complete === true)) {
           rawModelIds = live.models.map((m) => m.id);
           liveRows = indexModelRows(live.models, staticRows);
         }

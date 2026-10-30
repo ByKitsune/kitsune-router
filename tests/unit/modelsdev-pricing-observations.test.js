@@ -11,10 +11,12 @@ import {
   setModelsDevPricingObservationSource, validateModelsDevPricingObservation,
 } from "../../open-sse/providers/metadata/modelsDevPricing.js";
 import current from "../../open-sse/providers/metadata/modelsDevPricingCurrent.js";
+import october29 from "../../open-sse/providers/metadata/modelsDevPricing20261029.js";
 
 const model = "nvidia/nemotron-3-super-120b-a12b";
 const before = { timestamp: "2026-10-29T06:00:00Z" };
 const after = { timestamp: "2026-10-29T07:00:00Z" };
+const currentAt = { timestamp: Date.parse(current.source.verifiedAtUtc) + 3600000 };
 const source = (suffix = "a", at = "2026-10-29T08:00:00Z") => ({
   url: "https://models.dev/api.json", verifiedAtUtc: at,
   sha256: suffix.repeat(64), snapshotDate: "2026-10-29",
@@ -32,14 +34,17 @@ describe("versioned models.dev pricing observations", () => {
     expect(old).toMatchObject({ input: 0.3, output: 2.4, cached: null });
     expect(old.provenance.sha256).toBe("bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f");
     expect(now).toMatchObject({ input: 0.3, output: 2.4, cached: 0.15, reasoning: null });
-    expect(now.provenance).toMatchObject({ sha256: current.source.sha256, repositoryCommit: "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd" });
-    expect(getModelsDevPricingReference("openrouter", model).retrieval).toContain("not an HTTP API capture");
+    expect(now.provenance).toMatchObject({ sha256: "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b", repositoryCommit: "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd" });
+    expect(getModelsDevPricingEstimate("openrouter", model, currentAt).provenance).toMatchObject({
+      sha256: "d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c", repositoryCommit: "971a07c53cdb688185015776b76151d514b7bde5",
+    });
+    expect(getModelsDevPricingReference("openrouter", model).retrieval).toMatch(/not an HTTP API (?:response )?capture/);
     expect(getModelsDevPricingReference("openrouter", model, before).sha256).toBe(old.provenance.sha256);
   });
 
   it("covers dynamic exact-product IDs without borrowing another host's quote", () => {
-    expect(Object.values(current.references).reduce((sum, rows) => sum + Object.keys(rows).length, 0)).toBe(1411);
-    expect(Object.values(current.estimates).flat()).toHaveLength(359);
+    expect(Object.values(current.references).reduce((sum, rows) => sum + Object.keys(rows).length, 0)).toBe(1410);
+    expect(Object.values(current.estimates).flat()).toHaveLength(357);
     expect(getPricingForModel("mistral", "devstral-2512", after)).toMatchObject({ input: 0.4, output: 2 });
     expect(getPricingForModel("unknown-host", "devstral-2512", after)).toBeNull();
     expect(getPricingForModel("openrouter", model, after).input).toBe(0.3);
@@ -48,7 +53,7 @@ describe("versioned models.dev pricing observations", () => {
   });
 
   it("uses a current explicit cached rate but does not invent reasoning or speed tariffs", () => {
-    const quote = getPricingForModel("openrouter", model, after);
+    const quote = getPricingForModel("openrouter", model, currentAt);
     expect(calculateCostBreakdown({ prompt_tokens: 1000000, cached_tokens: 100000, completion_tokens: 1000000 }, quote).totalCost).toBeCloseTo(2.685);
     expect(calculateCostBreakdown({ prompt_tokens: 100, completion_tokens: 100, reasoning_tokens: 10 }, quote).totalCost).toBeNull();
     expect(calculateCostBreakdown({ prompt_tokens: 100, completion_tokens: 100, actualServiceTier: "fast" }, quote).totalCost).toBeNull();
@@ -127,7 +132,8 @@ describe("versioned models.dev pricing observations", () => {
   });
 
   it("keeps current generated source and importer check mode offline and deterministic", () => {
-    expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS[1]).toBe(current);
+    expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS[1]).toBe(october29);
+    expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS.at(-1)).toBe(current);
     const directory = mkdtempSync(join(tmpdir(), "pricing-source-check-"));
     try {
       const snapshot = join(directory, "snapshot.json"), evidence = join(directory, "evidence.json");

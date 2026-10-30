@@ -72,5 +72,16 @@ export default {
     // 9Router 5cd4a756; exact ID and Chat lane in OpenCode Go's model table.
     { id: "kimi-k3.1-pro", name: "Kimi K3.1 Pro", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", targetFormat: "openai", supportedFormats: ["openai"] },
+    // Exact hosted routes from official OpenCode v1.19.5 documentation.
+    {"id": "grok-4.6", "name": "Grok 4.6", "targetFormat": "openai-responses", "supportedFormats": ["openai-responses"]},
+    {"id": "gpt-5.6-luna", "name": "GPT 5.6 Luna", "targetFormat": "openai-responses", "supportedFormats": ["openai-responses"]},
+    {"id": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "targetFormat": "claude", "supportedFormats": ["claude"]},
+    {"id": "longcat-2.0", "name": "LongCat-2.0", "targetFormat": "openai", "supportedFormats": ["openai"]},
+    {"id": "step-5-preview-free", "name": "Step 5 Preview Free", "targetFormat": "openai", "supportedFormats": ["openai"]},
+    {"id": "muse-spark-1.3-contributor", "name": "Muse Spark 1.3 Contributor", "targetFormat": "openai-responses", "supportedFormats": ["openai-responses"]},
+    {"id": "muse-spark-1.2-contributor", "name": "Muse Spark 1.2 Contributor", "targetFormat": "openai-responses", "supportedFormats": ["openai-responses"]},
+    {"id": "hy4-preview", "name": "Hy4 preview", "targetFormat": "openai", "supportedFormats": ["openai"]},
+    {"id": "hy3", "name": "Hy3", "targetFormat": "openai", "supportedFormats": ["openai"]},
+    {"id": "space-bunny", "name": "Space Bunny", "targetFormat": "openai", "supportedFormats": ["openai"]},
   ],
 };

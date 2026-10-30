@@ -9,6 +9,7 @@ import {
 } from "../../open-sse/providers/metadata/modelsDevPricing.js";
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "../../open-sse/providers/metadata/modelsDevPricingRegistry.js";
 import { EXPECTED_MODELS_DEV_EXTRACTION_SHA256, serializeModelsDevExtraction } from "../../scripts/modelsdev-pricing-extraction-digest.mjs";
+import { verifyModelsDevRegistryMembership } from "../../scripts/modelsdev-pricing-registry-membership.mjs";
 
 const verifier = fileURLToPath(new URL("../../scripts/verify-modelsdev-pricing.mjs", import.meta.url));
 const hash = value => createHash("sha256").update(value, "utf8").digest("hex");
@@ -42,7 +43,8 @@ describe("offline models.dev extraction verification", () => {
       snapshotVerification: "unavailable without the original full snapshot",
       snapshotRegistryCompleteness: "not independently verified without the original full snapshot",
       snapshotEstimateEligibility: "modalities not independently verified without the original full snapshot",
-      referencedRegistryRows: 149, referencedRegistryPairs: 146, extractedRegistryPairs: 123, references: 163, estimates: 16,
+      referencedRegistryRows: 142, referencedRegistryPairs: 139, historicalRetiredRegistryPairs: 5,
+      extractedRegistryPairs: 123, references: 163, estimates: 16,
     });
     expect(JSON.parse(result.stdout)).not.toHaveProperty("verifiedSnapshotSha256");
   });
@@ -58,5 +60,35 @@ describe("offline models.dev extraction verification", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("verifies an approved retired reference without requiring current advertisement", () => {
+    const provider = "github", model = "claude-opus-4.7";
+    const key = JSON.stringify([provider, model]);
+    const cost = MODELS_DEV_PRICING_REFERENCES[provider][model];
+    const input = { rows: [[provider, model, structuredClone(cost)]], references: MODELS_DEV_PRICING_REFERENCES,
+      currentPairs: new Set(), verifiedSnapshotPairs: new Set([key]) };
+    expect(verifyModelsDevRegistryMembership(input)).toEqual({ extractedPairs: new Set([key]), retiredPairs: new Set([key]) });
+    // A retirement is never an exemption from literal full-snapshot evidence.
+    expect(() => verifyModelsDevRegistryMembership({ ...input, verifiedSnapshotPairs: new Set() })).toThrow("Not a unique exact registry pair");
+  });
+
+  it.each([
+    ["github", "unreviewed-missing-model"], ["github", "gpt-5.6-luna"],
+    ["openai", "gpt-5.5"], ["gh", "gpt-5.5"], ["github", "GPT-5.5"],
+  ])("does not allow an unreviewed missing current pair %s/%s", (provider, model) => {
+    const cost = { input: 1, output: 2 };
+    expect(() => verifyModelsDevRegistryMembership({ rows: [[provider, model, cost]],
+      references: { [provider]: { [model]: cost } }, currentPairs: new Set() })).toThrow("Not a unique exact registry pair");
+  });
+
+  it("rejects duplicated, altered or unsupported costs even for an approved retired model", () => {
+    const provider = "github", model = "gpt-5.5";
+    const cost = structuredClone(MODELS_DEV_PRICING_REFERENCES[provider][model]);
+    const row = [provider, model, cost];
+    const input = { rows: [row], references: MODELS_DEV_PRICING_REFERENCES, currentPairs: new Set() };
+    expect(() => verifyModelsDevRegistryMembership({ ...input, rows: [row, structuredClone(row)] })).toThrow("Not a unique exact registry pair");
+    expect(() => verifyModelsDevRegistryMembership({ ...input, rows: [[provider, model, { ...cost, input: 999 }]] })).toThrow("Not a unique exact registry pair");
+    expect(() => verifyModelsDevRegistryMembership({ ...input, references: {} })).toThrow("Not a unique exact registry pair");
   });
 });

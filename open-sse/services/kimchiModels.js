@@ -3,46 +3,35 @@ import { createHash } from "crypto";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
 import { KIMCHI_USER_AGENT } from "../config/clientVersions.js";
+import { KIMCHI_API_BASE, KIMCHI_CATALOG_CONFIG, KIMCHI_ORGANIZATION_HEADER,
+  normalizeKimchiEndpoint, readKimchiOrganizationId, readKimchiToken } from "../config/kimchiConfig.js";
 
-export const KIMCHI_API = "https://llm.kimchi.dev";
+export const KIMCHI_API = KIMCHI_API_BASE;
 // KIMCHI_USER_AGENT is single-sourced from open-sse/config/clientVersions.js
 // (verified 2026-08-25 against kimchi.dev landing page + getkimchi/kimchi repo).
 // Re-exported here for legacy callers that import from this module.
 export { KIMCHI_USER_AGENT };
 
-const FETCH_TIMEOUT_MS = 20_000;
-const CACHE_TTL_MS = 5 * 60 * 1000;
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 
 /** @type {Map<string, { expiresAt: number, models: object[], rawModels: object[] }>} */
 const catalogCache = new Map();
-/** @type {Map<string, object>} */
-const metadataByModelId = new Map();
-
-function normalizeKimchiEndpoint(endpoint) {
-  const raw = typeof endpoint === "string" ? endpoint.trim() : "";
-  return (raw || KIMCHI_API).replace(/\/+$/, "");
-}
+const metadataByScope = new Map();
 
 export function buildKimchiModelsUrl(endpoint) {
   return `${normalizeKimchiEndpoint(endpoint)}/v1/models/metadata?include_in_cli=true`;
 }
 
-function readToken(credentials) {
-  return (
-    credentials?.accessToken
-    || credentials?.apiKey
-    || credentials?.providerSpecificData?.apiKey
-    || null
-  );
+function cacheKey(credentials, endpoint) {
+  return createHash("sha256")
+    .update(JSON.stringify([normalizeKimchiEndpoint(endpoint), readKimchiToken(credentials), readKimchiOrganizationId(credentials)]))
+    .digest("hex");
 }
 
-function cacheKey(credentials, endpoint) {
-  const psd = credentials?.providerSpecificData || {};
-  const seed = psd.userId || psd.username || credentials?.refreshToken || readToken(credentials) || "anonymous";
-  return createHash("sha256")
-    .update(`kimchi:${normalizeKimchiEndpoint(endpoint)}:${seed}`)
-    .digest("hex");
+function setBounded(cache, key, value) {
+  cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > KIMCHI_CATALOG_CONFIG.maxEntries) cache.delete(cache.keys().next().value);
 }
 
 function toModelKind(inputModalities) {
@@ -94,24 +83,25 @@ export function normalizeKimchiModel(item) {
   return model;
 }
 
-function rememberModels(models) {
-  for (const model of models || []) {
-    if (!model?.id) continue;
-    metadataByModelId.set(model.id, model);
-    metadataByModelId.set(model.id.toLowerCase(), model);
-  }
+function rememberModels(scope, models, expiresAt) {
+  setBounded(metadataByScope, scope, { expiresAt, models: new Map(models.map(model => [model.id, model])) });
 }
 
-export function getCachedKimchiModelMetadata(modelId) {
-  if (typeof modelId !== "string" || modelId.trim() === "") return null;
-  const raw = modelId.includes("/") ? modelId.split("/").pop() : modelId;
-  return metadataByModelId.get(raw) || metadataByModelId.get(raw.toLowerCase()) || null;
+export function getCachedKimchiModelMetadata(modelId, credentials, options = {}) {
+  if (typeof modelId !== "string" || !modelId || !readKimchiToken(credentials)) return null;
+  const endpoint = credentials?.providerSpecificData?.kimchiEndpoint || options.endpoint || KIMCHI_API;
+  const scope = cacheKey(credentials, endpoint);
+  const entry = metadataByScope.get(scope);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) { metadataByScope.delete(scope); return null; }
+  // Literal hosted IDs are case-sensitive; do not invent vendor/slash aliases.
+  return entry.models.get(modelId) || null;
 }
 
 async function fetchKimchiCatalogRaw(token, endpoint, options = {}) {
   const url = buildKimchiModelsUrl(endpoint);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(new Error("Kimchi models fetch timeout")), FETCH_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(new Error("Kimchi models fetch timeout")), KIMCHI_CATALOG_CONFIG.fetchTimeoutMs);
   const signal = options.signal
     ? AbortSignal.any([options.signal, controller.signal])
     : controller.signal;
@@ -123,6 +113,7 @@ async function fetchKimchiCatalogRaw(token, endpoint, options = {}) {
         "Accept": "application/json",
         "Authorization": `Bearer ${token}`,
         "User-Agent": KIMCHI_USER_AGENT,
+        ...(options.organizationId ? { [KIMCHI_ORGANIZATION_HEADER]: options.organizationId } : {}),
       },
       cache: "no-store",
       signal,
@@ -143,20 +134,25 @@ async function fetchKimchiCatalogRaw(token, endpoint, options = {}) {
 }
 
 export async function resolveKimchiModels(credentials, options = {}) {
-  const token = readToken(credentials);
+  const token = readKimchiToken(credentials);
   if (!token) return null;
 
   const endpoint = credentials?.providerSpecificData?.kimchiEndpoint || options.endpoint || KIMCHI_API;
-  const key = JSON.stringify([cacheKey(credentials, endpoint), getRefreshProxyKey(options.proxyOptions)]);
+  const scope = cacheKey(credentials, endpoint);
+  const key = JSON.stringify([scope, getRefreshProxyKey(options.proxyOptions)]);
   const now = Date.now();
   if (!options.forceRefresh) {
     const cached = catalogCache.get(key);
-    if (cached && cached.expiresAt > now) return cached;
+    if (cached && cached.expiresAt > now) {
+      rememberModels(scope, cached.models, cached.expiresAt);
+      return cached;
+    }
+    if (cached) catalogCache.delete(key);
   }
 
   let rawModels;
   try {
-    rawModels = await fetchKimchiCatalogRaw(token, endpoint, options);
+    rawModels = await fetchKimchiCatalogRaw(token, endpoint, { ...options, organizationId: readKimchiOrganizationId(credentials) });
   } catch (error) {
     if (error?.message?.includes("strictProxy=true")) throw error;
     options.log?.warn?.("KIMCHI_MODELS", error.message);
@@ -166,17 +162,17 @@ export async function resolveKimchiModels(credentials, options = {}) {
   const models = rawModels.map(normalizeKimchiModel).filter(Boolean);
   if (models.length === 0) return null;
 
-  rememberModels(models);
   const entry = {
-    expiresAt: Date.now() + CACHE_TTL_MS,
+    expiresAt: Date.now() + KIMCHI_CATALOG_CONFIG.ttlMs,
     models,
     rawModels,
   };
-  catalogCache.set(key, entry);
+  rememberModels(scope, models, entry.expiresAt);
+  setBounded(catalogCache, key, entry);
   return entry;
 }
 
 export function clearKimchiCatalog() {
   catalogCache.clear();
-  metadataByModelId.clear();
+  metadataByScope.clear();
 }

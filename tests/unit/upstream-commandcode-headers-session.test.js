@@ -64,7 +64,7 @@ describe("CommandCode CLI identity", () => {
       "user-agent": "cli",
       "x-cli-environment": "production",
       "x-cli-surface": "cli",
-      "x-command-code-version": "1.88.0",
+      "x-command-code-version": "1.88.2",
       "x-project-slug": "my-work-repo",
       "x-session-id": "fixture-thread",
       "x-taste-learning": "false",

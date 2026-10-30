@@ -18,75 +18,20 @@ import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
+import { resolveGoogleOAuthModels } from "open-sse/services/googleOAuthModels.js";
+import { resolveCodexModels } from "open-sse/services/codexModels.js";
 import { fetchProviderLiveModels, normalizeLiveModel } from "@/shared/utils/providerLiveModels";
 import {
-  CODEX_MODELS_CLIENT_VERSION,
   VSCODE_VERSION,
   COPILOT_CHAT_VERSION,
   COPILOT_USER_AGENT,
   COPILOT_API_VERSION,
-  GEMINI_AUTH_USER_AGENT,
-  GEMINI_CLI_API_CLIENT,
 } from "open-sse/config/clientVersions.js";
-
-const GEMINI_CLI_MODELS_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
-
-// The /codex/models endpoint gates each entry by minimal_client_version against this
-// value. Sourced from open-sse/config/clientVersions.js so it tracks the
-// runtime codex CLI version (codex-rs/models-manager/models.json requires
-// 0.144.0+ for newest models — a stale client_version comes back 200 with
-// those entries quietly missing instead of erroring).
-const CODEX_CLIENT_VERSION = CODEX_MODELS_CLIENT_VERSION;
-const CODEX_MODELS_URL = `https://chatgpt.com/backend-api/codex/models?client_version=${CODEX_CLIENT_VERSION}`;
 
 const parseOpenAIStyleModels = (data) => {
   if (Array.isArray(data)) return data;
   return data?.data || data?.models || data?.results || [];
 };
-
-const parseGeminiCliModels = (data) => {
-  if (Array.isArray(data?.models)) {
-    return data.models
-      .map((item) => {
-        const id = item?.id || item?.model || item?.name;
-        if (!id) return null;
-        return { id, name: item?.displayName || item?.name || id };
-      })
-      .filter(Boolean);
-  }
-
-  if (data?.models && typeof data.models === "object") {
-    return Object.entries(data.models)
-      .filter(([, info]) => !info?.isInternal)
-      .map(([id, info]) => ({
-        id,
-        name: info?.displayName || info?.name || id,
-      }));
-  }
-
-  return [];
-};
-
-const appendCodexReviewModels = (models) => models.flatMap((model) => {
-  const id = model?.id || model?.slug || model?.model || model?.name;
-  if (!id) return [];
-  const name = model?.display_name || model?.displayName || model?.name || id;
-  const normalized = { ...model, id, name };
-  const isChatModel = (model?.type || "llm") !== "image" && !id.toLowerCase().includes("embed");
-  if (!isChatModel || id.endsWith("-review")) return [normalized];
-  return [
-    normalized,
-    {
-      ...normalized,
-      id: `${id}-review`,
-      name: `${name} Review`,
-      upstreamModelId: id,
-      quotaFamily: "review",
-    },
-  ];
-});
-
-const parseCodexModels = (data) => appendCodexReviewModels(parseOpenAIStyleModels(data));
 
 const createOpenAIModelsConfig = (url) => ({
   url,
@@ -97,6 +42,26 @@ const createOpenAIModelsConfig = (url) => ({
   parseResponse: parseOpenAIStyleModels
 });
 
+const createNativeApiModelsConfig = (provider) => ({
+  customResolver: async (connection, proxyOptions, signal) => {
+    if (!connection.apiKey) return { error: "No valid API key found", status: 401 };
+    let models;
+    try {
+      models = await fetchProviderLiveModels(provider, connection.apiKey, {
+        useCache: false, proxyOptions, signal, allowEmptyCatalog: true, throwHttpErrors: true,
+      });
+    } catch (error) {
+      signal?.throwIfAborted();
+      if (Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599) {
+        return { error: `Failed to fetch native model catalog (${error.status})`, status: error.status };
+      }
+      throw error;
+    }
+    if (!models) return { error: "Failed to fetch native model catalog", status: 502 };
+    return { models };
+  },
+});
+
 const getStaticProviderModels = (providerId) =>
   getModelsByProviderId(providerId).map((model) => ({
     ...model,
@@ -104,87 +69,70 @@ const getStaticProviderModels = (providerId) =>
     name: model.name || model.id,
   }));
 
-// Generic custom resolver for OAuth providers that need refresh-on-401 + token persist.
-// Receives a `fetchFn(token, connection, proxyOptions)` and returns parsed models or throws.
-const buildOAuthResolver = ({ refreshFn, fetchFn, parseFn, errorLabel }) => async (connection, proxyOptions) => {
-  const { accessToken, refreshToken } = connection;
-  if (!accessToken) {
-    return { error: "No valid token found", status: 401 };
-  }
-  let warning;
-  try {
-    let response = await fetchFn(accessToken, connection, proxyOptions);
-    if (!response.ok && (response.status === 401 || response.status === 403) && refreshToken) {
-      const refreshed = await refreshFn(connection, proxyOptions);
-      if (refreshed?.accessToken) {
-        await updateProviderCredentials(connection.id, {
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken || refreshToken,
-          expiresIn: refreshed.expiresIn,
-        });
-        connection.accessToken = refreshed.accessToken;
-        if (refreshed.refreshToken) connection.refreshToken = refreshed.refreshToken;
-        response = await fetchFn(refreshed.accessToken, connection, proxyOptions);
-      }
-    }
-    if (response.ok) {
-      const data = await response.json();
-      const models = parseFn(data);
-      if (models.length > 0) return { models };
-    } else {
-      const errorText = await response.text();
-      warning = `${errorLabel}: ${response.status} ${errorText}`;
-      console.log(`${errorLabel} (falling back to static):`, errorText);
-    }
-  } catch (error) {
-    if (error.message?.includes("strictProxy=true")) throw error;
-    warning = `${errorLabel}: ${error.message}`;
-    console.log(`${errorLabel} (falling back to static):`, error.message);
-  }
-  return { models: [], warning };
+const googleModelsResolver = provider => async (connection, proxyOptions, signal) => {
+  if (!connection.accessToken) return provider === "antigravity"
+    ? { models: getStaticProviderModels(provider), warning: "Live Google model catalog unavailable; using configured model suggestions." }
+    : { error: "No valid token found", status: 401 };
+  const onUnauthorized = provider === "gemini-cli" && connection.refreshToken ? async refreshSignal => {
+    const refreshed = await refreshGoogleToken(connection.refreshToken, GEMINI_CONFIG.clientId, GEMINI_CONFIG.clientSecret, proxyOptions, refreshSignal);
+    if (!refreshed?.accessToken) return null;
+    await updateProviderCredentials(connection.id, {
+      accessToken: refreshed.accessToken,
+      refreshToken: refreshed.refreshToken || connection.refreshToken,
+      expiresIn: refreshed.expiresIn,
+    });
+    connection.accessToken = refreshed.accessToken;
+    if (refreshed.refreshToken) connection.refreshToken = refreshed.refreshToken;
+    return connection;
+  } : undefined;
+  const result = await resolveGoogleOAuthModels(provider, connection, { proxyOptions, signal, forceRefresh: true, onUnauthorized });
+  if (result?.models?.length || result?.complete === true) return result;
+  return { models: getStaticProviderModels(provider), warning: "Live Google model catalog unavailable; using configured model suggestions." };
 };
 
 // Provider models endpoints configuration
 const PROVIDER_MODELS_CONFIG = {
   claude: {
-    url: "https://api.anthropic.com/v1/models",
-    method: "GET",
-    headers: {
-      "Anthropic-Version": "2023-06-01",
-      "Content-Type": "application/json"
+    customResolver: async (connection, proxyOptions) => {
+      // Match execution's credential priority and the publisher's separate
+      // API-key/OAuth models.list profiles. Never use an OAuth proof as an API key.
+      const token = connection.apiKey || connection.accessToken;
+      if (!token) return { error: "No valid token found", status: 401 };
+      const models = await fetchProviderLiveModels("claude", token, {
+        authProfile: connection.apiKey ? undefined : "oauth",
+        useCache: false,
+        proxyOptions,
+      });
+      // A failed or incomplete live catalog must not look like a successful
+      // credential check or silently advertise a partially fetched model list.
+      if (!models) return { error: "Failed to fetch complete Claude model catalog", status: 502 };
+      return { models };
     },
-    authHeader: "x-api-key",
-    parseResponse: (data) => data.data || []
   },
-  gemini: {
-    url: "https://generativelanguage.googleapis.com/v1beta/models",
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    authQuery: "key", // Use query param for API key
-    parseResponse: (data) => data.models || []
-  },
+  gemini: createNativeApiModelsConfig("gemini"),
   codex: {
-    customResolver: buildOAuthResolver({
-      refreshFn: (conn, proxyOptions) => refreshCodexToken(conn.refreshToken, proxyOptions),
-      fetchFn: (token, conn, proxyOptions) => proxyAwareFetch(CODEX_MODELS_URL, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "originator": "codex_cli_rs"
-        }
-      }, proxyOptions),
-      parseFn: parseCodexModels,
-      errorLabel: "Failed to fetch Codex models"
-    })
+    customResolver: async (connection, proxyOptions, signal) => {
+      if (!connection.accessToken) return { error: "No valid token found", status: 401 };
+      const onUnauthorized = connection.refreshToken ? async refreshSignal => {
+        const refreshed = await refreshCodexToken(connection.refreshToken, proxyOptions, refreshSignal);
+        refreshSignal.throwIfAborted();
+        if (!refreshed?.accessToken) return null;
+        await updateProviderCredentials(connection.id, {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken || connection.refreshToken,
+          expiresIn: refreshed.expiresIn,
+        });
+        refreshSignal.throwIfAborted();
+        connection.accessToken = refreshed.accessToken;
+        if (refreshed.refreshToken) connection.refreshToken = refreshed.refreshToken;
+        return refreshed;
+      } : undefined;
+      const result = await resolveCodexModels(connection, { proxyOptions, signal, forceRefresh: true, onUnauthorized });
+      return result || { models: [], warning: "Live Codex model catalog unavailable." };
+    },
   },
   antigravity: {
-    // Antigravity models are static curated / quota family; upstream Google endpoint returns 403/404 for consumer accounts
-    customResolver: async (connection) => {
-      const staticModels = getModelsByProviderId("antigravity");
-      return { models: staticModels };
-    }
+    customResolver: googleModelsResolver("antigravity")
   },
   github: {
     url: "https://api.githubcopilot.com/models",
@@ -216,16 +164,7 @@ const PROVIDER_MODELS_CONFIG = {
   },
   openai: createOpenAIModelsConfig("https://api.openai.com/v1/models"),
   openrouter: createOpenAIModelsConfig("https://openrouter.ai/api/v1/models"),
-  anthropic: {
-    url: "https://api.anthropic.com/v1/models",
-    method: "GET",
-    headers: {
-      "Anthropic-Version": "2023-06-01",
-      "Content-Type": "application/json"
-    },
-    authHeader: "x-api-key",
-    parseResponse: (data) => data.data || []
-  },
+  anthropic: createNativeApiModelsConfig("anthropic"),
 
   alicode: {
     url: "https://coding.dashscope.aliyuncs.com/v1/models",
@@ -258,7 +197,7 @@ const PROVIDER_MODELS_CONFIG = {
   deepseek: createOpenAIModelsConfig("https://api.deepseek.com/models"),
   groq: createOpenAIModelsConfig("https://api.groq.com/openai/v1/models"),
   xai: createOpenAIModelsConfig("https://api.x.ai/v1/models"),
-  mistral: createOpenAIModelsConfig("https://api.mistral.ai/v1/models"),
+  mistral: createNativeApiModelsConfig("mistral"),
   perplexity: createOpenAIModelsConfig("https://api.perplexity.ai/v1/models"),
   "perplexity-agent": createOpenAIModelsConfig("https://api.perplexity.ai/v1/models"),
   together: createOpenAIModelsConfig("https://api.together.xyz/v1/models"),
@@ -414,25 +353,7 @@ const PROVIDER_MODELS_CONFIG = {
     },
   },
   "gemini-cli": {
-    customResolver: buildOAuthResolver({
-      refreshFn: (conn, proxyOptions) => refreshGoogleToken(conn.refreshToken, GEMINI_CONFIG.clientId, GEMINI_CONFIG.clientSecret, proxyOptions),
-      fetchFn: (token, conn, proxyOptions) => {
-        const projectId = conn.projectId || conn.providerSpecificData?.projectId;
-        const body = projectId ? { project: projectId } : {};
-        return proxyAwareFetch(GEMINI_CLI_MODELS_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": GEMINI_AUTH_USER_AGENT,
-            "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT
-          },
-          body: JSON.stringify(body)
-        }, proxyOptions);
-      },
-      parseFn: parseGeminiCliModels,
-      errorLabel: "Failed to fetch Gemini CLI models"
-    })
+    customResolver: googleModelsResolver("gemini-cli")
   },
   "grok-cli": {
     customResolver: async (connection, proxyOptions) => {
@@ -595,7 +516,7 @@ export async function GET(request, { params }) {
 
     // Config-driven custom resolver path (OAuth refresh, non-OpenAI shape, etc.)
     if (typeof config.customResolver === "function") {
-      const result = await config.customResolver(connection, proxyOptions);
+      const result = await config.customResolver(connection, proxyOptions, request.signal);
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: result.status || 500 });
       }

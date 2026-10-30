@@ -68,10 +68,10 @@ describe("models.dev reference attribution in the pricing editor", () => {
     const inputs = nodes(target).filter(node => node.type === "input");
     expect(inputs[0].props.value).toBe("");
     expect(inputs[1].props.placeholder).toBe("Not specified");
-    expect(text(target)).toContain("models.dev catalog reference · 2026-10-29");
+    expect(text(target)).toContain("models.dev catalog reference · 2026-10-30");
     expect(text(target)).toContain("Reference only, not an invoice");
     expect(text(target)).toContain('"input":0.59');
-    expect(text(target)).toContain("d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b");
+    expect(text(target)).toContain("d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c");
     await modal.save();
     expect(modal.fetch.mock.calls.some(([, options]) => options?.method === "PATCH")).toBe(false);
   });

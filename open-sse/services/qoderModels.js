@@ -23,7 +23,7 @@ import { createHash } from "crypto";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
 import { buildCosyHeaders } from "../shared/qoder/cosy.js";
-import { QODER_CLI_VERSION } from "../config/clientVersions.js";
+import { QODER_CLI_USER_AGENT } from "../config/clientVersions.js";
 import {
   QODER_MODEL_LIST_URL,
   QODER_CHAT_BASE_ALT,
@@ -73,7 +73,7 @@ async function exchangeJobToken(pat, proxyOptions = null, signal = null) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "User-Agent": `qodercli/${QODER_CLI_VERSION}`,
+        "User-Agent": QODER_CLI_USER_AGENT,
         "Cosy-Version": QODER_IDE_VERSION,
         "Cosy-ClientType": QODER_CLIENT_TYPE,
       },
@@ -112,7 +112,7 @@ async function fetchUserIdForJobToken(jobToken, proxyOptions = null, signal = nu
         headers: {
           Authorization: `Bearer ${jobToken}`,
           Accept: "application/json",
-          "User-Agent": `qodercli/${QODER_CLI_VERSION}`,
+          "User-Agent": QODER_CLI_USER_AGENT,
         },
         signal,
       },

@@ -52,7 +52,11 @@ export default {
     // quirks: { dropOutputConfig: true, preservePromptCacheKey: true }, // latter: Chat endpoint accepts OpenAI prompt_cache_key on the Responses→Chat hop (default: stripped)
     // retry: { 429: { attempts: 6 }, 503: { attempts: 3 } },
     // usage: { url: "https://api.example.com/usage" }, // or { urls: [...] } for multi-call.
-    // modelsFetcher: { url: "https://api.example.com/models", type: "openai" }, // dynamic model list.
+    // modelsFetcher: { url: "https://api.example.com/models", type: "openai" }, // server-side dynamic model list.
+    // API-specific discovery may declare authHeader/authPrefix/headers here;
+    // pagination:"anthropic" follows bounded same-origin after_id pages.
+    // authProfiles can override only auth/header fields for an explicit internal
+    // credential mode. Public suggested-models UI configuration stays top-level.
     // regions: { sgp: "https://sgp...", cn: "https://cn..." }, defaultRegion: "sgp",
     // NOTE: clientId/clientSecret/tokenUrl are injected from `oauth` — do NOT duplicate here.
   },

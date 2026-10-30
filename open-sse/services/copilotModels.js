@@ -3,7 +3,7 @@
  *
  * Calls Copilot's `GET /models` endpoint to get the live catalog for an
  * authenticated account, so `/v1/models` reflects what the account can
- * actually use (e.g. newly shipped `claude-opus-4.8`, `gpt-5.5`) instead of
+ * actually use, including new releases and account-specific availability, instead of
  * the hand-maintained static registry, which inevitably lags behind.
  *
  * Returns chat-capable models the account's policy allows. Embeddings and

@@ -17,6 +17,7 @@ import { getReviewedModelMetadata } from "../open-sse/providers/metadata/reviewe
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "../open-sse/providers/metadata/modelsDevPricingRegistry.js";
 import registry from "../open-sse/providers/registry/index.js";
 import { EXPECTED_MODELS_DEV_EXTRACTION_SHA256, serializeModelsDevExtraction } from "./modelsdev-pricing-extraction-digest.mjs";
+import { verifyModelsDevRegistryMembership } from "./modelsdev-pricing-registry-membership.mjs";
 
 if (process.argv.length !== 3) throw new Error("Pass the pinned snapshot path or --extraction-only");
 const extractionOnly = process.argv[2] === "--extraction-only";
@@ -33,6 +34,7 @@ if (!extractionOnly) {
 
 let references = 0, estimates = 0, registeredRows = 0, referencedRegistryRows = 0;
 const registeredPairs = new Set(), referencedRegistryPairs = new Set(), currentRegistryPairs = new Set();
+const verifiedSnapshotPairs = catalog ? new Set() : null;
 for (const [provider, models] of Object.entries(MODELS_DEV_PRICING_REFERENCES)) {
   const product = MODELS_DEV_PRICING_PRODUCTS[provider];
   if (!product || (catalog && !Object.hasOwn(catalog, product))) throw new Error(`No catalog product for ${provider}`);
@@ -41,6 +43,7 @@ for (const [provider, models] of Object.entries(MODELS_DEV_PRICING_REFERENCES)) 
       const records = catalog[product]?.models;
       const record = records && Object.hasOwn(records, model) ? records[model] : null;
       if (!record || record.id !== model || !isDeepStrictEqual(record.cost, cost)) throw new Error(`Catalog mismatch: ${provider}/${model}`);
+      verifiedSnapshotPairs.add(JSON.stringify([provider, model]));
     }
     references++;
   }
@@ -73,15 +76,12 @@ for (const provider of registry) {
     }
   }
 }
-const extractedPairs = new Set();
-for (const [provider, model, cost] of MODELS_DEV_REGISTRY_PRICING_REFERENCES) {
-  const key = JSON.stringify([provider, model]);
-  if (!currentRegistryPairs.has(key) || (catalog && !registeredPairs.has(key)) || extractedPairs.has(key)
-    || !isDeepStrictEqual(MODELS_DEV_PRICING_REFERENCES[provider]?.[model], cost)) {
-    throw new Error(`Not a unique exact registry pair: ${provider}/${model}`);
-  }
-  extractedPairs.add(key);
-}
+const { extractedPairs, retiredPairs } = verifyModelsDevRegistryMembership({
+  rows: MODELS_DEV_REGISTRY_PRICING_REFERENCES,
+  references: MODELS_DEV_PRICING_REFERENCES,
+  currentPairs: currentRegistryPairs,
+  verifiedSnapshotPairs,
+});
 for (const [provider, models] of Object.entries(MODELS_DEV_PRICING_ESTIMATE_MODELS)) {
   if (new Set(models).size !== models.length) throw new Error(`Duplicate estimate for ${provider}`);
   for (const model of models) {
@@ -105,5 +105,7 @@ console.log(JSON.stringify({
   snapshotRegistryCompleteness: extractionOnly ? "not independently verified without the original full snapshot" : "verified against supplied full snapshot",
   snapshotEstimateEligibility: extractionOnly ? "modalities not independently verified without the original full snapshot" : "verified against supplied full snapshot",
   ...(catalog ? { verifiedSnapshotSha256: snapshotHash, registeredRows, uniqueRegisteredPairs: registeredPairs.size } : {}),
-  referencedRegistryRows, referencedRegistryPairs: referencedRegistryPairs.size, extractedRegistryPairs: extractedPairs.size, references, estimates,
+  referencedRegistryRows, referencedRegistryPairs: referencedRegistryPairs.size,
+  historicalRetiredRegistryPairs: retiredPairs.size,
+  extractedRegistryPairs: extractedPairs.size, references, estimates,
 }, null, 2));

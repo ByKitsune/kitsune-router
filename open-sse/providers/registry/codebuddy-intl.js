@@ -70,6 +70,19 @@ export default {
     { id: "deepseek-v4-pro", name: "DeepSeek-V4-Pro" },
     { id: "deepseek-v4-flash", name: "DeepSeek-V4-Flash" },
     { id: "deepseek-v3-2-volc", name: "DeepSeek-V3.2" },
+    // Published 2.179.0 product.json fallback; /v3/config remains account-specific.
+    // Advertise the selected default budget, not opt-in 1M windows.
+    {"id": "hy4-preview", "name": "Hy4 preview", "contextLength": 200000, "maxOutputTokens": 64000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "hy3", "name": "Hy3", "contextLength": 192000, "maxOutputTokens": 64000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "kimi-k2.8-preview", "name": "Kimi-K2.8-Preview", "contextLength": 300000, "maxOutputTokens": 32000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gpt-5.6-sol", "name": "GPT-5.6-Sol", "contextLength": 1000000, "maxOutputTokens": 128000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gpt-5.6-terra", "name": "GPT-5.6-Terra", "contextLength": 1000000, "maxOutputTokens": 128000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gpt-5.6-luna", "name": "GPT-5.6-Luna", "contextLength": 1000000, "maxOutputTokens": 128000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gpt-5.5", "name": "GPT-5.5", "contextLength": 1000000, "maxOutputTokens": 128000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gpt-5.4", "name": "GPT-5.4", "contextLength": 272000, "maxOutputTokens": 72000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "gemini-3.5-flash", "name": "Gemini-3.5-Flash", "contextLength": 1000000, "maxOutputTokens": 65536, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "glm-5.3-flash", "name": "GLM-5.3-Flash", "contextLength": 300000, "maxOutputTokens": 32000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    {"id": "glm-5.3", "name": "GLM-5.3", "contextLength": 1000000, "maxOutputTokens": 48000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
   ],
   oauth: {
     baseUrl: "https://www.codebuddy.ai",
