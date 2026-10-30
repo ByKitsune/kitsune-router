@@ -24,14 +24,18 @@ function explicitEnvFlag(env, name) {
   return raw.trim().toLowerCase() === "true";
 }
 
-export function resolveObservabilityEnabled(settings, env = process.env) {
+export function resolveObservabilityState(settings, env = process.env) {
   const featureFlag = explicitEnvFlag(env, "OBSERVABILITY_ENABLED");
-  if (featureFlag !== null) return featureFlag;
+  if (featureFlag !== null) return { enabled: featureFlag, source: "OBSERVABILITY_ENABLED" };
 
   const requestLogsFlag = explicitEnvFlag(env, "ENABLE_REQUEST_LOGS");
-  if (requestLogsFlag !== null) return requestLogsFlag;
+  if (requestLogsFlag !== null) return { enabled: requestLogsFlag, source: "ENABLE_REQUEST_LOGS" };
 
-  return settings?.enableObservability === true;
+  return { enabled: settings?.enableObservability === true, source: "settings" };
+}
+
+export function resolveObservabilityEnabled(settings, env = process.env) {
+  return resolveObservabilityState(settings, env).enabled;
 }
 
 async function getObservabilityConfig() {

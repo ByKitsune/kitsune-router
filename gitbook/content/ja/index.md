@@ -2,6 +2,12 @@
 
 **Your models. Your routes.** [ByKitsune](https://bykitsune.com) が保守・支援する、プロバイダー中立・ローカルファーストの AI ゲートウェイです。モデル、アカウント、フォールバック順序は利用者が選択します。ByKitsune アカウントやホスト型 API 購入は不要です。設定した上流へリクエストを送信するため、オフライン推論ではありません。
 
+## 公式 ByKitsune プロバイダー
+
+ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示されます。**Providers** で **Connect ByKitsune** を選び、[ByKitsune のキー管理画面](https://bykitsune.com/dashboard?tab=keys)から取得したキーを追加して、**Fetch Models** を選択します。API ベース URL は `https://api.bykitsune.com/v1`、認証は Bearer です。取得した `bykitsune/<model-id>` ルートを使用してください。アカウントとルーティング順序は引き続き利用者が選択します。
+
+この連携は現在のソースコード向けです。
+
 ## 公開状況
 
 **1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm はブロック中です。** 不変 runtime `65c8b97d`（9,041 成功、100 skip、失敗ゼロ）。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功。最新確認は **private**、所有者の Public 選択は完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換未確認です。ソースか許可済み private コンテナを利用し、npm コマンドは npm 配布確認後のみ使用してください。GitHub Release・production 配備なし。[証拠](/ja/changelog/)。

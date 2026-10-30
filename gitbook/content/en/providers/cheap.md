@@ -2,6 +2,12 @@
 
 The historical “cheap” category is a documentation grouping, not a routing priority or price guarantee. Choose supported providers or a compatible endpoint based on your workload, required capabilities and current contract.
 
+## Official ByKitsune provider
+
+ByKitsune is highlighted as the primary official provider. In **Providers**, select **Connect ByKitsune**, add a key from [the ByKitsune key dashboard](https://bykitsune.com/dashboard?tab=keys), then select **Fetch Models**. The API base URL is `https://api.bykitsune.com/v1` with Bearer authentication; use the discovered `bykitsune/<model-id>` routes. Accounts and routing order remain your choice.
+
+This integration describes the current source checkout.
+
 ## Add an API connection
 
 1. Obtain a provider key through that provider's official flow and confirm its terms/region.

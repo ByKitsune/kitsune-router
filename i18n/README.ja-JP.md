@@ -6,6 +6,12 @@
 
 [English](../README.md) · [リポジトリ](https://github.com/ByKitsune/kitsune-router) · [変更履歴](../CHANGELOG.md) · [移行](../docs/MIGRATION.md)
 
+## 公式 ByKitsune プロバイダー
+
+ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示されます。**Providers** で **Connect ByKitsune** を選び、[ByKitsune のキー管理画面](https://bykitsune.com/dashboard?tab=keys)から取得したキーを追加して、**Fetch Models** を選択します。API ベース URL は `https://api.bykitsune.com/v1`、認証は Bearer です。取得した `bykitsune/<model-id>` ルートを使用してください。アカウントとルーティング順序は引き続き利用者が選択します。
+
+この連携は現在のソースコード向けです。
+
 ## リリース状況とインストール
 
 **1.0.2 コンテナは private で配布済み、匿名 pull は未確認、npm はブロック中です。** 不変ソース `65c8b97d`：9,041 成功、100 skip、失敗ゼロ。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功しました。最新確認では **private** のまま：所有者は Public 変更を選びましたが完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換も未確認です。npm コマンドは npm 配布確認後のみ使用し、当面はソースか許可済み private コンテナアクセスを利用してください。GitHub Release・production 配備なし。[1.0.2 証拠](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)。

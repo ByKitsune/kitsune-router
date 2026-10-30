@@ -9,6 +9,12 @@ Danh mục cũ “giá rẻ” là nhóm tài liệu, không là ưu tiên hay c
 
 Không đưa secret vào issue/config công khai. Dùng `DATA_DIR` tuyệt đối riêng tư, backup đầy đủ; lưu local không có nghĩa mọi key mã hóa khi lưu.
 
+## Nhà cung cấp ByKitsune chính thức
+
+ByKitsune được làm nổi bật là nhà cung cấp chính thức ở đầu danh sách. Trong **Providers**, chọn **Connect ByKitsune**, thêm khóa từ [trang khóa ByKitsune](https://bykitsune.com/dashboard?tab=keys), rồi chọn **Fetch Models**. API dùng `https://api.bykitsune.com/v1` với xác thực Bearer; dùng các route `bykitsune/<model-id>` được trả về. Bạn vẫn chọn tài khoản và thứ tự định tuyến.
+
+Tích hợp này thuộc mã nguồn hiện tại.
+
 ## Giá thực tế
 
 Ngày, endpoint, context, cache, media và tier thực nhận ảnh hưởng giá. Bảng cũ “$0.20/1M” không chứng minh hóa đơn hôm nay. Dùng billing chính thức và metadata/override đã kiểm tra; chưa rõ không thành không.

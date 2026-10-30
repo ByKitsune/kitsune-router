@@ -7,6 +7,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Stability and translator latency
+
+- Reconcile parallel tool IDs and merge Claude tool-history runs with linear
+  work, preserving signed IDs, caller ownership, media and wire output. Local
+  matched-input benchmarks and exact reproduction commands are recorded in the
+  [31 October follow-up](docs/audit/23-upstream-stability-and-translator-latency-2026-10-31.md).
+- Drop empty streamed tool placeholders while preserving native terminal/usage
+  framing; retain adaptive thinking for verified native Anthropic Haiku 5.5.
+- Drain the launcher's owned server before exit/replacement, with bounded force
+  escalation and a private Windows IPC path; support isolated alternate build
+  directories in browser fixtures.
+- Persist observability through an authenticated dedicated action and display
+  its effective environment-controlled state. Complete official ByKitsune UI
+  localization and current translated setup instructions.
+
 ### Official ByKitsune provider
 
 - Add ByKitsune API-key connections using `https://api.bykitsune.com/v1`, with

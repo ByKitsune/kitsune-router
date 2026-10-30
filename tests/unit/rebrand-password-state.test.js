@@ -4,7 +4,10 @@ const fixture = vi.hoisted(() => ({ settings: {} }));
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => fixture.settings, updateSettings: vi.fn() }));
 vi.mock("@/lib/network/outboundProxy", () => ({ applyOutboundProxyEnv: vi.fn() }));
 vi.mock("open-sse/services/combo.js", () => ({ resetComboRotation: vi.fn() }));
-vi.mock("@/lib/db/repos/requestDetailsRepo.js", () => ({ resolveObservabilityEnabled: () => false }));
+vi.mock("@/lib/db/repos/requestDetailsRepo.js", () => ({
+  resolveObservabilityEnabled: () => false,
+  resolveObservabilityState: () => ({ enabled: false, source: "settings" }),
+}));
 
 import { GET } from "../../src/app/api/settings/route.js";
 

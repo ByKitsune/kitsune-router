@@ -1,0 +1,784 @@
+{
+  "schema": 1,
+  "study_date": "2026-10-31",
+  "timezone": "Asia/Jakarta",
+  "benchmark": "scripts/benchmark-translator.mjs",
+  "baseline_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+  "scope": "Synthetic local CPU only; provider/network latency excluded; real translator and SSE pipeline, persistence stubbed, network forbidden",
+  "execution_order": [
+    "baseline",
+    "working-tree",
+    "working-tree",
+    "baseline"
+  ],
+  "fixture_hashes_equal": true,
+  "wire_output_hashes_equal": true,
+  "source_files_sha256": {
+    "scripts/benchmark-translator.mjs": "c99601d4b3d2f8b46f914ac80de806934932b133b13f12a75239c9cb39584cea",
+    "open-sse/translator/concerns/toolCall.js": "b932b2e2c6a2412586948b429c9e5df5897651409488a58050e395909c939339",
+    "open-sse/translator/formats/claude.js": "ddb97c62e26b3a7961dc6133d6052d058e82fd6d924eb2fc86b73bd148cea738"
+  },
+  "limits": [
+    "400 parallel calls stress large tool histories; normal chat also measured",
+    "60 warmed translation samples and30 first-semantic-event samples per fixture per run",
+    "p50/p95 summarize a single machine; not a universal latency guarantee",
+    "No latency improvement claimed for Gemini-to-Chat or sub-millisecond normal chat",
+    "Baseline overrides only two tool-history modules; other modules remain current"
+  ],
+  "reproduce": {
+    "baseline": "node scripts/benchmark-translator.mjs --baseline-ref 81765193 --output /tmp/translator-before.json",
+    "current": "node scripts/benchmark-translator.mjs --output /tmp/translator-after.json"
+  },
+  "runs": [
+    {
+      "sequence": 1,
+      "variant": "baseline",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "source_worktree_dirty": true,
+        "baseline_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "baseline_paths": [
+          "open-sse/translator/concerns/toolCall.js",
+          "open-sse/translator/formats/claude.js"
+        ],
+        "iterations": 60,
+        "first_event_iterations": 30,
+        "parallel_tools": 400,
+        "fixture_sha256": "1b4c8578e5824c142c433454e96e0ad87ddd4016fdaf17d0ba4a09c4673b3628",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03237200000000939,
+              "p95_ms": 0.22062900000003083
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.39414899999997033,
+              "p95_ms": 0.7834450000000288
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "output_sha256": "697bab26e81afe7be2daebdbfa72d4054b91c5ed1f6180e7afba0f4e0132bcf5",
+            "input_bytes": 522,
+            "translate": {
+              "p50_ms": 0.04070899999999256,
+              "p95_ms": 0.17956699999996317
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.4689250000000129,
+              "p95_ms": 0.6729980000000069
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03254300000003241,
+              "p95_ms": 0.19521300000002384
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2869989999999234,
+              "p95_ms": 0.5671459999999797
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03604199999995217,
+              "p95_ms": 0.15336700000000292
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.25020199999994475,
+              "p95_ms": 0.632857999999942
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.04028599999992366,
+              "p95_ms": 0.2707380000000512
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2548460000000432,
+              "p95_ms": 0.43770600000004833
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.04435700000010456,
+              "p95_ms": 0.23352999999997337
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.46464800000001105,
+              "p95_ms": 1.0863579999999047
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 22.7020950000001,
+              "p95_ms": 24.74811999999997
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 23.401491000000078,
+              "p95_ms": 31.220303000000058
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "output_sha256": "9a7334c751b82e3823c8c0f65caa55371b9ea818130bfee063dfd997c5a8f40b",
+            "input_bytes": 168524,
+            "translate": {
+              "p50_ms": 21.566679999999906,
+              "p95_ms": 24.364526999999725
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 21.978847999999743,
+              "p95_ms": 23.221121000000494
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 27.038368000000446,
+              "p95_ms": 28.65697799999998
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 28.340816000001723,
+              "p95_ms": 32.02185699999973
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "output_sha256": "22c5be9efd30708e161df5efc58ab22d1a7c56b0f3423328fee3289227e9b62a",
+            "input_bytes": 646601,
+            "translate": {
+              "p50_ms": 1.2759679999999207,
+              "p95_ms": 2.2251070000002073
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 1.868743999999424,
+              "p95_ms": 2.6023499999992055
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 21.475800999998683,
+              "p95_ms": 23.547796999999264
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 24.71765199999936,
+              "p95_ms": 30.060331999999107
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 170268,
+            "translate": {
+              "p50_ms": 3.0746589999998832,
+              "p95_ms": 7.430975999999646
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.5049400000007154,
+              "p95_ms": 5.903035999999702
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 2,
+      "variant": "working-tree",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "source_worktree_dirty": true,
+        "baseline_commit": null,
+        "baseline_paths": [],
+        "iterations": 60,
+        "first_event_iterations": 30,
+        "parallel_tools": 400,
+        "fixture_sha256": "1b4c8578e5824c142c433454e96e0ad87ddd4016fdaf17d0ba4a09c4673b3628",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.033360000000016043,
+              "p95_ms": 0.13998199999997496
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3876940000000104,
+              "p95_ms": 1.7219179999999596
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "output_sha256": "697bab26e81afe7be2daebdbfa72d4054b91c5ed1f6180e7afba0f4e0132bcf5",
+            "input_bytes": 522,
+            "translate": {
+              "p50_ms": 0.0558510000000183,
+              "p95_ms": 0.15931000000000495
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.43363699999997607,
+              "p95_ms": 1.7744989999999916
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.049852999999984604,
+              "p95_ms": 0.16855900000007296
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.40265000000010787,
+              "p95_ms": 0.5913100000000213
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.057617999999934,
+              "p95_ms": 1.3546689999999444
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.30895200000009027,
+              "p95_ms": 1.7277729999999565
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03028899999992518,
+              "p95_ms": 0.11771799999996801
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.33670199999994566,
+              "p95_ms": 1.4294380000000046
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.033479999999940446,
+              "p95_ms": 0.08311600000001818
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.5051520000000664,
+              "p95_ms": 2.19021900000007
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 1.6833920000000262,
+              "p95_ms": 5.293930000000046
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.3539830000000848,
+              "p95_ms": 4.980205999999953
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "output_sha256": "9a7334c751b82e3823c8c0f65caa55371b9ea818130bfee063dfd997c5a8f40b",
+            "input_bytes": 168524,
+            "translate": {
+              "p50_ms": 1.4730630000000247,
+              "p95_ms": 3.1686200000000326
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 1.729558999999881,
+              "p95_ms": 5.474083999999948
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 8.73381500000005,
+              "p95_ms": 14.798391000000038
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 11.48440800000003,
+              "p95_ms": 28.52969499999972
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "output_sha256": "22c5be9efd30708e161df5efc58ab22d1a7c56b0f3423328fee3289227e9b62a",
+            "input_bytes": 646601,
+            "translate": {
+              "p50_ms": 1.369654999999966,
+              "p95_ms": 3.676311000000169
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 1.8813840000002529,
+              "p95_ms": 4.310805000000073
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 0.9577810000000682,
+              "p95_ms": 3.0311699999997472
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 1.8621479999997064,
+              "p95_ms": 5.18210500000032
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 170268,
+            "translate": {
+              "p50_ms": 2.099061999999776,
+              "p95_ms": 5.500153999999839
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.6773239999997713,
+              "p95_ms": 5.0433240000002115
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 3,
+      "variant": "working-tree",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "source_worktree_dirty": true,
+        "baseline_commit": null,
+        "baseline_paths": [],
+        "iterations": 60,
+        "first_event_iterations": 30,
+        "parallel_tools": 400,
+        "fixture_sha256": "1b4c8578e5824c142c433454e96e0ad87ddd4016fdaf17d0ba4a09c4673b3628",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.04709900000000289,
+              "p95_ms": 0.121449000000041
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3732029999999895,
+              "p95_ms": 2.274366999999984
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "output_sha256": "697bab26e81afe7be2daebdbfa72d4054b91c5ed1f6180e7afba0f4e0132bcf5",
+            "input_bytes": 522,
+            "translate": {
+              "p50_ms": 0.050040000000024065,
+              "p95_ms": 0.1841630000000123
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3952730000000315,
+              "p95_ms": 0.5677969999999846
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.0437610000000177,
+              "p95_ms": 0.15073400000005677
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3841219999999339,
+              "p95_ms": 1.498617999999965
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.05261299999995117,
+              "p95_ms": 0.22867100000007667
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.28926400000000285,
+              "p95_ms": 1.574310999999966
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.028934999999933098,
+              "p95_ms": 0.06231500000001233
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2484910000000582,
+              "p95_ms": 1.3195630000000165
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.03379500000005464,
+              "p95_ms": 0.09746999999993022
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.5619060000000218,
+              "p95_ms": 2.741354000000001
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 1.563543999999979,
+              "p95_ms": 6.112103999999931
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.226342999999929,
+              "p95_ms": 4.323038999999994
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "output_sha256": "9a7334c751b82e3823c8c0f65caa55371b9ea818130bfee063dfd997c5a8f40b",
+            "input_bytes": 168524,
+            "translate": {
+              "p50_ms": 1.0643390000000181,
+              "p95_ms": 2.9057670000000826
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 1.7994380000000092,
+              "p95_ms": 4.83439199999998
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 8.408212000000049,
+              "p95_ms": 14.776429000000007
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 10.653933000000052,
+              "p95_ms": 16.209082999999737
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "output_sha256": "22c5be9efd30708e161df5efc58ab22d1a7c56b0f3423328fee3289227e9b62a",
+            "input_bytes": 646601,
+            "translate": {
+              "p50_ms": 1.313148000000183,
+              "p95_ms": 3.9430750000001353
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.101900999999998,
+              "p95_ms": 4.064890999999989
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 0.9042260000001079,
+              "p95_ms": 2.2988259999997354
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.088040000000092,
+              "p95_ms": 3.5773010000002614
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 170268,
+            "translate": {
+              "p50_ms": 1.1451409999999669,
+              "p95_ms": 3.7166230000002543
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.056619999999839,
+              "p95_ms": 6.933574000000135
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 4,
+      "variant": "baseline",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "source_worktree_dirty": true,
+        "baseline_commit": "81765193a491a262e6aabaaa2aa27198a68e35bf",
+        "baseline_paths": [
+          "open-sse/translator/concerns/toolCall.js",
+          "open-sse/translator/formats/claude.js"
+        ],
+        "iterations": 60,
+        "first_event_iterations": 30,
+        "parallel_tools": 400,
+        "fixture_sha256": "1b4c8578e5824c142c433454e96e0ad87ddd4016fdaf17d0ba4a09c4673b3628",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.033886999999992895,
+              "p95_ms": 0.11881100000005063
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3997750000000906,
+              "p95_ms": 1.1119919999999865
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "output_sha256": "697bab26e81afe7be2daebdbfa72d4054b91c5ed1f6180e7afba0f4e0132bcf5",
+            "input_bytes": 522,
+            "translate": {
+              "p50_ms": 0.039853999999991174,
+              "p95_ms": 0.14059499999996206
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3376610000000255,
+              "p95_ms": 1.2541599999999562
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03327100000001337,
+              "p95_ms": 0.16958499999998367
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.28048100000000886,
+              "p95_ms": 1.1186950000000024
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03666099999998096,
+              "p95_ms": 0.1558749999999236
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2640119999999797,
+              "p95_ms": 0.40908999999999196
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.029829999999947177,
+              "p95_ms": 0.09970199999997931
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.4361779999999271,
+              "p95_ms": 1.7641849999999977
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "d519c1169dafb39328465d04655aa7fc17556e994eb04fcd341faf1e0da2f8a6",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.04490799999996398,
+              "p95_ms": 0.12997899999993479
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.5237530000000561,
+              "p95_ms": 1.5720159999999623
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 26.698405000000093,
+              "p95_ms": 31.260156999999936
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 29.69105099999979,
+              "p95_ms": 48.50974099999985
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "output_sha256": "9a7334c751b82e3823c8c0f65caa55371b9ea818130bfee063dfd997c5a8f40b",
+            "input_bytes": 168524,
+            "translate": {
+              "p50_ms": 21.39255399999911,
+              "p95_ms": 29.622867000000042
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 21.789504999999735,
+              "p95_ms": 23.349244
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 27.3044060000002,
+              "p95_ms": 30.792897999999695
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 33.60586299999886,
+              "p95_ms": 47.671494000000166
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "718ef23c2d04887dd8f39ba5a5e2b52bc01d5f77de6abfacec8c3d4ce6376219",
+            "output_sha256": "22c5be9efd30708e161df5efc58ab22d1a7c56b0f3423328fee3289227e9b62a",
+            "input_bytes": 646601,
+            "translate": {
+              "p50_ms": 1.296013999999559,
+              "p95_ms": 1.9131259999994654
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.0105100000000675,
+              "p95_ms": 3.0731330000016897
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "3e4ca5617a6b518615ec0412d2f0314d308d7e1706933a8e524e4058d60fdf67",
+            "output_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "input_bytes": 167432,
+            "translate": {
+              "p50_ms": 20.656502999998338,
+              "p95_ms": 22.809589999998934
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 22.30126999999993,
+              "p95_ms": 30.66322299999956
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "b507340d6307748ed4ef8555123b0324ca8ee58dd77da85ac6141f440f42167d",
+            "output_sha256": "339b2b80951eef451e5297fba75e0f7a6b30684395d56d33dea26abefe9a12b1",
+            "input_bytes": 170268,
+            "translate": {
+              "p50_ms": 2.491436000000249,
+              "p95_ms": 4.053325999999288
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.0565459999997984,
+              "p95_ms": 4.138124000000971
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -56,7 +56,14 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
+  // This suite redirects terminal fetch to its own loopback HTTP server.
+  // Do not carry a host proxy dispatcher selected for the original HTTPS URL
+  // into the synthetic transport; restore the inherited policy after each test.
+  for (const name of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) {
+    vi.stubEnv(name, "");
+  }
   vi.stubGlobal("fetch", (url, init) => {
+    expect(init?.dispatcher, "embedding fixture must not use a host proxy dispatcher").toBeUndefined();
     const destination = new URL(url);
     const headers = new Headers(init?.headers);
     headers.set("x-fixture-original-origin", destination.origin);
@@ -64,7 +71,10 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 async function embed(provider, input, credentials) {
   return handleEmbeddingsCore({

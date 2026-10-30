@@ -26,6 +26,33 @@ const sharedEncoder = new TextEncoder();
 const responsesFormat = format => format === FORMATS.OPENAI_RESPONSES || format === FORMATS.CODEX;
 const failedReasons = new Set(["network_error", "error", "server_error", "timeout"]);
 const googleFormats = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX]);
+const hasChatToolValue = value => value !== undefined && value !== null && value !== "";
+
+// Some Chat-compatible upstreams send index-only/null tool placeholders (#5345).
+// They do not start or continue a tool and must not allocate native tool state.
+// Keep partial IDs/names/arguments and opaque extension metadata untouched.
+function isEmptyChatToolDelta(call) {
+  if (call == null) return true;
+  if (typeof call !== "object" || Array.isArray(call)) return false;
+  const fn = call.function;
+  if (hasChatToolValue(call.id) || hasChatToolValue(fn?.name) || hasChatToolValue(fn?.arguments)) return false;
+  if (fn != null && (typeof fn !== "object" || Array.isArray(fn))) return false;
+  if (hasChatToolValue(call.type) && call.type !== "function") return false;
+  return Object.keys(call).every(key => ["index", "id", "type", "function"].includes(key)) &&
+    Object.keys(fn || {}).every(key => key === "name" || key === "arguments");
+}
+
+function discardEmptyChatToolDeltas(chunk) {
+  if (!Array.isArray(chunk?.choices)) return;
+  for (const choice of chunk.choices) {
+    const delta = choice?.delta;
+    const calls = delta?.tool_calls;
+    if (!Array.isArray(calls) || !calls.some(isEmptyChatToolDelta)) continue;
+    const retained = calls.filter(call => !isEmptyChatToolDelta(call));
+    if (retained.length) delta.tool_calls = retained;
+    else delete delta.tool_calls;
+  }
+}
 
 function isTerminalPayload(chunk, format, event = null) {
   if (format === FORMATS.OPENAI) return chunk?.choices?.some(choice => Boolean(choice?.finish_reason));
@@ -284,8 +311,10 @@ export function createSSEStream(options = {}) {
     terminalListeners.clear();
   };
   const emitClientChunk = async (item, controller, eventName = null, truncated = false, releaseTerminal = false) => {
-    if (item == null || (item.done === true && Object.keys(item).length === 1) || !hasValuableContent(item.data || item, sourceFormat)) return;
+    if (item == null || (item.done === true && Object.keys(item).length === 1)) return;
     let data = item.data || item;
+    if (sourceFormat === FORMATS.OPENAI) discardEmptyChatToolDeltas(data);
+    if (!hasValuableContent(data, sourceFormat)) return;
     if (chatInputSeen && sourceFormat === FORMATS.OPENAI && !releaseTerminal && !extractResponseError(data) && data.choices?.some(choice => choice.finish_reason)) {
       for (const choice of data.choices) {
         if (!choice.finish_reason || finishedChoices.has(choice.index ?? 0)) continue;
@@ -442,6 +471,7 @@ export function createSSEStream(options = {}) {
       } else await flushDeferred(controller);
       return;
     }
+    discardEmptyChatToolDeltas(parsed);
     const eventName = event.event || parsed.type || null;
     const accountingChunk = !parsed.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...parsed, type: event.event } : parsed;
     captureUsage(accountingChunk);

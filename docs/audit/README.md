@@ -51,6 +51,11 @@ reviews the complete configured registry against a pinned official models.dev
 source reconstruction, distinguishes price references from usable estimates,
 and records the subsequent runtime-localization and upstream issue review.
 
+The [stability and translator-latency follow-up](23-upstream-stability-and-translator-latency-2026-10-31.md)
+reviews the latest actual issues separately from commit history, adapts verified
+native-thinking/streaming corrections, fixes launcher and observability behavior,
+and records matched-input local CPU measurements and their limits.
+
 ## Read in this order
 
 | # | Document | Covers |

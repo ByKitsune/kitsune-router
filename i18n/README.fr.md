@@ -6,6 +6,12 @@ Passerelle IA locale en priorité, neutre entre fournisseurs, maintenue et spons
 
 [English](../README.md) · [Dépôt](https://github.com/ByKitsune/kitsune-router) · [Historique](../CHANGELOG.md) · [Migration](../docs/MIGRATION.md)
 
+## Fournisseur officiel ByKitsune
+
+ByKitsune est mis en avant comme fournisseur officiel principal. Dans **Providers**, sélectionnez **Connect ByKitsune**, ajoutez une clé du [tableau de bord ByKitsune](https://bykitsune.com/dashboard?tab=keys), puis choisissez **Fetch Models**. L’API utilise `https://api.bykitsune.com/v1` et l’authentification Bearer ; utilisez les routes `bykitsune/<model-id>` du catalogue obtenu. Vous choisissez toujours les comptes et l’ordre du routage.
+
+Cette intégration concerne le code source actuel.
+
 ## Publication et installation
 
 **Conteneur 1.0.2 publié en privé ; accès anonyme en attente ; npm bloqué.** Source immuable `65c8b97d` : 9 041 réussis, 100 ignorés, zéro échec. La récupération `40485038668` a publié GHCR `1.0.2`/`latest` ; lecture authentifiée digest/provenance/SPDX et smoke indépendant de l’image publiée réussis. Le paquet reste **private** à la dernière lecture : le propriétaire a choisi Public sans confirmer, accès anonyme HTTP 401. npm reste refusé E403, lecture publique HTTP 404 ; remplacement du token par l’utilisateur non confirmé. Commandes npm seulement après publication npm vérifiée ; utilisez les sources ou un accès privé autorisé au conteneur. Aucun GitHub Release ni déploiement production. [Preuves 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).

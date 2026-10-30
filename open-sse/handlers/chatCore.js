@@ -332,7 +332,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     // Normalize newer Cowork/CC beta shapes (adaptive thinking, mid-conversation system) the API rejects
     if (clientTool === "claude") {
       try {
-        normalizeClaudePassthrough(translatedBody, translatedBody.model, clientRawRequest?.headers || null);
+        normalizeClaudePassthrough(translatedBody, translatedBody.model, clientRawRequest?.headers || null, provider);
       } catch (error) {
         const invalidRequest = requestParameterError(error);
         if (invalidRequest) return invalidRequest;

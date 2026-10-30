@@ -6,6 +6,12 @@
 
 [English](../README.md) · [คลังโค้ด](https://github.com/ByKitsune/kitsune-router) · [การเปลี่ยนแปลง](../CHANGELOG.md) · [การย้ายข้อมูล](../docs/MIGRATION.md)
 
+## ผู้ให้บริการ ByKitsune อย่างเป็นทางการ
+
+ByKitsune แสดงอย่างโดดเด่นในฐานะผู้ให้บริการหลักอย่างเป็นทางการ ใน **Providers** เลือก **Connect ByKitsune** เพิ่มคีย์จาก[แดชบอร์ดคีย์ ByKitsune](https://bykitsune.com/dashboard?tab=keys) แล้วเลือก **Fetch Models** URL หลักของ API คือ `https://api.bykitsune.com/v1` และใช้การยืนยันตัวตนแบบ Bearer ให้ใช้เส้นทาง `bykitsune/<model-id>` จากรายการที่ดึงมา คุณยังคงเลือกบัญชีและลำดับการกำหนดเส้นทางเอง
+
+การเชื่อมต่อนี้ใช้กับซอร์สโค้ดปัจจุบัน
+
 ## สถานะและการติดตั้ง
 
 **เผยแพร่ container 1.0.2 แบบ private แล้ว รอการเข้าถึงแบบไม่ยืนยันตัวตน ส่วน npm ยังถูกบล็อก** ซอร์สคงที่ `65c8b97d`: ผ่าน 9,041 ข้าม 100 ไม่ล้มเหลว Recovery `40485038668` เผยแพร่ GHCR `1.0.2`/`latest` ผ่าน readback digest/provenance/SPDX แบบยืนยันตัวตนและ smoke อิมเมจที่เผยแพร่แยกแล้ว แพ็กเกจยัง **private** ในการอ่านล่าสุด เจ้าของเลือก Public แต่ยังไม่ยืนยันเสร็จ grant แบบ anonymous HTTP 401 npm ยัง E403/readback สาธารณะ HTTP 404 และยังไม่ยืนยันเปลี่ยน token ใช้คำสั่ง npm หลังเผยแพร่ npm สำเร็จเท่านั้น ระหว่างนี้ใช้ซอร์สหรือสิทธิ์อ่าน container private ไม่มี GitHub Release หรือ production deploy [หลักฐาน 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)

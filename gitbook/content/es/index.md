@@ -2,6 +2,12 @@
 
 **Your models. Your routes.** Gateway de IA local-first y neutral entre proveedores, mantenido y patrocinado por [ByKitsune](https://bykitsune.com). Elige tus modelos, cuentas y orden de fallback, sin cuenta ByKitsune ni compra obligatoria. Las solicitudes siguen llegando a los upstreams configurados; no es inferencia offline.
 
+## Proveedor oficial ByKitsune
+
+ByKitsune aparece destacado como proveedor oficial principal. En **Providers**, selecciona **Connect ByKitsune**, añade una clave del [panel de claves de ByKitsune](https://bykitsune.com/dashboard?tab=keys) y selecciona **Fetch Models**. La base de la API es `https://api.bykitsune.com/v1`, con autenticación Bearer; usa las rutas `bykitsune/<model-id>` del catálogo obtenido. Tú sigues eligiendo las cuentas y el orden de las rutas.
+
+Esta integración corresponde al código fuente actual.
+
 ## Estado de publicación
 
 **Contenedor 1.0.2 publicado en privado; pull anónimo pendiente; npm bloqueado.** Runtime inmutable `65c8b97d` (9.041 aprobados, 100 omitidos, cero fallos). Recovery `40485038668` publicó GHCR `1.0.2`/`latest`; lectura autenticada digest/proveniencia/SPDX y smoke independiente de la imagen publicada pasaron. El paquete sigue **private**: Public seleccionado pero no confirmado, grants anónimos HTTP 401. npm sigue E403/readback público HTTP 404, cambio de token no confirmado. Usa fuentes o acceso privado autorizado al contenedor; comandos npm solo tras publicación npm aceptada. Sin GitHub Release ni producción. [Evidencia](/es/changelog/).

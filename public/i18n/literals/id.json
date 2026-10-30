@@ -2420,5 +2420,16 @@
   "Showing {start}–{end} of {count} models": "Menampilkan {start}–{end} dari {count} model",
   "Previous page": "Halaman sebelumnya",
   "Next page": "Halaman berikutnya",
-  "Page {page} of {count}": "Halaman {page} dari {count}"
+  "Page {page} of {count}": "Halaman {page} dari {count}",
+  "Official": "Resmi",
+  "Official provider": "Penyedia resmi",
+  "Visit website": "Kunjungi situs web",
+  "The official provider from the team behind": "Penyedia resmi dari tim pengembang",
+  ". Explore ByKitsune's AI services and ecosystem.": ". Jelajahi layanan AI dan ekosistem ByKitsune.",
+  "Visit {provider} website (opens in a new tab)": "Kunjungi situs web {provider} (dibuka di tab baru)",
+  "Change the server environment to use the saved dashboard preference.": "Ubah lingkungan server untuk menggunakan preferensi dashboard yang tersimpan.",
+  "Managed by environment variable": "Dikelola oleh variabel lingkungan",
+  "Record request details in Usage → Details. This switch shows whether recording is currently enabled.": "Catat detail permintaan di Penggunaan → Detail. Sakelar ini menampilkan apakah pencatatan sedang aktif.",
+  "Saved dashboard preference:": "Preferensi dashboard tersimpan:",
+  "Failed to update observability settings": "Gagal memperbarui pengaturan observabilitas"
 }

@@ -72,6 +72,12 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 beforeEach(() => {
+  // The terminal fetch is deliberately redirected to this loopback fixture.
+  // Host proxy settings would otherwise attach a real proxy dispatcher before
+  // the redirect, defeating the fixture and changing the error under test.
+  for (const name of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) {
+    vi.stubEnv(name, "");
+  }
   vi.clearAllMocks();
   wire.length = 0;
   mocks.getSettings.mockResolvedValue({});
@@ -83,13 +89,17 @@ beforeEach(() => {
   mocks.markAccountUnavailable.mockResolvedValue({ shouldFallback: true });
   vi.stubGlobal("fetch", vi.fn((url, init) => {
     // Exercise real HTTP serialization without ever contacting an upstream account.
+    expect(init.dispatcher, "fixture requests must not use a host proxy dispatcher").toBeUndefined();
     const target = new URL(url);
     return socketFetch(origin + target.pathname + target.search, {
       ...init, headers: { ...init.headers, "x-fixture-target": target.origin },
     });
   }));
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 describe("search selector reaches the final upstream wire", () => {
   it("uses the grounding default when model is the bare Gemini provider selector", async () => {

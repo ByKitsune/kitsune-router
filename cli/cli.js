@@ -103,6 +103,7 @@ const { ensureSqliteRuntime, buildEnvWithRuntime } = require("./hooks/sqliteRunt
 const { buildSecretsEnv, getSecretsPath } = require("./hooks/runtimeSecrets");
 const { resolveHeapFlags } = require("./hooks/nodeFlags");
 const { ensureTrayRuntime } = require("./hooks/trayRuntime");
+const { stopOwnedServer } = require("./hooks/serverShutdown");
 
 // Subcommands (`kitsune-router xai video …`) run against an already-running gateway
 // and bypass the launcher flow (no runtime self-heal, no server spawn).
@@ -704,7 +705,7 @@ function startServer(updatePromise) {
     crashLog = [];
     const child = spawn(RUNTIME, ["--dns-result-order=ipv4first", ...resolveHeapFlags(process.env), serverPath], {
       cwd: standaloneDir,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
       detached: true,
       windowsHide: true,
       env: {
@@ -744,33 +745,37 @@ function startServer(updatePromise) {
   let server = spawnServer();
   attachServerEvents();
 
-  // Cleanup function - force kill server process
-  let isCleaningUp = false;
+  let isShuttingDown = false;
+  let cleanupPromise = null;
+  let restartTimer = null;
+  // Wait for HTTP, durable usage and database shutdown before terminating the
+  // launcher. Repeated signals/menu callbacks share one bounded cleanup.
   function cleanup() {
-    if (isCleaningUp) return;
-    isCleaningUp = true;
-    try {
-      // Kill tray if running
+    if (cleanupPromise) return cleanupPromise;
+    isShuttingDown = true;
+    clearTimeout(restartTimer);
+    cleanupPromise = (async () => {
+      const serverStop = stopOwnedServer(server);
       try {
         const { killTray } = require("./src/cli/tray/tray");
-        killTray();
-      } catch (e) { }
-      // Kill MIT server (privileged process) via PID file
-      killProxyByPidFile();
-      cleanMitmHostsSync();
-      // Kill cloudflared/tailscale via PID file (only this app's tunnel)
-      killTunnelByPidFile();
-      // Kill server process directly
-      if (server.pid) {
-        process.kill(server.pid, "SIGKILL");
-      }
-      // Also try to kill process group
-      process.kill(-server.pid, "SIGKILL");
-    } catch (e) { }
+        await killTray();
+      } catch {}
+      const result = await serverStop;
+      // Managed server hooks own helper teardown first; keep legacy cleanup as
+      // a best-effort fallback after the server has drained (or timed out).
+      try { killProxyByPidFile(); } catch {}
+      try { cleanMitmHostsSync(); } catch {}
+      try { killTunnelByPidFile(); } catch {}
+      return result;
+    })();
+    return cleanupPromise;
+  }
+  async function finish(code = 0) {
+    const result = await cleanup();
+    process.exit(code || result.code || 0);
   }
 
   // Suppress all errors during shutdown (systray lib throws JSON parse errors)
-  let isShuttingDown = false;
   process.on("uncaughtException", (err) => {
     if (isShuttingDown) return;
     console.error("Error:", err.message);
@@ -779,22 +784,16 @@ function startServer(updatePromise) {
   // Handle all exit scenarios
   process.on("SIGINT", () => {
     if (isShuttingDown) return;
-    isShuttingDown = true;
     console.log("\nExiting...");
-    cleanup();
-    setTimeout(() => process.exit(0), 100);
+    void finish();
   });
   process.on("SIGTERM", () => {
     if (isShuttingDown) return;
-    isShuttingDown = true;
-    cleanup();
-    setTimeout(() => process.exit(0), 100);
+    void finish();
   });
   process.on("SIGHUP", () => {
     if (isShuttingDown) return;
-    isShuttingDown = true;
-    cleanup();
-    setTimeout(() => process.exit(0), 100);
+    void finish();
   });
 
   // Initialize tray icon (runs alongside TUI)
@@ -804,10 +803,8 @@ function startServer(updatePromise) {
       initTray({
         port,
         onQuit: () => {
-          isShuttingDown = true;
           console.log("\n👋 Shutting down from tray...");
-          cleanup();
-          setTimeout(() => process.exit(0), 100);
+          void finish();
         },
         onOpenDashboard: () => openBrowser(url)
       });
@@ -826,6 +823,7 @@ function startServer(updatePromise) {
     console.log(`Server: http://${displayHost}:${port}`);
 
     waitServerReady(port).then(() => {
+      if (isShuttingDown) return;
       initTrayIcon();
       console.log("\n💡 Router is now running in system tray. Close this terminal if you want.");
       console.log("   Right-click tray icon to open dashboard or quit.\n");
@@ -838,24 +836,22 @@ function startServer(updatePromise) {
   waitServerReady(port).then(async () => {
     // Resolve parallel update check (already running); don't block server start on it.
     const latestVersion = await latestVersionPromise;
+    if (isShuttingDown) return;
     // Start tray icon alongside TUI
     initTrayIcon();
 
     try {
       while (true) {
         const choice = await showInterfaceMenu(latestVersion);
+        if (isShuttingDown) return;
 
         if (choice === "update") {
-          isShuttingDown = true;
           const { clearScreen } = require("./src/cli/utils/display");
           clearScreen();
           console.log(`\n⬆  Update v${pkg.version} → v${latestVersion}\n`);
           console.log(`Run this after exit:\n`);
           console.log(`   \x1b[33m${INSTALL_CMD_LATEST}\x1b[0m\n`);
-          cleanup();
-          await killAllAppProcesses(port);
-          await killProcessOnPort(port);
-          setTimeout(() => process.exit(0), 200);
+          await finish();
           return;
         } else if (choice === "web") {
           openBrowser(url);
@@ -894,7 +890,11 @@ function startServer(updatePromise) {
           // Windows/Linux: spawn detached bgProcess (systray works fine in child)
           console.log(`\n⏳ Starting background process... (tray icon will appear in ~3s)`);
 
-          const bgProcess = spawn(process.execPath, ["--dns-result-order=ipv4first", __filename, "--tray", "--skip-update", "-p", port.toString()], {
+          // Release the old server/tray before the new launcher can discover
+          // and replace them. Otherwise its startup cleanup races our drain.
+          const stopped = await cleanup();
+          if (stopped.code) { process.exit(stopped.code); return; }
+          const bgProcess = spawn(process.execPath, ["--dns-result-order=ipv4first", __filename, "--tray", "--skip-update", "-p", port.toString(), "--host", host], {
             detached: true,
             stdio: "ignore",
             windowsHide: true,
@@ -906,39 +906,33 @@ function startServer(updatePromise) {
           console.log(`   Server: http://${displayHost}:${port}`);
           console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
 
-          // cleanup() kills server so bgProcess can claim the port fresh
-          cleanup();
           process.exit(0);
         } else if (choice === "exit") {
-          isShuttingDown = true;
           console.log("\nExiting...");
-          cleanup();
-          setTimeout(() => process.exit(0), 100);
+          await finish();
+          return;
         }
       }
     } catch (err) {
       console.error("Error:", err.message);
-      cleanup();
-      process.exit(1);
+      await finish(1);
     }
   });
 
   function attachServerEvents() {
-    server.on("error", (err) => {
+    const child = server;
+    child.on("error", (err) => {
+      if (child !== server) return;
       console.error("Failed to start server:", err.message);
       if (!isShuttingDown) tryRestart();
-      else { cleanup(); process.exit(1); }
+      // A shutdown caller already owns completion; do not exit underneath it.
     });
 
-    server.on("close", async (code) => {
-      if (isShuttingDown || code === 0) {
-        isShuttingDown = true;
-        // Native trays can outlive stdin EOF; finish their teardown before exit.
-        try {
-          const { killTray } = require("./src/cli/tray/tray");
-          await killTray();
-        } catch {}
-        process.exit(code || 0);
+    child.on("close", async (code) => {
+      if (child !== server) return;
+      if (isShuttingDown) return;
+      if (code === 0) {
+        await finish(code);
         return;
       }
       tryRestart(code);
@@ -992,6 +986,7 @@ function startServer(updatePromise) {
   }
 
   function tryRestart(code) {
+    if (isShuttingDown || restartTimer) return;
     const aliveMs = Date.now() - serverStartTime;
     // Reset counter if last run was stable
     if (aliveMs >= RESTART_RESET_MS) restartCount = 0;
@@ -1020,7 +1015,9 @@ function startServer(updatePromise) {
       console.error("--- End crash log ---\n");
     }
 
-    setTimeout(() => {
+    restartTimer = setTimeout(() => {
+      restartTimer = null;
+      if (isShuttingDown) return;
       server = spawnServer();
       attachServerEvents();
     }, delay);

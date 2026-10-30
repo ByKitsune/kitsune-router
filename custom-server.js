@@ -17,22 +17,32 @@ if (managedShutdown) {
   dbLifecycle.managed = true;
   for (const release of [...dbLifecycle.releases]) release();
   let stopping = false;
-  for (const signal of ["SIGINT", "SIGTERM"]) {
-    process.once(signal, () => {
-      if (stopping) return;
-      stopping = true;
-      const configured = Number(process.env.KITSUNE_ROUTER_SHUTDOWN_DEADLINE_MS || 15000);
-      const deadlineMs = Number.isSafeInteger(configured) && configured > 0 ? configured : 15000;
-      const forceExit = setTimeout(() => process.exit(1), deadlineMs);
-      runShutdownHooks({ deadlineMs }).then(() => {
-        clearTimeout(forceExit);
-        process.exit(0);
-      }).catch(error => {
-        clearTimeout(forceExit);
-        console.error("[Shutdown]", error.message);
-        process.exit(1);
-      });
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    const configured = Number(process.env.KITSUNE_ROUTER_SHUTDOWN_DEADLINE_MS || 15000);
+    const deadlineMs = Number.isSafeInteger(configured) && configured > 0 ? configured : 15000;
+    const forceExit = setTimeout(() => process.exit(1), deadlineMs);
+    runShutdownHooks({ deadlineMs }).then(() => {
+      clearTimeout(forceExit);
+      process.exit(0);
+    }).catch(error => {
+      clearTimeout(forceExit);
+      console.error("[Shutdown]", error.message);
+      process.exit(1);
     });
+  };
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.once(signal, stop);
+  }
+  // The launcher owns this IPC channel. It is needed on Windows, where Node's
+  // child.kill("SIGTERM") terminates immediately without running signal hooks.
+  // Ordinary HTTP clients cannot submit messages to this parent-only channel.
+  if (process.connected) {
+    process.on("message", message => {
+      if (message?.type === "kitsune-router:shutdown") stop();
+    });
+    process.once("disconnect", stop);
   }
 }
 

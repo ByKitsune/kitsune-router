@@ -58,6 +58,14 @@ access and configure strong authentication before exposing it remotely.
 Use an absolute `DATA_DIR` environment variable for a custom state location;
 there is no `--data-dir`, `--no-open`, `start`, `stop`, or `status` subcommand.
 
+Current source waits for its server's managed HTTP/usage/database drain when
+quitting, updating or replacing the foreground instance with a background tray.
+The grace period follows `KITSUNE_ROUTER_SHUTDOWN_DEADLINE_MS` (15 seconds by
+default), then a stuck owned process tree is terminated and failure is reported.
+Windows uses a private launcher/server IPC channel because Node cannot catch its
+termination signal there. These source changes do not alter older published
+artifacts; native Windows behavior still requires platform-specific verification.
+
 ## Existing installations
 
 Stop the old gateway and helpers, then back up the whole old data directory.

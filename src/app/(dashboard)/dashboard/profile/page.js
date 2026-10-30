@@ -10,6 +10,7 @@ import { APP_CONFIG } from "@/shared/constants/config";
 import { onLocaleChange } from "@/i18n/runtime";
 import { readDisplayLocale } from "@/shared/constants/locales";
 import LocaleBadge from "@/shared/components/LocaleBadge";
+import ObservabilityControl from "./ObservabilityControl";
 
 export default function ProfilePage() {
   const { theme, setTheme, isDark } = useTheme();
@@ -19,6 +20,8 @@ export default function ProfilePage() {
   const [isShuttingDown, setIsShuttingDown] = useState(false);
   const [settings, setSettings] = useState({ fallbackStrategy: "fill-first" });
   const [loading, setLoading] = useState(true);
+  const [observabilitySaving, setObservabilitySaving] = useState(false);
+  const [observabilityError, setObservabilityError] = useState("");
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [passStatus, setPassStatus] = useState({ type: "", message: "" });
   const [passLoading, setPassLoading] = useState(false);
@@ -633,17 +636,24 @@ export default function ProfilePage() {
   };
 
   const updateObservabilityEnabled = async (enabled) => {
+    setObservabilitySaving(true);
+    setObservabilityError("");
     try {
-      const res = await fetch("/api/settings", {
+      const res = await fetch("/api/settings/observability", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enableObservability: enabled }),
       });
       if (res.ok) {
-        setSettings(prev => ({ ...prev, enableObservability: enabled }));
+        const data = await res.json();
+        setSettings(prev => ({ ...prev, ...data }));
+      } else {
+        setObservabilityError("Failed to update observability settings");
       }
-    } catch (err) {
-      console.error("Failed to update enableObservability:", err);
+    } catch {
+      setObservabilityError("Failed to update observability settings");
+    } finally {
+      setObservabilitySaving(false);
     }
   };
 
@@ -736,8 +746,6 @@ export default function ProfilePage() {
     if (mode === "export") await handleExportDatabase(password);
     else if (mode === "import") await runImportDatabase(password);
   };
-
-  const observabilityEnabled = settings.enableObservability === true;
 
   const handleShutdown = async () => {
     setIsShuttingDown(true);
@@ -1630,19 +1638,12 @@ export default function ProfilePage() {
             </div>
             <h3 className="text-base sm:text-lg font-semibold">Observability</h3>
           </div>
-          <div className="flex items-start sm:items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm sm:text-base">Enable Observability</p>
-              <p className="text-xs sm:text-sm text-text-muted">
-                Record request details for inspection in Usage → Details. When disabled, that tab stays empty. Requires restart-free toggle; can also be forced via <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5 text-xs">OBSERVABILITY_ENABLED</code> env.
-              </p>
-            </div>
-            <Toggle
-              checked={observabilityEnabled}
-              onChange={updateObservabilityEnabled}
-              disabled={loading}
-            />
-          </div>
+          <ObservabilityControl
+            settings={settings}
+            loading={loading || observabilitySaving}
+            error={observabilityError}
+            onChange={updateObservabilityEnabled}
+          />
         </Card>
 
         {/* Account actions */}

@@ -6,6 +6,12 @@
 
 [完整中文说明](../README.zh-CN.md) · [English](../README.md) · [仓库](https://github.com/ByKitsune/kitsune-router) · [更新日志](../CHANGELOG.md)
 
+## 官方 ByKitsune 提供商
+
+ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **Providers** 中选择 **Connect ByKitsune**，添加[ByKitsune 密钥页面](https://bykitsune.com/dashboard?tab=keys)的密钥，然后选择 **Fetch Models**。API 基址为 `https://api.bykitsune.com/v1`，使用 Bearer 认证；客户端使用发现的 `bykitsune/<model-id>` 路由。账户和路由顺序仍由你选择。
+
+此集成适用于当前源码。
+
 ## 发布与安装
 
 **1.0.2 容器已私有发布，匿名访问待确认，npm 受阻。** 源码固定于 `65c8b97d`：9,041 通过、100 跳过、零失败。Recovery `40485038668` 已发布 GHCR `1.0.2`/`latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。包最近读回仍为 **private**：所有者选择 Public 但未确认，匿名 grant HTTP 401。npm 仍为 E403/公开读回 HTTP 404，用户替换 token 未确认。npm 命令仅 npm 发布验证后适用，目前用源码或获授权私有容器访问；无 GitHub Release 或生产部署。见 [1.0.2 证据](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)。

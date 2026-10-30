@@ -185,7 +185,17 @@ export function fixMissingToolResponses(body) {
   for (let i = 0; i < messages.length; i++) {
     const ids = getToolCallIds(messages[i]);
     if (!ids.length || i + 1 === messages.length) continue;
-    const pending = [...ids];
+    // Match each raw ID once. A parallel result run can arrive in any order;
+    // repeatedly scanning/splicing all remaining calls made large tool batches
+    // quadratic and decoded signed IDs again for every unsuccessful comparison.
+    const waiting = new Map();
+    const matched = new Set();
+    for (let index = 0; index < ids.length; index++) {
+      const rawId = splitToolCallId(ids[index]).rawId;
+      let queue = waiting.get(rawId);
+      if (!queue) waiting.set(rawId, queue = { indices: [], next: 0 });
+      queue.indices.push(index);
+    }
     let end = i + 1;
     for (; end < messages.length; end++) {
       const message = messages[end];
@@ -194,10 +204,12 @@ export function fixMissingToolResponses(body) {
           ? message.content.filter(block => block?.type === CLAUDE_BLOCK.TOOL_RESULT).map(block => block.tool_use_id) : [];
       if (!results.length) break;
       for (const id of results) {
-        const index = pending.findIndex(candidate => candidate === id || splitToolCallId(candidate).rawId === splitToolCallId(id).rawId);
-        if (index >= 0) pending.splice(index, 1);
+        const rawId = splitToolCallId(id).rawId;
+        const queue = waiting.get(rawId);
+        if (queue && queue.next < queue.indices.length) matched.add(queue.indices[queue.next++]);
       }
     }
+    const pending = ids.filter((_, index) => !matched.has(index));
     if (pending.length) {
       repaired ??= [];
       for (let index = copiedUntil; index < end; index++) repaired.push(messages[index]);

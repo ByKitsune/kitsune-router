@@ -6,6 +6,12 @@
 
 [English](README.md) · [仓库](https://github.com/ByKitsune/kitsune-router) · [更新日志](CHANGELOG.md) · [迁移指南](docs/MIGRATION.md)
 
+## 官方 ByKitsune 提供商
+
+ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **Providers** 中选择 **Connect ByKitsune**，添加[ByKitsune 密钥页面](https://bykitsune.com/dashboard?tab=keys)的密钥，然后选择 **Fetch Models**。API 基址为 `https://api.bykitsune.com/v1`，使用 Bearer 认证；客户端使用发现的 `bykitsune/<model-id>` 路由。账户和路由顺序仍由你选择。
+
+此集成适用于当前源码。
+
 ## 发布状态
 
 **1.0.2 容器已发布，匿名拉取待确认，npm 仍受阻。** 源码固定于不可变 `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b`（9,041 通过、100 跳过、零失败）。恢复已发布 GHCR `1.0.2` 与 `latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。但 [容器包](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) 最近读回仍为 **private**；所有者选择将其设为 Public，尚未确认完成，匿名 grant 为 HTTP 401。npm 因 E403 未发布，用户自行替换 token 也未确认。没有 GitHub Release 1.0.2 或生产部署。包 `@bykitsune/router`、命令 `kitsune-router` 不变；npm 命令仅 npm 发布/读回成功后适用，目前可用源码或获授权的私有容器访问。见 [分发证据](releases/RELEASE_NOTES_v1.0.2.md)。

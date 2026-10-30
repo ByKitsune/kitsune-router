@@ -9,6 +9,12 @@ La categoría histórica «económico» es una agrupación documental, no priori
 
 No publiques secretos en issues/configuración. Usa `DATA_DIR` privado absoluto y backups completos. Almacenamiento local no garantiza cifrado de todas las claves.
 
+## Proveedor oficial ByKitsune
+
+ByKitsune aparece destacado como proveedor oficial principal. En **Providers**, selecciona **Connect ByKitsune**, añade una clave del [panel de claves de ByKitsune](https://bykitsune.com/dashboard?tab=keys) y selecciona **Fetch Models**. La base de la API es `https://api.bykitsune.com/v1`, con autenticación Bearer; usa las rutas `bykitsune/<model-id>` del catálogo obtenido. Tú sigues eligiendo las cuentas y el orden de las rutas.
+
+Esta integración corresponde al código fuente actual.
+
 ## Costes
 
 Fecha, endpoint, contexto, caché, medios y velocidad entregada cambian la tarifa. Una tabla antigua «$0.20/1M» no prueba la factura actual. Usa facturación oficial y metadatos/overrides revisados; desconocido no es cero.

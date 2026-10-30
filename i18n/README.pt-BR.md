@@ -6,6 +6,12 @@ Gateway de IA local-first e neutro entre provedores, mantido e patrocinado pela 
 
 [English](../README.md) · [Repositório](https://github.com/ByKitsune/kitsune-router) · [Mudanças](../CHANGELOG.md) · [Migração](../docs/MIGRATION.md)
 
+## Provedor oficial ByKitsune
+
+ByKitsune aparece em destaque como provedor oficial principal. Em **Providers**, selecione **Connect ByKitsune**, adicione uma chave do [painel de chaves ByKitsune](https://bykitsune.com/dashboard?tab=keys) e escolha **Fetch Models**. A base da API é `https://api.bykitsune.com/v1`, com autenticação Bearer; use as rotas `bykitsune/<model-id>` do catálogo obtido. Você continua escolhendo as contas e a ordem do roteamento.
+
+Esta integração se refere ao código-fonte atual.
+
 ## Publicação e instalação
 
 **Contêiner 1.0.2 publicado em privado; acesso anônimo pendente; npm bloqueado.** Fonte imutável `65c8b97d`: 9.041 aprovados, 100 ignorados, zero falhas. Recovery `40485038668` publicou GHCR `1.0.2`/`latest`; leitura autenticada digest/proveniência/SPDX e smoke independente da imagem publicada passaram. Pacote ainda **private** na última leitura: proprietário selecionou Public, não confirmou, grants anônimos HTTP 401. npm segue E403/leitura pública HTTP 404; troca do token pelo usuário não confirmada. Comandos npm somente após publicação npm verificada; use fontes ou acesso privado autorizado ao contêiner. Sem GitHub Release ou deploy em produção. [Evidências 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).

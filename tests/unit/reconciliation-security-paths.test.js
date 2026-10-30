@@ -44,6 +44,13 @@ function runWithPermissiveUmask(body) {
   }));
 }
 
+// Establish the synthetic prior state explicitly; creation modes alone are
+// filtered by the executor's umask and can accidentally skip hardening coverage.
+function writeModeFixture(file, contents, mode) {
+  fs.writeFileSync(file, contents, { mode });
+  fs.chmodSync(file, mode);
+}
+
 describe.skipIf(process.platform === "win32")("private database filesystem boundary", () => {
   it("creates private directories and a private SQLite file even with a permissive umask", () => {
     const result = runWithPermissiveUmask(`
@@ -75,7 +82,7 @@ describe.skipIf(process.platform === "win32")("private database filesystem bound
   it("hardens permissions without replacing existing database bytes or inode", async () => {
     const { ensureDirs, DB_DIR, DATA_FILE } = await import("@/lib/db/paths.js");
     fs.mkdirSync(DB_DIR, { recursive: true });
-    fs.writeFileSync(DATA_FILE, "existing synthetic state", { mode: 0o644 });
+    writeModeFixture(DATA_FILE, "existing synthetic state", 0o644);
     fs.chmodSync(DB_DIR, 0o755);
     const inode = fs.statSync(DATA_FILE).ino;
 
@@ -91,7 +98,7 @@ describe.skipIf(process.platform === "win32")("private database filesystem bound
     const { ensureDirs, DB_DIR, DATA_FILE } = await import("@/lib/db/paths.js");
     fs.mkdirSync(DB_DIR, { recursive: true });
     const target = path.join(root, "target.sqlite");
-    fs.writeFileSync(target, "untouched synthetic target", { mode: 0o640 });
+    writeModeFixture(target, "untouched synthetic target", 0o640);
     fs.symlinkSync(target, DATA_FILE);
 
     expect(() => ensureDirs()).toThrow();
@@ -104,7 +111,7 @@ describe.skipIf(process.platform === "win32")("private database filesystem bound
     const { ensureDirs, DB_DIR, DATA_FILE } = await import("@/lib/db/paths.js");
     fs.mkdirSync(DB_DIR, { recursive: true });
     const target = path.join(root, "linked.sqlite");
-    fs.writeFileSync(target, "untouched synthetic hard link", { mode: 0o640 });
+    writeModeFixture(target, "untouched synthetic hard link", 0o640);
     fs.linkSync(target, DATA_FILE);
 
     expect(() => ensureDirs()).toThrow();

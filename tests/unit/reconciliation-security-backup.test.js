@@ -38,10 +38,17 @@ afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// These synthetic sources/collisions deliberately start less private than the
+// backup. Creation modes alone are masked by an inherited owner-only umask.
+function writeModeFixture(file, contents, mode) {
+  fs.writeFileSync(file, contents, { mode });
+  fs.chmodSync(file, mode);
+}
+
 function legacyFile() {
   const source = path.join(root, "legacy.json");
   const bytes = Buffer.from(JSON.stringify({ apiKey: "synthetic-only-key", padding: "x".repeat(200000) }));
-  fs.writeFileSync(source, bytes, { mode: 0o644 });
+  writeModeFixture(source, bytes, 0o644);
   return { source, bytes };
 }
 
@@ -103,8 +110,8 @@ describe.skipIf(process.platform === "win32")("private backup writers before any
     const directory = backups.makeBackupDir(`synthetic-copy-${kind}`);
     const destination = path.join(directory, "legacy.json");
     const sentinel = path.join(root, "sentinel");
-    fs.writeFileSync(sentinel, "synthetic-prior-state", { mode: 0o640 });
-    if (kind === "existing") fs.writeFileSync(destination, "synthetic-prior-state", { mode: 0o640 });
+    writeModeFixture(sentinel, "synthetic-prior-state", 0o640);
+    if (kind === "existing") writeModeFixture(destination, "synthetic-prior-state", 0o640);
     if (kind === "symlink") fs.symlinkSync(sentinel, destination);
     if (kind === "hardlink") fs.linkSync(sentinel, destination);
     const before = fs.lstatSync(destination);
@@ -195,8 +202,8 @@ describe.skipIf(process.platform === "win32")("private backup writers before any
     const directory = backups.makeBackupDir(`synthetic-db-${kind}`);
     const destination = path.join(directory, "data.sqlite");
     const sentinel = path.join(root, "sentinel.sqlite");
-    fs.writeFileSync(sentinel, "synthetic-prior-backup", { mode: 0o640 });
-    if (kind === "existing") fs.writeFileSync(destination, "synthetic-prior-backup", { mode: 0o640 });
+    writeModeFixture(sentinel, "synthetic-prior-backup", 0o640);
+    if (kind === "existing") writeModeFixture(destination, "synthetic-prior-backup", 0o640);
     if (kind === "symlink") fs.symlinkSync(sentinel, destination);
     if (kind === "hardlink") fs.linkSync(sentinel, destination);
     const inode = fs.lstatSync(destination).ino;

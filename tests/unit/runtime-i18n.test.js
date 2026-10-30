@@ -85,6 +85,37 @@ function fixture({ locale = "id", dictionaries = {} } = {}) {
 const id = { "Not specified": "Belum ditentukan", "Estimated cost": "Perkiraan biaya", "Search models": "Cari model", "{count} requests": "{count} permintaan", "Source {index}": "Sumber {index}", "{cost} local estimate": "{cost} perkiraan lokal", "Choose language, current: {language}": "Pilih bahasa, saat ini: {language}" };
 
 describe("runtime UI localization", () => {
+  it("translates the official provider card and its website label without changing brand identities", async () => {
+    const dictionary = JSON.parse(readFileSync(new URL("../../public/i18n/literals/id.json", import.meta.url), "utf8"));
+    const f = fixture({ dictionaries: { id: dictionary } });
+    const badge = f.document.body.appendChild(f.element("span")).appendChild(f.text("Official provider"));
+    const cardBadge = f.document.body.appendChild(f.element("span")).appendChild(f.text("Official"));
+    const description = f.document.body.appendChild(f.element("p"));
+    const prefix = description.appendChild(f.text("The official provider from the team behind "));
+    const product = description.appendChild(f.text("Kitsune Router"));
+    const suffix = description.appendChild(f.text(". Explore ByKitsune's AI services and ecosystem."));
+    const website = f.document.body.appendChild(f.element("a", {
+      "aria-label": "Visit ByKitsune website (opens in a new tab)",
+      href: "https://bykitsune.com/",
+    }));
+    const caption = website.appendChild(f.text("Visit website"));
+
+    const stop = await f.runtime.initRuntimeI18n();
+    expect(badge.nodeValue).toBe("Penyedia resmi");
+    expect(cardBadge.nodeValue).toBe("Resmi");
+    expect(prefix.nodeValue + product.nodeValue + suffix.nodeValue)
+      .toBe("Penyedia resmi dari tim pengembang Kitsune Router. Jelajahi layanan AI dan ekosistem ByKitsune.");
+    expect(caption.nodeValue).toBe("Kunjungi situs web");
+    expect(website.getAttribute("aria-label")).toBe("Kunjungi situs web ByKitsune (dibuka di tab baru)");
+    expect(website.getAttribute("href")).toBe("https://bykitsune.com/");
+
+    f.document.cookie = "locale=en";
+    await f.runtime.reloadTranslations();
+    expect(badge.nodeValue).toBe("Official provider");
+    expect(website.getAttribute("aria-label")).toBe("Visit ByKitsune website (opens in a new tab)");
+    stop();
+  });
+
   it("formats named zero values, known numeric templates and whitespace without inventing missing translations", async () => {
     const f = fixture({ dictionaries: { id } });
     await f.runtime.reloadTranslations();

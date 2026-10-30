@@ -2,6 +2,26 @@
 
 Run the gateway, translator, persistence, discovery, pricing and dashboard contract suites from the repository root. Keep provider inference opt-in and use isolated state for runtime smoke checks.
 
+## Local translator latency benchmark
+
+`node scripts/benchmark-translator.mjs --output /tmp/translator-after.json` measures
+six request/response format pairs with normal chat and a 400-call parallel tool
+history containing typed image input. It runs the real request translator and
+SSE pipeline, forbids network requests, and replaces only usage-persistence effects.
+The JSON report records fixture/input/output SHA-256 hashes, sample counts, and
+p50/p95 milliseconds for translation and request preparation through the first
+semantic response event. It measures local CPU work, not provider/network TTFT.
+
+To compare the tool-history algorithms with an earlier commit without changing
+the checkout, run the same command with `--baseline-ref <commit>` and a different
+output path. This replaces only `translator/concerns/toolCall.js` and
+`translator/formats/claude.js` through process-local ESM load hooks; all other
+modules remain current. A baseline must have compatible module contracts. Repeat
+in alternating order on an otherwise idle machine, compare matching fixture and
+wire-output hashes, and retain both JSON reports. `--iterations` (default 60) and
+`--parallel-tools` (default 400) control the workload. These measurements are
+opt-in diagnostics; deterministic work-bound regressions belong in the test suite.
+
 ## Install and run
 
 Use Node.js 22.19 or newer. Install both packages because tests import application dependencies:
@@ -112,7 +132,18 @@ npm run lint -- --max-warnings=0
 npm run build
 ```
 
-Use `NEXT_DIST_DIR` under `.next/` for an isolated build so an existing standalone deployment stays untouched. Keep standalone `DATA_DIR` absolute.
+Use a separate `NEXT_DIST_DIR` inside the checkout so an existing standalone
+deployment stays untouched. Keep standalone `DATA_DIR` absolute. The browser
+fixture uses the same selected build directory, including workspace-traced
+standalone output:
+
+```bash
+NEXT_DIST_DIR=.next-cli-build npm run build
+NEXT_DIST_DIR=.next-cli-build npm run test:ui
+```
+
+The fixture refuses an output outside the checkout or an embedded `.env` file,
+and starts with temporary state and synthetic credentials.
 
 Normal CI also runs the CJS compatibility test, identity/baseline checks and the
 strict report gate, with isolated HOME/DATA_DIR and live/background work disabled.

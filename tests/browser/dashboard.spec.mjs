@@ -236,3 +236,49 @@ test("Japanese pricing states and accessible labels use the selected dictionary"
   await expect(page.locator("#localized-japanese")).toHaveAttribute("title", "プロバイダーまたはモデルを検索");
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
 });
+
+test("official provider setup keeps its identity and translates the website label", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard/providers");
+  const official = page.locator("#official-provider");
+  await expect(official.getByRole("heading", { name: "ByKitsune", exact: true })).toBeVisible();
+  await expect(official.getByRole("link", { name: "Connect ByKitsune", exact: true }))
+    .toHaveAttribute("href", "/dashboard/providers/bykitsune");
+  await expectNoPageOverflow(page);
+
+  await page.request.post("/api/locale", { data: { locale: "id" } });
+  await page.reload();
+  await expect(official).toContainText("Penyedia resmi");
+  await expect(official.getByRole("link", { name: "Kunjungi situs web ByKitsune (dibuka di tab baru)", exact: true }))
+    .toHaveAttribute("href", "https://bykitsune.com/");
+  await expect(official.getByRole("heading", { name: "ByKitsune", exact: true })).toBeVisible();
+});
+
+test("observability switch persists the server-confirmed preference across a reload", async ({ page }) => {
+  const initialResponse = await page.request.get("/api/settings");
+  expect(initialResponse.status()).toBe(200);
+  const initial = await initialResponse.json();
+  expect(initial.observabilitySource).toBe("settings");
+  const selected = !initial.observabilityEnabled;
+
+  try {
+    await page.goto("/dashboard/profile");
+    const toggle = page.getByRole("switch", { name: "Enable Observability", exact: true });
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-checked", String(initial.observabilityEnabled));
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", String(selected));
+    await expect.poll(async () => {
+      const response = await page.request.get("/api/settings");
+      const settings = await response.json();
+      return { saved: settings.enableObservability, effective: settings.observabilityEnabled, source: settings.observabilitySource };
+    }).toEqual({ saved: selected, effective: selected, source: "settings" });
+    await page.reload();
+    await expect(toggle).toHaveAttribute("aria-checked", String(selected));
+  } finally {
+    const restored = await page.request.patch("/api/settings/observability", {
+      data: { enableObservability: initial.enableObservability === true },
+    });
+    expect(restored.status()).toBe(200);
+  }
+});

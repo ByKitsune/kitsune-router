@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   handleChat: vi.fn(),
@@ -59,6 +59,12 @@ function audioBody() {
 
 describe("Gemini native v1beta endpoint", () => {
   beforeEach(() => {
+    // This suite supplies the terminal fetch, including synthetic network
+    // errors. An inherited proxy would intentionally wrap those errors as
+    // required-proxy failures instead of exercising the native timeout path.
+    for (const name of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) {
+      vi.stubEnv(name, "");
+    }
     vi.clearAllMocks();
     mocks.getSettings.mockResolvedValue({ requireApiKey: true });
     mocks.isValidApiKey.mockResolvedValue(true);
@@ -69,15 +75,19 @@ describe("Gemini native v1beta endpoint", () => {
       providerSpecificData: {},
     });
     mocks.markAccountUnavailable.mockResolvedValue({ shouldFallback: false });
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok" }] } }] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })
-    );
+    ));
     mocks.handleChat.mockResolvedValue(
       Response.json({ candidates: [{ content: { parts: [{ text: "chat" }] } }] })
     );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("lists Gemini TTS models using standard Google model names", async () => {
@@ -104,6 +114,7 @@ describe("Gemini native v1beta endpoint", () => {
     );
 
     const options = global.fetch.mock.calls[0][1];
+    expect(options.dispatcher, "synthetic native fetch must not use a host proxy dispatcher").toBeUndefined();
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body)).toEqual(body);
     expect(options.headers["x-goog-api-key"]).toBe("real-gemini-key");

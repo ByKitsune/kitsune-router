@@ -2,6 +2,12 @@
 
 历史“低价”分类只是文档分组，不是优先级或价格保证。按工作负载、能力和当前合约选择受支持提供商或兼容端点。
 
+## 官方 ByKitsune 提供商
+
+ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **Providers** 中选择 **Connect ByKitsune**，添加[ByKitsune 密钥页面](https://bykitsune.com/dashboard?tab=keys)的密钥，然后选择 **Fetch Models**。API 基址为 `https://api.bykitsune.com/v1`，使用 Bearer 认证；客户端使用发现的 `bykitsune/<model-id>` 路由。账户和路由顺序仍由你选择。
+
+此集成适用于当前源码。
+
 ## 连接
 
 1. 通过提供商官方流程获取 key，核实条款和地域。

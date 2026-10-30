@@ -1,6 +1,8 @@
 // Display vocabulary whose source values arrive from provider metadata or
 // templated counters rather than static JSX. Never rewrite the underlying IDs.
 export const DYNAMIC_UI_MESSAGES = [
+  "Failed to update observability settings",
+  "Visit {provider} website (opens in a new tab)",
   "Available languages", "{count} requests", "{count} models", "{count} providers", "{count} accounts", "{count} languages",
   "{count} unpriced", "{count} model rows", "{count} more providers", "{used} used · Unlimited",
   "api", "api-on-demand", "api-pay-as-you-go", "api-reference", "catalog-metadata-only", "catalog-reference",

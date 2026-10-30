@@ -25,14 +25,17 @@ async function privatePort() {
 
 // Run the public launcher against a real disposable server. Only package setup,
 // system-wide process discovery, and native tray/UI integrations are isolated.
-async function runLauncher({ tray, crash }) {
+async function runLauncher({ tray, crash, shutdown = false }) {
   const port = await privatePort();
   const dir = mkdtempSync(path.join(tmpdir(), "cli-lifecycle-"));
   const record = path.join(dir, "starts.json");
   const trayRecord = path.join(dir, "tray-pid.json");
   const trayReady = path.join(dir, "tray-ready");
+  const drainRecord = path.join(dir, "drained.json");
   mkdirSync(path.join(dir, "app"));
   copyFileSync(launcher, path.join(dir, "cli.cjs"));
+  mkdirSync(path.join(dir, "hooks"));
+  copyFileSync(new URL("../../cli/hooks/serverShutdown.js", import.meta.url), path.join(dir, "hooks/serverShutdown.js"));
   writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "lifecycle-fixture", version: "1.0.0" }));
   writeFileSync(path.join(dir, "app", "server.js"), `
     const fs = require('fs');
@@ -45,9 +48,20 @@ async function runLauncher({ tray, crash }) {
       const ready = setInterval(() => {
         if (!fs.existsSync(${JSON.stringify(trayReady)})) return;
         clearInterval(ready);
-        server.close(() => process.exit(${crash ? "starts.length === 1 ? 23 : 0" : "0"}));
+        ${shutdown ? "return;" : `server.close(() => process.exit(${crash ? "starts.length === 1 ? 23 : 0" : "0"}));`}
       }, 20);
     });
+    ${shutdown ? `
+    let stopping = false;
+    process.on('SIGTERM', () => {
+      if (stopping) return;
+      stopping = true;
+      // Model the real custom-server's async durable-usage phase before DB close.
+      server.close(() => setTimeout(() => {
+        fs.writeFileSync(${JSON.stringify(drainRecord)}, JSON.stringify(['usage-drained', 'database-closed']));
+        process.exit(0);
+      }, 150));
+    });` : ""}
   `);
   const trayScript = path.join(dir, "native-tray.cjs");
   writeFileSync(trayScript, `
@@ -111,8 +125,18 @@ async function runLauncher({ tray, crash }) {
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
+  let stopping = false;
   child.stdout.on("data", chunk => { output += chunk; });
   child.stderr.on("data", chunk => { output += chunk; });
+  const stopWhenReady = shutdown ? setInterval(() => {
+    if (!stopping && readReady()) {
+      stopping = true;
+      child.kill("SIGTERM");
+    }
+  }, 20) : null;
+  function readReady() {
+    try { return readFileSync(trayReady, "utf8") === "ready"; } catch { return false; }
+  }
   const watchdog = setTimeout(() => child.kill(), 6000);
   let liveTrayPid;
   try {
@@ -126,9 +150,12 @@ async function runLauncher({ tray, crash }) {
     // This fixture tray persists without a quit command, so a live tray here
     // is still our orphan, not a historical PID from a terminated server.
     if (trayAlive) liveTrayPid = trayPid;
-    return { code, pids, output, trayAlive };
+    let drained = null;
+    try { drained = JSON.parse(readFileSync(drainRecord, "utf8")); } catch {}
+    return { code, pids, output, trayAlive, drained };
   } finally {
     clearTimeout(watchdog);
+    clearInterval(stopWhenReady);
     child.kill();
     // Never signal historical server PIDs: the OS may already have reused them.
     if (liveTrayPid) {
@@ -143,6 +170,15 @@ async function runLauncher({ tray, crash }) {
 }
 
 describe("public CLI child lifecycle", () => {
+  it("waits for the owned server's durable drain before exiting on SIGTERM", async () => {
+    const result = await runLauncher({ tray: true, crash: false, shutdown: true });
+    expect(result.code, result.output).toBe(0);
+    expect(result.drained).toEqual(["usage-drained", "database-closed"]);
+    expect(result.pids).toHaveLength(1);
+    expect(result.output).not.toContain("Restarting in");
+    expect(result.trayAlive).toBe(false);
+  }, 10000);
+
   it.each([true, false])("recovers a crashed server once and exits on clean close (tray=%s)", async tray => {
     const result = await runLauncher({ tray, crash: true });
     expect(result.code).toBe(0);

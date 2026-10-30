@@ -1,6 +1,12 @@
 # Welcome to Kitsune Router
 
-**Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com). Choose your own upstream accounts, models and fallback order. No ByKitsune account, hosted API purchase or preferred provider is required. Requests still go to the upstreams you configure; local-first does not mean offline inference.
+**Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com). Choose your own upstream accounts, models and fallback order. No ByKitsune account or hosted API purchase is required. Requests still go to the upstreams you configure; local-first does not mean offline inference.
+
+## Official ByKitsune provider
+
+ByKitsune is highlighted as the primary official provider. In **Providers**, select **Connect ByKitsune**, add a key from [the ByKitsune key dashboard](https://bykitsune.com/dashboard?tab=keys), then select **Fetch Models**. The API base URL is `https://api.bykitsune.com/v1` with Bearer authentication; use the discovered `bykitsune/<model-id>` routes. Accounts and routing order remain your choice.
+
+This integration describes the current source checkout.
 
 ## Release status
 

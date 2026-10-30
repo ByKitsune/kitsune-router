@@ -6,6 +6,12 @@ Gateway AI local-first yang netral terhadap penyedia, dipelihara dan disponsori 
 
 [English](../README.md) · [Repositori](https://github.com/ByKitsune/kitsune-router) · [Perubahan](../CHANGELOG.md) · [Migrasi](../docs/MIGRATION.md)
 
+## Penyedia resmi ByKitsune
+
+ByKitsune ditonjolkan sebagai penyedia resmi utama. Di **Providers**, pilih **Connect ByKitsune**, tambahkan kunci dari [dashboard kunci ByKitsune](https://bykitsune.com/dashboard?tab=keys), lalu pilih **Fetch Models**. Base URL API adalah `https://api.bykitsune.com/v1` dengan autentikasi Bearer; gunakan rute `bykitsune/<model-id>` dari katalog yang diambil. Akun dan urutan routing tetap Anda pilih.
+
+Integrasi ini tersedia pada source checkout saat ini.
+
 ## Status rilis dan instalasi
 
 **Container 1.0.2 terbit privat; akses anonim menunggu; npm terblokir.** Sumber tetap `65c8b97d`: 9.041 lulus, 100 dilewati, nol gagal. Recovery `40485038668` menerbitkan GHCR `1.0.2`/`latest`; readback terautentikasi digest/provenance/SPDX dan smoke independen image terbit lulus. Paket masih **private** pada pembacaan terakhir: pemilik memilih Public tetapi belum mengonfirmasi, grant anonim HTTP 401. npm tetap E403/readback publik HTTP 404, penggantian token pengguna belum dikonfirmasi. Perintah npm hanya setelah publikasi npm terverifikasi; sekarang gunakan sumber atau akses container privat yang diizinkan. Tidak ada GitHub Release atau deployment produksi. [Bukti 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).

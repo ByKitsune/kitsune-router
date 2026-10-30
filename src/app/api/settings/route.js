@@ -3,7 +3,7 @@ import { usesDefaultPassword } from "@/lib/auth/dashboardSession";
 import { getSettings, updateSettings } from "@/lib/localDb";
 import { applyOutboundProxyEnv } from "@/lib/network/outboundProxy";
 import { resetComboRotation } from "open-sse/services/combo.js";
-import { resolveObservabilityEnabled } from "@/lib/db/repos/requestDetailsRepo.js";
+import { resolveObservabilityState } from "@/lib/db/repos/requestDetailsRepo.js";
 import bcrypt from "bcryptjs";
 import { EFFORT_LEVELS } from "open-sse/translator/concerns/thinking.js";
 import { SERVICE_TIER_OPTIONS } from "open-sse/providers/serviceTiers.js";
@@ -108,12 +108,14 @@ export async function GET() {
     
     const enableRequestLogs = process.env.ENABLE_REQUEST_LOGS === "true";
     const enableTranslator = process.env.ENABLE_TRANSLATOR === "true";
+    const observability = resolveObservabilityState(safeSettings);
 
     return NextResponse.json({
       ...safeSettings,
       enableRequestLogs,
       enableRequestLogsDefined: process.env.ENABLE_REQUEST_LOGS !== undefined,
-      observabilityEnabled: resolveObservabilityEnabled(safeSettings),
+      observabilityEnabled: observability.enabled,
+      observabilitySource: observability.source,
       enableTranslator,
       hasPassword: !!password,
       usesDefaultPassword: usesDefaultPassword(settings),
@@ -215,7 +217,12 @@ export async function PATCH(request) {
 
     const { password, oidcClientSecret, mitmSudoEncrypted, ...safeSettings } = settings;
     safeSettings.oidcConfigured = !!(safeSettings.oidcIssuerUrl && safeSettings.oidcClientId && oidcClientSecret);
-    return NextResponse.json(safeSettings, { headers: SETTINGS_RESPONSE_HEADERS });
+    const observability = resolveObservabilityState(safeSettings);
+    return NextResponse.json({
+      ...safeSettings,
+      observabilityEnabled: observability.enabled,
+      observabilitySource: observability.source,
+    }, { headers: SETTINGS_RESPONSE_HEADERS });
   } catch (error) {
     console.log("Error updating settings:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

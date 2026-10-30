@@ -2,6 +2,12 @@
 
 **Your models. Your routes.** 由 [ByKitsune](https://bykitsune.com) 维护和赞助的中立、多提供商、本地优先 AI 网关。模型、账户和回退顺序由你选择；不要求 ByKitsune 账户或购买托管 API。请求仍发送至所配置的上游，本地优先不代表离线推理。
 
+## 官方 ByKitsune 提供商
+
+ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **Providers** 中选择 **Connect ByKitsune**，添加[ByKitsune 密钥页面](https://bykitsune.com/dashboard?tab=keys)的密钥，然后选择 **Fetch Models**。API 基址为 `https://api.bykitsune.com/v1`，使用 Bearer 认证；客户端使用发现的 `bykitsune/<model-id>` 路由。账户和路由顺序仍由你选择。
+
+此集成适用于当前源码。
+
 ## 发布状态
 
 **1.0.2 容器已私有发布，匿名拉取待确认，npm 受阻。** Runtime 固定于 `65c8b97d`（9,041 通过、100 跳过、零失败）。Recovery `40485038668` 发布 GHCR `1.0.2`/`latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。包最近读回仍为 **private**，所有者选择 Public 但未确认，匿名 grant HTTP 401。npm 仍 E403/公开读回 HTTP 404，token 替换未确认。可用源码或获授权私有容器访问；npm 命令仅 npm 发布验证后适用。无 GitHub Release 或生产部署。见 [分发证据](/zh-CN/changelog/)。

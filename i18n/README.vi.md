@@ -6,6 +6,12 @@ Gateway AI ưu tiên cục bộ, trung lập giữa các nhà cung cấp, do [By
 
 [English](../README.md) · [Kho mã](https://github.com/ByKitsune/kitsune-router) · [Thay đổi](../CHANGELOG.md) · [Di chuyển](../docs/MIGRATION.md)
 
+## Nhà cung cấp ByKitsune chính thức
+
+ByKitsune được làm nổi bật là nhà cung cấp chính thức ở đầu danh sách. Trong **Providers**, chọn **Connect ByKitsune**, thêm khóa từ [trang khóa ByKitsune](https://bykitsune.com/dashboard?tab=keys), rồi chọn **Fetch Models**. API dùng `https://api.bykitsune.com/v1` với xác thực Bearer; dùng các route `bykitsune/<model-id>` được trả về. Bạn vẫn chọn tài khoản và thứ tự định tuyến.
+
+Tích hợp này thuộc mã nguồn hiện tại.
+
 ## Phát hành và cài đặt
 
 **Container 1.0.2 đã xuất bản private; pull ẩn danh còn chờ; npm bị chặn.** Nguồn bất biến `65c8b97d`: 9.041 qua, 100 skip, không lỗi. Recovery `40485038668` xuất bản GHCR `1.0.2`/`latest`; readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản đều qua. Gói vẫn **private** ở lần đọc cuối: chủ chọn Public nhưng chưa xác nhận xong, grant ẩn danh HTTP 401. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Chỉ dùng lệnh npm sau xuất bản npm được xác minh; hiện dùng nguồn hoặc quyền truy cập container private được phép. Không GitHub Release hay triển khai production. [Bằng chứng 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).

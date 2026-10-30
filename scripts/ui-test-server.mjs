@@ -1,23 +1,18 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { UI_TEST_HOST, UI_TEST_PORT, UI_TEST_PASSWORD } from "../tests/browser/test-settings.mjs";
+import { resolveUiTestServer } from "./ui-test-build.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const server = join(root, ".next/standalone/custom-server.js");
-if (!existsSync(server)) {
-  console.error("UI tests require a production build. Run npm run build first.");
-  process.exit(1);
-}
-// Next and the custom server load .env files beside the standalone server.
-// Refuse such a build rather than silently importing real provider credentials.
-const embeddedEnvironment = readdirSync(dirname(server)).filter(name => name === ".env" || name.startsWith(".env."));
-if (embeddedEnvironment.length) {
-  console.error("UI tests refuse a standalone build containing .env files. Build from an isolated source configuration first.");
+let server;
+try { server = resolveUiTestServer(root, process.env.NEXT_DIST_DIR || ".next"); }
+catch (error) {
+  console.error(error.message);
   process.exit(1);
 }
 const temporary = mkdtempSync(join(tmpdir(), "kitsune-browser-"));
