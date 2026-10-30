@@ -13,7 +13,10 @@ The existing ByKitsune source was reviewed at `/root/ByKitsuneV2`. Its establish
 ink (`#30241d`), paper (`#fffefa`), ember (`#a63f23`), and geometric sans-serif
 typography form the shared family. Kitsune Router now uses the official
 ByKitsune character artwork for its logo and application icons. ByKitsune is
-acknowledged as maintainer and sponsor, not as a mandatory API supplier. Use equal treatment for every provider.
+acknowledged as maintainer, sponsor, and the primary official provider highlighted
+in the provider library. This highlight links to ByKitsune's services; it does not
+automatically connect an account or change model routing. Users retain control
+over their providers, credentials, and routes.
 
 ## Visual language
 

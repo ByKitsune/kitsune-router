@@ -353,6 +353,7 @@ export async function POST(request) {
           break;
         }
 
+        case "bykitsune":
         case "deepseek":
         case "groq":
         case "xai":

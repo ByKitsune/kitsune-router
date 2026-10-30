@@ -7,6 +7,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Official ByKitsune provider
+
+- Add ByKitsune API-key connections using `https://api.bykitsune.com/v1`, with
+  authenticated live model discovery and JSON/SSE chat transport. Validate keys
+  through the models endpoint without making an inference request.
+- Highlight ByKitsune as the primary official provider in the provider library,
+  with official artwork, a connection shortcut, and first position in API-key
+  provider listings. Existing routing remains controlled by the user's settings.
+
 Source follow-up dated 2026-10-29: the eleven local commits from `e006f374`
 through `80d33268` after `d1d36d3c`, and the scoped worktree changes below, are
 separate from the immutable 1.0.2 artifacts. They do not establish a release,

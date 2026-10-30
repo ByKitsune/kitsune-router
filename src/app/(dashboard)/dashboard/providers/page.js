@@ -26,6 +26,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
+import OfficialProvider from "./components/OfficialProvider";
 import { STATUS_FILTER_OPTIONS, matchesStatusFilter } from "./utils";
 
 function getStatusDisplay(connected, error, errorCode) {
@@ -356,6 +357,8 @@ export default function ProvidersPage() {
         matchStatus(getProviderStats(key, "apikey"), info.noAuth),
     )
     .sort(([ka, a], [kb, b]) => {
+      const officialOrder = Number(!!b.official) - Number(!!a.official);
+      if (officialOrder !== 0) return officialOrder;
       const ca = getProviderStats(ka, "apikey").total > 0 ? 0 : 1;
       const cb = getProviderStats(kb, "apikey").total > 0 ? 0 : 1;
       if (ca !== cb) return ca - cb;
@@ -397,8 +400,9 @@ export default function ProvidersPage() {
           { label: "Custom endpoints", value: providerNodes.length, icon: "api" },
           { label: "API key providers", value: Object.keys(APIKEY_PROVIDERS).length, icon: "vpn_key" },
         ]}
-        links={[{ href: "#custom-providers", label: "Custom endpoints" }, { href: "#oauth-providers", label: "OAuth" }, { href: "#api-key-providers", label: "API keys" }]}
+        links={[{ href: "#official-provider", label: "ByKitsune" }, { href: "#custom-providers", label: "Custom endpoints" }, { href: "#oauth-providers", label: "OAuth" }, { href: "#api-key-providers", label: "API keys" }]}
       />
+      <OfficialProvider />
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-3">
         <p className="text-xs leading-5 text-text-muted">Browse providers or narrow the library by connection status.</p>
         <select
@@ -880,6 +884,9 @@ function ApiKeyProviderCard({
             <div className="min-w-0">
               <h3 className="truncate font-semibold">{provider.name}</h3>
               <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap">
+                {provider.official && (
+                  <Badge variant="primary" size="sm" icon="verified">Official</Badge>
+                )}
                 {allDisabled ? (
                   <Badge variant="default" size="sm">
                     <span className="flex items-center gap-1">
@@ -945,6 +952,7 @@ ApiKeyProviderCard.propTypes = {
     color: PropTypes.string,
     textIcon: PropTypes.string,
     apiType: PropTypes.string,
+    official: PropTypes.bool,
   }).isRequired,
   stats: PropTypes.shape({
     connected: PropTypes.number,

@@ -83,6 +83,15 @@ Review `.env` before startup: use a writable **absolute** state path and fresh p
 | `http://localhost:20128/v1/models` | Available model/route discovery |
 | `http://localhost:20128/api/health` | Health probe; not proof of upstream availability |
 
+### Official ByKitsune provider
+
+Open **Providers → Connect ByKitsune**, add an API key from
+[ByKitsune's key dashboard](https://bykitsune.com/dashboard?tab=keys), then use
+**Fetch Models** to load the live catalog. The upstream base URL is
+`https://api.bykitsune.com/v1`; authentication uses `Authorization: Bearer <key>`.
+Use the listed `bykitsune/<model-id>` routes in clients. The catalog comes from
+the authenticated deployment rather than a bundled seed list.
+
 ### Containers
 
 The published image targets **linux/amd64 only**. It currently requires authorized private GHCR access; use the command after authenticating with package-read permission, or after Public visibility and anonymous access are confirmed. See [Docker](DOCKER.md) for the verified digest pin.
@@ -129,6 +138,6 @@ The [release evidence](docs/CHANGELOG_v1.0.2.md) separates runtime source, recov
 
 ## Maintainers, acknowledgments and license
 
-[ByKitsune](https://bykitsune.com) maintains and sponsors Kitsune Router with the community. A hosted ByKitsune service is optional, not a prerequisite or preferred routing destination.
+[ByKitsune](https://bykitsune.com) maintains and sponsors Kitsune Router with the community and is highlighted as its primary official provider in the provider library. The highlight does not automatically connect accounts or change routing; users choose their providers and routes.
 
 Kitsune Router continues ZenRouter and its 9Router lineage. Credit remains with their authors and contributors, including Joy, and with [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), [RTK](https://github.com/rtk-ai/rtk), [Caveman](https://github.com/JuliusBrussee/caveman) and [Ponytail](https://github.com/DietrichGebert/ponytail) for the acknowledged implementations and ideas. The rebrand does not replace upstream copyright notices or historical artifact provenance. See [LICENSE](LICENSE).

@@ -124,8 +124,10 @@ import p120 from "./fish-audio.js";
 import p121 from "./alitp-intl.js";
 import p122 from "./xquik.js";
 import p124 from "./paraloncloud.js";
+import bykitsune from "./bykitsune.js";
 
 export default [
+  bykitsune,
   p0,
   p1,
   p2,

@@ -1061,5 +1061,10 @@
     "baseUrl": "https://paraloncloud.com/v1/chat/completions",
     "validateUrl": "https://paraloncloud.com/v1/models",
     "format": "openai"
+  },
+  "bykitsune": {
+    "baseUrl": "https://api.bykitsune.com/v1/chat/completions",
+    "validateUrl": "https://api.bykitsune.com/v1/models",
+    "format": "openai"
   }
 }
