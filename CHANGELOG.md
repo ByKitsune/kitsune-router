@@ -7,6 +7,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Recorded usage accuracy and dashboard motion
+
+- Retain accepted native numeric-string usage counters, explicit zeroes and
+  estimated-token provenance through normalization and durable recording.
+- Keep account/model/provider identities separate across live and daily
+  statistics, including identically named connections and local requests.
+- Expose consumed dynamic models in pricing configuration and resolve annotated
+  catalog identities at the same timestamp as their recorded price.
+- Display recorded cost components without inventing a token-proportional
+  breakdown for legacy totals; explain missing prices and preserve known
+  subtotals alongside unpriced counts.
+- Distinguish measured zero, unavailable counters and estimated/invalid usage
+  in Request Details, and identify redacted content explicitly.
+- Animate dashboard navigation while retaining its shell, and add smooth
+  connection flow and activity motion to the routing map with reduced-motion
+  and visibility controls.
+
 ### Stability and translator latency
 
 - Reconcile parallel tool IDs and merge Claude tool-history runs with linear

@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { useReducedMotion } from "motion/react";
 import Image from "next/image";
 import {
   ReactFlow,
@@ -13,14 +12,13 @@ import {
   getBezierPath,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import "./topology.css";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
 
 // Force-stop FE animation if a provider stays active longer than this
 const FE_ACTIVE_TIMEOUT_MS = 60000;
 const FE_ACTIVE_TICK_MS = 1000;
-
-// Kame + electric particles along active edges
 
 function getProviderConfig(providerId) {
   return AI_PROVIDERS[providerId] || { color: "#6b7280", name: providerId };
@@ -32,15 +30,16 @@ function getProviderImageUrl(providerId) {
 
 // Custom provider node - rectangle with image + name
 function ProviderNode({ data }) {
-  const { label, color, imageUrl, textIcon, active } = data;
+  const { label, color, imageUrl, textIcon, active, error, last, phase, compact } = data;
   const [imgError, setImgError] = useState(false);
   return (
     <div
-      className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-[border-color,box-shadow] duration-500 bg-surface"
+      className="topology-provider flex items-center gap-2.5 rounded-2xl border bg-surface px-3.5 py-2.5"
+      data-state={active ? "active" : error ? "error" : last ? "recent" : "connected"}
       style={{
-        borderColor: active ? color : "var(--color-border)",
-        boxShadow: active ? `0 4px 20px ${color}18` : "var(--shadow-soft)",
-        minWidth: "150px",
+        "--provider-accent": color,
+        "--topology-phase": `${phase}s`,
+        width: compact ? "156px" : "190px",
       }}
     >
       <Handle type="target" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
@@ -50,7 +49,7 @@ function ProviderNode({ data }) {
 
       {/* Provider icon */}
       <div
-        className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+        className="topology-provider-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${color}15` }}
       >
         {imageUrl && !imgError ? (
@@ -74,19 +73,12 @@ function ProviderNode({ data }) {
 
       {/* Provider name */}
       <span
-        className="text-base font-medium truncate"
-        style={{ color: active ? color : "var(--color-text)" }}
+        className="truncate text-sm font-medium text-text-main"
       >
         {label}
       </span>
 
-      {/* Active indicator */}
-      {active && (
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
-          <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: color }} />
-        </span>
-      )}
+      <span aria-hidden="true" className="topology-provider-status ml-auto size-1.5 shrink-0 rounded-full" />
     </div>
   );
 }
@@ -95,17 +87,17 @@ ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// The center identifies the gateway; activity is conveyed without flicker.
+// Ambient connection motion stays distinct from actual request activity.
 function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
     <div
-      className={`relative z-[1] flex items-center justify-center px-5 py-3 rounded-xl border-2 min-w-[130px] ${
-        powering
-          ? "topology-router-core border-primary bg-primary/15"
-          : "border-primary bg-surface"
-      }`}
+      className="topology-hub relative z-[1] flex items-center justify-center rounded-2xl border px-4 py-3.5"
+      data-state={powering ? "active" : "connected"}
+      style={{ width: data.compact ? "196px" : "210px" }}
     >
+      <span aria-hidden="true" className="topology-hub-orbit topology-hub-orbit-outer" />
+      <span aria-hidden="true" className="topology-hub-orbit topology-hub-orbit-inner" />
       <Handle type="source" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-transparent !border-0 !w-0 !h-0" />
       <Handle type="source" position={Position.Left} id="left" className="!bg-transparent !border-0 !w-0 !h-0" />
@@ -116,14 +108,14 @@ function RouterNode({ data }) {
         alt="Kitsune Router"
         width={24}
         height={24}
-        className={`mr-2 object-contain ${powering ? "topology-router-icon" : ""}`}
+        className="topology-hub-logo mr-2.5 object-contain"
         loading="lazy"
       />
-      <span className={`text-sm font-bold ${powering ? "topology-router-label" : "text-primary"}`}>
+      <span className="text-xs font-bold text-text-main sm:text-sm">
         Kitsune Router
       </span>
       {data.activeCount > 0 && (
-        <span className="ml-2 px-1.5 py-0.5 rounded-full text-text-main text-xs font-bold topology-router-badge">
+        <span className="topology-hub-count ml-2 rounded-full px-1.5 py-0.5 text-xs font-bold text-primary">
           {data.activeCount}
         </span>
       )}
@@ -135,7 +127,7 @@ RouterNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Active edges use the same semantic routing accent as the rest of the UI.
+// One CSS-driven flow layer per edge; React never updates on animation frames.
 function TopologyEdge({
   id,
   sourceX,
@@ -155,14 +147,18 @@ function TopologyEdge({
     targetY,
     targetPosition,
   });
-  const active = !!data?.active;
-  const stroke = style.stroke || "var(--color-border)";
-
-  if (!active) {
-    return <BaseEdge id={id} path={edgePath} style={{ ...style, stroke }} />;
-  }
-
-  return <BaseEdge id={id} path={edgePath} style={{ ...style, stroke: "var(--color-primary)", strokeWidth: 2.5, opacity: 1 }} className="topology-edge-kame" />;
+  const state = data?.active ? "active" : data?.error ? "error" : data?.last ? "recent" : "connected";
+  return (
+    <g
+      className="topology-connection"
+      data-state={state}
+      style={{ "--topology-phase": `${data?.phase || 0}s` }}
+    >
+      <BaseEdge id={id} path={edgePath} style={style} className="topology-connection-base" />
+      <path d={edgePath} className="topology-connection-glow" fill="none" aria-hidden="true" />
+      <path d={edgePath} pathLength="1" className="topology-connection-flow" fill="none" aria-hidden="true" />
+    </g>
+  );
 }
 
 TopologyEdge.propTypes = {
@@ -181,19 +177,19 @@ const nodeTypes = { provider: ProviderNode, router: RouterNode };
 const edgeTypes = { topology: TopologyEdge };
 
 // Place N nodes evenly along an ellipse around the router center.
-function buildLayout(providers, activeSet, lastSet, errorSet) {
-  const nodeW = 180;
-  const nodeH = 30;
-  const routerW = 120;
-  const routerH = 44;
-  const nodeGap = 24;
+function buildLayout(providers, activeSet, lastSet, errorSet, compact) {
+  const nodeW = compact ? 156 : 190;
+  const nodeH = 54;
+  const routerW = compact ? 196 : 210;
+  const routerH = 62;
+  const nodeGap = 14;
 
   const count = providers.length;
 
   // Compute rx so arc spacing between nodes >= nodeW + nodeGap
   const minRx = ((nodeW + nodeGap) * count) / (2 * Math.PI);
-  const rx = Math.max(320, minRx);
-  const ry = Math.max(200, rx * 0.55); // ellipse ratio ~0.55
+  const rx = Math.max(300, minRx);
+  const ry = Math.max(170, rx * 0.42);
   if (count === 0) {
     return {
       nodes: [{ id: "router", type: "router", position: { x: 0, y: 0 }, data: { activeCount: 0 }, draggable: false }],
@@ -207,16 +203,16 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
   nodes.push({
     id: "router",
     type: "router",
-    position: { x: -routerW / 2, y: -routerH / 2 },
-    data: { activeCount: activeSet.size },
+    position: { x: -routerW / 2, y: compact ? 0 : -routerH / 2 },
+    data: { activeCount: activeSet.size, compact },
     draggable: false,
   });
 
   const edgeStyle = (active, last, error) => {
-    if (error) return { stroke: "#ef4444", strokeWidth: 2.5, opacity: 0.9 };
+    if (error) return { stroke: "var(--color-danger)", strokeWidth: 2, opacity: 0.9 };
     if (active) return { stroke: "var(--color-primary)", strokeWidth: 2.5, opacity: 1 };
-    if (last) return { stroke: "#f59e0b", strokeWidth: 2, opacity: 0.7 };
-    return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.3 };
+    if (last) return { stroke: "var(--color-warning)", strokeWidth: 1.6, opacity: 0.75 };
+    return { stroke: "var(--topology-line)", strokeWidth: 1.15, opacity: 0.65 };
   };
 
   providers.forEach((p, i) => {
@@ -231,16 +227,24 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
       imageUrl: getProviderImageUrl(p.provider),
       textIcon: config.textIcon || (p.provider || "?").slice(0, 2).toUpperCase(),
       active,
+      last,
+      error,
+      phase: -i * 0.61,
+      compact,
     };
 
     // Distribute evenly starting from top (−π/2), clockwise
     const angle = -Math.PI / 2 + (2 * Math.PI * i) / count;
-    const cx = rx * Math.cos(angle);
-    const cy = ry * Math.sin(angle);
+    // On phones, a two-column fan keeps provider names readable instead of
+    // shrinking an entire wide ellipse into a few hundred pixels.
+    const cx = compact ? (i % 2 === 0 ? -1 : 1) * (nodeW / 2 + 10) : rx * Math.cos(angle);
+    const cy = compact ? 130 + Math.floor(i / 2) * 66 : ry * Math.sin(angle);
 
     // Pick router handle closest to the node direction
     let sourceHandle, targetHandle;
-    if (Math.abs(angle + Math.PI / 2) < Math.PI / 4 || Math.abs(angle - 3 * Math.PI / 2) < Math.PI / 4) {
+    if (compact) {
+      sourceHandle = "bottom"; targetHandle = "top";
+    } else if (Math.abs(angle + Math.PI / 2) < Math.PI / 4 || Math.abs(angle - 3 * Math.PI / 2) < Math.PI / 4) {
       sourceHandle = "top"; targetHandle = "bottom";
     } else if (Math.abs(angle - Math.PI / 2) < Math.PI / 4) {
       sourceHandle = "bottom"; targetHandle = "top";
@@ -265,9 +269,8 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
       sourceHandle,
       target: nodeId,
       targetHandle,
-      // Built-in animated uses stroke-dasharray (CPU-heavy); use particle beam instead
       animated: false,
-      data: { active },
+      data: { active, last, error, phase: -i * 0.61 },
       style: edgeStyle(active, last, error),
     });
   });
@@ -276,6 +279,7 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
 }
 
 export default function ProviderTopology({ providers = [], activeRequests = [], lastProvider = "", errorProvider = "" }) {
+  const [compact, setCompact] = useState(false);
   // Serialize to stable string keys so useMemo only re-runs when values actually change
   const activeKey = useMemo(
     () => activeRequests.map((r) => r.provider?.toLowerCase()).filter(Boolean).sort().join(","),
@@ -320,14 +324,14 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
         const ts = seen[p];
         if (!ts || now - ts < FE_ACTIVE_TIMEOUT_MS) filtered.add(p);
       }
-      if (!cancelled) setActiveSet(filtered);
+      if (!cancelled) setActiveSet(previous => previous.size === filtered.size && [...filtered].every(p => previous.has(p)) ? previous : filtered);
     })();
     return () => { cancelled = true; };
   }, [rawActiveSet, now]);
 
   const { nodes, edges } = useMemo(
-    () => buildLayout(providers, activeSet, lastSet, errorSet),
-    [providers, activeSet, lastSet, errorSet]
+    () => buildLayout(providers, activeSet, lastSet, errorSet, compact),
+    [providers, activeSet, lastSet, errorSet, compact]
   );
 
   // Stable key — only remount when provider list changes
@@ -336,20 +340,50 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
     [providers]
   );
 
-  const reduceMotion = useReducedMotion();
+  const [reduceMotion, setReduceMotion] = useState(false);
   const rfInstance = useRef(null);
   const containerRef = useRef(null);
-  const fitOpts = useMemo(() => ({ padding: 0.22, duration: reduceMotion ? 0 : 450 }), [reduceMotion]);
+  const initFitTimer = useRef(null);
+  const [inView, setInView] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+  const motionRunning = !reduceMotion && inView && pageVisible;
+  const fitOpts = useMemo(() => ({ padding: 0.12, duration: reduceMotion ? 0 : 450, maxZoom: 1.15 }), [reduceMotion]);
   const onInit = useCallback((instance) => {
     rfInstance.current = instance;
-    setTimeout(() => instance.fitView(fitOpts), 50);
+    clearTimeout(initFitTimer.current);
+    initFitTimer.current = setTimeout(() => instance.fitView(fitOpts), 50);
   }, [fitOpts]);
+
+  useEffect(() => () => clearTimeout(initFitTimer.current), []);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setReduceMotion(preference.matches);
+    updatePreference();
+    preference.addEventListener("change", updatePreference);
+    return () => preference.removeEventListener("change", updatePreference);
+  }, []);
+
+  // Pause decorative work outside the viewport and in hidden tabs. A single
+  // observer/listener controls CSS play state without a per-frame JS loop.
+  useEffect(() => {
+    const updateVisibility = () => setPageVisible(!document.hidden);
+    updateVisibility();
+    document.addEventListener("visibilitychange", updateVisibility);
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => {
+      document.removeEventListener("visibilitychange", updateVisibility);
+      observer.disconnect();
+    };
+  }, []);
 
   // Re-fit on container resize
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
+      setCompact(el.clientWidth < 560);
       if (rfInstance.current) rfInstance.current.fitView(fitOpts);
     });
     ro.observe(el);
@@ -362,15 +396,28 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
       const id = setTimeout(() => rfInstance.current.fitView(fitOpts), 50);
       return () => clearTimeout(id);
     }
-  }, [nodes.length, fitOpts]);
+  }, [nodes.length, compact, fitOpts]);
 
   return (
-    <div ref={containerRef} className="usage-topology h-[280px] w-full min-w-0 overflow-hidden rounded-[18px] bg-surface-2/30 sm:h-[340px]">
+    <div
+      ref={containerRef}
+      className="usage-topology relative h-[340px] w-full min-w-0 overflow-hidden rounded-[18px] sm:h-[420px] lg:h-[460px]"
+      data-motion={motionRunning ? "running" : "paused"}
+      data-layout={compact ? "fan" : "radial"}
+      style={compact ? { height: Math.max(360, Math.ceil(providers.length / 2) * 66 + 142) } : undefined}
+      aria-label="Routing map"
+      role="region"
+    >
       {providers.length === 0 ? (
         <div className="h-full flex items-center justify-center text-text-muted text-sm">
           No providers connected
         </div>
       ) : (
+        <>
+        <div className="topology-legend pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-3 rounded-full border border-border-subtle px-3 py-1.5 text-[10px] font-medium text-text-muted">
+          <span className="flex items-center gap-1.5"><span className="topology-legend-connected size-1.5 rounded-full" aria-hidden="true" />Connected</span>
+          {activeSet.size > 0 && <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />Active</span>}
+        </div>
         <ReactFlow
           key={providersKey}
           nodes={nodes}
@@ -394,6 +441,7 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
         >
           <Controls showInteractive={false} className="react-flow-controls-custom" />
         </ReactFlow>
+        </>
       )}
     </div>
   );

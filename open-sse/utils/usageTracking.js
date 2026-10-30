@@ -164,6 +164,7 @@ export function normalizeUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
   const normalized = {};
+  if (usage.estimated === true) normalized.estimated = true;
   if (hasInvalidUsageCounters(usage)) normalized.usage_invalid = true;
   const assignNumber = (key, value) => {
     if (value === undefined) return;
@@ -274,6 +275,7 @@ export function canonicalizeUsage(usage) {
     cached_tokens: cached,
     cache_creation_input_tokens: cacheCreation,
   };
+  if (usage.estimated === true) result.estimated = true;
   if (creation?.fiveMinute !== undefined) result.cache_creation_5m_tokens = creation.fiveMinute;
   if (creation?.oneHour !== undefined) result.cache_creation_1h_tokens = creation.oneHour;
   preserveOpenAICacheWrites(result, usage);
@@ -377,7 +379,7 @@ export function mergeUsage(prev, next) {
   if (!next) return prev;
   const merged = { ...prev };
   for (const [k, v] of Object.entries(next)) {
-    if (k === "cache_write_invalid" || k === "usage_invalid") {
+    if (k === "cache_write_invalid" || k === "usage_invalid" || k === "estimated") {
       if (v === true) merged[k] = true;
     } else if (v === null && ["cache_write_tokens", "cache_write_30m_tokens", "cache_write_12h_tokens", "ttl_30m_tokens", "ttl_12h_tokens"].includes(k)) {
       merged[k] = null;

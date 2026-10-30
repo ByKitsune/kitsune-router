@@ -49,6 +49,9 @@ function fixturePlugin(state) {
       }
       createRoot(document.getElementById("root")).render(React.createElement(App));`,
     navigation: `const router = { replace() {} }; export const useRouter = () => router; export const useSearchParams = () => new URLSearchParams();`,
+    // This Vite fixture has no Next router. Keep Link's actual anchor and href
+    // behavior instead of loading Next's framework-bound CommonJS client entry.
+    link: `import React from "react"; export default function Link({ href, children, ...props }) { return React.createElement("a", { ...props, href }, children); }`,
     dynamic: `import React from "react"; export default () => function Topology() { return React.createElement("div", null, "Synthetic topology"); };`,
     topology: `export default function Topology() { return null; }`,
     providers: `export const AI_PROVIDERS = {}; export const FREE_PROVIDERS = {};`,
@@ -65,6 +68,7 @@ function fixturePlugin(state) {
     resolveId(id, importer) {
       if (id === "/usage-fixture.js") return virtual + "entry";
       if (id === "next/navigation") return virtual + "navigation";
+      if (id === "next/link") return virtual + "link";
       if (id === "next/dynamic") return virtual + "dynamic";
       if (id === "recharts" && importer !== virtual + "recharts") return virtual + "recharts";
       if (id === "@/shared/constants/providers") return virtual + "providers";

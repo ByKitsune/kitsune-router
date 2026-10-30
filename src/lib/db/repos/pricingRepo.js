@@ -8,6 +8,7 @@ import { getTimeOfUsePricing, parsePricingTimestamp } from "open-sse/config/time
 import { hasModelsDevPricingEstimate, getModelsDevPricingStatus } from "open-sse/providers/metadata/modelsDevPricing.js";
 const pricingKv = makeKv("pricing");
 const CACHE_TTL_MS = 5000;
+const USAGE_IDENTITY_DAY_BATCH_SIZE = 64;
 
 let cache = { value: null, expiresAt: 0, revision: null };
 
@@ -121,14 +122,14 @@ export async function getPricingForModel(provider, model, options = {}) {
     if (readScopeRevision(db, ["pricing", "nodes"]) !== revision) continue;
     return resolveModelPricing(userPricing, provider, model,
       defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
-      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, node));
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, node, options));
   }
 }
 
-function hasLiteralQuote(providerPrices, provider, model, node) {
+function hasLiteralQuote(providerPrices, provider, model, node, options = {}) {
   const reference = getCustomPricingProvider(node?.baseUrl) || provider;
   return getProviderIdentityTokens(reference).some(token => Object.hasOwn(providerPrices[token] || {}, model))
-    || hasModelsDevPricingEstimate(reference, model);
+    || hasModelsDevPricingEstimate(reference, model, options);
 }
 
 function defaultResolver(resolveConst, node, options = {}, getReviewedModelMetadata) {
@@ -176,7 +177,7 @@ function resolveModelPricing(userPricing, provider, model, resolveDefaults, stri
   return resolvePricing(userPricing, provider, base, resolveDefaults);
 }
 
-// Effective editor rows include configured custom/native IDs, but public
+// Effective editor rows include configured and consumed custom/native IDs, but public
 // references are never persisted as operator overrides. Resolve node identity
 // freshly so changing/importing a URL cannot retain another host's quote.
 export async function getConfiguredPricing(options = {}) {
@@ -197,7 +198,7 @@ export async function getConfiguredPricing(options = {}) {
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const rows = new Map();
   const add = (provider, model) => {
-    if (typeof provider !== "string" || typeof model !== "string" || !model) return;
+    if (typeof provider !== "string" || !provider || typeof model !== "string" || !model) return;
     const id = nativeTokens.has(provider) ? provider : identities.get(provider) || provider;
     rows.set(JSON.stringify([id, model]), [id, model]);
   };
@@ -214,12 +215,37 @@ export async function getConfiguredPricing(options = {}) {
       add(connection.provider, typeof model === "string" ? model : model?.id);
     }
   }
+  // Dynamic discovery need not create a static/custom-model declaration. Keep
+  // routes already present in consumption visible in the editor so an operator
+  // can supply their exact missing tariff. This read is outside request billing
+  // and does not infer rates or rewrite the immutable quote on accepted usage.
+  const db = await getAdapter();
+  for (const row of db.all("SELECT DISTINCT provider, model FROM usageHistory WHERE provider <> '' AND model <> ''")) {
+    add(row.provider, row.model);
+  }
+  // Raw history can be pruned while daily consumption remains. Read bounded
+  // batches of retained summaries; only their model identities enter the view.
+  let afterDate = "";
+  for (;;) {
+    const days = db.all("SELECT dateKey, data FROM usageDaily WHERE dateKey > ? ORDER BY dateKey LIMIT ?",
+      [afterDate, USAGE_IDENTITY_DAY_BATCH_SIZE]);
+    for (const day of days) {
+      const models = parseJson(day.data, {})?.byModel;
+      for (const [key, value] of Object.entries(models || {})) {
+        const separator = key.lastIndexOf("|");
+        add(value?.provider || (separator >= 0 ? key.slice(separator + 1) : ""),
+          value?.rawModel || (separator >= 0 ? key.slice(0, separator) : key));
+      }
+    }
+    if (days.length < USAGE_IDENTITY_DAY_BATCH_SIZE) break;
+    afterDate = days[days.length - 1].dateKey;
+  }
   const timestamp = new Date().toISOString();
   const copiedProviders = new Set();
   for (const [provider, model] of rows.values()) {
     const quote = resolveModelPricing(userPricing, provider, model,
       defaultResolver(resolveConst, nodeById.get(provider), { timestamp }, getReviewedModelMetadata), stripThinkingSuffix,
-      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product)));
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product), { timestamp }));
     if (!copiedProviders.has(provider)) { output[provider] = Object.assign(Object.create(null), output[provider]); copiedProviders.add(provider); }
     // The established pricing API exposes writable rate fields. Provenance is
     // retained in the runtime/usage quote, not inserted into the PATCH schema.
@@ -227,7 +253,7 @@ export async function getConfiguredPricing(options = {}) {
     output[provider][model] = rates;
     if (options.diagnostics) {
       const diagnostic = describeConfiguredQuote({ provider, model, quote, userPricing, stripThinkingSuffix,
-        hasLiteral: (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product)),
+        hasLiteral: (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, nodeById.get(product), { timestamp }),
         timestamp, getReviewedModelMetadata, referenceProvider: getCustomPricingProvider(nodeById.get(provider)?.baseUrl) || provider });
       if (!diagnostics[provider]) diagnostics[provider] = Object.create(null);
       diagnostics[provider][model] = diagnostic;

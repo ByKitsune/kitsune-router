@@ -196,8 +196,11 @@ export default function UsageTable({
                       <span aria-hidden="true" className={`material-symbols-outlined shrink-0 text-[18px] text-text-muted transition-transform duration-300 ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
                         chevron_right
                       </span>
-                      <span className={`truncate font-semibold transition-colors ${group.summary.pending > 0 ? "text-primary" : ""}`}>
-                        {group.groupKey}
+                      <span className="min-w-0">
+                        <span className={`block truncate font-semibold transition-colors ${group.summary.pending > 0 ? "text-primary" : ""}`}>
+                          {group.groupLabel ?? group.groupKey}
+                        </span>
+                        {group.groupDescription && <span title={group.groupDescription} data-i18n-skip="true" className="mt-0.5 block truncate font-mono text-[10px] text-text-muted">{group.groupDescription.length > 18 ? `${group.groupDescription.slice(0, 8)}…${group.groupDescription.slice(-4)}` : group.groupDescription}</span>}
                       </span>
                     </button>
                   </td>

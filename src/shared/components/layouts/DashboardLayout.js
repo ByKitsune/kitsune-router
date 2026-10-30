@@ -8,6 +8,7 @@ import Sidebar from "../Sidebar";
 import Header from "../Header";
 import PasswordOnboardingModal from "../PasswordOnboardingModal";
 import MobileNavigation from "../navigation/MobileNavigation";
+import DashboardPageTransition from "./DashboardPageTransition";
 
 function getToastStyle(type) {
   if (type === "success") return { border: "border-green-700 dark:border-green-400", icon: "check_circle", color: "text-green-700 dark:text-green-400" };
@@ -86,9 +87,9 @@ export default function DashboardLayout({ children }) {
 
       <div className="relative flex h-full min-w-0 flex-1 flex-col lg:p-3">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg lg:rounded-[24px] lg:border lg:border-border-subtle lg:shadow-soft">
-          <Header key={pathname} onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} />
+          <Header onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} />
           <main id="dashboard-content" tabIndex={-1} className={`dashboard-main min-h-0 min-w-0 flex-1 overscroll-contain custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 xl:px-10"}`}>
-            <div key={pathname} className={isChat ? "flex h-full w-full min-w-0 flex-1 flex-col" : "dashboard-page workspace-enter mx-auto w-full min-w-0 max-w-[1600px]"}>{children}</div>
+            <DashboardPageTransition pathname={pathname} isChat={isChat}>{children}</DashboardPageTransition>
           </main>
           <MobileNavigation pathname={pathname} menuOpen={sidebarOpen} menuControls={drawerId} onOpenMenu={() => setSidebarOpen(true)} />
         </div>

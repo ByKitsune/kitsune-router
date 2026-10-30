@@ -1,0 +1,135 @@
+.usage-topology {
+  --topology-line: color-mix(in srgb, var(--color-primary) 34%, var(--color-text-subtle));
+  --topology-ambient: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 50% 52%, var(--topology-ambient), transparent 58%),
+    color-mix(in srgb, var(--color-surface-2) 42%, var(--color-surface));
+}
+.usage-topology::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: .4;
+  background-image: radial-gradient(var(--color-border-subtle) .8px, transparent .8px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse, #000, transparent 75%);
+}
+.topology-legend {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+.topology-legend-connected { background: var(--topology-line); }
+/* The app's responsive-media max-width rule collapses React Flow's edge SVGs
+   against their zero-width positioned parent. Keep their overflow viewport. */
+.usage-topology .react-flow__edges svg { max-width: none; }
+.topology-provider {
+  position: relative;
+  border-color: color-mix(in srgb, var(--provider-accent) 22%, var(--color-border));
+  box-shadow: var(--shadow-soft), 0 0 0 3px color-mix(in srgb, var(--provider-accent) 3%, transparent);
+  animation: topology-node-float 7s ease-in-out infinite;
+  animation-delay: var(--topology-phase);
+  transition: border-color 400ms ease, box-shadow 400ms ease, background-color 400ms ease;
+}
+.topology-provider[data-state="active"] {
+  border-color: var(--provider-accent);
+  background: color-mix(in srgb, var(--provider-accent) 7%, var(--color-surface));
+  box-shadow: var(--shadow-soft), 0 0 0 4px color-mix(in srgb, var(--provider-accent) 8%, transparent), 0 0 22px color-mix(in srgb, var(--provider-accent) 15%, transparent);
+  animation-name: topology-node-active;
+  animation-duration: 4.2s;
+}
+.topology-provider[data-state="error"] { border-color: var(--color-danger); }
+.topology-provider[data-state="recent"] {
+  border-color: color-mix(in srgb, var(--color-warning) 55%, var(--color-border));
+}
+.topology-provider-status {
+  background: color-mix(in srgb, var(--provider-accent) 55%, var(--color-text-subtle));
+  opacity: .7;
+}
+.topology-provider[data-state="active"] .topology-provider-status {
+  opacity: 1;
+  background: var(--provider-accent);
+  animation: topology-status-breathe 2.4s ease-in-out infinite;
+}
+.topology-provider[data-state="error"] .topology-provider-status { background: var(--color-danger); }
+.topology-provider[data-state="recent"] .topology-provider-status { background: var(--color-warning); }
+.topology-hub {
+  border-color: color-mix(in srgb, var(--color-primary) 70%, var(--color-border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 12%, var(--color-surface)), var(--color-surface));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 5%, transparent), 0 0 40px color-mix(in srgb, var(--color-primary) 10%, transparent), var(--shadow-soft);
+}
+.topology-hub[data-state="active"] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent), 0 0 48px color-mix(in srgb, var(--color-primary) 19%, transparent), var(--shadow-soft);
+}
+.topology-hub-orbit {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, transparent);
+  transform: translate(-50%, -50%);
+}
+.topology-hub-orbit-outer {
+  width: 250px;
+  height: 250px;
+  border-style: dashed;
+  border-top-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
+  animation: topology-orbit 48s linear infinite;
+}
+.topology-hub-orbit-inner {
+  width: 194px;
+  height: 194px;
+  border-left-color: color-mix(in srgb, var(--color-primary) 36%, transparent);
+  animation: topology-orbit 32s linear reverse infinite;
+}
+.topology-hub-count { background: color-mix(in srgb, var(--color-primary) 13%, var(--color-surface)); }
+.topology-connection { --topology-flow-color: var(--topology-line); }
+.topology-connection[data-state="active"] { --topology-flow-color: var(--color-primary); }
+.topology-connection[data-state="recent"] { --topology-flow-color: var(--color-warning); }
+.topology-connection[data-state="error"] { --topology-flow-color: var(--color-danger); }
+.topology-connection-glow,
+.topology-connection-flow { pointer-events: none; stroke: var(--topology-flow-color); stroke-linecap: round; }
+.topology-connection-glow { stroke-width: 7; opacity: .035; }
+.topology-connection-flow {
+  stroke-width: 2;
+  stroke-dasharray: .028 .305;
+  animation: topology-flow 7s linear infinite;
+  animation-delay: var(--topology-phase);
+  opacity: .85;
+}
+.topology-connection[data-state="active"] .topology-connection-glow { stroke-width: 9; opacity: .12; }
+.topology-connection[data-state="active"] .topology-connection-flow {
+  stroke-width: 3.5;
+  stroke-dasharray: .055 .278;
+  animation-duration: 2.2s;
+  opacity: 1;
+}
+.topology-connection[data-state="recent"] .topology-connection-flow { animation-duration: 4.5s; }
+.topology-connection[data-state="error"] .topology-connection-flow { display: none; }
+.usage-topology[data-motion="paused"] * { animation-play-state: paused !important; }
+@keyframes topology-flow { to { stroke-dashoffset: -1; } }
+@keyframes topology-orbit { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes topology-node-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes topology-node-active {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40%, 60% { transform: translateY(-2px) rotate(0deg); }
+  45%, 53% { transform: translateY(-2px) rotate(-.4deg); }
+  49%, 57% { transform: translateY(-2px) rotate(.4deg); }
+}
+@keyframes topology-status-breathe {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--provider-accent) 8%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--provider-accent) 18%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-topology .topology-provider,
+  .usage-topology .topology-provider-status,
+  .usage-topology .topology-hub-orbit,
+  .usage-topology .topology-connection-flow { animation: none !important; transition: none !important; }
+  .usage-topology .topology-connection-flow { display: none; }
+}

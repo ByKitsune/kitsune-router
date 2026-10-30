@@ -1,0 +1,36 @@
+/* Native snapshots animate only the content; the navigation remains an anchor. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-group(.dashboard-route) {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+}
+::view-transition-old(.dashboard-route) {
+  animation: dashboard-route-depart 180ms ease-out both;
+}
+::view-transition-new(.dashboard-route) {
+  animation: dashboard-route-arrive 360ms cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes dashboard-route-depart {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes dashboard-route-arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

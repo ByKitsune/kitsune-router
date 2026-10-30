@@ -2431,5 +2431,20 @@
   "Managed by environment variable": "Dikelola oleh variabel lingkungan",
   "Record request details in Usage → Details. This switch shows whether recording is currently enabled.": "Catat detail permintaan di Penggunaan → Detail. Sakelar ini menampilkan apakah pencatatan sedang aktif.",
   "Saved dashboard preference:": "Preferensi dashboard tersimpan:",
-  "Failed to update observability settings": "Gagal memperbarui pengaturan observabilitas"
+  "Failed to update observability settings": "Gagal memperbarui pengaturan observabilitas",
+  "Subtotal of priced requests. Unpriced requests are excluded.": "Subtotal permintaan yang memiliki harga. Permintaan tanpa harga tidak disertakan.",
+  "No complete price was recorded for this cost.": "Harga lengkap belum tercatat untuk biaya ini.",
+  "Recorded price coverage": "Cakupan harga tercatat",
+  "Some requests have no recorded price": "Sebagian permintaan belum memiliki harga tercatat",
+  "Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.": "Subtotal hanya mencakup permintaan dengan harga. Tinjau tarif untuk permintaan baru; riwayat tersimpan tetap memakai perkiraan awalnya.",
+  "Why can prices be missing?": "Mengapa harga bisa tidak tersedia?",
+  "Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.": "Tarif token yang belum tersedia, tagihan langganan atau media, serta tingkat layanan yang belum terkonfirmasi dapat membuat harga permintaan belum diketahui. Nilai $0.00 yang tercatat bisa berarti tanpa biaya atau tidak ada token yang digunakan untuk komponen tersebut.",
+  "Review pricing": "Tinjau harga",
+  "Estimated tokens": "Perkiraan token",
+  "Invalid usage": "Data penggunaan tidak valid",
+  "Token counts were estimated locally, not measured by the provider.": "Jumlah token diperkirakan secara lokal, bukan diukur oleh penyedia.",
+  "Some recorded usage counters are invalid or inconsistent.": "Sebagian counter penggunaan yang tercatat tidak valid atau tidak konsisten.",
+  "Content redacted": "Konten disamarkan",
+  "Model allocation unavailable": "Rincian alokasi model tidak tersedia",
+  "/ Total": "/ Total"
 }

@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [recorded pricing accuracy and dashboard motion follow-up](24-recorded-pricing-accuracy-and-dashboard-motion-2026-10-31.md)
+records current corrections to dynamic-model pricing configuration, durable
+usage identity, token/detail accuracy and animated dashboard navigation/maps.
+
 > **Archive boundary:** the ZenRouter-era reports retain original names, package/artifact URLs, source hashes, operational paths and dated results. They are not current installation instructions or fresh Kitsune Router verification. Later Kitsune-era source reviews have their own dates and evidence boundaries. Use [current docs](../INSTALLATION.md), [operations](../OPERATIONS.md) and [migration](../MIGRATION.md). Kitsune Router is maintained/sponsored by [ByKitsune](https://bykitsune.com); no hosted account is required.
 
 Audit snapshot: **2026-10-13** · commit `2c61f4f1` (`master`) · version **0.9.7**

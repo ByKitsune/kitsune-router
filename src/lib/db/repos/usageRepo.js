@@ -31,6 +31,12 @@ function apiKeyIdentity(apiKey, keyInfo) {
   return "anon-" + createHash("sha256").update(apiKey).digest("hex").slice(0, 12);
 }
 
+// Account labels are editable and need not be unique. Keep the immutable
+// connection and exact routed model/provider in both durable and live buckets.
+function accountUsageKey(connectionId, model, provider) {
+  return JSON.stringify([connectionId, model ?? null, provider ?? null]);
+}
+
 const PENDING_TIMEOUT_MS = 60 * 1000;
 const RING_CAP = 50;
 const CONN_CACHE_TTL_MS = 30 * 1000;
@@ -151,7 +157,7 @@ function aggregateEntryToDay(day, entry) {
   addToCounter(day.byModel, modelKey, { ...vals, meta: { rawModel: entry.model, provider: entry.provider } });
 
   if (entry.connectionId) {
-    addToCounter(day.byAccount, entry.connectionId, { ...vals, meta: { rawModel: entry.model, provider: entry.provider } });
+    addToCounter(day.byAccount, accountUsageKey(entry.connectionId, entry.model, entry.provider), { ...vals, meta: { connectionId: entry.connectionId, rawModel: entry.model, provider: entry.provider } });
   }
 
   const apiKeyVal = entry.apiKey && typeof entry.apiKey === "string" ? entry.apiKey : "local-no-key";
@@ -693,14 +699,21 @@ export async function getUsageStats(period = "all") {
         if (dateKey > (stats.byModel[statsKey].lastUsed || "")) stats.byModel[statsKey].lastUsed = dateKey;
       }
 
-      for (const [connId, a] of Object.entries(day.byAccount || {})) {
+      for (const [storedAccountKey, a] of Object.entries(day.byAccount || {})) {
+        // Legacy bare-ID buckets folded all account models into one total,
+        // leaving only the last model's name. Keep their recorded money but
+        // never present that overwritten name as a known per-model allocation.
+        const connId = a.connectionId || storedAccountKey;
+        const modelAllocationUnknown = storedAccountKey !== accountUsageKey(connId, a.rawModel, a.provider);
         const accountName = connectionMap[connId] || `Account ${connId.slice(0, 8)}...`;
-        const rawModel = a.rawModel || "";
+        const rawModel = modelAllocationUnknown ? "" : a.rawModel || "";
         const provider = a.provider || "";
         const providerDisplayName = providerNodeNameMap[provider] || provider;
-        const accountKey = `${rawModel} (${provider} - ${accountName})`;
+        const accountKey = modelAllocationUnknown ? JSON.stringify(["legacy-account", connId, provider, null]) : accountUsageKey(connId, rawModel, provider);
         if (!stats.byAccount[accountKey]) {
-          stats.byAccount[accountKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, connectionId: connId, accountName, lastUsed: dateKey };
+          stats.byAccount[accountKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, connectionId: connId, accountName, lastUsed: dateKey,
+            ...(modelAllocationUnknown ? { modelAllocationUnknown: true } : {}),
+          };
         }
         mergeCostCoverage(stats.byAccount[accountKey], a);
         stats.byAccount[accountKey].requests += a.requests || 0;
@@ -776,8 +789,7 @@ export async function getUsageStats(period = "all") {
       [overlayCutoffIso]
     );
     for (const r of maxAccountRows) {
-      const accountName = connectionMap[r.connectionId] || `Account ${r.connectionId.slice(0, 8)}...`;
-      const accountKey = `${r.model} (${r.provider} - ${accountName})`;
+      const accountKey = accountUsageKey(r.connectionId, r.model, r.provider);
       if (stats.byAccount[accountKey] && new Date(r.lastUsed) > new Date(stats.byAccount[accountKey].lastUsed)) {
         stats.byAccount[accountKey].lastUsed = r.lastUsed;
       }
@@ -790,7 +802,7 @@ export async function getUsageStats(period = "all") {
     for (const r of maxApiKeyRows) {
       const apiKeyKey = (r.apiKey && typeof r.apiKey === "string")
         ? `${apiKeyIdentity(r.apiKey, apiKeyMap[r.apiKey])}|${r.model}|${r.provider || "unknown"}`
-        : "local-no-key";
+        : `local-no-key|${r.model}|${r.provider || "unknown"}`;
       if (stats.byApiKey[apiKeyKey] && new Date(r.lastUsed) > new Date(stats.byApiKey[apiKeyKey].lastUsed)) {
         stats.byApiKey[apiKeyKey].lastUsed = r.lastUsed;
       }
@@ -855,7 +867,7 @@ export async function getUsageStats(period = "all") {
 
       if (r.connectionId) {
         const accountName = connectionMap[r.connectionId] || `Account ${r.connectionId.slice(0, 8)}...`;
-        const accountKey = `${r.model} (${r.provider} - ${accountName})`;
+        const accountKey = accountUsageKey(r.connectionId, r.model, r.provider);
         if (!stats.byAccount[accountKey]) {
           stats.byAccount[accountKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, connectionId: r.connectionId, accountName, lastUsed: r.timestamp };
         }
@@ -887,10 +899,11 @@ export async function getUsageStats(period = "all") {
         addCostComponents(ake, components);
         if (new Date(r.timestamp) > new Date(ake.lastUsed)) ake.lastUsed = r.timestamp;
       } else {
-        if (!stats.byApiKey["local-no-key"]) {
-          stats.byApiKey["local-no-key"] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyMasked: null, keyName: "Local (No API Key)", apiKeyKey: "local-no-key", lastUsed: r.timestamp };
+        const akKey = `local-no-key|${r.model}|${r.provider || "unknown"}`;
+        if (!stats.byApiKey[akKey]) {
+          stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyMasked: null, keyName: "Local (No API Key)", apiKeyKey: "local-no-key", lastUsed: r.timestamp };
         }
-        const ake = stats.byApiKey["local-no-key"];
+        const ake = stats.byApiKey[akKey];
         mergeCostCoverage(ake, recordedCosts);
         ake.requests++; ake.promptTokens += promptTokens; ake.completionTokens += completionTokens; ake.cachedTokens += cachedTokens;
         ake.cost = addNullableCost(ake.cost, entryCost);

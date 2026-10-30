@@ -8,6 +8,7 @@ import Drawer from "@/shared/components/Drawer";
 import Pagination from "@/shared/components/Pagination";
 import { cn } from "@/shared/utils/cn";
 import { AI_PROVIDERS, getProviderByAlias } from "@/shared/constants/providers";
+import { formatTokens, formatMilliseconds, hasInvalidTokens } from "./requestDetailUsage";
 
 let providerNameCache = null;
 let providerNodesCache = null;
@@ -84,21 +85,19 @@ function CollapsibleSection({ title, children, defaultOpen = false, icon = null 
   );
 }
 
-function getCachedTokens(tokens) {
-  return tokens?.cached_tokens || tokens?.cache_read_input_tokens || 0;
-}
-
-function getCacheCreationTokens(tokens) {
-  return tokens?.cache_creation_input_tokens || 0;
-}
-
-function getInputTokens(tokens) {
-  const prompt = tokens?.prompt_tokens || tokens?.input_tokens || 0;
-  // Canonical storage keeps prompt cache-inclusive. Legacy Claude rows may have
-  // stored prompt cache-exclusive; fall back to cache when it's larger so old
-  // rows don't under-report input.
-  const cache = getCachedTokens(tokens);
-  return prompt < cache ? cache : prompt;
+function UsageQuality({ tokens }) {
+  const invalid = hasInvalidTokens(tokens);
+  if (tokens?.estimated !== true && !invalid) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5 font-sans text-[10px] font-medium">
+      {tokens?.estimated === true && (
+        <span className="rounded-md bg-surface-2 px-1.5 py-1 text-text-muted" title="Token counts were estimated locally, not measured by the provider.">Estimated tokens</span>
+      )}
+      {invalid && (
+        <span className="rounded-md bg-amber-500/10 px-1.5 py-1 text-amber-800 dark:text-amber-300" title="Some recorded usage counters are invalid or inconsistent.">Invalid usage</span>
+      )}
+    </div>
+  );
 }
 
 export default function RequestDetailsTab() {
@@ -333,8 +332,9 @@ export default function RequestDetailsTab() {
                     <td className="whitespace-nowrap p-4 text-sm text-text-main">
                       {new Date(detail.timestamp).toLocaleString()}
                     </td>
-                    <td className="max-w-[260px] truncate p-4 font-mono text-sm text-text-main">
-                      {detail.model}
+                    <td className="max-w-[260px] p-4 text-sm text-text-main">
+                      <div className="truncate font-mono" data-i18n-skip>{detail.model}</div>
+                      <UsageQuality tokens={detail.tokens} />
                     </td>
                     <td className="max-w-[180px] truncate p-4 text-sm text-text-main">
                        <span className="font-medium">
@@ -342,21 +342,21 @@ export default function RequestDetailsTab() {
                        </span>
                      </td>
                     <td className="p-4 text-sm text-text-main text-right font-mono">
-                      {getInputTokens(detail.tokens).toLocaleString()}
+                      {formatTokens(detail.tokens, "input")}
                     </td>
                     <td className="p-4 text-sm text-text-main text-right font-mono">
-                      {getCachedTokens(detail.tokens) > 0 ? getCachedTokens(detail.tokens).toLocaleString() : "—"}
+                      {formatTokens(detail.tokens, "cached")}
                     </td>
                     <td className="p-4 text-sm text-text-main text-right font-mono">
-                      {getCacheCreationTokens(detail.tokens) > 0 ? getCacheCreationTokens(detail.tokens).toLocaleString() : "—"}
+                      {formatTokens(detail.tokens, "creation")}
                     </td>
                     <td className="p-4 text-sm text-text-main text-right font-mono">
-                      {detail.tokens?.completion_tokens?.toLocaleString() || 0}
+                      {formatTokens(detail.tokens, "output")}
                     </td>
                     <td className="p-4 text-sm text-text-muted">
                       <div className="flex flex-col gap-0.5">
-                        <div>TTFT: <span className="font-mono">{detail.latency?.ttft || 0}ms</span></div>
-                        <div>Total: <span className="font-mono">{detail.latency?.total || 0}ms</span></div>
+                        <div>TTFT: <span className="font-mono">{formatMilliseconds(detail.latency?.ttft)}</span></div>
+                        <div>Total: <span className="font-mono">{formatMilliseconds(detail.latency?.total)}</span></div>
                       </div>
                     </td>
                     <td className="p-4 text-center">
@@ -411,7 +411,8 @@ export default function RequestDetailsTab() {
                </div>
               <div>
                 <span className="text-text-muted">Model:</span>{" "}
-                <span className="text-text-main font-mono">{selectedDetail.model}</span>
+                <span className="text-text-main font-mono" data-i18n-skip>{selectedDetail.model}</span>
+                <UsageQuality tokens={selectedDetail.tokens} />
               </div>
               <div>
                 <span className="text-text-muted">Status:</span>{" "}
@@ -425,35 +426,27 @@ export default function RequestDetailsTab() {
               <div>
                 <span className="text-text-muted">Latency:</span>{" "}
                 <span className="text-text-main font-mono">
-                  TTFT {selectedDetail.latency?.ttft || 0}ms / Total {selectedDetail.latency?.total || 0}ms
+                  TTFT {formatMilliseconds(selectedDetail.latency?.ttft)} / Total {formatMilliseconds(selectedDetail.latency?.total)}
                 </span>
               </div>
               <div>
                 <span className="text-text-muted">Input Tokens:</span>{" "}
                 <span className="text-text-main font-mono">
-                  {getInputTokens(selectedDetail.tokens).toLocaleString()}
+                  {formatTokens(selectedDetail.tokens, "input")}
                 </span>
               </div>
-              {getCachedTokens(selectedDetail.tokens) > 0 && (
-                <div>
-                  <span className="text-text-muted">Cached Tokens:</span>{" "}
-                  <span className="text-text-main font-mono">
-                    {getCachedTokens(selectedDetail.tokens).toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {getCacheCreationTokens(selectedDetail.tokens) > 0 && (
-                <div>
-                  <span className="text-text-muted">Cache Creation:</span>{" "}
-                  <span className="text-text-main font-mono">
-                    {getCacheCreationTokens(selectedDetail.tokens).toLocaleString()}
-                  </span>
-                </div>
-              )}
+              <div>
+                <span className="text-text-muted">Cached Tokens:</span>{" "}
+                <span className="text-text-main font-mono">{formatTokens(selectedDetail.tokens, "cached")}</span>
+              </div>
+              <div>
+                <span className="text-text-muted">Cache Creation:</span>{" "}
+                <span className="text-text-main font-mono">{formatTokens(selectedDetail.tokens, "creation")}</span>
+              </div>
               <div>
                 <span className="text-text-muted">Output Tokens:</span>{" "}
                 <span className="text-text-main font-mono">
-                  {selectedDetail.tokens?.completion_tokens?.toLocaleString() || 0}
+                  {formatTokens(selectedDetail.tokens, "output")}
                 </span>
               </div>
             </div>
@@ -543,7 +536,7 @@ export default function RequestDetailsTab() {
                   Content
                 </h4>
                 <pre className="max-h-[300px] max-w-full overflow-auto rounded-lg border border-black/5 bg-black/5 p-3 font-mono text-xs text-text-main dark:border-white/5 dark:bg-white/5 sm:p-4">
-                  {selectedDetail.response?.content || "[No content]"}
+                  {selectedDetail.response?.redacted === true ? "Content redacted" : selectedDetail.response?.content ?? "[No content]"}
                 </pre>
               </CollapsibleSection>
             </div>

@@ -1878,5 +1878,20 @@
   "Managed by environment variable": "Managed by environment variable",
   "Record request details in Usage → Details. This switch shows whether recording is currently enabled.": "Record request details in Usage → Details. This switch shows whether recording is currently enabled.",
   "Saved dashboard preference:": "Saved dashboard preference:",
-  "Failed to update observability settings": "Failed to update observability settings"
+  "Failed to update observability settings": "Failed to update observability settings",
+  "Subtotal of priced requests. Unpriced requests are excluded.": "Subtotal of priced requests. Unpriced requests are excluded.",
+  "No complete price was recorded for this cost.": "No complete price was recorded for this cost.",
+  "Recorded price coverage": "Recorded price coverage",
+  "Some requests have no recorded price": "Some requests have no recorded price",
+  "Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.": "Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.",
+  "Why can prices be missing?": "Why can prices be missing?",
+  "Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.": "Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.",
+  "Review pricing": "Review pricing",
+  "Estimated tokens": "Estimated tokens",
+  "Invalid usage": "Invalid usage",
+  "Token counts were estimated locally, not measured by the provider.": "Token counts were estimated locally, not measured by the provider.",
+  "Some recorded usage counters are invalid or inconsistent.": "Some recorded usage counters are invalid or inconsistent.",
+  "Content redacted": "Content redacted",
+  "Model allocation unavailable": "Model allocation unavailable",
+  "/ Total": "/ Total"
 }

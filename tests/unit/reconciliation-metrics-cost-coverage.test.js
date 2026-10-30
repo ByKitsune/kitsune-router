@@ -92,12 +92,30 @@ async function record(tariff, overrides = {}) {
   return entry;
 }
 
-function expectCoverage(stats, coverage) {
+function expectCoverage(stats, coverage, accountCoverage = [coverage]) {
   expect(stats.costCoverage).toEqual(coverage);
   for (const axis of axes) {
-    expect(Object.values(stats[axis]), axis).toHaveLength(1);
-    expect(Object.values(stats[axis])[0].costCoverage, axis).toEqual(coverage);
+    if (axis === "byAccount") {
+      expect(Object.values(stats[axis]), axis).toHaveLength(accountCoverage.length);
+      expect(Object.values(stats[axis]).map(row => row.costCoverage), axis).toEqual(expect.arrayContaining(accountCoverage));
+    } else {
+      expect(Object.values(stats[axis]), axis).toHaveLength(1);
+      expect(Object.values(stats[axis])[0].costCoverage, axis).toEqual(coverage);
+    }
   }
+}
+
+const pricedAttemptCoverage = {
+  totalCost: { knownCost: expect.closeTo(0.006, 12), unknownRequests: 0 },
+  inputCost: { knownCost: expect.closeTo(0.002, 12), unknownRequests: 0 },
+  cachedCost: { knownCost: 0, unknownRequests: 0 },
+  outputCost: { knownCost: expect.closeTo(0.004, 12), unknownRequests: 0 },
+};
+function legacyCoverage(cost) {
+  return {
+    totalCost: cost === null ? indeterminate : { knownCost: cost, unknownRequests: 0 },
+    inputCost: indeterminate, cachedCost: indeterminate, outputCost: indeterminate,
+  };
 }
 
 function legacyDay(dateKey, cost) {
@@ -196,7 +214,8 @@ describe("recorded cost coverage without repricing historical usage", () => {
       for (const period of ["7d", "30d", "60d", "all"]) {
         const stats = await usage.getUsageStats(period);
         expect(stats.totalCost).toBeNull();
-        expectCoverage(stats, { totalCost: indeterminate, inputCost: indeterminate, cachedCost: indeterminate, outputCost: indeterminate });
+        expectCoverage(stats, { totalCost: indeterminate, inputCost: indeterminate, cachedCost: indeterminate, outputCost: indeterminate },
+          [legacyCoverage(null), pricedAttemptCoverage]);
       }
     },
   );
@@ -210,8 +229,18 @@ describe("recorded cost coverage without repricing historical usage", () => {
     };
     const day = JSON.parse(db.get("SELECT data FROM usageDaily").data);
     expect(day.costCoverage).toEqual(expected);
-    for (const axis of axes) expect(Object.values(day[axis])[0].costCoverage, axis).toEqual(expected);
-    expectCoverage(await usage.getUsageStats("all"), expected);
+    for (const axis of axes.filter(axis => axis !== "byAccount")) {
+      expect(Object.values(day[axis])[0].costCoverage, axis).toEqual(expected);
+    }
+    // New account/model identities coexist with the retained legacy aggregate;
+    // do not move or reinterpret its cost when adding a precise new attempt.
+    const retained = day.byAccount["synthetic-coverage-connection"];
+    expect(retained).toMatchObject({ requests: 1, cost });
+    expect(retained.costCoverage).toBeUndefined();
+    const appended = Object.values(day.byAccount).find(row => row !== retained);
+    expect(appended).toMatchObject({ requests: 1, rawModel: model, connectionId: "synthetic-coverage-connection" });
+    expect(appended.costCoverage.totalCost).toEqual({ knownCost: expect.closeTo(0.006, 12), unknownRequests: 0 });
+    expectCoverage(await usage.getUsageStats("all"), expected, [legacyCoverage(cost), pricedAttemptCoverage]);
   });
 
   it("combines exact coverage across days and repository reload without changing historical costs", async () => {
@@ -236,6 +265,6 @@ describe("recorded cost coverage without repricing historical usage", () => {
     expectCoverage(stats, {
       totalCost: { knownCost: expect.closeTo(0.018, 12), unknownRequests: 0 },
       inputCost: indeterminate, cachedCost: indeterminate, outputCost: indeterminate,
-    });
+    }, [legacyCoverage(0.012), pricedAttemptCoverage]);
   });
 });

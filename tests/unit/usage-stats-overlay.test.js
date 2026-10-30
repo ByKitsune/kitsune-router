@@ -74,9 +74,9 @@ describe("getUsageStats overlay aggregation", () => {
     const stats = await getUsageStats("all");
     expect(stats.byModel["gpt-4o (openai)"]).toBeDefined();
     expect(stats.byModel["gpt-4o (openai)"].lastUsed).toBe(ts2);
-    const accountKey = "gpt-4o (openai - Account conn-123...)";
-    expect(stats.byAccount[accountKey]).toBeDefined();
-    expect(stats.byAccount[accountKey].lastUsed).toBe(ts2);
+    const account = Object.values(stats.byAccount).find(row => row.connectionId === "conn-12345678" && row.rawModel === "gpt-4o");
+    expect(account).toBeDefined();
+    expect(account.lastUsed).toBe(ts2);
   });
 
   it("counts native input/output tokens consistently in live and daily views", async () => {

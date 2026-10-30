@@ -15,6 +15,7 @@ import Badge from "./Badge";
 import Card from "./Card";
 import Tooltip from "./Tooltip";
 import OverviewCards from "@/app/(dashboard)/dashboard/usage/components/OverviewCards";
+import UsagePricingCoverage from "./UsagePricingCoverage";
 import UsageTable, { fmt, fmtCompact, fmtTime } from "@/app/(dashboard)/dashboard/usage/components/UsageTable";
 import dynamic from "next/dynamic";
 // Lazy-load: keeps @xyflow/react out of the shared bundle until topology renders
@@ -80,11 +81,6 @@ function RecentRequests({ requests = [], connected = false }) {
   );
 }
 
-function estimateLegacyComponentCost(tokens, totalTokens, totalCost) {
-  if (tokens === 0 || totalTokens === 0) return 0;
-  return totalCost === null ? null : tokens * (totalCost / totalTokens);
-}
-
 function compareUsageData(a, b, sortBy, sortOrder) {
   let valA = a[sortBy];
   let valB = b[sortBy];
@@ -103,20 +99,16 @@ function sortData(dataMap, pendingMap = {}, sortBy, sortOrder) {
   return Object.entries(dataMap || {})
     .map(([key, data]) => {
       const totalTokens = (data.promptTokens || 0) + (data.completionTokens || 0);
-      const totalCost = data.totalCost !== undefined ? data.totalCost : data.cost === undefined ? 0 : data.cost;
+      const totalCost = data.totalCost !== undefined ? data.totalCost : data.cost === undefined ? null : data.cost;
       const cachedTokens = data.cachedTokens || 0;
-      const nonCachedInput = Math.max(0, (data.promptTokens || 0) - cachedTokens);
-      const hasStoredComponentCosts = data.inputCost !== undefined && data.outputCost !== undefined;
-      // Preserve recorded components, including null; estimate only absent legacy fields.
-      const inputCost = data.inputCost !== undefined
-        ? data.inputCost
-        : estimateLegacyComponentCost(nonCachedInput, totalTokens, totalCost);
+      // Preserve every recorded component, including null and zero. Legacy
+      // totals cannot recover input/output/cache-write/reasoning/media rates.
+      // Only the isolated cache-read component has a measured unused zero.
+      const inputCost = data.inputCost !== undefined ? data.inputCost : null;
       const cachedCost = data.cachedCost !== undefined
         ? data.cachedCost
-        : hasStoredComponentCosts ? 0 : estimateLegacyComponentCost(cachedTokens, totalTokens, totalCost);
-      const outputCost = data.outputCost !== undefined
-        ? data.outputCost
-        : estimateLegacyComponentCost(data.completionTokens || 0, totalTokens, totalCost);
+        : data.cachedTokens === 0 ? 0 : null;
+      const outputCost = data.outputCost !== undefined ? data.outputCost : null;
       return { ...data, key, totalTokens, cost: totalCost, totalCost, inputCost, cachedCost, outputCost, pending: pendingMap[key] || 0 };
     })
     .sort((a, b) => compareUsageData(a, b, sortBy, sortOrder));
@@ -125,26 +117,38 @@ function sortData(dataMap, pendingMap = {}, sortBy, sortOrder) {
 function getGroupKey(item, keyField) {
   switch (keyField) {
     case "rawModel": return item.rawModel || "Unknown Model";
-    case "accountName": return item.accountName || `Account ${item.connectionId?.slice(0, 8)}...` || "Unknown Account";
+    case "accountName": return item.connectionId
+      ? JSON.stringify(["account", item.connectionId])
+      : JSON.stringify(["legacy-account", item.provider || "", item.accountName || ""]);
     case "keyName": return item.keyName || "Unknown Key";
     case "endpoint": return item.endpoint || "Unknown Endpoint";
     default: return item[keyField] || "Unknown";
   }
 }
 
+function getGroupLabel(item, keyField) {
+  if (keyField === "accountName") {
+    return item.accountName || (item.connectionId ? `Account ${item.connectionId.slice(0, 8)}…` : "Unknown Account");
+  }
+  return getGroupKey(item, keyField);
+}
+
 function groupDataByKey(data, keyField, sortBy, sortOrder) {
   if (!Array.isArray(data)) return [];
-  const groups = {};
+  const groups = new Map();
   data.forEach((item) => {
     const gk = getGroupKey(item, keyField);
-    if (!groups[gk]) {
-      groups[gk] = {
+    if (!groups.has(gk)) {
+      groups.set(gk, {
         groupKey: gk,
+        groupLabel: getGroupLabel(item, keyField),
+        groupDescription: keyField === "accountName" ? item.connectionId || item.provider || "" : "",
         summary: { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, totalTokens: 0, cost: 0, totalCost: 0, inputCost: 0, cachedCost: 0, outputCost: 0, lastUsed: null, pending: 0 },
         items: [],
-      };
+      });
     }
-    const s = groups[gk].summary;
+    const group = groups.get(gk);
+    const s = group.summary;
     mergeCostCoverage(s, item);
     s.requests += item.requests || 0;
     s.promptTokens += item.promptTokens || 0;
@@ -160,9 +164,9 @@ function groupDataByKey(data, keyField, sortBy, sortOrder) {
     if (item.lastUsed && (!s.lastUsed || new Date(item.lastUsed) > new Date(s.lastUsed))) {
       s.lastUsed = item.lastUsed;
     }
-    groups[gk].items.push(item);
+    group.items.push(item);
   });
-  const grouped = Object.values(groups);
+  const grouped = [...groups.values()];
   if (sortBy === "cost" || sortBy.endsWith("Cost")) {
     grouped.sort((a, b) => compareUsageData(a.summary, b.summary, sortBy, sortOrder));
   }
@@ -546,7 +550,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           renderDetailCells: (item) => (
             <>
               <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
-              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
+              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.modelAllocationUnknown ? "Model allocation unavailable" : item.rawModel}</td>
               <td className="px-6 py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
               <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
               <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
@@ -727,6 +731,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           </div>
         </div>
         </div>
+        {viewMode === "costs" && <UsagePricingCoverage stats={stats} />}
         {fetching && <p role="status" className="text-xs text-text-muted">Updating selected period…</p>}
         {activeTableConfig && (
           <UsageTable

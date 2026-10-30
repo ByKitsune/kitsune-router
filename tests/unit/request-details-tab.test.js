@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { getTokenCount, formatTokens, formatMilliseconds, hasInvalidTokens } from "../../src/app/(dashboard)/dashboard/usage/components/requestDetailUsage.js";
 
 const fixtureEnv = ["DATA_DIR", "OBSERVABILITY_ENABLED", "ENABLE_REQUEST_LOGS"];
 const shutdownEvents = ["beforeExit", "SIGINT", "SIGTERM", "exit"];
@@ -145,20 +146,6 @@ describe("request details — tab crash-risk cases", () => {
   });
 });
 
-// Mirror of RequestDetailsTab token helpers (component is "use client",
-// helpers are not exported). Keep in sync with the component.
-function getCachedTokens(tokens) {
-  return tokens?.cached_tokens || tokens?.cache_read_input_tokens || 0;
-}
-function getCacheCreationTokens(tokens) {
-  return tokens?.cache_creation_input_tokens || 0;
-}
-function getInputTokens(tokens) {
-  const prompt = tokens?.prompt_tokens || tokens?.input_tokens || 0;
-  const cache = getCachedTokens(tokens);
-  return prompt < cache ? cache : prompt;
-}
-
 describe("backupDbLite — excludes requestDetails, keeps critical data", () => {
   it("backup file omits requestDetails rows but keeps other tables", async () => {
     const { backupDbLite } = await import("@/lib/db/backup.js");
@@ -210,35 +197,59 @@ describe("getDistinctProviders — providers route (no full-row parse)", () => {
   });
 });
 
-describe("token helpers — render-time crash safety", () => {
-  it("undefined/null tokens → 0, no throw", () => {
-    expect(getInputTokens(undefined)).toBe(0);
-    expect(getInputTokens(null)).toBe(0);
-    expect(getCachedTokens(undefined)).toBe(0);
-    expect(getCacheCreationTokens(null)).toBe(0);
+describe("actual request-detail display counters", () => {
+  it("undefined/null tokens stay unknown without throwing", () => {
+    expect(getTokenCount(undefined, "input")).toBeNull();
+    expect(getTokenCount(null, "input")).toBeNull();
+    expect(getTokenCount(undefined, "cached")).toBeNull();
+    expect(getTokenCount(null, "creation")).toBeNull();
   });
 
-  it("empty object → 0 across all helpers", () => {
-    expect(getInputTokens({})).toBe(0);
-    expect(getCachedTokens({})).toBe(0);
-    expect(getCacheCreationTokens({})).toBe(0);
+  it("empty object never invents a measured zero", () => {
+    expect(getTokenCount({}, "input")).toBeNull();
+    expect(getTokenCount({}, "cached")).toBeNull();
+    expect(getTokenCount({}, "creation")).toBeNull();
   });
 
   it("prompt_tokens preferred, falls back to input_tokens", () => {
-    expect(getInputTokens({ prompt_tokens: 100 })).toBe(100);
-    expect(getInputTokens({ input_tokens: 50 })).toBe(50);
+    expect(getTokenCount({ prompt_tokens: 100 }, "input")).toBe(100);
+    expect(getTokenCount({ input_tokens: 50 }, "input")).toBe(50);
   });
 
-  it("legacy Claude row (prompt < cache) → returns cache", () => {
-    expect(getInputTokens({ prompt_tokens: 10, cached_tokens: 200 })).toBe(200);
+  it("does not manufacture input from an inconsistent legacy cache count", () => {
+    expect(getTokenCount({ prompt_tokens: 10, cached_tokens: 200 }, "input")).toBe(10);
   });
 
   it("cached via cache_read_input_tokens alias", () => {
-    expect(getCachedTokens({ cache_read_input_tokens: 42 })).toBe(42);
+    expect(getTokenCount({ cache_read_input_tokens: 42 }, "cached")).toBe(42);
   });
 
-  it("toLocaleString on helper result never throws", () => {
-    expect(() => getInputTokens(undefined).toLocaleString()).not.toThrow();
+  it("formats unknown counters safely and distinguishes measured latency zero", () => {
+    expect(formatTokens(undefined, "input")).toBe("—");
+    expect(formatMilliseconds(0)).toBe("0ms");
+    expect(formatMilliseconds(null)).toBe("—");
+    expect(formatMilliseconds(-1)).toBe("—");
+  });
+
+  it("preserves explicit zero and null instead of falling through conflicting aliases", () => {
+    expect(getTokenCount({ prompt_tokens: 0, input_tokens: 50 }, "input")).toBe(0);
+    expect(getTokenCount({ cached_tokens: 0, cache_read_input_tokens: 42 }, "cached")).toBe(0);
+    expect(getTokenCount({ prompt_tokens: null, input_tokens: 50 }, "input")).toBeNull();
+  });
+
+  it("recognizes native output aliases and preserves malformed usage as unknown", () => {
+    expect(getTokenCount({ output_tokens: 17 }, "output")).toBe(17);
+    expect(getTokenCount({ candidatesTokenCount: 0 }, "output")).toBe(0);
+    expect(formatTokens({ completion_tokens: "17" }, "output")).toBe("17");
+    expect(hasInvalidTokens({ completion_tokens: "17" })).toBe(false);
+    expect(formatTokens({ completion_tokens: "8.5" }, "output")).toBe("—");
+    expect(hasInvalidTokens({ completion_tokens: "8.5" })).toBe(true);
+    expect(getTokenCount({ prompt_tokens: "0", input_tokens: 50 }, "input")).toBe(0);
+    expect(getTokenCount({ prompt_tokens: " ", input_tokens: 50 }, "input")).toBeNull();
+    expect(hasInvalidTokens({ cached_tokens: -1 })).toBe(true);
+    expect(hasInvalidTokens({ usage_invalid: true })).toBe(true);
+    expect(hasInvalidTokens({ cache_write_invalid: true })).toBe(true);
+    expect(hasInvalidTokens({ prompt_tokens: 0, completion_tokens: 0 })).toBe(false);
   });
 });
 

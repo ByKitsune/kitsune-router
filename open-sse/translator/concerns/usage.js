@@ -111,8 +111,9 @@ export function getOpenAICacheWriteUsage(raw) {
 
 // Build OpenAI usage object. Caller computes prompt/completion/total (provider math).
 // TTL subsets retain explicit zeroes; other optional details are added when positive.
-export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, cacheWriteTokens, cacheWrite30mTokens, cacheWrite12hTokens, cacheWriteInvalid, reasoningTokens = 0, usageInvalid = false }) {
+export function buildUsage({ promptTokens, completionTokens, totalTokens, cachedTokens = 0, cacheCreationTokens = 0, cacheCreation5mTokens, cacheCreation1hTokens, cacheWriteTokens, cacheWrite30mTokens, cacheWrite12hTokens, cacheWriteInvalid, reasoningTokens = 0, usageInvalid = false, estimated = false }) {
   const usage = { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens };
+  if (estimated === true) usage.estimated = true;
   if (usageInvalid || hasInvalidUsageCounters({ ...usage, cached_tokens: cachedTokens, reasoning_tokens: reasoningTokens,
     cache_creation_input_tokens: cacheCreationTokens, cache_creation_5m_tokens: cacheCreation5mTokens,
     cache_creation_1h_tokens: cacheCreation1hTokens })) usage.usage_invalid = true;
@@ -145,7 +146,10 @@ export function buildUsage({ promptTokens, completionTokens, totalTokens, cached
   return usage;
 }
 
-const n = (v) => (typeof v === "number" ? v : 0);
+// The shared validator and normalizer accept finite integer numeric strings.
+// Native bridges must retain those same counters instead of turning them into
+// unmarked zeroes before the durable accounting gate.
+const n = (v) => validCount(v) ? Number(v) : typeof v === "number" ? v : 0;
 
 // Per-provider raw token field-map + math. Returns buildUsage() args (NOT the usage object).
 // Keeps each provider's exact semantics: claude/gemini fold cache+reasoning, others don't.
@@ -167,7 +171,7 @@ const USAGE_EXTRACTORS = {
       candidates = total - prompt - thoughts;
       if (candidates < 0) candidates = 0;
     }
-    return { promptTokens: prompt, completionTokens: candidates + thoughts, totalTokens: typeof raw.totalTokenCount === "number" ? total : prompt + candidates + thoughts, cachedTokens: cached, reasoningTokens: thoughts };
+    return { promptTokens: prompt, completionTokens: candidates + thoughts, totalTokens: typeof raw.totalTokenCount === "number" || validCount(raw.totalTokenCount) ? total : prompt + candidates + thoughts, cachedTokens: cached, reasoningTokens: thoughts };
   },
   kiro(raw) {
     const input = n(raw.inputTokens), output = n(raw.outputTokens);
@@ -175,7 +179,7 @@ const USAGE_EXTRACTORS = {
     // but pass through any cache_read/cache_creation/cached_tokens if the
     // event shape grows them later so cost tracking keeps working without
     // a second pass.
-    const cached = n(raw.cache_read_input_tokens) || n(raw.cachedTokens) || n(raw.cached_tokens);
+    const cached = n(firstDefined(raw.cache_read_input_tokens, raw.cachedTokens, raw.cached_tokens));
     const cacheCreation = n(raw.cache_creation_input_tokens);
     const out = { promptTokens: input, completionTokens: output, totalTokens: input + output };
     if (cached > 0) out.cachedTokens = cached;
@@ -192,16 +196,16 @@ const USAGE_EXTRACTORS = {
   },
   commandcode(raw) {
     const input = n(raw.inputTokens), output = n(raw.outputTokens);
-    const total = typeof raw.totalTokens === "number" ? raw.totalTokens : input + output;
+    const total = typeof raw.totalTokens === "number" || validCount(raw.totalTokens) ? n(raw.totalTokens) : input + output;
     // CommandCode's `inputTokens` is INCLUSIVE of cache reads (upstream sends
     // inputTokenDetails.noCacheTokens + cacheReadTokens === inputTokens), so
     // promptTokens stays as-is and the cached count is passed through as a
     // detail only. That lets usage tracking + billing charge those tokens at
     // the cached rate instead of the full input rate. Do NOT add it to
     // promptTokens or the cache portion gets billed twice.
-    const cached = n(raw.cachedInputTokens) || n(raw.inputTokenDetails?.cacheReadTokens) || n(raw.cacheReadTokens);
+    const cached = n(firstDefined(raw.cachedInputTokens, raw.inputTokenDetails?.cacheReadTokens, raw.cacheReadTokens));
     const cacheCreation = n(raw.inputTokenDetails?.cacheWriteTokens);
-    const reasoning = n(raw.reasoningTokens) || n(raw.outputTokenDetails?.reasoningTokens);
+    const reasoning = n(firstDefined(raw.reasoningTokens, raw.outputTokenDetails?.reasoningTokens));
     const out = { promptTokens: input, completionTokens: output, totalTokens: total };
     if (cached > 0) out.cachedTokens = cached;
     if (cacheCreation > 0) out.cacheCreationTokens = cacheCreation;
@@ -212,18 +216,18 @@ const USAGE_EXTRACTORS = {
     const prompt = n(raw.prompt_tokens);
     const completion = n(raw.completion_tokens);
     const total = n(raw.total_tokens) || (prompt + completion);
-    const cached = n(raw.prompt_tokens_details?.cached_tokens) || n(raw.prompt_cache_hit_tokens) || n(raw.cached_tokens);
-    const cacheCreation = n(raw.prompt_tokens_details?.cache_creation_tokens) || n(raw.cache_creation_input_tokens);
-    const reasoning = n(raw.completion_tokens_details?.reasoning_tokens) || n(raw.reasoning_tokens);
+    const cached = n(firstDefined(raw.prompt_tokens_details?.cached_tokens, raw.prompt_cache_hit_tokens, raw.cached_tokens));
+    const cacheCreation = n(firstDefined(raw.prompt_tokens_details?.cache_creation_tokens, raw.cache_creation_input_tokens));
+    const reasoning = n(firstDefined(raw.completion_tokens_details?.reasoning_tokens, raw.reasoning_tokens));
     return { promptTokens: prompt, completionTokens: completion, totalTokens: total, cachedTokens: cached, cacheCreationTokens: cacheCreation, reasoningTokens: reasoning };
   },
   responses(raw) {
-    const input = n(raw.input_tokens) || n(raw.prompt_tokens);
-    const output = n(raw.output_tokens) || n(raw.completion_tokens);
+    const input = n(firstDefined(raw.input_tokens, raw.prompt_tokens));
+    const output = n(firstDefined(raw.output_tokens, raw.completion_tokens));
     const total = n(raw.total_tokens) || (input + output);
-    const cached = n(raw.input_tokens_details?.cached_tokens) || n(raw.cached_tokens);
-    const cacheCreation = n(raw.input_tokens_details?.cache_creation_tokens) || n(raw.cache_creation_input_tokens);
-    const reasoning = n(raw.output_tokens_details?.reasoning_tokens) || n(raw.reasoning_tokens);
+    const cached = n(firstDefined(raw.input_tokens_details?.cached_tokens, raw.cached_tokens));
+    const cacheCreation = n(firstDefined(raw.input_tokens_details?.cache_creation_tokens, raw.cache_creation_input_tokens));
+    const reasoning = n(firstDefined(raw.output_tokens_details?.reasoning_tokens, raw.reasoning_tokens));
     return { promptTokens: input, completionTokens: output, totalTokens: total, cachedTokens: cached, cacheCreationTokens: cacheCreation, reasoningTokens: reasoning };
   },
   codex(raw) {
@@ -237,6 +241,7 @@ export function toOpenAIUsage(raw, kind) {
   if (!extract || !raw || typeof raw !== "object") return null;
   const creation = getCacheCreationUsage(raw);
   const args = extract(raw, creation);
+  args.estimated = raw.estimated === true;
   args.usageInvalid = hasInvalidUsageCounters(raw, kind) || creation?.invalid === true;
   if (creation) {
     args.cacheCreationTokens = creation.total;
