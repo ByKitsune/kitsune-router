@@ -8,12 +8,13 @@ const { resolveDataDirectory } = require("./dataDirectory");
 
 // Gate the pinned version by Node major, mirroring src/lib/db/driver.js gating
 // style: 13.x is N-API and ships per-platform prebuilds inside the package, so
-// it needs no ABI-specific download. It requires Node >= 22; older runtimes stay
-// on 12.6.2, which fetches an ABI-specific binary via prebuild-install.
+// it needs no ABI-specific download. It requires Node >= 22. The older-runtime
+// compatibility branch stays on 12.x; 12.10+ no longer ships Node 20 prebuilds
+// and may need source-build tools. This does not extend CLI support below 22.19.
 const [NODE_MAJOR] = process.versions.node.split(".").map(Number);
 const USE_NAPI_BUILD = NODE_MAJOR >= 22;
-const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.0.3" : "12.6.2";
-const SQL_JS_VERSION = "1.14.2";
+const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.0.3" : "12.11.1";
+const SQL_JS_VERSION = "1.15.2";
 
 function getDataDir(env = process.env) {
   return resolveDataDirectory({ env });

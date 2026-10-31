@@ -13,9 +13,15 @@ import { buildCursorHeaders } from "../utils/cursorChecksum.js";
 import { decodeMessage } from "../utils/cursorProtobuf.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import {
+  MODEL_CATALOG_CACHE_TTL_MS,
+  MODEL_CATALOG_MAX_BYTES,
+  MODEL_CATALOG_MAX_CACHE_BYTES,
+  MODEL_CATALOG_MAX_CACHE_ENTRIES,
+} from "../config/modelCatalog.js";
+import { getDbImportGeneration } from "../../src/lib/db/helpers/importGeneration.js";
 
 const FETCH_TIMEOUT_MS = 10_000;
-const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // agent.v1.ModelDetails protobuf field numbers.
 const MODEL_ID_FIELD = 1;
@@ -24,8 +30,11 @@ const DISPLAY_NAME_FIELD = 4;
 const DISPLAY_NAME_SHORT_FIELD = 5;
 const RESPONSE_MODELS_FIELD = 1;
 
-/** @type {Map<string, { expiresAt: number, models: { id: string, name: string }[] }>} */
+/** @type {Map<string, { expiresAt: number, value: string, bytes: number }>} */
 const catalogCache = new Map();
+let cacheBytes = 0;
+let cacheGeneration = 0;
+let importedGeneration = getDbImportGeneration();
 
 function getCursorModelsUrl() {
   const config = PROVIDER_OAUTH.cursor;
@@ -33,13 +42,33 @@ function getCursorModelsUrl() {
   return `${config.agentEndpoint.replace(/\/$/, "")}${config.modelsEndpoint}`;
 }
 
-function cacheKey(credentials) {
-  const seed = [
-    credentials?.providerSpecificData?.machineId,
-    credentials?.accessToken,
-  ].filter(Boolean).join(":");
-  if (!seed) return "cursor-anonymous";
-  return crypto.createHash("sha256").update(`cursor:${seed}`).digest("hex");
+function cacheKey(credentials, proxyOptions) {
+  return crypto.createHash("sha256").update(JSON.stringify([
+    getCursorModelsUrl(), credentials?.id || credentials?.connectionId || null,
+    credentials?.accessToken, credentials?.providerSpecificData?.machineId,
+    credentials?.providerSpecificData?.ghostMode !== false,
+    getRefreshProxyKey(proxyOptions),
+    proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId ?? null,
+  ])).digest("hex");
+}
+
+function forget(key) {
+  const previous = catalogCache.get(key);
+  if (!previous) return;
+  cacheBytes -= previous.bytes;
+  catalogCache.delete(key);
+}
+
+function remember(key, result) {
+  const value = JSON.stringify(result);
+  const bytes = Buffer.byteLength(value);
+  if (bytes > MODEL_CATALOG_MAX_CACHE_BYTES) return;
+  forget(key);
+  catalogCache.set(key, { value, bytes, expiresAt: Date.now() + MODEL_CATALOG_CACHE_TTL_MS });
+  cacheBytes += bytes;
+  while (catalogCache.size > MODEL_CATALOG_MAX_CACHE_ENTRIES || cacheBytes > MODEL_CATALOG_MAX_CACHE_BYTES) {
+    forget(catalogCache.keys().next().value);
+  }
 }
 
 function firstString(fields, fieldNumber) {
@@ -80,60 +109,111 @@ export function parseCursorUsableModels(payload) {
  * agent.api5.cursor.sh is HTTP/2-only; Node fetch/undici cannot speak h2.
  * Unary GetUsableModels uses an unframed protobuf body (application/proto).
  */
-function http2PostProto(url, headers, body, signal, timeoutMs) {
+function http2PostProto(url, headers, body, signal) {
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const client = http2.connect(`https://${urlObj.host}`);
+    signal.throwIfAborted();
     const chunks = [];
+    let bytes = 0;
     let responseHeaders = {};
     let settled = false;
-
-    const finish = (fn) => (...args) => {
+    let client;
+    let req;
+    const onAbort = () => finish(reject, signal.reason);
+    const finish = (callback, value, complete = false) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timeoutId);
-      try { client.close(); } catch {}
-      fn(...args);
+      signal.removeEventListener("abort", onAbort);
+      chunks.length = 0;
+      if (!complete) {
+        try { req?.close?.(http2.constants?.NGHTTP2_CANCEL); } catch {}
+        try { req?.destroy?.(); } catch {}
+        try { client?.destroy?.(); } catch {}
+      }
+      try { client?.close(); } catch {}
+      callback(value);
     };
-
-    const timeoutId = setTimeout(finish(() => {
-      reject(new Error("Cursor GetUsableModels timed out"));
-    }), timeoutMs);
-
-    client.on("error", finish(reject));
-
-    const req = client.request({
-      ":method": "POST",
-      ":path": urlObj.pathname,
-      ":authority": urlObj.host,
-      ":scheme": "https",
-      ...headers,
-    });
-
-    req.on("response", (hdrs) => { responseHeaders = hdrs; });
-    req.on("data", (chunk) => { chunks.push(chunk); });
-    req.on("end", finish(() => {
-      resolve({
-        status: Number(responseHeaders[":status"] || 0),
-        body: Buffer.concat(chunks),
+    const onError = error => finish(reject, error);
+    const onClose = () => finish(reject, new Error("Cursor catalog transport closed before completion"));
+    try {
+      const urlObj = new URL(url);
+      client = http2.connect(`https://${urlObj.host}`);
+      client.on("error", onError);
+      client.on("close", onClose);
+      req = client.request({
+        ":method": "POST",
+        ":path": urlObj.pathname,
+        ":authority": urlObj.host,
+        ":scheme": "https",
+        ...headers,
       });
-    }));
-    req.on("error", finish(reject));
-
-    if (signal) {
-      const onAbort = finish(() => reject(new Error("Request aborted")));
-      if (signal.aborted) onAbort();
-      else signal.addEventListener("abort", onAbort, { once: true });
+      req.on("response", (hdrs) => { responseHeaders = hdrs; });
+      req.on("data", (chunk) => {
+        if (settled) return;
+        bytes += chunk.byteLength;
+        if (bytes > MODEL_CATALOG_MAX_BYTES) return onError(new Error("Cursor catalog exceeds size limit"));
+        chunks.push(chunk);
+      });
+      req.on("end", () => {
+        if (settled) return;
+        const body = Buffer.concat(chunks);
+        finish(resolve, { status: Number(responseHeaders[":status"] || 0), body }, true);
+      });
+      req.on("error", onError);
+      req.on("aborted", onClose);
+      req.on("close", onClose);
+      signal.addEventListener("abort", onAbort, { once: true });
+      signal.throwIfAborted();
+      req.end(body?.length ? Buffer.from(body) : undefined);
+    } catch (error) {
+      onError(error);
     }
-
-    req.end(body && body.length ? Buffer.from(body) : undefined);
   });
 }
 
-async function fetchCursorCatalog(credentials, signal, proxyOptions = null) {
+async function readProtoBody(response, signal) {
+  if (!response.body) throw new Error("Missing Cursor catalog response body");
+  const reader = response.body.getReader();
+  const chunks = [];
+  let bytes = 0;
+  const onAbort = () => { void reader.cancel(signal.reason).catch(() => {}); };
+  signal.addEventListener("abort", onAbort, { once: true });
+  try {
+    signal.throwIfAborted();
+    for (;;) {
+      const { done, value } = await reader.read();
+      signal.throwIfAborted();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MODEL_CATALOG_MAX_BYTES) throw new Error("Cursor catalog exceeds size limit");
+      chunks.push(Buffer.from(value));
+    }
+    return Buffer.concat(chunks);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
+async function waitForResponse(pending, signal) {
+  let aborted = false;
+  let onAbort;
+  const cancellation = new Promise((_, reject) => {
+    onAbort = () => { aborted = true; reject(signal.reason); };
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  const operation = Promise.resolve(pending).then(response => {
+    if (aborted) void response?.body?.cancel?.().catch(() => {});
+    return response;
+  });
+  try { return await Promise.race([operation, cancellation]); }
+  finally { signal.removeEventListener("abort", onAbort); }
+}
+
+async function fetchCursorCatalog(credentials, signal, proxyOptions, url) {
   const accessToken = credentials?.accessToken;
   const machineId = credentials?.providerSpecificData?.machineId;
-  const url = getCursorModelsUrl();
   if (!accessToken || !machineId || !url) return null;
 
   const headers = {
@@ -149,16 +229,25 @@ async function fetchCursorCatalog(credentials, signal, proxyOptions = null) {
   // Preserve Cursor's native HTTP/2 path only when no account proxy is configured.
   // A configured proxy/relay must carry this credentialed unary RPC too.
   let response;
-  if (proxyOptions?.strictProxy || proxyOptions?.connectionProxyEnabled || proxyOptions?.vercelRelayUrl) {
-    const res = await proxyAwareFetch(url, {
+  const poolId = proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId;
+  if (proxyOptions?.strictProxy || proxyOptions?.enabled || proxyOptions?.connectionProxyEnabled
+    || proxyOptions?.vercelRelayUrl || poolId && poolId !== "__none__") {
+    const res = await waitForResponse(proxyAwareFetch(url, {
       method: "POST",
+      redirect: "error",
       headers,
       body: new Uint8Array(),
-      signal: signal || AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    }, proxyOptions);
-    response = { status: res.status, body: await res.arrayBuffer() };
+      signal,
+    }, proxyOptions), signal);
+    if (res.status !== 200) {
+      void res.body?.cancel().catch(() => {});
+      const error = new Error(`Cursor GetUsableModels returned ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
+    response = { status: res.status, body: await readProtoBody(res, signal) };
   } else {
-    response = await http2PostProto(url, headers, new Uint8Array(), signal, FETCH_TIMEOUT_MS);
+    response = await http2PostProto(url, headers, new Uint8Array(), signal);
   }
   if (response.status !== 200) {
     const error = new Error(`Cursor GetUsableModels returned ${response.status}`);
@@ -174,30 +263,72 @@ async function fetchCursorCatalog(credentials, signal, proxyOptions = null) {
  * Returns null on any failure so callers can fall back to static models.
  */
 export async function resolveCursorModels(credentials, options = {}) {
+  const callerSignal = options.signal;
+  callerSignal?.throwIfAborted();
   if (!credentials?.accessToken || !credentials?.providerSpecificData?.machineId) {
     options.log?.debug?.("CURSOR_MODELS", "No Cursor access token or machine ID; skipping live fetch");
     return null;
   }
 
-  const key = JSON.stringify([cacheKey(credentials), getRefreshProxyKey(options.proxyOptions)]);
+  const imported = getDbImportGeneration();
+  if (imported !== importedGeneration) {
+    importedGeneration = imported;
+    clearCursorModelCache();
+  }
+  const proxyOptions = options.proxyOptions || null;
+  const key = cacheKey(credentials, proxyOptions);
   const now = Date.now();
+  for (const [entryKey, entry] of catalogCache) {
+    if (entry.expiresAt <= now) forget(entryKey);
+  }
   if (!options.forceRefresh) {
     const cached = catalogCache.get(key);
-    if (cached?.expiresAt > now) return { models: cached.models };
+    if (cached) {
+      catalogCache.delete(key);
+      catalogCache.set(key, cached);
+      return JSON.parse(cached.value);
+    }
   }
 
+  const epoch = cacheGeneration;
+  const selected = {
+    accessToken: credentials.accessToken,
+    providerSpecificData: {
+      machineId: credentials.providerSpecificData.machineId,
+      ghostMode: credentials.providerSpecificData.ghostMode,
+    },
+  };
+  const selectedProxy = proxyOptions ? { ...proxyOptions } : null;
+  const url = getCursorModelsUrl();
+  const unchanged = () => epoch === cacheGeneration && imported === getDbImportGeneration()
+    && key === cacheKey(credentials, options.proxyOptions || null);
+  const controller = new AbortController();
+  const signal = callerSignal ? AbortSignal.any([callerSignal, controller.signal]) : controller.signal;
+  const deadline = setTimeout(() => controller.abort(new Error("Cursor GetUsableModels timed out")), FETCH_TIMEOUT_MS);
   try {
-    const models = await fetchCursorCatalog(credentials, options.signal, options.proxyOptions);
+    const models = await Promise.resolve().then(() => {
+      signal.throwIfAborted();
+      if (!unchanged()) return null;
+      return fetchCursorCatalog(selected, signal, selectedProxy, url);
+    });
+    signal.throwIfAborted();
+    if (!unchanged()) return null;
     if (!models?.length) return null;
-    catalogCache.set(key, { expiresAt: now + CACHE_TTL_MS, models });
-    return { models };
+    const result = { models };
+    remember(key, result);
+    return structuredClone(result);
   } catch (error) {
+    if (callerSignal?.aborted) throw callerSignal.reason;
     if (error?.message?.includes("strictProxy=true")) throw error;
     options.log?.warn?.("CURSOR_MODELS", `Live model fetch failed: ${error?.message || error}`);
     return null;
+  } finally {
+    clearTimeout(deadline);
   }
 }
 
 export function clearCursorModelCache() {
   catalogCache.clear();
+  cacheBytes = 0;
+  cacheGeneration++;
 }

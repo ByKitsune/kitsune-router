@@ -30,7 +30,7 @@ const CLAUDE_ERROR_BY_STATUS = new Map([
 const CLAUDE_ERROR_TYPES = new Set(CLAUDE_ERROR_BY_STATUS.values());
 
 function errorStatus(error) {
-  const raw = error.status ?? error.status_code ?? error.code;
+  const raw = error.status ?? error.status_code ?? error.statusCode ?? error.code;
   // Some SSE providers serialize the HTTP status as a string. Accept only
   // three decimal digits; malformed values still use the existing safe fallback.
   const explicit = typeof raw === "string" && /^\d{3}$/.test(raw.trim()) ? Number(raw.trim()) : raw;

@@ -1,5 +1,13 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [stable npm dependency and CI repair follow-up](27-dependency-upgrade-and-ci-repair-2026-10-31.md)
+records all owned package targets, compatible transitives, SAML/PKI migrations,
+the repaired minimatch audit and final verification evidence.
+
+The [October 31 security/stability closing review](26-security-stability-and-1.0.5-closing-2026-10-31.md)
+records fresh upstream issue/advisory dispositions, verified auth/resource/model
+error fixes, the 1.0.5 source bump and the initial dependency gate subsequently repaired in the follow-up.
+
 The [client compatibility and catalog sync follow-up](25-client-compatibility-and-catalog-sync-2026-10-31.md)
 records verified client/SDK identities, source-backed model changes, per-account
 discovery and the boundaries of blocked publisher sources.

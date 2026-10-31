@@ -21,9 +21,12 @@
 import { createHash } from "crypto";
 
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
-import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "./tokenRefresh/dedup.js";
+import { MODEL_CATALOG_MAX_CACHE_BYTES, MODEL_CATALOG_MAX_CACHE_ENTRIES } from "../config/modelCatalog.js";
+import { readModelCatalogResponse } from "../utils/modelCatalog.js";
 import { buildCosyHeaders } from "../shared/qoder/cosy.js";
 import { QODER_CLI_USER_AGENT } from "../config/clientVersions.js";
+import { getDbImportGeneration } from "../../src/lib/db/helpers/importGeneration.js";
 import {
   QODER_MODEL_LIST_URL,
   QODER_CHAT_BASE_ALT,
@@ -34,7 +37,7 @@ import {
 } from "../shared/qoder/constants.js";
 
 const FETCH_TIMEOUT_MS = 15_000;
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1h, same as the Kiro catalog
+const CACHE_TTL_MS = 60 * 60 * 1000; // Preserve Qoder's existing 1h freshness policy.
 
 const PAT_PREFIX = "pt-";
 
@@ -47,19 +50,107 @@ export function isQoderPat(token) {
   return typeof token === "string" && token.startsWith(PAT_PREFIX);
 }
 
-/** @type {Map<string, { accessToken: string, userId: string, expiresAt: number }>} */
+/** @type {Map<string, { accessToken: string, userId: string, expiresAt: number, bytes: number }>} */
 const patJobCache = new Map();
 
-/** @type {Map<string, { expiresAt: number, models: any[], rawConfigs: Map<string, object>, fetched: boolean }>} */
+/** @type {Map<string, { expiresAt: number, value: object, bytes: number }>} */
 const catalogCache = new Map();
 
 /**
  * In-flight fetch promises keyed by cacheKey. Concurrent first-time
  * callers (parallel chat windows) all observe the same Promise so we
  * fan-out exactly one upstream request per credential per miss.
- * @type {Map<string, Promise<{ expiresAt: number, models: any[], rawConfigs: Map<string, object>, fetched: boolean } | null>>}
+ * Each operation owns transport cancellation; callers own their subscriptions.
  */
 const inflight = new Map();
+const activeRequests = new Set();
+let catalogBytes = 0;
+let patBytes = 0;
+let generation = 0;
+let importedGeneration = getDbImportGeneration();
+
+function synchronizeImportGeneration() {
+  const imported = getDbImportGeneration();
+  if (imported !== importedGeneration) {
+    importedGeneration = imported;
+    clearQoderCatalog();
+  }
+  return imported;
+}
+
+function cancelResponse(response) {
+  void response?.body?.cancel().catch(() => {});
+}
+
+async function waitForOperation(pending, signal, disposeLate = null) {
+  let aborted = false;
+  let onAbort;
+  const cancellation = new Promise((_, reject) => {
+    onAbort = () => { aborted = true; reject(signal.reason); };
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  const operation = Promise.resolve(pending).then(value => {
+    if (aborted) disposeLate?.(value);
+    return value;
+  });
+  try { return await Promise.race([operation, cancellation]); }
+  finally { signal.removeEventListener("abort", onAbort); }
+}
+
+function dropCatalog(key) {
+  const entry = catalogCache.get(key);
+  if (entry) catalogBytes -= entry.bytes;
+  catalogCache.delete(key);
+}
+
+function dropPat(key) {
+  const entry = patJobCache.get(key);
+  if (entry) patBytes -= entry.bytes;
+  patJobCache.delete(key);
+}
+
+function sweepCaches() {
+  const now = Date.now();
+  for (const [key, entry] of catalogCache) if (entry.expiresAt <= now) dropCatalog(key);
+  for (const [key, entry] of patJobCache) if (entry.expiresAt - now <= PAT_REFRESH_BUFFER_MS) dropPat(key);
+}
+
+function rememberPat(key, resolved) {
+  dropPat(key);
+  const bytes = Buffer.byteLength(JSON.stringify([resolved.accessToken, resolved.userId]));
+  if (bytes > MODEL_CATALOG_MAX_CACHE_BYTES) return;
+  resolved.bytes = bytes;
+  patJobCache.set(key, resolved);
+  patBytes += bytes;
+  while (patJobCache.size > MODEL_CATALOG_MAX_CACHE_ENTRIES || patBytes > MODEL_CATALOG_MAX_CACHE_BYTES) {
+    dropPat(patJobCache.keys().next().value);
+  }
+}
+
+function prepareCatalogEntry(fetched) {
+  const value = { models: fetched.models, rawConfigs: [...fetched.rawConfigs], fetched: true };
+  // Budget serialized metadata as before, but preserve decoded native config
+  // values such as -0 or exponent overflow for the unchanged chat serializer.
+  const bytes = Buffer.byteLength(JSON.stringify(value));
+  return { value: structuredClone(value), bytes, expiresAt: Date.now() + CACHE_TTL_MS };
+}
+
+function cloneCatalog(entry) {
+  if (!entry) return null;
+  const value = structuredClone(entry.value);
+  return { expiresAt: entry.expiresAt, ...value, rawConfigs: new Map(value.rawConfigs) };
+}
+
+function rememberCatalog(key, entry) {
+  dropCatalog(key);
+  if (entry.bytes > MODEL_CATALOG_MAX_CACHE_BYTES) return;
+  catalogCache.set(key, entry);
+  catalogBytes += entry.bytes;
+  while (catalogCache.size > MODEL_CATALOG_MAX_CACHE_ENTRIES || catalogBytes > MODEL_CATALOG_MAX_CACHE_BYTES) {
+    dropCatalog(catalogCache.keys().next().value);
+  }
+}
 
 /**
  * Exchange a Qoder PAT (pt-...) for a short-lived job token (jt-...).
@@ -70,6 +161,7 @@ async function exchangeJobToken(pat, proxyOptions = null, signal = null) {
     QODER_JOB_TOKEN_EXCHANGE_URL,
     {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -83,10 +175,10 @@ async function exchangeJobToken(pat, proxyOptions = null, signal = null) {
     proxyOptions,
   );
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`qoder PAT exchange failed: ${res.status} ${text.slice(0, 200)}`);
+    cancelResponse(res);
+    throw new Error(`qoder PAT exchange failed (${res.status})`);
   }
-  const data = await res.json();
+  const data = await readModelCatalogResponse(res, signal || new AbortController().signal);
   if (!data.token) throw new Error("qoder PAT exchange returned no job token");
 
   let expiresAt = Date.now() + PAT_DEFAULT_TTL_MS;
@@ -109,6 +201,7 @@ async function fetchUserIdForJobToken(jobToken, proxyOptions = null, signal = nu
       QODER_USERINFO_URL,
       {
         method: "GET",
+        redirect: "error",
         headers: {
           Authorization: `Bearer ${jobToken}`,
           Accept: "application/json",
@@ -118,8 +211,8 @@ async function fetchUserIdForJobToken(jobToken, proxyOptions = null, signal = nu
       },
       proxyOptions,
     );
-    if (!res.ok) return "";
-    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { cancelResponse(res); return ""; }
+    const data = await readModelCatalogResponse(res, signal || new AbortController().signal);
     return data.id || data.userId || data.user_id || "";
   } catch {
     return "";
@@ -131,16 +224,29 @@ async function fetchUserIdForJobToken(jobToken, proxyOptions = null, signal = nu
  * is retried on the next request without discarding a still-valid job token.
  */
 async function resolvePatCredential(pat, proxyOptions = null, signal = null) {
-  const key = JSON.stringify([pat, getRefreshProxyKey(proxyOptions)]);
+  signal?.throwIfAborted();
+  sweepCaches();
+  const epoch = generation;
+  const imported = getDbImportGeneration();
+  const key = createHash("sha256").update(JSON.stringify([pat, getRefreshProxyKey(proxyOptions)])).digest("hex");
   let resolved = patJobCache.get(key);
+  if (resolved) { patJobCache.delete(key); patJobCache.set(key, resolved); }
   if (!resolved || resolved.expiresAt - Date.now() <= PAT_REFRESH_BUFFER_MS) {
     const { jobToken, expiresAt } = await exchangeJobToken(pat, proxyOptions, signal);
     resolved = { accessToken: jobToken, userId: "", expiresAt };
-    patJobCache.set(key, resolved);
+    signal?.throwIfAborted();
+    if (epoch === generation && imported === getDbImportGeneration()) rememberPat(key, resolved);
   }
   if (!resolved.userId) {
     const userId = await fetchUserIdForJobToken(resolved.accessToken, proxyOptions, signal);
-    if (userId) resolved.userId = userId;
+    signal?.throwIfAborted();
+    if (userId) {
+      // A pending identity lookup may still hold the old cache object after an
+      // import. Return its selected result without mutating that shared entry.
+      if (epoch === generation && imported === getDbImportGeneration()) resolved.userId = userId;
+      else resolved = { ...resolved, userId };
+    }
+    if (epoch === generation && imported === getDbImportGeneration()) rememberPat(key, resolved);
   }
   return resolved;
 }
@@ -151,32 +257,49 @@ async function resolvePatCredential(pat, proxyOptions = null, signal = null) {
  *   - everything else → passed through unchanged
  */
 export async function resolveQoderCredentials(credentials, proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
+  synchronizeImportGeneration();
   const raw = credentials?.apiKey || credentials?.accessToken;
   if (isQoderPat(raw)) {
-    const resolved = await resolvePatCredential(raw, proxyOptions, signal);
-    return {
-      ...credentials,
-      accessToken: resolved.accessToken,
-      apiKey: undefined,
-      providerSpecificData: {
-        authMethod: "pat",
-        ...(credentials?.providerSpecificData || {}),
-        userId: resolved.userId || credentials?.providerSpecificData?.userId || "",
-        machineId: credentials?.providerSpecificData?.machineId || "",
-      },
-    };
+    // Standalone usage lookups have no enclosing catalog deadline. Keep an
+    // explicit caller's exact signal; otherwise own one for the complete PAT
+    // exchange and identity body, including transports that ignore cancellation.
+    const controller = signal ? null : new AbortController();
+    const activeSignal = signal || controller.signal;
+    const deadline = controller ? setTimeout(() => controller.abort(new DOMException("Qoder credential deadline exceeded", "TimeoutError")), FETCH_TIMEOUT_MS) : null;
+    try {
+      const resolved = await waitForOperation(resolvePatCredential(raw, proxyOptions, activeSignal), activeSignal);
+      activeSignal.throwIfAborted();
+      return {
+        ...credentials,
+        accessToken: resolved.accessToken,
+        apiKey: undefined,
+        providerSpecificData: {
+          authMethod: "pat",
+          ...(credentials?.providerSpecificData || {}),
+          userId: resolved.userId || credentials?.providerSpecificData?.userId || "",
+          machineId: credentials?.providerSpecificData?.machineId || "",
+        },
+      };
+    } finally {
+      if (deadline !== null) clearTimeout(deadline);
+    }
   }
   return credentials;
 }
 
 /**
- * Stable cache key per credential (so different login sessions for the same
- * account share an entry).
+ * Exact proof and native signing identity. Account IDs alone must not share
+ * a catalog between different login tokens or machine identities.
  */
 function cacheKey(credentials) {
   const psd = credentials?.providerSpecificData || {};
-  const seed = psd.userId || credentials?.refreshToken || credentials?.accessToken || "anonymous";
-  return createHash("sha256").update(`qoder:${seed}`).digest("hex");
+  return createHash("sha256").update(JSON.stringify([
+    credentials?.id || credentials?.connectionId || null,
+    credentials?.apiKey || null, credentials?.accessToken || null,
+    psd.userId || null, psd.machineId || null,
+    credentials?.displayName || null, credentials?.email || null,
+  ])).digest("hex");
 }
 
 /**
@@ -193,9 +316,15 @@ function cosyCredsFromConnection(credentials) {
   };
 }
 
+function positiveTokenLimit(value) {
+  if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return undefined;
+  const limit = Number(value);
+  return Number.isSafeInteger(limit) && limit > 0 ? limit : undefined;
+}
+
 /**
  * Fetch the live model list for this credential. Returns:
- *   { models: [{ id, name, contextLength, isVL, isReasoning, ... }, ...],
+ *   { models: [{ id, name, maxInputTokens?, maxOutputTokens?, isVL, isReasoning, ... }, ...],
  *     rawConfigs: Map<modelKey, modelConfigObject> }
  * or `null` on any error.
  */
@@ -216,67 +345,52 @@ async function fetchQoderCatalogRaw(credentials, signal, proxyOptions = null) {
   };
 
   const controller = new AbortController();
-  let timer = null;
-  let abortListener = null;
-  let response;
+  const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+  const timer = setTimeout(() => controller.abort(new DOMException("Qoder catalog deadline exceeded", "TimeoutError")), FETCH_TIMEOUT_MS);
   try {
-    timer = setTimeout(() => controller.abort("timeout"), FETCH_TIMEOUT_MS);
-    if (signal && typeof signal.addEventListener === "function") {
-      // If the parent signal already aborted before we got here, the
-      // 'abort' event has already fired and addEventListener won't
-      // re-trigger it. Propagate the cancellation immediately.
-      if (signal.aborted) {
-        controller.abort(signal.reason);
-      } else {
-        abortListener = () => controller.abort(signal.reason);
-        signal.addEventListener("abort", abortListener);
-      }
-    }
-    response = await proxyAwareFetch(
+    combined.throwIfAborted();
+    const response = await waitForOperation(proxyAwareFetch(
       modelListUrl,
-      {
-        method: "GET",
-        headers,
-        signal: controller.signal,
-      },
+      { method: "GET", redirect: "error", headers, signal: combined },
       proxyOptions,
-    );
+    ), combined, cancelResponse);
+    combined.throwIfAborted();
+    if (!response.ok) { cancelResponse(response); return null; }
+    const body = await readModelCatalogResponse(response, combined);
+    combined.throwIfAborted();
+    if (!body || !Array.isArray(body.chat)) return null;
+
+    const models = [];
+    const rawConfigs = new Map();
+    for (const entry of body.chat) {
+      if (!entry || typeof entry !== "object") continue;
+      const key = entry.key;
+      if (!key) continue;
+
+      // Always cache the config — chat needs model_config even for UI-hidden
+      // models (enable:false). Upstream still accepts chat for these keys.
+      rawConfigs.set(key, entry);
+      if (entry.enable === false) continue;
+
+      const display = entry.display_name || key;
+      const maxInputTokens = positiveTokenLimit(entry.max_input_tokens);
+      const maxOutputTokens = positiveTokenLimit(entry.max_output_tokens);
+      models.push({
+        id: key,
+        name: `${display}`,
+        // These are directional limits, not a verified total context window.
+        ...(maxInputTokens === undefined ? {} : { maxInputTokens }),
+        ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
+        isVL: !!entry.is_vl,
+        isReasoning: !!entry.is_reasoning,
+        description: entry.description || "",
+      });
+    }
+
+    return { models, rawConfigs };
   } finally {
-    if (timer) clearTimeout(timer);
-    if (signal && abortListener) signal.removeEventListener("abort", abortListener);
+    clearTimeout(timer);
   }
-
-  if (!response.ok) return null;
-
-  const body = await response.json().catch(() => null);
-  if (!body || !Array.isArray(body.chat)) return null;
-
-  const models = [];
-  const rawConfigs = new Map();
-  for (const entry of body.chat) {
-    if (!entry || typeof entry !== "object") continue;
-    const key = entry.key;
-    if (!key) continue;
-
-    // Always cache the config — chat needs model_config even for UI-hidden
-    // models (enable:false). Upstream still accepts chat for these keys.
-    rawConfigs.set(key, entry);
-    if (entry.enable === false) continue;
-
-    const display = entry.display_name || key;
-    const ctx = Number(entry.max_input_tokens) || 131_072;
-    models.push({
-      id: key,
-      name: `${display}`,
-      contextLength: ctx,
-      isVL: !!entry.is_vl,
-      isReasoning: !!entry.is_reasoning,
-      maxOutputTokens: Number(entry.max_output_tokens) || 0,
-      description: entry.description || "",
-    });
-  }
-
-  return { models, rawConfigs };
 }
 
 /**
@@ -300,62 +414,85 @@ export async function getQoderModelConfig(credentials, modelKey, options = {}) {
  * one upstream request per credential.
  */
 export async function resolveQoderModels(credentials, options = {}) {
-  let resolved;
+  options.signal?.throwIfAborted();
+  const imported = synchronizeImportGeneration();
+  sweepCaches();
+  // One entry budget also bounds subscribers/PAT lookups before coalescing.
+  if (activeRequests.size >= MODEL_CATALOG_MAX_CACHE_ENTRIES) return null;
+  const originalScope = cacheKey(credentials);
+  const captured = { ...credentials, providerSpecificData: { ...credentials?.providerSpecificData } };
+  const proxyOptions = options.proxyOptions ? { ...options.proxyOptions } : null;
+  const proxyScope = getRefreshProxyKey(proxyOptions);
+  const epoch = generation;
+  const request = { scope: originalScope, controller: new AbortController() };
+  activeRequests.add(request);
+  const signal = options.signal ? AbortSignal.any([options.signal, request.controller.signal]) : request.controller.signal;
+  const deadline = setTimeout(() => request.controller.abort(new DOMException("Qoder catalog deadline exceeded", "TimeoutError")), FETCH_TIMEOUT_MS);
+  const unchanged = () => epoch === generation && imported === getDbImportGeneration() && !request.controller.signal.aborted
+    && originalScope === cacheKey(credentials) && proxyScope === getRefreshProxyKey(options.proxyOptions);
   try {
-    resolved = await resolveQoderCredentials(credentials, options.proxyOptions, options.signal);
+    const resolved = await waitForOperation(resolveQoderCredentials(captured, proxyOptions, signal), signal);
+    signal.throwIfAborted();
+    if (!unchanged() || !resolved?.accessToken || !resolved.providerSpecificData?.userId) return null;
+    const key = JSON.stringify([originalScope, cacheKey(resolved), proxyScope]);
+    if (!options.forceRefresh) {
+      const cached = catalogCache.get(key);
+      if (cached) {
+        catalogCache.delete(key);
+        catalogCache.set(key, cached);
+        return cloneCatalog(cached);
+      }
+    }
+    let operation = inflight.get(key);
+    if (!operation || options.forceRefresh || operation.controller.signal.aborted) {
+      operation = createRefreshOperation(async operationSignal => {
+        const fetched = await fetchQoderCatalogRaw(resolved, operationSignal, proxyOptions);
+        if (!fetched || operationSignal.aborted || epoch !== generation || imported !== getDbImportGeneration() || inflight.get(key) !== operation) return null;
+        const entry = prepareCatalogEntry(fetched);
+        rememberCatalog(key, entry);
+        return entry;
+      });
+      inflight.set(key, operation);
+      operation.promise.finally(() => {
+        if (inflight.get(key) === operation) inflight.delete(key);
+      }).catch(() => {});
+    }
+    const entry = await waitForRefresh(operation, signal);
+    signal.throwIfAborted();
+    return unchanged() ? cloneCatalog(entry) : null;
   } catch (error) {
-    if (error?.message?.includes("strictProxy=true")) throw error;
-    options.log?.warn?.("QODER", `PAT exchange failed: ${error.message}`);
+    if (options.signal?.aborted) throw options.signal.reason;
+    if (epoch !== generation || imported !== getDbImportGeneration()
+      || request.controller.signal.reason?.name === "AbortError") return null;
+    if (options.proxyOptions?.strictProxy === true || error?.message?.includes("strictProxy=true")) throw error;
+    options.log?.warn?.("QODER", "Model catalog lookup failed");
     return null;
-  }
-  if (!resolved?.accessToken || !(resolved.providerSpecificData || {}).userId) return null;
-
-  const key = JSON.stringify([cacheKey(resolved), getRefreshProxyKey(options.proxyOptions)]);
-  const now = Date.now();
-  if (!options.forceRefresh) {
-    const cached = catalogCache.get(key);
-    if (cached && cached.expiresAt > now) {
-      return cached;
-    }
-  }
-
-  // Coalesce concurrent misses on the same credential into one upstream call.
-  // forceRefresh callers still get their own fetch (they wanted fresh data).
-  const existing = inflight.get(key);
-  if (existing && !options.forceRefresh) {
-    return existing;
-  }
-
-  const fetchPromise = (async () => {
-    const fetched = await fetchQoderCatalogRaw(resolved, options.signal, options.proxyOptions);
-    if (!fetched) return null;
-    const entry = {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      models: fetched.models,
-      rawConfigs: fetched.rawConfigs,
-      fetched: true,
-    };
-    catalogCache.set(key, entry);
-    return entry;
-  })();
-
-  inflight.set(key, fetchPromise);
-  try {
-    return await fetchPromise;
   } finally {
-    // Clear only if this is still the in-flight entry — a forceRefresh
-    // call that started later may have replaced it.
-    if (inflight.get(key) === fetchPromise) {
-      inflight.delete(key);
-    }
+    clearTimeout(deadline);
+    activeRequests.delete(request);
   }
 }
 
 export function invalidateQoderCatalog(credentials) {
   if (!credentials) return;
-  catalogCache.delete(cacheKey(credentials));
+  const scope = cacheKey(credentials);
+  const matches = key => JSON.parse(key).slice(0, 2).includes(scope);
+  for (const key of catalogCache.keys()) if (matches(key)) dropCatalog(key);
+  for (const [key, operation] of inflight) {
+    if (!matches(key)) continue;
+    inflight.delete(key);
+    operation.controller.abort(new DOMException("Qoder catalog invalidated", "AbortError"));
+  }
+  for (const request of activeRequests) if (request.scope === scope) request.controller.abort(new DOMException("Qoder catalog invalidated", "AbortError"));
 }
 
 export function clearQoderCatalog() {
+  generation++;
   catalogCache.clear();
+  catalogBytes = 0;
+  patJobCache.clear();
+  patBytes = 0;
+  for (const operation of inflight.values()) operation.controller.abort(new DOMException("Qoder catalog cleared", "AbortError"));
+  inflight.clear();
+  for (const request of activeRequests) request.controller.abort(new DOMException("Qoder catalog cleared", "AbortError"));
 }

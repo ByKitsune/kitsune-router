@@ -1,12 +1,19 @@
 import { defineConfig, globalIgnores } from "eslint/config";
+import { createRequire } from "node:module";
+import { installLegacyMinimatchCompatibility } from "./scripts/eslint/minimatch-compat.mjs";
 import { fixupPluginRules } from "@eslint/compat";
-import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
-import importPlugin from "eslint-plugin-import";
-import jsxA11y from "eslint-plugin-jsx-a11y";
 import globals from "globals";
 import * as espree from "espree";
 import noLocationAssignRelativeDestination from "./scripts/eslint/no-location-assign-relative-destination.mjs";
+
+// Keep legacy plugin APIs while all matching runs on patched minimatch 11.
+// Register before loading these CommonJS plugins; application imports are untouched.
+installLegacyMinimatchCompatibility();
+const require = createRequire(import.meta.url);
+const react = require("eslint-plugin-react");
+const importPlugin = require("eslint-plugin-import");
+const jsxA11y = require("eslint-plugin-jsx-a11y");
 
 const eslintConfig = defineConfig([
   {

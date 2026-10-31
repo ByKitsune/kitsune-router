@@ -2,7 +2,6 @@ const path = require("path");
 const fs = require("fs");
 const { createPrivateKey, webcrypto, X509Certificate } = require("node:crypto");
 require("reflect-metadata");
-const x509 = require("@peculiar/x509");
 const { MITM_DIR } = require("../paths");
 
 const ROOT_CA_KEY_PATH = path.join(MITM_DIR, "rootCA.key");
@@ -13,6 +12,13 @@ const KEY_ALGORITHM = {
   modulusLength: 2048,
   publicExponent: new Uint8Array([1, 0, 1]),
 };
+let x509Promise;
+
+// x509 v3 is ESM. Use the same native import from both the raw CommonJS MITM
+// child and Next's server bundle; keep Reflect initialized before loading it.
+function loadX509() {
+  return x509Promise ??= import("@peculiar/x509");
+}
 
 /**
  * Check if cert file is expired or expiring within 30 days.
@@ -50,6 +56,7 @@ async function generateRootCA() {
     console.log("✅ Root CA already exists");
     return { key: ROOT_CA_KEY_PATH, cert: ROOT_CA_CERT_PATH };
   }
+  const x509 = await loadX509();
   if (exists) console.log("🔐 Root CA expired or expiring soon — regenerating...");
   fs.mkdirSync(MITM_DIR, { recursive: true, mode: 0o700 });
   console.log("🔐 Generating Root CA certificate...");
@@ -93,6 +100,7 @@ async function loadRootCA() {
   if (!fs.existsSync(ROOT_CA_KEY_PATH) || !fs.existsSync(ROOT_CA_CERT_PATH)) {
     throw new Error("Root CA not found. Generate it first.");
   }
+  const x509 = await loadX509();
   if (process.platform !== "win32") fs.chmodSync(ROOT_CA_KEY_PATH, 0o600);
   const key = createPrivateKey(fs.readFileSync(ROOT_CA_KEY_PATH));
   const cert = new x509.X509Certificate(fs.readFileSync(ROOT_CA_CERT_PATH, "utf8"));
@@ -110,6 +118,7 @@ async function loadRootCA() {
  * Generate a domain and wildcard leaf, preserving the persisted issuer's DER.
  */
 async function generateLeafCert(domain, rootCA) {
+  const x509 = await loadX509();
   const keys = await webcrypto.subtle.generateKey(KEY_ALGORITHM, true, ["sign", "verify"]);
   const notBefore = new Date();
   const notAfter = new Date(notBefore);

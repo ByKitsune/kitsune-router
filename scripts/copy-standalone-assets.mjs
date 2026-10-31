@@ -97,18 +97,19 @@ export function copyStandaloneRuntimeAssets({ projectRoot, standaloneDir } = {})
 }
 
 export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = process.env.NEXT_DIST_DIR || ".next" } = {}) {
-  if (process.env.NEXT_TRACING_ROOT_MODE === "workspace") {
-    console.log("[standalone-assets] Skipping workspace-traced CLI build; CLI packaging handles assets");
-    return;
-  }
-
   const buildDir = resolve(projectRoot, distDir);
-  const standaloneDir = resolve(buildDir, "standalone");
+  const standaloneRoot = resolve(buildDir, "standalone");
 
-  if (!existsSync(standaloneDir)) {
-    console.log(`[standalone-assets] No standalone build found at ${standaloneDir}`);
+  if (!existsSync(standaloneRoot)) {
+    console.log(`[standalone-assets] No standalone build found at ${standaloneRoot}`);
     return;
   }
+
+  // Workspace tracing nests the app beside hoisted dependencies. Complete the
+  // same generated server used by packaging and browser checks in either layout.
+  const standaloneDir = [standaloneRoot, resolve(standaloneRoot, basename(resolve(projectRoot)))]
+    .find(directory => existsSync(resolve(directory, "server.js")));
+  if (!standaloneDir) throw new Error(`Generated standalone server.js is missing under ${standaloneRoot}`);
 
   const staticSource = resolve(buildDir, "static");
   const staticDestination = resolve(standaloneDir, distDir, "static");
@@ -125,7 +126,7 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
   }
 
   copyStandaloneRuntimeAssets({ projectRoot, standaloneDir });
-  assertNoRuntimeState(standaloneDir);
+  assertNoRuntimeState(standaloneRoot);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(dirname(fileURLToPath(import.meta.url)), "copy-standalone-assets.mjs")) {

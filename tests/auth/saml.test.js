@@ -1,7 +1,7 @@
 import { it as test, beforeAll, afterEach, vi } from "vitest";
-import selfsigned from "selfsigned";
 import { SignedXml } from "xml-crypto";
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import {
   formatX509Certificate,
   isSamlConfigured,
@@ -16,6 +16,7 @@ import { POST as samlAcs } from "../../src/app/api/auth/saml/acs/route.js";
 import { getDashboardAuthSession } from "../../src/lib/auth/dashboardSession.js";
 
 const routeState = vi.hoisted(() => ({ settings: {}, cookies: new Map() }));
+const { authority } = createRequire(import.meta.url)("../helpers/mitm-certificates.cjs");
 vi.mock("../../src/lib/localDb.js", () => ({ getSettings: async () => routeState.settings }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -31,10 +32,8 @@ const origin = "https://sp.example.com";
 const startRequest = () => new Request(`${origin}/api/auth/saml/start`);
 
 beforeAll(async () => {
-  pems = await selfsigned.generate([{ name: "commonName", value: "idp.example.com" }], {
-    keySize: 2048,
-    algorithm: "sha256",
-  });
+  const idp = await authority({ name: "CN=idp.example.com" });
+  pems = { cert: idp.cert, private: idp.privateKey.export({ type: "pkcs8", format: "pem" }) };
   settings = {
     baseUrl: origin,
     samlEntryPoint: "https://idp.example.com/sso",
@@ -75,7 +74,9 @@ function signedResponse(requestId, { responseId = requestId, subjectId = request
   const confirmationXml = (confirmations || [{ id: subjectId }]).map((confirmation) => `
     <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:${confirmation.method || "bearer"}">
       <saml:SubjectConfirmationData${correlation(confirmation.id === undefined ? requestId : confirmation.id)}
-        NotOnOrAfter="${confirmation.expires || expires}" Recipient="${origin}/api/auth/saml/acs">${confirmation.method === "holder-of-key" ? `<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>${pems.cert.replace(/-----[^-]+-----|\s/g, "")}</ds:X509Certificate></ds:X509Data></ds:KeyInfo>` : ""}</saml:SubjectConfirmationData>
+        ${confirmation.expires === null ? "" : `NotOnOrAfter="${confirmation.expires || expires}"`}
+        ${confirmation.notBefore ? `NotBefore="${confirmation.notBefore}"` : ""}
+        ${confirmation.recipient === null ? "" : `Recipient="${confirmation.recipient === undefined ? `${origin}/api/auth/saml/acs` : confirmation.recipient}"`}>${confirmation.method === "holder-of-key" ? `<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>${pems.cert.replace(/-----[^-]+-----|\s/g, "")}</ds:X509Certificate></ds:X509Data></ds:KeyInfo>` : ""}</saml:SubjectConfirmationData>
     </saml:SubjectConfirmation>`).join("");
   const assertion = signElement(
     `<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_assertion" Version="2.0" IssueInstant="${now}">
@@ -145,6 +146,51 @@ test("selected mismatched valid bearer rejects even with a later matching bearer
     { id: requestId },
   ] });
   await assert.rejects(validateSamlResponse(startRequest(), body, requestId, settings));
+});
+
+test("a correlated holder-of-key confirmation cannot replace a missing or expired correlated bearer", async () => {
+  for (const expiredBearer of [false, true]) {
+    const { requestId } = await buildSamlAuthorizeUrl(startRequest(), settings);
+    const body = signedResponse(requestId, { confirmations: [
+      { method: "holder-of-key", id: requestId },
+      expiredBearer
+        ? { id: requestId, expires: new Date(Date.now() - 120000).toISOString() }
+        : { id: null },
+    ] });
+    await assert.rejects(validateSamlResponse(startRequest(), body, requestId, settings));
+  }
+});
+
+test("a later correlated bearer cannot rescue the selected uncorrelated timely bearer", async () => {
+  const { requestId } = await buildSamlAuthorizeUrl(startRequest(), settings);
+  const body = signedResponse(requestId, { confirmations: [{ id: null }, { id: requestId }] });
+  await assert.rejects(validateSamlResponse(startRequest(), body, requestId, settings));
+});
+
+test("a signed correlated bearer must name this assertion consumer as its Recipient", async () => {
+  for (const recipient of [null, "https://another-sp.example.com/api/auth/saml/acs", `${origin}/another-callback`]) {
+    const { requestId } = await buildSamlAuthorizeUrl(startRequest(), settings);
+    await assert.rejects(validateSamlResponse(startRequest(), signedResponse(requestId, {
+      confirmations: [{ id: requestId, recipient }],
+    }), requestId, settings));
+    await assert.rejects(validateSamlResponse(startRequest(), signedResponse(requestId), requestId, settings));
+  }
+});
+
+test("a bearer confirmation without an expiry cannot authenticate", async () => {
+  const { requestId } = await buildSamlAuthorizeUrl(startRequest(), settings);
+  const body = signedResponse(requestId, { confirmations: [{ id: requestId, expires: null }] });
+  await assert.rejects(validateSamlResponse(startRequest(), body, requestId, settings));
+});
+
+test("valid bearer proof retains the configured clock skew and canonical Recipient URL", async () => {
+  const { requestId } = await buildSamlAuthorizeUrl(startRequest(), settings);
+  const body = signedResponse(requestId, { confirmations: [{
+    id: requestId,
+    recipient: "https://SP.EXAMPLE.COM:443/api/auth/saml/acs",
+    notBefore: new Date(Date.now() + 40000).toISOString(),
+  }] });
+  assert.equal((await validateSamlResponse(startRequest(), body, requestId, settings)).nameID, "alice@example.com");
 });
 
 test("signed captured assertion cannot authenticate without browser state", async () => {

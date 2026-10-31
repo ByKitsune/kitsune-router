@@ -14,6 +14,7 @@ The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the
 
 ### Identity and migration contract
 
+- **Current source version: 1.0.5 (2026-10-31).** All four package/lock pairs are synchronized. See `docs/CHANGELOG_v1.0.5.md` and `releases/RELEASE_NOTES_v1.0.5.md` for this source revision. Its source verification is separate from npm/GHCR publication and production deployment; the immutable 1.0.2 artifact history below remains historical.
 - **Kitsune Router — Your models. Your routes.** Maintained/sponsored by [ByKitsune](https://bykitsune.com); provider-neutral and local-first, with no mandatory ByKitsune account or preferred provider order.
 - Target repository: `https://github.com/ByKitsune/kitsune-router`; npm `@bykitsune/router`; executable `kitsune-router`; canonical image `ghcr.io/bykitsune/kitsune-router`. **Client provider keys are `kitsunerouter`**, not the hyphenated executable or a bare JavaScript identifier with a hyphen.
 - **1.0.2 source verified; GHCR container published privately; npm blocked.** Tag `v1.0.2` stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; PR #2 merged at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Exact runtime: 9,041 passed, 100 skipped, zero failures; strict lint, 18 docs tests/static export, app build and pack passed. Local tarball and original CI artifact `12718343077` are distinct bytes and independently passed install/help/version/runtime/upgrade smoke, original state/keys retained, secrets 0600 and graceful exit 0. See `docs/CHANGELOG_v1.0.2.md` for full identities/evidence.

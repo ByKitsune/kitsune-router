@@ -1,6 +1,6 @@
 {
   "name": "@bykitsune/router",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "Kitsune Router CLI and provider-neutral AI gateway. Your models. Your routes.",
   "bin": {
     "kitsune-router": "./cli.js"
@@ -25,8 +25,8 @@
   "dependencies": {
     "enquirer": "^2.4.1",
     "node-machine-id": "^1.1.12",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "comment_sqlite": "sql.js + better-sqlite3 are installed into the resolved DATA_DIR/runtime by hooks/postinstall.js. Legacy state is migrated before setup.",
   "comment_systray": "systray2 is NOT bundled here. It is lazy-installed into runtime directories by hooks/postinstall.js.",

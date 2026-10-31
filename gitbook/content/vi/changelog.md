@@ -1,5 +1,24 @@
 # Nhật ký thay đổi
 
+## Kitsune Router 1.0.5 — chốt mã nguồn ngày 2026-10-31
+
+Phiên bản 1.0.5 tổng hợp các ghi chép phát triển mã nguồn có ngày ở bên dưới.
+Bổ sung kiểm tra nonce OIDC rõ ràng, giới hạn vòng đời tài nguyên danh mục Kiro,
+giữ lỗi kết thúc luồng model và nội dung hình ảnh Cloudflare. Bao gồm tích hợp
+ByKitsune, phiên bản client và danh mục theo provider đã xác minh, độ chính xác
+usage/giá đã ghi nhận và điều hướng dashboard mượt hơn.
+
+Phiên bản mã nguồn, kiểm tra cục bộ và hiện vật đã phát hành là các bằng chứng
+riêng biệt. Mục này không xác nhận phát hành npm/GHCR, GitHub Release hay triển
+khai mới. Hồ sơ và tag 1.0.2 giữ nguyên; nguồn provider bị chặn và giá chưa rõ
+vẫn có các giới hạn đã ghi nhận.
+
+[Chi tiết mã nguồn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.5.md) · [Trạng thái mã nguồn và hiện vật](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.5.md).
+
+Đợt cập nhật npm ổn định cũng đồng bộ Next/React, xử lý tương thích SAML/PKI và sửa kiểm tra dependency CI, giữ nguyên các kiểm tra bảo mật.
+
+[Dependency / CI evidence](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+
 ## Chưa phát hành — kiểm tra giá, capability và bản địa hóa
 
 - Kiểm tra toàn bộ 1.302 dòng registry theo bản dựng từ mã nguồn models.dev

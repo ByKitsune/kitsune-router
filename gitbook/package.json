@@ -1,6 +1,6 @@
 {
   "name": "kitsune-router-docs",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "Kitsune Router documentation. Your models. Your routes.",
   "private": true,
   "type": "module",
@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
-    "lucide-react": "^1.52.0",
-    "next": "^16.4.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "lucide-react": "^1.66.0",
+    "next": "^16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",

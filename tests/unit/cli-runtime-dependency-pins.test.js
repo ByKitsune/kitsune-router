@@ -13,7 +13,7 @@ afterEach(() => {
   for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
 
-function runtimeInstallRequests() {
+function runtimeInstallRequests({ node = process.versions.node } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune-router-runtime-pins-"));
   tempDirs.push(dataDir);
   const fixtureModule = { exports: {} };
@@ -24,7 +24,7 @@ function runtimeInstallRequests() {
     exports: fixtureModule.exports,
     __dirname: path.join(dataDir, "hooks"),
     console,
-    process: { env: { HOME: dataDir, DATA_DIR: dataDir }, platform: process.platform, arch: process.arch, versions: process.versions, report: process.report },
+    process: { env: { HOME: dataDir, DATA_DIR: dataDir }, platform: process.platform, arch: process.arch, versions: { ...process.versions, node }, report: process.report },
     require(name) {
       if (name === "./dataDirectory") return { resolveDataDirectory: () => dataDir };
       if (name === "child_process") return {
@@ -50,4 +50,11 @@ describe("CLI runtime dependency pins", () => {
       "--ignore-scripts", "--no-save",
     ]));
   });
+
+  it("keeps the legacy Node 20 branch on reviewed 12.x without treating it as N-API", () => {
+    const sqlite = runtimeInstallRequests({ node: "20.20.0" }).find(({ args }) => args.some(arg => arg.startsWith("better-sqlite3@")));
+    expect(sqlite.args).toEqual(expect.arrayContaining(["better-sqlite3@12.11.1", "--no-save"]));
+    expect(sqlite.args).not.toContain("--ignore-scripts");
+  });
+
 });

@@ -1,5 +1,22 @@
 # 変更履歴
 
+## Kitsune Router 1.0.5 — 2026-10-31 ソースの締め
+
+1.0.5 は下記の日付付き開発記録をまとめたソース版です。OIDC nonce の明示的検証、
+Kiro カタログのリソース寿命制限、モデルストリームの終端エラー保持、Cloudflare
+画像内容の保持を含みます。ByKitsune 統合、提供元別に検証したクライアントと
+モデル一覧、記録済み使用量・料金の精度改善、滑らかな画面遷移も含まれます。
+
+ソース版・ローカル検証・公開成果物はそれぞれ別の証拠です。新しい npm/GHCR
+公開、GitHub Release や本番配備を示すものではありません。1.0.2 の記録とタグは
+変更せず、取得できない提供元情報と不明な料金の制限も保持します。
+
+[ソース技術メモ](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.5.md) · [ソースと成果物の状態](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.5.md).
+
+安定版 npm 依存関係も更新し、Next/React の整合性、SAML/PKI の互換性、CI の依存監査を修正しました。既存の安全性チェックは維持します。
+
+[Dependency / CI evidence](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+
 ## 未リリース — 料金・モデル機能・翻訳の監査
 
 - 固定した公式 models.dev ソースの再構築結果と、登録済み1,302行を比較。

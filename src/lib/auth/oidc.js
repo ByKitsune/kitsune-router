@@ -274,14 +274,22 @@ export async function verifyOidcIdToken({
   jwksUri,
   nonce,
 }) {
+  if (typeof nonce !== "string" || !nonce) {
+    throw new OidcRequestError("OIDC login nonce is required");
+  }
   const jwks = createRemoteJWKSet(new URL(jwksUri), {
     [customFetch]: (url, options) => fetchOidcPublic(url, options),
   });
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer,
     audience,
-    nonce,
   });
+  // jose validates generic JWT claims, not the OIDC nonce extension. Compare
+  // only after signature/issuer/audience verification, against this login's
+  // server-held nonce; a token from another login must not create a session.
+  if (payload.nonce !== nonce) {
+    throw new OidcRequestError("OIDC ID token nonce does not match the login request");
+  }
   return payload;
 }
 

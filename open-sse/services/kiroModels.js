@@ -25,6 +25,13 @@ import { refreshKiroToken } from "./tokenRefresh.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
 import {
+  MODEL_CATALOG_CACHE_TTL_MS,
+  MODEL_CATALOG_MAX_CACHE_BYTES,
+  MODEL_CATALOG_MAX_CACHE_ENTRIES,
+} from "../config/modelCatalog.js";
+import { readModelCatalogResponse } from "../utils/modelCatalog.js";
+import { getDbImportGeneration } from "../../src/lib/db/helpers/importGeneration.js";
+import {
   KIRO_IDE_VERSION,
   KIRO_RUNTIME_SDK_VERSION,
   KIRO_FINGERPRINT,
@@ -39,10 +46,35 @@ const KIRO_VERSION = KIRO_IDE_VERSION;
 
 const DEFAULT_REGION = "us-east-1";
 const FETCH_TIMEOUT_MS = 30_000;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes per credential
 
 /** @type {Map<string, { expiresAt: number, models: any[] }>} */
 const catalogCache = new Map();
+let cacheBytes = 0;
+let generation = 0;
+let importedGeneration = getDbImportGeneration();
+
+function removeCached(key) {
+  const entry = catalogCache.get(key);
+  if (entry) cacheBytes -= entry.bytes;
+  catalogCache.delete(key);
+}
+
+function sweepExpired() {
+  const now = Date.now();
+  for (const [key, entry] of catalogCache) if (entry.expiresAt <= now) removeCached(key);
+}
+
+function remember(key, scope, result) {
+  const bytes = Buffer.byteLength(JSON.stringify(result));
+  sweepExpired();
+  removeCached(key);
+  if (bytes > MODEL_CATALOG_MAX_CACHE_BYTES) return;
+  while (catalogCache.size >= MODEL_CATALOG_MAX_CACHE_ENTRIES || cacheBytes + bytes > MODEL_CATALOG_MAX_CACHE_BYTES) {
+    removeCached(catalogCache.keys().next().value);
+  }
+  catalogCache.set(key, { ...structuredClone(result), scope, bytes, expiresAt: Date.now() + MODEL_CATALOG_CACHE_TTL_MS });
+  cacheBytes += bytes;
+}
 
 /**
  * Strip the `-agentic` and/or `-thinking` suffixes from a synthetic id, if
@@ -151,12 +183,23 @@ function buildVariants(upstream, displayName) {
 function formatDisplayName(modelName, modelId, rateMultiplier) {
   const base = (modelName || modelId || "Kiro").trim();
   const rate = Number(rateMultiplier);
-  if (!Number.isFinite(rate) || Math.abs(rate - 1.0) < 1e-9 || rate <= 0) {
+  if (!Number.isFinite(rate) || rate === 1 || rate < 0) {
     return `Kiro ${base}`;
   }
   // Locale-independent decimal formatting.
-  const rateStr = rate.toFixed(1).replace(",", ".");
+  const rateStr = String(rate);
   return `Kiro ${base} (${rateStr}x credit)`;
+}
+
+function nativeNonnegativeNumber(value) {
+  if (typeof value !== "number" && !(typeof value === "string" && value.trim())) return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : undefined;
+}
+
+function nativeTokenLimit(value) {
+  const number = nativeNonnegativeNumber(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : undefined;
 }
 
 /**
@@ -164,6 +207,7 @@ function formatDisplayName(modelName, modelId, rateMultiplier) {
  * from the API response, or throws on network/HTTP error.
  */
 async function fetchKiroCatalogRaw(credentials, signal, proxyOptions = null) {
+  signal?.throwIfAborted();
   const profileArn = credentials?.providerSpecificData?.profileArn || "";
   const region = regionFromProfileArn(profileArn);
   const params = new URLSearchParams();
@@ -178,49 +222,48 @@ async function fetchKiroCatalogRaw(credentials, signal, proxyOptions = null) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort("timeout"), FETCH_TIMEOUT_MS);
-  // Forward outer cancellation if any.
-  if (signal && typeof signal.addEventListener === "function") {
-    signal.addEventListener("abort", () => controller.abort(signal.reason));
-  }
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
 
-  let response;
   try {
-    response = await proxyAwareFetch(url, {
+    requestSignal.throwIfAborted();
+    const response = await proxyAwareFetch(url, {
       method: "GET",
+      redirect: "error",
       headers,
-      signal: controller.signal
+      signal: requestSignal
     }, proxyOptions);
+    if (requestSignal.aborted || !response.ok) {
+      // An error body is neither model metadata nor required for refresh. Never
+      // wait for an unlimited diagnostic body or keep its connection occupied.
+      void response.body?.cancel().catch(() => {});
+      requestSignal.throwIfAborted();
+      const err = new Error(`Kiro ListAvailableModels ${response.status}`);
+      err.status = response.status;
+      throw err;
+    }
+
+    // Keep the existing per-request deadline active through the bounded body,
+    // not merely until headers. The reader cancels and unlocks on every path.
+    const data = await readModelCatalogResponse(response, requestSignal);
+    return Array.isArray(data?.models) ? data.models : [];
   } finally {
     clearTimeout(timer);
   }
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    const err = new Error(`Kiro ListAvailableModels ${response.status}: ${text || response.statusText}`);
-    err.status = response.status;
-    err.body = text;
-    throw err;
-  }
-
-  const data = await response.json();
-  const models = Array.isArray(data?.models) ? data.models : [];
-  return models;
 }
 
 /**
- * Build a stable cache key for a Kiro credential. Uses the most stable id we
- * have available so different login sessions for the same account share a
- * cache entry.
+ * Scope metadata to the selected proof, connection and fingerprint inputs.
+ * A registered client/profile is not a substitute for the authenticated token.
  */
 function cacheKey(credentials) {
   const psd = credentials?.providerSpecificData || {};
-  const seed =
-    psd.profileArn
-    || psd.clientId
-    || credentials?.refreshToken
-    || credentials?.accessToken
-    || "anonymous";
-  return createHash("sha256").update(`kiro:${seed}`).digest("hex");
+  return createHash("sha256").update(JSON.stringify([
+    credentials?.id || credentials?.connectionId || null,
+    credentials?.accessToken || null, credentials?.refreshToken || null,
+    psd.profileArn || null, psd.clientId || psd.client_id || null,
+    psd.clientSecret || null, psd.authMethod || null, psd.region || null,
+    psd.tokenEndpoint || psd.token_endpoint || null, psd.scope || psd.scopes || null,
+  ])).digest("hex");
 }
 
 /**
@@ -241,46 +284,63 @@ function cacheKey(credentials) {
  * @returns {Promise<{ models: object[], rawModels: object[] } | null>}
  */
 export async function resolveKiroModels(credentials, options = {}) {
+  if (options.signal?.aborted) return null;
   if (!credentials || !credentials.accessToken) {
     options.log?.debug?.("KIRO_MODELS", "No accessToken; skipping live fetch");
     return null;
   }
 
-  const key = JSON.stringify([cacheKey(credentials), getRefreshProxyKey(options.proxyOptions)]);
-  const now = Date.now();
+  if (importedGeneration !== getDbImportGeneration()) clearKiroModelCache();
+
+  const epoch = generation;
+  const imported = importedGeneration;
+  let scope = cacheKey(credentials);
+  const proxyKey = getRefreshProxyKey(options.proxyOptions);
+  const proxyOptions = options.proxyOptions ? { ...options.proxyOptions } : null;
+  const selected = { ...credentials, providerSpecificData: structuredClone(credentials.providerSpecificData || {}) };
+  const unchanged = () => !options.signal?.aborted && epoch === generation
+    && imported === getDbImportGeneration()
+    && scope === cacheKey(credentials) && proxyKey === getRefreshProxyKey(options.proxyOptions);
+  const key = JSON.stringify([scope, proxyKey]);
+  sweepExpired();
   if (!options.forceRefresh) {
     const cached = catalogCache.get(key);
-    if (cached && cached.expiresAt > now) {
-      return { models: cached.models, rawModels: cached.rawModels };
-    }
+    if (cached) return structuredClone({ models: cached.models, rawModels: cached.rawModels });
   }
 
   let raw;
   try {
-    raw = await fetchKiroCatalogRaw(credentials, options.signal, options.proxyOptions);
+    raw = await fetchKiroCatalogRaw(selected, options.signal, proxyOptions);
   } catch (err) {
     if (err?.message?.includes("strictProxy=true")) throw err;
-    if (err && err.status === 401 && credentials.refreshToken) {
+    if (!unchanged()) return null;
+    if (err && err.status === 401 && selected.refreshToken) {
       options.log?.info?.("KIRO_MODELS", "Got 401 from Kiro; refreshing token");
-      const refreshed = await refreshKiroToken(
-        credentials.refreshToken,
-        credentials.providerSpecificData,
-        options.log,
-        options.proxyOptions
-      );
+      let refreshed;
+      try {
+        refreshed = await refreshKiroToken(selected.refreshToken, selected.providerSpecificData, options.log, proxyOptions, options.signal);
+      } catch (error) {
+        if (error?.message?.includes("strictProxy=true")) throw error;
+        options.log?.warn?.("KIRO_MODELS", `Token refresh failed: ${error?.message || error}`);
+        return null;
+      }
+      if (!unchanged()) return null;
       if (refreshed?.accessToken) {
-        const next = { ...credentials, ...refreshed };
+        const next = { ...selected, ...refreshed };
         if (typeof options.onCredentialsRefreshed === "function") {
           try { await options.onCredentialsRefreshed(refreshed); } catch (e) {
             options.log?.warn?.("KIRO_MODELS", `onCredentialsRefreshed failed: ${e?.message || e}`);
           }
         }
+        if (!unchanged()) return null;
         try {
-          raw = await fetchKiroCatalogRaw(next, options.signal, options.proxyOptions);
+          raw = await fetchKiroCatalogRaw(next, options.signal, proxyOptions);
+          if (!unchanged()) return null;
           // Update the in-memory credential reference too so retry logic uses
           // the fresh token consistently.
           credentials.accessToken = next.accessToken;
           if (next.refreshToken) credentials.refreshToken = next.refreshToken;
+          scope = cacheKey(credentials);
         } catch (err2) {
           if (err2?.message?.includes("strictProxy=true")) throw err2;
           options.log?.warn?.("KIRO_MODELS", `Retry after refresh failed: ${err2?.message || err2}`);
@@ -296,33 +356,40 @@ export async function resolveKiroModels(credentials, options = {}) {
     }
   }
 
+  if (!unchanged()) return null;
+
   const expanded = [];
   for (const m of raw) {
-    if (!m || typeof m !== "object") continue;
+    if (!m || typeof m !== "object" || Array.isArray(m)) continue;
     const upstreamId = m.modelId || m.id;
-    if (!upstreamId) continue;
-    const display = formatDisplayName(m.modelName, upstreamId, m.rateMultiplier);
-    const ctx = Number(m?.tokenLimits?.maxInputTokens) || 200_000;
+    if (typeof upstreamId !== "string" || !upstreamId.trim()) continue;
+    const name = typeof m.modelName === "string" && m.modelName.trim() ? m.modelName : upstreamId;
+    const rateMultiplier = nativeNonnegativeNumber(m.rateMultiplier);
+    const display = formatDisplayName(name, upstreamId, rateMultiplier);
+    // The native tokenLimits fields are directional limits, not a combined
+    // context window. Absence does not establish a 200k-token budget or 1x rate.
+    const maxInput = nativeTokenLimit(m?.tokenLimits?.maxInputTokens);
+    const maxOutput = nativeTokenLimit(m?.tokenLimits?.maxOutputTokens);
     for (const v of buildVariants(upstreamId, display)) {
       expanded.push({
         ...v,
-        // Carry over context window + raw upstream metadata so the caller
-        // (e.g. the dashboard models endpoint) can render it.
-        contextLength: ctx,
-        rateMultiplier: Number.isFinite(Number(m.rateMultiplier)) ? Number(m.rateMultiplier) : 1.0,
+        capabilities: {
+          ...v.capabilities,
+          ...(maxInput !== undefined ? { maxInput } : {}),
+          ...(maxOutput !== undefined ? { maxOutput } : {}),
+        },
+        ...(maxInput !== undefined ? { maxInputTokens: maxInput } : {}),
+        ...(maxOutput !== undefined ? { maxOutputTokens: maxOutput } : {}),
+        ...(rateMultiplier !== undefined ? { rateMultiplier } : {}),
         upstreamModelId: upstreamId,
-        description: m.description || ""
+        description: typeof m.description === "string" ? m.description : ""
       });
     }
   }
 
-  catalogCache.set(key, {
-    expiresAt: now + CACHE_TTL_MS,
-    models: expanded,
-    rawModels: raw
-  });
-
-  return { models: expanded, rawModels: raw };
+  const result = { models: expanded, rawModels: raw };
+  remember(JSON.stringify([scope, proxyKey]), scope, result);
+  return structuredClone(result);
 }
 
 /**
@@ -331,7 +398,10 @@ export async function resolveKiroModels(credentials, options = {}) {
  */
 export function invalidateKiroModelCache(credentials) {
   if (!credentials) return;
-  catalogCache.delete(cacheKey(credentials));
+  const scope = cacheKey(credentials);
+  for (const [key, entry] of catalogCache) if (entry.scope === scope) removeCached(key);
+  // Do not allow an older in-flight observation to repopulate invalidated data.
+  generation++;
 }
 
 /**
@@ -339,4 +409,7 @@ export function invalidateKiroModelCache(credentials) {
  */
 export function clearKiroModelCache() {
   catalogCache.clear();
+  cacheBytes = 0;
+  generation++;
+  importedGeneration = getDbImportGeneration();
 }

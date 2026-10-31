@@ -17,6 +17,7 @@ const HOP_BY_HOP_HEADERS = new Set([
 
 const DASHBOARD_PREFIX = "/api/headroom/proxy";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const GATEWAY_CREDENTIAL_HEADERS = ["cookie", "authorization", "x-api-key", "api-key", "x-goog-api-key"];
 
 async function getTargetBase() {
   const settings = await getSettings();
@@ -37,14 +38,16 @@ function buildTargetUrl(base, path, search) {
 
 function forwardedHeaders(request, target) {
   const headers = new Headers(request.headers);
-  for (const header of headers.keys()) {
-    if (HOP_BY_HOP_HEADERS.has(header.toLowerCase())) headers.delete(header);
+  for (const header of [...headers.keys()]) {
+    const name = header.toLowerCase();
+    // Trusted-hop proofs and CLI/password credentials authenticate the router,
+    // never the compressor, even when it runs on the same host.
+    if (HOP_BY_HOP_HEADERS.has(name) || name.startsWith("x-kitsune-router-")) headers.delete(header);
   }
   headers.delete("host");
   // Never leak viewer credentials to a non-loopback Headroom host
   if (!LOOPBACK_HOSTS.has(target.hostname.replace(/^\[|\]$/g, "").toLowerCase())) {
-    headers.delete("cookie");
-    headers.delete("authorization");
+    for (const header of GATEWAY_CREDENTIAL_HEADERS) headers.delete(header);
   }
   return headers;
 }
@@ -74,7 +77,7 @@ async function proxy(request, { params }) {
     });
 
     const headers = new Headers(response.headers);
-    for (const header of headers.keys()) {
+    for (const header of [...headers.keys()]) {
       if (HOP_BY_HOP_HEADERS.has(header.toLowerCase())) headers.delete(header);
     }
 

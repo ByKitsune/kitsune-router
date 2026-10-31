@@ -17,12 +17,13 @@
  */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
-import { ROLE, OPENAI_BLOCK, OPENAI_FINISH } from "../schema/index.js";
+import { ROLE, OPENAI_BLOCK } from "../schema/index.js";
 import { buildChunk } from "../concerns/chunk.js";
 import { toOpenAIUsage } from "../concerns/usage.js";
 import { reasoningDelta } from "../concerns/reasoning.js";
 import { fallbackToolCallId } from "../concerns/toolCall.js";
 import { toOpenAIFinish } from "../concerns/finishReason.js";
+import { extractResponseError, responseErrorToClient } from "../concerns/responseError.js";
 
 function ensureState(state, model) {
   if (!state.responseId) {
@@ -32,6 +33,7 @@ function ensureState(state, model) {
     state.chunkIndex = 0;
     state.toolIndex = 0;
     state.toolIndexById = new Map();
+    state.toolArgumentsSent = new Set();
     state.openTools = new Set();
     state.openText = false;
     state.finishReason = null;
@@ -50,7 +52,7 @@ function makeChunk(state, delta, finishReason = null) {
 const mapFinishReason = (reason) => toOpenAIFinish(reason, "commandcode");
 
 export function commandCodeToOpenAIResponse(chunk, state) {
-  if (!chunk) return null;
+  if (!chunk || state.responseErrorSent) return null;
 
   // Already-OpenAI chunk: pass through
   if (chunk && typeof chunk === "object" && chunk.object === "chat.completion.chunk") {
@@ -121,22 +123,32 @@ export function commandCodeToOpenAIResponse(chunk, state) {
       const id = event.id || event.toolCallId;
       const idx = state.toolIndexById.get(id);
       if (idx == null) break;
+      const argumentsDelta = event.delta || event.inputTextDelta || "";
+      if (argumentsDelta) state.toolArgumentsSent.add(id);
       const delta = {
         tool_calls: [{
           index: idx,
-          function: { arguments: event.delta || event.inputTextDelta || "" },
+          function: { arguments: argumentsDelta },
         }],
       };
       out.push(makeChunk(state, delta));
       break;
     }
     case "tool-call": {
-      // Final consolidated tool call — only emit if we never saw tool-input-* deltas.
+      // An opener alone contains no arguments. Complete it from the snapshot
+      // only if no nonempty argument deltas (or prior snapshot) were emitted.
       const id = event.toolCallId;
-      if (state.toolIndexById.has(id)) break;
+      const argsStr = typeof event.input === "string" ? event.input : JSON.stringify(event.input ?? {});
+      if (state.toolIndexById.has(id)) {
+        if (!state.toolArgumentsSent.has(id)) {
+          state.toolArgumentsSent.add(id);
+          out.push(makeChunk(state, { tool_calls: [{ index: state.toolIndexById.get(id), function: { arguments: argsStr } }] }));
+        }
+        break;
+      }
       const idx = state.toolIndex++;
       state.toolIndexById.set(id, idx);
-      const argsStr = typeof event.input === "string" ? event.input : JSON.stringify(event.input ?? {});
+      state.toolArgumentsSent.add(id);
       const delta = {
         ...(state.chunkIndex === 0 ? { role: ROLE.ASSISTANT } : {}),
         tool_calls: [{
@@ -165,11 +177,22 @@ export function commandCodeToOpenAIResponse(chunk, state) {
       break;
     }
     case "error": {
-      state.finishReason = OPENAI_FINISH.STOP;
-      const errVal = event.error ?? event.message ?? "unknown";
-      const errStr = typeof errVal === "string" ? errVal : JSON.stringify(errVal);
-      out.push(makeChunk(state, { content: `\n\n[CommandCode error: ${errStr}]` }));
-      out.push(makeChunk(state, {}, OPENAI_FINISH.STOP));
+      // Initial errors are intercepted by the executor before HTTP headers are
+      // committed. A later error is terminal structured failure, never prose or
+      // successful STOP; preserve only usage measured before/on that failure.
+      const failure = extractResponseError(event);
+      const rawUsage = [event.totalUsage, event.usage, state.usage].find(value => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+        const counts = [value.inputTokens, value.outputTokens, value.totalTokens].filter(count => count !== undefined);
+        return counts.length > 0 && counts.every(count => (typeof count === "number"
+          || typeof count === "string" && count.trim() !== "")
+          && Number.isSafeInteger(Number(count)) && Number(count) >= 0);
+      });
+      state.responseErrorSent = true;
+      out.push(responseErrorToClient(FORMATS.OPENAI, {
+        ...failure,
+        usage: toOpenAIUsage(rawUsage, "commandcode"),
+      }, state));
       break;
     }
     // Silently ignore: start, start-step, reasoning-start, reasoning-end, text-start, text-end,

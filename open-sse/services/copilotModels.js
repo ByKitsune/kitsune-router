@@ -14,18 +14,55 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { GITHUB_COPILOT } from "../config/appConstants.js";
 import { refreshCopilotToken } from "./tokenRefresh.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { createHash } from "node:crypto";
+import {
+  MODEL_CATALOG_CACHE_TTL_MS,
+  MODEL_CATALOG_MAX_CACHE_BYTES,
+  MODEL_CATALOG_MAX_CACHE_ENTRIES,
+} from "../config/modelCatalog.js";
+import { readModelCatalogResponse } from "../utils/modelCatalog.js";
+import { getDbImportGeneration } from "../../src/lib/db/helpers/importGeneration.js";
 
 const MODELS_URL = "https://api.githubcopilot.com/models";
 const FETCH_TIMEOUT_MS = 10_000;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes per credential
 
 /** @type {Map<string, { expiresAt: number, models: any[] }>} */
 const catalogCache = new Map();
+let cacheBytes = 0;
+let generation = 0;
+let importedGeneration = getDbImportGeneration();
+
+function removeCached(key) {
+  const entry = catalogCache.get(key);
+  if (entry) cacheBytes -= entry.bytes;
+  catalogCache.delete(key);
+}
+
+function sweepExpired() {
+  const now = Date.now();
+  for (const [key, entry] of catalogCache) if (entry.expiresAt <= now) removeCached(key);
+}
+
+function remember(key, result) {
+  const bytes = Buffer.byteLength(JSON.stringify(result));
+  sweepExpired();
+  removeCached(key);
+  if (bytes > MODEL_CATALOG_MAX_CACHE_BYTES) return;
+  while (catalogCache.size >= MODEL_CATALOG_MAX_CACHE_ENTRIES || cacheBytes + bytes > MODEL_CATALOG_MAX_CACHE_BYTES) {
+    removeCached(catalogCache.keys().next().value);
+  }
+  catalogCache.set(key, { ...structuredClone(result), bytes, expiresAt: Date.now() + MODEL_CATALOG_CACHE_TTL_MS });
+  cacheBytes += bytes;
+}
 
 function cacheKey(credentials) {
-  return credentials?.providerSpecificData?.copilotToken
-    || credentials?.accessToken
-    || "copilot-anonymous";
+  // The GitHub proof can refresh a stale Copilot token. Keep both credentials
+  // and the selected connection scoped, rather than keying by that token alone.
+  return createHash("sha256").update(JSON.stringify([
+    credentials?.id || credentials?.connectionId || null,
+    credentials?.providerSpecificData?.copilotToken || null,
+    credentials?.accessToken || null,
+  ])).digest("hex");
 }
 
 function buildHeaders(token) {
@@ -41,21 +78,27 @@ function buildHeaders(token) {
 }
 
 async function fetchCatalogRaw(token, signal, proxyOptions = null) {
+  signal?.throwIfAborted();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
   try {
+    requestSignal.throwIfAborted();
     const response = await proxyAwareFetch(MODELS_URL, {
       method: "GET",
+      redirect: "error",
       headers: buildHeaders(token),
       cache: "no-store",
-      signal: signal || controller.signal,
+      signal: requestSignal,
     }, proxyOptions);
-    if (!response.ok) {
+    if (requestSignal.aborted || !response.ok) {
+      void response.body?.cancel().catch(() => {});
+      requestSignal.throwIfAborted();
       const err = new Error(`Copilot /models returned ${response.status}`);
       err.status = response.status;
       throw err;
     }
-    const data = await response.json();
+    const data = await readModelCatalogResponse(response, requestSignal);
     return Array.isArray(data?.data) ? data.data : [];
   } finally {
     clearTimeout(timeoutId);
@@ -108,31 +151,50 @@ function expandCatalog(raw) {
  * @returns {Promise<{ models: object[] } | null>}
  */
 export async function resolveCopilotModels(credentials, options = {}) {
+  if (options.signal?.aborted) return null;
   const token = credentials?.providerSpecificData?.copilotToken || credentials?.accessToken;
   if (!token) {
     options.log?.debug?.("COPILOT_MODELS", "No copilotToken/accessToken; skipping live fetch");
     return null;
   }
 
-  const key = JSON.stringify([cacheKey(credentials), getRefreshProxyKey(options.proxyOptions)]);
-  const now = Date.now();
+  if (importedGeneration !== getDbImportGeneration()) clearCopilotModelCache();
+
+  const epoch = generation;
+  const imported = importedGeneration;
+  const scope = cacheKey(credentials);
+  const proxyKey = getRefreshProxyKey(options.proxyOptions);
+  const key = JSON.stringify([scope, proxyKey]);
+  const proxyOptions = options.proxyOptions ? { ...options.proxyOptions } : null;
+  const selected = { ...credentials, providerSpecificData: { ...credentials.providerSpecificData } };
+  const unchanged = () => !options.signal?.aborted && epoch === generation
+    && imported === getDbImportGeneration()
+    && scope === cacheKey(credentials) && proxyKey === getRefreshProxyKey(options.proxyOptions);
+  sweepExpired();
   if (!options.forceRefresh) {
     const cached = catalogCache.get(key);
-    if (cached && cached.expiresAt > now) {
-      return { models: cached.models };
-    }
+    if (cached) return structuredClone({ models: cached.models });
   }
 
   let raw;
   try {
-    raw = await fetchCatalogRaw(token, options.signal, options.proxyOptions);
+    raw = await fetchCatalogRaw(token, options.signal, proxyOptions);
   } catch (err) {
     if (err?.message?.includes("strictProxy=true")) throw err;
+    if (!unchanged()) return null;
     // A 401/403 means the Copilot token is stale — refresh from the GitHub
     // access token and retry once.
-    if (err && (err.status === 401 || err.status === 403) && credentials.accessToken) {
+    if (err && (err.status === 401 || err.status === 403) && selected.accessToken) {
       options.log?.info?.("COPILOT_MODELS", `Got ${err.status}; refreshing Copilot token`);
-      const refreshed = await refreshCopilotToken(credentials.accessToken, options.log, options.proxyOptions);
+      let refreshed;
+      try {
+        refreshed = await refreshCopilotToken(selected.accessToken, options.log, proxyOptions, options.signal);
+      } catch (error) {
+        if (error?.message?.includes("strictProxy=true")) throw error;
+        options.log?.warn?.("COPILOT_MODELS", `Token refresh failed: ${error?.message || error}`);
+        return null;
+      }
+      if (!unchanged()) return null;
       if (refreshed?.token) {
         if (typeof options.onCredentialsRefreshed === "function") {
           try {
@@ -144,8 +206,9 @@ export async function resolveCopilotModels(credentials, options = {}) {
             options.log?.warn?.("COPILOT_MODELS", `onCredentialsRefreshed failed: ${e?.message || e}`);
           }
         }
+        if (!unchanged()) return null;
         try {
-          raw = await fetchCatalogRaw(refreshed.token, options.signal, options.proxyOptions);
+          raw = await fetchCatalogRaw(refreshed.token, options.signal, proxyOptions);
         } catch (err2) {
           if (err2?.message?.includes("strictProxy=true")) throw err2;
           options.log?.warn?.("COPILOT_MODELS", `Retry after refresh failed: ${err2?.message || err2}`);
@@ -161,13 +224,19 @@ export async function resolveCopilotModels(credentials, options = {}) {
     }
   }
 
+  if (!unchanged()) return null;
+
   const models = expandCatalog(raw);
   if (!models.length) return null;
 
-  catalogCache.set(key, { expiresAt: now + CACHE_TTL_MS, models });
-  return { models };
+  const result = { models };
+  remember(key, result);
+  return structuredClone(result);
 }
 
 export function clearCopilotModelCache() {
   catalogCache.clear();
+  cacheBytes = 0;
+  generation++;
+  importedGeneration = getDbImportGeneration();
 }

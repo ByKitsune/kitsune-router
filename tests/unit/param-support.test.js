@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { stripUnsupportedParams } from "../../open-sse/translator/concerns/paramSupport.js";
 
 describe("stripUnsupportedParams", () => {
-  it("flattens Cloudflare AI OpenAI content-part arrays", () => {
+  it("preserves Cloudflare vision content parts during final parameter normalization", () => {
     const body = {
       messages: [
         {
@@ -17,8 +17,9 @@ describe("stripUnsupportedParams", () => {
       ],
     };
 
-    expect(() => stripUnsupportedParams("cloudflare-ai", "@cf/meta/llama-3.1-8b-instruct", body)).not.toThrow();
-    expect(body.messages[0].content).toBe("hello world");
+    const content = structuredClone(body.messages[0].content);
+    expect(() => stripUnsupportedParams("cloudflare-ai", "@cf/moonshotai/kimi-k2.6", body)).not.toThrow();
+    expect(body.messages[0].content).toEqual(content);
   });
 
   it("still drops unsupported GitHub model params", () => {

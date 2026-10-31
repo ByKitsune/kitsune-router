@@ -7,6 +7,7 @@ import { rejectClaudeAudio } from "./requestMedia.js";
 import { antigravityOutputConfig } from "./structuredOutput.js";
 import { normalizeChatReasoningAliases } from "./reasoningAliases.js";
 import { validateThinkingParams } from "./thinkingUnified.js";
+import { OPENAI_BLOCK, RESPONSES_ITEM } from "../schema/index.js";
 
 // Model-specific request controls. Legacy strip rules retain their behavior;
 // verified unsupported intent can be rejected explicitly before translation.
@@ -53,7 +54,8 @@ const STRIP_RULES = [
   // Non-Anthropic stateless endpoints reject Claude's context_management;
   // native Responses has its own supported field of the same name.
   { match: () => true, checkProvider: (p) => p !== "claude", checkBody: body => !Object.hasOwn(body, "input"), drop: ["context_management"] },
-  // Cloudflare Workers AI: content must be plain string, rejects OpenAI content-part array (#1926)
+  // Older Workers AI text routes require strings; typed media for admitted
+  // vision routes must survive this final normalization (#1926, #2749).
   { provider: "cloudflare-ai", flattenContent: true },
   { provider: "volcengine-ark", match: /glm-5/i, clampToModelMaxOutput: true },
   // VolcEngine Ark caps the Kimi family at max_tokens <= 32768, but the model's
@@ -171,8 +173,9 @@ export function stripUnsupportedParams(provider, model, body) {
       if (body[field] == null) body[field] = body.max_tokens;
       delete body.max_tokens;
     }
-    // CF Workers AI oneOf root schema only accepts content as plain string (#1926, #4180)
-    // and strictly requires each message to have both string 'role' and string 'content'.
+    // Flatten only a wholly textual list for legacy Workers AI text schemas.
+    // A nontext block must reach the endpoint intact instead of silently losing
+    // an admitted image (including an image with a text annotation).
     if (rule.flattenContent && Array.isArray(body.messages)) {
       for (const msg of body.messages) {
         if (!msg || typeof msg !== "object") continue;
@@ -180,18 +183,9 @@ export function stripUnsupportedParams(provider, model, body) {
           msg.role = "user";
         }
         if (Array.isArray(msg.content)) {
-          msg.content = msg.content
-            .map((b) => {
-              if (typeof b === "string") return b;
-              if (typeof b?.text === "string") return b.text;
-              if (typeof b?.input_text === "string") return b.input_text;
-              if (typeof b?.content === "string") return b.content;
-              if (Array.isArray(b?.content)) {
-                return b.content.map((c) => (typeof c === "string" ? c : c?.text || "")).join("");
-              }
-              return "";
-            })
-            .join("");
+          const plainText = msg.content.every(part => typeof part === "string"
+            || ((part?.type === OPENAI_BLOCK.TEXT || part?.type === RESPONSES_ITEM.INPUT_TEXT) && typeof part.text === "string"));
+          if (plainText) msg.content = msg.content.map(part => typeof part === "string" ? part : part.text).join("");
         } else if (msg.content == null || typeof msg.content !== "string") {
           msg.content = "";
         }

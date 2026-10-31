@@ -93,7 +93,7 @@ const googleModelsResolver = provider => async (connection, proxyOptions, signal
 // Provider models endpoints configuration
 const PROVIDER_MODELS_CONFIG = {
   claude: {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       // Match execution's credential priority and the publisher's separate
       // API-key/OAuth models.list profiles. Never use an OAuth proof as an API key.
       const token = connection.apiKey || connection.accessToken;
@@ -102,6 +102,7 @@ const PROVIDER_MODELS_CONFIG = {
         authProfile: connection.apiKey ? undefined : "oauth",
         useCache: false,
         proxyOptions,
+        signal,
       });
       // A failed or incomplete live catalog must not look like a successful
       // credential check or silently advertise a partially fetched model list.
@@ -216,12 +217,13 @@ const PROVIDER_MODELS_CONFIG = {
   assemblyai: createOpenAIModelsConfig("https://api.assemblyai.com/v1/models"),
   "vercel-ai-gateway": createOpenAIModelsConfig("https://ai-gateway.vercel.sh/v1/models"),
   kimchi: {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       const result = await resolveKimchiModels({
+        id: connection.id,
         accessToken: connection.accessToken,
         apiKey: connection.apiKey,
         providerSpecificData: connection.providerSpecificData || {},
-      }, { forceRefresh: true, log: console, proxyOptions });
+      }, { forceRefresh: true, log: console, proxyOptions, signal });
       if (result?.models?.length) {
         return { models: result.models };
       }
@@ -232,11 +234,12 @@ const PROVIDER_MODELS_CONFIG = {
     }
   },
   cursor: {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       const result = await resolveCursorModels({
+        id: connection.id,
         accessToken: connection.accessToken,
         providerSpecificData: connection.providerSpecificData || {},
-      }, { forceRefresh: true, log: console, proxyOptions });
+      }, { forceRefresh: true, log: console, proxyOptions, signal });
       if (result?.models?.length) return { models: result.models };
       return {
         models: getStaticProviderModels("cursor"),
@@ -247,8 +250,9 @@ const PROVIDER_MODELS_CONFIG = {
 
   // Custom resolvers (non-OpenAI-shaped APIs / token-refresh flows)
   kiro: {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       const credentials = {
+        id: connection.id,
         accessToken: connection.accessToken,
         refreshToken: connection.refreshToken,
         providerSpecificData: connection.providerSpecificData || {}
@@ -258,13 +262,16 @@ const PROVIDER_MODELS_CONFIG = {
         const result = await resolveKiroModels(credentials, {
           log: console,
           proxyOptions,
+          signal,
           onCredentialsRefreshed: async (refreshed) => {
+            signal?.throwIfAborted();
             if (refreshed?.accessToken) {
               await updateProviderCredentials(connection.id, {
                 accessToken: refreshed.accessToken,
                 refreshToken: refreshed.refreshToken || connection.refreshToken,
                 expiresIn: refreshed.expiresIn,
               });
+              signal?.throwIfAborted();
               connection.accessToken = refreshed.accessToken;
               if (refreshed.refreshToken) connection.refreshToken = refreshed.refreshToken;
             }
@@ -277,6 +284,8 @@ const PROVIDER_MODELS_CONFIG = {
               name: m.name,
               upstreamModelId: m.upstreamModelId,
               contextLength: m.contextLength,
+              maxInputTokens: m.maxInputTokens,
+              maxOutputTokens: m.maxOutputTokens,
               rateMultiplier: m.rateMultiplier,
               capabilities: m.capabilities,
               description: m.description
@@ -285,6 +294,7 @@ const PROVIDER_MODELS_CONFIG = {
         }
         warning = "Kiro returned no models; falling back to static catalog.";
       } catch (error) {
+        signal?.throwIfAborted();
         if (error.message?.includes("strictProxy=true")) throw error;
         warning = `Failed to fetch Kiro models: ${error.message}`;
         console.log("Failed to fetch Kiro models dynamically, falling back to static:", error.message);
@@ -293,8 +303,9 @@ const PROVIDER_MODELS_CONFIG = {
     }
   },
   qoder: {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       const credentials = {
+        id: connection.id,
         accessToken: connection.accessToken,
         apiKey: connection.apiKey,
         refreshToken: connection.refreshToken,
@@ -304,7 +315,7 @@ const PROVIDER_MODELS_CONFIG = {
       };
       let warning;
       try {
-        const result = await resolveQoderModels(credentials, { forceRefresh: true, proxyOptions });
+        const result = await resolveQoderModels(credentials, { forceRefresh: true, proxyOptions, signal });
         if (result?.models?.length) {
           return {
             models: result.models.map((m) => ({
@@ -313,6 +324,7 @@ const PROVIDER_MODELS_CONFIG = {
               id: `qoder/${m.id}`,
               name: m.name,
               contextLength: m.contextLength,
+              maxInputTokens: m.maxInputTokens,
               isVL: m.isVL,
               isReasoning: m.isReasoning,
               maxOutputTokens: m.maxOutputTokens,
@@ -322,6 +334,7 @@ const PROVIDER_MODELS_CONFIG = {
         }
         warning = "Qoder returned no models; falling back to static catalog.";
       } catch (error) {
+        signal?.throwIfAborted();
         if (error.message?.includes("strictProxy=true")) throw error;
         warning = `Failed to fetch Qoder models: ${error.message}`;
         console.log("Failed to fetch Qoder models dynamically, falling back to static:", error.message);
@@ -404,6 +417,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
+    request.signal?.throwIfAborted();
     const { id } = await params;
     const connection = await getProviderConnectionById(id);
 
@@ -412,6 +426,7 @@ export async function GET(request, { params }) {
     }
 
     const proxyOptions = await resolveConnectionProxyConfig(connection.providerSpecificData || {});
+    request.signal?.throwIfAborted();
 
     if (isOpenAICompatibleProvider(connection.provider)) {
       const baseUrl = connection.providerSpecificData?.baseUrl;
@@ -517,6 +532,7 @@ export async function GET(request, { params }) {
     // Config-driven custom resolver path (OAuth refresh, non-OpenAI shape, etc.)
     if (typeof config.customResolver === "function") {
       const result = await config.customResolver(connection, proxyOptions, request.signal);
+      request.signal?.throwIfAborted();
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: result.status || 500 });
       }

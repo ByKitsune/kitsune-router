@@ -15,7 +15,7 @@ layout, smoother Usage interactions and the official ByKitsune artwork. Mobile
 quick navigation and a searchable language picker refine small-screen access.
 The [agent skills](skills/README.md) cover setup and eight API capabilities with
 model discovery and authenticated request guidance. See the current
-[unreleased changes](CHANGELOG.md#unreleased) and [UI design guide](docs/UI-DESIGN.md).
+[1.0.5 source notes](docs/CHANGELOG_v1.0.5.md) and [UI design guide](docs/UI-DESIGN.md).
 
 The [current pricing and capability audit](docs/audit/22-pricing-capability-localization-2026-10.md)
 distinguishes exact catalog facts, route limits, operator overrides and unknown
@@ -27,6 +27,14 @@ They do not imply that a newer npm package, container or hosted documentation
 has been released.
 
 ## Release status
+
+**Current source: 1.0.5 (2026-10-31).** The closing source revision consolidates
+provider/catalog and usage accuracy work, dashboard motion, and the security/
+resource/error fixes documented in the [1.0.5 notes](releases/RELEASE_NOTES_v1.0.5.md).
+The [npm dependency/CI review](docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md)
+records the stable dependency refresh and repaired audit gate.
+This is separate from the earlier published-container record below; new registry
+artifacts and a production deployment have not been established.
 
 **1.0.2 container published; anonymous pulls pending; npm blocked.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. The [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) is still **private** at last read: the owner selected making it Public but has not confirmed completion, and anonymous grants return HTTP 401. npm remains unavailable after E403; user-managed token replacement is not confirmed. No GitHub Release 1.0.2 or production deployment occurred. [Distribution evidence](releases/RELEASE_NOTES_v1.0.2.md).
 

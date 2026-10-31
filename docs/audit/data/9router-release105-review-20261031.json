@@ -1,0 +1,2752 @@
+{
+  "reviewDate": "2026-10-31",
+  "timezone": "Asia/Jakarta",
+  "capturedAtUtc": "2026-10-31T06:08:14.467189+00:00",
+  "forkBase": "52e74934351c5f07efd071c7f76628af971e159a",
+  "upstreamRepository": "https://github.com/decolua/9router",
+  "upstreamHead": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+  "headVerification": "Fresh git ls-remote refs/heads/master through inherited HTTPS Git proxy on2026-10-31; unchanged from prior review, zero new commits. Earlier85subject/selected-diff inventory remains linked, not newly relabeled as a full fresh diff review.",
+  "newCommitsSincePriorReview": 0,
+  "priorReview": "docs/audit/data/9router-client-refresh-review-20261031.json",
+  "scope": {
+    "latestCreated": 25,
+    "latestUpdated": 25,
+    "latestUnion": 38,
+    "newOrUpdatedLatestIssueNumbers": [
+      2749,
+      5281,
+      5300,
+      5346
+    ],
+    "targetedSecurity": 25,
+    "targetedMemory": 25,
+    "targetedLeak": 25,
+    "allIndexUnion": 102,
+    "freshSelectedBodies": 14,
+    "freshLoadedComments": 12,
+    "publicAdvisories": 19,
+    "advisoryIndexPages": 2,
+    "pullRequests": "Excluded by is:issue query and embedded itemType; linked PRs were not read or adopted."
+  },
+  "forkIssueObservation": {
+    "url": "https://github.com/ByKitsune/kitsune-router/issues?q=is%3Aissue+sort%3Aupdated-desc",
+    "visibleResults": 0,
+    "evidence": "Fresh rendered page says No results matched your search; embedded issue route has no results. This is a public point-in-time observation, not proof no private reports exist."
+  },
+  "captureIndex": [
+    {
+      "name": "upstream-created",
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue+sort%3Acreated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T05:59:53.456629+00:00",
+      "sha256": "8a490a56e6b037941e3c144df0467d9493175f1f8bd0eeb6bd3280519d1fcef7",
+      "bytes": 311699
+    },
+    {
+      "name": "upstream-updated",
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue+sort%3Aupdated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T05:59:53.444467+00:00",
+      "sha256": "0f6ab0f692dfe9584f9fb11e82b31ff976a87d144eb0124d646e5942b53f939c",
+      "bytes": 320134
+    },
+    {
+      "name": "fork-updated",
+      "url": "https://github.com/ByKitsune/kitsune-router/issues?q=is%3Aissue+sort%3Aupdated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T05:59:53.331430+00:00",
+      "sha256": "14b99c26861da1d59f6887a2df6760b09369eb9e7bad0c0f097346d2a3aa13ab",
+      "bytes": 214029
+    },
+    {
+      "name": "upstream-security",
+      "url": "https://github.com/decolua/9router/security/advisories",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T05:59:53.317238+00:00",
+      "sha256": "0540feece572441c119a1006d394013b77f1e42973e7a8c28d3f5a72c71246ff",
+      "bytes": 170332
+    },
+    {
+      "name": "issue-5346",
+      "url": "https://github.com/decolua/9router/issues/5346",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:46.806904+00:00",
+      "sha256": "d85a1709843e8c568a000d917544552df6389b76b95eb3effaca0e411dd28da6",
+      "bytes": 207399
+    },
+    {
+      "name": "issue-5300",
+      "url": "https://github.com/decolua/9router/issues/5300",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:46.799439+00:00",
+      "sha256": "ca7504384250aa8e8132966ca6039f47d2476ff2e9621d97791ed553a46e2fc3",
+      "bytes": 279006
+    },
+    {
+      "name": "issue-5281",
+      "url": "https://github.com/decolua/9router/issues/5281",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:46.786896+00:00",
+      "sha256": "9c35ace7c9e2155e39775ba538db11074bed1f69d98bb154ca0c388f3a19148a",
+      "bytes": 231577
+    },
+    {
+      "name": "issue-2749",
+      "url": "https://github.com/decolua/9router/issues/2749",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:46.855115+00:00",
+      "sha256": "d0f2775131c8e50c15d014dec6336c068c68c0939efecb148113b724c6034982",
+      "bytes": 256133
+    },
+    {
+      "name": "issues-security",
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue+security+sort%3Aupdated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:47.483648+00:00",
+      "sha256": "d39caa3f04be823417c54b11bdf465ccae7aeff6c4210a8d10e2d7971fa38d27",
+      "bytes": 322436
+    },
+    {
+      "name": "issues-memory",
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue+memory+sort%3Aupdated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:00:47.489609+00:00",
+      "sha256": "2de6f7e28f7ad45c78475ece054e65e3518e38bbaf8191ae976c23a785bbb161",
+      "bytes": 318628
+    },
+    {
+      "name": "issue-2918",
+      "url": "https://github.com/decolua/9router/issues/2918",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:52.944480+00:00",
+      "sha256": "a3b27a619a6b75725bf8c09544b0fb59e8739d49f9fb1995d1c1b007d4a4e0cc",
+      "bytes": 602022
+    },
+    {
+      "name": "issue-4952",
+      "url": "https://github.com/decolua/9router/issues/4952",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:52.127658+00:00",
+      "sha256": "3a71d6fc0c7f506c0aab97f2b670acdefa3a9fabb77a72370b36f7311861046b",
+      "bytes": 232204
+    },
+    {
+      "name": "issue-4917",
+      "url": "https://github.com/decolua/9router/issues/4917",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:52.623703+00:00",
+      "sha256": "b629c3eaf6a7c974ba18a432b948ea4c30bb0f843e9137c404b93a4d75b25951",
+      "bytes": 565498
+    },
+    {
+      "name": "issue-4919",
+      "url": "https://github.com/decolua/9router/issues/4919",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:52.317804+00:00",
+      "sha256": "7c1d2bcaade9517ec01c983dc3806017d60bfd5e57da84a9260b3034d19b1af2",
+      "bytes": 286160
+    },
+    {
+      "name": "issue-4136",
+      "url": "https://github.com/decolua/9router/issues/4136",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:52.838527+00:00",
+      "sha256": "5267dfe5e8d3149186dcb7e61c42fda05544a42be69a004dce30b3dae38020dc",
+      "bytes": 232543
+    },
+    {
+      "name": "issue-4532",
+      "url": "https://github.com/decolua/9router/issues/4532",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:53.484108+00:00",
+      "sha256": "fe2e9bcfe0fdd7d80485de08eab8f6329cdcdbc417a46287df680ab5f2e89159",
+      "bytes": 449403
+    },
+    {
+      "name": "issue-3810",
+      "url": "https://github.com/decolua/9router/issues/3810",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:53.725612+00:00",
+      "sha256": "71223904a9734e6f567bf3b938f0ccb2c8615e72d31c4ec40466d70324298dca",
+      "bytes": 628152
+    },
+    {
+      "name": "issues-leak",
+      "url": "https://github.com/decolua/9router/issues?q=is%3Aissue+leak+sort%3Aupdated-desc",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:01:53.535093+00:00",
+      "sha256": "0d7376cd72073df428e0346afec0c2c06cb9485e98ced429c49b4aaae8c1f100",
+      "bytes": 318919
+    },
+    {
+      "name": "issue-5188",
+      "url": "https://github.com/decolua/9router/issues/5188",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.040492+00:00",
+      "sha256": "e473db7c1658444bd77d5012efaf0e8a769aaf7b277727de7e810f47b31007de",
+      "bytes": 270159
+    },
+    {
+      "name": "issue-4914",
+      "url": "https://github.com/decolua/9router/issues/4914",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.228873+00:00",
+      "sha256": "a814eef9d4255e10e6e24bcbcae834f7312db759dbe6d75566fc7e51f908075e",
+      "bytes": 313832
+    },
+    {
+      "name": "issue-3365",
+      "url": "https://github.com/decolua/9router/issues/3365",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.088755+00:00",
+      "sha256": "04251cd1ba31e3ded6e46b1f1d54f233191027f1305731d56a47d0773de13ce7",
+      "bytes": 252504
+    },
+    {
+      "name": "advisory-GHSA-32gc-64m7-hj7v",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-32gc-64m7-hj7v",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:02:59.794809+00:00",
+      "sha256": "253613ce66ee5fe1b198f0ac7070118aa601d464d397ce9e271c84af53f33115",
+      "bytes": 165280
+    },
+    {
+      "name": "advisory-GHSA-5mj8-gf6m-fhw8",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-5mj8-gf6m-fhw8",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.438199+00:00",
+      "sha256": "d9e17746ae2c8a181d7f8da0843a55ab48ff2008736c7b5d97c0bafcfaa9bf85",
+      "bytes": 158899
+    },
+    {
+      "name": "advisory-GHSA-8g4w-4ffg-8vgx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-8g4w-4ffg-8vgx",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.479195+00:00",
+      "sha256": "278ea1f6df67c21ac8060e33c7d2a98fa3199c185f32a4643932c494f5ef0bd0",
+      "bytes": 172402
+    },
+    {
+      "name": "advisory-GHSA-6mwv-4mrm-5p3m",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-6mwv-4mrm-5p3m",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.746974+00:00",
+      "sha256": "4472b510a2f676f270671b8db9a6709f40e8ff8dc788a4147c3e17face3a8c61",
+      "bytes": 178384
+    },
+    {
+      "name": "advisory-GHSA-63p9-g54h-prrp",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-63p9-g54h-prrp",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.796054+00:00",
+      "sha256": "df737dd603f10d352975d9a9a2ee80b5d520274ece2b048a410b8e832b6d2436",
+      "bytes": 163278
+    },
+    {
+      "name": "advisory-GHSA-vmjq-hvgq-2wv4",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-vmjq-hvgq-2wv4",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:00.981550+00:00",
+      "sha256": "fb8d1d58cb4678a85a7479a1ca6a080144a87938f0847f99bbd884dad9607103",
+      "bytes": 163368
+    },
+    {
+      "name": "advisory-GHSA-x5c9-v98j-722r",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-x5c9-v98j-722r",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:01.064617+00:00",
+      "sha256": "2e100f6000e2b13cd5cb43879919a07e176bf4f9e2131cff716ad8f7443c2ec6",
+      "bytes": 166367
+    },
+    {
+      "name": "advisory-GHSA-cmhj-wh2f-9cgx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-cmhj-wh2f-9cgx",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:01.305524+00:00",
+      "sha256": "06d298d92721074c8a68b3415c811f8fb6be1f0ce2983f3c31a116d8498ff9de",
+      "bytes": 161236
+    },
+    {
+      "name": "advisory-GHSA-86m2-fcxq-5q7c",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-86m2-fcxq-5q7c",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:01.349325+00:00",
+      "sha256": "71d158d50389ad22ff70a78a78bc46f471477459df8b346d26880781e808c5d1",
+      "bytes": 184463
+    },
+    {
+      "name": "advisory-GHSA-8gmq-j984-vp4r",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-8gmq-j984-vp4r",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:03:01.484787+00:00",
+      "sha256": "5ad06325ece08a386544fb927d1aee9b536bea0ebe19fca04ff4816121178654",
+      "bytes": 170229
+    },
+    {
+      "name": "upstream-security-page2",
+      "url": "https://github.com/decolua/9router/security/advisories?page=2",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:04:03.524327+00:00",
+      "sha256": "88efbc4c3d8c5ccc7c16f30ab9c4e7a0e423027ea4ae0e9d3766b64edacde5b1",
+      "bytes": 168307
+    },
+    {
+      "name": "advisory-GHSA-qj3v-64wj-q825",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-qj3v-64wj-q825",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.183122+00:00",
+      "sha256": "a0e71917034cda2a505cbe22a0f77de6919338f255a09f56bc9b115e70ef4ac5",
+      "bytes": 161503
+    },
+    {
+      "name": "advisory-GHSA-qvfm-67h2-2qfx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-qvfm-67h2-2qfx",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.087866+00:00",
+      "sha256": "86fb01701bba2e8237baebbed58629aecd9f69f298583e82ae6c757a236f1572",
+      "bytes": 163132
+    },
+    {
+      "name": "advisory-GHSA-7cfm-pqrj-xgq7",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-7cfm-pqrj-xgq7",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.214574+00:00",
+      "sha256": "b9f37f84f5eb46a52c9c2b26b748d720745cc5166c42fcab2a7939a4d7dc1ccd",
+      "bytes": 169234
+    },
+    {
+      "name": "advisory-GHSA-4922-8r65-fq26",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-4922-8r65-fq26",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.107285+00:00",
+      "sha256": "a3dfb9e38953411f6b3e63f475ca9f61514351f14c5d7ecfbb92dcaf23486ca5",
+      "bytes": 179817
+    },
+    {
+      "name": "advisory-GHSA-6g2f-w7g3-77vf",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-6g2f-w7g3-77vf",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.727411+00:00",
+      "sha256": "e7e492543ca383dedf77ef16c88baad6f821a449bf21d678352c59485e58ed89",
+      "bytes": 165984
+    },
+    {
+      "name": "advisory-GHSA-vjc7-jrh9-9j86",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-vjc7-jrh9-9j86",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.613334+00:00",
+      "sha256": "9fb37878228e59eccbce3de9b9ab630e4a374e6b131ca226ae9fc84d06fc5ad7",
+      "bytes": 167011
+    },
+    {
+      "name": "advisory-GHSA-g6g7-pvmx-m74p",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-g6g7-pvmx-m74p",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.815405+00:00",
+      "sha256": "fab52a5a85dfaf80d6296d74d8c6f9b616b51d539b697e0579372265eb3512f2",
+      "bytes": 182282
+    },
+    {
+      "name": "advisory-GHSA-jphh-m39h-6gwx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-jphh-m39h-6gwx",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:31.748428+00:00",
+      "sha256": "1df0c93f7cf36aca75af7516f54f90465da81df6c1c90f6b455505abbcf45e14",
+      "bytes": 162687
+    },
+    {
+      "name": "advisory-GHSA-fhh6-4qxv-rpqj",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-fhh6-4qxv-rpqj",
+      "status": 200,
+      "capturedAtUtc": "2026-10-31T06:05:32.204557+00:00",
+      "sha256": "b485c7ca9821df4e04d58b31cc0df8a28c8cb6055bfbe2230e3c0dffea0a514f",
+      "bytes": 186768
+    }
+  ],
+  "indexGroups": {
+    "upstream-created": [
+      5346,
+      5345,
+      5334,
+      5333,
+      5332,
+      5325,
+      5319,
+      5318,
+      5317,
+      5315,
+      5309,
+      5307,
+      5303,
+      5302,
+      5300,
+      5299,
+      5296,
+      5295,
+      5294,
+      5291,
+      5287,
+      5285,
+      5282,
+      5281,
+      5278
+    ],
+    "upstream-updated": [
+      5346,
+      5300,
+      5281,
+      2749,
+      4681,
+      5303,
+      5045,
+      3356,
+      5302,
+      5215,
+      5345,
+      1441,
+      4248,
+      5307,
+      5143,
+      5334,
+      936,
+      5218,
+      5319,
+      5128,
+      5333,
+      5332,
+      5325,
+      5081,
+      5187
+    ],
+    "issues-security": [
+      5303,
+      5128,
+      5291,
+      2918,
+      4865,
+      3119,
+      4909,
+      4907,
+      4898,
+      4893,
+      3096,
+      3098,
+      3100,
+      3103,
+      4781,
+      4961,
+      4952,
+      4780,
+      2965,
+      4812,
+      4778,
+      4777,
+      3839,
+      4191,
+      4728
+    ],
+    "issues-memory": [
+      5309,
+      4136,
+      4899,
+      4893,
+      3097,
+      3138,
+      5169,
+      4919,
+      4917,
+      5149,
+      5083,
+      4532,
+      4912,
+      4085,
+      4597,
+      3668,
+      2719,
+      4072,
+      4020,
+      987,
+      4011,
+      3810,
+      3855,
+      3807,
+      3774
+    ],
+    "issues-leak": [
+      5303,
+      5302,
+      5309,
+      5188,
+      4914,
+      4149,
+      4858,
+      4893,
+      4916,
+      4971,
+      4961,
+      4952,
+      4736,
+      3994,
+      4343,
+      4199,
+      3293,
+      3670,
+      4092,
+      3796,
+      3685,
+      974,
+      3399,
+      3365,
+      1649
+    ]
+  },
+  "issues": [
+    {
+      "number": 5346,
+      "title": "Add muse.ai's chat as a provider",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-30T20:51:59Z",
+      "updatedAt": "2026-10-31T03:07:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/5346",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 5300,
+      "title": "[Bug] DeepSeek Web fails on the npm build: open-sse/lib/deepseek-pow-hash.js is missing from the packaged app",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T18:26:37Z",
+      "updatedAt": "2026-10-31T00:40:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5300",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 5281,
+      "title": "Bug: Kiro AI OAuth connections frequently failed: Token expired and refresh failed",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T01:56:30Z",
+      "updatedAt": "2026-10-30T22:47:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/5281",
+      "commentCount": 2,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 2749,
+      "title": "Image inputs silently dropped on cloudflare-ai (cf/) route — lost in openai→openai translation, still on 0.5.40",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-07-21T15:26:19Z",
+      "updatedAt": "2026-10-30T21:13:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/2749",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4681,
+      "title": "[Bug] Model picker offers models from providers with no active credentials (404 \"No active credentials for provider: X\")",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-09T00:02:56Z",
+      "updatedAt": "2026-10-30T17:24:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4681",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "reproduced-and-fixed-related-gaps",
+      "priorAnalysis": "Base disabled-provider/no-auth-hidden group filtering already exists. Reproduced five related actual picker regressions: disabled-account live catalogs, stale scope, ignored passthrough discovery, disabled prefix and peer Cursor failure. Fixed with enabled connection snapshots + live passthrough merge, preserving kind filters and operator names."
+    },
+    {
+      "number": 5303,
+      "title": "[Security] Add SECURITY.md and enable private vulnerability reporting",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-28T19:39:35Z",
+      "updatedAt": "2026-10-30T17:23:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5303",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated",
+        "issues-security",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "deferred-feature",
+      "priorAnalysis": "Repository has historical security audits, but no standalone SECURITY.md/private reporting policy was found. Maintainer reporting contacts/settings must not be invented or enabled as part of a source patch; recommended documentation/admin follow-up."
+    },
+    {
+      "number": 5045,
+      "title": "Expose capability provenance in /api/models (catalog vs pattern pin vs default)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-19T19:40:49Z",
+      "updatedAt": "2026-10-30T17:23:14Z",
+      "permalink": "https://github.com/decolua/9router/issues/5045",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-partially-covered",
+      "priorAnalysis": "Current /api/models already returns metadata.capabilityVerification alongside reviewed metadata; this is per-fact reference provenance rather than the exact proposed capsSource schema. No behavior-changing blanket limit inferred from provider/model names."
+    },
+    {
+      "number": 3356,
+      "title": "[Feature Request] Custom JSON/JS Provider Adapters for Unofficial Endpoints",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-15T20:39:32Z",
+      "updatedAt": "2026-10-30T17:22:38Z",
+      "permalink": "https://github.com/decolua/9router/issues/3356",
+      "commentCount": 3,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "deferred-feature",
+      "priorAnalysis": "Custom JSON/JS adapter loader/hot reload is a new execution/secret-handling contract, not a bounded compatibility fix; deferred."
+    },
+    {
+      "number": 5302,
+      "title": "[Feature] Expose the served route in response headers (x-9router-provider / -model / -combo / -attempts)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-28T19:39:34Z",
+      "updatedAt": "2026-10-30T17:22:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/5302",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "deferred-feature",
+      "priorAnalysis": "Opt-in served-route headers can improve diagnosis, but require authenticated exposure policy and clear attempts/served-identity semantics. Deferred as a separate additive API feature; no connection/account details added to responses."
+    },
+    {
+      "number": 5215,
+      "title": "feat(combos): session stickiness for fallback and round-robin combos (prompt-cache retention)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-25T13:16:31Z",
+      "updatedAt": "2026-10-30T17:18:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/5215",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "deferred-feature",
+      "priorAnalysis": "Account- and model-aware sticky sessions can reduce cache churn, but alter route order, fairness and model/account ownership. No silent change to existing fallback/round-robin behavior; deferred."
+    },
+    {
+      "number": 5345,
+      "title": "[Bug] Opencode streaming tool_calls delta arrives with missing id / name / arguments, breaks tool-call reconstruction",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-30T15:36:47Z",
+      "updatedAt": "2026-10-30T15:41:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5345",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "reproduced-and-fixed",
+      "priorAnalysis": "Reproduced null/index-only Chat tool placeholders in the real SSE pipeline. Filter only semantically empty tool entries before native translator state and client framing; preserve valid fragments, opaque metadata, usage and native terminals. New nine-case regression and existing stream contracts pass locally; live provider acceptance was not tested."
+    },
+    {
+      "number": 1441,
+      "title": "Antigravity MITM error",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-05-26T07:19:25Z",
+      "updatedAt": "2026-10-30T13:18:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/1441",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-source",
+      "priorAnalysis": "Current proxyFetch.js explicitly imports Readable from node:stream and uses Readable.toWeb. Historical v22.18 environment is below current>=22.19 runtime minimum. No current missing-import defect found; Windows packaged behavior remains separate."
+    },
+    {
+      "number": 4248,
+      "title": "NVIDIA upstream connect timeouts (~250s) surface as 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-22T12:36:46Z",
+      "updatedAt": "2026-10-30T13:04:29Z",
+      "permalink": "https://github.com/decolua/9router/issues/4248",
+      "commentCount": 2,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "confirmed-design-gap-plus-provider-latency",
+      "priorAnalysis": "Original body reports direct-provider slowness; new Oct30 comment exposes shared60s x4 retry multiplier. Fork BaseExecutor has same defaults. Caller abort remains terminal, but configured upstream connect/stall budgets can exceed common external deadlines. Parent notified; no claim provider network latency can be optimized by translator changes. No default retry/deadline change applied: a whole-attempt policy requires separate cross-account/combo billing and cancellation semantics; local translator CPU results do not fix provider/header wait."
+    },
+    {
+      "number": 5307,
+      "title": "[Bug/Feature] Combo stalls under concurrent sessions until client timeout; add first-token failover and combo-to-combo fallback chain",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T19:47:39Z",
+      "updatedAt": "2026-10-30T12:49:52Z",
+      "permalink": "https://github.com/decolua/9router/issues/5307",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "confirmed-design-gap-no-blind-port",
+      "priorAnalysis": "Kitsune peek is150ms, not upstream45s, and preserves paid reasoning/unknown/error streams. New Oct30 comment identifies real shared retry arithmetic:60s*(1+3)+3*3s=249s before account/combo can advance. Fork shares the same502 defaults. Whole-seat connect/TTFT budgets are not yet implemented; parent notified as performance candidate. Retrying/cancelling paid work must be reconciled before changing defaults. No default retry/deadline change applied: a whole-attempt policy requires separate cross-account/combo billing and cancellation semantics; local translator CPU results do not fix provider/header wait."
+    },
+    {
+      "number": 5143,
+      "title": "fix(codebuddy-intl): HTTP 400 Code 11128 \"request illegal\" due to failed channel verification",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T18:09:23Z",
+      "updatedAt": "2026-10-30T10:27:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/5143",
+      "commentCount": 2,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-adapted-unverified-acceptance",
+      "priorAnalysis": "Canonical request/conversation/channel headers already adapted for both executors. Structured remote channel rejection can reflect account/WAF acceptance, not generic request validation. No broad substring backoff or new impersonation guarantees copied."
+    },
+    {
+      "number": 5334,
+      "title": "[BUG] OpenCode streaming requests are hard-cut off after 120s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T23:39:42Z",
+      "updatedAt": "2026-10-30T06:31:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/5334",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "upstream-specific",
+      "priorAnalysis": "Report targets open-sse/services/opencodeTlsClient.js/wreq-js, absent from Kitsune. Our OpenCode executor uses BaseExecutor; its response-header timeout is cleared after headers. No equivalent hard120s TLS deadline was found. Later comment references a PR, not reviewed."
+    },
+    {
+      "number": 936,
+      "title": "[FEATURE] Add rerank endpoint support",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-05-07T14:48:49Z",
+      "updatedAt": "2026-10-30T04:25:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/936",
+      "commentCount": 2,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "feature-design",
+      "priorAnalysis": "A new service kind/route/adapter/accounting contract; absent current rerank route is an unimplemented feature, not existing translation correctness bug. Linked PRs not reviewed."
+    },
+    {
+      "number": 5218,
+      "title": "OpenCode Fix 429",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-25T15:47:03Z",
+      "updatedAt": "2026-10-30T04:01:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5218",
+      "commentCount": 19,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-provider-acceptance",
+      "priorAnalysis": "Body combines protocol fingerprint, native transport, session-clock, proxy identity, automatic quota egress rotation and packaging. Current fork has its own stable request-local session/decoy semantics and fail-closed proxy contract. Do not wholesale port this multi-feature external fork or change paid/quota semantics as a latency tweak."
+    },
+    {
+      "number": 5319,
+      "title": "[Bug] OpenCode free tier 429s whenever a declared tool name contains \"terminal\" — 9Router forwards tool names untouched",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T14:36:19Z",
+      "updatedAt": "2026-10-30T03:10:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5319",
+      "commentCount": 3,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-provider-acceptance",
+      "priorAnalysis": "User-controlled declaration-name gate is reported, but no entitled live reproduction for this fork exists. Existing name restoration/typed-tool semantics must survive any future transport adaptation. Do not silently change tool safety descriptions or rotate egress to evade explicit quota/abuse denial."
+    },
+    {
+      "number": 5128,
+      "title": "Have any body got this error HTTP 429: [429]: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-23T09:08:48Z",
+      "updatedAt": "2026-10-30T02:07:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/5128",
+      "commentCount": 31,
+      "indexGroups": [
+        "upstream-updated",
+        "issues-security"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-provider-quota",
+      "priorAnalysis": "Reported response combines quota, acceptance and TLS possibilities. Requires actual authorized account/transport evidence. It does not justify automatic IP/session rotation around exhausted or blocked quota; current noauth policy retains denial boundaries."
+    },
+    {
+      "number": 5333,
+      "title": "[Feature] Select OpenAI/Codex service tier via model ID variants",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T23:07:49Z",
+      "updatedAt": "2026-10-29T23:07:49Z",
+      "permalink": "https://github.com/decolua/9router/issues/5333",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "feature-design",
+      "priorAnalysis": "Fork already supports independent body service_tier/provider defaults. A new (fast) suffix syntax is a new API feature and must not be confused with thinking effort or inserted as a transparent bugfix."
+    },
+    {
+      "number": 5332,
+      "title": "Still no access to Haiku 5.5",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T20:27:41Z",
+      "updatedAt": "2026-10-29T20:27:41Z",
+      "permalink": "https://github.com/decolua/9router/issues/5332",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "route-entitlement-boundary",
+      "priorAnalysis": "Native anthropic/claude-haiku-5-5 exists with reviewed metadata and native adaptive tests. Claude Code OAuth catalog intentionally does not claim that model; registry-metadata-sync tests explicitly preserve this distinction. A public vendor model does not establish subscription-route entitlement."
+    },
+    {
+      "number": 5325,
+      "title": "[Bug] opencode free tier TLS fingerprint mismatch    +fix 429",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-29T16:15:41Z",
+      "updatedAt": "2026-10-29T19:32:24Z",
+      "permalink": "https://github.com/decolua/9router/issues/5325",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created",
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-provider-transport",
+      "priorAnalysis": "Report proposes native/Bun transport to bypass remote acceptance gates. Fork lacks the same wreq module. No paid/entitled live acceptance evidence was collected; no new native dependency or insecure direct-egress fallback is justified by a public claim."
+    },
+    {
+      "number": 5081,
+      "title": "GPT/Codex requests fail in Antigravity: `\"1\" is not of type \"integer\"` in tool schemas",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T10:59:00Z",
+      "updatedAt": "2026-10-29T19:14:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5081",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-synthetic",
+      "priorAnalysis": "Current Google schema conversion normalizes six known int64 fields recursively, retains unsafe large values explicitly rather than rounds them, and preserves unrelated defaults. Relevant conversion/public fixtures pass."
+    },
+    {
+      "number": 5187,
+      "title": "Combo empty-content peek re-runs thinking-only answers, hides stream errors, holds headers up to 45 s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:18:19Z",
+      "updatedAt": "2026-10-29T19:13:23Z",
+      "permalink": "https://github.com/decolua/9router/issues/5187",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-updated"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-synthetic",
+      "priorAnalysis": "Current combo PEEK_TIMEOUT_MS150 and tests preserve reasoning, tools, opaque thought, paid usage, native errors, fragmented bytes and read-error/deadline streams. Existing timeout/caller suites pass. No45s peek copied; last-member/one-member shortcuts and exact terminal proof retained."
+    },
+    {
+      "number": 5318,
+      "title": "Problem: can't reliably generate Threads captions",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T14:17:13Z",
+      "updatedAt": "2026-10-29T14:17:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/5318",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "insufficient-reproduction",
+      "priorAnalysis": "No exact route, wire body, request/response or terminal frame is supplied. Existing empty-output/terminal/combo fixtures are relevant, but cannot prove this user scenario fixed. No blanket fallback or answer fabrication added."
+    },
+    {
+      "number": 5317,
+      "title": "[Bug]: DeepSeek API key validation fails as \"Invalid\" in provider settings",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T12:25:53Z",
+      "updatedAt": "2026-10-29T12:25:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5317",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-environment",
+      "priorAnalysis": "Both current add-key validation and retest use authenticated GET https://api.deepseek.com/models with res.ok. This matches reporter successful curl. No contradictory endpoint bug reproduced; would need redacted failing status/transport evidence rather than another key or guessing a chat model."
+    },
+    {
+      "number": 5315,
+      "title": "Feature Request: Official Community Hub for Verified Working Providers, Models, and Configurations",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-29T06:56:40Z",
+      "updatedAt": "2026-10-29T06:56:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5315",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "governance-feature",
+      "priorAnalysis": "Discord/Telegram/community creation is external governance, not a routing stability bug. No messages or external community changes authorized/performed."
+    },
+    {
+      "number": 5294,
+      "title": "HTTP 502: [502]: wreq-js unavailable (Failed to load native module for win32-x64-msvc.",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:37:51Z",
+      "updatedAt": "2026-10-29T03:17:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/5294",
+      "commentCount": 3,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "upstream-specific-platform",
+      "priorAnalysis": "Kitsune has no wreq dependency/lazy TLS module. Adding unofficial/native binaries is a packaging feature, not a direct patch for this checkout. Native Windows validation unavailable here."
+    },
+    {
+      "number": 5309,
+      "title": "[Feature] Privacy-safe diagnostic trace: per-request timeline + shareable bundle (allowlist-only, no content, no secrets)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T20:04:00Z",
+      "updatedAt": "2026-10-28T20:04:00Z",
+      "permalink": "https://github.com/decolua/9router/issues/5309",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "issues-memory",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "partial-existing-plus-feature",
+      "priorAnalysis": "Kitsune already replaces payloads/stream content with bounded structural metadata and strips URL query/userinfo; upstream claim that full payloads are always dumped does not match current fork. Headers still have explicit masking policy, not a universal safety proof. New exportable trace bundle needs separate allowlist/privacy/cardinality design."
+    },
+    {
+      "number": 5188,
+      "title": "Client disconnect not seen before streaming starts: upstream keeps running, late errors fall back",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T14:18:40Z",
+      "updatedAt": "2026-10-28T19:39:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/5188",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4914,
+      "title": "[Cost & Latency Bug] Arbitrary 500ms Delay in Stream Disconnect Handler Leaks Upstream Tokens and Socket Descriptors",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:17:50Z",
+      "updatedAt": "2026-10-28T19:39:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4914",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 5299,
+      "title": "feat(custom-providers): user-defined response rules - auto-disable an exhausted account instead of retrying it into a ban",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T17:03:14Z",
+      "updatedAt": "2026-10-28T17:04:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/5299",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "feature-design",
+      "priorAnalysis": "Kitsune distinguishes request-scoped validation from account faults and terminal accounting failures. Generic regex/path rules with disable/retry actions are a new policy/security surface; blindly adopting them can cause charged replay, ReDoS, secret logging and healthy-account mutation."
+    },
+    {
+      "number": 5296,
+      "title": "Streaming on codex lane fully buffered until after upstream EOF - client receives whole response ~2s late (v0.5.109)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T15:24:40Z",
+      "updatedAt": "2026-10-28T15:24:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/5296",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-synthetic",
+      "priorAnalysis": "Current codex-stream-before-eof.test.js exercises real chatCore/translator with an upstream deliberately held open; it passes. Native executor peek is bounded1s/256KiB. This proves synthetic core delivery, not live reverse-proxy/Next production behavior or entitlement."
+    },
+    {
+      "number": 5295,
+      "title": "[Feature/Bug] Automatic background model synchronization for connected providers (OAuth/API) and dynamic /v1/models catalog refresh",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T14:48:25Z",
+      "updatedAt": "2026-10-28T14:50:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/5295",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-partially-implemented",
+      "priorAnalysis": "Current /v1/models uses provider live resolvers and generic authenticated API-key catalogs with credential/proxy/import fences; explicit enabledModels selection is retained. Global models.dev metadata/price synchronization is distinct. A new background connected-provider scheduler is not required to describe existing dynamic discovery honestly."
+    },
+    {
+      "number": 5291,
+      "title": "[Bug] Tray fails to start on macOS: spawn Unknown system error -86",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T09:47:17Z",
+      "updatedAt": "2026-10-28T09:47:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/5291",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created",
+        "issues-security"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "unverified-native-platform",
+      "priorAnalysis": "Current launcher uses maintained systray2 runtime, with executable-bit repair, but Apple Silicon native acceptance cannot be reproduced on Linux. Do not assert that newer package or chmod solves architecture/signing/Rosetta issues."
+    },
+    {
+      "number": 5287,
+      "title": "Codex provider rejects Antigravity-format requests: \"Invalid schema for function 'send_message'\" / \"response protection is unavailable\" (IN 0 / OUT 0)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T07:47:06Z",
+      "updatedAt": "2026-10-28T08:25:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/5287",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-synthetic",
+      "priorAnalysis": "Six string-encoded numeric constraint types are normalized at Google schema ingress with safe-integer handling. upstream-google-schema-conversion/public fixtures pass; response-protection entitlement remains independently unverified."
+    },
+    {
+      "number": 5282,
+      "title": "opencode HTTP 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T03:37:05Z",
+      "updatedAt": "2026-10-28T06:37:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/5282",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "upstream-specific",
+      "priorAnalysis": "Reported missing native loader is absent in fork. Comment about Codex rotation is separate incomplete reproduction; do not conflate provider authentication/affinity with wreq packaging."
+    },
+    {
+      "number": 5285,
+      "title": "Dashboard \"Enable Observability\" is silently overridden by ENABLE_REQUEST_LOGS env var",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-28T06:34:53Z",
+      "updatedAt": "2026-10-28T06:34:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/5285",
+      "commentCount": null,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "reproduced-and-fixed",
+      "priorAnalysis": "Reproduced actual Profile SSR showing saved true while effective false, and inverse feature-flag override. Found second root cause: generic PATCH intentionally drops protected enableObservability while UI optimistically reported success. Added precise source/effective metadata, explicit guarded Boolean JSON route, effective/disabled UI with environment explanation, saved preference retained, truthful save errors; regression tests added."
+    },
+    {
+      "number": 5278,
+      "title": "[Bug] Copilot context overflow becomes generic bad_request, blocking Codex Responses recovery",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-27T20:36:28Z",
+      "updatedAt": "2026-10-28T00:58:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/5278",
+      "commentCount": 1,
+      "indexGroups": [
+        "upstream-created"
+      ],
+      "inPriorLatestReview": true,
+      "newOrUpdatedSincePriorLatestReview": false,
+      "bodyReview": "No fresh body capture; exact unchanged indexupdatedAt retains linked prior review only",
+      "priorDisposition": "already-covered-synthetic",
+      "priorAnalysis": "Structured context_length_exceeded survives parser, account/combo routing and final Responses error event. Current upstream-context-overflow parser/routing fixtures pass. No live Codex compaction success claimed."
+    },
+    {
+      "number": 2918,
+      "title": "Usage by API key merges distinct keys for today/24h; aggregate periods serialize raw keys",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-07-30T06:14:33Z",
+      "updatedAt": "2026-10-27T07:56:26Z",
+      "permalink": "https://github.com/decolua/9router/issues/2918",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4865,
+      "title": "Request for additional collaborators to improve issue turnaround and triage",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T10:15:38Z",
+      "updatedAt": "2026-10-25T21:54:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/4865",
+      "commentCount": 7,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4136,
+      "title": "Antigravity: switching Claude <-> Gemini mid-conversation fails with 400 \"Corrupted thought signature\" (signature cache is not model-aware)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-18T07:08:21Z",
+      "updatedAt": "2026-10-24T16:54:56Z",
+      "permalink": "https://github.com/decolua/9router/issues/4136",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4149,
+      "title": "muse-spark (opencode free) 500s on reasoning.effort=\"xhigh\" — accepted range is minimal|low|medium|high, and the fallback in normalizeOpenAILevel can emit xhigh",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-18T15:09:35Z",
+      "updatedAt": "2026-10-24T14:42:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/4149",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4858,
+      "title": "Disabled models hidden from /v1/models but still listed as combo members and selectable in combo editor",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T07:51:56Z",
+      "updatedAt": "2026-10-24T14:39:40Z",
+      "permalink": "https://github.com/decolua/9router/issues/4858",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3119,
+      "title": "Community PR: 50+ Issue Fixes — Translator, Security, Providers, Docs",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-07T09:50:50Z",
+      "updatedAt": "2026-10-24T14:27:15Z",
+      "permalink": "https://github.com/decolua/9router/issues/3119",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4909,
+      "title": "[Security] Per-Key CORS Origin Restrictions to Prevent API Key Exfiltration in Browser-Based Apps",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:10:01Z",
+      "updatedAt": "2026-10-24T13:53:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/4909",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4907,
+      "title": "[Security & Compliance] Automated PII & Secret Redaction in Request Logs + Configurable Database Retention TTL",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:09:31Z",
+      "updatedAt": "2026-10-24T13:53:02Z",
+      "permalink": "https://github.com/decolua/9router/issues/4907",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4899,
+      "title": "[High-Traffic Performance] Decouple Telemetry/Request Logging from Core DB via In-Memory Ring Buffer & Async Batch Writer (Fix SQLITE_BUSY)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:04:27Z",
+      "updatedAt": "2026-10-24T13:52:47Z",
+      "permalink": "https://github.com/decolua/9router/issues/4899",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4898,
+      "title": "[Security & UX] \"Probe-on-Save\" Provider Key Validation & Auto-Exclusion of Inactive/Broken Providers from Combo Builder",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:04:07Z",
+      "updatedAt": "2026-10-24T13:52:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/4898",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4893,
+      "title": "[Feature Request] Cascade Cleanup on Combo Deletion & Strict Combos-Only Filtering in Restricted API Keys",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T17:54:00Z",
+      "updatedAt": "2026-10-24T13:52:39Z",
+      "permalink": "https://github.com/decolua/9router/issues/4893",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security",
+        "issues-memory",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3096,
+      "title": "Feature: Docker optimization and health checks",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-06T20:33:13Z",
+      "updatedAt": "2026-10-24T13:52:08Z",
+      "permalink": "https://github.com/decolua/9router/issues/3096",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3097,
+      "title": "Feature: Health check system with provider monitoring",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-06T20:35:03Z",
+      "updatedAt": "2026-10-24T13:52:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/3097",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3098,
+      "title": "Feature: Rate limiting and security enhancements",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-06T20:35:15Z",
+      "updatedAt": "2026-10-24T13:52:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/3098",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3100,
+      "title": "Feature: Comprehensive testing framework",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-06T20:35:38Z",
+      "updatedAt": "2026-10-24T13:52:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/3100",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3103,
+      "title": "Feature: Rate limiting and security framework",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-06T20:38:31Z",
+      "updatedAt": "2026-10-24T13:51:56Z",
+      "permalink": "https://github.com/decolua/9router/issues/3103",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3138,
+      "title": "[Feature] Real-Time Cost Dashboard with Provider/Model Breakdown",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-08-08T08:37:57Z",
+      "updatedAt": "2026-10-24T13:51:18Z",
+      "permalink": "https://github.com/decolua/9router/issues/3138",
+      "commentCount": 3,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 5169,
+      "title": "Live routing ignores valid Atria provider credentials (observed on v0.5.104)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-24T11:38:09Z",
+      "updatedAt": "2026-10-24T11:38:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/5169",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4919,
+      "title": "[Observability Bug] Synchronous Table Count & Deletion Inside SQLite Write Batch Locks Event Loop Under Load",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:19:01Z",
+      "updatedAt": "2026-10-24T11:31:36Z",
+      "permalink": "https://github.com/decolua/9router/issues/4919",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4917,
+      "title": "[Data Corruption Bug] Unescaped Null Bytes (\\u0000) in Prompts and Tool Outputs Crash better-sqlite3 Driver",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:18:31Z",
+      "updatedAt": "2026-10-24T10:58:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/4917",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 5149,
+      "title": "[Bug] Do not test OpenCode Free in Dashboard",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-23T20:29:47Z",
+      "updatedAt": "2026-10-24T09:22:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/5149",
+      "commentCount": 6,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 5083,
+      "title": "[Feature] \"fastest\" combo strategy: order combo models by measured tokens/s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-21T12:13:46Z",
+      "updatedAt": "2026-10-21T12:13:46Z",
+      "permalink": "https://github.com/decolua/9router/issues/5083",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4916,
+      "title": "[Interop Bug] Leaking Unsupported Reasoning Parameters (reasoning_effort, thinking) to Standard Models Triggers Upstream 400 Bad Request",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-15T18:18:17Z",
+      "updatedAt": "2026-10-20T09:47:27Z",
+      "permalink": "https://github.com/decolua/9router/issues/4916",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4971,
+      "title": "opencode free tier: fingerprint pass renames the caller's `shell` to `shell_client` and leaks a placeholder note, because the captured definition is Linux-only",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T17:20:05Z",
+      "updatedAt": "2026-10-19T19:46:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/4971",
+      "commentCount": 5,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4532,
+      "title": "fix(adapter/gemini): 400 INVALID_ARGUMENT when conversation history contains duplicate tool_call_ids",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-02T04:15:44Z",
+      "updatedAt": "2026-10-16T22:28:24Z",
+      "permalink": "https://github.com/decolua/9router/issues/4532",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4781,
+      "title": "HTTP 403: [403]: {\"type\":\"error\",\"error\":{\"type\":\"FreeTierError\",\"message\":\"OpenCode's free tier can only be used from within OpenCode. Download it at https://opencode.ai and keep building.\"}}",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T04:36:43Z",
+      "updatedAt": "2026-10-16T15:36:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/4781",
+      "commentCount": 13,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4961,
+      "title": "[Enhancement] Strengthen native Qwen / Alibaba Studio integration: workspace endpoints, quota-only safety, model capabilities and multi-connection routing",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T12:40:01Z",
+      "updatedAt": "2026-10-16T12:40:01Z",
+      "permalink": "https://github.com/decolua/9router/issues/4961",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-security",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4952,
+      "title": "[Security] SSRF in POST /api/oauth/gitlab/pat — client baseUrl fetched without a guard (internal response body reflected)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-16T11:09:45Z",
+      "updatedAt": "2026-10-16T11:09:45Z",
+      "permalink": "https://github.com/decolua/9router/issues/4952",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-security",
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 4912,
+      "title": "[State Bug] Combo Round-Robin State Stored in Ephemeral Memory Map (comboRotationState) Loses Rotation on Restarts & Multi-Process Clusters",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T18:17:19Z",
+      "updatedAt": "2026-10-15T18:17:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/4912",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4780,
+      "title": "[Bug] Free tier 403 FreeTierError for all non-OpenCode clients: resolveOpencodeSession falls back to a digest-derived ses_ id",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-10-13T04:19:58Z",
+      "updatedAt": "2026-10-15T14:49:09Z",
+      "permalink": "https://github.com/decolua/9router/issues/4780",
+      "commentCount": 5,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 2965,
+      "title": "[Bug] Dashboard incorrectly shows Headroom compression extras as 'not installed' due to 401 auth on /api/headroom/extras endpoint",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-07-31T20:42:13Z",
+      "updatedAt": "2026-10-15T11:42:51Z",
+      "permalink": "https://github.com/decolua/9router/issues/2965",
+      "commentCount": 4,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4812,
+      "title": "[ENHANCEMENT] Make request/response payloads viewable for debugging via opt-in admin flag",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-14T02:31:50Z",
+      "updatedAt": "2026-10-14T02:31:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4812",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4778,
+      "title": "[Bug] OpenCode Free Tier returns 403 when using Space Bunny through 9router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T03:48:59Z",
+      "updatedAt": "2026-10-13T07:54:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/4778",
+      "commentCount": 4,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4777,
+      "title": "FreeTierError  oc/mimo-v2.6-flash-free",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-13T03:43:58Z",
+      "updatedAt": "2026-10-13T07:54:48Z",
+      "permalink": "https://github.com/decolua/9router/issues/4777",
+      "commentCount": 7,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4085,
+      "title": "Feature request: scope Token Savers to combos (or combo groups) instead of global-only",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-16T01:50:37Z",
+      "updatedAt": "2026-10-12T22:39:50Z",
+      "permalink": "https://github.com/decolua/9router/issues/4085",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3839,
+      "title": "Provider request: Nous Research Portal (Hermes CLI) inference is not supported",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-06T13:16:49Z",
+      "updatedAt": "2026-10-12T03:32:53Z",
+      "permalink": "https://github.com/decolua/9router/issues/3839",
+      "commentCount": 4,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4736,
+      "title": "[combo] Zero-content HTTP 200s count as success and defeat fallback",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-11T06:46:10Z",
+      "updatedAt": "2026-10-11T07:26:59Z",
+      "permalink": "https://github.com/decolua/9router/issues/4736",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4191,
+      "title": "Usage dashboard: Input/Cached/Output cost breakdown uses blended token-share instead of real per-component rates",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-09-20T09:31:30Z",
+      "updatedAt": "2026-10-10T14:56:07Z",
+      "permalink": "https://github.com/decolua/9router/issues/4191",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4728,
+      "title": "Feature request: optional setting to show full request/response payloads in Usage -> Request Details (opt-out of payload redaction)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-10T13:46:04Z",
+      "updatedAt": "2026-10-10T13:46:04Z",
+      "permalink": "https://github.com/decolua/9router/issues/4728",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-security"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3994,
+      "title": "fix(deepseek): missing deepseek-flash capabilities and capacity adapter leaks across pools",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-12T12:06:42Z",
+      "updatedAt": "2026-10-06T08:11:06Z",
+      "permalink": "https://github.com/decolua/9router/issues/3994",
+      "commentCount": 3,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4597,
+      "title": "Codex native subagents unavailable through 9Router Responses provider",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-05T04:40:03Z",
+      "updatedAt": "2026-10-05T05:37:12Z",
+      "permalink": "https://github.com/decolua/9router/issues/4597",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4343,
+      "title": "Secret guard false-positive on standard axios Bearer token interceptor pattern",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-26T00:16:58Z",
+      "updatedAt": "2026-09-26T00:16:58Z",
+      "permalink": "https://github.com/decolua/9router/issues/4343",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4199,
+      "title": "fix(minimax): fix duplicated <think><think> tags in OpenAI stream by routing via Anthropic endpoint",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-20T14:12:36Z",
+      "updatedAt": "2026-09-25T02:42:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/4199",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3293,
+      "title": "Server-Side Request Forgery (SSRF) in /api/provider-nodes/validate via bypassable URL guard",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-08-14T04:39:52Z",
+      "updatedAt": "2026-09-24T01:24:31Z",
+      "permalink": "https://github.com/decolua/9router/issues/3293",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3668,
+      "title": "[Feature] progressive tool disclosure rollout and regression safety (mcp/tool index ranking)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-01T04:04:47Z",
+      "updatedAt": "2026-09-24T01:23:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/3668",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3670,
+      "title": "[Security] authentication and redaction for provider and usage APIs",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-01T04:04:49Z",
+      "updatedAt": "2026-09-23T21:38:32Z",
+      "permalink": "https://github.com/decolua/9router/issues/3670",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4092,
+      "title": "[Bug] Multimodal issues: Massive token inflation (194.4k tokens) on auto-routing and false 'model has no vision' omission",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-16T14:32:24Z",
+      "updatedAt": "2026-09-16T14:32:24Z",
+      "permalink": "https://github.com/decolua/9router/issues/4092",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 2719,
+      "title": "Feature Request: Persistent Agent Memory / MCP Memory Server Integration",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-07-20T02:03:08Z",
+      "updatedAt": "2026-09-16T11:04:43Z",
+      "permalink": "https://github.com/decolua/9router/issues/2719",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3796,
+      "title": "ag/gemini-3.8-flash*: huge TTFT variance incl. infinite silence; non-streaming 500 on reasoning models",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-04T16:18:03Z",
+      "updatedAt": "2026-09-16T08:14:34Z",
+      "permalink": "https://github.com/decolua/9router/issues/3796",
+      "commentCount": 5,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4072,
+      "title": "Codex Responses stream stall recurs on v0.5.75 after partial upstream activity",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-15T03:41:54Z",
+      "updatedAt": "2026-09-15T03:41:54Z",
+      "permalink": "https://github.com/decolua/9router/issues/4072",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4020,
+      "title": "after update to (v0.5.75), server not working stack and get crash",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-13T07:55:41Z",
+      "updatedAt": "2026-09-14T06:41:08Z",
+      "permalink": "https://github.com/decolua/9router/issues/4020",
+      "commentCount": 5,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 987,
+      "title": "[DB] No SQLite driver available (better-sqlite3 + sql.js both failed)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-05-09T11:15:05Z",
+      "updatedAt": "2026-09-14T03:16:33Z",
+      "permalink": "https://github.com/decolua/9router/issues/987",
+      "commentCount": 27,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 4011,
+      "title": "Native web_search server tools silently dead-end on non-anthropic providers",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-12T22:01:19Z",
+      "updatedAt": "2026-09-12T22:01:19Z",
+      "permalink": "https://github.com/decolua/9router/issues/4011",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3810,
+      "title": "[Bug] Connection testStatus goes stale: dashboard shows Valid/active while DB keeps old 403 and server uses cached credentials until restart",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-09-05T06:09:27Z",
+      "updatedAt": "2026-09-10T17:10:17Z",
+      "permalink": "https://github.com/decolua/9router/issues/3810",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 3855,
+      "title": "feat(providers): add Devin HTTP provider (Connect protocol + protobuf, Codeium Cascade backend)",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-09-07T13:46:35Z",
+      "updatedAt": "2026-09-07T13:48:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/3855",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3807,
+      "title": "[Bug] Connection testStatus goes stale: dashboard shows Valid/active while DB keeps old 403 and server uses cached credentials until restart",
+      "state": "REPO_ISSUE_STATE_CLOSED",
+      "createdAt": "2026-09-05T06:07:33Z",
+      "updatedAt": "2026-09-05T06:09:11Z",
+      "permalink": "https://github.com/decolua/9router/issues/3807",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3774,
+      "title": "fix(kiro): HTTP 400 REQUEST_BODY_INVALID on runtime.us-east-1.kiro.dev due to deprecated path endpoint & legacy payload fields",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-04T01:41:44Z",
+      "updatedAt": "2026-09-04T01:41:44Z",
+      "permalink": "https://github.com/decolua/9router/issues/3774",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-memory"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3685,
+      "title": "Foreign server_tool_use id from a built-in-tool provider poisons the Claude history (400 srvtoolu_)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-01T11:23:25Z",
+      "updatedAt": "2026-09-01T11:23:25Z",
+      "permalink": "https://github.com/decolua/9router/issues/3685",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 974,
+      "title": "Why 9router unexpectedly quit randomly?",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-05-09T00:45:13Z",
+      "updatedAt": "2026-08-31T06:00:51Z",
+      "permalink": "https://github.com/decolua/9router/issues/974",
+      "commentCount": 2,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3399,
+      "title": "Literal <think></think> markers leak into delta.content for Claude-protocol providers (0.5.55)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-08-17T22:21:58Z",
+      "updatedAt": "2026-08-21T10:53:41Z",
+      "permalink": "https://github.com/decolua/9router/issues/3399",
+      "commentCount": 1,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    },
+    {
+      "number": 3365,
+      "title": "[Bug] Hard-coded `--max-old-space-size=6144` in cli.js makes cgroup/low-memory deployments OOM-loop",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-08-16T06:10:20Z",
+      "updatedAt": "2026-08-16T06:10:20Z",
+      "permalink": "https://github.com/decolua/9router/issues/3365",
+      "commentCount": null,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "fresh body and initially loaded comments; see selectedBodyReviews"
+    },
+    {
+      "number": 1649,
+      "title": "Mistral provider fails with 422 extra_forbidden: messages[].assistant.reasoning_content when using Codex /responses",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-06-03T14:30:00Z",
+      "updatedAt": "2026-08-13T07:46:28Z",
+      "permalink": "https://github.com/decolua/9router/issues/1649",
+      "commentCount": 3,
+      "indexGroups": [
+        "issues-leak"
+      ],
+      "inPriorLatestReview": false,
+      "newOrUpdatedSincePriorLatestReview": true,
+      "bodyReview": "Targeted index triage only; no fresh body or reproduction claim"
+    }
+  ],
+  "selectedBodyReviews": [
+    {
+      "number": 5346,
+      "url": "https://github.com/decolua/9router/issues/5346",
+      "title": "Add muse.ai's chat as a provider",
+      "state": "CLOSED",
+      "createdAt": "2026-10-30T20:51:59Z",
+      "updatedAt": "2026-10-31T03:07:14Z",
+      "loadedComments": 0,
+      "totalComments": 0,
+      "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commentDates": [],
+      "disposition": "deferred-feature",
+      "analysis": "Empty-body newly closed request for Muse.ai chat. Existing reviewed OpenCode Muse routes do not establish a separate native Muse.ai authentication/transport contract. No new provider guessed."
+    },
+    {
+      "number": 5300,
+      "url": "https://github.com/decolua/9router/issues/5300",
+      "title": "[Bug] DeepSeek Web fails on the npm build: open-sse/lib/deepseek-pow-hash.js is missing from the packaged app",
+      "state": "OPEN",
+      "createdAt": "2026-10-28T18:26:37Z",
+      "updatedAt": "2026-10-31T00:40:25Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "6a0a9db2bb628670027c850f436453bad961ea54b553b9d3f4de07e95985f44d",
+      "commentDates": [
+        "2026-10-31T00:33:35Z"
+      ],
+      "disposition": "upstream-specific-packaging",
+      "analysis": "Fresh comment confirms upstream deepseek-web PoW sibling-file packaging omission. Kitsune has no deepseek-web registry/executor or DeepSeek PoW worker/hash implementation; native DeepSeek API is separate. Do not add unused upstream files or synchronous PoW fallback."
+    },
+    {
+      "number": 5281,
+      "url": "https://github.com/decolua/9router/issues/5281",
+      "title": "Bug: Kiro AI OAuth connections frequently failed: Token expired and refresh failed",
+      "state": "OPEN",
+      "createdAt": "2026-10-28T01:56:30Z",
+      "updatedAt": "2026-10-30T22:47:58Z",
+      "loadedComments": 2,
+      "totalComments": 2,
+      "bodySha256": "301499d9dfd8d76ee6e67d4217ab39b3aedd873d80c8cb024498855d82f9b030",
+      "commentDates": [
+        "2026-10-28T17:24:20Z",
+        "2026-10-30T22:47:58Z"
+      ],
+      "disposition": "unverified-account-refresh",
+      "analysis": "New comment only says quota API rejected current token while chat may work. It adds no redacted refresh grant/region/client-registration contract sufficient to reproduce a current source defect. Keep separate quota/inference semantics; no broad forced refresh or invented entitlement."
+    },
+    {
+      "number": 2749,
+      "url": "https://github.com/decolua/9router/issues/2749",
+      "title": "Image inputs silently dropped on cloudflare-ai (cf/) route — lost in openai→openai translation, still on 0.5.40",
+      "state": "OPEN",
+      "createdAt": "2026-07-21T15:26:19Z",
+      "updatedAt": "2026-10-30T21:13:20Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "a22d10444cd9d407c10c094e559ca9eefcbcedbc0fcf435090c589858cbd5b38",
+      "commentDates": [
+        "2026-10-30T21:13:20Z"
+      ],
+      "disposition": "confirmed-local-bug-assigned-fix",
+      "analysis": "Current Cloudflare flattenContent converts mixed image/text arrays to text after modality admission. Sent exact capture to model-error agent. Agent reproduced in handleChatCore→DefaultExecutor and fixed flattening only wholly textual arrays; admitted images preserved. Parent owns integrated validation and final commit."
+    },
+    {
+      "number": 2918,
+      "url": "https://github.com/decolua/9router/issues/2918",
+      "title": "Usage by API key merges distinct keys for today/24h; aggregate periods serialize raw keys",
+      "state": "CLOSED",
+      "createdAt": "2026-07-30T06:14:33Z",
+      "updatedAt": "2026-10-27T07:56:26Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "51b2ed10491782cd49b806c92b07271e393cabd0617173cd8ec9f8d8fae11e35",
+      "commentDates": [
+        "2026-09-24T01:24:30Z"
+      ],
+      "disposition": "already-covered-current-source",
+      "analysis": "Current usageRepo apiKeyIdentity uses persistent ID or opaque SHA256 prefix in both short-window and daily aggregation; response metadata is masked. Security agent independently confirmed. Raw private daily storage is not evidence of public leakage."
+    },
+    {
+      "number": 4952,
+      "url": "https://github.com/decolua/9router/issues/4952",
+      "title": "[Security] SSRF in POST /api/oauth/gitlab/pat — client baseUrl fetched without a guard (internal response body reflected)",
+      "state": "OPEN",
+      "createdAt": "2026-10-16T11:09:45Z",
+      "updatedAt": "2026-10-16T11:09:45Z",
+      "loadedComments": 0,
+      "totalComments": 0,
+      "bodySha256": "1e23bc4e031251dc72c6519c2100f03603758b5fc3e9ddc669955f7d6161f2a4",
+      "commentDates": [],
+      "disposition": "already-covered-current-source",
+      "analysis": "GitLab PAT verification uses DNS-pinned fetchPublic/fetchTrustedLocal, proxy fail-closed checks, maxRedirects0, body cancellation and sanitized public errors. Security agent confirmed existing gitlab-pat-ssrf-guard coverage."
+    },
+    {
+      "number": 4917,
+      "url": "https://github.com/decolua/9router/issues/4917",
+      "title": "[Data Corruption Bug] Unescaped Null Bytes (\\u0000) in Prompts and Tool Outputs Crash better-sqlite3 Driver",
+      "state": "CLOSED",
+      "createdAt": "2026-10-15T18:18:31Z",
+      "updatedAt": "2026-10-24T10:58:20Z",
+      "loadedComments": 2,
+      "totalComments": 2,
+      "bodySha256": "963ea5419576866366615c1c1bc75ccb53e3e8e9fca02b6701df9c7777f6f157",
+      "commentDates": [
+        "2026-10-16T09:40:42Z",
+        "2026-10-24T10:58:20Z"
+      ],
+      "disposition": "corrected-upstream-premise-no-blind-port",
+      "analysis": "Reporter comment corrects claimed better-sqlite3 bound-TEXT/NUL crash and notes JSON escaping. Later blanket stripping claim is not proof of current defect. Do not silently delete legitimate NUL payload data without a current reproduction."
+    },
+    {
+      "number": 4919,
+      "url": "https://github.com/decolua/9router/issues/4919",
+      "title": "[Observability Bug] Synchronous Table Count & Deletion Inside SQLite Write Batch Locks Event Loop Under Load",
+      "state": "CLOSED",
+      "createdAt": "2026-10-15T18:19:01Z",
+      "updatedAt": "2026-10-24T11:31:36Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "ba0865d900dad94f61f3a356541d62e167fe34fec565b2fb1f67e6f9800cf5fc",
+      "commentDates": [
+        "2026-10-24T11:31:35Z"
+      ],
+      "disposition": "corrected-upstream-premise-no-blind-port",
+      "analysis": "Reporter measured covering-index COUNT about0.41ms at50k rows and withdrew count-bottleneck premise; alternate no-COUNT DELETE was slower. Do not change retention durability/timers from unverified timing claims."
+    },
+    {
+      "number": 4136,
+      "url": "https://github.com/decolua/9router/issues/4136",
+      "title": "Antigravity: switching Claude <-> Gemini mid-conversation fails with 400 \"Corrupted thought signature\" (signature cache is not model-aware)",
+      "state": "OPEN",
+      "createdAt": "2026-09-18T07:08:21Z",
+      "updatedAt": "2026-10-24T16:54:56Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "d92aa1988399a9a2861bb5c597241aa373022dfd9374af3914fc5762371e0f89",
+      "commentDates": [
+        "2026-10-24T16:54:56Z"
+      ],
+      "disposition": "different-current-design-follow-up",
+      "analysis": "Reported module thoughtSignatureStore/global cross-request cache is absent; current explicit request-local signature map is bounded. That does not prove arbitrary encoded signatures have model-family provenance. Sent precise TSIG replay hypothesis to model-error agent; no blanket signature replacement or live acceptance claim."
+    },
+    {
+      "number": 4532,
+      "url": "https://github.com/decolua/9router/issues/4532",
+      "title": "fix(adapter/gemini): 400 INVALID_ARGUMENT when conversation history contains duplicate tool_call_ids",
+      "state": "CLOSED",
+      "createdAt": "2026-10-02T04:15:44Z",
+      "updatedAt": "2026-10-16T22:28:24Z",
+      "loadedComments": 0,
+      "totalComments": 0,
+      "bodySha256": "e91a471ed001a6faa8e3fdf64671a3b35048a4d8a3ee3de1540dc05e5d1ba5f3",
+      "commentDates": [],
+      "disposition": "already-covered-current-source",
+      "analysis": "Current normalizeGeminiToolCalls reserves original IDs, allocates collision-free suffixes, associates duplicate results FIFO within a turn and tracks later-turn reuse. Claude bridge receives normalized IDs before its name map. No blind occurrence-counter rewrite."
+    },
+    {
+      "number": 3810,
+      "url": "https://github.com/decolua/9router/issues/3810",
+      "title": "[Bug] Connection testStatus goes stale: dashboard shows Valid/active while DB keeps old 403 and server uses cached credentials until restart",
+      "state": "CLOSED",
+      "createdAt": "2026-09-05T06:09:27Z",
+      "updatedAt": "2026-09-10T17:10:17Z",
+      "loadedComments": 0,
+      "totalComments": 0,
+      "bodySha256": "6d206f3ca9c800743fa632fa446c394f9d090e4226f4119c3a907ee0e4c58bdd",
+      "commentDates": [],
+      "disposition": "historical-report-not-reproduced",
+      "analysis": "Report targets0.5.59–0.5.65 and describes persisted testStatus/cache staleness without current wire evidence. Current catalog/cache binding and connection update paths differ; no current reproduction established in this read-only review. Do not claim every OAuth revocation or stale status fixed."
+    },
+    {
+      "number": 5188,
+      "url": "https://github.com/decolua/9router/issues/5188",
+      "title": "Client disconnect not seen before streaming starts: upstream keeps running, late errors fall back",
+      "state": "OPEN",
+      "createdAt": "2026-10-24T14:18:40Z",
+      "updatedAt": "2026-10-28T19:39:07Z",
+      "loadedComments": 1,
+      "totalComments": 1,
+      "bodySha256": "204027ceeb658177039713bfbcfc12f090439647ed9de4f8edf725ff2c323bb6",
+      "commentDates": [
+        "2026-10-28T19:39:07Z"
+      ],
+      "disposition": "already-covered-current-source",
+      "analysis": "Current inbound request.signal propagates to handleChatCore, binds the stream abort controller before executor dispatch, checks abort through account/combo stages and treats499 terminally. Existing cancellation fixtures remain relevant; report is still real in upstream master but not a justification to regress current guards."
+    },
+    {
+      "number": 4914,
+      "url": "https://github.com/decolua/9router/issues/4914",
+      "title": "[Cost & Latency Bug] Arbitrary 500ms Delay in Stream Disconnect Handler Leaks Upstream Tokens and Socket Descriptors",
+      "state": "OPEN",
+      "createdAt": "2026-10-15T18:17:50Z",
+      "updatedAt": "2026-10-28T19:39:04Z",
+      "loadedComments": 2,
+      "totalComments": 2,
+      "bodySha256": "4534c8cc46e74dd135247441dac4cad0d4607bbc09fe61666bce163438cf95e3",
+      "commentDates": [
+        "2026-10-24T00:43:12Z",
+        "2026-10-28T19:39:03Z"
+      ],
+      "disposition": "already-covered-current-source",
+      "analysis": "Current createStreamController.handleDisconnect aborts immediately; no artificial500ms timer delays abort. Existing pipe cleanup removes listeners, clears timers and cancels readers/writers. Memory agent notified; no paid-token savings quantified."
+    },
+    {
+      "number": 3365,
+      "url": "https://github.com/decolua/9router/issues/3365",
+      "title": "[Bug] Hard-coded `--max-old-space-size=6144` in cli.js makes cgroup/low-memory deployments OOM-loop",
+      "state": "OPEN",
+      "createdAt": "2026-08-16T06:10:20Z",
+      "updatedAt": "2026-08-16T06:10:20Z",
+      "loadedComments": 0,
+      "totalComments": 0,
+      "bodySha256": "fc14cdee866ffc7465c6f0b6f2186257440a049264837d9782f3094155d57621",
+      "commentDates": [],
+      "disposition": "already-covered-current-source",
+      "analysis": "Current cli/hooks/nodeFlags.js derives a heap budget from cgroup/system limits and respects explicit operator flags/NODE_OPTIONS. The old fixed6144MiB spawn argument is not current architecture; no blind heap increase."
+    }
+  ],
+  "securityAdvisories": [
+    {
+      "id": "GHSA-32gc-64m7-hj7v",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-32gc-64m7-hj7v",
+      "title": "Login Brute-Force Lockout Bypass via Spoofable X-9r-Real-Ip Header (9router)",
+      "published": "Jul 16, 2026",
+      "severity": "Moderate",
+      "affectedVerbatim": "0.5.4",
+      "patchedVerbatim": "5.6",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-5mj8-gf6m-fhw8",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-5mj8-gf6m-fhw8",
+      "title": "Authentication Bypass in Public LLM API via Spoofable X-9r-Real-Ip Header",
+      "published": "Jul 16, 2026",
+      "severity": "High",
+      "affectedVerbatim": "0.5.4",
+      "patchedVerbatim": "5.6",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-8g4w-4ffg-8vgx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-8g4w-4ffg-8vgx",
+      "title": "Authenticated Server-Side Request Forgery (SSRF) via OIDC Provider Test Endpoint",
+      "published": "Jul 16, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.5.4",
+      "patchedVerbatim": "5.6",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "oidc",
+      "analysis": "Current OIDC network probes already use pinned/guarded SSRF transport and sanitized errors; independent security agent verified existing secret-boundary cases. Separate newly reproduced login nonce binding bug is a local finding, not this historical SSRF advisory.",
+      "currentSourceOrExistingTestReferences": [
+        "src/lib/auth/oidc.js",
+        "src/shared/utils/ssrfGuard.js",
+        "tests/unit/oidc-test-secret-boundary.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-6mwv-4mrm-5p3m",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-6mwv-4mrm-5p3m",
+      "title": "Kiro region injection allows authenticated SSRF with Authorization header forwarding",
+      "published": "Jul 10, 2026",
+      "severity": "Moderate",
+      "affectedVerbatim": "<= 0.5.2",
+      "patchedVerbatim": "0.5.6",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "kiro",
+      "analysis": "Import validates AWS region before building any credential-forwarding request; invalid region returns400 and upstream failure body is sanitized.",
+      "currentSourceOrExistingTestReferences": [
+        "src/app/api/oauth/kiro/api-key/route.js",
+        "src/lib/oauth/constants/oauth.js",
+        "tests/unit/kiro-api-key-endpoint-routing.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-63p9-g54h-prrp",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-63p9-g54h-prrp",
+      "title": "Authenticated RCE via Unvalidated MCP Plugin Arguments",
+      "published": "Jul 10, 2026",
+      "severity": "High",
+      "affectedVerbatim": "0.4.59",
+      "patchedVerbatim": "0.5.2",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "mcp",
+      "analysis": "Local-only/auth gates cover MCP/CLI paths; custom cowork plugins are URL-only; stdio bridge spawns reviewed presets only. Historical arbitrary command/args chain is not current source.",
+      "currentSourceOrExistingTestReferences": [
+        "src/dashboardGuard.js",
+        "src/proxy.js",
+        "src/lib/mcp/stdioSseBridge.js",
+        "src/app/api/cli-tools/cowork-settings/route.js",
+        "tests/unit/cowork-mcp-ssrf-guard.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-vmjq-hvgq-2wv4",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-vmjq-hvgq-2wv4",
+      "title": "Mass assignment in PATCH /api/settings allows authenticated authorization downgrade",
+      "published": "Jul 10, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.5.2",
+      "patchedVerbatim": "0.5.4",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "settings",
+      "analysis": "Explicit allowed setting whitelist plus protected field removal prevents security-critical mass assignment.",
+      "currentSourceOrExistingTestReferences": [
+        "src/app/api/settings/route.js",
+        "tests/unit/settings-mass-assignment-3499.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-x5c9-v98j-722r",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-x5c9-v98j-722r",
+      "title": "Reverse proxy locality collapse allows unauthenticated access to 9router /v1 APIs",
+      "published": "Jul 7, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.80",
+      "patchedVerbatim": ">= 0.5.2",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-cmhj-wh2f-9cgx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-cmhj-wh2f-9cgx",
+      "title": "Image prefetch DNS rebinding allows SSRF to internal services",
+      "published": "Jul 7, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.80",
+      "patchedVerbatim": ">= 0.5.2",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "image",
+      "analysis": "Current server-side image fetching uses guarded DNS-pinned transport rather than validate-then-resolve-again fetch; exact network acceptance remains deployment-dependent.",
+      "currentSourceOrExistingTestReferences": [
+        "src/shared/utils/ssrfGuard.js",
+        "tests/unit/ssrf-pinned-fetch.test.js",
+        "tests/unit/image-fetch-hardening.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-86m2-fcxq-5q7c",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-86m2-fcxq-5q7c",
+      "title": "Unauthenticated `/v1` proxy access in 9router@0.4.71 via `Host`-header spoofing → open AI relay + SSRF",
+      "published": "Jul 7, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.80",
+      "patchedVerbatim": "0.4.82",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-8gmq-j984-vp4r",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-8gmq-j984-vp4r",
+      "title": "Unauthenticated LLM proxy access via /codex rewrite authorization bypass",
+      "published": "Jul 7, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.80",
+      "patchedVerbatim": "0.4.82",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-qj3v-64wj-q825",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-qj3v-64wj-q825",
+      "title": "Server-Side Request Forgery (SSRF) via /v1/web/fetch Endpoint",
+      "published": "Jul 3, 2026",
+      "severity": "High",
+      "affectedVerbatim": "≤ v0.4.71",
+      "patchedVerbatim": "0.4.72",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "web",
+      "analysis": "Current web-fetch handler explicitly rejects private/internal/metadata target URLs through assertPublicUrlAsync before provider dispatch. This does not promise third-party scraper behavior.",
+      "currentSourceOrExistingTestReferences": [
+        "src/sse/handlers/fetch.js",
+        "src/shared/utils/ssrfGuard.js",
+        "tests/unit/search-ssrf-guard.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-qvfm-67h2-2qfx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-qvfm-67h2-2qfx",
+      "title": "Exposure of Sensitive Information and Unprotected Database Import/Export Allows Complete Credential Theft and Database Takeover",
+      "published": "Jun 20, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": "≤ v0.4.71",
+      "patchedVerbatim": "None",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "database",
+      "analysis": "Current export/import demands JWT AND API-key/CLI proof plus password reauthentication; sensitive credential backup remains deliberate authenticated operation.",
+      "currentSourceOrExistingTestReferences": [
+        "src/app/api/settings/database/route.js",
+        "tests/unit/reconciliation-security-backup.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-7cfm-pqrj-xgq7",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-7cfm-pqrj-xgq7",
+      "title": "Login brute-force protection bypass via spoofed X-Forwarded-For header",
+      "published": "Jun 20, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.71",
+      "patchedVerbatim": ">= 0.4.77",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-4922-8r65-fq26",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-4922-8r65-fq26",
+      "title": "Authenticated Remote Code Execution via Host Header Bypass and Unvalidated MCP Plugin Arguments",
+      "published": "Jul 3, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": "0.4.59",
+      "patchedVerbatim": "0.4.60",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "mcp",
+      "analysis": "Local-only/auth gates cover MCP/CLI paths; custom cowork plugins are URL-only; stdio bridge spawns reviewed presets only. Historical arbitrary command/args chain is not current source.",
+      "currentSourceOrExistingTestReferences": [
+        "src/dashboardGuard.js",
+        "src/proxy.js",
+        "src/lib/mcp/stdioSseBridge.js",
+        "src/app/api/cli-tools/cowork-settings/route.js",
+        "tests/unit/cowork-mcp-ssrf-guard.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-6g2f-w7g3-77vf",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-6g2f-w7g3-77vf",
+      "title": "Incomplete Fix: Local-Only Access Gate Bypass in 9router via Host Header SpoofING",
+      "published": "Jun 13, 2026",
+      "severity": "High",
+      "affectedVerbatim": "<= 0.4.55",
+      "patchedVerbatim": "None",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "locality",
+      "analysis": "Current source strips client peer headers and uses process-private peer proof plus guarded proxy/locality classification, rather than trusting Host/XFF/X-9r-Real-Ip. /codex is included in protected routing. No fresh exploit found from this source comparison; runtime deployment topology still matters.",
+      "currentSourceOrExistingTestReferences": [
+        "custom-server.js",
+        "src/lib/auth/trustedPeer.js",
+        "src/lib/auth/loginLimiter.js",
+        "src/dashboardGuard.js",
+        "tests/unit/dashboard-guard.test.js",
+        "tests/unit/ratelimit-security-health.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-vjc7-jrh9-9j86",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-vjc7-jrh9-9j86",
+      "title": "Unauthenticated CRUD on /api/providers and Full API Key Leak via /api/usage/stats",
+      "published": "Jun 13, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": "<= 0.4.41",
+      "patchedVerbatim": "none yet",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "providers",
+      "analysis": "Current dashboard/proxy guard protects provider/usage APIs; current usage grouping masks exported identity and separates per-key buckets. Does not convert a deliberately authenticated full backup into a public-safe payload.",
+      "currentSourceOrExistingTestReferences": [
+        "src/dashboardGuard.js",
+        "src/proxy.js",
+        "src/lib/db/repos/usageRepo.js",
+        "tests/unit/security-audit.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-g6g7-pvmx-m74p",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-g6g7-pvmx-m74p",
+      "title": "Missing Authorization and OS Command Injection in 9router",
+      "published": "May 29, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": "<=v0.4.39",
+      "patchedVerbatim": "0.4.44",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "tunnel",
+      "analysis": "Current dashboard/proxy guard covers local-only tunnel and CLI APIs. Old unguarded middleware allowlist does not describe the current matcher; no unauthenticated tailscale-install reproduction found in this review.",
+      "currentSourceOrExistingTestReferences": [
+        "src/dashboardGuard.js",
+        "src/proxy.js",
+        "src/app/api/tunnel/tailscale-install/route.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-jphh-m39h-6gwx",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-jphh-m39h-6gwx",
+      "title": "Hardcoded Default fallback JWT Secret  Allows Authentication Bypass",
+      "published": "May 31, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": ">=0.2.21, <=0.4.41",
+      "patchedVerbatim": ">= 0.4.44",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "jwt",
+      "analysis": "Current session signing requires an explicit32+character JWT secret; no hardcoded public fallback. Remote initial-password policy is separate and checked.",
+      "currentSourceOrExistingTestReferences": [
+        "src/lib/auth/dashboardSession.js",
+        "src/app/api/auth/login/route.js",
+        "tests/unit/reconciliation-security-onboarding.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    },
+    {
+      "id": "GHSA-fhh6-4qxv-rpqj",
+      "url": "https://github.com/decolua/9router/security/advisories/GHSA-fhh6-4qxv-rpqj",
+      "title": "Unauthenticated Remote Code Execution via unprotected MCP custom plugin routes",
+      "published": "May 13, 2026",
+      "severity": "Critical",
+      "affectedVerbatim": ">=0.4.30, <0.4.37",
+      "patchedVerbatim": "0.4.37",
+      "rangeNote": "Publisher text preserved literally, including5.6/None/none yet anomalies. Range labels alone do not establish whether the customized fork is vulnerable.",
+      "currentControlCategory": "mcp",
+      "analysis": "Local-only/auth gates cover MCP/CLI paths; custom cowork plugins are URL-only; stdio bridge spawns reviewed presets only. Historical arbitrary command/args chain is not current source.",
+      "currentSourceOrExistingTestReferences": [
+        "src/dashboardGuard.js",
+        "src/proxy.js",
+        "src/lib/mcp/stdioSseBridge.js",
+        "src/app/api/cli-tools/cowork-settings/route.js",
+        "tests/unit/cowork-mcp-ssrf-guard.test.js"
+      ],
+      "verification": "Fresh publisher body read plus bounded current-source comparison; no claim these existing tests were newly executed by this read-only agent."
+    }
+  ],
+  "recommendations": [
+    {
+      "issue": 2749,
+      "priority": "fix-before-source1.0.5",
+      "action": "Preserve admitted mixed image/text arrays on Cloudflare while flattening wholly textual arrays; agent reproduced and patched actual pipeline; parent integrated gate still authoritative."
+    },
+    {
+      "issue": 5303,
+      "priority": "documentation-nice-to-have",
+      "action": "A standalone SECURITY.md can document real existing project reporting routes; do not invent a monitored security inbox, SLA or claim GitHub private reporting is enabled. Repository setting changes remain separate."
+    },
+    {
+      "issues": [
+        5307,
+        4248
+      ],
+      "priority": "separate-design",
+      "action": "Whole-attempt TTFT/retry budgets can reduce long remote wait but need explicit account/combo/billing/cancellation policy. Do not copy45s peek, replay paid work or silently change retries as a patch."
+    },
+    {
+      "issue": 4136,
+      "priority": "bounded-follow-up",
+      "action": "No old globalcachemodule exists; model-error agent notified of encoded-signature model-family provenance question, which requires actual fixture/source evidence before changes."
+    }
+  ],
+  "limitations": [
+    "Index-only records were triaged by title/date and explicitly identified; only14selected issue bodies and initially loaded comments were freshly read. Their loadedcounts equal visible totalcounts at capture.",
+    "All19publicly visible advisory bodies across twoindexpages were captured; severity/version text is publisher evidence, not a fresh vulnerability scan or proof of live exploitation.",
+    "No provider credentials, customer database, paid inference, real OAuth login, release publication or external issue/comment/settings writes performed.",
+    "No network/TLS/policy bypass. Public GitHub HTML and Git requests used inherited proxy/trust; vendor hosts outside allowlist were not retried.",
+    "Current source comparison is separate from tests/build/package gates, which parent records after integration."
+  ],
+  "parentSourceDisposition": {
+    "issue2749": "Reproduced/fixed actual outbound Cloudflare vision normalization; final parent gate recorded separately.",
+    "issue5303": "SECURITY.md added with existing published project contact and conditional GitHub private-reporting route; no repository setting/SLA claim.",
+    "sourceBump": "1.0.5; no publication workflow or old-tag movement."
+  }
+}

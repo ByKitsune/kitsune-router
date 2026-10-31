@@ -1,5 +1,24 @@
 # Registro de cambios
 
+## Kitsune Router 1.0.5 — cierre del código del 2026-10-31
+
+La versión 1.0.5 reúne las entradas de desarrollo fechadas que siguen. Añade
+verificación explícita del nonce OIDC, limita la vida de recursos del catálogo
+Kiro, conserva errores terminales del flujo y las imágenes de Cloudflare.
+Incluye ByKitsune, versiones y catálogos verificados por proveedor, precisión
+del uso y precios registrados y navegación más fluida del dashboard.
+
+La versión del código, la verificación local y los artefactos publicados son
+pruebas distintas. Esta entrada no acredita una nueva publicación npm/GHCR,
+GitHub Release ni despliegue. Los registros y tags 1.0.2 siguen intactos; las
+fuentes bloqueadas y los precios desconocidos conservan sus límites documentados.
+
+[Notas técnicas del código](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.5.md) · [Estado de código y artefactos](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.5.md).
+
+La actualización estable de npm también alinea Next/React, resuelve la compatibilidad SAML/PKI y repara la auditoría de dependencias CI manteniendo los controles de seguridad.
+
+[Dependency / CI evidence](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+
 ## Sin publicar — auditoría de precios, capacidades y traducción
 
 - Revisar las 1.302 filas del registro con una reconstrucción fijada del código

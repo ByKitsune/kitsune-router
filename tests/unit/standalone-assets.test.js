@@ -1,20 +1,23 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { mkdtempSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { copyStandaloneAssets } from "../../scripts/copy-standalone-assets.mjs";
+import { resolveUiTestServer } from "../../scripts/ui-test-build.mjs";
 
 const fixtures = [];
 
 afterEach(() => {
   for (const directory of fixtures.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
-function createBuildFixture(distDir) {
+function createBuildFixture(distDir, nested = false) {
   const projectRoot = mkdtempSync(join(tmpdir(), "kitsunerouter-standalone-assets-"));
   const buildRoot = join(projectRoot, distDir);
   fixtures.push(projectRoot);
-  mkdirSync(join(buildRoot, "standalone"), { recursive: true });
+  const output = join(buildRoot, "standalone", ...(nested ? [basename(projectRoot)] : []));
+  mkdirSync(output, { recursive: true });
+  writeFileSync(join(output, "server.js"), "generated Next server");
   mkdirSync(join(buildRoot, "static", "chunks"), { recursive: true });
   mkdirSync(join(projectRoot, "public"), { recursive: true });
   mkdirSync(join(projectRoot, "node_modules", "reflect-metadata"), { recursive: true });
@@ -84,19 +87,47 @@ describe("standalone build assets", () => {
     expect(readFileSync(join(mitm, "handlers", "cursor.js"), "utf8")).toBe("child handler");
   });
 
-  it("does not modify workspace-traced CLI builds", () => {
-    const projectRoot = createBuildFixture(".next-cli-build");
+  it("completes nested workspace output beside its generated server for the browser fixture", () => {
+    const projectRoot = createBuildFixture(".next-cli-build", true);
+    const standaloneRoot = join(projectRoot, ".next-cli-build", "standalone");
+    const output = join(standaloneRoot, basename(projectRoot));
+    writeFileSync(join(projectRoot, "custom-server.js"), "wrapper");
+    writeFileSync(join(projectRoot, "shutdown-lifecycle.cjs"), "lifecycle");
+    const sharedModule = join(standaloneRoot, "node_modules", "shared-dependency");
+    mkdirSync(sharedModule, { recursive: true });
+    writeFileSync(join(sharedModule, "index.js"), "hoisted dependency");
+    expect(() => resolveUiTestServer(projectRoot, ".next-cli-build")).toThrow("production build");
     const previousMode = process.env.NEXT_TRACING_ROOT_MODE;
     process.env.NEXT_TRACING_ROOT_MODE = "workspace";
-
     try {
+      copyStandaloneAssets({ projectRoot, distDir: ".next-cli-build" });
       copyStandaloneAssets({ projectRoot, distDir: ".next-cli-build" });
     } finally {
       if (previousMode === undefined) delete process.env.NEXT_TRACING_ROOT_MODE;
       else process.env.NEXT_TRACING_ROOT_MODE = previousMode;
     }
+    expect(resolveUiTestServer(projectRoot, ".next-cli-build")).toBe(join(output, "custom-server.js"));
+    expect(readFileSync(join(output, "server.js"), "utf8")).toBe("generated Next server");
+    expect(readFileSync(join(output, "shutdown-lifecycle.cjs"), "utf8")).toBe("lifecycle");
+    expect(readFileSync(join(output, ".next-cli-build", "static", "chunks", "app.js"), "utf8")).toBe("static asset");
+    expect(readFileSync(join(output, "public", "favicon.svg"), "utf8")).toBe("public asset");
+    expect(readFileSync(join(sharedModule, "index.js"), "utf8")).toBe("hoisted dependency");
+    expect(existsSync(join(output, "node_modules", "reflect-metadata", "Reflect.js"))).toBe(true);
+    expect(existsSync(join(standaloneRoot, "custom-server.js"))).toBe(false);
+  });
 
-    expect(() => readFileSync(join(projectRoot, ".next-cli-build", "standalone", ".next-cli-build", "static", "chunks", "app.js")))
-      .toThrow();
+  it("rejects private state already traced beside a nested workspace build", () => {
+    const projectRoot = createBuildFixture(".next-cli-build", true);
+    const output = join(projectRoot, ".next-cli-build", "standalone", basename(projectRoot));
+    writeFileSync(join(output, ".env.local"), "SYNTHETIC=fixture-only");
+    expect(() => copyStandaloneAssets({ projectRoot, distDir: ".next-cli-build" })).toThrow("Refusing runtime state");
+    expect(() => resolveUiTestServer(projectRoot, ".next-cli-build")).toThrow();
+  });
+
+  it("does not manufacture runtime assets in an output without a generated server", () => {
+    const projectRoot = createBuildFixture(".next-cli-build");
+    rmSync(join(projectRoot, ".next-cli-build", "standalone", "server.js"));
+    expect(() => copyStandaloneAssets({ projectRoot, distDir: ".next-cli-build" }))
+      .toThrow("Generated standalone server.js is missing");
   });
 });

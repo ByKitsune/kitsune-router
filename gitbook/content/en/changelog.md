@@ -1,5 +1,24 @@
 # Changelog
 
+## Kitsune Router 1.0.5 — 2026-10-31 source closing
+
+Version 1.0.5 consolidates the dated source-development entries below. It adds
+explicit OIDC nonce verification, bounds Kiro catalog resource lifetime, preserves
+terminal model-stream errors and retains Cloudflare vision content. It includes
+the ByKitsune integration, verified provider-specific client/catalog updates,
+recorded usage/pricing accuracy and smoother dashboard navigation.
+
+Source versions, local verification and published artifacts are separate. This
+entry does not establish new npm/GHCR publication, a GitHub Release or deployment.
+Earlier 1.0.2 artifact records and tags remain unchanged; blocked provider feeds
+and unknown prices retain their documented limits.
+
+[Technical source notes](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.5.md) · [Source/artifact status](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.5.md).
+
+The stable npm dependency refresh also aligns Next/React, handles SAML/PKI compatibility and repairs the CI dependency audit while keeping its security checks active.
+
+[Dependency / CI evidence](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+
 ## Unreleased — pricing, capability and localization audit
 
 - Enumerate all 1,302 configured registry rows against a pinned official

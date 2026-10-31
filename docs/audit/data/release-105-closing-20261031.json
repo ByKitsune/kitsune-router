@@ -1,0 +1,1595 @@
+{
+  "reviewDate": "2026-10-31",
+  "timezone": "Asia/Jakarta",
+  "sourceBase": "52e74934351c5f07efd071c7f76628af971e159a",
+  "sourceVersion": "1.0.5",
+  "upstreamReview": "9router-release105-review-20261031.json",
+  "scope": "Confirmed authentication, credential disclosure, catalog lifecycle/isolation, directional native facts, actual dashboard cancellation and model/stream errors; source1.0.5, dependency/CI repair and dated local test/build/packed-runtime evidence. No claim that all vulnerabilities/model facts/live-account behavior were verified.",
+  "reports": {
+    "authenticationAndCredentials": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "sourceBase": "52e74934351c5f07efd071c7f76628af971e159a",
+      "findings": [
+        {
+          "id": "oidc-login-nonce-binding",
+          "file": "src/lib/auth/oidc.js",
+          "trigger": "OIDC callback has valid state/PKCE cookies, then receives a correctly signed issuer/audience-valid ID token whose nonce is missing or belongs to a different login.",
+          "before": "jose.jwtVerify ignores the unsupported nonce option. The actual callback fixture established an auth_token and redirected to /dashboard for another-login nonce.",
+          "after": "Require a nonempty string expected login nonce, retain real signature/issuer/audience validation, then explicitly compare signed payload.nonce exactly before returning any identity. Callback clears login cookies and never creates dashboard session on mismatch.",
+          "scope": "No claim of arbitrary unsigned-token acceptance or independently exploitable unauthenticated login bypass; existing signature, PKCE, state, SSRF and credential protections remain.",
+          "regressionBefore": {
+            "passed": 2,
+            "failed": 11,
+            "cases": 13
+          },
+          "regressionAfter": "13/13passed, including real ES256/JWK signature verification and actual callback session-cookie behavior."
+        },
+        {
+          "id": "headroom-proxy-first-party-headers",
+          "file": "src/app/api/headroom/proxy/[...path]/route.js",
+          "trigger": "An already authorized local-only Headroom reverse-proxy request is forwarded to the configured compressor. custom-server stamps internal peer proof on requests; CLI callers may also supply the router CLI token.",
+          "before": "Outbound headers included x-kitsune-router-peer-token, x-kitsune-router-cli-token, router password/peer metadata and, for remote compressors, gateway API-key header aliases despite stripping ordinary cookie/Authorization.",
+          "after": "Strip router-private x-kitsune-router-* headers for every target. Remote targets additionally exclude cookie, Authorization, x-api-key, api-key and x-goog-api-key. Retain existing loopback auth-forwarding policy, request correlation, public headers, query/path and manual-redirect semantics. Iterate a snapshot during header deletion.",
+          "scope": "No new unauthenticated SSRF claim: outer local-only gate and operator-selected target policy remain unchanged. This removes disclosure of first-party authentication/peer headers to a separate compressor process.",
+          "regressionBefore": {
+            "passed": 0,
+            "failed": 4,
+            "cases": 4
+          },
+          "regressionAfter": "4/4passed: actual route remote wire-header capture plus127.0.0.1/localhost/IPv6 loopback contract."
+        }
+      ],
+      "alreadyAddressedUpstreamReports": [
+        {
+          "issue": "https://github.com/decolua/9router/issues/4952",
+          "disposition": "Already DNS-pinned public/trusted-local GitLab PAT verification, no redirects or upstream body/transport credential echoes;43real-local-HTTP regressions passed."
+        },
+        {
+          "issue": "https://github.com/decolua/9router/issues/2918",
+          "disposition": "Existing usageRepo uses persistent keyID or SHA256 prefix apiKeyIdentity for day and short-period aggregation; public rows have masked API keys and distinct internal identities. No redundant port."
+        }
+      ],
+      "verification": {
+        "focusedGroup": {
+          "passed": 139,
+          "failed": 0,
+          "files": 7,
+          "maxWorkers": 1,
+          "log": "security-focused-local-network.log"
+        },
+        "lint": "Composed Oxlint/ESLint for four owned files passed --max-warnings=0",
+        "initialEnvironmentFailure": "First adjacent group was blocked binding GitLab loopback fixture (EPERM), producing96passed/43skipped andonefailedsuite. Retried with supported local-network context; all139cases passed. Assertions, timeouts and scopes unchanged.",
+        "liveProviderCalls": false,
+        "customerDatabaseUsed": false,
+        "operatorCredentialsRead": false,
+        "sourceStatus": "frozen; no commit or push by subagent"
+      },
+      "ownedFiles": {
+        "src/lib/auth/oidc.js": "7f64811a8c6cebf2053c5aabda1794f0eacf17b31048b17adefba9de273cb9e7",
+        "src/app/api/headroom/proxy/[...path]/route.js": "0546a74c9f78b6cbae5d5ab6c7e55ce6d950d85d0ca06fec6d04976d96d18efa",
+        "tests/unit/oidc-login-nonce-binding.test.js": "dd0ea23a8893f4eb8f8e8ffcdd28793f2912ceb31893ce5688c3b3a2090f0335",
+        "tests/unit/headroom-proxy-credential-boundary.test.js": "54389d73875ad6a27a81ba023bda07575700100a208f4f33488cb33326315837"
+      }
+    },
+    "modelErrors": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "base": "52e74934351c5f07efd071c7f76628af971e159a",
+      "scope": "Confirmed provider model/translation regressions; source frozen after focused tests",
+      "findings": [
+        {
+          "id": "cloudflare-image-loss",
+          "issue": "https://github.com/decolua/9router/issues/2749",
+          "source": "Fresh Oct30 comment identified current Cloudflare flattenContent rule; no linked PR read or copied",
+          "before": "Core accepted existing provider-specific vision capability, but BaseExecutor final param strip replaced mixed/image-only arrays with text/emptystring. Media block text annotation could also replace actual image.",
+          "after": "Flatten only arrays wholly composed of strings or typed text/input_text parts. Preserve mixed/unknown typed arrays for upstream validation. Existing modality filtering,text-model behavior,null content/toolrole normalization unchanged.",
+          "proof": "Actual handleChatCore -> DefaultExecutor -> proxyAwareFetch serialized payload includes exact typed image and bytes once for Chat and Claude source; borrowed input unchanged; text-only model does not receive image."
+        },
+        {
+          "id": "commandcode-late-failure",
+          "issue": null,
+          "source": "Local source audit; executor only intercepts errors before first semantic NDJSON frame",
+          "before": "After text/tool output, direct NDJSON translator inserted error into assistant prose and emitted successful STOP; consumers recorded success and later finish/usage events could replace failure.",
+          "after": "Emit one terminal structured OpenAI error, preserve existing error fields and usage measured before/onfailure; suppress later chunks/duplicate errors/successful finish. Common error extractor recognizes native statusCode using unchanged numeric bounds.",
+          "proof": "Actual CommandCodeExecutor -> five actual shared SSE consumers (Chat,Messages,Responses,Gemini,AG) retain partial text/13measured tokens, report failedstatus503 exactlyonce, do not emit successful terminal or accept later1998token usage. Missing usage remains absent on decodedwire; one ordinary ChatDONE sentinel retained. No replay/networkretry after late error."
+        },
+        {
+          "id": "commandcode-tool-snapshot",
+          "issue": null,
+          "source": "Local source audit; registered opener was mistaken for emitted argument deltas",
+          "before": "tool-input-start followed by consolidated tool-call without argument deltas silently lost final input and produced empty arguments.",
+          "after": "Track argument emission per native toolID, complete missing arguments once from final snapshot without duplicating ID/name. Retain streamed fragments without appending consolidated duplicate.",
+          "proof": "Actual executor/shared Chat consumer records exact JSON path arguments with single identity/name. Parallel streamed/snapshot/emptyargument tool cases retain independent indices/arguments and suppress duplicated snapshots."
+        }
+      ],
+      "deferred": [
+        {
+          "issue": "https://github.com/decolua/9router/issues/4136",
+          "status": "Unconfirmed for this fork; no speculative signature policy change",
+          "reason": "Old upstream global thoughtSignatureStore module absent; recovery map explicit requestlocal. Inline TSIG caller/native IDs remain opaque and do not carry model-family provenance; a crossfamily replay hypothesis alone does not establish a safe stripping/defaulting contract."
+        },
+        {
+          "id": "native-anthropic-error-dictionary",
+          "status": "Not broadened",
+          "reason": "Parent requested bounded confirmed provider fixes; existing public error dictionary preserved except exact native statusCode field required by confirmed CommandCode503 fixture."
+        }
+      ],
+      "verification": {
+        "initialFixtureCorrection": "One initial text-only assertion expected no separator; actual Core filter has existing newline. Corrected that fixture before production edits.",
+        "beforeConfirmed": {
+          "failed": 11,
+          "passed": 2,
+          "files": 2,
+          "log": "before-confirmed.log"
+        },
+        "afterInitial": {
+          "passed": 27,
+          "files": 4,
+          "log": "after.log"
+        },
+        "newCasesFinal": {
+          "commandcode": 22,
+          "cloudflare": 5,
+          "note": "Parallel argument guard,5counter-free usage cases and8root-review malformed/valid-string usage cases added after original red13case fixture"
+        },
+        "adjacent": {
+          "passed": 189,
+          "failed": 0,
+          "files": 12,
+          "log": "adjacent-final.log",
+          "maxWorkers": 1
+        },
+        "lint": {
+          "status": "passed zero warnings",
+          "log": "lint-final.log",
+          "command": "npm run lint -- <6ownedfiles> --max-warnings=0"
+        },
+        "realProviderInference": false,
+        "realCredentialsUsed": false,
+        "customerDatabaseUsed": false,
+        "fullSuite": "parent-owned final gate",
+        "independentReview": {
+          "finding": "Counter-free usage object could override measured usage/invent zero through genericnormalizer",
+          "before": {
+            "failed": 4,
+            "passed": 10,
+            "files": 1,
+            "log": "usage-review-before.log"
+          },
+          "resolution": "Select only nonarray native usage objects with inputTokens/outputTokens/totalTokens present before normalizing; preserve prior measured counters and explicit zeroes; empty/metadata-only values do not manufacture usage.",
+          "otherIntroducedBlockers": "None found by independentread-onlyreview",
+          "recheck": "Closed: final candidate guard and5cases reviewed; no remaining concrete introduced blocker in3productionfiles."
+        },
+        "rootReview": {
+          "finding": "Counter-presence alone admitted null/bool/malformed/negative native values through legacy zero-normalization.",
+          "before": {
+            "failed": 7,
+            "passed": 15,
+            "files": 1,
+            "log": "usage-malformed-before.log"
+          },
+          "resolution": "Late-error usage selection requires at least one supplied native primarycounter and every supplied inputTokens/outputTokens/totalTokens must be a nonnegative safeinteger number or nonblanknumericstring. Reject invalid candidates, use earlier measured candidate ifavailable, otherwise omit usage; preserve explicitzero/numericstrings.",
+          "covered": "all-null,bool,blank/nonnumeric,negative,decimal,unsafeinteger,mixedvalid+null, prior/no-prior measuredusage; explicitzero and numericstrings.",
+          "sourceStatus": "Frozen after189/189adjacent andlint0warnings; no broader usage dictionary change."
+        }
+      },
+      "ownedFiles": [
+        "open-sse/translator/concerns/paramSupport.js",
+        "open-sse/translator/concerns/responseError.js",
+        "open-sse/translator/response/commandcode-to-openai.js",
+        "tests/unit/commandcode-late-failure.test.js",
+        "tests/unit/cloudflare-vision-wire.test.js",
+        "tests/unit/commandcode-to-openai.test.js"
+      ]
+    },
+    "kiroCopilotLifecycle": {
+      "base": "52e74934351c5f07efd071c7f76628af971e159a",
+      "scope": "Confirmed Kiro/Copilot model-discovery lifecycle and native Kiro fact corrections for source1.0.5; no inference transport/version changes.",
+      "ownedFiles": [
+        "open-sse/services/kiroModels.js",
+        "open-sse/services/copilotModels.js",
+        "tests/unit/kiro-catalog-lifecycle.test.js",
+        "tests/unit/copilot-catalog-lifecycle.test.js",
+        "tests/unit/kiro-live-catalog-facts.test.js"
+      ],
+      "findings": [
+        {
+          "id": "kiro-abort-listener-retention",
+          "before": "Every catalog attempt retained an anonymous listener on the caller AbortSignal, including successful/failed requests; already-aborted callers still dispatched.",
+          "after": "Combined native abort signals, pre-dispatch cancellation checks, and reader-finally cleanup; no extra retained external event listeners."
+        },
+        {
+          "id": "catalog-whole-body-deadline",
+          "before": "Kiro cleared its30s timer immediately after headers then awaited unlimited success/error bodies. Copilot replaced its10s deadline signal when a caller signal was supplied, and failed bodies were not cancelled.",
+          "after": "Existing provider deadlines remain active through the bounded reader; caller/deadline cancellation cancels and unlocks pending bodies; failed bodies are cancelled without consuming unlimited diagnostics; no refresh/retry after cancellation."
+        },
+        {
+          "id": "unbounded-mutable-catalog-cache",
+          "before": "Both per-credential Maps grew indefinitely across fresh token/account churn, had no aggregate size cap and returned mutable cached nested objects.",
+          "after": "Per-adapter256entry and16MiB serialized-result budgets, five-minute expiry sweeping, independent store/delivery snapshots. Kiro refuses to retain an older entry after an oversized fresh observation."
+        },
+        {
+          "id": "credential-egress-import-fencing",
+          "before": "Kiro keyed by profile/client before token, allowing distinct tokens sharing a registered client to share metadata. Copilot keyed only its token without selected connection/GitHub refresh proof. Invalidation/clear/import could publish or serve older observations; refresh could ignore caller scope changes.",
+          "after": "Hashed complete relevant proof/connection scopes, proxy-policy snapshots, Kiro authMethod/clientSecret/region/externalIdP endpoint/scope bindings and deep PSD snapshot; pure DB-import generation guards; no late publication or refresh after cancellation/import/scope changes. Kiro invalidates every matching egress variant rather than deleting an unmatched unsuffixed key."
+        },
+        {
+          "id": "kiro-native-facts",
+          "before": "maxInputTokens was mislabeled as combined contextLength with fabricated200k fallback; output ceilings were dropped, malformed IDs/names could reject the whole lookup, unknown credit multipliers became1x and fractional display values were rounded.",
+          "after": "Positive safe integer maxInputTokens/maxOutputTokens remain separate in fields/capabilities; no unverified combined context alias/sum is invented. Unknown limits/multipliers omitted, native IDs/labels with spaces preserved, malformed IDs skipped/name falls back to ID. Explicit zero/fractional credit multipliers retained exactly without inventing USD pricing."
+        }
+      ],
+      "policy": {
+        "kiroPerRequestDeadlineMs": 30000,
+        "copilotPerRequestDeadlineMs": 10000,
+        "responseBytes": 8388608,
+        "maxEntriesPerAdapter": 256,
+        "serializedCacheBytesPerAdapter": 16777216,
+        "cacheTtlMs": 300000,
+        "redirects": "error",
+        "billingInference": "none",
+        "completenessAndFallback": "existing Kiro/Copilot behavior preserved",
+        "upstreamIdentitiesAndModelIds": "unchanged; fresh account-authorized retired fallback IDs remain usable"
+      },
+      "verification": {
+        "kiroInitialLifecycleBefore": {
+          "failed": 15,
+          "passed": 0
+        },
+        "kiroFinalLifecycle": {
+          "passed": 26,
+          "failed": 0
+        },
+        "copilotLifecycleBefore": {
+          "failed": 14,
+          "passed": 1
+        },
+        "copilotFinalLifecycle": {
+          "passed": 18,
+          "failed": 0
+        },
+        "kiroNativeFactsBefore": {
+          "failed": 20,
+          "passed": 3
+        },
+        "kiroNativeFactsAfter": {
+          "passed": 23,
+          "failed": 0
+        },
+        "additionalImportAndRefreshBindingBefore": {
+          "failed": 11,
+          "passed": 32
+        },
+        "oversizedFreshReplacementBefore": {
+          "failed": 1,
+          "passed": 25
+        },
+        "finalFocused": {
+          "files": 8,
+          "passed": 127,
+          "failed": 0,
+          "newCases": 67,
+          "adjacentExistingCases": 60,
+          "log": "final-focused.log"
+        },
+        "lint": "Composed Oxlint+ESLint on5ownedfiles with --max-warnings=0 passed",
+        "whitespace": "git diff --check passed",
+        "independentReview": "oct31_security reviewed final services, no concrete introduced blocker remains."
+      },
+      "upstreamRelatedReview": {
+        "5188": "Current chatCore already binds caller abort before execute; no matching new early-disconnect bug reproduced.",
+        "4914": "Current StreamController immediately aborts upstream on disconnect; no arbitrary500ms delay transplanted."
+      },
+      "remainingIntegration": "Dashboard Kiro customResolver currently ignores the third request.signal supplied by GET. Parent notified to own narrow API forwarding + actual route regression. Public /v1/models shared-cache cancellation semantics are separate.",
+      "limits": [
+        "Only synthetic native payloads/local strict-relay/owned process fixtures; no operator credentials, real OAuth login, paid inference or customer database used.",
+        "Serialized result budgets bound these caches, not whole-process heap/RSS; no production soak-test claim.",
+        "Other adapters and inference watchdogs remain outside these two service changes. Cursor/Qoder delegated to dependencies agent."
+      ],
+      "sourceStatus": "Frozen; no commit or push from subagent."
+    },
+    "cursorLifecycle": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "capturedAtUtc": "2026-10-31T06:14:25Z",
+      "baseCommit": "52e74934351c5f07efd071c7f76628af971e159a",
+      "ownedFiles": [
+        "open-sse/services/cursorModels.js",
+        "tests/unit/cursor-catalog-lifecycle.test.js"
+      ],
+      "confirmedBefore": {
+        "newCases": 16,
+        "failed": 16,
+        "logSha256": "6ce95ee5fadee75114656621bb1c465f5c1dd7c08cc53ff3e3c7b0c8bd03f049"
+      },
+      "focusedAfter": {
+        "passed": 34,
+        "failed": 0,
+        "files": 3,
+        "newLifecycleCases": 16,
+        "command": "vitest run --config tests/vitest.config.js --maxWorkers=1 tests/unit/cursor-catalog-lifecycle.test.js tests/unit/cursor-models.test.js tests/unit/refresh-client-secondary-wire.test.js"
+      },
+      "lint": "strict composed zero warnings",
+      "whitespace": "passed",
+      "corrections": [
+        "An already-aborted caller does not open nativeHTTP2; caller cancellation remains terminal even with ordinaryError reason.",
+        "CompletedHTTP2 removes itsabortsubscription. Abort,deadline,oversizedresponse andprematureclose destroy unfinished request+session rather than only gracefullyclose.",
+        "Existing10-second metadata deadline nowcovers proxiedheaders+body evenwhen callersignalprovided. Native/proxiedprotobufreaders enforceexisting8MiB sharedbudget; proxiedbodyreader cancels andunlocks onallpaths.",
+        "NativeHTTP2 remainsforunproxiedconnections. Canonicalenabled/url andpoolID shapes now go throughproxyAwareFetch,matchingitsconfigurationpolicy; selectedcredential/proxy snapshots preventsame-turn andmidflightpolicy mutation.",
+        "Serializedmodelcache bounded256entries/16MiB withexpiry purge/LRU,5-minute TTL retained; everyresultindependentcopy.",
+        "Cacheclear/importgeneration fences preventlatepublication andstaleaccountresults. Cachekeys includeexacttoken,machine,ghostmode,connection,endpointandproxybinding."
+      ],
+      "preserved": [
+        "CursorunframedGetUsableModelsprotobufschema andmodelnormalization",
+        "Existingrealclient/checksum/nativeheaders",
+        "No credentialrefresh,paidinference,newmodels,accountselectionpolicy orTLSverificationchanges",
+        "Existingfailure/staticfallbackpolicy exceptcallerabortisnowterminal"
+      ],
+      "limits": [
+        "HTTP2resource teardown verifiedwithnative-shaped EventEmittermocks; existingliteralwire/modeltests andstrictloopbackproxyfixtures covertransportselection. No realCursoraccountacceptance."
+      ],
+      "independentReview": "Read-only security review found no concrete introduced blocker in resource cleanup, proxy/credential/import fencing, bounds or cache isolation.",
+      "sourceStatus": "Frozen; no pending source edits.",
+      "adjacentGroup": {
+        "passed": 128,
+        "files": 8,
+        "log": "../catalog-adjacent.log",
+        "scopeBoundary": "Captured before final Qoder import/default-helper-deadline/native-fact follow-ups. Final Qoder changes have their own72-case gate; root owns final integrated run."
+      }
+    },
+    "qoderLifecycle": {
+      "capturedAtUtc": "2026-10-31T06:23:59.435926+00:00",
+      "base": "52e74934351c5f07efd071c7f76628af971e159a",
+      "ownedFiles": [
+        "open-sse/services/qoderModels.js",
+        "tests/unit/qoder-catalog-lifecycle.test.js"
+      ],
+      "confirmedBefore": {
+        "newCases": 11,
+        "failed": 11,
+        "passed": 0,
+        "log": "before.log"
+      },
+      "verification": {
+        "focusedFiles": 4,
+        "passed": 72,
+        "failed": 0,
+        "newCases": 50,
+        "log": "final.log",
+        "composedStrictLint": "passed --max-warnings=0",
+        "lintLog": "lint-final.log",
+        "configuration": "Synthetic runtime secrets and isolated DATA_DIR; no real provider calls or customer state",
+        "priorSetupCorrection": "Initial32passed/1failed group hit EROFS in an existing publicroutecase becauseDATA_DIR was omitted; rerun used isolated syntheticconfig without changing any assertion"
+      },
+      "fixes": [
+        "Exact access/PAT proof, connection and native signing identity plus proxy policy scope, rather than shared userId/refreshToken",
+        "256-entry/16MiB LRU retention bounds independently for catalog and PAT job caches; expiry sweeping on access; clear drops both stores",
+        "8MiB bounded metadata parsing, deadline remains through stalled responsebody;15s wholecatalog caller deadline includes PATmetadata phase",
+        "Composite-key invalidation across proxy variants; clear/invalidate cancel applicable pendingoperations and prevent late repopulation",
+        "Independent deep copies of models and raw_configs for cache hits, fresh calls and coalesced callers",
+        "Request-owned coalesced transports, per-caller abort subscriptions, lastwaiter cancellation and late responsebody disposal",
+        "Newest force-refresh owns cachepublication; same-turn selectedcredential mutation prevents queuedlookupdispatch",
+        "Rejected bodies canceled; fixedmetadata endpoints reject redirects; PAT responseerror text is not echoed",
+        "Automatic DB import generation observation clears catalog/PAT stores and fences in-flight publication/return even without a subsequent caller",
+        "A direct PAT helper without a caller signal now owns its15s deadline through headers, exchange body and identity lookup; late ignored-abort results cannot warm caches",
+        "Internal import/clear cancellation returns null even under strict proxy without hiding genuine strict-policy failures",
+        "Native normalized UI metadata exposes only positive safe-integer maxInputTokens/maxOutputTokens separately, including valid numeric strings; no inferred contextLength or missing-output zero",
+        "Unknown/malformed/nonfinite/unsafe native limits are omitted only from normalized model facts; rawConfigs retain exact decoded native entries",
+        "Retained payloads and returned copies use structuredClone under unchanged serialized-byte/entry budgets, preserving decoded native Infinity/-0/unknown nested metadata across cache misses/hits without changing chat/signing serializer"
+      ],
+      "preserved": [
+        "1h catalog TTL",
+        "15s metadata deadline",
+        "Exact COSY signing and version headers",
+        "Jobtokenapi2 destination",
+        "Unsigned qoder/<release> UA",
+        "Hidden model_config retention",
+        "Direct resolveQoderCredentials preserves an explicit caller signal exactly; caller owns its deadline",
+        "Existing model IDs/names/isVL/isReasoning policy; UI-only directional limits corrected as explicitly authorized"
+      ],
+      "boundaries": [
+        "No live Qoder login/inference performed",
+        "Default standalone credential and catalog deadlines are15s; explicit caller signals retain their own deadline policy",
+        "Direct credential callers may receive their originally selected exchange result after import, but it cannot warm or overwrite post-import cache state",
+        "Adjacent strict-egress verification delegated to parent to avoid duplicate runs",
+        "RawConfigs preservation refers to decoded native values/shape, not original JSON byte formatting; unchanged native chat/signing code serializes its payload as before",
+        "Cache byte budget measures JSON serialization size as before, not exact JavaScript heap/RSS consumption",
+        "Actual dashboard-route directional-limit tests are owned by root security agent and run separately"
+      ],
+      "sourceStatus": "final frozen after lifecycle/import/default deadline/native parser corrections and stale-comment cleanup",
+      "sha256": {
+        "open-sse/services/qoderModels.js": "e641bc6fae5384b439fa704c935cfbe120a2f1dbfe62982a054fee4257f15294",
+        "tests/unit/qoder-catalog-lifecycle.test.js": "13e8903caf91d2408bc0261c8e25c1fdaa47a515f6d240e3e831b0c1674ed895"
+      },
+      "additionalRedReproductions": {
+        "importLifecycle": "3failed/16passed before import generation fencing; import-before.log",
+        "strictImportCleanup": "1failed/19passed before internal invalidation cancellation correction; import-strict-before.log",
+        "directCredentialDeadline": "2failed/20passed before default standalone PAT deadline; direct-deadline-before.log",
+        "nativeParserAccuracy": "26failed/23passed before native directional-limit correction; parser-before.log. Final matrix includes negative-zero retention added after correction."
+      }
+    },
+    "dashboardIntegration": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "sourceBase": "52e74934351c5f07efd071c7f76628af971e159a",
+      "problem": "Dashboard GET already passed request.signal as third custom-resolver argument, but Claude/Cursor/Kiro/Qoder/Kimchi wrappers discarded it. Dashboard disconnects therefore did not reach cancellation-aware metadata services; Kiro selected connection identity and directional limits were also lost at the wrapper boundary.",
+      "fixes": [
+        "Check pre-aborted request before lookup and after proxy resolution; preserve existing authorization/status/fallback policy for active requests.",
+        "Forward the request signal to supported Claude/Cursor/Kiro/Qoder/Kimchi catalog helpers; do not return successful static suggestions after custom-resolver cancellation.",
+        "Preserve selected connection id in Cursor/Kiro/Qoder/Kimchi service credential snapshots.",
+        "Check Kiro caller signal before a refreshed-credential commit and after completion, before mutating the selected connection or retrying the catalog.",
+        "Preserve native maxInputTokens/maxOutputTokens through Kiro and Qoder mapping without inventing a combined context; retain canonical qoder/<key> IDs and existing boolean/name policy."
+      ],
+      "verification": {
+        "before": {
+          "failed": 15,
+          "passed": 0,
+          "log": "dashboard-cancellation-before.log"
+        },
+        "after": {
+          "passed": 163,
+          "failed": 0,
+          "files": 7,
+          "newCases": 15,
+          "log": "dashboard-cancellation-final.log",
+          "maxWorkers": 1
+        },
+        "lint": "Composed Oxlint/ESLint --max-warnings=0 for two integration files passed",
+        "testScope": "Actual dashboard route + actual catalog services; synthetic persisted-state/auth doubles and fake transport only. Covers5preabort no-dispatch cases,4stalledbody cancellation cases,2Kiro refresh/cancellation/commit cases,1connection-scope cache case,3native directional-limit cases.",
+        "intermediateCorrection": "New Qoder fixture initially assumed a synthesized capabilities map. Final native helper contract exposes directional maxInputTokens/maxOutputTokens; fixture and wrapper now preserve those exact fields while retaining all absence/context assertions.",
+        "liveProviderCalls": false,
+        "customerDatabaseUsed": false
+      },
+      "limitations": [
+        "A credential commit already in progress when the caller disconnects may complete; the checks prevent starting one after observed cancellation and prevent later selected-object mutation/retry.",
+        "Signal forwarding does not claim that all older configured/generic adapters were converted to bounded catalog services.",
+        "Kimchi already accepted a signal; this integration forwards it without redesigning that service."
+      ],
+      "sourceStatus": "frozen",
+      "ownedFiles": {
+        "src/app/api/providers/[id]/models/route.js": "9d2892a89474bf48b3cfb6b9e88d8fb7bcfea492cd85c2bc87802c0fb630ff50",
+        "tests/unit/dashboard-catalog-cancellation.test.js": "2673a27075d22bacd259b18814d8bdbd5522ca008589c46ccab2901d9f0b6615"
+      }
+    },
+    "independentCatalogReview": {
+      "capturedAtUtc": "2026-10-31T06:25:44.722759+00:00",
+      "mode": "Read-only independent review; service production source owned and edited by other agents.",
+      "reviewed": [
+        "open-sse/services/kiroModels.js",
+        "open-sse/services/copilotModels.js",
+        "open-sse/services/cursorModels.js",
+        "open-sse/services/qoderModels.js"
+      ],
+      "conclusion": "No concrete introduced blocker remains after the reported corrections.",
+      "areas": [
+        "Exact credential/native identity/connection and proxy cache scope",
+        "DB import/private-generation fences for cached and pending observations",
+        "Deadline through headers/body, bounded parsing and rejected-body disposal",
+        "Per-caller abort subscription cleanup; HTTP2 stream/session destruction",
+        "Coalesced Qoder waiter isolation, force-refresh ownership and clear/invalidate cancellation",
+        "Immutable caller delivery and bounded serialized cache retention",
+        "Kiro/Qoder separate directional limits and unknown native facts"
+      ],
+      "reviewCorrectionsClosed": [
+        "Kiro/Copilot lacked committed DB import generation observation; owners added lazy clear and pending/pre-refresh fences plus regressions.",
+        "Kiro mutable refresh auth binding fields now included in cache proof and deep-selected PSD snapshot.",
+        "Qoder direct PAT helper without a supplied caller signal lacked a wall-clock deadline; owner added default15s deadline through exchange/identity metadata and late-result guards.",
+        "Dashboard wrapper cancellation/connection identity/limit propagation was corrected in the separately assigned integration change."
+      ],
+      "independentFocusedGate": {
+        "passed": 82,
+        "failed": 0,
+        "files": 4,
+        "log": "independent-catalog-lifecycle-gate.log",
+        "note": "This gate preceded the separately requested final Qoder native-facts follow-up; final integration group against the final helpers passed163/163 across7files."
+      },
+      "finalIntegrationGate": {
+        "passed": 163,
+        "failed": 0,
+        "files": 7,
+        "log": "dashboard-cancellation-final.log"
+      },
+      "boundaries": [
+        "No live account OAuth/catalog/inference acceptance checked.",
+        "Qoder direct credential callers may receive their originally selected exchange result after an import, but cannot warm or overwrite post-import caches.",
+        "These are serialized retention bounds, not measured process RSS or a proof that every application resource is leak-free."
+      ],
+      "sourceSha256": {
+        "open-sse/services/kiroModels.js": "11378da1a3a19d70d9d47c1c19f0c261a2e22e86be09b0d4430f248507d76fd8",
+        "open-sse/services/copilotModels.js": "ffe7cbcfebd053f9c7412ba118dce03e9b3690e2ef2e3242ebb6c47411a1c13a",
+        "open-sse/services/cursorModels.js": "6381f10fe44c4d9fa979e5f01232663adb075c3e495ec004acf5c922745848a2",
+        "open-sse/services/qoderModels.js": "e641bc6fae5384b439fa704c935cfbe120a2f1dbfe62982a054fee4257f15294"
+      }
+    },
+    "historicalInitialDependencyAudit": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "capturedAtUtc": "2026-10-31T06:03:05Z",
+      "baseCommit": "52e74934351c5f07efd071c7f76628af971e159a",
+      "scope": "Read-only locked dependency audits of root,CLI,tests,gitbook and static release control review. No npm auditfix, source edits, dependency mutation, credential reads or publication.",
+      "runtime": {
+        "node": "v24.19.0",
+        "npm": "11.9.0",
+        "registry": "https://registry.npmjs.org/",
+        "network": "package_managers restricted policy,enforced; inherited proxy and TLS retained"
+      },
+      "auditReports": {
+        "root": {
+          "command": "npm audit --json --ignore-scripts",
+          "exitCode": 1,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 8,
+            "high": 0,
+            "critical": 0,
+            "total": 8
+          },
+          "dependencies": {
+            "prod": 203,
+            "dev": 324,
+            "optional": 89,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 567
+          },
+          "reportSha256": "fa1df9cdb4d64d4fa32dbc46b499bab7e7ad13ee61a88731800a23414e9a2f6f"
+        },
+        "root-production": {
+          "command": "npm audit --omit=dev --json --ignore-scripts",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencies": {
+            "prod": 203,
+            "dev": 324,
+            "optional": 89,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 567
+          },
+          "reportSha256": "99f67a3d6165636f5734761cd7c3801a24cd5cca14d64818282c8afa80ce9c49"
+        },
+        "cli": {
+          "command": "npm audit --json --ignore-scripts",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencies": {
+            "prod": 9,
+            "dev": 27,
+            "optional": 26,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 35
+          },
+          "reportSha256": "d02230cfc67a697fb5ffa6b6d5070fbb20610bf47fc65ea6c5efadc153129070"
+        },
+        "tests": {
+          "command": "npm audit --json --ignore-scripts",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencies": {
+            "prod": 1,
+            "dev": 60,
+            "optional": 27,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 60
+          },
+          "reportSha256": "46f8c38613596e1832520e16bb059c5df50a62a293c7631ac1a98e33d2dfa0e5"
+        },
+        "gitbook": {
+          "command": "npm audit --json --ignore-scripts",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencies": {
+            "prod": 130,
+            "dev": 73,
+            "optional": 93,
+            "peer": 2,
+            "peerOptional": 0,
+            "total": 242
+          },
+          "reportSha256": "9f5cafbbfdc4f6cdd843b57299dd061604fcb881c31b0ab5fff438dfab5423f3"
+        }
+      },
+      "rootDependencyGraphUnchangedApartFromSourceVersionBump": true,
+      "confirmedAdvisory": {
+        "id": "GHSA-g3hv-75wg-m249",
+        "cve": "CVE-2026-118764",
+        "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+        "title": "minimatch has potential denial of service via globparts amplification",
+        "severity": "moderate",
+        "publishedDate": "2026-10-27",
+        "githubReviewedAndUpdated": "2026-10-30",
+        "affectedRange": "<11.0.1",
+        "patchedVersion": "11.0.1",
+        "publisherLatest": "11.0.3",
+        "descriptionBoundary": "Attacker-controlled pattern amplification in firstPhasePreProcess when optimizationLevel>=2 in10.2.6,followed by quadratic second-phase processing.",
+        "advisorySha256": "3c1f2693d0ff4b48b860642da5de1203c31e1b12541e1a138984b5020d8c18e2",
+        "installedNodes": [
+          {
+            "path": "node_modules/@eslint/config-array/node_modules/minimatch",
+            "version": "10.2.6",
+            "dev": true,
+            "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-10.2.6.tgz",
+            "integrity": "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A=="
+          },
+          {
+            "path": "node_modules/eslint/node_modules/minimatch",
+            "version": "10.2.6",
+            "dev": true,
+            "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-10.2.6.tgz",
+            "integrity": "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A=="
+          },
+          {
+            "path": "node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-3.1.5.tgz",
+            "integrity": "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="
+          }
+        ],
+        "auditCascadeEntries": 8,
+        "applicationExposure": "All affected nodes are dev:true; production --omit=dev audit has0findings. No runtime dependency on this matcher was found.",
+        "consumerInspection": [
+          "@eslint/config-array0.23.5 MINIMATCH_OPTIONS setsdot:true only; subsequentoptions do not selectoptimizationLevel>=2.",
+          "ESLint10.12.0 andlistedplugins have no optimizationLevel consumerassignment; minimatch10.2.6 source default is1.",
+          "Legacyplugins import callable require(minimatch)3.1.5; minimatch11 CommonJS exportshape is an object,so universalmajoroverride is not a safe drop-in."
+        ],
+        "disposition": "Confirmed development dependency advisory and known mandatory full-audit CI blocker. No compatible publisher fix currently available; retain and disclose. Do not downgrade tooling or universaloverride minimatch to11; any compatibility migration needs distinct tests and review.",
+        "smallestFutureFix": "Adopt a publisher-compatible patched ESLint/plugin dependency set or explicit compatibility change with full lint policy regression. Current exposed production runtime has no npm auditfinding; this does not prove absence of all vulnerabilities."
+      },
+      "releaseControls": {
+        "status": "No concrete new blocker found by staticreview",
+        "publicationTrigger": "workflow_dispatch only; ordinary masterpush does notpublish",
+        "reviewedPaths": [
+          ".github/workflows/release.yml",
+          ".github/workflows/docker-publish.yml",
+          "scripts/release-publication-helpers.mjs",
+          "scripts/check-release-version.mjs"
+        ],
+        "preservedBoundaries": [
+          "Exactrepository/tag/SHA andfour-package versionchecks before dependencyinstallation",
+          "Recoveredtarballs boundto workflow/tag/SHA andintegrity",
+          "Registry readback before success; no blind publishretry; immutableartifacts preserved"
+        ],
+        "versionConsistencyFollowup": "Update workflowdispatch defaults fromv1.0.2 tov1.0.5 withsourcebump; this is releaseconsistency,not a securitydefect.",
+        "externalWrites": false,
+        "testsRun": false
+      },
+      "limitations": [
+        "npm auditcovers known advisorydatabase results atcapturetime,not all undisclosed vulnerabilities.",
+        "No live registry publication, GHCRvisibility change, usertoken replacement or deployment attempted.",
+        "No high/critical findings; root full auditremains8moderate cascade entries and mustnotbe describedaszero.",
+        "Full root npm audit remains a mandatory CI blocker despite clean production audit. Sourceversion bump is not permission to publish or declare release gatesgreen."
+      ],
+      "publisherCompatibleFixSearch": {
+        "capturedAtUtc": "2026-10-31T06:04:09Z",
+        "currentStablePackages": {
+          "current--eslint-community-eslint-utils.json": {
+            "sha256": "8d0e2898ed3386352c45dc2126a3c485bc9777396278da24dd941f8bcc6886ff",
+            "version": "4.10.1",
+            "dist-tags": {
+              "beta": "4.0.0-beta.1",
+              "latest": "4.10.1",
+              "alpha": "5.0.0-alpha.5"
+            },
+            "dependencies": {
+              "eslint-visitor-keys": "^3.4.3"
+            },
+            "peerDependencies": {
+              "eslint": "^6.0.0 || ^7.0.0 || >=8.0.0"
+            },
+            "engines": {
+              "node": "^12.22.0 || ^14.17.0 || >=16.0.0"
+            },
+            "time.modified": "2026-07-22T19:30:18.416Z"
+          },
+          "current--eslint-compat.json": {
+            "sha256": "c00c370c80fd18e3a9a3cdbbb82b51e6cd7df2f4067c46d12839eb9159a750b9",
+            "version": "2.1.1",
+            "dist-tags": {
+              "latest": "2.1.1"
+            },
+            "dependencies": {
+              "@eslint/core": "^1.2.1"
+            },
+            "peerDependencies": {
+              "eslint": "^8.40 || 9 || 10"
+            },
+            "engines": {
+              "node": "^20.19.0 || ^22.13.0 || >=24"
+            },
+            "time.modified": "2026-09-03T18:09:59.018Z"
+          },
+          "current--eslint-config-array.json": {
+            "sha256": "ace18383732b0b754c35e16efac0b49877e01608591cd42d57171d83eecffe1c",
+            "version": "0.23.5",
+            "dist-tags": {
+              "maintenance": "0.21.2",
+              "latest": "0.23.5"
+            },
+            "dependencies": {
+              "@eslint/object-schema": "^3.0.5",
+              "debug": "^4.3.1",
+              "minimatch": "^10.2.4"
+            },
+            "engines": {
+              "node": "^20.19.0 || ^22.13.0 || >=24"
+            },
+            "time.modified": "2026-04-08T09:22:38.084Z"
+          },
+          "current-eslint-plugin-import.json": {
+            "sha256": "cea627b295c0bb0987370bf8deefac105a0bf80cdb5c0a46166be8c621e24f07",
+            "version": "2.32.0",
+            "dist-tags": {
+              "next": "2.0.0-beta.1",
+              "latest": "2.32.0"
+            },
+            "dependencies": {
+              "@rtsao/scc": "^1.1.0",
+              "array-includes": "^3.1.9",
+              "array.prototype.findlastindex": "^1.2.6",
+              "array.prototype.flat": "^1.3.3",
+              "array.prototype.flatmap": "^1.3.3",
+              "debug": "^3.2.7",
+              "doctrine": "^2.1.0",
+              "eslint-import-resolver-node": "^0.3.9",
+              "eslint-module-utils": "^2.12.1",
+              "hasown": "^2.0.2",
+              "is-core-module": "^2.16.1",
+              "is-glob": "^4.0.3",
+              "minimatch": "^3.1.2",
+              "object.fromentries": "^2.0.8",
+              "object.groupby": "^1.0.3",
+              "object.values": "^1.2.1",
+              "semver": "^6.3.1",
+              "string.prototype.trimend": "^1.0.9",
+              "tsconfig-paths": "^3.15.0"
+            },
+            "peerDependencies": {
+              "eslint": "^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9"
+            },
+            "engines": {
+              "node": ">=4"
+            },
+            "time.modified": "2025-06-20T21:59:10.022Z"
+          },
+          "current-eslint-plugin-jsx-a11y.json": {
+            "sha256": "5b1f06a650a3a95b1bb9cece985715eb320553469197eebd9f6d220a013b3cb1",
+            "version": "6.10.2",
+            "dist-tags": {
+              "v5-backport": "5.1.1",
+              "latest": "6.10.2"
+            },
+            "dependencies": {
+              "aria-query": "^5.3.2",
+              "array-includes": "^3.1.8",
+              "array.prototype.flatmap": "^1.3.2",
+              "ast-types-flow": "^0.0.8",
+              "axe-core": "^4.10.0",
+              "axobject-query": "^4.1.0",
+              "damerau-levenshtein": "^1.0.8",
+              "emoji-regex": "^9.2.2",
+              "hasown": "^2.0.2",
+              "jsx-ast-utils": "^3.3.5",
+              "language-tags": "^1.0.9",
+              "minimatch": "^3.1.2",
+              "object.fromentries": "^2.0.8",
+              "safe-regex-test": "^1.0.3",
+              "string.prototype.includes": "^2.0.1"
+            },
+            "peerDependencies": {
+              "eslint": "^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9"
+            },
+            "engines": {
+              "node": ">=4.0"
+            },
+            "time.modified": "2024-10-26T04:45:18.259Z"
+          },
+          "current-eslint-plugin-react.json": {
+            "sha256": "6f6a77c6ab0be3ee1d0b39d4578373c47a116438e435bfabfab57041efcb76ed",
+            "version": "7.37.5",
+            "dist-tags": {
+              "next": "7.8.0-rc.0",
+              "latest": "7.37.5"
+            },
+            "dependencies": {
+              "array-includes": "^3.1.8",
+              "array.prototype.findlast": "^1.2.5",
+              "array.prototype.flatmap": "^1.3.3",
+              "array.prototype.tosorted": "^1.1.4",
+              "doctrine": "^2.1.0",
+              "es-iterator-helpers": "^1.2.1",
+              "estraverse": "^5.3.0",
+              "hasown": "^2.0.2",
+              "jsx-ast-utils": "^2.4.1 || ^3.0.0",
+              "minimatch": "^3.1.2",
+              "object.entries": "^1.1.9",
+              "object.fromentries": "^2.0.8",
+              "object.values": "^1.2.1",
+              "prop-types": "^15.8.1",
+              "resolve": "^2.0.0-next.5",
+              "semver": "^6.3.1",
+              "string.prototype.matchall": "^4.0.12",
+              "string.prototype.repeat": "^1.0.0"
+            },
+            "peerDependencies": {
+              "eslint": "^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7"
+            },
+            "engines": {
+              "node": ">=4"
+            },
+            "time.modified": "2025-04-03T20:01:16.154Z"
+          },
+          "current-eslint.json": {
+            "sha256": "2d46fba86792b7e20939ed21e167c5879c19d2f836719c2e0c764f595fe76cc5",
+            "version": "10.14.0",
+            "dist-tags": {
+              "es6jsx": "0.11.0-alpha.0",
+              "next": "10.0.0-rc.2",
+              "maintenance": "9.39.5",
+              "latest": "10.14.0"
+            },
+            "dependencies": {
+              "ajv": "^6.14.0",
+              "debug": "^4.3.2",
+              "espree": "^11.2.0",
+              "ignore": "^5.2.0",
+              "esquery": "^1.7.0",
+              "esutils": "^2.0.2",
+              "find-up": "^5.0.0",
+              "is-glob": "^4.0.0",
+              "minimatch": "^10.2.6",
+              "optionator": "^0.9.3",
+              "cross-spawn": "^7.0.6",
+              "glob-parent": "^6.0.2",
+              "imurmurhash": "^0.1.4",
+              "@eslint/core": "^1.2.1",
+              "eslint-scope": "^9.1.2",
+              "@humanfs/node": "^0.16.8",
+              "@types/estree": "^1.0.6",
+              "fast-deep-equal": "^3.1.3",
+              "natural-compare": "^1.4.0",
+              "file-entry-cache": "11.1.5 || >11.1.6 <12",
+              "@eslint/plugin-kit": "^0.7.3",
+              "eslint-visitor-keys": "^5.0.1",
+              "@eslint/config-array": "^0.23.5",
+              "@humanwhocodes/retry": "^0.4.2",
+              "escape-string-regexp": "^4.0.0",
+              "@eslint/config-helpers": "^0.7.0",
+              "@eslint-community/regexpp": "^4.12.2",
+              "@eslint-community/eslint-utils": "^4.8.0",
+              "@humanwhocodes/module-importer": "^1.0.1",
+              "json-stable-stringify-without-jsonify": "^1.0.1"
+            },
+            "peerDependencies": {
+              "jiti": "*"
+            },
+            "engines": {
+              "node": "^20.19.0 || ^22.13.0 || >=24"
+            },
+            "time.modified": "2026-10-30T14:12:27.351Z"
+          }
+        },
+        "minimatchChannels": {
+          "legacy-v8": "8.0.7",
+          "legacy-v7": "7.4.9",
+          "legacy-v6": "6.2.3",
+          "legacy-v5": "5.1.9",
+          "legacy-v4": "4.2.6",
+          "legacy-v3": "3.1.5",
+          "legacy-v9": "9.0.9",
+          "latest": "11.0.3"
+        },
+        "result": "No publisher-current compatible update removes the advisory. ESLint10.14.0 remains on minimatch10; current config-array remains10; current import/react/a11y plugins remain callable minimatch3; all legacy channels remain<11.0.1.",
+        "mandatoryCiEffect": "Full root npm audit --audit-level=low remains red. Production --omit=dev clean does not satisfy or replace that mandatory gate. Do not weaken severity, omit dev fromCI, suppress the advisory or call the release fullyverified."
+      },
+      "mandatoryCiAudit": {
+        "command": "npm audit --audit-level=low --json --ignore-scripts",
+        "exitCode": 1,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 8,
+          "high": 0,
+          "critical": 0,
+          "total": 8
+        },
+        "sha256": "3e1a75ef9a749074f472063fca92f6bf87353994fe680e515d55938e9a53b0c4",
+        "workflow": ".github/workflows/ci.yml:79"
+      },
+      "patchedMajorArtifact": {
+        "version": "11.0.3",
+        "url": "https://registry.npmjs.org/minimatch/-/minimatch-11.0.3.tgz",
+        "npmSha512": "sha512-iny/40PEGkNJQ5/Pv6z3nm6FbRAby32GeZRjCUJk2WnNDbgPSTcdI+DDvLqsgBdD4cD5sMtMheqPPnehCCa8Nw==",
+        "integrityVerified": true,
+        "commonJsIndexSha256": "235c5458355f1449cc100f1cea1a43d45f788a4feb524a83497aa146bea88f32",
+        "callability": "Named exports.minimatch; no module.exports=minimatch function, unlike installedlegacy3.1.5. Verified from integrity-checked publisherartifact without executingit."
+      },
+      "additionalAuthorizedLifecycleWork": {
+        "sourceStatus": "Frozen",
+        "files": [
+          "open-sse/services/cursorModels.js",
+          "open-sse/services/qoderModels.js",
+          "tests/unit/cursor-catalog-lifecycle.test.js",
+          "tests/unit/qoder-catalog-lifecycle.test.js"
+        ],
+        "cursorEvidence": "cursor/report.json",
+        "qoderEvidence": "qoder/report.json",
+        "cursorFocused": {
+          "passed": 34,
+          "files": 3,
+          "newCases": 16,
+          "strictLint": "passed0warnings"
+        },
+        "qoderFocused": {
+          "passed": 72,
+          "files": 4,
+          "newCases": 50,
+          "strictLint": "passed0warnings"
+        },
+        "scopeBoundary": "Separate authorized source fixes after read-only dependency audit. No manifest/lock mutation by this agent. Root handles full regression/build, publication status and existing advisory CI blocker."
+      }
+    },
+    "dependencyUpgradeAndCiRepair": {
+      "evidenceFile": "dependency-refresh-105-20261031.json",
+      "historicalInitialDisposition": "Initial eight moderate minimatch cascade entries were reproduced and recorded before the later authorized dependency migration; preserve that dated diagnosis, not a current unresolved gate.",
+      "currentDisposition": "Resolved: patched minimatch11.0.3 and the scoped legacy-plugin compatibility adapter retain the mandatory low-threshold full audit and lint policies. All four final full audits exit0 with zero known findings.",
+      "currentAudits": {
+        "root": {
+          "command": "npm audit --audit-level=low --json",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencyCounts": {
+            "prod": 193,
+            "dev": 316,
+            "optional": 89,
+            "peer": 2,
+            "peerOptional": 0,
+            "total": 551
+          },
+          "evidence": {
+            "artifact": "dependency-refresh/final-root-audit.json",
+            "sha256": "c46aa8af55d8f9a6773c370eec555969dc5247a25f66dc0671922c076f0c8736"
+          },
+          "exitEvidence": {
+            "artifact": "dependency-refresh/final-root-audit.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        },
+        "cli": {
+          "command": "npm audit --audit-level=low --json",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencyCounts": {
+            "prod": 9,
+            "dev": 27,
+            "optional": 26,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 35
+          },
+          "evidence": {
+            "artifact": "dependency-refresh/final-cli-audit.json",
+            "sha256": "d02230cfc67a697fb5ffa6b6d5070fbb20610bf47fc65ea6c5efadc153129070"
+          },
+          "exitEvidence": {
+            "artifact": "dependency-refresh/final-cli-audit.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        },
+        "tests": {
+          "command": "npm audit --audit-level=low --json",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencyCounts": {
+            "prod": 1,
+            "dev": 60,
+            "optional": 27,
+            "peer": 0,
+            "peerOptional": 0,
+            "total": 60
+          },
+          "evidence": {
+            "artifact": "dependency-refresh/final-tests-audit.json",
+            "sha256": "46f8c38613596e1832520e16bb059c5df50a62a293c7631ac1a98e33d2dfa0e5"
+          },
+          "exitEvidence": {
+            "artifact": "dependency-refresh/final-tests-audit.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        },
+        "docs": {
+          "command": "npm audit --audit-level=low --json",
+          "exitCode": 0,
+          "vulnerabilities": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "dependencyCounts": {
+            "prod": 127,
+            "dev": 73,
+            "optional": 93,
+            "peer": 2,
+            "peerOptional": 0,
+            "total": 239
+          },
+          "evidence": {
+            "artifact": "dependency-refresh/final-docs-audit.json",
+            "sha256": "0a62649ed28f7976dacbba154e7186731d8250b793d76a630c3fb95a21e1a4b9"
+          },
+          "exitEvidence": {
+            "artifact": "dependency-refresh/final-docs-audit.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        }
+      },
+      "remoteCiBoundary": "The earlier failedCI run remains historical at its originalSHA. No new remote CI success or publication is asserted here.",
+      "initialAdvisoryResolutionStatus": "resolved",
+      "supersedesHistoricalReportKey": "historicalInitialDependencyAudit"
+    }
+  },
+  "versionSynchronization": {
+    "method": "node scripts/bump-version.mjs 1.0.5",
+    "packages": [
+      "root",
+      "cli",
+      "tests",
+      "gitbook"
+    ],
+    "manifestAndBothLockVersions": "1.0.5",
+    "dependencyGraphChanged": true,
+    "oldTagsMoved": false,
+    "clientVersionsChanged": false,
+    "dependencyRefreshEvidence": "dependency-refresh-105-20261031.json"
+  },
+  "finalVerification": {
+    "status": "All final local source/test/lint/audit/docs, production browser and rebuilt candidate-package/runtime gates passed. Publication was not attempted.",
+    "dependencyGatePassed": true,
+    "fullVitest": {
+      "status": "passed",
+      "passed": 10434,
+      "skipped": 100,
+      "failed": 0,
+      "files": 830,
+      "total": 10534,
+      "runnerSuccess": true,
+      "failedSuites": 0,
+      "exitCode": 0,
+      "evidence": {
+        "artifact": "vitest-after-workspace.json",
+        "sha256": "d0dc103457f6425c1b0064d4c5532ee76c301626b99e71a531174854334bc5f2"
+      },
+      "exitEvidence": {
+        "artifact": "vitest-after-workspace.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "strictReportValidator": {
+        "exitCode": 0,
+        "verifiedAtUtc": "2026-10-31T08:27:05.173173+00:00",
+        "command": "node tests/__baseline__/verify-no-regression.mjs <vitest-after-workspace.json>"
+      },
+      "scope": "Final application, auth, catalogs, dependency and packaging sources, including the two added workspace postbuild regressions."
+    },
+    "strictLint": {
+      "status": "passed",
+      "exitCode": 0,
+      "command": "npm run lint -- --max-warnings=0",
+      "evidence": {
+        "artifact": "lint-final-source.log",
+        "sha256": "03aecd5268af29933aeff8ed9b574860e1c22c6d0b87656d5b485d130bb0151a"
+      },
+      "exitEvidence": {
+        "artifact": "lint-final-source.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      }
+    },
+    "fullDependencyAudits": {
+      "root": {
+        "command": "npm audit --audit-level=low --json",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencyCounts": {
+          "prod": 193,
+          "dev": 316,
+          "optional": 89,
+          "peer": 2,
+          "peerOptional": 0,
+          "total": 551
+        },
+        "evidence": {
+          "artifact": "dependency-refresh/final-root-audit.json",
+          "sha256": "c46aa8af55d8f9a6773c370eec555969dc5247a25f66dc0671922c076f0c8736"
+        },
+        "exitEvidence": {
+          "artifact": "dependency-refresh/final-root-audit.exit",
+          "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "cli": {
+        "command": "npm audit --audit-level=low --json",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencyCounts": {
+          "prod": 9,
+          "dev": 27,
+          "optional": 26,
+          "peer": 0,
+          "peerOptional": 0,
+          "total": 35
+        },
+        "evidence": {
+          "artifact": "dependency-refresh/final-cli-audit.json",
+          "sha256": "d02230cfc67a697fb5ffa6b6d5070fbb20610bf47fc65ea6c5efadc153129070"
+        },
+        "exitEvidence": {
+          "artifact": "dependency-refresh/final-cli-audit.exit",
+          "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "tests": {
+        "command": "npm audit --audit-level=low --json",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencyCounts": {
+          "prod": 1,
+          "dev": 60,
+          "optional": 27,
+          "peer": 0,
+          "peerOptional": 0,
+          "total": 60
+        },
+        "evidence": {
+          "artifact": "dependency-refresh/final-tests-audit.json",
+          "sha256": "46f8c38613596e1832520e16bb059c5df50a62a293c7631ac1a98e33d2dfa0e5"
+        },
+        "exitEvidence": {
+          "artifact": "dependency-refresh/final-tests-audit.exit",
+          "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "docs": {
+        "command": "npm audit --audit-level=low --json",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencyCounts": {
+          "prod": 127,
+          "dev": 73,
+          "optional": 93,
+          "peer": 2,
+          "peerOptional": 0,
+          "total": 239
+        },
+        "evidence": {
+          "artifact": "dependency-refresh/final-docs-audit.json",
+          "sha256": "0a62649ed28f7976dacbba154e7186731d8250b793d76a630c3fb95a21e1a4b9"
+        },
+        "exitEvidence": {
+          "artifact": "dependency-refresh/final-docs-audit.exit",
+          "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      }
+    },
+    "documentationBuild": {
+      "status": "passed",
+      "exitCode": 0,
+      "exportedHtmlPages": 109,
+      "localizedClosingNotes": 5,
+      "localizedContentCheck": "Version1.0.5 and dependency-audit27 link verified in all five exported locale changelog pages.",
+      "earlierRendererTestsPassed": 18,
+      "evidence": {
+        "artifact": "docs-build-final.log",
+        "sha256": "31dec360566f826665eae85120d46e955d1dbe4555fbb376ee40c0f5b44d28df"
+      },
+      "exitEvidence": {
+        "artifact": "docs-build-final.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      }
+    },
+    "candidatePackageBuild": {
+      "status": "passed",
+      "exitCode": 0,
+      "command": "npm run cli:pack",
+      "framework": "Next.js16.4.3 production Webpack",
+      "scope": "Rebuilt after both cached x509 async import and workspace standalone asset-copy corrections; unpublished local CLI tarball.",
+      "evidence": {
+        "artifact": "package-build-final-workspace.log",
+        "sha256": "24496763cd6e7568247330886bd0ea876dd46bcb8f3f22338eb2036338327257"
+      },
+      "exitEvidence": {
+        "artifact": "package-build-final-workspace.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      }
+    },
+    "recordedPackedRuntimeSmoke": {
+      "version": "1.0.5",
+      "tarball": "bykitsune-router-1.0.5.tgz",
+      "sha256": "90ecff41ed37d4e6afa194d88e25105601576583a41d070ee5ea6bc8d2e3e815",
+      "bytes": 22659010,
+      "entries": 3220,
+      "privateRuntimeEntries": 0,
+      "packedPki": {
+        "version": "3.1.0",
+        "generationAndSignature": "passed",
+        "legacySelfsignedAbsent": true
+      },
+      "cliVersion": "passed",
+      "cliHelp": "passed",
+      "packedStandaloneHealth": {
+        "ok": true,
+        "database": true,
+        "version": "1.0.5"
+      },
+      "gracefulExitCode": 0,
+      "scope": "Local unpacked tarball fixture; synthetic isolated state; not npm install/postinstall or publication acceptance.",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": {
+        "artifact": "package-smoke.json",
+        "sha256": "c67476c16a6bd8b4e87bff60a45056bd956f459e147397c5be6127273b71a743"
+      },
+      "exitEvidence": {
+        "artifact": "package-smoke-final-workspace.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      }
+    },
+    "otherLocalChecks": {
+      "providerBaselineEntries": 83,
+      "aliasBaselineTokens": 117,
+      "providerAliasOAuthBaselines": "passed byte-equal against reviewed baselines",
+      "installedDirectDependencies": {
+        "root": 48,
+        "tests": 2,
+        "cli": 5,
+        "gitbook": 12
+      },
+      "fourPackageVersionGuard": "passed1.0.5",
+      "brandIdentity": "passed",
+      "i18nSourceLiterals": 1892,
+      "indonesianMissingTranslations": 0,
+      "commonJsHttp2CompatibilityTestsPassed": 1,
+      "verificationSource": "Parent final cheap-gate execution; no remoteCI outcome inferred."
+    },
+    "productionBrowser": {
+      "status": "passed",
+      "executedCases": 27,
+      "passed": 27,
+      "failed": 0,
+      "exitCode": 0,
+      "acceptedAsPassed": true,
+      "workers": 2,
+      "command": "NEXT_DIST_DIR=.next-cli-build PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium CI=1 npm run test:ui",
+      "scope": "Production standalone server, isolated synthetic database, no provider credentials or paid inference.",
+      "evidence": {
+        "artifact": "browser-after-workspace-fix.log",
+        "sha256": "31fb089eb949597618437ab04720ece65095ebd33ec61d38f58207d563637129"
+      },
+      "exitEvidence": {
+        "artifact": "browser-after-workspace-fix.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      }
+    },
+    "pendingGates": [],
+    "remoteCi": "New remote CI is checked after the authorized push; not inferred from local results.",
+    "publicationAttempted": false,
+    "previousFullVitestBeforeWorkspaceCopyCorrection": {
+      "startedAtUtc": "2026-10-31T07:51:39.407Z",
+      "finishedAtUtc": "2026-10-31T07:55:42.306Z",
+      "passed": 10432,
+      "skipped": 100,
+      "failed": 0,
+      "files": 830,
+      "total": 10532,
+      "exitCode": 0,
+      "strictReportValidator": "passed; complete collection and matching assertion totals independently checked",
+      "evidence": {
+        "artifact": "vitest-final-source.json",
+        "sha256": "fd06b661dfda215fc00e22eb5c1acf9a28f9803b9be70efb5515999caa8a8052"
+      },
+      "exitEvidence": {
+        "artifact": "vitest-final-source.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "runner": "Vitest5.0.5 using tests/vitest.config.js, JSON report; exact executed runner line is preserved in vitest-final-source.log."
+    },
+    "previousBrowserPreflight": {
+      "status": "pending artifact preparation and rerun",
+      "casesExecuted": 0,
+      "preflightExitCode": 1,
+      "failure": "Expected production build directory lacked custom-server.js; Playwright webServer failed before any browser case executed.",
+      "diagnosis": "Workspace-mode early return in copyStandaloneAssets omitted fixture-required assets. A source/fixture correction and rerun are in progress; no successful browser case is claimed.",
+      "evidence": {
+        "artifact": "browser-final.log",
+        "sha256": "c70297b8cebd95ef3419651995c814e50d5566f02d7a647f22458919c15b99bf"
+      },
+      "exitEvidence": {
+        "artifact": "browser-final.exit",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      }
+    },
+    "previousCandidatePackageBuild": {
+      "command": "npm run cli:pack",
+      "exitCode": 0,
+      "productionFramework": "Next16.4.3 Webpack",
+      "scope": "Successful production build and CLI pack after the x509 ESM loader correction. Candidate refresh after workspace asset-copy changes remains separate.",
+      "evidence": {
+        "artifact": "package-build-after-esm.log",
+        "sha256": "99f42567fc186575ad9165323e9d598880686f295d20520fd549b6a67f64b2c9"
+      }
+    },
+    "previousRecordedPackedRuntimeSmoke": {
+      "exitCode": 0,
+      "version": "1.0.5",
+      "tarball": "bykitsune-router-1.0.5.tgz",
+      "sha256": "efebbd42e1a3ee3233a2caf87d57173ab242b00090cae475df088ed981789d80",
+      "bytes": 22658888,
+      "entries": 3220,
+      "privateRuntimeEntries": 0,
+      "packedPki": {
+        "version": "3.1.0",
+        "generationAndSignature": "passed",
+        "legacySelfsignedAbsent": true
+      },
+      "cliVersion": "passed",
+      "cliHelp": "passed",
+      "packedStandaloneHealth": {
+        "ok": true,
+        "database": true,
+        "version": "1.0.5"
+      },
+      "gracefulExitCode": 0,
+      "scope": "Local unpacked tarball fixture; synthetic isolated state; not npm install/postinstall or publication acceptance.",
+      "evidence": {
+        "artifact": "package-smoke-after-esm-before-assets.json",
+        "sha256": "eee3b59f15092397078485c95d3337595f9170f74aba1966d24e0e6d12e853c7"
+      },
+      "exitEvidence": {
+        "artifact": "package-smoke-final.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "postAssetCopyRefresh": "Pending the parent candidate refresh; this digest identifies the successfully tested recorded candidate."
+    },
+    "workspaceAssetPreparation": {
+      "reviewDate": "2026-10-31",
+      "timezone": "Asia/Jakarta",
+      "capturedAtUtc": "2026-10-31T08:10:49Z",
+      "problem": "CLI workspace build sets NEXT_TRACING_ROOT_MODE=workspace; postbuild skipped asset preparation entirely. CLI packaging completed only cli/app, leaving .next-cli-build/standalone/kitsune-router/server.js without custom-server.js for production browser checks.",
+      "fix": "Postbuild locates the actual generated server.js directory in flat or project-nested standalone layouts, then copies existing static/public/runtime assets beside that server. It checks the entire trace container for forbidden runtime state, including hoisted dependencies. Missing generated server is rejected instead of manufacturing an incomplete runtime directory.",
+      "sourceFiles": [
+        {
+          "path": "scripts/copy-standalone-assets.mjs",
+          "sha256": "ced009b9c6707be75fb7ccb6e3b167b6176051550661c5536ece6d69beefe156"
+        },
+        {
+          "path": "tests/unit/standalone-assets.test.js",
+          "sha256": "dd4a418b57a0fd007658be808283733700f1752a34399b2a45c826710c9917f3"
+        }
+      ],
+      "preserved": [
+        "UI resolver unchanged: selected build must remain inside checkout, real wrapper/generated server symlinks cannot escape, embedded.env files remain rejected.",
+        "No fallback to a potentially stale cli/app build.",
+        "No generated server overwrite, hoisted dependency removal, dependency/version change, heavy build, commit or push by this agent.",
+        "Existing default/custom dist layouts and raw MITM/metadata/reflection dependency closures remain covered."
+      ],
+      "guide": {
+        "installedNextVersion": "16.4.3",
+        "standaloneOutput": {
+          "path": "/workspace/kitsune-router/node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/output.md",
+          "sha256": "8f43d8c926000a2990dc045b525a02857f4b487484194ce03037ebbd0d13ef4a",
+          "readBeforeSourceEdit": true,
+          "relevantContract": "Standalone emits server.js without public/static assets; those must be copied manually beside the generated server; tracing root can be widened for monorepos."
+        },
+        "customServer": {
+          "path": "/workspace/kitsune-router/node_modules/next/dist/docs/01-app/02-guides/custom-server.md",
+          "sha256": "93072193193787746840503151132c9f87f84e1744b55e318bf14a5952fad8ce",
+          "readBeforeSourceEdit": true,
+          "relevantContract": "Custom server source is not traced by standalone generation. This project explicitly retains its wrapper and raw helper closure."
+        }
+      },
+      "regressionBefore": {
+        "failed": 2,
+        "passed": 14,
+        "files": 2,
+        "cases": [
+          "Workspace output remains browser-fixture-unready after postbuild",
+          "Output without generated server incorrectly accepts runtime asset copying"
+        ],
+        "log": "/workspace/kitsune-router-local/release-1.0.5/dependencies/workspace-standalone/before.log",
+        "logSha256": "8c3f6f240421780981f310ae026df767bcc7aa402ac31710f82a3e84120a82d6"
+      },
+      "verificationAfter": {
+        "passed": 26,
+        "failed": 0,
+        "files": 4,
+        "testFiles": [
+          "standalone-assets.test.js",
+          "ui-test-build.test.js",
+          "cli-build-artifacts.test.js",
+          "rebrand-standalone-closure.test.js"
+        ],
+        "log": "/workspace/kitsune-router-local/release-1.0.5/dependencies/workspace-standalone/after.log",
+        "exitCode": 0,
+        "logSha256": "8f32eb355b9c06a7a6821e6b97149c1e5d7dc842ed9d67324679983bd8cbf9d5",
+        "scopedComposedLint": "passed --max-warnings=0",
+        "lintLog": "/workspace/kitsune-router-local/release-1.0.5/dependencies/workspace-standalone/lint.log",
+        "whitespace": "passed"
+      },
+      "applyToExistingTraceCommand": "NEXT_DIST_DIR=.next-cli-build NEXT_TRACING_ROOT_MODE=workspace npm run postbuild",
+      "integrationBoundary": "Parent owns actual trace postbuild,27production browser cases and exact-source final repack. This report records source/fixture/lint proof only; no application recompilation was performed by this agent.",
+      "status": "source frozen; no further source changes pending",
+      "parentIntegration": {
+        "postbuildExitCode": 0,
+        "evidence": {
+          "artifact": "workspace-postbuild.log",
+          "sha256": "8d88552635f672e62f95aa162d3f897aec4eaccbea7a2b4440fc7657f04e2c33"
+        },
+        "browser": {
+          "status": "passed",
+          "executedCases": 27,
+          "passed": 27,
+          "failed": 0,
+          "exitCode": 0,
+          "acceptedAsPassed": true,
+          "workers": 2,
+          "command": "NEXT_DIST_DIR=.next-cli-build PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium CI=1 npm run test:ui",
+          "scope": "Production standalone server, isolated synthetic database, no provider credentials or paid inference.",
+          "evidence": {
+            "artifact": "browser-after-workspace-fix.log",
+            "sha256": "31fb089eb949597618437ab04720ece65095ebd33ec61d38f58207d563637129"
+          },
+          "exitEvidence": {
+            "artifact": "browser-after-workspace-fix.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        },
+        "finalPackageBuild": {
+          "status": "passed",
+          "exitCode": 0,
+          "command": "npm run cli:pack",
+          "framework": "Next.js16.4.3 production Webpack",
+          "scope": "Rebuilt after both cached x509 async import and workspace standalone asset-copy corrections; unpublished local CLI tarball.",
+          "evidence": {
+            "artifact": "package-build-final-workspace.log",
+            "sha256": "24496763cd6e7568247330886bd0ea876dd46bcb8f3f22338eb2036338327257"
+          },
+          "exitEvidence": {
+            "artifact": "package-build-final-workspace.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          }
+        }
+      }
+    },
+    "syntheticUsageBrowser": {
+      "status": "passed",
+      "passed": 19,
+      "failed": 0,
+      "exitCode": 0,
+      "evidence": {
+        "artifact": "usage-browser-final.log",
+        "sha256": "f558e291347ba41a7d2f55fe20af064657d47c430ef19dc72096c2126156f908"
+      },
+      "exitEvidence": {
+        "artifact": "usage-browser-final.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "scope": "Mandatory synthetic Usage/Vite browser gate with installed /usr/bin/chromium; repeated as part of the final full suite."
+    },
+    "previousFullSuiteEnvironmentFailure": {
+      "status": "historical environment failure; corrected without source edits",
+      "exitCode": 1,
+      "failedSuites": 1,
+      "failedAssertions": 0,
+      "cause": "The first final-copy full-suite command omitted PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH, so the Usage beforeAll could not find Playwright bundled Chromium. Rerun explicitly used the same installed Chromium as the passing production browser gate, with KITSUNE_REQUIRE_BROWSER_TESTS=1.",
+      "evidence": {
+        "artifact": "vitest-missing-browser-executable.json",
+        "sha256": "d182a5711333b7cf37877b8b55f29283b48f35e91f09154647a18078ca4e49f0"
+      },
+      "exitEvidence": {
+        "artifact": "vitest-missing-browser-executable.exit",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      }
+    },
+    "allLocalVerificationGatesPassed": true,
+    "refreshedAtUtc": "2026-10-31T08:27:05.173173+00:00"
+  },
+  "publication": {
+    "sourcePushAuthorized": true,
+    "npmPublished": false,
+    "ghcrPushed": false,
+    "gitHubReleaseCreated": false,
+    "oldTagsMoved": false,
+    "deploymentPerformed": false
+  },
+  "limitations": [
+    "Synthetic isolated local state only; no real provider login, paid inference or customer database.",
+    "The historical initial eight moderate minimatch cascade entries are resolved in the final dependency graph. Four full npm audits have zero known findings at capture; this does not prove the absence of every vulnerability.",
+    "Production browser acceptance passed27/27 cases, with19/19 mandatory synthetic Usage cases and10434passed/100explicitlyskipped in the final full suite. Synthetic browser acceptance does not certify every provider account or native OS/architecture.",
+    "Recorded unpacked-tarball PKI/CLI/health/shutdown smoke is local evidence, not npm install/postinstall, registry publication or deployment acceptance.",
+    "Earlier1.0.2 artifact/access evidence is preserved as historical, not freshly revalidated.",
+    "Prior blocked official vendor feeds remain unverified; this source closing is not a fresh all-provider client-version claim."
+  ],
+  "dependencyFollowUp": "dependency-refresh-105-20261031.json"
+}

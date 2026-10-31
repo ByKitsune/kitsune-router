@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import https from "node:https";
 import tls from "node:tls";
-import selfsigned from "selfsigned";
+import { createRequire } from "node:module";
+
+const { authority, leaf } = createRequire(import.meta.url)("../helpers/mitm-certificates.cjs");
 
 /**
  * Bug: the MITM DNS bypass branch in `createBypassRequest` returned response
@@ -254,12 +256,10 @@ describe("proxyFetch MITM bypass — response shape (#3514)", () => {
 
   it("pins the dial to the chosen IP but verifies the requested hostname and sends its SNI", async () => {
     const hostname = "pinned.fixture.invalid";
-    const pems = await selfsigned.generate([{ name: "commonName", value: hostname }], {
-      algorithm: "sha256",
-      extensions: [{ name: "subjectAltName", altNames: [{ type: 2, value: hostname }] }],
-    });
+    const ca = await authority();
+    const pems = await leaf(ca, hostname);
     const received = [];
-    const fixture = https.createServer({ key: pems.private, cert: pems.cert }, (req, res) => {
+    const fixture = https.createServer({ key: pems.key, cert: pems.cert }, (req, res) => {
       received.push({ sni: req.socket.servername, host: req.headers.host });
       res.end("verified");
     });
@@ -273,7 +273,7 @@ describe("proxyFetch MITM bypass — response shape (#3514)", () => {
     const spy = vi.spyOn(tls, "connect").mockImplementation(options => {
       expect(options.host).toBe(HOST);
       expect(options.rejectUnauthorized).toBeUndefined();
-      return connect({ ...options, ca: pems.cert });
+      return connect({ ...options, ca: ca.cert });
     });
     try {
       const response = await __testing.createBypassRequest(new URL(`https://${hostname}:${fixture.address().port}/verified`), HOST);

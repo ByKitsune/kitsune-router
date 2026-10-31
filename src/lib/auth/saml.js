@@ -5,6 +5,8 @@ import { getSettings } from "../db/repos/settingsRepo.js";
 export const SAML_STATE_MAX_AGE_SECONDS = 10 * 60;
 const REQUEST_EXPIRATION_MS = SAML_STATE_MAX_AGE_SECONDS * 1000;
 const MAX_PENDING_REQUESTS = 4096;
+const SAML_CLOCK_SKEW_MS = 60000;
+const SAML_BEARER_METHOD = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
 // Shared by separately bundled routes and HMR reloads, not by separate processes.
 // Multi-process deployments require sticky routing for the start and ACS requests.
 const requestCacheKey = Symbol.for("kitsunerouter.saml.pendingRequests");
@@ -44,6 +46,13 @@ function createRequestCacheProvider(settings, origin) {
     async getAsync(requestId) {
       prunePendingRequests();
       return pendingRequests.get(scopedRequestKey(settings, origin, requestId))?.value || null;
+    },
+    async consumeAsync(requestId) {
+      prunePendingRequests();
+      const key = scopedRequestKey(settings, origin, requestId);
+      const value = pendingRequests.get(key)?.value || null;
+      pendingRequests.delete(key);
+      return value;
     },
     async removeAsync(requestId) {
       const key = scopedRequestKey(settings, origin, requestId);
@@ -151,8 +160,9 @@ export function createSamlInstance(settings, origin, { cacheProvider, generateUn
     idpCert: cert,
     cert: cert,
     callbackUrl: callbackUrl,
-    acceptedClockSkewMs: 60000,
+    acceptedClockSkewMs: SAML_CLOCK_SKEW_MS,
     wantAssertionsSigned: true,
+    wantAuthnResponseSigned: true,
     validateInResponseTo: "always",
     requestIdExpirationPeriodMs: REQUEST_EXPIRATION_MS,
     cacheProvider: cacheProvider || createRequestCacheProvider(settings, origin),
@@ -175,6 +185,30 @@ export async function buildSamlAuthorizeUrl(request, settings) {
   const authorizeUrl = await samlInstance.getAuthorizeUrlAsync("", undefined, {});
 
   return { authorizeUrl, requestId };
+}
+
+function hasCorrelatedBearer(profile, requestId, callbackUrl) {
+  if (typeof profile.getAssertion !== "function") return false;
+  // This public accessor is the assertion parsed from signature-verified bytes.
+  // Do not reparse getSamlResponseXml(), which can include unsigned material.
+  const confirmations = profile.getAssertion()?.Assertion?.Subject?.[0]?.SubjectConfirmation;
+  if (!Array.isArray(confirmations)) return false;
+  const now = Date.now();
+  // Keep the application's first-timely-confirmation policy. A later matching
+  // alternative cannot rescue the confirmation selected by native validation.
+  const selected = confirmations.find(confirmation => {
+    const data = confirmation?.SubjectConfirmationData?.[0]?.$;
+    if (!data) return false;
+    const before = data.NotBefore ? Date.parse(data.NotBefore) : null;
+    const after = data.NotOnOrAfter ? Date.parse(data.NotOnOrAfter) : null;
+    return (before === null || Number.isFinite(before) && now + SAML_CLOCK_SKEW_MS >= before)
+      && (after === null || Number.isFinite(after) && now - SAML_CLOCK_SKEW_MS < after);
+  });
+  const data = selected?.SubjectConfirmationData?.[0]?.$;
+  if (selected?.$?.Method !== SAML_BEARER_METHOD || data?.InResponseTo !== requestId
+    || !Number.isFinite(Date.parse(data.NotOnOrAfter))) return false;
+  try { return new URL(data.Recipient).href === new URL(callbackUrl).href; }
+  catch { return false; }
 }
 
 /**
@@ -204,17 +238,20 @@ export async function validateSamlResponse(request, body, expectedRequestId, set
   }
 
   let cachedInstant = pending.value;
-  let correlationLookups = 0;
+  const readCachedInstant = requestId => requestId === expectedRequestId && cachedInstant
+    && Date.now() < pending.createdAt + REQUEST_EXPIRATION_MS ? cachedInstant : null;
   const samlInstance = createSamlInstance(settings, origin, {
     // Node-SAML checks both Response and signed SubjectConfirmation using this
     // callback-local cache. A different response ID cannot access another request.
     cacheProvider: {
       async saveAsync() { return null; },
       async getAsync(requestId) {
-        if (requestId !== expectedRequestId || !cachedInstant ||
-          Date.now() >= pending.createdAt + REQUEST_EXPIRATION_MS) return null;
-        correlationLookups += 1;
-        return cachedInstant;
+        return readCachedInstant(requestId);
+      },
+      async consumeAsync(requestId) {
+        const value = readCachedInstant(requestId);
+        if (requestId === expectedRequestId) cachedInstant = null;
+        return value;
       },
       async removeAsync(requestId) {
         if (requestId !== expectedRequestId || !cachedInstant) return null;
@@ -234,13 +271,10 @@ export async function validateSamlResponse(request, body, expectedRequestId, set
   if (!profile || loggedOut || profile.inResponseTo !== expectedRequestId) {
     throw new Error("Invalid SAML authentication response");
   }
-  // Node-SAML 5.1 reads this callback-local cache for Response correlation, then
-  // again only for the timestamp-valid signed SubjectConfirmation it selected.
-  // It permits that selected confirmation to omit InResponseTo; require proof
-  // of its lookup too. Checking all alternatives rejects legitimate holder-of-key
-  // alternatives; checking any could accept an expired, unselected confirmation.
-  // Signed-fixture regressions guard this dependency contract on upgrades.
-  if (correlationLookups < 2) {
+  // Node-SAML 5.2 also consumes a request after validation; counting cache reads
+  // no longer proves SubjectConfirmation correlation. Check the documented,
+  // verified assertion instead, after the dependency validates its signatures.
+  if (!hasCorrelatedBearer(profile, expectedRequestId, `${origin}/api/auth/saml/acs`)) {
     throw new Error("SAML subject confirmation does not match request state");
   }
   return profile;

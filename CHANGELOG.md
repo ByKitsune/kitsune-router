@@ -7,6 +7,50 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [1.0.5] — 2026-10-31
+
+October closing source revision. This consolidates the source changes below;
+versioned source and local verification do not establish npm/GHCR publication
+or production deployment. See [1.0.5 notes](releases/RELEASE_NOTES_v1.0.5.md).
+
+### Security and error handling
+
+- Document private reporting options and the existing project support contact
+  in `SECURITY.md`, without claiming an enabled private-reporting setting or SLA.
+- Verify the OIDC nonce explicitly after signature, issuer and audience checks;
+  reject missing or mismatched nonces when the login flow requires one.
+- Bound Kiro catalog resource lifetime and cache state, including cancellation
+  during response consumption and invalidation of credential-scoped entries.
+- Extend lifecycle/cache isolation fixes to Copilot, Cursor and Qoder; honor
+  Cursor proxy settings, DB-import fences and actual dashboard cancellation.
+  Keep Kiro/Qoder native token limits directional without fabricated defaults.
+- Preserve terminal CommandCode stream failures as structured errors rather
+  than successful assistant prose. Preserve Cloudflare image content through
+  parameter normalization instead of silently dropping non-text parts.
+- Repair the failed dependency-security CI gate with patched `minimatch` 11.0.3
+  and a scoped compatibility adapter for the existing lint plugins. Preserve the
+  audit threshold and actual lint rules; all four full audits now pass.
+
+### Stable npm dependency refresh
+
+- Review every owned direct dependency against publisher stable npm releases:
+  67 entries across four packages, 56 unique names, with 28 version updates.
+  Refresh compatible transitive dependencies and managed runtime pins.
+- Align Next 16.4.3, React/ReactDOM 19.3.1 and the updated UI/build toolchain.
+  Keep native input/output, provider identities and recorded-price history intact.
+- Migrate SAML 5.2 request consumption and verified bearer proof; validate x509 3
+  without mixing its global DI registrations with a legacy fixture generation.
+  Replace the two `selfsigned` consumers with existing certificate helpers and
+  remove that unused development dependency.
+- Load ESM-only x509 through a cached async import in the existing async PKI
+  helpers so native Node, the MITM bundle and the production Next build agree.
+- Complete standalone runtime/static/public assets beside the generated server
+  in both flat and workspace layouts, retaining private-state rejection and
+  making workspace builds directly usable by production browser checks.
+- Verify Ora 10 on supported Node versions, SQL.js 1.15.2 export/transaction
+  behavior and existing CLI runtime ownership. See the
+  [dependency/CI review](docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+
 ### Client compatibility and provider catalog sync
 
 - Refresh eleven independently verified client/editor release pins while
