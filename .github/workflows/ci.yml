@@ -161,6 +161,10 @@ jobs:
           };
           writeFileSync('candidate-build.json', JSON.stringify(metadata, null, 2) + '\n');
           NODE
+      - name: Verify SQL.js fallback in the packed CLI
+        run: |
+          VERSION=$(node -p "require('./cli/package.json').version")
+          node scripts/verify-cli-sqljs-package.mjs "bykitsune-router-$VERSION.tgz"
       - name: Preserve unpublished candidate and build metadata
         uses: actions/upload-artifact@v7
         with:

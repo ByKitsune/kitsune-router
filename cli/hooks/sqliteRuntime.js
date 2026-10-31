@@ -122,8 +122,8 @@ function npmInstall(pkgs, opts = {}) {
 }
 
 // Public: ensure better-sqlite3 native module is installed in user-writable
-// runtime dir. sql.js may be bundled in bin/app, but npm publish strips .wasm
-// from nested node_modules — verify and reinstall if missing. node:sqlite is
+// runtime dir. Older CLI builds may have traced sql.js without its .wasm file;
+// verify the bundled or managed runtime binary. node:sqlite is
 // built-in. This is purely a *speed optimization* — app works without
 // better-sqlite3 via fallbacks.
 function isSqlJsWasmValid() {

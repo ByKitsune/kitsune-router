@@ -100,6 +100,11 @@ jobs:
           node scripts/check-release-version.mjs "$RELEASE_TAG"
           mv "bykitsune-router-${RELEASE_TAG#v}.tgz" "$TARBALL_FILE"
 
+      - name: Verify SQL.js fallback in the packed CLI
+        env:
+          TARBALL_FILE: ${{ steps.tarball.outputs.file }}
+        run: node scripts/verify-cli-sqljs-package.mjs "$TARBALL_FILE"
+
       - name: Persist original tarball before immutable npm publication
         if: steps.tarball.outputs.build == 'true'
         uses: actions/upload-artifact@v7

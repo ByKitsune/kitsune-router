@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [CLI SQL.js fallback follow-up](28-cli-sqljs-fallback-2026-11-01.md)
+records the missing traced WebAssembly file, the packaging repair and the
+separate synthetic, CI and deployment evidence boundaries.
+
 The [stable npm dependency and CI repair follow-up](27-dependency-upgrade-and-ci-repair-2026-10-31.md)
 records all owned package targets, compatible transitives, SAML/PKI migrations,
 the repaired minimatch audit and final verification evidence.

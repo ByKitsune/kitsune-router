@@ -171,6 +171,30 @@ function assertRequiredApiArtifacts(cliAppDir) {
   }
 }
 
+function ensureSqlJsWasm(appDir, rootDir, cliAppDir) {
+  const candidates = [path.join(appDir, "node_modules/sql.js"), path.join(rootDir, "node_modules/sql.js")];
+  const source = candidates.find((directory) => fs.existsSync(path.join(directory, "package.json")));
+  if (!source) throw new Error("sql.js source package is missing; cannot bundle WebAssembly fallback");
+  const destination = path.join(cliAppDir, "node_modules/sql.js");
+  const sourceWasm = path.join(source, "dist/sql-wasm.wasm");
+  const sourceJs = path.join(source, "dist/sql-wasm.js");
+  const destinationJs = path.join(destination, "dist/sql-wasm.js");
+  if (!fs.existsSync(sourceWasm) || !fs.existsSync(sourceJs)) {
+    throw new Error("sql.js source JavaScript or WebAssembly is missing");
+  }
+  if (!fs.existsSync(path.join(destination, "package.json")) || !fs.existsSync(destinationJs)) {
+    throw new Error("sql.js traced package is incomplete");
+  }
+  const sourceVersion = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8")).version;
+  const destinationVersion = JSON.parse(fs.readFileSync(path.join(destination, "package.json"), "utf8")).version;
+  if (!sourceVersion || sourceVersion !== destinationVersion || !fs.readFileSync(sourceJs).equals(fs.readFileSync(destinationJs))) {
+    throw new Error("sql.js source and traced runtime mismatch");
+  }
+  // Next's trace can contain the JS but omit its adjacent WebAssembly file.
+  // npm pack includes both when they are present under the CLI app directory.
+  fs.copyFileSync(sourceWasm, path.join(destination, "dist/sql-wasm.wasm"));
+}
+
 async function buildCliPackage() {
   console.log("📦 Building Kitsune Router CLI package with Next.js...\n");
 
@@ -266,6 +290,7 @@ async function buildCliPackage() {
     console.log(`✅ Bundled ${pkg}`);
   }
   ensureModuleInBundle("sql.js");
+  ensureSqlJsWasm(appDir, rootDir, cliAppDir);
   // `open` is external (see serverExternalPackages in next.config.mjs), so it must exist in
   // the bundle's node_modules or every importer throws MODULE_NOT_FOUND at runtime. Output
   // tracing normally copies it; this is the same belt-and-braces guard used for sql.js.
@@ -358,6 +383,7 @@ async function buildCliPackage() {
 module.exports = {
   assertRequiredApiArtifacts,
   copyStandaloneBuild,
+  ensureSqlJsWasm,
   mergeServerArtifacts,
 };
 

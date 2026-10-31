@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
 const {
   assertRequiredApiArtifacts,
   copyStandaloneBuild,
+  ensureSqlJsWasm,
   mergeServerArtifacts,
 } = require("../../cli/scripts/build-cli.js");
 
@@ -51,6 +52,55 @@ afterEach(() => {
 });
 
 describe("CLI build server artifacts", () => {
+  it("gates candidate and release tarballs on the packed SQL.js fallback test", () => {
+    const ci = fs.readFileSync(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8");
+    const release = fs.readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+    const check = "node scripts/verify-cli-sqljs-package.mjs";
+    assert(ci.includes(check));
+    assert(ci.indexOf(check) < ci.indexOf("name: Preserve unpublished candidate and build metadata"));
+    assert(release.includes(check));
+    assert(release.indexOf(check) < release.indexOf("name: Publish exact CLI tarball to npm"));
+  });
+
+  it("completes a trace-pruned sql.js with the matching WebAssembly binary", () => {
+    const root = createTempDir();
+    const appDir = path.join(root, "project");
+    const cliAppDir = path.join(root, "cli-app");
+    const source = path.join(appDir, "node_modules/sql.js");
+    const traced = path.join(cliAppDir, "node_modules/sql.js");
+    writeFixture(source, "package.json", '{"version":"1.15.2"}');
+    writeFixture(source, "dist/sql-wasm.js", "matching JavaScript");
+    writeFixture(source, "dist/sql-wasm.wasm", "matching WebAssembly");
+    writeFixture(traced, "package.json", '{"version":"1.15.2"}');
+    writeFixture(traced, "dist/sql-wasm.js", "matching JavaScript");
+
+    ensureSqlJsWasm(appDir, root, cliAppDir);
+    ensureSqlJsWasm(appDir, root, cliAppDir);
+
+    assert.equal(fs.readFileSync(path.join(traced, "dist/sql-wasm.wasm"), "utf8"), "matching WebAssembly");
+  });
+
+  it("rejects a missing or mismatched sql.js runtime rather than shipping a broken fallback", () => {
+    const root = createTempDir();
+    const appDir = path.join(root, "project");
+    const cliAppDir = path.join(root, "cli-app");
+    const source = path.join(appDir, "node_modules/sql.js");
+    const traced = path.join(cliAppDir, "node_modules/sql.js");
+    writeFixture(source, "package.json", '{"version":"1.15.2"}');
+    writeFixture(source, "dist/sql-wasm.js", "source JavaScript");
+    writeFixture(traced, "package.json", '{"version":"1.15.2"}');
+    writeFixture(traced, "dist/sql-wasm.js", "source JavaScript");
+    assert.throws(() => ensureSqlJsWasm(appDir, root, cliAppDir), /sql\.js.*WebAssembly/i);
+
+    writeFixture(source, "dist/sql-wasm.wasm", "source WebAssembly");
+    writeFixture(traced, "package.json", '{"version":"1.14.1"}');
+    assert.throws(() => ensureSqlJsWasm(appDir, root, cliAppDir), /sql\.js.*mismatch/i);
+
+    writeFixture(traced, "package.json", '{"version":"1.15.2"}');
+    writeFixture(traced, "dist/sql-wasm.js", "different JavaScript");
+    assert.throws(() => ensureSqlJsWasm(appDir, root, cliAppDir), /sql\.js.*mismatch/i);
+  });
+
   it("excludes traced build HOME state while retaining executable server artifacts", () => {
     const root = createTempDir();
     const appDir = path.join(root, "kitsunerouter");
