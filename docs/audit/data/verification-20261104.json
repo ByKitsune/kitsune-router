@@ -1,7 +1,7 @@
 {
   "reviewDate": "2026-11-04",
   "timezone": "Asia/Jakarta",
-  "verifiedAtUtc": "2026-11-03T20:19:31.395484+00:00",
+  "verifiedAtUtc": "2026-11-03T20:28:57.530284+00:00",
   "baseCommit": "aad493863fc12385edbdefe555642179a5ce3d55",
   "gitIdentity": {
     "name": "joyccn",
@@ -20,7 +20,8 @@
       "nodeWarningLines": 0,
       "skipBoundary": "Live, E2E, cache and benchmark suites remain gated by explicit environment flags; no authenticated provider inference was attempted.",
       "baselineResult": "No regression:10867 passed,99 skipped/todo,851 files,zero failed suites.",
-      "baselineLogSha256": "ea9d926c0048de785de002dbd81eabd1847f224806cb18300f555d0c4e35ac00"
+      "baselineLogSha256": "ea9d926c0048de785de002dbd81eabd1847f224806cb18300f555d0c4e35ac00",
+      "sourceCommit": "4c5b73c025856d3ed23521e00768348404e35f98"
     },
     "browser": {
       "result": "passed",
@@ -142,15 +143,105 @@
         "last-oauth.log": "a3e7e5039eb383acf2b546f1179dced6e35a27227a05f0f6ea33a50668ec45a5",
         "last-compat.log": "3a7693ccf6772b6879f1b1ac6d62ef94a972f6df023adea9f6e7270e5e8a54b4"
       }
+    },
+    "npmLifecycleApprovals": {
+      "review": {
+        "node": "24.19.0",
+        "npm": "11.17.0",
+        "policySource": "https://docs.npmjs.com/cli/v11/commands/npm-approve-scripts",
+        "entries": [
+          {
+            "package": "esbuild",
+            "version": "0.28.2",
+            "approval": {
+              "esbuild@0.28.2": true
+            },
+            "canonicalTarball": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
+            "lockedIntegrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
+            "reviewedFilesSha256": {
+              "install.js": "612294e278914443bdcf81cb17f54afec34dbdd2ebd999a6ee187912320cc315"
+            }
+          },
+          {
+            "package": "better-sqlite3",
+            "version": "13.0.3",
+            "approval": {
+              "better-sqlite3@13.0.3": true
+            },
+            "canonicalTarball": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-13.0.3.tgz",
+            "lockedIntegrity": "sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==",
+            "reviewedFilesSha256": {
+              "binding.gyp": "a265a08fb92d0bbb93f596a53134e58ea89c74faec771725dec6940cea63be3f",
+              "lib/binding.js": "4fe0f892facc02af7db0a1770150565d2e944e7da3c6493116d8e2a01a0f9b19"
+            }
+          }
+        ]
+      },
+      "installs": [
+        {
+          "fixture": "cli",
+          "npmVersion": "11.17.0",
+          "exitCode": 0,
+          "lockSha256Before": "acc4652e05e520303c1ad47bc6f7ca1ee2d0d9179f09092803742e5add2fd430",
+          "lockSha256After": "acc4652e05e520303c1ad47bc6f7ca1ee2d0d9179f09092803742e5add2fd430",
+          "warningLines": [],
+          "errorLines": [],
+          "esbuild": {
+            "exitCode": 0,
+            "stdout": "0.28.2",
+            "stderr": ""
+          },
+          "logSha256": "5790db61a6ef0874167eee06a8d3672417ced3ff3472affd2fe34e9a309bff05"
+        },
+        {
+          "fixture": "docs",
+          "npmVersion": "11.17.0",
+          "exitCode": 0,
+          "lockSha256Before": "a5b1ec06df19691e961e2d7fb817e4cabc4d60d18751453d8959f3f56a80fb0a",
+          "lockSha256After": "a5b1ec06df19691e961e2d7fb817e4cabc4d60d18751453d8959f3f56a80fb0a",
+          "warningLines": [],
+          "errorLines": [],
+          "esbuild": {
+            "exitCode": 0,
+            "stdout": "0.28.2",
+            "stderr": ""
+          },
+          "logSha256": "0b6d48364577cc572668fe498e14665315e3982434fd739e18bfe209d401e3d0"
+        },
+        {
+          "fixture": "app",
+          "npmVersion": "11.17.0",
+          "exitCode": 0,
+          "lockSha256Before": "bad62b1f51fb3b96ab491cecc4382014c39701ad10b947cdc90ff93b4ddb40b6",
+          "lockSha256After": "bad62b1f51fb3b96ab491cecc4382014c39701ad10b947cdc90ff93b4ddb40b6",
+          "warningLines": [],
+          "errorLines": [],
+          "nativeSqlite": {
+            "exitCode": 0,
+            "stdout": "1",
+            "stderr": ""
+          },
+          "logSha256": "0cceb7df41ae8e83f73e77e9f0752a904113612af12c8a53f6eff5b60a537217"
+        }
+      ],
+      "sourceLockSha256": {
+        "package-lock.json": "bad62b1f51fb3b96ab491cecc4382014c39701ad10b947cdc90ff93b4ddb40b6",
+        "cli/package-lock.json": "acc4652e05e520303c1ad47bc6f7ca1ee2d0d9179f09092803742e5add2fd430",
+        "gitbook/package-lock.json": "a5b1ec06df19691e961e2d7fb817e4cabc4d60d18751453d8959f3f56a80fb0a"
+      },
+      "beforeFixReproduction": "The unchanged documentation manifest reproduced the exact npm 11.17 esbuild approval warning; after the scoped entries all 3 fresh installs have zero npm warnings/errors.",
+      "dependencyVersionsChanged": false
     }
   },
-  "sourceBoundary": "Per-file SHA256 of final changed source/tests/workflows before commit; null marks a removed path. Remote CI creates its own exact-commit source evidence. Audit files are excluded to avoid recursive hashes.",
+  "sourceBoundary": "Changed runtime source/tests/workflows were verified before commit 4c5b73c025856d3ed23521e00768348404e35f98. The only subsequent non-audit changes are 3 manifest-only exact-version lifecycle approvals, verified with fresh npm 11.17 installs and byte-identical lockfiles. These hashes include those approvals. Local application/CLI/container artifacts precede that metadata-only follow-up; remote CI produces its own final exact-commit test and candidate evidence. Null marks a removed path; audit files are excluded to avoid recursive hashes.",
   "sourceSha256": {
     ".github/workflows/ci.yml": "a00e726b1093f5e687d6726b1ed764bc38f7efccfc5d6666431c3e106db77281",
     ".github/workflows/container-recovery.yml": "20b8a9bb938fd0ff89fb17e2280e732b68b8d96ec4a0b642064c53b6c122e996",
     ".github/workflows/docker-publish.yml": "5dcf5502986c0789c837b2e8dd98d6869f29addceeed4df90b63658a9f9250cc",
     ".github/workflows/release.yml": "8a8600537244f2c00ed62bc45e85c571de34a60d9f8d334a5367176a622afb68",
+    "cli/package.json": "69ab4d0b4ac73291604b9a4a45f21a796920875ee243e3fb68ee87342358cbce",
     "custom-server.js": "9333d86b3e33e8c7d5a789a52a969775211bdb29546de2708c5bcf4b834f4292",
+    "gitbook/package.json": "1170aadf4bde5fcf4830309d3bb67f84d46729704abf5775ecaf5f2cc9a5b8e7",
     "open-sse/config/awsRegions.js": "6d601f80a8c19c14605fa141cf3d2a86c8d763fb3c7685f9f48234ee02a66fdd",
     "open-sse/config/clientVersions.js": "a3eafbb49b965d1f762556c417f957af46e4a17c1653d4516e92e1ed17f69ee6",
     "open-sse/config/defaultThinkingSignature.js": "558666e0e8320c388753a5ada2d7901ed46ed904fefee5e72be616042e5c499f",
@@ -208,6 +299,7 @@
     "open-sse/utils/claudeCloaking.js": "f9acdddf8e6951f58ebc5d8512990fb3a68323b1eaaeebb63d8cb843b9958496",
     "open-sse/utils/cloudCodeProject.js": "ce0be56e0a8d140f7629a4f2bc03328011a00762dd7c271a0481889a7438911d",
     "open-sse/utils/sessionManager.js": "ce1103757654ed1a68e64a936627cf51f9516ad689c8da2e73af7ef5023dab9f",
+    "package.json": "dd30532fa806f4463325715fd67413212cecd15984f0fc4cf6b48a56126bee55",
     "scripts/playwright-environment.mjs": "ec245ae78e8a0461eab4862a41f90d4b257548a4a04851726b3832c8d70f3681",
     "src/app/(dashboard)/dashboard/basic-chat/BasicChatPageClient.js": "59ac02e554ecfc26dd593c6b52b7b299b9fe27300c5fdffcc2e7da6c179956a1",
     "src/app/(dashboard)/dashboard/cli-tools/[toolId]/ToolDetailClient.js": "8dec61f7398d5409c4f5a13f683751041e6869409083ce8814f194fa90a1b6b9",

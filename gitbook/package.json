@@ -3,6 +3,9 @@
   "version": "1.0.5",
   "description": "Kitsune Router documentation. Your models. Your routes.",
   "private": true,
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  },
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3001",

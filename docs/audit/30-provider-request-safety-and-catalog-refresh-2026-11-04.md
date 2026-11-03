@@ -112,6 +112,13 @@ Node >=22.19 compatibility floor remains unchanged. Narrow module scopes and
 CommonJS helpers into ESM. Global warning interception was removed; Playwright
 color inputs are normalized before workers start.
 
+The runner bundles npm 11.17.0, whose new lifecycle-policy warnings were also
+checked in complete Actions logs. Canonical installer sources/integrity were
+reviewed before adding exact-version `allowScripts` entries for
+`better-sqlite3@13.0.3` in the app and `esbuild@0.28.2` in CLI/documentation.
+Fresh isolated installs with that exact npm version produce zero npm warnings
+or errors; native SQLite and esbuild work, and all lockfiles remain byte-identical.
+
 Legacy database fixtures now acquire and clean up only their own state. A
 missing temporary directory no longer makes teardown assign `undefined` to
 `process.emit`. Native child regressions check missing-root recovery and that
