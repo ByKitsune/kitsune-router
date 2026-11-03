@@ -1,0 +1,310 @@
+{
+  "reviewDate": "2026-11-03",
+  "timezone": "Asia/Jakarta",
+  "capturedAtUtc": "2026-11-03T03:05:55.181481+00:00",
+  "scope": "Official published client releases and static wire contracts; no native executable execution, OAuth login or paid generation.",
+  "priorEvidence": "client-compatibility-refresh-20261031.json",
+  "claude": {
+    "previousVersion": "2.1.314",
+    "selectedVersion": "2.1.317",
+    "releasePolicy": "Existing non-prerelease npm latest/next; independently delayed stable remains a different channel.",
+    "distTags": {
+      "latest": "2.1.317",
+      "next": "2.1.317",
+      "stable": "2.1.311"
+    },
+    "wrapper": {
+      "metadataUrl": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "integrity": "sha512-k467+KT/LcqJXr3Ye/C4lXnfRNmxOa/TZcIiWKoiyc/XbZGzAR0fxiI/IEOkpic+BFhYRP6BiXa7cvTx4fsOSg==",
+      "archiveBytes": 29467,
+      "integrityVerified": true,
+      "role": "Small platform-selection wrapper; does not itself prove bundled SDK or protocol."
+    },
+    "nativeArtifact": {
+      "metadataUrl": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/2.1.317",
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.317.tgz",
+      "integrity": "sha512-u19fYJ4llqi+dAGAj6P1BNu/CRSe0rv4O8Mv/5SQPU5oXCYmUssbJgrBI6rWbIFRAE3YcLCzKlwdHbzlSXBlSA==",
+      "integrityVerified": true,
+      "archiveBytes": 154077442,
+      "executableBytes": 331362672,
+      "executableSha256": "eb224419e344575faa4a1f39b290b649425a10cd5ee2ef1d003480cd9ae57eb0",
+      "executed": false,
+      "embeddedSourceGitSha": "3d3e7cb16b5577dccaee9520c8dc1189d02d61b7",
+      "embeddedBuildTimeUtc": "2026-11-02T22:15:13Z"
+    },
+    "contracts": {
+      "sdkVersion": "0.128.0",
+      "apiVersion": "2023-06-01",
+      "runtimeVersion": "Executing process.version for Node; no invented native runtime pin.",
+      "userAgent": "claude-cli/<release> (external, <entrypoint>...); retain gateway sdk-cli entrypoint.",
+      "oauthAuthorizeUrl": "https://claude.com/cai/oauth/authorize",
+      "oauthTokenUrl": "https://platform.claude.com/v1/oauth/token",
+      "oauthScopes": "Unchanged gateway scopes; newly enumerated native scopes are not requested.",
+      "betaPolicy": "Retain existing selected/conditional beta flags and rejected-beta handling. Presence in native registry is not proof an account is entitled to a flag."
+    },
+    "sourceExcerpts": [
+      {
+        "contract": "Anthropic SDK version",
+        "byteOffset": 280391782,
+        "excerpt": "var Nx=\"0.128.0\";var txi=()=>typeof window<\"u\"&&typeof window.document",
+        "excerptSha256": "9e01509aa49cbffde71db9b047f078454f053373384d1b386ddd015f3c3f9197"
+      },
+      {
+        "contract": "SDK Node Stainless headers",
+        "byteOffset": 280392683,
+        "excerpt": "if(e===\"node\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":Nx,\"X-Stainless-OS\":b(globalThis.process.platform??\"unknown\"),\"X-Stainless-Arch\":x(globalThis.process.arch??\"unknown\"),\"X-Stainless-Runtime\":\"node\",\"X-Stainless-Runtime-Version\":globalThis.process.version??\"unknown\"};let n=re();if(n)return{\"",
+        "excerptSha256": "dd140d7fb7c7d36106882e10ed1e2b3f9c79149449874932e685fd4f386d2b37"
+      },
+      {
+        "contract": "SDK default Anthropic message API header",
+        "byteOffset": 280665127,
+        "excerpt": "timeout?{\"X-Stainless-Timeout\":String(Math.trunc(n.timeout/1000))}:{},...tyr(),...this._options.dangerouslyAllowBrowser?{\"anthropic-dangerous-direct-browser-access\":\"true\"}:void 0,\"anthropic-version\":\"2023-06-01\"},await this.authHeaders(n),this._options.defaultHeaders,s,n.headers]);return this.validateHeaders(y),y.values}_makeAb",
+        "excerptSha256": "d19dc2492280b7cd1612d66b25a4f593208cc9222d8507ef6f3b978970d87878"
+      },
+      {
+        "contract": "CLI transport User-Agent release interpolation",
+        "byteOffset": 279345368,
+        "excerpt": "function oB(e){let n=(e?.ownEntrypoint?void 0:sZ())??i.CLAUDE_CODE_ENTRYPOINT??\"cli\",r=process.env.CLAUDE_AGENT_SDK_VERSION?`, agent-sdk/${process.env.CLAUDE_AGENT_SDK_VERSION}`:\"\",s=i.CLAUDE_AGENT_SDK_CLIENT_APP?`, client-app/${i.CLAUDE_AGENT_SDK_CLIENT_APP}`:\"\",h=sdo(),y=h?`, workload/${h}`:\"\";return`claude-cli/${{ISSUES_EXPLAINER:\"report the issue at https://github.com/anthropics/claude-code/issues\",PACKAGE_URL:\"@anthropic-ai/claude-code\",README_URL:\"https://code.claude.com/docs/en/overview\",VERSION:\"2.1.317\",FEEDBACK_CHANNEL:\"https://github.com/anthropics/claude-code/issues\",BUILD_TIME:\"2026-11-02T22:15:13Z\",GIT_SHA:\"3d3e7cb16b5577dccaee9520c8dc1189d02d61b7\",HOOKS_WORKER_URL:\"/$bunfs/root/src/plugins/functionHooks/hooks-worker/hooks-worker.js\",DD_SOURCEMAP_GROUP:\"default\"}.VERSION} (external, ${n}${r}${s}${y})`}function b8(){let e=[],n=sZ()??i.CLAUDE_CODE_ENTRYPOINT;if(n)e.push(n);if(process.env.CLAUDE_AGENT_SDK_VERSION)e.push(`agent-sdk/${process.env.CLAUDE_AGENT_SDK_VERSION}`);if(i.CLAUDE_AGENT_SDK_CLIENT_APP)e.push(`client-app/${i.CLAUDE_AGENT_SDK_CLIENT_APP}`);let r=e.length>0?` (${e.join(\", \")})`:\"\";return`claude-code/${{ISSUES_EXPLAINER:\"report the issue at https://github.com/anthropics/claude-code/issues\",PACKAGE_URL:\"@anthropic-ai/claude-code\",README_URL:\"https://code.claude.com/docs/en/overview\",VERSION:\"2.1.317\",FE",
+        "excerptSha256": "8d0fcd1d1252cefc341bdf7293ca15683265f63d4e7384210d7507cdf3377e29"
+      },
+      {
+        "contract": "Production OAuth endpoints",
+        "byteOffset": 275832844,
+        "excerpt": "var a={BASE_API_URL:\"https://api.anthropic.com\",CONSOLE_AUTHORIZE_URL:\"https://platform.claude.com/oauth/authorize\",CLAUDE_AI_AUTHORIZE_URL:\"https://claude.com/cai/oauth/authorize\",CLAUDE_AI_ORIGIN:\"https://claude.ai\",TOKEN_URL:\"https://platform.claude.com/v1/oauth/token\",API_KEY_URL:\"https://api.anthropic.com/api/oauth/claude_cli/create_api_key\",ROLES_URL:\"https://api.anthropic.com/api/oauth/claude_cli/roles\",CONSOLE_SUCCESS_URL:\"https://platform.claude.com/buy_credits?returnUrl=/oauth/code/success%3Fapp",
+        "excerptSha256": "7419bc1c21c55909e2d6a6674e89d29bf0b5761f63b322addac3ee00072b53d8"
+      },
+      {
+        "contract": "Model discovery OAuth beta and pagination",
+        "byteOffset": 295858647,
+        "excerpt": "ng\");return}let n=await r$({maxRetries:1,agentContext:ud(),credentials:o,storageV5:e}),r=vt()?[Jc]:void 0,u=[];for await(let p of n.models.list({betas:r,limit:1000})){let h=YOi(p);if(h)u.push(h)}if(u.length===0)return;await QOi(u,e)}catch(n){t(`[modelCapabilities] fetch failed: ${n in",
+        "excerptSha256": "888c878755342309d76487497322a300c71a4893f98fefbe6641b1fc192dcfd2"
+      }
+    ],
+    "changelog": {
+      "url": "https://raw.githubusercontent.com/anthropics/claude-code/964d69565952a176ac1975ed218362991db71433/CHANGELOG.md",
+      "repositoryCommit": "964d69565952a176ac1975ed218362991db71433",
+      "sha256": "9a592e0639b11d3068a337d3554f552e8c48536538223f9051530924b614a4cb",
+      "versionsReviewed": [
+        "2.1.316",
+        "2.1.317"
+      ],
+      "published315Heading": false,
+      "dispositions": [
+        {
+          "item": "Opus4.8 Fast deprecated October30 and removed November30,2026; errors then instead of falling back.",
+          "decision": "Do not remove capability early or silently change a paid-tier request; record upcoming boundary, recommend supported model when applicable."
+        },
+        {
+          "item": "Region/network403 distinguished from sign-in failure; truncated compressed-response and managed gateway errors improved.",
+          "decision": "CLI/service changes do not establish a new provider beta/API signature; preserve exact gateway structured errors and TLS verification."
+        },
+        {
+          "item": "Agent hooks, plugins, MCP, cloud tasks, telemetry, RemoteControl and Claude apps gateway administration.",
+          "decision": "Different agent/service surfaces; no unrelated tool safety, auto-mode or gateway-server features copied into provider transport."
+        }
+      ]
+    },
+    "decision": "Update only Claude app release and release-derived HTTP/billing identity. Independent SDK/API/betas/OAuth endpoint and scope pins remain verified and unchanged."
+  },
+  "unchangedOfficialReleases": [
+    {
+      "package": "@openai/codex",
+      "metadataUrl": "https://registry.npmjs.org/@openai/codex/latest",
+      "observedLatest": "0.166.0",
+      "retainedVersion": "0.166.0",
+      "artifactIntegrity": "sha512-2Szlp1l1cz5TX1ccpX4Zok3DZrot9xeZe0km+6/1v8JmqxADwyJxKBJah4dBymkwtS25j/u6dipJusTOI97Z8Q==",
+      "decision": "Current pin matches publisher latest; no app, SDK, API or beta update required.",
+      "nativeArtifactReinspected": false
+    },
+    {
+      "package": "@google/gemini-cli",
+      "metadataUrl": "https://registry.npmjs.org/@google/gemini-cli/latest",
+      "observedLatest": "0.66.0",
+      "retainedVersion": "0.66.0",
+      "artifactIntegrity": "sha512-EAtsJ9/JxiphHlduzvhoCkb7I0LdOxyugB5NpUtVqKVGZIWjV3JmurvK89ZrvMbV3kwk5SdWINz1M5ZN/2K/Lw==",
+      "decision": "Current pin matches publisher latest; no app, SDK, API or beta update required.",
+      "nativeArtifactReinspected": false
+    }
+  ],
+  "limitations": [
+    "Static artifact/source review does not verify account entitlement, live authentication or inference.",
+    "No provider payload or identity was broadened solely because a newer client release exists.",
+    "Other retained/blocked provider pins keep their prior evidence boundaries."
+  ],
+  "verification": {
+    "focusedWireAndAdjacentTests": {
+      "files": 8,
+      "passed": 89,
+      "failed": 0,
+      "liveAccountCalls": false
+    },
+    "scopedLint": "Composed Oxlint and ESLint passed with --max-warnings=0.",
+    "whitespace": "git diff --check passed.",
+    "reviewedTests": [
+      "claude-client-current-contract.test.js",
+      "refresh-client-primary-wire.test.js",
+      "client-release-migrations.test.js",
+      "claude-request-header-contract.test.js",
+      "claude-header-forwarding.test.js",
+      "google-client-identity-scope.test.js",
+      "gemini-usage-client-identity.test.js",
+      "claude-signature-structure.test.js"
+    ],
+    "providerBaseline": "83 providers byte-for-byte equal after updating only four verified version-derived User-Agent values (two Claude, one CodeBuddyCN, one Kimchi); no snapshot regeneration.",
+    "additionalReleaseWireAndScopeTests": {
+      "files": 6,
+      "passed": 53,
+      "failed": 0,
+      "tests": [
+        "client-release-migrations.test.js",
+        "refresh-client-primary-wire.test.js",
+        "refresh-codebuddy-published-models.test.js",
+        "codebuddy-intl-test-config.test.js",
+        "refresh-kimchi-client-scope.test.js",
+        "codebuddy-channel-headers.test.js"
+      ],
+      "liveAccountCalls": false
+    }
+  },
+  "codebuddyCn": {
+    "previousVersion": "2.179.0",
+    "selectedVersion": "2.179.3",
+    "metadataUrl": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/2.179.3",
+    "artifact": {
+      "url": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/-/codebuddy-code-2.179.3.tgz",
+      "integrity": "sha512-SQy1YDuITzH2MClXCrLBVIzW93syDE8VXWsyok8g3eGmahdBE7G+1aR4tBZvQHMwjPANLasTkINM26nUKstPHQ==",
+      "integrityVerified": true,
+      "archiveBytes": 65910995,
+      "unpackedBytes": 214084862,
+      "executed": false
+    },
+    "files": {
+      "package/package.json": {
+        "sha256": "4bd6406882d5f995f00df9962be3799d8f1a49cfd19cb6c2e574c79a18fe67f5"
+      },
+      "package/dist/codebuddy.js": {
+        "sha256": "b87e0505e96589c978f4af4d529d3c5839992d30e4949e4b0283d13dff679056"
+      },
+      "package/CHANGELOG.md": {
+        "sha256": "2be9a76f62a000a56cf7ebfa919183faa3b62ba617628ef5dad5f8cfcf5535ea"
+      },
+      "package/product.json": {
+        "sha256": "eba8ed28736823f409a8ddebf6786e98ca33658823b07468b741e48c66bf4472"
+      }
+    },
+    "sourceExcerpts": [
+      {
+        "contract": "Embedded CLI package version",
+        "characterOffset": 10446783,
+        "excerpt": "var eu=JSON.parse('{\"name\":\"@genie/agent-cli\",\"version\":\"2.179.3\",\"description\":\"Use CodeBuddy, Tencent\\'s AI assistant, right from your ter",
+        "excerptSha256": "74df145e4e4f6e5a1e370c34bcb1681e09d8a90dfa6a5d39738bfb61b580ec80"
+      },
+      {
+        "contract": "Default platform and product constants",
+        "characterOffset": 8784617,
+        "excerpt": "685849(eA,el,ec){\"use strict\";ec.d(el,{KR:()=>eu.KR,Vo:()=>\"CLI\",s_:()=>eu.s_});var eu=ec(157958);\"string\"==typeof PACKAGE_TYPE&&PACKAGE_TYPE},157958(eA,el,ec){\"use strict\";ec.d(el,{KR:()=>eu,k8:()=>eg,s_:()=>ed,xl:()=>ep});let eu=\"CodeBuddy\",ed=\"Tencent Cloud\",ep=eu.toUpperCase();eu.toLowerCase();let eg=\"codebuddy\"},874933(eA,el,ec){\"use strict\";ec.d(el,{m:()=>eu});let eu=Symbol(\"ContextTokenCalculateService\")},611003(eA,el,ec){\"use strict\";ec.d",
+        "excerptSha256": "c1a4e392aefb583d17f63cbe66852a52f602914680199499da6e88a1ba31f73b"
+      },
+      {
+        "contract": "DefaultClientInfo package-version binding",
+        "characterOffset": 9352865,
+        "excerpt": "platformVersion:el?.productVersion||dg.version,pluginName:dg.name,pluginVersion:el?.productVersion||dg.version,productName:el?.productName||du.KR,applicationName:el?.applicationName||\"\",productVersion:el?.productVersion||dg.version,ideType:el?.platform||du.Vo,downloadChannel:el?.downloadChannel,...eA},this.clientInfo$.next(this._ClientInfo)}getProcessEnvInfo(){let eA={};if(dl.EnvUtils.isNodeRuntime()&&process.env)for",
+        "excerptSha256": "d6bcc11f1b2aa5e7ae841906f5ee5dc6624003f5ebaefd639325177b55ec32c6"
+      },
+      {
+        "contract": "Transport User-Agent assembly",
+        "characterOffset": 21618801,
+        "excerpt": "async buildUserAgent(eA=\"\"){let el=eA?[eA]:[],ec=await this.clientInfoProvider.get()||{},eu=ec.applicationName||ec.productName;return eu&&el.unshift(`${eu}/${ec.productVersion||\"unknown\"}`),ec.platform&&el.unshift(`${ec.platform}/${ec.platformVersion||\"unknown\"}`),ec.userAgentExtension&&el.push(ec.userAgentExtension),el.join(\" \")}};el.UserAgentHttpInterceptor=ey,eu([(0,ep.Autowired)(em.ClientInfoProvider),ed(\"design:type\",Object)],ey.pr",
+        "excerptSha256": "e76c62812840409eeb252efc88f48acd77817dad62dda283d1f260519adc106c"
+      }
+    ],
+    "changelog": {
+      "versionsReviewed": [
+        "2.179.1",
+        "2.179.2",
+        "2.179.3"
+      ],
+      "disposition": "Reviewed bundled changelog. Agent/daemon/channel lifecycle, local enterprise policy, local UI and harness error changes do not establish new wire SDK/header contracts or model/account entitlement. Retain current request/body/cancellation semantics and current catalog provenance."
+    },
+    "decision": "Update only CN CLI version-derived transport/OAuth UA; retain independently unverified INTL IDE wire2.161.1, existing header channels, SDK/protocol and model declarations."
+  },
+  "kimchi": {
+    "previousVersion": "1.25.0",
+    "selectedVersion": "1.26.0",
+    "latestReleaseUrl": "https://github.com/getkimchi/kimchi/releases/latest",
+    "observedReleaseUrl": "https://github.com/getkimchi/kimchi/releases/tag/v1.26.0",
+    "tagObject": "b69a8817bb2123415cf713070abe0ba7c3ec55e1",
+    "sourceCommit": "4067b8f946b5a93acde619394a04ce79c41d49ec",
+    "sourceFiles": {
+      "src/cli.ts": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/src/cli.ts",
+        "sha256": "83d577d8d08f654f3bc661d00a4d8baffe5b917fc45e8fd5e2fb4c1e2b7fc6f3",
+        "lines": "804-809"
+      },
+      "src/utils.ts": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/src/utils.ts",
+        "sha256": "138f72a423f11b14f9f794b4ac6a928abe833352a99d5d6576228c9abef2fe46",
+        "lines": "103-125"
+      },
+      ".github/workflows/release.yml": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/.github/workflows/release.yml",
+        "sha256": "ae308dfaf8549203628eeadde177c1e6c1bf8d4136170e4bcb543bd306b056d1",
+        "lines": "80,97-103"
+      },
+      "scripts/set-version.js": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/scripts/set-version.js",
+        "sha256": "465e0b2dc8b43287ecfdbd0ab065cc94a0a7d1b4ab8a21b211d5d6ba0142add5",
+        "lines": "19-28"
+      },
+      "scripts/copy-resources.js": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/scripts/copy-resources.js",
+        "sha256": "6e42752b32ab3dcb86ce4e42c257a1522d155df4339417d44518034c56e73761",
+        "lines": "118"
+      },
+      "package.json": {
+        "url": "https://raw.githubusercontent.com/getkimchi/kimchi/4067b8f946b5a93acde619394a04ce79c41d49ec/package.json",
+        "sha256": "6777c9421db38ad7dc986a94642da844b28cc22c59d920a50545e0da78804a1e",
+        "lines": "3"
+      }
+    },
+    "binding": "release workflow RELEASE_VERSION uses v-prefixed release tag; scripts/set-version.js strips v and writes package.json; copy-resources retains package.json in dist/share/kimchi; src/utils.ts getVersion reads runtime package metadata; src/cli.ts sets userAgent kimchi/${getVersion()}. Tagged development package0.0.0 is not the released version.",
+    "changelog": {
+      "releasePageSha256": "fa6838533a80793668e0239a5014945413941094289dc999b2fc9ddae6e1d422",
+      "themes": [
+        "MCP lifecycle tests",
+        "document tool/context handling",
+        "skills triggers",
+        "PII resources",
+        "guardrail refusal handling",
+        "side-chat UI",
+        "SQLiteBusy ledger retry and isolated tests",
+        "bridge and PR cost reporting"
+      ],
+      "disposition": "These are client agent/UI/local-tool changes. Do not copy automatic permission allowances, redaction policy or agent behavior into the gateway."
+    },
+    "decision": "Update release-derived Kimchi transport/catalog UA to1.26.0; preserve existing endpoint, explicit organization/account cache scope and personal-token auth. No live provider acceptance or separate SDK update claimed."
+  },
+  "additionalUnchangedOfficialReleases": [
+    {
+      "package": "opencode-ai",
+      "observedLatest": "1.19.5",
+      "retainedVersion": "1.19.5",
+      "metadataUrl": "https://registry.npmjs.org/opencode-ai/latest",
+      "decision": "No drift; no update."
+    },
+    {
+      "package": "command-code",
+      "observedLatest": "1.88.2",
+      "retainedVersion": "1.88.2",
+      "metadataUrl": "https://registry.npmjs.org/command-code/latest",
+      "decision": "No drift; no update."
+    },
+    {
+      "package": "@qoder-ai/qodercli",
+      "observedLatest": "1.1.81",
+      "retainedVersion": "1.1.81",
+      "metadataUrl": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "decision": "No drift; retain separately signature-bound Cosy wire pin1.0.0."
+    }
+  ]
+}

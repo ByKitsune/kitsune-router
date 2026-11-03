@@ -2116,8 +2116,12 @@ export default function ProviderDetailPage() {
         existingNames={connections.map((c) => c.name).filter(Boolean)}
         onSave={handleSaveApiKey}
         onBulkDone={async () => {
+          const requests = providerRequestsRef.current;
+          if (requests?.scope !== providerScope) return;
           await fetchConnections();
+          if (providerRequestsRef.current !== requests) return;
           await fetchCustomModels();
+          if (providerRequestsRef.current !== requests) return;
           if (providerId === "qoder") {
             await handleImportQoderModels();
           }

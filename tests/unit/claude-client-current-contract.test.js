@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe("Claude 2.1.314 production OAuth endpoint contract", () => {
+describe("Claude 2.1.317 production OAuth endpoint contract", () => {
   it("uses the ClaudeAI login surface without broadening permissions or replacing the callback", () => {
     const callback = "http://localhost:20128/callback";
     const url = new URL(claude.buildAuthUrl(config, callback, "fixture-state", "fixture-challenge"));
@@ -98,7 +98,7 @@ describe("Claude model discovery keeps destination credential profiles distinct"
       expect(headers.get("x-api-key")).toBeNull();
       expect(headers.get("anthropic-version")).toBe("2023-06-01");
       expect(headers.get("anthropic-beta")).toBe("oauth-2025-04-20");
-      expect(headers.get("user-agent")).toBe("claude-cli/2.1.314 (external, sdk-cli)");
+      expect(headers.get("user-agent")).toBe("claude-cli/2.1.317 (external, sdk-cli)");
     }
   });
 

@@ -12,9 +12,10 @@
 import { platform, arch } from "os";
 
 // ─── Claude Code (claude-cli) ──────────────────────────────────────────
-// npm latest/next 2.1.314; delayed stable is 2.1.308 (2026-10-31 review).
+// npm latest/next 2.1.317; delayed stable is 2.1.311 (2026-11-03 review).
+// Integrity-verified native source: docs/audit/data/client-wire-refresh-20261103.json.
 // Follow the existing non-prerelease latest policy, not the delayed stable tag.
-export const CLAUDE_CODE_VERSION = "2.1.314";
+export const CLAUDE_CODE_VERSION = "2.1.317";
 export const CLAUDE_CLI_USER_AGENT = `claude-cli/${CLAUDE_CODE_VERSION} (external, sdk-cli)`;
 export const CLAUDE_OAUTH_BETA_FLAG = "oauth-2025-04-20";
 
@@ -50,7 +51,7 @@ export const CLAUDE_BETA_FLAGS_HEAVY_AGENT = [
   "effort-2025-11-24",
 ];
 
-// SDK 0.128.0 reverified in the SHA-512 integrity-checked native 2.1.314 bundle.
+// SDK 0.128.0 reverified in the SHA-512 integrity-checked native 2.1.317 bundle.
 // Its Stainless source reports the executing process.version, independently of
 // the app release. Report this gateway's runtime rather than an invented host pin.
 export const CLAUDE_STAINLESS = {
@@ -175,10 +176,10 @@ export const TRAE_APP_VERSION = "3.6.4";
 export const TRAE_USER_AGENT = "Trae/1.0.0 antigravity-cockpit-tools";
 
 // ─── CodeBuddy (Tencent) ───────────────────────────────────────────────
-// CLI 2.179.0 (integrity-checked npm latest) verifies the CN CLI surface only.
+// CLI 2.179.3 (integrity-checked npm latest, 2026-11-03) verifies the CN CLI surface only.
 // INTL IDE identity remains unverified: retain its independent legacy wire pin,
 // not a claim about the published IDE release. Keep each region's OAuth paired.
-export const CODEBUDDY_CLI_VERSION = "2.179.0";
+export const CODEBUDDY_CLI_VERSION = "2.179.3";
 export const CODEBUDDY_INTL_WIRE_VERSION = "2.161.1";
 export const CODEBUDDY_CN_TRANSPORT_UA = `CLI/${CODEBUDDY_CLI_VERSION} CodeBuddy/${CODEBUDDY_CLI_VERSION}`;
 export const CODEBUDDY_INTL_TRANSPORT_UA = `IDE/${CODEBUDDY_INTL_WIRE_VERSION} CodeBuddy/${CODEBUDDY_INTL_WIRE_VERSION}`;
@@ -197,8 +198,8 @@ export const GROK_CLI_USER_AGENT =
 export const XAI_USER_AGENT = "grok-cli/kitsunerouter";
 
 // ─── Kimchi ────────────────────────────────────────────────────────────
-// Public CLI v1.25.0; tagged source uses the injected release version in its UA.
-export const KIMCHI_GATEWAY_VERSION = "1.25.0";
+// Public CLI v1.26.0; pinned release workflow supplies the package version used in its UA.
+export const KIMCHI_GATEWAY_VERSION = "1.26.0";
 export const KIMCHI_USER_AGENT = `kimchi/${KIMCHI_GATEWAY_VERSION}`;
 
 // ─── Command Code ──────────────────────────────────────────────────────

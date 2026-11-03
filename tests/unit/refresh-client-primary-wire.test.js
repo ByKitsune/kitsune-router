@@ -32,8 +32,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// Publisher captures 2026-10-31: Claude npm latest 2.1.314 (delayed stable
-// 2.1.308), Codex rust-v0.166.0; Google expectations retain their own evidence.
+// Publisher captures: Claude 2026-11-03 npm latest 2.1.317 (delayed stable
+// 2.1.311), Codex rust-v0.166.0; Google expectations retain their own evidence.
 // Literal expectations are
 // independent of the constants under test. These catch stale wire identities,
 // a separately stale catalog query, and accidental SDK/runtime co-bumps.
@@ -49,7 +49,7 @@ describe("refreshed primary client wire identities", () => {
     const expectedPayload = {
       ...structuredClone(body),
       system: [
-        { type: "text", text: expect.stringMatching(/^x-anthropic-billing-header: cc_version=2\.1\.314\.[0-9a-f]{3}; cc_entrypoint=cli; cch=00000;$/) },
+        { type: "text", text: expect.stringMatching(/^x-anthropic-billing-header: cc_version=2\.1\.317\.[0-9a-f]{3}; cc_entrypoint=cli; cch=00000;$/) },
         { type: "text", text: "Keep the caller's instruction." },
       ],
     };
@@ -64,7 +64,7 @@ describe("refreshed primary client wire identities", () => {
     const request = outbound();
     const payload = JSON.parse(request.body);
     expect(request.url).toBe("https://api.anthropic.com/v1/messages?beta=true");
-    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.314 (external, sdk-cli)");
+    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.317 (external, sdk-cli)");
     expect(payload).toEqual(expectedPayload);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-claude-oauth");
     expect(request.headers.get("x-claude-code-session-id")).toBe("caller-session");

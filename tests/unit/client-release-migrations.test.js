@@ -36,7 +36,7 @@ describe("verified client release migrations", () => {
   it("emits the latest-channel Claude release and its bundled Stainless version", async () => {
     await new DefaultExecutor("claude").execute({ model: "claude-sonnet-4-6", body: { messages: [{ role: "user", content: "fixture" }], max_tokens: 16 }, stream: false, credentials: { accessToken: "fixture-oauth" } });
     const headers = lastHeaders(proxyAwareFetch);
-    expect(headers.get("user-agent")).toBe("claude-cli/2.1.314 (external, sdk-cli)");
+    expect(headers.get("user-agent")).toBe("claude-cli/2.1.317 (external, sdk-cli)");
     expect(headers.get("x-stainless-package-version")).toBe("0.128.0");
     expect(headers.get("x-stainless-runtime-version")).toBe(process.version);
     expect(headers.get("anthropic-beta")).not.toContain("timing-2026-09-09");
@@ -59,7 +59,7 @@ describe("verified client release migrations", () => {
   });
 
   it.each([
-    ["codebuddy-cn", codebuddyCn, "CLI/2.179.0 CodeBuddy/2.179.0"],
+    ["codebuddy-cn", codebuddyCn, "CLI/2.179.3 CodeBuddy/2.179.3"],
     ["codebuddy-intl", codebuddyIntl, "IDE/2.161.1 CodeBuddy/2.161.1"],
   ])("keeps %s transport and OAuth identity paired without inventing an INTL IDE release", async (provider, oauth, expected) => {
     const headers = new Headers(new DefaultExecutor(provider).buildHeaders(credentials));
@@ -72,7 +72,7 @@ describe("verified client release migrations", () => {
   });
 
   it("emits Kimchi's tagged release user agent", () => {
-    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.25.0");
+    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.26.0");
   });
 
   it("updates only Trae's inactive source pin", () => {
@@ -95,19 +95,19 @@ describe("verified client release migrations", () => {
   });
 
   it("propagates Command Code version and UA to the real key-validation consumer", async () => {
-    fetch.mockResolvedValue(json({}));
-    const response = await validateProvider({ json: async () => ({ provider: "commandcode", apiKey: "fixture-key" }) });
+    proxyAwareFetch.mockResolvedValue(json({}));
+    const response = await validateProvider(new Request("http://gateway.test/api/providers/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: "commandcode", apiKey: "fixture-key" }) }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ valid: true, error: null });
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(lastHeaders(fetch).get("x-command-code-version")).toBe("1.88.2");
-    expect(lastHeaders(fetch).get("user-agent")).toBe("cli");
-    expect(lastHeaders(fetch).get("x-cli-environment")).toBe("production");
-    expect(lastHeaders(fetch).get("authorization")).toBe("Bearer fixture-key");
-    const body = JSON.parse(fetch.mock.calls[0][1].body);
-    expect(lastHeaders(fetch).get("x-session-id")).toBe(body.threadId);
-    expect(lastHeaders(fetch).get("x-cli-surface")).toBe("cli");
-    expect(lastHeaders(fetch).get("x-taste-learning")).toBe("false");
+    expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
+    expect(lastHeaders(proxyAwareFetch).get("x-command-code-version")).toBe("1.88.2");
+    expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("cli");
+    expect(lastHeaders(proxyAwareFetch).get("x-cli-environment")).toBe("production");
+    expect(lastHeaders(proxyAwareFetch).get("authorization")).toBe("Bearer fixture-key");
+    const body = JSON.parse(proxyAwareFetch.mock.calls[0][1].body);
+    expect(lastHeaders(proxyAwareFetch).get("x-session-id")).toBe(body.threadId);
+    expect(lastHeaders(proxyAwareFetch).get("x-cli-surface")).toBe("cli");
+    expect(lastHeaders(proxyAwareFetch).get("x-taste-learning")).toBe("false");
   });
 
   it("keeps independently verified releases separate from retained SDK pins", () => {

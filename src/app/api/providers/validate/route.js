@@ -7,10 +7,12 @@ import { openaiToCommandCodeRequest } from "open-sse/translator/request/openai-t
 import { buildCommandCodeHeaders } from "open-sse/shared/commandCodeHeaders.js";
 import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { normalizeProviderId } from "@/lib/providerNormalization";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
+import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 
 // Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
 // Returns true if API key is accepted (status !== 401 && !== 403).
-async function probeWebProvider(provider, apiKey) {
+async function probeWebProvider(provider, apiKey, fetch) {
   const p = AI_PROVIDERS[provider];
   if (!p) return null;
   // Skip if provider has dual-purpose (LLM + search), let LLM validate handle it
@@ -45,7 +47,7 @@ async function probeWebProvider(provider, apiKey) {
 
 // Probe a media provider (tts/embedding/stt/image/video) using *Config.
 // Returns true if API key is accepted; null to skip (let default handler decide).
-async function probeMediaProvider(provider, apiKey) {
+async function probeMediaProvider(provider, apiKey, providerSpecificData, fetch) {
   const p = AI_PROVIDERS[provider];
   if (!p) return null;
   const MEDIA_KINDS = new Set(["tts", "embedding", "stt", "image", "video", "music", "imageToText"]);
@@ -61,7 +63,9 @@ async function probeMediaProvider(provider, apiKey) {
 
   const headers = { "Content-Type": "application/json", ...(cfg.extraHeaders || {}) };
 
-  switch (cfg.authHeader) {
+  // The self-hosted OpenAI speech adapter explicitly uses Bearer auth. Do not
+  // infer an auth scheme for other media formats with incomplete metadata.
+  switch (cfg.authHeader || (cfg.authType === "apikey" && cfg.format === "openai-speech" ? "bearer" : undefined)) {
     case "bearer":     headers["Authorization"] = `Bearer ${apiKey}`; break;
     case "key":        headers["Authorization"] = `Key ${apiKey}`; break;
     case "x-api-key":  headers["x-api-key"] = apiKey; break;
@@ -73,7 +77,17 @@ async function probeMediaProvider(provider, apiKey) {
   }
 
   const method = cfg.method || "POST";
-  const res = await fetch(cfg.baseUrl, {
+  // Only providers exposing a per-connection endpoint may change the probe's
+  // destination. Ordinary cloud keys must stay on their registered host.
+  const configuredBase = p.connectionBaseUrl && typeof providerSpecificData?.baseUrl === "string"
+    ? providerSpecificData.baseUrl.trim() : "";
+  let url = configuredBase || cfg.baseUrl;
+  if (configuredBase && cfg === p.sttConfig) url = url.replace(/\/+$/, "");
+  if (cfg.format === "openai-speech" && p.connectionBaseUrl) {
+    // Match the self-hosted TTS adapter's accepted root, /v1 and full URL forms.
+    url = url.replace(/\/+$/, "").replace(/\/v1\/audio\/speech$/, "").replace(/\/v1$/, "") + "/v1/audio/speech";
+  }
+  const res = await fetch(url, {
     method,
     headers,
     body: method === "GET" ? undefined : JSON.stringify({ input: "ping", text: "ping", prompt: "ping", model: getDefaultModel(provider) || "test" }),
@@ -99,6 +113,19 @@ export async function POST(request) {
 
     // Validate with each provider
     try {
+      const proxyOptions = await resolveConnectionProxyConfig({
+        ...(providerSpecificData || {}),
+        ...(Object.hasOwn(body, "proxyPoolId") ? { proxyPoolId: body.proxyPoolId } : {}),
+      });
+      // Bind every probe, including fallback requests, to the same saved route.
+      // A missing selected pool must never fall back to the default egress.
+      const validationSignal = AbortSignal.any([request.signal, AbortSignal.timeout(10000)]);
+      const fetch = (url, options = {}) => proxyAwareFetch(url, {
+        ...options,
+        redirect: "error",
+        signal: options.signal ? AbortSignal.any([validationSignal, options.signal]) : validationSignal,
+      }, proxyOptions);
+
       if (isOpenAICompatibleProvider(provider)) {
         const node = await getProviderNodeById(provider);
         if (!node) {
@@ -236,7 +263,7 @@ export async function POST(request) {
       }
 
       // Generic probe for webSearch/webFetch providers (config-driven)
-      const webResult = await probeWebProvider(provider, apiKey);
+      const webResult = await probeWebProvider(provider, apiKey, fetch);
       if (webResult !== null) {
         return NextResponse.json({
           valid: webResult,
@@ -245,7 +272,7 @@ export async function POST(request) {
       }
 
       // Generic probe for tts/embedding providers (config-driven)
-      const mediaResult = await probeMediaProvider(provider, apiKey);
+      const mediaResult = await probeMediaProvider(provider, apiKey, providerSpecificData, fetch);
       if (mediaResult !== null) {
         return NextResponse.json({
           valid: mediaResult,
@@ -584,8 +611,8 @@ export async function POST(request) {
           // PAT (pt-...) needs the job-token exchange before it can sign
           // anything — the generic OpenAI-compat probe below can't validate it.
           try {
-            const resolved = await resolveQoderCredentials({ apiKey, providerSpecificData }, null, AbortSignal.timeout(8000));
-            const result = await resolveQoderModels(resolved, { forceRefresh: true });
+            const resolved = await resolveQoderCredentials({ apiKey, providerSpecificData }, proxyOptions, validationSignal);
+            const result = await resolveQoderModels(resolved, { forceRefresh: true, proxyOptions, signal: validationSignal });
             isValid = !!result?.models?.length;
           } catch (err) {
             isValid = false;

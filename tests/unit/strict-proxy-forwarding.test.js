@@ -1,9 +1,25 @@
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { fetch as nativeFetch } from "undici";
 import * as models from "../../src/models/index.js";
 import { resolveConnectionProxyConfig } from "../../src/lib/network/connectionProxy.js";
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";
 
-afterEach(() => vi.restoreAllMocks());
+beforeEach(() => {
+  // These cases explicitly exercise an absent proxy. A cloud runner's valid
+  // inherited proxy must not turn them into anonymous live provider requests.
+  for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"]) {
+    vi.stubEnv(key, "");
+  }
+  vi.stubGlobal("fetch", vi.fn((url, options) => {
+    if (String(url).startsWith("data:")) return nativeFetch(url, options);
+    throw new Error("Unexpected network request in strict-proxy unit test");
+  }));
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 describe("Strict Proxy configuration and propagation", () => {
   it("resolves strictProxy: true from pool configuration", async () => {
@@ -92,5 +108,14 @@ describe("Strict Proxy configuration and propagation", () => {
     const config = await resolveConnectionProxyConfig({});
     const response = await proxyAwareFetch("data:application/json,%7B%22ok%22%3Atrue%7D", {}, config);
     expect(await response.json()).toEqual({ ok: true });
+  });
+
+  it("accepts an inherited environment proxy without treating strict policy as missing configuration", async () => {
+    vi.stubEnv("HTTPS_PROXY", "http://synthetic-proxy.invalid:8080");
+    fetch.mockResolvedValueOnce(new Response("{}"));
+    const config = await resolveConnectionProxyConfig({ strictProxy: true });
+
+    expect((await proxyAwareFetch("https://provider.invalid/v1/models", {}, config)).ok).toBe(true);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith("https://provider.invalid/v1/models", expect.objectContaining({ dispatcher: expect.anything() }));
   });
 });

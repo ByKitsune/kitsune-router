@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import PropTypes from "prop-types";
 import { Button, Badge, Input, Modal, Select } from "@/shared/components";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { planBulkAdd } from "@/shared/utils/bulkAdd";
 import { withConnectionBaseUrl } from "@/shared/utils/connectionBaseUrl";
+import { buildConnectionValidationPayload } from "@/shared/utils/connectionValidation";
 
 const BULK_PLACEHOLDER = `name1|sk-key1\nname2|sk-key2\nsk-key-only-auto-named`;
 
@@ -48,7 +49,11 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const [cloudflareData, setCloudflareData] = useState({ accountId: "" });
   const [region, setRegion] = useState(defaultRegion);
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState(null);
+  const [validationState, setValidationState] = useState(null);
+  const validationRequest = useRef(null);
+  const bulkRequest = useRef(null);
+  const saveGeneration = useRef(0);
+  const providerGeneration = useRef(0);
   const [saving, setSaving] = useState(false);
   const bulkPlaceholder = isCloudflareAi
     ? `name1|sk-key1|acc123456\nname2|sk-key2|def789012\nsk-key-only-auto-named`
@@ -60,13 +65,35 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const [bulkText, setBulkText] = useState("");
   const [bulkResult, setBulkResult] = useState(null); // { success, failed }
 
-  // Reset state and close
-  const handleClose = () => {
+  const [formScope, setFormScope] = useState({ provider, isOpen });
+  // A new provider/open boundary is a fresh draft. Adjust local state before
+  // rendering its fields, so credentials cannot flash in another account form.
+  if (formScope.provider !== provider || formScope.isOpen !== isOpen) {
+    setFormScope({ provider, isOpen });
     setFormData(createInitialFormData());
     setAzureData(createInitialAzureData());
     setCloudflareData({ accountId: "" });
     setRegion(defaultRegion);
-    setValidationResult(null);
+    setValidationState(null);
+    setValidating(false);
+    setSaving(false);
+    setMode("single");
+    setBulkText("");
+    setBulkResult(null);
+  }
+
+  // Reset state and close
+  const handleClose = () => {
+    validationRequest.current?.abort();
+    bulkRequest.current?.abort();
+    saveGeneration.current += 1;
+    setSaving(false);
+    setValidating(false);
+    setFormData(createInitialFormData());
+    setAzureData(createInitialAzureData());
+    setCloudflareData({ accountId: "" });
+    setRegion(defaultRegion);
+    setValidationState(null);
     setMode("single");
     setBulkText("");
     setBulkResult(null);
@@ -97,68 +124,88 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     return undefined;
   };
 
-  const handleValidate = async () => {
+  const providerSpecificData = buildProviderSpecificData();
+  const validationPayload = buildConnectionValidationPayload({
+    provider, apiKey: formData.apiKey, proxyPoolId: formData.proxyPoolId, providerSpecificData,
+  });
+  const validationKey = JSON.stringify([isOpen, provider, validationPayload]);
+  const validationResult = validationState?.key === validationKey ? validationState.result : null;
+
+  useLayoutEffect(() => () => {
+    validationRequest.current?.abort();
+  }, [validationKey]);
+  useLayoutEffect(() => () => {
+    providerGeneration.current += 1;
+  }, [provider]);
+  useLayoutEffect(() => () => {
+    validationRequest.current?.abort();
+    bulkRequest.current?.abort();
+    saveGeneration.current += 1;
+  }, [provider, isOpen]);
+
+  const validateCredentials = async () => {
+    const controller = new AbortController();
+    validationRequest.current?.abort();
+    validationRequest.current = controller;
     setValidating(true);
+    setValidationState(null);
     try {
       const res = await fetch("/api/providers/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, apiKey: formData.apiKey, providerSpecificData: buildProviderSpecificData() }),
+        body: JSON.stringify(validationPayload),
+        signal: controller.signal,
       });
       const data = await res.json();
-      setValidationResult(data.valid ? "success" : "failed");
+      if (controller.signal.aborted || validationRequest.current !== controller) return null;
+      const valid = res.ok && data.valid === true;
+      setValidationState({ key: validationKey, result: valid ? "success" : "failed" });
+      return valid;
     } catch {
-      setValidationResult("failed");
+      if (controller.signal.aborted || validationRequest.current !== controller) return null;
+      setValidationState({ key: validationKey, result: "failed" });
+      return false;
     } finally {
-      setValidating(false);
+      if (validationRequest.current === controller) {
+        validationRequest.current = null;
+        setValidating(false);
+      }
     }
   };
 
-  const handleSubmit = async () => {
-    if (!provider) return;
-    if (!isOllamaLocal && !formData.apiKey) return;
-    if (!isOllamaLocal) {
-      // Non-ollama providers require a name
-      if (!formData.name) return;
-    }
-    if (isCompatible && !formData.defaultModel.trim()) return;
+  const handleValidate = async () => {
+    if (saving) return;
+    await validateCredentials();
+  };
 
+  const handleSubmit = async () => {
+    if (!provider || saving || validating) return;
+    if (!isOllamaLocal && (!formData.apiKey || !formData.name)) return;
+    if (isCompatible && !formData.defaultModel.trim()) return;
+    // Capture the complete payload before yielding; the probe and mutation
+    // must never combine fields from different drafts.
+    const payload = {
+      name: formData.name || (isOllamaLocal ? "Ollama Local" : ""),
+      apiKey: formData.apiKey,
+      defaultModel: isCompatible ? formData.defaultModel.trim() : undefined,
+      priority: formData.priority,
+      proxyPoolId: validationPayload.proxyPoolId,
+      providerSpecificData,
+    };
+    const generation = ++saveGeneration.current;
     setSaving(true);
     try {
-      let isValid = false;
-      try {
-        setValidating(true);
-        setValidationResult(null);
-        const res = await fetch("/api/providers/validate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider, apiKey: formData.apiKey, providerSpecificData: buildProviderSpecificData() }),
-        });
-        const data = await res.json();
-        isValid = !!data.valid;
-        setValidationResult(isValid ? "success" : "failed");
-      } catch {
-        setValidationResult("failed");
-      } finally {
-        setValidating(false);
-      }
-
-      const saved = await onSave({
-        name: formData.name || (isOllamaLocal ? "Ollama Local" : ""),
-        apiKey: formData.apiKey,
-        defaultModel: isCompatible ? formData.defaultModel.trim() : undefined,
-        priority: formData.priority,
-        proxyPoolId: formData.proxyPoolId === NONE_PROXY_POOL_VALUE ? null : formData.proxyPoolId,
-        testStatus: isValid ? "active" : "unknown",
-        providerSpecificData: buildProviderSpecificData()
-      });
-      if (saved) handleClose();
+      const valid = await validateCredentials();
+      if (valid === null || saveGeneration.current !== generation) return;
+      const saved = await onSave({ ...payload, testStatus: valid ? "active" : "unknown" });
+      if (saveGeneration.current === generation && saved) handleClose();
     } finally {
-      setSaving(false);
+      if (saveGeneration.current === generation) setSaving(false);
     }
   };
 
   const handleBulkSubmit = async () => {
+    if (saving || validating) return;
     const lines = bulkText.split("\n");
     if (!lines.length) return;
     // Plan collision-free names against existing connections so a generated
@@ -166,52 +213,75 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     // overwrite instead of inserting). See bulkAdd.js for the full rationale.
     const plan = planBulkAdd(lines, existingNames, { isCloudflareAi });
     if (!plan.length) return;
+    const generation = ++saveGeneration.current;
+    const controller = new AbortController();
+    bulkRequest.current?.abort();
+    bulkRequest.current = controller;
+    const isCurrent = () => !controller.signal.aborted && saveGeneration.current === generation;
+    const initialProviderGeneration = providerGeneration.current;
     setSaving(true);
     setBulkResult(null);
     let success = 0;
     let failed = 0;
-    for (const entry of plan) {
-      try {
-        // Validate each key before saving so bulk-added connections get a
-        // real status (active/unknown) like single adds, instead of a
-        // hardcoded "unknown" that never flips until a manual test.
-        let isValid = false;
+    try {
+      for (const entry of plan) {
+        if (!isCurrent()) return;
         try {
-          const vres = await fetch("/api/providers/validate", {
+          // Validate each key before saving so bulk-added connections get a
+          // real status (active/unknown) like single adds, instead of a
+          // hardcoded "unknown" that never flips until a manual test.
+          let isValid = false;
+          try {
+            const vres = await fetch("/api/providers/validate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(buildConnectionValidationPayload({
+                provider,
+                apiKey: entry.apiKey,
+                proxyPoolId: formData.proxyPoolId,
+                providerSpecificData: entry.providerSpecificData,
+              })),
+              signal: controller.signal,
+            });
+            const vdata = await vres.json().catch(() => ({}));
+            isValid = vres.ok && vdata.valid === true;
+          } catch {
+            isValid = false;
+          }
+          if (!isCurrent()) return;
+          const res = await fetch("/api/providers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               provider,
               apiKey: entry.apiKey,
+              name: entry.name,
+              priority: 1,
+              proxyPoolId: formData.proxyPoolId === NONE_PROXY_POOL_VALUE ? null : formData.proxyPoolId,
+              testStatus: isValid ? "active" : "unknown",
               ...(entry.providerSpecificData ? { providerSpecificData: entry.providerSpecificData } : {}),
             }),
+            signal: controller.signal,
           });
-          const vdata = await vres.json().catch(() => ({}));
-          isValid = !!vdata.valid;
+          if (res.ok) success++;
+          else failed++;
         } catch {
-          isValid = false;
+          failed++;
         }
-        const res = await fetch("/api/providers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            provider,
-            apiKey: entry.apiKey,
-            name: entry.name,
-            priority: 1,
-            testStatus: isValid ? "active" : "unknown",
-            ...(entry.providerSpecificData ? { providerSpecificData: entry.providerSpecificData } : {}),
-          }),
-        });
-        if (res.ok) success++;
-        else failed++;
-      } catch {
-        failed++;
+      }
+      if (!isCurrent()) return;
+      bulkRequest.current = null;
+      setSaving(false);
+      setBulkResult({ success, failed });
+    } finally {
+      if (bulkRequest.current === controller) bulkRequest.current = null;
+      // Cancel stops future dispatch; it cannot undo an acknowledged mutation.
+      // Refresh those partial successes on the same provider, including after
+      // closing the dialog, without invoking an old provider's callback.
+      if (success > 0 && onBulkDone && providerGeneration.current === initialProviderGeneration) {
+        await onBulkDone();
       }
     }
-    setSaving(false);
-    setBulkResult({ success, failed });
-    if (success > 0 && onBulkDone) onBulkDone();
   };
 
   if (!provider) return null;
@@ -221,8 +291,8 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
       <div className="flex flex-col gap-4">
         {/* Mode switcher */}
         <div className="flex gap-2">
-          <Button size="sm" variant={mode === "single" ? "primary" : "ghost"} onClick={() => { setMode("single"); setBulkResult(null); }}>Single</Button>
-          <Button size="sm" variant={mode === "bulk" ? "primary" : "ghost"} onClick={() => { setMode("bulk"); setBulkResult(null); }}>Bulk Add</Button>
+          <Button size="sm" disabled={saving || validating} variant={mode === "single" ? "primary" : "ghost"} onClick={() => { setMode("single"); setBulkResult(null); }}>Single</Button>
+          <Button size="sm" disabled={saving || validating} variant={mode === "bulk" ? "primary" : "ghost"} onClick={() => { setMode("bulk"); setBulkResult(null); }}>Bulk Add</Button>
         </div>
 
         {mode === "bulk" && (
@@ -236,6 +306,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
               }
             </p>
             <textarea
+              disabled={saving}
               className="w-full rounded border border-accent/30 bg-sidebar p-2 text-sm font-mono resize-y min-h-[140px] focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder={bulkPlaceholder}
               value={bulkText}
@@ -247,7 +318,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={handleBulkSubmit} fullWidth disabled={saving || !bulkText.trim()}>
+              <Button onClick={handleBulkSubmit} fullWidth disabled={saving || validating || !bulkText.trim()}>
                 {saving ? "Adding..." : "Add All Keys"}
               </Button>
               <Button onClick={handleClose} variant="ghost" fullWidth>Cancel</Button>
@@ -257,6 +328,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
 
         {mode === "single" && (<>
         <Input
+          disabled={saving}
           label="Name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -264,6 +336,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         />
         {connectionBaseUrl && (
           <Input
+            disabled={saving}
             label={connectionBaseUrl.label || "Base URL"}
             value={formData.baseUrl}
             onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
@@ -274,6 +347,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         {isOllamaLocal && (
           <div className="flex gap-2">
             <Input
+              disabled={saving}
               label="Ollama Host URL"
               value={formData.ollamaHostUrl}
               onChange={(e) => setFormData({ ...formData, ollamaHostUrl: e.target.value })}
@@ -290,6 +364,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         {!isOllamaLocal && (
           <div className="flex gap-2">
             <Input
+              disabled={saving}
               label={credentialLabel}
               type={isCookie ? "text" : "password"}
               value={formData.apiKey}
@@ -324,6 +399,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         )}
         {providerRegions && (
           <Select
+            disabled={saving}
             label="Region"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
@@ -332,6 +408,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         )}
         {isCompatible && (
           <Input
+            disabled={saving}
             label="Default Model"
             value={formData.defaultModel}
             onChange={(e) => setFormData({ ...formData, defaultModel: e.target.value })}
@@ -360,6 +437,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
           <div className="bg-sidebar/50 p-4 rounded-lg border border-accent/20">
             <h3 className="font-semibold mb-3 text-sm">Cloudflare Workers AI</h3>
             <Input
+              disabled={saving}
               label="Account ID"
               value={cloudflareData.accountId}
               onChange={(e) => setCloudflareData({ ...cloudflareData, accountId: e.target.value })}
@@ -375,24 +453,28 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             <h3 className="font-semibold mb-3 text-sm">Azure OpenAI Configuration</h3>
             <div className="flex flex-col gap-3">
               <Input
+                disabled={saving}
                 label="Azure Endpoint"
                 value={azureData.azureEndpoint}
                 onChange={(e) => setAzureData({ ...azureData, azureEndpoint: e.target.value })}
                 placeholder="https://your-resource.openai.azure.com"
               />
               <Input
+                disabled={saving}
                 label="Deployment Name"
                 value={azureData.deployment}
                 onChange={(e) => setAzureData({ ...azureData, deployment: e.target.value })}
                 placeholder="gpt-4"
               />
               <Input
+                disabled={saving}
                 label="API Version"
                 value={azureData.apiVersion}
                 onChange={(e) => setAzureData({ ...azureData, apiVersion: e.target.value })}
                 placeholder="2024-10-01-preview"
               />
               <Input
+                disabled={saving}
                 label="Organization"
                 value={azureData.organization}
                 onChange={(e) => setAzureData({ ...azureData, organization: e.target.value })}
@@ -403,6 +485,8 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         )}
 
         <Input
+
+          disabled={saving}
           label="Priority"
           type="number"
           value={formData.priority}
@@ -410,6 +494,8 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         />
 
         <Select
+
+          disabled={saving}
           label="Proxy Pool"
           value={formData.proxyPoolId}
           onChange={(e) => setFormData({ ...formData, proxyPoolId: e.target.value })}
@@ -431,7 +517,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         </p>
 
         <div className="flex gap-2">
-          <Button onClick={handleSubmit} fullWidth disabled={saving || (!isOllamaLocal && (!formData.name || !formData.apiKey)) || (isCompatible && !formData.defaultModel.trim()) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
+          <Button onClick={handleSubmit} fullWidth disabled={saving || validating || (!isOllamaLocal && (!formData.name || !formData.apiKey)) || (isCompatible && !formData.defaultModel.trim()) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
             {saving ? "Saving..." : "Save"}
           </Button>
           <Button onClick={handleClose} variant="ghost" fullWidth>

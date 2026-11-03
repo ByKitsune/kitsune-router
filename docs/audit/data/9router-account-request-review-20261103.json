@@ -1,0 +1,673 @@
+{
+  "reviewDate": "2026-11-03",
+  "timezone": "Asia/Jakarta",
+  "sourceRepository": "https://github.com/decolua/9router",
+  "sourceApi": "https://api.github.com/repos/decolua/9router/issues?state=all&per_page=100&sort=updated&direction=desc",
+  "capturedFileMtimeUtc": "2026-11-03T02:57:49.165905+00:00",
+  "sourceBytes": 24360155,
+  "sourceSha256": "e2b1d6f780e72c7d232503f96ba6b348ba95633ce94c3356c6c11f3b7886d97b",
+  "upstreamHead": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+  "upstreamHeadUnchangedFromOct31": true,
+  "newMasterCommitsSincePriorReview": 0,
+  "counts": {
+    "allIssueAndPrRecords": 5231,
+    "actualIssues": 2327,
+    "pullRequests": 2904,
+    "uniqueIssueNumbers": 2327,
+    "issueStates": {
+      "open": 1520,
+      "closed": 807
+    },
+    "indexCategoryCounts": {
+      "client_identity_signature": 44,
+      "provider_request_auth": 754,
+      "ui_connection_consistency": 239,
+      "stability_security": 338
+    },
+    "priorInventoryIssueNumbers": 346,
+    "currentActualIssuesMatchedPriorInventories": 345,
+    "selectedBodiesReviewed": 23,
+    "commitSubjectsIndexed": 150,
+    "issuesWithCommentsEndpointReviewed": 6,
+    "individualCommentsReviewed": 2
+  },
+  "scope": "Complete actual-issue title/date/state index; selected issue bodies and specific current source paths reviewed deeply. This is not 2327 reproduced bugs, not every comment, not a full PR diff review, not live provider validation. Comment endpoints for six selected issues were later fetched completely (two comments total); all other discussion remains unreviewed.",
+  "priorInventories": [
+    "9router-october-inventory-20261029.json",
+    "9router-stability-inventory-20261031.json",
+    "9router-client-refresh-review-20261031.json",
+    "9router-release105-review-20261031.json"
+  ],
+  "selectedIssues": [
+    {
+      "number": 5385,
+      "url": "https://github.com/decolua/9router/issues/5385",
+      "title": "Gemini-native /v1beta requests to Antigravity models lose the client's functionDeclarations (tools never reach the model)",
+      "createdAt": "2026-11-02T19:48:14Z",
+      "updatedAt": "2026-11-02T19:48:14Z",
+      "bodySha256": "c01940d4b55c3e68ca7c095593b0b40070d32e332ca546744c7b6d12e9ab5ee2",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "already-addressed-in-synthetic-path",
+      "reason": "Real translateRequest GEMINI→ANTIGRAVITY plus AntigravityExecutor.transformRequest retains functionDeclarations and normalizes schema for both stream values. Native key aliases covered by gemini-native-chat-contract.test.js. This does not prove live model entitlement/behavior.",
+      "localEvidence": [
+        "open-sse/translator/request/gemini-to-openai.js",
+        "open-sse/executors/antigravity.js",
+        "tests/unit/gemini-native-chat-contract.test.js"
+      ],
+      "commentsCount": 0,
+      "commentReview": "No comments; no further pipeline reproducer or linked fix supplied.",
+      "commentEvidence": []
+    },
+    {
+      "number": 5371,
+      "url": "https://github.com/decolua/9router/issues/5371",
+      "title": "Kiro [400]: {\"message\":\"profileArn is required for this request.\",\"reason\":null}",
+      "createdAt": "2026-11-01T15:41:44Z",
+      "updatedAt": "2026-11-02T22:04:13Z",
+      "bodySha256": "6cc751de0ac7e0a59db16f4ff02424e64f6abfa981ebec12dfb8fa18e32a7ef5",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "requires-upstream-reproducer",
+      "reason": "Report contains only profileArn required error, without auth method, endpoint or credential shape. Existing import/refresh resolves account-specific profiles; api_key uses Amazon Q with TokenType API_KEY; IDC/external IdP intentionally avoid another account shared ARN. Do not invent a profile ARN.",
+      "localEvidence": [
+        "src/lib/oauth/services/kiro.js",
+        "open-sse/services/tokenRefresh/providers.js",
+        "open-sse/executors/kiro.js",
+        "tests/unit/kiro-profile-arn.test.js"
+      ],
+      "commentsCount": 1,
+      "commentReview": "One confirmation comment: Same error here. No auth method, endpoint, credential shape, reproducer or linked fix supplied.",
+      "commentEvidence": [
+        {
+          "url": "https://github.com/decolua/9router/issues/5371#issuecomment-6589616106",
+          "createdAt": "2026-11-02T22:04:13Z",
+          "updatedAt": "2026-11-02T22:04:13Z",
+          "bodySha256": "3cf744f908be1b9b04f29e45769d06938c7f2cde14ce422c957af4897ab5f47b"
+        }
+      ]
+    },
+    {
+      "number": 5367,
+      "url": "https://github.com/decolua/9router/issues/5367",
+      "title": "Zed Claude Sonnet 5.5 returns invalid JSON Schema error when routed through Antigravity MITM",
+      "createdAt": "2026-11-01T09:09:51Z",
+      "updatedAt": "2026-11-01T09:09:51Z",
+      "bodySha256": "30ffc709586ef2e318748cce78ee209a308abbc7e4de571b2a3dfa780532f46a",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "requires-offending-schema",
+      "reason": "Report omits the offending schema. Representative real Antigravity→OpenAI→Claude chain already lowercases types, converts string minItems/maxItems to integers, and nullable to union. Zed uses the shared Claude translator. No evidence supports blanket dropping tools/keywords or switching schema drafts for all inputs.",
+      "localEvidence": [
+        "open-sse/translator/formats/gemini.js",
+        "open-sse/translator/request/antigravity-to-openai.js",
+        "open-sse/executors/zed.js"
+      ],
+      "commentsCount": 0,
+      "commentReview": "No comments; no offending tool schema supplied.",
+      "commentEvidence": []
+    },
+    {
+      "number": 5352,
+      "url": "https://github.com/decolua/9router/issues/5352",
+      "title": "The usage statistics for Codebuddy (intl and CN) are invalid",
+      "createdAt": "2026-10-31T10:16:03Z",
+      "updatedAt": "2026-10-31T10:16:03Z",
+      "bodySha256": "ad8fc44610d2da894aebfe736b43d30451acbe342a2dd6ec235955731290c636",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "insufficient-body-evidence",
+      "reason": "Body contains two screenshot URLs only; no request/response or expected usage contract. Screenshots were not fetched; no speculative quota/auth change.",
+      "localEvidence": [
+        "open-sse/services/usage/codebuddy-intl.js"
+      ]
+    },
+    {
+      "number": 5275,
+      "url": "https://github.com/decolua/9router/issues/5275",
+      "title": "[Bug] OpenCode Free via proxy pool bypasses wreq-js TLS impersonation (native fetch) — still 429",
+      "createdAt": "2026-10-27T16:02:27Z",
+      "updatedAt": "2026-11-01T11:17:45Z",
+      "bodySha256": "5fa6dedb8e13df799d37023e06fcb8518be440a286081ae8fd14880bb68d96d4",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "deferred-transport-design",
+      "reason": "OpenCode request reports wreq-js TLS impersonation/proxy split. Existing Kitsune audit explicitly deferred unverified native TLS adapters. Do not import a new spoofing/native artifact based on issue claims; requires supported publisher/transport evidence and verification.",
+      "localEvidence": [
+        "docs/audit/25-client-compatibility-and-catalog-sync-2026-10-31.md"
+      ]
+    },
+    {
+      "number": 4875,
+      "url": "https://github.com/decolua/9router/issues/4875",
+      "title": "[Bug / Feature Request] Incompatibility with latest VS Code Copilot Chat Update in Agent Mode (Tool Calling / Context Issue)",
+      "createdAt": "2026-10-15T13:00:28Z",
+      "updatedAt": "2026-10-31T09:27:49Z",
+      "bodySha256": "3843aae508b6973740e57463db6c6709649cefc970e811a5b89e25e32dd71df2",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "requires-client-payload",
+      "reason": "Report provides user configuration and high-level hang, without actual new request/tool schema. Existing format-specific tool/SSE tests address known invariants; do not certify every newest Copilot agent request.",
+      "localEvidence": [
+        "tests/unit/gemini-native-chat-contract.test.js",
+        "open-sse/translator/index.js"
+      ]
+    },
+    {
+      "number": 5143,
+      "url": "https://github.com/decolua/9router/issues/5143",
+      "title": "fix(codebuddy-intl): HTTP 400 Code 11128 \"request illegal\" due to failed channel verification",
+      "createdAt": "2026-10-23T18:09:23Z",
+      "updatedAt": "2026-10-30T10:27:26Z",
+      "bodySha256": "09f0431f95f615d9f319bfe345b1e82e150adad8636ab97f0862845ed9ca7129",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "headers-already-covered",
+      "reason": "New report duplicates CodeBuddy channel header family. Current DefaultExecutor hooks and registry entries add required request/conversation ID header family; local tests exist. Live account acceptance not asserted.",
+      "localEvidence": [
+        "open-sse/executors/default.js",
+        "tests/unit/codebuddy-channel-headers.test.js"
+      ]
+    },
+    {
+      "number": 5005,
+      "url": "https://github.com/decolua/9router/issues/5005",
+      "title": "CodeBuddy Intl: HTTP 400 code 11128 — channel verification requires X-Conversation-* header family since 2026-10-15",
+      "createdAt": "2026-10-18T08:40:22Z",
+      "updatedAt": "2026-10-25T14:59:54Z",
+      "bodySha256": "5fecb7bfd2fa4a3e93759c8317367107e2e32519190b155d85d8abb026363e86",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "headers-already-covered",
+      "reason": "Required conversation/request/message ID family already included by CodeBuddy hooks. Alternative issue proposal for session derivation is not an authoritative protocol change.",
+      "localEvidence": [
+        "open-sse/executors/default.js",
+        "tests/unit/codebuddy-channel-headers.test.js"
+      ]
+    },
+    {
+      "number": 4136,
+      "url": "https://github.com/decolua/9router/issues/4136",
+      "title": "Antigravity: switching Claude <-> Gemini mid-conversation fails with 400 \"Corrupted thought signature\" (signature cache is not model-aware)",
+      "createdAt": "2026-09-18T07:08:21Z",
+      "updatedAt": "2026-10-24T16:54:56Z",
+      "bodySha256": "d92aa1988399a9a2861bb5c597241aa373022dfd9374af3914fc5762371e0f89",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "historical-cache-architecture-not-present",
+      "reason": "Issue names process-global thoughtSignatureStore keyed by call ID. That module is absent in this fork, whose AGENTS contract requires request-local recovery. Preserve current request-local provenance; do not install global fallback cache or dummy signatures.",
+      "localEvidence": [
+        "open-sse/AGENTS.md",
+        "open-sse/translator/index.js"
+      ]
+    },
+    {
+      "number": 3915,
+      "url": "https://github.com/decolua/9router/issues/3915",
+      "title": "ByteString header error persists across all providers after certain usage; fixed by rotating the 9Router API key",
+      "createdAt": "2026-09-09T05:36:17Z",
+      "updatedAt": "2026-10-28T19:39:13Z",
+      "bodySha256": "4c20e83a66c62d8aa73dad50c4a53f8071385a048fa971001628d74b6e5102c8",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "requires-header-reproducer",
+      "reason": "Persistent ByteString failure report lacks offending header/key metadata. Do not rotate credentials automatically or claim header source; current secret/header handling deserves targeted capture without values.",
+      "localEvidence": [
+        "open-sse/utils/requestLogger.js"
+      ]
+    },
+    {
+      "number": 3354,
+      "url": "https://github.com/decolua/9router/issues/3354",
+      "title": "[Feature Request] Automatic Proxy Rotation (Proxy Pool) for Provider Connections",
+      "createdAt": "2026-08-15T20:26:09Z",
+      "updatedAt": "2026-11-02T23:56:06Z",
+      "bodySha256": "8036387ed53f5afaf422a229cc0733b669e10b1ee3c88e980ace189d83e1150f",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "feature-policy-not-automatic-port",
+      "reason": "Proxy rotation feature request includes cycling after rate limits/blocks. Existing chosen-pool consistency fix is distinct: test and runtime must share chosen egress, without silently rotating policies or retrying blocked accounts.",
+      "localEvidence": [
+        "src/lib/network/connectionProxy.js"
+      ]
+    },
+    {
+      "number": 5366,
+      "url": "https://github.com/decolua/9router/issues/5366",
+      "title": "Combo marks non-streaming JSON responses as empty when the client omits `stream`",
+      "createdAt": "2026-11-01T05:30:02Z",
+      "updatedAt": "2026-11-01T05:30:02Z",
+      "bodySha256": "bb7723b0f6312e52c50babcbd1ee524db9e4f9f61d187428907e34a816cc4484",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "already-addressed",
+      "reason": "Current clientRequestedStreaming defaults OpenAI omitted stream to false; headroom-chat-core and openai-stream-default tests cover contract. Do not re-import older upstream stream decision.",
+      "localEvidence": [
+        "open-sse/handlers/chatCore/streamMode.js",
+        "tests/unit/openai-stream-default.test.js",
+        "tests/unit/headroom-chat-core.test.js"
+      ]
+    },
+    {
+      "number": 5421,
+      "url": "https://github.com/decolua/9router/issues/5421",
+      "title": "Custom openai-compatible providers get limits from the pattern table, not the synced catalog — hyphenated ids (e.g. kenari/glm-5-3-flash) resolve to 200K/128K instead of 1M/131072",
+      "createdAt": "2026-11-03T01:13:59Z",
+      "updatedAt": "2026-11-03T01:13:59Z",
+      "bodySha256": "de6da70ade9c051c00f44467d020087e9683708f0cfcf7583b1313f81ebfb5af",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "catalog-design-gap-confirmed",
+      "reason": "collectEntries still snapshots registry models only, so automatic sync does not establish limits for arbitrary custom node identities. However provider/product identity cannot be inferred from model punctuation/name alone; require explicit authoritative product binding or operator caps, with provider-scoped limits/negative evidence. Avoid copying blanket 1M limits or globally replacing hyphens.",
+      "localEvidence": [
+        "src/lib/modelCatalog/sync.js",
+        "open-sse/providers/capabilities.js"
+      ],
+      "commentsCount": 0,
+      "commentReview": "No comments; no additional product-binding or implementation evidence supplied.",
+      "commentEvidence": []
+    },
+    {
+      "number": 4898,
+      "url": "https://github.com/decolua/9router/issues/4898",
+      "title": "[Security & UX] \"Probe-on-Save\" Provider Key Validation & Auto-Exclusion of Inactive/Broken Providers from Combo Builder",
+      "createdAt": "2026-10-15T18:04:07Z",
+      "updatedAt": "2026-10-24T13:52:46Z",
+      "bodySha256": "9b327d8099dbc98ca512c54f53c73d59b9b77d7f2530a36f370aa37638ea72db",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "related-local-fix",
+      "reason": "Related to current local fix: pre-save validation must bind to exact credential/destination/proxy snapshot, and must not reuse a stale badge. Not a wholesale import of feature proposal or new claim of sufficient balance/inference from models endpoint. A freshly read maintainer comment explicitly classifies the issue as a batch proposal without a narrow testable PR; current local defects were independently reproduced, not inherited as established facts from that proposal.",
+      "localEvidence": [
+        "src/app/(dashboard)/dashboard/providers/[id]/AddApiKeyModal.js",
+        "src/shared/components/EditConnectionModal.js",
+        "src/app/api/providers/validate/route.js"
+      ],
+      "commentsCount": 1,
+      "commentReview": "One maintainer comment closes the proposal as part of a batch without a narrow testable PR; suggests a future single concrete repro/small PR. This is proposal context, not proof of a reproduced defect or adopted fix.",
+      "commentEvidence": [
+        {
+          "url": "https://github.com/decolua/9router/issues/4898#issuecomment-6385035499",
+          "createdAt": "2026-10-24T13:52:45Z",
+          "updatedAt": "2026-10-24T13:52:45Z",
+          "bodySha256": "264d2bda96a63bd56d674188a267d16f0ae08212550331847c04c72fd785af9a"
+        }
+      ]
+    },
+    {
+      "number": 3810,
+      "url": "https://github.com/decolua/9router/issues/3810",
+      "title": "[Bug] Connection testStatus goes stale: dashboard shows Valid/active while DB keeps old 403 and server uses cached credentials until restart",
+      "createdAt": "2026-09-05T06:09:27Z",
+      "updatedAt": "2026-09-10T17:10:17Z",
+      "bodySha256": "6d206f3ca9c800743fa632fa446c394f9d090e4226f4119c3a907ee0e4c58bdd",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "related-status-family",
+      "reason": "Historical issue concerns persisted OAuth status/cache invalidation after re-login, not exactly current form race. Current form snapshot fix is related consistency work; retain existing separate DB cache invalidation guarantees.",
+      "localEvidence": [
+        "src/shared/components/EditConnectionModal.js",
+        "docs/audit/26-security-stability-and-1.0.5-closing-2026-10-31.md"
+      ]
+    },
+    {
+      "number": 3303,
+      "url": "https://github.com/decolua/9router/issues/3303",
+      "title": "fix(xiaomi-tokenplan): Test Connection route hardcodes SGP endpoint and ignores selected region (false 'Failed' for AMS/CN keys)",
+      "createdAt": "2026-08-14T08:34:30Z",
+      "updatedAt": "2026-08-14T08:34:30Z",
+      "bodySha256": "42d43ae03261096c18fe88e8d9e5fdf032a7cc20593f231cff9b5b9dbae968a4",
+      "bodyReviewed": true,
+      "commentsReviewed": true,
+      "disposition": "related-destination-family",
+      "reason": "Issue concerns Xiaomi region mismatch on saved test route. Current add/edit Check destination/proxy alignment is related but not a claim that every provider test branch was newly rewritten. Do not adopt issue suggestion to treat every non401 response as valid.",
+      "localEvidence": [
+        "src/app/api/providers/validate/route.js",
+        "src/app/api/providers/[id]/test/testUtils.js"
+      ],
+      "commentsCount": 0,
+      "commentReview": "No comments; issue body remains the available region-specific test-route reproduction.",
+      "commentEvidence": []
+    },
+    {
+      "number": 885,
+      "url": "https://github.com/decolua/9router/issues/885",
+      "title": "[BUG] Anthropic translator overrides existing thinking block signatures, causing 400 \"Invalid signature in thinking block\"",
+      "createdAt": "2026-05-05T06:29:05Z",
+      "updatedAt": "2026-05-17T08:28:55Z",
+      "bodySha256": "ccd4c26375a77d0e0f9b8d8f78e357c2c97e11693d26aa05c004ad2bd0a55892",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "related-signature-hardening",
+      "reason": "Preserving authentic opaque thinking signatures is already established. Current local malformed-base64/type hardening concerns safe structural validation; cannot cryptographically validate or manufacture provider signatures.",
+      "localEvidence": [
+        "open-sse/utils/claudeSignature.js"
+      ]
+    },
+    {
+      "number": 2227,
+      "url": "https://github.com/decolua/9router/issues/2227",
+      "title": "API Error 400: Invalid signature in thinking block via proxy",
+      "createdAt": "2026-06-29T18:31:10Z",
+      "updatedAt": "2026-06-29T18:31:10Z",
+      "bodySha256": "9dfc5c45a7afd527cfa43e6864028ff0839c3706d9cac44684e7c8e8c80acf67",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "related-signature-hardening",
+      "reason": "Report only supplies invalid thinking-signature error through a proxy. Current structural signature validation fix is useful local hardening, not proof this historical account issue is resolved.",
+      "localEvidence": [
+        "open-sse/utils/claudeSignature.js"
+      ]
+    },
+    {
+      "number": 3646,
+      "url": "https://github.com/decolua/9router/issues/3646",
+      "title": "Antigravity/Gemini multi-turn tool calls fail: thoughtSignature dropped in translation",
+      "createdAt": "2026-08-30T20:31:55Z",
+      "updatedAt": "2026-08-30T20:31:55Z",
+      "bodySha256": "e6d3b9da70c290849888b0365d7966187f1531a10216183a7632f632083feefe",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "already-request-local-signature-contract",
+      "reason": "Current engine retains signature provenance through roundtrip and insists on request-local recovery; do not import historical process-wide cache or fabricate signed data.",
+      "localEvidence": [
+        "open-sse/AGENTS.md",
+        "tests/unit/thought-signature-hardening.test.js"
+      ]
+    },
+    {
+      "number": 2193,
+      "url": "https://github.com/decolua/9router/issues/2193",
+      "title": "[Bug] Gemini API 400 Bad Request on Claude tool_use (missing thoughtSignature) and stream DONE sentinel",
+      "createdAt": "2026-06-28T18:32:17Z",
+      "updatedAt": "2026-06-29T09:23:42Z",
+      "bodySha256": "0e08206b01d0600ab395ee75ea1ceb1a0ded4fce2833383842dbcbfdeaf8f03f",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "existing-native-framing-contract",
+      "reason": "Native Gemini response contract already avoids OpenAI DONE sentinel and preserves signatures/media. Default signature proposal is not adopted as security guarantee.",
+      "localEvidence": [
+        "tests/unit/gemini-native-chat-contract.test.js"
+      ]
+    },
+    {
+      "number": 4008,
+      "url": "https://github.com/decolua/9router/issues/4008",
+      "title": "Request-log header masking is disabled: provider OAuth tokens are written to logs/ in clear text",
+      "createdAt": "2026-09-12T21:52:49Z",
+      "updatedAt": "2026-10-25T13:16:40Z",
+      "bodySha256": "089c19f06bed2147ae3a93f44fe3cfb1c91c7c7571a27b2803bd1b3c963b519c",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "already-addressed-prior-security-audit",
+      "reason": "Current requestLogger has central masking/redaction, unlike issue pass-through implementation; prior audits cover security. No raw token logging is restored.",
+      "localEvidence": [
+        "open-sse/utils/requestLogger.js",
+        "tests/unit/security-audit.test.js"
+      ]
+    },
+    {
+      "number": 2357,
+      "url": "https://github.com/decolua/9router/issues/2357",
+      "title": "[BUG] Duplicate anthropic-version header on /v1/messages causes 400 invalid_request_error - Version: 0.5.18",
+      "createdAt": "2026-07-04T02:58:57Z",
+      "updatedAt": "2026-10-24T16:29:56Z",
+      "bodySha256": "7f66aac0c4785a023131dc45aba707c79bd74a84ec91437a79683f76bd3d46cd",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "already-reviewed-header-deduplication",
+      "reason": "Previously reviewed duplicate anthropic-version family; current shared identity/wire handling retained. No client release pin changed to API header date.",
+      "localEvidence": [
+        "open-sse/config/clientVersions.js",
+        "docs/audit/25-client-compatibility-and-catalog-sync-2026-10-31.md"
+      ]
+    },
+    {
+      "number": 5281,
+      "url": "https://github.com/decolua/9router/issues/5281",
+      "title": "Bug: Kiro AI OAuth connections frequently failed: Token expired and refresh failed",
+      "createdAt": "2026-10-28T01:56:30Z",
+      "updatedAt": "2026-10-30T22:47:58Z",
+      "bodySha256": "301499d9dfd8d76ee6e67d4217ab39b3aedd873d80c8cb024498855d82f9b030",
+      "bodyReviewed": true,
+      "commentsReviewed": false,
+      "disposition": "insufficient-auth-evidence",
+      "reason": "Token refresh failure report cannot establish new auth header or account ban. Prior audit observed quota rejection in comments; this capture did not fetch comments. Current refresh cancellation/catalog lifetime protections remain.",
+      "localEvidence": [
+        "open-sse/services/tokenRefresh/providers.js",
+        "docs/audit/26-security-stability-and-1.0.5-closing-2026-10-31.md"
+      ]
+    }
+  ],
+  "commitDispositions": [
+    {
+      "commit": "3fd925a",
+      "subject": "fix(codebuddy): send plugin request/conversation id headers",
+      "freshDiffInspected": true,
+      "disposition": "already represented by DefaultExecutor CodeBuddy header hook and tests; no cherry-pick",
+      "freshDiffScope": "Selected runtime/header/validation diffs and tests where relevant; not every file in commit"
+    },
+    {
+      "commit": "b1effa0",
+      "subject": "feat(commandcode): align request headers with official CLI 1.88.0",
+      "freshDiffInspected": true,
+      "disposition": "current shared commandCodeHeaders and verified 1.88.2 pin supersede older patch; no cherry-pick",
+      "freshDiffScope": "Selected runtime/header/validation diffs and tests where relevant; not every file in commit"
+    },
+    {
+      "commit": "ce060c7",
+      "subject": "fix(opencode): restore the free tier with the TLS client Hello it accepts",
+      "freshDiffInspected": false,
+      "disposition": "prior audit defers unverified native TLS adapter; not automatically imported"
+    },
+    {
+      "commit": "85d73bd",
+      "subject": "feat(minimax-code): lease auth mode via desktop app named-pipe broker",
+      "freshDiffInspected": false,
+      "disposition": "desktop local broker feature is optional unrelated transport scope; not imported"
+    }
+  ],
+  "localSyntheticChecks": [
+    {
+      "issue": 5385,
+      "commandKind": "real translateRequest plus AntigravityExecutor.transformRequest",
+      "outcome": "run_shell declaration and normalized schema survive stream true and false"
+    },
+    {
+      "issue": 5367,
+      "commandKind": "real translateRequest Antigravity→OpenAI then openaiToClaudeRequest used by Zed",
+      "outcome": "uppercase types, string array bounds and nullable map to valid JSON Schema forms in representative fixture; exact reported schema remains unavailable"
+    }
+  ],
+  "limitations": [
+    "Only six selected issue comment endpoints were fetched; two comments were available, neither adding an actionable reproducer or linked fix. Other issue/PR discussion remains unreviewed.",
+    "Screenshots/attachments were not fetched.",
+    "Pull-request records were counted but their diffs were not exhaustively reviewed.",
+    "Client versions must be verified against publishers before changing pins; upstream inactivity does not establish publisher inactivity.",
+    "No claim that headers/signature formatting prevents bans, restores entitlement, or authorizes provider access.",
+    "Index-only entries are not deeply reviewed or reproduced."
+  ],
+  "commentCaptures": [
+    {
+      "issue": 3303,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/3303/comments?per_page=100",
+      "rawFile": "issue-3303-comments.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "capturedAtUtc": "2026-11-03T03:05:18.692811+00:00",
+      "comments": 0,
+      "summary": "No comments; issue body remains the available region-specific test-route reproduction."
+    },
+    {
+      "issue": 4898,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/4898/comments?per_page=100",
+      "rawFile": "issue-4898-comments.json",
+      "bytes": 2113,
+      "sha256": "f1bedd7fc1672e9ba40fc28e348b82c6d5e20794cb2caf268b6648a9516d2c0d",
+      "capturedAtUtc": "2026-11-03T03:05:18.700811+00:00",
+      "comments": 1,
+      "summary": "One maintainer comment closes the proposal as part of a batch without a narrow testable PR; suggests a future single concrete repro/small PR. This is proposal context, not proof of a reproduced defect or adopted fix."
+    },
+    {
+      "issue": 5367,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/5367/comments?per_page=100",
+      "rawFile": "issue-5367-comments.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "capturedAtUtc": "2026-11-03T03:05:18.392804+00:00",
+      "comments": 0,
+      "summary": "No comments; no offending tool schema supplied."
+    },
+    {
+      "issue": 5371,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/5371/comments?per_page=100",
+      "rawFile": "issue-5371-comments.json",
+      "bytes": 1647,
+      "sha256": "a9956de4b46bde20624c5de4b3eb5f83dc522ff84d16c2e58718f78d8d1d15e7",
+      "capturedAtUtc": "2026-11-03T03:05:18.368803+00:00",
+      "comments": 1,
+      "summary": "One confirmation comment: Same error here. No auth method, endpoint, credential shape, reproducer or linked fix supplied."
+    },
+    {
+      "issue": 5385,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/5385/comments?per_page=100",
+      "rawFile": "issue-5385-comments.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "capturedAtUtc": "2026-11-03T03:05:18.348803+00:00",
+      "comments": 0,
+      "summary": "No comments; no further pipeline reproducer or linked fix supplied."
+    },
+    {
+      "issue": 5421,
+      "apiUrl": "https://api.github.com/repos/decolua/9router/issues/5421/comments?per_page=100",
+      "rawFile": "issue-5421-comments.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "capturedAtUtc": "2026-11-03T03:05:18.404804+00:00",
+      "comments": 0,
+      "summary": "No comments; no additional product-binding or implementation evidence supplied."
+    }
+  ],
+  "implementedChanges": [
+    {
+      "area": "client-version",
+      "change": "Official source/artifacts verify Claude Code2.1.314→2.1.317, CodeBuddyCN2.179.0→2.179.3, Kimchi1.25.0→1.26.0; independent SDK/API/OAuth/beta/INTL/signed protocol pins retained.",
+      "evidence": "client-wire-refresh-20261103.json"
+    },
+    {
+      "area": "provider-metadata",
+      "change": "Gemini quota and loadCodeAssist requests share reviewed auth library/runtime headers; existing proxy preserved",
+      "tests": "tests/unit/gemini-usage-client-identity.test.js"
+    },
+    {
+      "area": "signature-structure",
+      "change": "Reject nonstring and malformed/noncanonical E/R base64 layers; preserve accepted opaque thinking/redacted data and request-local provenance",
+      "tests": "tests/unit/claude-signature-structure.test.js"
+    },
+    {
+      "area": "credential-egress",
+      "change": "Unsaved credential probes use selected connection pool/relay, fail closed for unusable selections, reject redirects, observe timeout/cancellation and align selfhosted endpoints",
+      "tests": "tests/unit/unsaved-credential-probe-routing.test.js"
+    },
+    {
+      "area": "connection-ui",
+      "change": "Add/Edit Check and Save use immutable credential/config snapshots; cancel stale checks/saves; preserve host/region/proxy; endpoint-only edits with a redacted existing key mark unknown and retain errors; partial bulk cancellation refreshes acknowledged saved entries with provider scope fences.",
+      "tests": "tests/unit/provider-credential-validation-ui.test.js"
+    }
+  ],
+  "verification": {
+    "integratedVitest": {
+      "passed": 10508,
+      "failed": 0,
+      "skipped": 100,
+      "total": 10608,
+      "files": 834,
+      "reportGate": "verify-no-regression.mjs passed",
+      "exitCode": 0
+    },
+    "productionBuild": {
+      "command": "npm run build",
+      "exitCode": 0,
+      "postbuildStandaloneGuard": "passed"
+    },
+    "productionBrowser": {
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:ui",
+      "passed": 31,
+      "failed": 0,
+      "exitCode": 0,
+      "newCredentialModalCases": 4
+    },
+    "liveProviderAccounts": "not run",
+    "initialIntegratedVitest": {
+      "total": 10595,
+      "passed": 10493,
+      "failed": 2,
+      "skipped": 100,
+      "files": 834,
+      "baselineComparison": "Same two strict-proxy-forwarding environment-isolation failures as pre-change onboarding; zero new failed cases."
+    },
+    "proxyHarnessCorrection": {
+      "reason": "Absent-proxy cases inherited a cloud environment proxy and unintentionally sent anonymous requests; test-scoped environment and transport isolation now explicitly checks absent and inherited-proxy behavior.",
+      "productionProxyConfiguration": "unchanged",
+      "focusedTests": 30,
+      "focusedFailed": 0
+    },
+    "initialProductionBrowser": {
+      "passed": 29,
+      "failed": 0,
+      "includes": "two real credential-modal interaction regressions"
+    },
+    "changedFileLint": {
+      "files": 17,
+      "exitCode": 0,
+      "maxWarnings": 0,
+      "finalBrowserLocatorEdit": "scoped lint passed after correction"
+    },
+    "providerBaseline": {
+      "providers": 83,
+      "exitCode": 0,
+      "changes": "exactly four intentional release-derived User-Agent strings (Claude2, CodeBuddyCN1, Kimchi1); no wholesale regeneration"
+    },
+    "compatibility": {
+      "passed": 1,
+      "failed": 0
+    },
+    "restoredServerSmoke": {
+      "database": "ready",
+      "invalidPassword": "rejected",
+      "loginSession": "passed",
+      "dashboardHtml": "passed",
+      "temporaryApiKeyLifecycleAndModelCatalog": "passed",
+      "accounts": 0,
+      "exitCode": 0
+    },
+    "productionProviderRequests": "No live provider account login or paid inference; new tests use synthetic credentials, intercepted browser APIs or local relays.",
+    "initialBrowserFollowup": {
+      "passed": 30,
+      "failed": 1,
+      "diagnosis": "new Add test used nonexistent button label Add Connection; production label is Add",
+      "correction": "locator updated; all4provider cases passed, then full31case run passed"
+    },
+    "verifiedSourceSha256": {
+      "open-sse/config/clientVersions.js": "2df14c92e5cd65e6f134f3f3ca17c4af6636ace37a67d6497f3bf58ef9af0520",
+      "open-sse/services/usage/google.js": "c89b0e7dabeacf78ab58246e75c4676e11428dadb5d9838316a5b34c938fff30",
+      "open-sse/utils/claudeSignature.js": "acbe9bc65e78d8c5fef9af59e6c8bf08aa3040215947c729fb17d203dfd5a845",
+      "src/app/(dashboard)/dashboard/providers/[id]/AddApiKeyModal.js": "411612e6afa0ac0b67a7d16fcd4ac52a325ad529616faecabd7e4c6251cd945f",
+      "src/app/(dashboard)/dashboard/providers/[id]/page.js": "935d178df4d1f221f0ff5bc1a0b8e8c448d94d7b39812d0a8b95bd3332fefa92",
+      "src/app/api/providers/validate/route.js": "7498dbfd9c864cd4c55b162fb9432169eb8a25dcf75651910409595171ab58f6",
+      "src/shared/components/EditConnectionModal.js": "99d5c8b0a84d38aa1ae4fb64046f5823e41b50c5472a12e43fe1a4a89159ed08",
+      "src/shared/utils/connectionValidation.js": "d56a62357eeef42fbe4965cac7aa660855d10eda4be48b262f0f45097f385753",
+      "tests/__baseline__/providers-baseline.json": "0eab13dbe64a2b8fe7284a5fba83dab0a000d68fc2d33aa7a1725109beee1aa6",
+      "tests/browser/provider-credential-validation.spec.mjs": "d8052300249d05fbc724e0b47706c8cb7b60280ccf81d21821fdb9026ef17a01",
+      "tests/unit/claude-client-current-contract.test.js": "ee0ae65f7a8608891f9ca54541dff8867c93de7795dd74f85b05c9a0dbea237e",
+      "tests/unit/claude-signature-structure.test.js": "1e1cd26b0f7f131a3e5752ec5cf5b681002ffa93183b8a7136a1896f901c2275",
+      "tests/unit/client-release-migrations.test.js": "e5c7d164aa9b9e76b5280d9f3bcda38d1fd7773c86212e5aadd5bb1af316bb8e",
+      "tests/unit/gemini-usage-client-identity.test.js": "4d68ae480ee7612d5fbab803cc8b98a0cce3670a064dc3bd5fb67b78901b7d33",
+      "tests/unit/provider-credential-validation-ui.test.js": "2bc9ef5f626c1d40a589e3a2abab6adb33bd35ab35da4ee508fba770d3b84565",
+      "tests/unit/refresh-client-primary-wire.test.js": "5ce572262e63f5c2a1edb0e08ca1aa2438089701e50ab5036834e03d7576ee65",
+      "tests/unit/strict-proxy-forwarding.test.js": "ac04adb62b9bad699449f57e3f67b2d224c6e18c36d71c67ab1d1c7f009ce631",
+      "tests/unit/unsaved-credential-probe-routing.test.js": "81d1f065ac91f5ee191af03b500def5dc5217397aaf5a11410e4f94cf5936187"
+    }
+  }
+}

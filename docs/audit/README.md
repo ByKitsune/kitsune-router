@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 3 account/request consistency review](29-upstream-account-request-consistency-2026-11-03.md)
+indexes 2,327 upstream issues, records selective source/comment dispositions,
+and covers verified client, signature, credential-egress and connection-UI repairs.
+
 The [CLI SQL.js fallback follow-up](28-cli-sqljs-fallback-2026-11-01.md)
 records the missing traced WebAssembly file, the packaging repair and the
 separate synthetic, CI and deployment evidence boundaries.

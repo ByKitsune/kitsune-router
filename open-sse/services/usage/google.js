@@ -3,6 +3,7 @@
  */
 
 import { CLIENT_METADATA } from "../../config/appConstants.js";
+import { GEMINI_AUTH_USER_AGENT, GEMINI_CLI_API_CLIENT } from "../../config/clientVersions.js";
 import { ANTIGRAVITY_CLI_USER_AGENT, ANTIGRAVITY_CLI_VERSION } from "../../providers/shared.js";
 import { PROVIDER_MODELS } from "../../providers/index.js";
 import { normalizeAntigravityQuota, parseAntigravityQuotaSummary } from "./antigravity.js";
@@ -10,6 +11,15 @@ import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from
 
 const ANTIGRAVITY_CONFIG = U("antigravity");
 const antigravityModelIds = new Set((PROVIDER_MODELS.ag || []).map(({ id }) => id));
+
+function geminiUsageHeaders(accessToken) {
+  return {
+    "Authorization": `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+    "User-Agent": GEMINI_AUTH_USER_AGENT,
+    "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
+  };
+}
 
 function antigravityUsageHeaders(accessToken) {
   return {
@@ -54,10 +64,7 @@ export async function getGeminiUsage(accessToken, providerSpecificData, proxyOpt
       U("gemini-cli").quotaUrl,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+        headers: geminiUsageHeaders(accessToken),
         body: JSON.stringify({ project: projectId }),
       },
       10000,
@@ -105,10 +112,7 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
       U("gemini-cli").loadCodeAssistUrl,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+        headers: geminiUsageHeaders(accessToken),
         body: JSON.stringify({ metadata: CLIENT_METADATA }),
       },
       10000,
