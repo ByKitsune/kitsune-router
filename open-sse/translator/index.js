@@ -262,7 +262,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   // Final step: prepare request for Claude format endpoints
   if (targetFormat === FORMATS.CLAUDE) {
     ensureToolCallIds(result, { sanitizeIds: true });
-    const apiKey = credentials?.accessToken || credentials?.apiKey || null;
+    const apiKey = credentials?.apiKey || credentials?.accessToken || null;
     result = prepareClaudeRequest(result, provider, apiKey, connectionId, credentials?.rawHeaders, clientSessionId);
     if (Array.isArray(result?.messages)) result.messages = ensureTrailingUserTurn(result.messages, clientLastRole);
   }
@@ -279,10 +279,10 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     }
   }
 
-  // Claude cloaking: rename client tools with CLAUDE_TOOL_SUFFIX (anti-ban)
+  // Keep the legacy client tool alias mapping request-local.
   // quirk: only providers flagged cloakToolsOnOAuth, and only with an OAuth token
   if (PROVIDERS[provider]?.quirks?.cloakToolsOnOAuth) {
-    const apiKey = credentials?.accessToken || credentials?.apiKey || null;
+    const apiKey = credentials?.apiKey || credentials?.accessToken || null;
     if (apiKey?.includes("sk-ant-oat")) {
       const { body: cloakedBody, toolNameMap } = cloakClaudeTools(result);
       result = ownRequestBody(cloakedBody);

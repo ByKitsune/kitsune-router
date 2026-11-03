@@ -1,7 +1,7 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
-import { DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE } from "../../config/defaultThinkingSignature.js";
+import { readCloudCodeProjectId } from "../../utils/cloudCodeProject.js";
 import { openaiToClaudeRequestForAntigravity } from "./openai-to-claude.js";
 function generateUUID() {
   return crypto.randomUUID();
@@ -25,12 +25,11 @@ import {
   tryParseJSON,
   generateRequestId,
   generateSessionId,
-  generateProjectId,
   cleanJSONSchemaForAntigravity
 } from "../formats/gemini.js";
 import { deriveSessionId, toNumericSessionId } from "../../utils/sessionManager.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
-import { splitToolCallId, isValidBase64 } from "../concerns/thoughtSignature.js";
+import { splitToolCallId, validateThoughtSignature, thoughtSignatureError, validateGoogleThoughtSignatures } from "../concerns/thoughtSignature.js";
 import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { antigravityOutputConfig } from "../concerns/structuredOutput.js";
 
@@ -100,7 +99,11 @@ function normalizeGeminiToolCalls(messages) {
       const turnPending = new Map();
       for (const tc of msg.tool_calls) {
         if (tc.type !== OPENAI_BLOCK.FUNCTION) continue;
-        const { rawId, thoughtSignature } = splitToolCallId(tc.id);
+        const { rawId, thoughtSignature: encodedSignature } = splitToolCallId(tc.id, null, { strict: true });
+        const explicitSignature = tc.extra_content?.google?.thought_signature;
+        if (explicitSignature !== undefined) validateThoughtSignature(explicitSignature, "messages.tool_calls.extra_content.google.thought_signature");
+        if (encodedSignature && explicitSignature !== undefined && encodedSignature !== explicitSignature) throw thoughtSignatureError("messages.tool_calls");
+        const thoughtSignature = explicitSignature ?? encodedSignature;
         let wireId = rawId;
         if (usedIds.has(wireId)) {
           let suffix = nextSuffixById.get(rawId) || 2;
@@ -139,8 +142,10 @@ function normalizeAntigravityClaudeHistory(body) {
   const callsByMessage = normalizeGeminiToolCalls(messages);
   const responseIds = new Map();
   const toolResponses = new Map();
+  const toolSignatures = new Map();
   for (const calls of callsByMessage.values()) {
     for (const call of calls) {
+      if (call.thoughtSignature) toolSignatures.set(call.wireId, call.thoughtSignature);
       if (call.responseIndex !== undefined) {
         responseIds.set(call.responseIndex, call.wireId);
         toolResponses.set(call.wireId, messages[call.responseIndex]);
@@ -156,7 +161,7 @@ function normalizeAntigravityClaudeHistory(body) {
     if (responseIds.has(index)) return { ...message, tool_call_id: responseIds.get(index) };
     return message;
   });
-  return { body: { ...body, messages: normalized }, toolResponses };
+  return { body: { ...body, messages: normalized }, toolResponses, toolSignatures };
 }
 
 function geminiToolChoice(choice, rename) {
@@ -175,7 +180,7 @@ function geminiToolChoice(choice, rename) {
 }
 
 // Core: Convert OpenAI request to Gemini format (base for all variants)
-function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG_SIGNATURE, useJSONSchema = false) {
+function openaiToGeminiBase(model, body, stream, useJSONSchema = false) {
   const result = {
     model: model,
     contents: [],
@@ -255,15 +260,11 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
       } else if (role === ROLE.ASSISTANT) {
         const parts = [];
 
-        // Thinking/reasoning → thought part with signature
+        // OpenAI reasoning has no Google signature; preserve it without inventing one.
         if (msg.reasoning_content) {
           parts.push({
             thought: true,
             text: msg.reasoning_content
-          });
-          parts.push({
-            thoughtSignature: signature,
-            text: ""
           });
         }
 
@@ -276,9 +277,8 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
           for (const call of toolCalls) {
             const tc = call.toolCall;
             const args = tryParseJSON(tc.function?.arguments || "{}");
-            const validSig = isValidBase64(call.thoughtSignature) ? call.thoughtSignature : signature;
             parts.push({
-              thoughtSignature: validSig,
+              ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
               functionCall: {
                 id: call.wireId,
                 name: sanitizeGeminiFunctionName(tc.function.name, existingToolNames, toolNameMap),
@@ -351,6 +351,7 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
   const choice = geminiToolChoice(body.tool_choice, name => sanitizeGeminiFunctionName(name, existingToolNames, toolNameMap));
   if (choice) result.toolConfig = { functionCallingConfig: choice };
 
+  validateGoogleThoughtSignatures(result.contents, model);
   result.contents = normalizeGeminiContents(result.contents, model);
 
   // Expose toolNameMap (sanitizedName -> originalName) for response decloaking
@@ -367,12 +368,12 @@ function openaiToGeminiBase(model, body, stream, signature = DEFAULT_THINKING_AG
 
 // OpenAI -> Gemini (standard API)
 export function openaiToGeminiRequest(model, body, stream) {
-  return openaiToGeminiBase(model, body, stream, DEFAULT_THINKING_AG_SIGNATURE, true);
+  return openaiToGeminiBase(model, body, stream, true);
 }
 
 // OpenAI -> Gemini CLI (Cloud Code Assist)
 export function openaiToGeminiCLIRequest(model, body, stream) {
-  const result = openaiToGeminiBase(model, body, stream, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE);
+  const result = openaiToGeminiBase(model, body, stream);
   const outputConfig = antigravityOutputConfig(body, model);
   if (outputConfig) Object.assign(result.generationConfig, outputConfig);
   return result;
@@ -380,7 +381,7 @@ export function openaiToGeminiCLIRequest(model, body, stream) {
 
 // Wrap Gemini CLI format in Cloud Code wrapper
 function wrapInCloudCodeEnvelope(model, geminiCLI, credentials = null, isAntigravity = false) {
-  const projectId = credentials?.projectId || generateProjectId();
+  const projectId = readCloudCodeProjectId(credentials);
 
   const envelope = {
     project: projectId,
@@ -416,8 +417,8 @@ function wrapInCloudCodeEnvelope(model, geminiCLI, credentials = null, isAntigra
 }
 
 // Wrap Claude format in Cloud Code envelope for Antigravity
-function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = null, signature = DEFAULT_THINKING_AG_SIGNATURE, toolResponses = new Map()) {
-  const projectId = credentials?.projectId || generateProjectId();
+function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = null, toolResponses = new Map(), toolSignatures = new Map()) {
+  const projectId = readCloudCodeProjectId(credentials);
   const existingToolNames = new Set();
   const toolNameMap = new Map();
 
@@ -489,7 +490,7 @@ function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = nu
             }
           } else if (block.type === CLAUDE_BLOCK.TOOL_USE) {
             parts.push({
-              thoughtSignature: signature,
+              ...(toolSignatures.has(block.id) ? { thoughtSignature: toolSignatures.get(block.id) } : {}),
               functionCall: {
                 id: block.id,
                 name: sanitizeGeminiFunctionName(block.name, existingToolNames, toolNameMap),
@@ -565,6 +566,7 @@ function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = nu
     envelope.request.systemInstruction = { role: GEMINI_ROLE.USER, parts: systemParts };
   }
 
+  validateGoogleThoughtSignatures(envelope.request.contents, model);
   envelope.request.contents = normalizeGeminiContents(envelope.request.contents, model);
 
   if (toolNameMap.size > 0) {
@@ -592,7 +594,7 @@ export function openaiToAntigravityRequest(model, body, stream, credentials = nu
     readOutputTokenCap(body);
     const normalized = normalizeAntigravityClaudeHistory(body);
     const claudeRequest = openaiToClaudeRequestForAntigravity(model, normalized.body, stream);
-    return wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials, DEFAULT_THINKING_AG_SIGNATURE, normalized.toolResponses);
+    return wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials, normalized.toolResponses, normalized.toolSignatures);
   }
 
   const geminiCLI = openaiToGeminiCLIRequest(model, body, stream);

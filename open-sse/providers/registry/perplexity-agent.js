@@ -27,6 +27,11 @@ export default {
   },
   models: [
     { id: "anthropic/claude-fable-5", name: "claude fable 5" },
+    // Exact provider-hosted catalog IDs reviewed 2026-11-04; account entitlement may differ.
+    {id: "anthropic/claude-haiku-5-5", name: "Claude Haiku 5 5"},
+    {id: "openai/gpt-6-astra", name: "Gpt 6 Astra"},
+    {id: "google/gemini-4-argon", name: "Gemini 4 Argon"},
+    {id: "perplexity/deepseek-v4-pro-0813", name: "Deepseek V4 Pro 0813"},
     { id: "perplexity/nemotron-3.5-super-120b-a12b", name: "Nemotron 3.5 Super 120B A12B" },
     { id: "anthropic/claude-fable-5-1", name: "claude fable 5 1" },
     { id: "anthropic/claude-opus-5-5", name: "claude opus 5 5" },

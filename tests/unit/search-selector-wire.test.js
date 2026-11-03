@@ -106,7 +106,7 @@ describe("search selector reaches the final upstream wire", () => {
     const response = await handleSearch(request({ model: "gemini" }));
     expect(response.status).toBe(200);
     expect(wire).toHaveLength(1);
-    expect(wire[0].path).toBe("/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(wire[0].path).toBe("/v1beta/models/gemini-3.8-flash:generateContent");
     expect(mocks.markAccountUnavailable).not.toHaveBeenCalled();
     expect((await response.json()).results[0].url).toBe("https://example.com/fixture");
   });
@@ -114,13 +114,13 @@ describe("search selector reaches the final upstream wire", () => {
   it("keeps the existing provider-only request default", async () => {
     const response = await handleSearch(request({ provider: "gemini" }));
     expect(response.status).toBe(200);
-    expect(wire[0].path).toBe("/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(wire[0].path).toBe("/v1beta/models/gemini-3.8-flash:generateContent");
   });
 
   it("treats duplicate provider/model selectors as a default-model request", async () => {
     const response = await handleSearch(request({ provider: "gemini", model: "gemini" }));
     expect(response.status).toBe(200);
-    expect(wire[0].path).toBe("/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(wire[0].path).toBe("/v1beta/models/gemini-3.8-flash:generateContent");
     expect(mocks.markAccountUnavailable).not.toHaveBeenCalled();
   });
 
@@ -165,7 +165,7 @@ describe("search selector reaches the final upstream wire", () => {
   it("routes the advertised gemini/search service ID to the grounding default", async () => {
     const response = await handleSearch(request({ model: "gemini/search" }));
     expect(response.status).toBe(200);
-    expect(wire[0].path).toBe("/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(wire[0].path).toBe("/v1beta/models/gemini-3.8-flash:generateContent");
   });
 
   it("rejects a non-string explicit upstream model before selecting any account", async () => {
@@ -219,7 +219,7 @@ describe("search selector reaches the final upstream wire", () => {
     const response = await handleSearch(request({ provider: "fixture-search-combo" }));
     expect(response.status).toBe(200);
     expect(wire).toHaveLength(1);
-    expect(wire[0].path).toBe("/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(wire[0].path).toBe("/v1beta/models/gemini-3.8-flash:generateContent");
   });
 
   it("uses a combo member model rather than leaking the original model selector", async () => {

@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { DATA_DIR } from "@/lib/dataDir.js";
+import { DATA_DIR } from "@/lib/dataDir.mjs";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 import { getModelsDevProviderId } from "open-sse/providers/catalogProviders.js";
 import { installPricingObservationStore, parseModelsDevCatalog, readModelsDevResponse } from "./pricingObservations.js";

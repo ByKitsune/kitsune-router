@@ -6,7 +6,7 @@ import Modal from "./Modal";
 import ProviderIcon from "./ProviderIcon";
 import CapacityBadges from "./CapacityBadges";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
-import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
+import { getModelsByProviderId, getModelKind, filterAdvertisedModels } from "@/shared/constants/models";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, AI_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, getProviderAlias } from "@/shared/constants/providers";
 import { filterEnabledConnections, visibleNoAuthProviderIds } from "@/shared/utils/modelPickerFilter";
 
@@ -431,9 +431,11 @@ export default function ModelSelectModal({
         };
       } else {
         const liveModels = liveModelsByProvider[providerId] || [];
-        const hardcodedModels = (providerId === "cursor" && cursorModels.length > 0)
+        // Hidden built-ins must not reserve an ID ahead of an operator's
+        // explicit custom declaration or same-ID alias.
+        const hardcodedModels = filterAdvertisedModels(providerId, (providerId === "cursor" && cursorModels.length > 0)
           ? cursorModels
-          : [...liveModels, ...getModelsByProviderId(providerId)];
+          : [...liveModels, ...getModelsByProviderId(providerId)]);
         const hardcodedIds = new Set(hardcodedModels.map((m) => m.id));
 
         // Custom models: if no hardcoded models (e.g. openrouter), show all aliases for this provider
@@ -457,7 +459,7 @@ export default function ModelSelectModal({
           .map((m) => ({ id: m.id, name: m.name || m.id, value: `${alias}/${m.id}`, isCustom: true }));
 
         const merged = [
-          ...hardcodedModels.map((m) => ({ id: m.id, name: m.name, value: `${alias}/${m.id}`, kind: getModelKind(m) })),
+          ...hardcodedModels.map((m) => ({ id: m.id, name: m.name, value: `${alias}/${m.id}`, kind: getModelKind(m), ...(m.isCustom === true ? { isCustom: true } : {}) })),
           ...customAliasModels,
           ...customRegisteredModels,
         ];
@@ -491,12 +493,12 @@ export default function ModelSelectModal({
 
     // Filter out disabled models per provider (disabled keyed by storage alias OR providerId)
     Object.entries(groups).forEach(([providerId, group]) => {
+      group.models = filterAdvertisedModels(providerId, group.models);
       const aliasKey = getProviderAlias(providerId);
       const disabledIds = new Set([
         ...(disabledModels[aliasKey] || []),
         ...(disabledModels[providerId] || []),
       ]);
-      if (disabledIds.size === 0) return;
       group.models = group.models.filter((m) => !disabledIds.has(m.id));
       if (group.models.length === 0) delete groups[providerId];
     });

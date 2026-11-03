@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 // Exercise the public handler, real Copilot executor, account health, combo
 // routing and response correlation. Persistence and upstream transport are fake.
@@ -175,6 +180,8 @@ describe("Copilot context overflow through real routing", () => {
   });
 
   it("still falls back across fake accounts for a genuine typed quota error", async () => {
+    diagnostics.expectError("❌ github [429]: [429]: Quota exceeded (rate_limit_exceeded)");
+    diagnostics.expectError("❌ github [429]: [429]: Quota exceeded (rate_limit_exceeded)");
     io.transport.mockImplementation(async () => Response.json({ error: {
       message: "Quota exceeded", type: "rate_limit_error", code: "rate_limit_exceeded",
     } }, { status: 429, headers: { "retry-after": "30" } }));

@@ -123,6 +123,9 @@ describe("native passthrough suffix choices reach the provider payload", () => {
         generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "high", includeThoughts: false } } },
     }, "gemini-cli/fixture");
     expect(wire.model).toBe("gemini-3.8-flash");
+    const headers = new Headers(proxyAwareFetch.mock.calls[0][1].headers);
+    expect(headers.get("user-agent")).toContain("/gemini-3.8-flash");
+    expect(headers.get("user-agent")).not.toContain("(low)");
     expect(wire.request.generationConfig).toEqual({ maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low", includeThoughts: false } });
   });
 

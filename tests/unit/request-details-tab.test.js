@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
 import { getTokenCount, formatTokens, formatMilliseconds, hasInvalidTokens } from "../../src/app/(dashboard)/dashboard/usage/components/requestDetailUsage.js";
 
 const fixtureEnv = ["DATA_DIR", "OBSERVABILITY_ENABLED", "ENABLE_REQUEST_LOGS"];
@@ -286,10 +287,16 @@ describe("API route contract — validation boundary", () => {
   });
 
   it("invalid startDate → route catches, returns 500 (not thrown)", async () => {
-    const res = await GET(makeReq("startDate=not-a-date"));
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toBeDefined();
+    const diagnostics = captureExpectedDiagnostics();
+    diagnostics.expectError("[API] Failed to get request details:", expect.objectContaining({ name: "RangeError", message: "Invalid time value" }));
+    try {
+      const res = await GET(makeReq("startDate=not-a-date"));
+      expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
+    } finally {
+      diagnostics.verify();
+    }
   });
 
   it("valid request → 200 with details + pagination shape", async () => {

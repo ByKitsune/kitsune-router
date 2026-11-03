@@ -81,35 +81,6 @@ const origCreate = http.createServer.bind(http);
 })();
 migrateLegacyEnvironment(process.env);
 
-// Fix #3744: suppress SOCKS5 and SQLite ExperimentalWarning (undici socks5-proxy-agent and node:sqlite emit on first use)
-if (typeof process !== "undefined") {
-  const origEmit = process.emit;
-  if (typeof origEmit === "function") {
-    process.emit = function (name, data, ...rest) {
-      if (
-        name === "warning" &&
-        data?.name === "ExperimentalWarning" &&
-        /(?:SOCKS5|SQLite)/i.test(data?.message || String(data || ""))
-      ) {
-        return false;
-      }
-      return origEmit.call(process, name, data, ...rest);
-    };
-  }
-  if (typeof process.emitWarning === "function") {
-    const origEmitWarning = process.emitWarning.bind(process);
-    process.emitWarning = (warning, type, ...args) => {
-      if (
-        (type === "ExperimentalWarning" || (typeof warning === "object" && warning?.name === "ExperimentalWarning")) &&
-        /(?:SOCKS5|SQLite)/i.test(typeof warning === "string" ? warning : warning?.message || "")
-      ) {
-        return;
-      }
-      return origEmitWarning(warning, type, ...args);
-    };
-  }
-}
-
 // Per-process secret proving x-kitsune-router-real-ip was stamped below rather than sent by the client.
 // A bare `next start` / `next dev` never loads this file, so it cannot produce a matching
 // header even though the env var is inherited by child processes.

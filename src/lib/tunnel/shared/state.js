@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomInt } from "crypto";
-import { DATA_DIR } from "@/lib/dataDir.js";
+import { DATA_DIR } from "@/lib/dataDir.mjs";
 
 const TUNNEL_DIR = path.join(DATA_DIR, "tunnel");
 const STATE_FILE = path.join(TUNNEL_DIR, "state.json");

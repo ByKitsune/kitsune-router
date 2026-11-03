@@ -25,6 +25,14 @@ export default {
   // Passthrough covers the rest.
   models: [
     { id: "moonshotai/Kimi-K3-TEE", name: "Kimi K3 (TEE)" },
+    // Exact provider-hosted catalog IDs reviewed 2026-11-04; account entitlement may differ.
+    {id: "deepseek-ai/DeepSeek-V4.1-Flash-1017", name: "DeepSeek V4.1 Flash 1017", supportedFormats: ["openai"]},
+    {id: "deepseek-ai/DeepSeek-V4-Pro-0813", name: "DeepSeek V4 Pro 0813", supportedFormats: ["openai"]},
+    {id: "zai-org/GLM-5.3", name: "GLM 5.3", supportedFormats: ["openai"]},
+    {id: "zai-org/GLM-5.2-Fast", name: "GLM 5.2 Fast", supportedFormats: ["openai"]},
+    {id: "moonshotai/Kimi-K2.7-Code", name: "Kimi K2.7 Code", supportedFormats: ["openai"]},
+    {id: "Qwen/Qwen3.8-Max-0902", name: "Qwen3.8 Max 0902", supportedFormats: ["openai"]},
+    {id: "Qwen/Qwen3.8-2.4T-A95B", name: "Qwen3.8 2.4T A95B", supportedFormats: ["openai"]},
     // Public /v1/models, 2026-10-21; absence never retires an existing alias.
     { id: "google/gemma-4-31B-turbo-TEE", name: "Gemma 4 31B Turbo (TEE)", supportedFormats: ["openai"] },
     { id: "Nemotron-3-Nano-Omni-30B-TEE", name: "Nemotron 3 Nano Omni 30B (TEE)", supportedFormats: ["openai"] },

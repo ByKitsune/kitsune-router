@@ -384,27 +384,65 @@ describe("delegated project discovery and onboarding", () => {
   it("closes a loadCodeAssist body stalled after headers rather than waiting for the cleanup sweep", async () => {
     const connection = `delegated-${++identity}`;
     const closed = deferred();
-    const policy = await relay((_req, res) => {
-      res.on("close", closed.resolve);
-      res.setHeader("Content-Type", "application/json");
-      res.write('{"cloudaicompanionProject":');
-    });
-    const pending = projects.getProjectIdForConnection(connection, "synthetic-access", "gemini-cli", policy);
-    expect(await promptly(pending, 1500)).toBeNull();
-    expect(await promptly(closed.promise.then(() => true))).toBe(true);
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const policy = await relay((_req, res) => {
+        res.on("close", closed.resolve);
+        res.setHeader("Content-Type", "application/json");
+        res.write('{"cloudaicompanionProject":');
+      });
+      const pending = projects.getProjectIdForConnection(connection, "synthetic-access", "gemini-cli", policy);
+      expect(await promptly(pending, 1500)).toBeNull();
+      expect(await promptly(closed.promise.then(() => true))).toBe(true);
+      expect(warnings.mock.calls).toEqual([["[ProjectId] Project lookup failed (TimeoutError)"]]);
+    } finally { warnings.mockRestore(); }
   });
 
   it("bounds each onboard response body and stops after the existing retry cap", async () => {
     const connection = `delegated-${++identity}`;
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
     let requests = 0;
-    const policy = await relay((req, res) => {
-      requests++;
-      res.setHeader("Content-Type", "application/json");
-      if (req.headers["x-relay-path"].includes("loadCodeAssist")) res.end('{"allowedTiers":[{"id":"fixture-tier","isDefault":true}]}');
-      else res.write('{"done":');
-    });
-    expect(await promptly(projects.getProjectIdForConnection(connection, "synthetic-access", "gemini-cli", policy), 3800)).toBeNull();
-    expect(requests).toBe(6);
+    let closedBodies = 0;
+    try {
+      const policy = await relay((req, res) => {
+        requests++;
+        res.setHeader("Content-Type", "application/json");
+        if (req.headers["x-relay-path"].includes("loadCodeAssist")) res.end('{"allowedTiers":[{"id":"fixture-tier","isDefault":true}]}');
+        else {
+          res.on("close", () => { closedBodies++; });
+          res.write('{"done":');
+        }
+      });
+      expect(await promptly(projects.getProjectIdForConnection(connection, "synthetic-access", "gemini-cli", policy), 3800)).toBeNull();
+      expect(requests).toBe(6);
+      await vi.waitFor(() => expect(closedBodies).toBe(5), { timeout: 1000 });
+      expect(warnings.mock.calls).toEqual([
+        ...Array.from({ length: 5 }, (_, i) => [`[ProjectId] onboardUser attempt ${i + 1} aborted (timeout or connection removed)`]),
+        ["[ProjectId] could not fetch projectId for connection", connection.slice(0, 8)],
+      ]);
+    } finally { warnings.mockRestore(); }
+  });
+
+  it.each([401, 403, 409])("does not retry denied onboarding HTTP %s or trust a project in its error body", async status => {
+    const connection = `delegated-${++identity}`;
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const paths = [];
+    try {
+      const policy = await relay((req, res) => {
+        paths.push(req.headers["x-relay-path"]);
+        res.setHeader("Content-Type", "application/json");
+        if (paths.at(-1).includes("loadCodeAssist")) res.end('{"allowedTiers":[{"id":"fixture-tier","isDefault":true}]}');
+        else {
+          res.statusCode = status;
+          res.end('{"done":true,"response":{"cloudaicompanionProject":"must-not-trust-denied-project"}}');
+        }
+      });
+      expect(await projects.getProjectIdForConnection(connection, "synthetic-access", "gemini-cli", policy)).toBeNull();
+      expect(paths).toHaveLength(2);
+      expect(paths[0]).toContain("loadCodeAssist");
+      expect(paths[1]).toContain("onboardUser");
+      expect(warnings.mock.calls).toEqual([["[ProjectId] could not fetch projectId for connection", connection.slice(0, 8)]]);
+    } finally { warnings.mockRestore(); }
   });
 
   it("interrupts onboarding backoff with no later request after caller cancellation", async () => {

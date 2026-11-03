@@ -4,10 +4,6 @@
 //
 //   B-cell-1  /messages, thinking enabled + tool_use, assistant turn carries an
 //             UNSIGNED thinking placeholder  {type:"thinking", thinking:"."}
-//   B-cell-2  /messages, same, assistant turn carries a SIGNED thinking placeholder
-//             (DEFAULT_THINKING_CLAUDE_SIGNATURE) — the exact shape `prepareClaudeRequest`
-//             would inject today if opencode-go were added to `handlesThinkingBlocks`
-//             (claude.js routes non-deepseek providers through the signed branch).
 //   B-cell-3  /messages, same, assistant turn WITHOUT any thinking block — the known
 //             400 repro; sanity check that the cells above actually exercise the
 //             pass-back validation.
@@ -22,7 +18,6 @@ import { describe, it, expect } from "vitest";
 import { getProviderCredentials } from "../../../src/sse/services/auth.js";
 import { checkAndRefreshToken } from "../../../src/sse/services/tokenRefresh.js";
 import { handleChatCore } from "../../../open-sse/handlers/chatCore.js";
-import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../../../open-sse/config/defaultThinkingSignature.js";
 
 const RUN_REAL = process.env.RUN_REAL === "1";
 const PROVIDER = "opencode-go";
@@ -102,18 +97,6 @@ describe.skipIf(!RUN_REAL)(`REAL thinking placeholder acceptance (${PROVIDER}/${
     expect(out.ok).toBe(true);
   }, TIMEOUT_MS);
 
-  it("B-cell-2: SIGNED thinking placeholder (prepareClaudeRequest shape) on /messages", async () => {
-    const creds = await prepare();
-    if (!creds) return expect(true).toBe(true);
-    const out = await runChat(toolTurnBody([
-      { type: "thinking", thinking: ".", signature: DEFAULT_THINKING_CLAUDE_SIGNATURE },
-      { type: "tool_use", id: "toolu_1", name: "get_weather", input: { city: "Paris" } },
-    ]), creds);
-    console.log(`[B2 signed] status=${out.status} raw=${out.raw?.slice?.(0, 150)}`);
-    // This is the exact shape a naive handlesThinkingBlocks addition would inject.
-    // A 400 here means the follow-up MUST route opencode-go through the unsigned branch.
-    expect(out.ok).toBe(true);
-  }, TIMEOUT_MS);
 
   it("B-cell-3: REAL turn1 thinking, turn2 replay WITHOUT the thinking block (pass-back failure)", async () => {
     const creds = await prepare();

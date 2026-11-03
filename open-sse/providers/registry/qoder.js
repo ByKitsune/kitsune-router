@@ -30,7 +30,7 @@ export default {
     { id: "auto", name: "Auto" },
     { id: "performance", name: "Performance" },
     { id: "efficient", name: "Efficient" },
-    { id: "lite", name: "Lite" },
+    { id: "lite", name: "Lite", deprecated: true, deprecationDate: "2026-09-18T14:00:00+08:00", deprecationNotice: "Qoder removed the Lite model tier September 18, 2026. Select an available tier explicitly." },
     { id: "qmodel_38max", name: "Qwen3.8-Max" },
     { id: "qmodel_latest", name: "Qwen3.7-Max" },
     { id: "qmodel", name: "Qwen3.7-Plus" },

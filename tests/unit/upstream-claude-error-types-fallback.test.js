@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 // Real routing, account health and combo decisions; only persistence and
 // upstream transport are replaced with synthetic in-memory fixtures.
@@ -163,6 +168,7 @@ describe.each(["forced SSE", "non-stream SSE", "non-stream JSON"])("public Claud
     [{ type: "overloaded_error", code: "native_code", status: 529 }, "overloaded_error"],
   ])("maps %j at the final client boundary", async (diagnostic, type) => {
     const provider = path === "forced SSE" ? "codex" : "deepseek";
+    if (diagnostic.status !== 400) diagnostics.expectError(`❌ ${provider} [${diagnostic.status}]: Failure Bearer synthetic-secret private@example.test (${diagnostic.code})`);
     const route = provider === "codex" ? `cx/${firstModel}` : "deepseek/deepseek-flash";
     io.connections = [connection("account-a", provider)];
     const error = { ...diagnostic, message: "Failure Bearer synthetic-secret private@example.test", debug: "private-debug" };
@@ -186,6 +192,7 @@ describe.each(["forced SSE", "non-stream SSE", "non-stream JSON"])("public Claud
   });
 
   it("keeps rejected usage acceptance terminal and does not lock an account", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     const provider = path === "forced SSE" ? "codex" : "deepseek";
     const route = provider === "codex" ? `cx/${firstModel}` : "deepseek/deepseek-flash";
     io.connections = [connection("account-a", provider)];
@@ -210,6 +217,7 @@ describe.each(["forced SSE", "non-stream SSE", "non-stream JSON"])("public Claud
 
 describe("public endpoint and native error type preservation", () => {
   it.each(["/v1/chat/completions", "/v1/responses"])("does not apply Claude mapping to %s", async endpoint => {
+    diagnostics.expectError("❌ codex [500]: Failure (internal_server_error)");
     io.connections = [connection("account-a")];
     io.execute.mockImplementation(async () => upstream({ type: "response.failed", response: { status: "failed",
       error: { type: "server_error", code: "internal_server_error", status: 500, message: "Failure" },
@@ -221,6 +229,7 @@ describe("public endpoint and native error type preservation", () => {
   });
 
   it("keeps the documented native Anthropic type", async () => {
+    diagnostics.expectError("❌ claude [529]: Native failure (native_code)");
     io.connections = [connection("account-a", "claude")];
     io.execute.mockImplementation(async () => ({
       response: Response.json({ type: "error", error: { type: "overloaded_error", code: "native_code", status: 529, message: "Native failure" },
@@ -237,8 +246,11 @@ describe("public endpoint and native error type preservation", () => {
     ["/v1/messages", "api_error"],
     ["/v1/responses", "server_error"],
   ])("uses the endpoint format for an error before body decoding on %s", async (endpoint, type) => {
-    io.getSettings.mockRejectedValueOnce(new Error("synthetic settings failure"));
+    const failure = new Error("synthetic settings failure");
+    diagnostics.expectError(expect.stringContaining(failure.stack));
+    io.getSettings.mockRejectedValueOnce(failure);
     const result = await (endpoint === "/v1/messages" ? messagesPost : responsesPost)(request(`cx/${firstModel}`, endpoint));
+    expect(diagnostics.error).toHaveBeenCalledExactlyOnceWith(`[${result.headers.get("x-request-id")}] ${failure.stack}`);
     expect(result.status).toBe(500);
     expect((await result.json()).error).toMatchObject({ type, code: "internal_server_error", request_id: result.headers.get("x-request-id") });
     expect(io.execute).not.toHaveBeenCalled();
@@ -246,6 +258,7 @@ describe("public endpoint and native error type preservation", () => {
   });
 
   it("uses body detection only for an endpoint without a defined format", async () => {
+    diagnostics.expectError("❌ codex [500]: Failure (internal_server_error)");
     io.connections = [connection("account-a")];
     io.execute.mockImplementation(async () => upstream({ type: "response.failed", response: { status: "failed",
       error: { type: "server_error", code: "internal_server_error", status: 500, message: "Failure" },

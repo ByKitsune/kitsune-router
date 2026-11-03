@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 // Exercise the public request handler, real core response classification, and
 // real account selection/health logic. Only persistence and upstream I/O are fake.
@@ -328,6 +333,7 @@ describe("output-budget exhaustion through handleChat and real account health lo
   });
 
   it("still cools down a repeatedly failing upstream account for 30 seconds and uses its sibling", async () => {
+    diagnostics.expectError("❌ claude [500]: [500]: Upstream internal server error");
     mocks.connections.push(connection("account-b"));
     mocks.execute.mockImplementation(async ({ credentials }) =>
       credentials.connectionId === "account-a" ? serverFailure() : completed()
@@ -377,6 +383,7 @@ describe("public quota status through direct, alias and combo routing", () => {
     expect((await handleChat(request())).status).toBe(200);
   });
   it.each(["direct", "alias", "combo"])("keeps first failure and later cooldown status truthful on a %s route", async route => {
+    diagnostics.expectError("❌ claude [429]: [400]: Your usage limit has been reached. Try again in 60 seconds. (rate_limit_exceeded)");
     mocks.aliases = { "quota-alias": `cc/${SONNET}` };
     mocks.combo = { name: "quota-combo", models: ["quota-alias"] };
     const model = route === "direct" ? `cc/${SONNET}` : route === "alias" ? "quota-alias" : "quota-combo";

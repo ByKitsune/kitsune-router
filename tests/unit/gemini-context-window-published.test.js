@@ -95,17 +95,29 @@ describe("the fix did not leak onto other providers", () => {
   });
 });
 
-describe("Google prior-use restrictions are not global retirement", () => {
+describe("Google API lifecycle and prior-use eligibility stay independently scoped", () => {
   const RESTRICTED = ["gemini-2.5-pro", "gemini-2.5-flash-lite"];
 
-  it.each(RESTRICTED)("%s records project eligibility without inventing shutdown", model => {
-    const limits = getReviewedModelMetadata("gemini", model)?.limits;
+  it.each(RESTRICTED)("%s preserves project eligibility and historical capabilities", model => {
+    const metadata = getReviewedModelMetadata("gemini", model);
+    const limits = metadata?.limits;
     expect(limits?.routeAvailable).not.toBe(false);
     expect(limits?.routeUnavailableReason).toBeUndefined();
     expect(limits?.accountEligibility).toBe("prior-use-required");
-    expect(limits?.lifecycleStatus).toBe("active-restricted");
-    expect(limits?.shutdownDate).toBeNull();
-    expect(getCapabilitiesForModel("gemini", model).contextWindow).toBe(1048576);
+    if (model === "gemini-2.5-pro") {
+      expect(limits?.lifecycleStatus).toBe("deprecated");
+      expect(limits?.shutdownDate).toBe("2026-12-01");
+      expect(limits?.note).toContain("reviewed 2026-11-04");
+      expect(metadata.sources).toContain("https://ai.google.dev/gemini-api/docs/deprecations");
+      expect(metadata.pricing).toMatchObject({ input: 1.25, output: 10, cached: 0.125 });
+    } else {
+      expect(limits?.lifecycleStatus).toBe("active-restricted");
+      expect(limits?.shutdownDate).toBeNull();
+      expect(metadata.pricing).toMatchObject({ input: 0.1, output: 0.4, cached: 0.01 });
+    }
+    expect(getCapabilitiesForModel("gemini", model)).toMatchObject({
+      contextWindow: 1048576, maxInput: 1048576, maxOutput: 65536, vision: true, audioInput: true,
+    });
   });
 
   it.each(RESTRICTED)("%s does not impose API project eligibility on Gemini CLI", model => {

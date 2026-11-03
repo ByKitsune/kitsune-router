@@ -1,8 +1,10 @@
 import { defineConfig } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 import { UI_TEST_ORIGIN } from "./test-settings.mjs";
+import { normalizePlaywrightColorEnvironment } from "../../scripts/playwright-environment.mjs";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
+normalizePlaywrightColorEnvironment(process.env);
 // The runner's health probe must reach its own loopback fixture, including in
 // cloud/corporate shells that route ordinary HTTP through an egress proxy.
 // Preserve every existing exclusion; add only the fixture's local hostnames.

@@ -161,6 +161,7 @@
   "cline": {
     "baseUrl": "https://api.cline.bot/api/v1/chat/completions",
     "headers": {
+      "X-Response-Format": "openai",
       "HTTP-Referer": "https://cline.bot",
       "X-Title": "Cline"
     },
@@ -179,6 +180,7 @@
   "clinepass": {
     "baseUrl": "https://api.cline.bot/api/v1/chat/completions",
     "headers": {
+      "X-Response-Format": "openai",
       "HTTP-Referer": "https://cline.bot",
       "X-Title": "Cline"
     },
@@ -524,7 +526,7 @@
     "baseUrl": "https://llm.kimchi.dev/openai/v1/chat/completions",
     "format": "openai",
     "headers": {
-      "User-Agent": "kimchi/1.26.0"
+      "User-Agent": "kimchi/1.28.0"
     },
     "auth": {
       "combined": true,

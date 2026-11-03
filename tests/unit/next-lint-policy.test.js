@@ -118,7 +118,7 @@ describe("composed lint command", () => {
       cwd: root,
       encoding: "utf8",
       timeout: 30000,
-      env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
+      env: { ...process.env, NO_COLOR: undefined, FORCE_COLOR: "0" },
     });
     if (result.error) throw result.error;
     expect(result.signal).toBeNull();

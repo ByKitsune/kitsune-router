@@ -72,7 +72,7 @@ describe("verified client release migrations", () => {
   });
 
   it("emits Kimchi's tagged release user agent", () => {
-    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.26.0");
+    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.28.0");
   });
 
   it("updates only Trae's inactive source pin", () => {

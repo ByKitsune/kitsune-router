@@ -22,6 +22,7 @@ vi.mock("../../open-sse/executors/index.js", async () => {
   } };
 });
 import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
+import { buildToolCallId } from "../../open-sse/translator/concerns/thoughtSignature.js";
 
 let server;
 const imageData = "iVBORw0KGgoAAAANSUhEUgAACHwAAALU" + "QUJD".repeat(32768);
@@ -76,18 +77,25 @@ describe("multimodal history over the real translator/executor/fetch stack", () 
   });
 
   it("keeps image-heavy Responses tool results out of Gemini text after a compaction summary", async () => {
+    const originalSignature = Buffer.from("image-history").toString("base64");
+    const signedCallId = buildToolCallId("read_file", 0, originalSignature, "read_png");
     const body = { stream: false, input: [
       { type: "message", role: "user", content: [{ type: "input_text", text: "Compacted context: compare the next PNG captures." }] },
-      { type: "function_call", call_id: "read_png", name: "read_file", arguments: "{}" },
-      { type: "function_call_output", call_id: "read_png", output: [
+      { type: "function_call", call_id: signedCallId, name: "read_file", arguments: "{}" },
+      { type: "function_call_output", call_id: signedCallId, output: [
         { type: "input_text", text: "PNG 2172x724 and its variant" },
         { type: "input_image", image_url: `data:image/png;base64,${imageData}` },
         { type: "input_image", image_url: `data:image/png;base64,${imageData}QUJD` },
       ] },
       { type: "message", role: "user", content: [{ type: "input_text", text: "What changed?" }] },
     ] };
+    const original = structuredClone(body);
     const result = await dispatch(body, "gemini", "gemini-3.8-flash", "openai-responses");
-    expect(result.success).toBe(true);
+    expect(result.success, await result.response.clone().text()).toBe(true);
+    expect(body).toEqual(original);
+    const signedPart = fixture.requests[0].contents.flatMap(turn => turn.parts).find(part => part.functionCall);
+    expect(signedPart).toEqual({ thoughtSignature: originalSignature, functionCall: { id: "read_png", name: "read_file", args: {} } });
+    expect(fixture.requests[0].contents.flatMap(turn => turn.parts).find(part => part.functionResponse).functionResponse.id).toBe("read_png");
     const wire = googleMedia(fixture.requests[0]);
     expect(wire.images.map(part => part.inlineData.data === imageData || part.inlineData.data === `${imageData}QUJD`)).toEqual([true, true]);
     expect(wire.text.length).toBeLessThan(1000);

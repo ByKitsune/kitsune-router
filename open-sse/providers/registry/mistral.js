@@ -27,7 +27,10 @@ export default {
   },
   models: [
     { id: "zai-glm-5-3", name: "Z.ai GLM 5.3" },
-    { id: "mistral-large-4", name: "Mistral Large 4 (Preview)" },
+    // Exact provider-hosted catalog IDs reviewed 2026-11-04; account entitlement may differ.
+    {id: "mistral-large-4-0", name: "Mistral Large 4 (26.10)"},
+    {id: "zai-glm-5-3-flash", name: "GLM 5.3 Flash (Mistral)"},
+    { id: "mistral-large-4", name: "Mistral Large 4" },
     { id: "ministral-14b-2512", name: "ministral 14b 2512" },
     { id: "ministral-8b-2512", name: "ministral 8b 2512" },
     { id: "ministral-3b-2512", name: "ministral 3b 2512" },

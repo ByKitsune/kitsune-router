@@ -17,7 +17,7 @@ import { getMitmStatus, startMitm, loadEncryptedPassword, initDbHooks, restoreTo
 import { syncToJson as syncMitmAliasCache } from "@/lib/mitmAliasCache";
 import { killAllBridges } from "@/lib/mcp/stdioSseBridge";
 import { registerShutdownHook, isShuttingDown } from "@/lib/shutdownLifecycle.js";
-import { shutdownAllManaged } from "@/lib/schedulerLifecycle.js";
+import { shutdownAllManaged } from "@/lib/schedulerLifecycle.mjs";
 
 // Inject correct paths and DB hooks into manager.js (CJS) from ESM context
 (function bootstrapMitm() {

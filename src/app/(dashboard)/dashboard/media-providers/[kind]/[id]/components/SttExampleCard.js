@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/shared/components";
 import { getProviderAlias } from "@/shared/constants/providers";
-import { getModelKind } from "@/shared/constants/models";
-import { getModelsByProviderId } from "@/shared/constants/models";
+import { getModelKind, getModelsByProviderId, filterAdvertisedModels } from "@/shared/constants/models";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { Row } from "./exampleShared";
 
 export function SttExampleCard({ providerId }) {
   const providerAlias = getProviderAlias(providerId);
-  const builtinSttModels = getModelsByProviderId(providerId).filter((m) => getModelKind(m) === "stt");
+  const builtinSttModels = filterAdvertisedModels(providerId, getModelsByProviderId(providerId))
+    .filter((m) => getModelKind(m) === "stt");
   const [customSttModels, setCustomSttModels] = useState([]);
   const sttModels = [...builtinSttModels, ...customSttModels];
 

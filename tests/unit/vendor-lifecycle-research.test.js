@@ -10,10 +10,10 @@ describe("vendor documented lifecycle compatibility", () => {
       expect(deepseek.models.find((m) => m.id === id)).toMatchObject({ deprecated: true, upstreamModelId: "deepseek-flash" });
     }
   });
-  it("records MiMo future end dates without removing compatible IDs", () => {
+  it("stops advertising MiMo retired IDs while retaining their historical identities", () => {
     for (const provider of [mimo, tokenplan]) {
       for (const id of ["mimo-v2.5-pro", "mimo-v2.5"]) {
-        expect(provider.models.find((m) => m.id === id)).toMatchObject({ deprecationDate: "2026-10-21T10:00:00+08:00" });
+        expect(provider.models.find((m) => m.id === id)).toMatchObject({ deprecated: true, deprecationDate: "2026-10-21T10:00:00+08:00" });
       }
     }
   });

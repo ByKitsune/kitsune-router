@@ -13,7 +13,6 @@ import { DefaultExecutor } from "../../open-sse/executors/default.js";
 import { CodexExecutor } from "../../open-sse/executors/codex.js";
 import { GeminiCLIExecutor } from "../../open-sse/executors/gemini-cli.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
-import { applyCloaking } from "../../open-sse/utils/claudeCloaking.js";
 import codexImages from "../../open-sse/handlers/imageProviders/codex.js";
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";
 import { getProviderConnectionById } from "@/models";
@@ -38,7 +37,7 @@ afterEach(() => vi.unstubAllGlobals());
 // independent of the constants under test. These catch stale wire identities,
 // a separately stale catalog query, and accidental SDK/runtime co-bumps.
 describe("refreshed primary client wire identities", () => {
-  it("sends Claude's latest-channel release in both HTTP and billing identities without changing the native payload", async () => {
+  it("sends Claude's verified HTTP release without manufacturing billing or account metadata", async () => {
     const body = {
       model: "claude-sonnet-4-6",
       messages: [{ role: "user", content: "fixture" }],
@@ -46,16 +45,9 @@ describe("refreshed primary client wire identities", () => {
       metadata: { user_id: '{"session_id":"fixture-claude-session","caller":"preserved"}' },
       max_tokens: 37,
     };
-    const expectedPayload = {
-      ...structuredClone(body),
-      system: [
-        { type: "text", text: expect.stringMatching(/^x-anthropic-billing-header: cc_version=2\.1\.317\.[0-9a-f]{3}; cc_entrypoint=cli; cch=00000;$/) },
-        { type: "text", text: "Keep the caller's instruction." },
-      ],
-    };
-    const cloaked = applyCloaking(body, "sk-ant-oat-fixture", "fixture-claude-session");
+    const expectedPayload = structuredClone(body);
     await new DefaultExecutor("claude").execute({
-      model: "claude-sonnet-4-6", body: cloaked, stream: false,
+      model: "claude-sonnet-4-6", body, stream: false,
       credentials: {
         accessToken: "fixture-claude-oauth",
         rawHeaders: { "x-claude-code-session-id": "caller-session", authorization: "Bearer must-not-forward" },
@@ -155,7 +147,7 @@ describe("unchanged primary client boundaries", () => {
       messages: [{ role: "user", content: "fixture" }], max_tokens: 37,
     };
     const expectedPayload = structuredClone(body);
-    await new DefaultExecutor("claude").execute({ model: "claude-sonnet-4-6", body: applyCloaking(body, "sk-ant-oat-fixture"), stream: false, credentials: { accessToken: "fixture-claude-oauth" } });
+    await new DefaultExecutor("claude").execute({ model: "claude-sonnet-4-6", body, stream: false, credentials: { accessToken: "fixture-claude-oauth" } });
     expect(JSON.parse(outbound().body)).toEqual(expectedPayload);
   });
 

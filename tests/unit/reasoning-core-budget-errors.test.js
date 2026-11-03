@@ -16,6 +16,7 @@ vi.mock("../../open-sse/utils/requestLogger.js", () => ({ createRequestLogger: a
 }) }));
 import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
 import { checkFallbackError } from "../../open-sse/services/accountFallback.js";
+import { FALLBACK_SCOPE, REQUEST_SAFETY_ERROR_CODES } from "../../open-sse/config/errorConfig.js";
 
 const options = () => ({
   body: { model: "claude-sonnet-4-5", messages: [{ role: "user", content: "Reply briefly." }], max_tokens: 1000, stream: false },
@@ -67,6 +68,27 @@ describe("request budget validation is not upstream failure", () => {
   it("does not mask ordinary executor failures as invalid requests", async () => {
     mocks.execute.mockRejectedValueOnce(new Error("Upstream unavailable"));
     expect((await handleChatCore(options())).status).toBe(502);
+  });
+
+  it.each([...REQUEST_SAFETY_ERROR_CODES])("preserves %s and prevents account/combo replay", async code => {
+    const error = Object.assign(new Error("Original request continuity or account binding is required"), {
+      code, param: code === "provider_project_required" ? "project" : "messages.0.content.0.signature",
+    });
+    mocks.execute.mockRejectedValueOnce(error);
+    const result = await handleChatCore(options());
+    expect(result.status).toBe(400);
+    expect(result.response.headers.get("x-should-retry")).toBe("false");
+    expect(await result.response.clone().json()).toMatchObject({ error: { type: "invalid_request_error", code, param: error.param } });
+    const { error: publicError } = await result.response.clone().json();
+    expect(publicError.message).toMatch(code === "provider_project_required" ? /Reconnect the account/ : /Resend the complete original assistant response/);
+    expect(publicError.message).not.toBe("Bad request");
+    for (const scope of Object.values(FALLBACK_SCOPE)) {
+      expect(checkFallbackError(result.status, { message: result.error, code }, 0, result.response, scope))
+        .toMatchObject({ shouldFallback: false, cooldownMs: 0 });
+      expect(checkFallbackError(result.status, { message: result.error, code }, 0, null, scope))
+        .toMatchObject({ shouldFallback: false, cooldownMs: 0 });
+    }
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
   });
 
   it("still dispatches a valid request once", async () => {

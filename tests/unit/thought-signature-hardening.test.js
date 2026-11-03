@@ -8,7 +8,7 @@ import {
 } from "../../open-sse/translator/concerns/thoughtSignature.js";
 import { openaiToGeminiRequest } from "../../open-sse/translator/request/openai-to-gemini.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
-import { DEFAULT_THINKING_AG_SIGNATURE } from "../../open-sse/config/defaultThinkingSignature.js";
+const OPAQUE_SIGNATURE = Buffer.from("synthetic request-local opaque Google signed history payload, not an upstream signature".repeat(3)).toString("base64");
 import { checkFallbackError } from "../../open-sse/services/accountFallback.js";
 
 describe("Thought signature validation & truncation resilience", () => {
@@ -28,14 +28,14 @@ describe("Thought signature validation & truncation resilience", () => {
     expect(isValidBase64("abc=def")).toBe(false);
 
     // Valid signatures
-    expect(isValidBase64(DEFAULT_THINKING_AG_SIGNATURE)).toBe(true);
+    expect(isValidBase64(OPAQUE_SIGNATURE)).toBe(true);
     expect(isValidBase64("AAAA")).toBe(true);
     expect(isValidBase64("AAA=")).toBe(true);
     expect(isValidBase64("AA==")).toBe(true);
   });
 
   it("builds tool call ID and preserves signature through full round-trip", () => {
-    const sig = DEFAULT_THINKING_AG_SIGNATURE;
+    const sig = OPAQUE_SIGNATURE;
     const id = buildToolCallId("read_file", 0, sig);
     const split = splitToolCallId(id);
 
@@ -44,7 +44,7 @@ describe("Thought signature validation & truncation resilience", () => {
   });
 
   it("recovers the full truncated signature only from its explicit request-local map", () => {
-    const sig = DEFAULT_THINKING_AG_SIGNATURE;
+    const sig = OPAQUE_SIGNATURE;
     const signatures = new Map();
     const fullId = buildToolCallId("read_file", 0, sig, "call_request_one", signatures);
     const truncatedId = fullId.slice(0, 60);
@@ -55,7 +55,7 @@ describe("Thought signature validation & truncation resilience", () => {
   });
 
   it("recovers truncation inside the delimiter without crossing request maps", () => {
-    const sig = DEFAULT_THINKING_AG_SIGNATURE;
+    const sig = OPAQUE_SIGNATURE;
     const signatures = new Map();
     const fullId = buildToolCallId("read_file", 0, sig, "call_request_one", signatures);
     const delimIdx = fullId.indexOf("_TSIG_");
@@ -67,7 +67,7 @@ describe("Thought signature validation & truncation resilience", () => {
 
   it("safely falls back to an empty signature after clearing its request-local map", () => {
     const signatures = new Map();
-    const fullId = buildToolCallId("read_file", 0, DEFAULT_THINKING_AG_SIGNATURE, "call_request_one", signatures);
+    const fullId = buildToolCallId("read_file", 0, OPAQUE_SIGNATURE, "call_request_one", signatures);
     const truncatedId = fullId.slice(0, fullId.indexOf("_TSIG_") + 3);
     clearSignatureCache(signatures);
     expect(signatures.size).toBe(0);
@@ -92,7 +92,7 @@ describe("Thought signature validation & truncation resilience", () => {
     expect(splitToolCallId("call_1_TS", second).thoughtSignature).toBe(secondSignature);
   });
 
-  it("openaiToGeminiRequest replaces invalid or truncated thought signature with default", () => {
+  it("openaiToGeminiRequest rejects invalid or truncated signatures instead of manufacturing one", () => {
     const brokenSig = "EmIKYAERTTIPsMumWW2CIAWzb";
     const body = {
       model: "gemini-3.8-flash-high",
@@ -111,16 +111,11 @@ describe("Thought signature validation & truncation resilience", () => {
       ],
     };
 
-    clearSignatureCache();
-    const geminiReq = openaiToGeminiRequest("gemini-3.8-flash-high", body, false);
-    const modelTurn = geminiReq.contents.find((c) => c.role === "model");
-    const funcPart = modelTurn.parts.find((p) => p.functionCall);
-
-    expect(funcPart.thoughtSignature).toBe(DEFAULT_THINKING_AG_SIGNATURE);
-    expect(isValidBase64(funcPart.thoughtSignature)).toBe(true);
+    expect(() => openaiToGeminiRequest("gemini-3.8-flash-high", body, false))
+      .toThrowError(expect.objectContaining({ code: "invalid_thought_signature" }));
   });
 
-  it("AntigravityExecutor replaces invalid thought signatures on any part", () => {
+  it("AntigravityExecutor rejects invalid thought signatures on any part", () => {
     const brokenSig = "EmIKYAERTTIPsMumWW2CIAWzb";
     const executor = new AntigravityExecutor();
     const body = {
@@ -139,12 +134,8 @@ describe("Thought signature validation & truncation resilience", () => {
       },
     };
 
-    const transformed = executor.transformRequest("gemini-3.8-flash-high", body, false, {});
-    const parts = transformed.request.contents[0].parts;
-    const funcPart = parts.find((p) => p.functionCall);
-
-    expect(funcPart.thoughtSignature).toBe(DEFAULT_THINKING_AG_SIGNATURE);
-    expect(isValidBase64(funcPart.thoughtSignature)).toBe(true);
+    expect(() => executor.transformRequest("gemini-3.8-flash-high", body, false, {}))
+      .toThrowError(expect.objectContaining({ code: "invalid_thought_signature" }));
   });
 
   it("checkFallbackError does not trigger account fallback or lock on standard 400/422", () => {

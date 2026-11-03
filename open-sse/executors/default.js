@@ -13,6 +13,8 @@ import { allowsClaudeManualInterleaving, getThinkingContext, setThinkingContext,
 import { setBounded, CACHE_LIMITS } from "../utils/boundedCache.js";
 import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
 import { FORMATS } from "../translator/formats.js";
+import { normalizeSessionId } from "../utils/sessionManager.js";
+import { validateGoogleThoughtSignatures } from "../translator/concerns/thoughtSignature.js";
 
 // Per-connection set of `anthropic-beta` flags the upstream rejected for that
 // account. Process-local by design: getProviderCredentials() rebuilds
@@ -123,7 +125,7 @@ export class DefaultExecutor extends BaseExecutor {
     }
     // Final thinking reconciliation is request-local; retries/accounts reuse body.
     const requestBody = /^claude-/.test(model || "") && body?.thinking?.type === "enabled" ? { ...body } : body;
-    const transformed = this.applyJsonSchemaFallback(requestBody);
+    let transformed = this.applyJsonSchemaFallback(requestBody);
 
     if (transformed && typeof transformed === "object") {
       // quirk: some openai-compatible providers reject Anthropic's client_metadata field
@@ -145,6 +147,10 @@ export class DefaultExecutor extends BaseExecutor {
       }
     }
 
+    if (this.config.format === "gemini") {
+      const contents = validateGoogleThoughtSignatures(transformed?.contents, model);
+      if (contents !== transformed?.contents) transformed = { ...transformed, contents };
+    }
     const result = injectReasoningContent({ provider: this.provider, model, body: transformed });
     const thinkingContext = getThinkingContext(body);
     if (result !== body && thinkingContext) setThinkingContext(result, thinkingContext);
@@ -254,12 +260,12 @@ export class DefaultExecutor extends BaseExecutor {
 
       // Session identity is request-local, never stored on pooled credentials.
       if (credentials.accessToken && !credentials.apiKey) {
-        let sessionId = this.readClientHeader(credentials, "x-claude-code-session-id");
+        let sessionId = normalizeSessionId(this.readClientHeader(credentials, "x-claude-code-session-id"));
         if (!sessionId) {
-          try { sessionId = JSON.parse(body?.metadata?.user_id || "null")?.session_id; }
+          try { sessionId = normalizeSessionId(JSON.parse(body?.metadata?.user_id || "null")?.session_id); }
           catch { /* Non-JSON user_id is valid metadata, not a session identity. */ }
         }
-        if (typeof sessionId === "string" && sessionId && !/[\r\n]/.test(sessionId)) {
+        if (sessionId) {
           headers["x-claude-code-session-id"] = sessionId;
         }
       }

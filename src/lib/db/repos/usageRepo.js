@@ -4,7 +4,7 @@ import { readScopeRevision } from "../helpers/scopedCache.js";
 import { EventEmitter } from "events";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
-import { hardenEmitter } from "../../schedulerLifecycle.js";
+import { hardenEmitter } from "../../schedulerLifecycle.mjs";
 import { addNullableCost, mergeCostCoverage } from "../../../shared/utils/cost.js";
 import { canonicalizeUsage } from "../../../../open-sse/utils/usageTracking.js";
 

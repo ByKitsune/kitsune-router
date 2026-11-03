@@ -14,7 +14,6 @@ const fixtureGlobals = [
 let originalDataDir;
 let originalGlobals;
 let originalListeners;
-let originalEmit;
 let tempDir;
 let db;
 
@@ -22,8 +21,8 @@ beforeAll(async () => {
   originalDataDir = process.env.DATA_DIR;
   originalGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
   originalListeners = new Map(["beforeExit", "SIGINT", "SIGTERM"].map((event) => [event, process.rawListeners(event)]));
-  originalEmit = process.emit;
   for (const key of fixtureGlobals) delete global[key];
+  fs.mkdirSync(os.tmpdir(), { recursive: true });
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-cached-e2e-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
@@ -46,7 +45,6 @@ afterAll(async () => {
         if (!listeners.includes(listener)) process.removeListener(event, listener);
       }
     }
-    process.emit = originalEmit;
     for (const [key, descriptor] of originalGlobals) {
       if (descriptor) Object.defineProperty(global, key, descriptor);
       else delete global[key];

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Badge, Button } from "@/shared/components";
-import { getModelsByProviderId } from "@/shared/constants/models";
+import { getModelsByProviderId, filterAdvertisedModels } from "@/shared/constants/models";
 import { isAnthropicCompatibleProvider, isOpenAICompatibleProvider } from "@/shared/constants/providers";
 import { OPENAI_BLOCK, RESPONSES_ITEM } from "open-sse/translator/schema/blocks.js";
 
@@ -316,7 +316,7 @@ export default function BasicChatPageClient() {
           group.providerType = group.providerType || providerType;
           group.connections.push(connection);
 
-          const staticModels = getModelsByProviderId(providerId)
+          const staticModels = filterAdvertisedModels(providerId, getModelsByProviderId(providerId))
             .map((model) => normalizeStaticModel(model, connection))
             .filter(Boolean);
           group.models.push(...staticModels);

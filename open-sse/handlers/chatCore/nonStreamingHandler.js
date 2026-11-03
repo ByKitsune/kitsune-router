@@ -25,14 +25,12 @@ import { extractResponseError } from "../../translator/concerns/responseError.js
 import { getServiceTierAccounting } from "../../providers/serviceTiers.js";
 
 import { normalizeResponseIdentity } from "../../utils/streamHelpers.js";
-const DEFAULT_THOUGHT_SIGNATURE = "";
-
-function extractGeminiThoughtSignature(part, pending = DEFAULT_THOUGHT_SIGNATURE) {
-  return part?.thoughtSignature || part?.thought_signature || pending;
+function extractGeminiThoughtSignature(part) {
+  return part?.thoughtSignature || part?.thought_signature || "";
 }
 
-function buildGeminiToolCall(part, index, pendingSignature) {
-  const signature = extractGeminiThoughtSignature(part, pendingSignature);
+function buildGeminiToolCall(part, index) {
+  const signature = extractGeminiThoughtSignature(part);
   const id = buildToolCallId(part.functionCall.name, index, signature, part.functionCall.id);
   return {
     id,
@@ -45,19 +43,10 @@ function buildGeminiToolCall(part, index, pendingSignature) {
 }
 
 function appendGeminiToolCalls(parts, toolCalls) {
-  let pendingSignature = DEFAULT_THOUGHT_SIGNATURE;
   for (const part of parts || []) {
-    const media = part.inlineData || part.inline_data || part.fileData || part.file_data;
-    const mimeType = media?.mimeType || media?.mime_type;
-    if (typeof mimeType === "string" && mimeType.toLowerCase().startsWith("image/")) {
-      pendingSignature = DEFAULT_THOUGHT_SIGNATURE;
-      continue;
-    }
-    const signature = extractGeminiThoughtSignature(part);
-    if (signature) pendingSignature = signature;
-    if (!part.functionCall) continue;
-    toolCalls.push(buildGeminiToolCall(part, toolCalls.length, pendingSignature));
-    pendingSignature = DEFAULT_THOUGHT_SIGNATURE;
+    // Each opaque signature belongs only to the Part returned by Google. A
+    // preceding thought/text/image signature cannot sign a later function call.
+    if (part.functionCall) toolCalls.push(buildGeminiToolCall(part, toolCalls.length));
   }
 }
 

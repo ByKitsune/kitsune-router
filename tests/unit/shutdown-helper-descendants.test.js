@@ -16,7 +16,7 @@ const io = vi.hoisted(() => ({
 }));
 vi.mock("child_process", () => ({ exec: io.exec, execFile: io.execFile, execSync: io.execSync, spawn: io.spawn }));
 vi.mock("https", () => ({ default: { get: io.get, request: io.request } }));
-vi.mock("@/lib/dataDir.js", () => ({ get DATA_DIR() { return io.directory; } }));
+vi.mock("@/lib/dataDir.mjs", () => ({ get DATA_DIR() { return io.directory; } }));
 vi.mock("@/lib/localDb", () => ({ getSettings: io.settings, updateSettings: io.update }));
 vi.mock("@/mitm/manager", () => ({
   getHelperLifecycle: () => io.manager.getHelperLifecycle(),

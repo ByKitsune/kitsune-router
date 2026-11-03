@@ -1,9 +1,6 @@
 // Claude helper functions for translator
-import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../../config/defaultThinkingSignature.js";
 import { ROLE, CLAUDE_BLOCK } from "../schema/index.js";
 import { adjustMaxTokens } from "./maxTokens.js";
-import { applyCloaking } from "../../utils/claudeCloaking.js";
-import { resolveSessionId } from "../../utils/sessionManager.js";
 import { isValidClaudeSignature } from "../../utils/claudeSignature.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
@@ -217,21 +214,51 @@ function handlesThinkingBlocks(provider) {
   return provider === "claude" || provider?.startsWith("anthropic-compatible") || provider === "deepseek";
 }
 
-function buildThinkingPlaceholder(provider, unsigned = false) {
-  const block = {
-    type: CLAUDE_BLOCK.THINKING,
-    thinking: ".",
+// DeepSeek requires an unsigned thinking field on tool turns. This is its
+// independent compatibility contract, not a substitute Anthropic signature.
+function buildDeepSeekThinkingPlaceholder() {
+  return { type: CLAUDE_BLOCK.THINKING, thinking: "." };
+}
+
+// Official Messages requires the original thinking sequence within an active
+// tool-use turn. Structural checks cannot authenticate it, but they can prevent
+// silently dropping part of that sequence or substituting a captured signature.
+function validateClaudeThinkingContinuity(body) {
+  const messages = body?.messages;
+  if (!Array.isArray(messages)) return;
+  const blocks = message => Array.isArray(message?.content) ? message.content
+    : message?.content && typeof message.content === "object" ? [message.content] : [];
+  const hasResults = message => message?.role === ROLE.USER &&
+    blocks(message).some(block => block?.type === CLAUDE_BLOCK.TOOL_RESULT);
+  const last = messages.at(-1);
+  if (!hasResults(last)) return;
+  const assistantIndex = messages.findLastIndex(message => message?.role === ROLE.ASSISTANT);
+  if (!blocks(messages[assistantIndex]).some(block => block?.type === CLAUDE_BLOCK.TOOL_USE)) return;
+  const fail = (messageIndex, index, field) => {
+    const error = new Error("This Claude tool-result continuation requires the original, complete thinking blocks and signatures from its assistant response. Resend that response unchanged; the gateway cannot reconstruct signed thinking.");
+    error.code = field ? "invalid_thought_signature" : "missing_thought_signature";
+    error.param = `messages.${messageIndex}.content.${index}${field ? `.${field}` : ""}`;
+    throw error;
   };
-
-  // DeepSeek's Anthropic-compatible endpoint requires a thinking block in
-  // thinking mode, but it does not need Anthropic's signed-thinking fallback.
-  // The same applies to DeepSeek models served through other providers'
-  // Claude transports (opencode-go /messages).
-  if (provider !== "deepseek" && !unsigned) {
-    block.signature = DEFAULT_THINKING_CLAUDE_SIGNATURE;
+  // Multiple tool calls/results form one assistant turn. A later tool call in
+  // manual mode need not start a new thinking sequence if the turn already did.
+  let firstAssistantIndex = assistantIndex;
+  for (let messageIndex = assistantIndex; messageIndex >= 0; messageIndex--) {
+    const message = messages[messageIndex];
+    if (message?.role === ROLE.USER && !hasResults(message)) break;
+    if (message?.role !== ROLE.ASSISTANT) continue;
+    firstAssistantIndex = messageIndex;
+    const content = blocks(message);
+    for (let index = 0; index < content.length; index++) {
+      const block = content[index];
+      if (block?.type === CLAUDE_BLOCK.THINKING && !isValidClaudeSignature(block.signature)) fail(messageIndex, index, "signature");
+      if (block?.type === CLAUDE_BLOCK.REDACTED_THINKING &&
+          (typeof block.data !== "string" || !block.data)) fail(messageIndex, index, "data");
+    }
   }
-
-  return block;
+  const first = blocks(messages[firstAssistantIndex])[0];
+  if (body.thinking?.type === "enabled" &&
+      first?.type !== CLAUDE_BLOCK.THINKING && first?.type !== CLAUDE_BLOCK.REDACTED_THINKING) fail(firstAssistantIndex, 0);
 }
 
 // Apply model wire restrictions on both translated and native passthrough
@@ -271,6 +298,9 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
   }
 
   reconcileClaudeThinkingBudget(body, supportsClaudeManualInterleaving(body, model || body.model));
+  // Continuity follows the effective wire mode: a legacy Haiku downgrade from
+  // adaptive to manual must satisfy manual tool-turn requirements too.
+  if (!provider || provider === "claude") validateClaudeThinkingContinuity(body);
 
   // 2. Strip effort param for models that don't support it (keep other output_config fields)
   if (adaptiveUnsupported && body.output_config?.effort != null) {
@@ -323,12 +353,9 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
   }
 
   // Drop foreign ordinary thinking signatures, but replay native encrypted data unchanged.
-  const thinkingEnabled = body.thinking?.type === "enabled";
   if (Array.isArray(body.messages)) {
     for (const msg of body.messages) {
       if (msg.role !== ROLE.ASSISTANT || !Array.isArray(msg.content)) continue;
-      let hasToolUse = false;
-      let hasKeptThinking = false;
       const kept = [];
       for (const block of msg.content) {
         if (block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING) {
@@ -336,18 +363,13 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
             ? typeof block.data === "string" && block.data.length > 0
             : isValidClaudeSignature(block.signature);
           if (valid) {
-            hasKeptThinking = true;
             kept.push(block);
           }
           continue;
         }
-        if (block.type === CLAUDE_BLOCK.TOOL_USE) hasToolUse = true;
         kept.push(block);
       }
       msg.content = kept;
-      if (thinkingEnabled && !hasKeptThinking && hasToolUse) {
-        msg.content.unshift(buildThinkingPlaceholder("claude"));
-      }
     }
   }
 
@@ -563,10 +585,10 @@ export function hoistToolResultImages(body) {
 // Prepare request for Claude format endpoints
 // - Cleanup cache_control
 // - Filter empty messages
-// - Add thinking block for Anthropic endpoint (provider === "claude")
+// - Preserve native signed thinking; never synthesize signatures
 // - Fix tool_use/tool_result ordering
-// - Apply cloaking (billing header + fake user ID) for OAuth tokens
-export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null, sessionId = null) {
+export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null) {
+  if (provider === "claude") validateClaudeThinkingContinuity(body);
   const modelCaps = applyClaudeModelRestrictions(body, body.model, provider);
   // quirk: MiniMax's Claude-compatible endpoint rejects Anthropic's output_config (400 invalid params)
   if (PROVIDERS[provider]?.quirks?.dropOutputConfig) {
@@ -668,7 +690,7 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
           let hasKeptThinking = false;
 
           // Claude native: preserve signed thinking and opaque redacted data, drop invalid blocks.
-          // anthropic-compatible: replace with default (safe fallback for lenient upstreams).
+          // Compatible vendors own their opaque signatures; never overwrite them.
           // DeepSeek (official + opencode-go models): keep existing thinking as-is;
           // add an unsigned placeholder only if missing.
           const isClaudeNative = provider === "claude";
@@ -688,7 +710,6 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
                 hasKeptThinking = true;
                 kept.push(block);
               } else {
-                block.signature = DEFAULT_THINKING_CLAUDE_SIGNATURE;
                 hasKeptThinking = true;
                 kept.push(block);
               }
@@ -700,8 +721,8 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
           msg.content = kept;
 
           // Add thinking block if thinking enabled + has tool_use but no thinking
-          if (thinkingEnabled && !hasKeptThinking && hasToolUse) {
-            msg.content.unshift(buildThinkingPlaceholder(provider, deepSeekServed));
+          if (deepSeekServed && thinkingEnabled && !hasKeptThinking && hasToolUse) {
+            msg.content.unshift(buildDeepSeekThinkingPlaceholder());
           }
         }
       }
@@ -762,13 +783,6 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
 
   // A tool loop's final tool results: cached now, so the next step reads them.
   markFinalToolResults(body);
-  // Apply cloaking for OAuth tokens (billing header + fake user ID)
-  // session_id in user_id must match X-Claude-Code-Session-Id for fingerprint consistency
-  if ((provider === "claude" || provider?.startsWith("anthropic-compatible")) && apiKey) {
-    const sid = sessionId || resolveSessionId({ headers: rawHeaders, body, connectionId, scope: "claude" });
-    body = applyCloaking(body, apiKey, sid);
-  }
-
   if (thinkingContext) setThinkingContext(body, thinkingContext);
   return body;
 }

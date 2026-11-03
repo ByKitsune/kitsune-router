@@ -51,9 +51,9 @@ describe("primary-evidence model product boundaries", () => {
     expect(getCapabilitiesForModel("gc", "gemini-3-flash").contextWindow).toBeNull();
   });
 
-  it("keeps restricted Gemini 2.5 Flash live without claiming the OAuth product shares project eligibility", () => {
+  it("retains deprecated Gemini 2.5 Flash metadata without imposing API lifecycle on OAuth", () => {
     expect(getProviderModels("gemini").some(model => model.id === "gemini-2.5-flash")).toBe(true);
-    expect(getReviewedModelMetadata("gemini", "gemini-2.5-flash").limits).toMatchObject({ lifecycleStatus: "active-restricted", accountEligibility: "prior-use-required", shutdownDate: null });
+    expect(getReviewedModelMetadata("gemini", "gemini-2.5-flash").limits).toMatchObject({ lifecycleStatus: "deprecated", accountEligibility: "prior-use-required", shutdownDate: "2026-12-01" });
     expect(getReviewedModelMetadata("gc", "gemini-2.5-flash").limits).not.toHaveProperty("accountEligibility");
   });
 

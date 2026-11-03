@@ -106,10 +106,10 @@ function sha16(text) {
 }
 
 // Normalize a session id candidate (trim, length cap)
-function normalizeSessionId(value) {
+export function normalizeSessionId(value) {
     if (typeof value !== "string") return null;
     const v = value.trim();
-    if (!v || v.length > 256) return null;
+    if (!v || v.length > 256 || /[\u0000-\u001f\u007f]/.test(v)) return null;
     return v;
 }
 
@@ -127,7 +127,9 @@ function extractClaudeCodeSession(userId) {
 // Lowercase-key lookup for raw client headers
 function headerValue(headers, key) {
     if (!headers || typeof headers !== "object") return null;
-    return normalizeSessionId(headers[key] ?? headers[key.toLowerCase()]);
+    if (typeof headers.get === "function") return normalizeSessionId(headers.get(key));
+    const matchingKey = Object.keys(headers).find(name => name.toLowerCase() === key);
+    return normalizeSessionId(matchingKey ? headers[matchingKey] : null);
 }
 
 // Read client-provided session id from headers/body (no generation)

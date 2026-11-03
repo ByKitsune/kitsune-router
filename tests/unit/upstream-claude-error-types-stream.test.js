@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 const store = vi.hoisted(() => ({ enqueue: vi.fn() }));
 vi.mock("@/lib/usageDb.js", () => ({
@@ -140,6 +145,7 @@ describe("Responses failures translated to Claude Messages", () => {
   });
 
   it("does not emit a terminal error when accepting incurred usage fails", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     store.enqueue.mockRejectedValue(new Error("synthetic acceptance failure"));
     const { onStreamComplete } = buildOnStreamComplete({
       provider: "openai", model: "fixture", connectionId: "fixture-account", body: { messages: [] },

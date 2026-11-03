@@ -37,6 +37,8 @@ const GEMINI = "gemini-3.8-flash-medium";
 const CLAUDE = "claude-opus-5-5-high";
 const connection = { provider: "antigravity", accessToken: "synthetic-access-token" };
 let fixture;
+let warningSpy;
+let errorSpy;
 let sequence = 0;
 const nextId = () => `argon-fixture-${++sequence}`;
 
@@ -62,6 +64,8 @@ function group(displayName, remainingFraction, window = "weekly", resetTime = WE
 
 beforeEach(() => {
   vi.clearAllMocks();
+  warningSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.useFakeTimers();
   vi.setSystemTime(new Date(NOW));
   getAntigravityQuotaCache().clear();
@@ -89,7 +93,165 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => vi.useRealTimers());
+// Only the deliberate failure cases below may log warnings. Exact per-case
+// arguments keep these fixtures quiet while any new warning/error fails.
+const expectedWarningsByTest = {
+  "Antigravity Argon usage API > keeps valid per-model quota when optional summary fails with 403": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      403
+    ]
+  ],
+  "Antigravity Argon usage API > keeps valid per-model quota when optional summary fails with 404": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      404
+    ]
+  ],
+  "Antigravity Argon usage API > keeps valid per-model quota when optional summary fails with 503": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      503
+    ]
+  ],
+  "Antigravity Argon usage API > keeps valid per-model quota when optional summary fails with transport": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      "synthetic summary unavailable"
+    ]
+  ],
+  "Antigravity Argon usage API > keeps valid per-model quota when optional summary fails with invalid-json": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      "Unexpected token 'i', \"invalid-json\" is not valid JSON"
+    ]
+  ],
+  "Antigravity independent family account selection > recovers a native-target circuit block through its public alias without clearing another tier": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium(medium) — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-high — 3x 429 (quota 90%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 15m)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-high (reset after 15m)"
+    ]
+  ],
+  "Antigravity independent family account selection > honors synthesized blocks for full native tier spellings and their public alias": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium(medium) — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium(medium) (reset after 15m)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 15m)"
+    ]
+  ],
+  "Antigravity independent family account selection > counts new quota strikes after a retained weekly exhaustion has expired": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      403
+    ],
+    [
+      "[00:01:01] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:16:01.000Z (strike window 60s, block 15m)"
+    ]
+  ],
+  "Antigravity independent family account selection > retains a future exhausted reset when a fresh zero reading has reset=null": [
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 1s)"
+    ]
+  ],
+  "Antigravity independent family account selection > retains a future exhausted reset when a fresh zero reading has reset=invalid-reset": [
+    [
+      "Failed to parse reset time: invalid-reset",
+      {
+        "name": "RangeError",
+        "message": "Invalid time value"
+      }
+    ],
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 1s)"
+    ]
+  ],
+  "Antigravity independent family account selection > keeps healthy Argon selectable when the independent Gemini pool is exhausted": [
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-3.8-flash-medium (reset after 129h 42m 31s)"
+    ]
+  ],
+  "Antigravity independent family account selection > uses the latest exhausted applicable reset in both the error handler and prefilter": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | UPSTREAM_429 gemini-4-argon-medium — quota exhausted (0%, remaining 0%); CACHE_BLOCK until 2026-10-23T09:42:31.000Z (~466951s)"
+    ],
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 31s)"
+    ]
+  ],
+  "Antigravity independent family account selection > keeps native base Argon selectable without importing an unrelated tier exhaustion": [
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-high (reset after 2h)"
+    ]
+  ],
+  "Antigravity independent family account selection > uses exact native base quota without blocking healthy explicit tiers": [
+    [
+      "[00:00:00] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon (reset after 2h)"
+    ]
+  ],
+  "Antigravity independent family account selection > preserves a known independent weekly block when a later optional summary is unavailable": [
+    [
+      "[Antigravity Usage] Quota summary unavailable:",
+      403
+    ],
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 1s)"
+    ]
+  ],
+  "Antigravity independent family account selection > preserves exact-model strike blocks across fresh healthy readings and clears them on success": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 14m 30s)"
+    ]
+  ],
+  "Antigravity independent family account selection > does not clear a real family exhaustion when a synthesized model block succeeds": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 1s)"
+    ]
+  ],
+  "Antigravity independent family account selection > keeps a later real per-model reset when an active synthetic strike block is refreshed": [
+    [
+      "[00:00:00] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:15:00.000Z (strike window 60s, block 15m)"
+    ],
+    [
+      "[00:00:30] ⚠️  [AUTH] antigravity | accounts locked for gemini-4-argon-medium (reset after 129h 42m 1s)"
+    ]
+  ],
+  "Antigravity independent family account selection > releases a synthesized strike block at its deadline and retains fixed-window strike semantics": [
+    [
+      "[00:01:30] ⚠️  [AG_QUOTA] argon-fi | STRIKE_429 gemini-4-argon-medium — 3x 429 (quota 80%, resetAt 2026-10-18T02:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-18T00:16:30.000Z (strike window 60s, block 15m)"
+    ]
+  ]
+};
+
+afterEach(() => {
+  try {
+    const warnings = warningSpy.mock.calls.map(args => args.map(value => value instanceof Error
+      ? { name: value.name, message: value.message } : value));
+    expect(warnings).toEqual(expectedWarningsByTest[expect.getState().currentTestName] || []);
+    expect(errorSpy).not.toHaveBeenCalled();
+  } finally {
+    warningSpy.mockRestore();
+    errorSpy.mockRestore();
+    vi.useRealTimers();
+  }
+});
 
 describe("Antigravity Argon usage API", () => {
   it("discovers all four Argon aliases and independent weekly quotas through the existing usage API", async () => {

@@ -10,7 +10,9 @@ export {
   PROVIDER_ID_TO_ALIAS,
   getModelsByProviderId,
   getModelUpstreamId,
-  getModelQuotaFamily
+  getModelQuotaFamily,
+  isAdvertisedModel,
+  filterAdvertisedModels,
 } from "open-sse/config/providerModels.js";
 
 import { AI_PROVIDERS, isOpenAICompatibleProvider } from "./providers.js";
@@ -35,7 +37,7 @@ export function isValidModel(aliasOrId, modelId) {
 
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = Object.entries(MODELS).flatMap(([alias, models]) =>
-  models.filter((m) => getModelKind(m, "llm") === "llm")
+  models.filter((m) => m.deprecated !== true && getModelKind(m, "llm") === "llm")
     .map(m => ({ provider: alias, model: m.id, name: m.name }))
 );
 

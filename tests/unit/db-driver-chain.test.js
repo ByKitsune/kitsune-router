@@ -3,6 +3,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 let tempDir;
 const originalDataDir = process.env.DATA_DIR;
@@ -34,10 +39,11 @@ describe("Driver fallback chain", () => {
   });
 
   it("falls back to node:sqlite when better-sqlite3 unavailable", async () => {
+    diagnostics.expectWarn("[DB] better-sqlite3 unavailable: simulated unavailable");
     // Mock the better-sqlite3 adapter to throw
-    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => {
-      throw new Error("simulated unavailable");
-    });
+    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => ({
+      createBetterSqliteAdapter() { throw new Error("simulated unavailable"); },
+    }));
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();
     // Node 22.5+ should give node:sqlite, else sql.js
@@ -50,20 +56,28 @@ describe("Driver fallback chain", () => {
   });
 
   it("falls back to sql.js when both native drivers unavailable", async () => {
-    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => {
-      throw new Error("simulated unavailable");
-    });
-    vi.doMock("@/lib/db/adapters/nodeSqliteAdapter.js", () => {
-      throw new Error("simulated unavailable");
-    });
+    diagnostics.expectWarn("[DB] better-sqlite3 unavailable: simulated unavailable");
+    diagnostics.expectWarn("[DB] node:sqlite unavailable: simulated unavailable");
+    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => ({
+      createBetterSqliteAdapter() { throw new Error("simulated unavailable"); },
+    }));
+    vi.doMock("@/lib/db/adapters/nodeSqliteAdapter.js", () => ({
+      createNodeSqliteAdapter() { throw new Error("simulated unavailable"); },
+    }));
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();
     expect(db.driver).toBe("sql.js");
   });
 
   it("fails closed without the explicit sql.js single-process contract", async () => {
-    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => { throw new Error("simulated unavailable"); });
-    vi.doMock("@/lib/db/adapters/nodeSqliteAdapter.js", () => { throw new Error("simulated unavailable"); });
+    diagnostics.expectWarn("[DB] better-sqlite3 unavailable: simulated unavailable");
+    diagnostics.expectWarn("[DB] node:sqlite unavailable: simulated unavailable");
+    vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => ({
+      createBetterSqliteAdapter() { throw new Error("simulated unavailable"); },
+    }));
+    vi.doMock("@/lib/db/adapters/nodeSqliteAdapter.js", () => ({
+      createNodeSqliteAdapter() { throw new Error("simulated unavailable"); },
+    }));
     delete process.env.KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS;
     const { getAdapter } = await import("@/lib/db/driver.js");
     await expect(getAdapter()).rejects.toMatchObject({ code: "SQLJS_SINGLE_PROCESS_REQUIRED" });

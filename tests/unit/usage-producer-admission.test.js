@@ -99,6 +99,14 @@ function outbox() {
   return adapter.all("SELECT eventId, payload FROM usageOutbox ORDER BY acceptedAt, eventId").map(row => ({ eventId: row.eventId, ...JSON.parse(row.payload) }));
 }
 
+function captureNativeAccountingError() {
+  const originalError = console.error;
+  return vi.spyOn(console, "error").mockImplementation((...args) => {
+    if (args.length === 1 && args[0] === "[GEMINI_NATIVE] Durable usage acceptance failed") return;
+    originalError(...args);
+  });
+}
+
 describe("direct producers acknowledge durable acceptance rather than synchronous projection", () => {
   it("accepts embeddings before success, snapshots identity/time and counts distinct requests separately", async () => {
     const tokens = { prompt_tokens: 3, total_tokens: 3, prompt_tokens_details: { cached_tokens: 1 }, cache_write_tokens: 1, cache_write_30m_tokens: 1, actualServiceTier: "priority" };
@@ -272,6 +280,7 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
   });
 
   it("returns an accounting error before native HTTP error fallback when acceptance rejects", async () => {
+    const diagnostic = captureNativeAccountingError();
     let dispatches = 0;
     state.upstream = async () => {
       dispatches++;
@@ -292,9 +301,11 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
     expect(state.calls[0].status).toBe("error");
     expect(state.health).toEqual([]);
     expect(outbox()).toEqual([]);
+    expect(diagnostic).toHaveBeenCalledExactlyOnceWith("[GEMINI_NATIVE] Durable usage acceptance failed");
   });
 
   it.each([false, true])("keeps native error accounting terminal when the caller aborts during acceptance (rejected=%s)", async rejected => {
+    const diagnostic = rejected ? captureNativeAccountingError() : null;
     let dispatches = 0, accept;
     state.upstream = async () => {
       dispatches++;
@@ -319,6 +330,7 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
       expect(state.calls).toHaveLength(1);
       expect(state.health).toEqual([]);
       expect(outbox()).toHaveLength(rejected ? 0 : 1);
+      if (diagnostic) expect(diagnostic).toHaveBeenCalledExactlyOnceWith("[GEMINI_NATIVE] Durable usage acceptance failed");
     } finally {
       accept?.();
       await pending;
@@ -326,6 +338,7 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
   });
 
   it("releases the reader and fails EOF when acceptance rejects", async () => {
+    const diagnostic = captureNativeAccountingError();
     const source = new Response(JSON.stringify({ usageMetadata: metadata }), { headers: { "content-type": "application/json" } });
     state.upstream = async () => source;
     state.fail = true;
@@ -335,9 +348,11 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
     expect(source.body.locked).toBe(false);
     expect(state.calls).toHaveLength(1);
     expect(state.health).toEqual([]);
+    expect(diagnostic).toHaveBeenCalledExactlyOnceWith("[GEMINI_NATIVE] Durable usage acceptance failed");
   });
 
   it.each(["abort", "cancel", "error"])("releases upstream even when %s terminal acceptance rejects", async terminal => {
+    const diagnostic = captureNativeAccountingError();
     const source = pendingNativeBody();
     state.upstream = async () => source.response;
     const caller = new AbortController();
@@ -360,6 +375,7 @@ describe("native Gemini bounded observation and terminal resource ownership", ()
     expect(state.calls).toHaveLength(1);
     expect(state.calls[0].status).toBe(terminal === "error" ? "error" : "aborted");
     expect(state.health).toEqual([]);
+    expect(diagnostic).toHaveBeenCalledExactlyOnceWith("[GEMINI_NATIVE] Durable usage acceptance failed");
   });
 
   it("cancels upstream promptly without waiting for a slow durable acknowledgment", async () => {

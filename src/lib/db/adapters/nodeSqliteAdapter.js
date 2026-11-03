@@ -6,16 +6,6 @@ import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
 export async function createNodeSqliteAdapter(filePath) {
-  // Suppress "ExperimentalWarning: SQLite is an experimental feature" from node:sqlite.
-  // Stable enough for production use as of Node 22.x (RC quality).
-  const origEmit = process.emit;
-  process.emit = function (name, data, ...rest) {
-    if (name === "warning" && data?.name === "ExperimentalWarning" && /SQLite/i.test(data.message || "")) {
-      return false;
-    }
-    return origEmit.call(process, name, data, ...rest);
-  };
-
   // Dynamic import — fails on Node < 22.5 → driver.js falls back to sql.js
   const sqlite = await import("node:sqlite");
   const Database = sqlite.DatabaseSync;

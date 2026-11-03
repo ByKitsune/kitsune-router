@@ -26,8 +26,8 @@ export default {
     { id: "universal-3-5-pro", name: "Universal 3.5 Pro", params: ["language"], kind: "stt" },
     { id: "universal-3-pro", name: "Universal 3 Pro", params: ["language"], kind: "stt" },
     { id: "universal-2", name: "Universal 2", params: ["language"], kind: "stt" },
-    { id: "best", name: "Best (Legacy; Universal 3.5 Pro)", kind: "stt" },
-    { id: "nano", name: "Nano (Legacy; Universal 2)", kind: "stt" },
+    { id: "best", name: "Best (Legacy; Universal 3.5 Pro)", kind: "stt", deprecated: true, deprecationNotice: "Deprecated alias; choose universal-3-5-pro." },
+    { id: "nano", name: "Nano (Legacy; Universal 2)", kind: "stt", deprecated: true, deprecationNotice: "Deprecated alias; choose universal-2." },
   ],
   serviceKinds: ["stt"],
   sttConfig: {

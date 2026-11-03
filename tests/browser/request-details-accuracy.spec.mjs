@@ -17,6 +17,12 @@ const details = [
     completion_tokens: "8.5", usage_invalid: true, cache_write_invalid: true,
   }, { ttft: null, total: -4 }),
   detail("estimated", { prompt_tokens: 55, cached_tokens: 0, cache_creation_input_tokens: 0, completion_tokens: 8, estimated: true }),
+  ...[
+    ["object", { answer: "structured fixture", count: 0 }],
+    ["array", [{ type: "text", text: "<img src=x onerror=alert(1)>" }]],
+    ["empty", ""],
+    ["scalar-zero", 0],
+  ].map(([id, content]) => ({ ...detail(id, {}), response: { content } })),
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -70,4 +76,26 @@ test("detail drawer keeps the same count provenance and identifies redacted cont
   await expect(drawer.getByText("Estimated tokens", { exact: true })).toBeVisible();
   await expect(drawer).toContainText(/Input Tokens:\s*55/);
   await expect(drawer).toContainText(/Latency:\s*TTFT — \/ Total —/);
+});
+
+test("saved structured responses render as escaped JSON while empty and zero remain distinct", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", error => failures.push(error.message));
+  await page.goto("/dashboard/usage?tab=details");
+  const drawer = page.locator(".slide-in-right");
+  for (const [id, expected] of [
+    ["object", JSON.stringify({ answer: "structured fixture", count: 0 }, null, 2)],
+    ["array", JSON.stringify([{ type: "text", text: "<img src=x onerror=alert(1)>" }], null, 2)],
+    ["empty", ""],
+    ["scalar-zero", "0"],
+  ]) {
+    const row = page.getByRole("row").filter({ has: page.getByText(`accuracy-${id}`, { exact: true }) });
+    await row.getByRole("button", { name: "Detail", exact: true }).click();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.locator("pre").last()).toHaveText(expected);
+    await expect(drawer.locator("img")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(drawer).not.toBeVisible();
+  }
+  expect(failures).toEqual([]);
 });

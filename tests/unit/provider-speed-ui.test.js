@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import * as providers from "../../src/shared/constants/providers.js";
+import * as modelConstants from "../../src/shared/constants/models.js";
 import * as providerIcon from "../../src/shared/utils/providerIcon.js";
 import * as providerCustomModels from "../../src/shared/utils/providerCustomModels.js";
 import * as thinkingLevels from "../../open-sse/providers/thinkingLevels.js";
@@ -146,7 +147,7 @@ function fixture({ provider = "openai", settings = {}, customModels = [], catalo
         if (id === "@/shared/components") return ui;
         if (id === "@/shared/hooks/useCopyToClipboard") return { useCopyToClipboard: () => ({ copied: null, copy: (value) => copies.push(value) }) };
         if (id === "@/shared/hooks/useModelCaps") return { useModelCaps: () => ({ getCaps: () => null }) };
-        if (id === "@/shared/constants/models") return { getModelsByProviderId: () => models, getModelKind: () => "llm" };
+        if (id === "@/shared/constants/models") return { ...modelConstants, getModelsByProviderId: () => models, getModelKind: () => "llm" };
         if (id === "@/shared/constants/providers") return providers;
         if (id === "@/shared/utils/providerIcon") return providerIcon;
         if (id === "@/shared/utils/providerCustomModels") return providerCustomModels;
@@ -227,6 +228,19 @@ const patches = (page) => page.requests.filter((request) => request.url === "/ap
 const tests = (page) => page.requests.filter((request) => request.url === "/api/models/test");
 
 describe("Provider processing speed UI", () => {
+  it("uses the real advertised-model filter for the live speed catalog", async () => {
+    const page = fixture({ catalog: [
+      { id: "gpt-6.1-sol", name: "Current model" },
+      { id: "gpt-4o", name: "Deprecated model" },
+    ] });
+    const tree = await page.mount();
+    expect(row(tree, "gpt-4o")).toBeUndefined();
+    expect(row(tree, "gpt-6.1-sol")).toBeDefined();
+    expect(speedSelect(tree).props.disabled).toBe(false);
+    await testButton(tree).props.onClick();
+    expect(tests(page).at(-1).body.model).toBe("openai/gpt-6.1-sol");
+  });
+
   it.each(["openai", "codex"])("loads %s speed separately from thinking and labels its limits", async (provider) => {
     const page = fixture({ provider, settings: {
       providerThinking: { [provider]: { mode: "high" } },

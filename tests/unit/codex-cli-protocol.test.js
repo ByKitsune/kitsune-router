@@ -6,11 +6,10 @@ import { CODEX_CLI_VERSION } from "../../open-sse/config/clientVersions.js";
 describe("Codex CLI protocol and registry alignment", () => {
   it("builds compliant headers with session-id, version, and originator", () => {
     const ex = new CodexExecutor();
-    ex._currentSessionId = "ses_test_123";
     const headers = ex.buildHeaders({
       connectionId: "conn_1",
       providerSpecificData: { chatgptAccountId: "acct_456" },
-    }, true);
+    }, true, null, null, { prompt_cache_key: "ses_test_123" });
 
     expect(headers["session-id"]).toBe("ses_test_123");
     expect(headers["version"]).toBe(CODEX_CLI_VERSION);

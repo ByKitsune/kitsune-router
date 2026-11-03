@@ -198,8 +198,9 @@ export const GROK_CLI_USER_AGENT =
 export const XAI_USER_AGENT = "grok-cli/kitsunerouter";
 
 // ─── Kimchi ────────────────────────────────────────────────────────────
-// Public CLI v1.26.0; pinned release workflow supplies the package version used in its UA.
-export const KIMCHI_GATEWAY_VERSION = "1.26.0";
+// Public CLI v1.28.0; pinned release workflow supplies the package version used in its UA.
+// Source binding: docs/audit/data/request-identity-refresh-20261104.json.
+export const KIMCHI_GATEWAY_VERSION = "1.28.0";
 export const KIMCHI_USER_AGENT = `kimchi/${KIMCHI_GATEWAY_VERSION}`;
 
 // ─── Command Code ──────────────────────────────────────────────────────

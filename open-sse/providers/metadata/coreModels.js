@@ -2410,11 +2410,11 @@ const gemini = {
       "authenticatedRouteVerified": false,
       "contextWindowStatus": "Combined input-plus-output context is not separately documented.",
       "unverifiedCapabilityFields": [],
-      "lifecycleStatus": "active-restricted",
+      "lifecycleStatus": "deprecated",
       "accountEligibility": "prior-use-required",
       "availabilityScope": "google-public-api-project",
-      "shutdownDate": null,
-      "note": "Google limits these models to users with prior active use and explicitly says they are not deprecated. A project-specific 404 for new users does not establish global retirement. See the official deprecations page."
+      "shutdownDate": "2026-12-01",
+      "note": "Official Gemini API deprecations reviewed 2026-11-04: Gemini 2.5 Pro is deprecated. API access before December 1 remains limited to prior active users; effective December 1, 2026, requests automatically route to Gemini 3.8 Flash and use its rates. Retained numeric capabilities and pricing describe this historical model, not the future redirect or account entitlement."
     }
   },
   "gemini-3.1-flash-lite": {
@@ -3286,11 +3286,15 @@ for (const [id, equivalent] of [["claude-mythos-5-1", "claude-fable-5-1"], ["cla
 Object.assign(anthropic["claude-sonnet-5-5"].capabilities, { thinkingCanDisable: false, thinkingOffType: "between_tools", forcedToolChoice: false });
 
 Object.assign(gemini["gemini-2.5-flash"].limits, {
-  lifecycleStatus: "active-restricted", accountEligibility: "prior-use-required",
-  availabilityScope: "google-public-api-project", shutdownDate: null,
-  note: "The current Google models page includes Flash in the prior-active-use restriction and explicitly says these endpoints are not deprecated.",
+  lifecycleStatus: "deprecated", accountEligibility: "prior-use-required",
+  availabilityScope: "google-public-api-project", shutdownDate: "2026-12-01",
+  note: "Official Gemini API deprecations reviewed 2026-11-04: Gemini 2.5 Flash is deprecated. API access before December 1 remains limited to prior active users; effective December 1, 2026, requests automatically route to Gemini 3.5 Flash-Lite and use its rates. Retained numeric capabilities and pricing describe this historical model, not the future redirect or account entitlement.",
 });
 gemini["gemini-2.5-flash"].sources.push("https://ai.google.dev/gemini-api/docs/models");
+for (const id of ["gemini-2.5-pro", "gemini-2.5-flash"]) {
+  const source = "https://ai.google.dev/gemini-api/docs/deprecations";
+  if (!gemini[id].sources.includes(source)) gemini[id].sources.push(source);
+}
 gemini["gemma-4-26b-a4b-it"] = copy(gemini["gemma-4-31b-it"]);
 gemini["gemma-4-26b-a4b-it"].description = "Gemma 4 mixture-of-experts instruction model; native Gemini API free-tier availability is separate from the Code Assist product.";
 gemini["gemma-4-26b-a4b-it"].limits.catalogModelId = "gemma-4-26b-a4b-it";

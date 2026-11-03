@@ -1,8 +1,6 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
-import { CLAUDE_SYSTEM_PROMPT } from "../../config/appConstants.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
-import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../../config/defaultThinkingSignature.js";
 import { adjustMaxTokens } from "../formats/maxTokens.js";
 import { safeParseJSON } from "../concerns/json.js";
 import { parseDataUri } from "../concerns/image.js";
@@ -12,8 +10,7 @@ import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { normalizeMediaPart } from "../concerns/multimodal.js";
 import { rejectClaudeAudio } from "../concerns/requestMedia.js";
 
-// Empty prefix matches real Claude Code behavior (no tool name prefix).
-// Previously "proxy_" was used but this is a detectable fingerprint difference.
+// Tool names are caller-owned; preserve them through format conversion.
 const CLAUDE_OAUTH_TOOL_PREFIX = "";
 
 // Normalize input schema to satisfy Anthropic requirement: input_schema.type MUST be "object" (#4075)
@@ -186,10 +183,9 @@ export function openaiToClaudeRequest(model, body, stream, credentials = null, p
     }
   }
 
-  // Transport identity is not part of a generic Messages codec. Keep the
-  // existing first-party policy, never inject it into compatible endpoints.
-  const system = provider === "claude" || provider === "anthropic"
-    ? [{ type: CLAUDE_BLOCK.TEXT, text: CLAUDE_SYSTEM_PROMPT }] : [];
+  // The transport does not grant permission to add instructions or claim the
+  // caller is an official application. Only caller-authored prompts belong here.
+  const system = [];
   if (systemParts.length > 0) {
     const systemText = systemParts.join("\n");
     system.push({ type: CLAUDE_BLOCK.TEXT, text: systemText, cache_control: { type: "ephemeral", ttl: "1h" } });
@@ -350,8 +346,7 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
     if (msg.reasoning_content) {
       blocks.push({
         type: CLAUDE_BLOCK.THINKING,
-        thinking: msg.reasoning_content,
-        signature: DEFAULT_THINKING_CLAUDE_SIGNATURE
+        thinking: msg.reasoning_content
       });
     }
     if (Array.isArray(msg.content)) {
@@ -433,7 +428,7 @@ function convertOpenAIToolChoice(choice) {
 function openaiToClaudeRequestForAntigravity(model, body, stream) {
   const result = openaiToClaudeRequest(model, body, stream);
 
-  // No identity prompt is injected without a first-party provider context.
+  // No application identity prompt is injected by the codec.
   // Caller-authored text must never be removed by substring matching.
 
   // Strip prefix from tool names for Antigravity (doesn't use Claude OAuth)

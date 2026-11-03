@@ -52,9 +52,9 @@ export default {
   models: [
     { id: "mimo-v2.6-pro", name: "MiMo V2.6 Pro" },
     { id: "mimo-v2.6-flash", name: "MiMo V2.6 Flash" },
-    { id: "mimo-v2.5-pro", name: "MiMo V2.5 Pro", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
-    { id: "mimo-v2.5-pro-claude", name: "MiMo V2.5 Pro (Claude Native)", targetFormat: "claude", upstreamModelId: "mimo-v2.5-pro", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
-    { id: "mimo-v2.5", name: "MiMo V2.5", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
+    { id: "mimo-v2.5-pro", deprecated: true, name: "MiMo V2.5 Pro", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
+    { id: "mimo-v2.5-pro-claude", deprecated: true, name: "MiMo V2.5 Pro (Claude Native)", targetFormat: "claude", upstreamModelId: "mimo-v2.5-pro", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
+    { id: "mimo-v2.5", deprecated: true, name: "MiMo V2.5", deprecationDate: "2026-10-21T10:00:00+08:00", deprecationNotice: "Retires October 21, 2026; migrate to MiMo V2.6." },
     { id: "mimo-v2.5-tts", name: "MiMo V2.5 TTS" },
     { id: "mimo-v2.5-tts-voiceclone", name: "MiMo V2.5 TTS Voice Clone" },
     { id: "mimo-v2.5-tts-voicedesign", name: "MiMo V2.5 TTS Voice Design" },

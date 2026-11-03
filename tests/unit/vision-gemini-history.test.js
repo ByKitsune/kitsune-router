@@ -8,7 +8,6 @@ import { antigravityToOpenAIRequest } from "../../open-sse/translator/request/an
 import { normalizeGeminiContents } from "../../open-sse/translator/formats/gemini.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
 import { splitToolCallId } from "../../open-sse/translator/concerns/thoughtSignature.js";
-import { DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE } from "../../open-sse/config/defaultThinkingSignature.js";
 
 function pngChunk(type, data) {
   const typeAndData = Buffer.concat([Buffer.from(type), data]);
@@ -336,12 +335,8 @@ it("keeps adjacent user-turn media occurrence counts stable across repeated Gemi
 });
 
 describe.each(sources)("$name native tool identity boundaries", (source) => {
-  it.each([DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE])("keeps reused raw IDs without encoding gateway signature %s", (signature) => {
+  it("keeps reused raw IDs for unsigned histories without adding a signature", () => {
     const native = nativeHistory();
-    const calls = native.contents.flatMap(turn => turn.parts).filter(part => part.functionCall);
-    calls[0].thoughtSignature = signature;
-    calls[1].thought_signature = signature;
-    calls[2].functionCall.thoughtSignature = signature;
     const body = source.wrap(native);
     const before = structuredClone(body);
     const intermediate = serialized(source.convert("gemini-2.5-flash", body, false));

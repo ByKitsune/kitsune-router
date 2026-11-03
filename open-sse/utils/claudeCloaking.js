@@ -1,38 +1,10 @@
-import { createHash, randomBytes, randomUUID } from "crypto";
 import { CLAUDE_TOOL_SUFFIX } from "../config/appConstants.js";
-import { CLAUDE_CODE_VERSION } from "../config/clientVersions.js";
-
-const CC_ENTRYPOINT = "cli";
-
-// Generate billing header matching real Claude Code format:
-// x-anthropic-billing-header: cc_version=<ver>.<build>; cc_entrypoint=cli; cch=00000;
-// On first-party Anthropic API, `cch` is literally "00000" (verified in Claude Code native binary).
-function generateBillingHeader(payload) {
-  const buildHash = randomBytes(2).toString("hex").slice(0, 3);
-  return `x-anthropic-billing-header: cc_version=${CLAUDE_CODE_VERSION}.${buildHash}; cc_entrypoint=${CC_ENTRYPOINT}; cch=00000;`;
-}
-
-// Derive a deterministic UUID-v4-shaped string from a seed (stable per account)
-function deriveUuid(seed) {
-  const h = createHash("sha256").update(seed).digest("hex");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${((parseInt(h[16], 16) & 0x3) | 0x8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
-
-// Generate fake user ID in Claude Code JSON format:
-// {"device_id":"<64hex>","account_uuid":"<uuid>","session_id":"<uuid>"}
-// device_id/account_uuid derive from apiKey (stable per account), session_id per-conversation
-function generateFakeUserID(sessionId, apiKey) {
-  const deviceId = apiKey ? createHash("sha256").update(`device:${apiKey}`).digest("hex") : randomBytes(32).toString("hex");
-  const accountUuid = apiKey ? deriveUuid(`account:${apiKey}`) : randomUUID();
-  const sessionUuid = sessionId || randomUUID();
-  return `{"device_id":"${deviceId}","account_uuid":"${accountUuid}","session_id":"${sessionUuid}"}`;
-}
+import { compressSingleToolName } from "./toolCompressor.js";
 
 /**
- * Cloak tools before sending to Claude provider (anti-ban):
+ * Apply request-local client tool aliases before sending to Claude:
  * - Rename client tools with the CLAUDE_TOOL_SUFFIX ("_ide") in tools[] and messages[]
  * - Skip tools that carry a `type` (server-side built-ins) — sent as-is
- * - Inject CC_DECOY_TOOLS after client tools
  * Returns { body, toolNameMap } where toolNameMap maps suffixed → original
  * @param {object} body - Claude API request body
  * @returns {{ body: object, toolNameMap: Map|null }}
@@ -41,9 +13,18 @@ export function cloakClaudeTools(body) {
   const tools = body.tools;
   if (!tools || tools.length === 0) return { body, toolNameMap: null };
 
-  const suffix = (name) => `${name}${CLAUDE_TOOL_SUFFIX}`;
   const toolNameMap = new Map();
-  const clientToolNames = new Set();
+  const clientAliases = new Map();
+  const usedNames = new Set(tools.map(tool => tool.name));
+  const declaredClientNames = new Set(tools.filter(tool => !tool.type).map(tool => tool.name));
+  // Unchanged historical calls are native identities too. An alias must not
+  // capture their names and later restore them as a different current tool.
+  for (const message of body.messages || []) {
+    if (!Array.isArray(message.content)) continue;
+    for (const block of message.content) {
+      if (block.type === "tool_use" && !declaredClientNames.has(block.name)) usedNames.add(block.name);
+    }
+  }
   const clientDeclarations = [];
 
   // All client tools get renamed with suffix.
@@ -51,20 +32,30 @@ export function cloakClaudeTools(body) {
   // an exact reserved `name` — never suffix those or Claude rejects the request.
   for (const tool of tools) {
     if (tool.type) { clientDeclarations.push(tool); continue; }
-    const suffixed = suffix(tool.name);
+    if (typeof tool.name !== "string" || !tool.name) { clientDeclarations.push(tool); continue; }
+    let suffixed = clientAliases.get(tool.name);
+    if (!suffixed) {
+      let attempt = 0;
+      do {
+        suffixed = compressSingleToolName(`${tool.name}${CLAUDE_TOOL_SUFFIX}${attempt ? `_${attempt}` : ""}`);
+        attempt++;
+      } while (usedNames.has(suffixed));
+      usedNames.add(suffixed);
+      clientAliases.set(tool.name, suffixed);
+    }
     toolNameMap.set(suffixed, tool.name);
-    clientToolNames.add(tool.name);
     clientDeclarations.push({ ...tool, name: suffixed });
   }
 
-  // Client tools first, then CC decoy tools (no overlap: client tools all have _cc suffix)
-  const allTools = [...clientDeclarations, ...CC_DECOY_TOOLS];
+  // Only advertise tools the caller actually supplied. Synthetic tools change
+  // model behavior and can produce calls the caller cannot execute.
+  const allTools = clientDeclarations;
 
-  // Rename tool_use in message history (all client tools get suffix)
+  // Historical and server-owned tools outside this request's map stay exact.
   const renamedMessages = body.messages?.map(msg => {
     if (!Array.isArray(msg.content)) return msg;
     const renamedContent = msg.content.map(block =>
-      block.type === "tool_use" ? { ...block, name: suffix(block.name) } : block
+      block.type === "tool_use" && clientAliases.has(block.name) ? { ...block, name: clientAliases.get(block.name) } : block
     );
     return { ...msg, content: renamedContent };
   });
@@ -74,12 +65,12 @@ export function cloakClaudeTools(body) {
   // A forced tool_choice ({ type: "tool", name }) must point at the suffixed
   // tool name, otherwise Claude rejects it: "Tool '<name>' not found in provided tools".
   // Only rewrite when the choice targets one of the client tools we actually
-  // renamed — never a decoy/built-in name (those are sent unsuffixed).
+  // renamed. Server-owned and undeclared historical tools keep their names.
   if (
     body.tool_choice?.type === "tool" &&
-    clientToolNames.has(body.tool_choice.name)
+    clientAliases.has(body.tool_choice.name)
   ) {
-    cloakedBody.tool_choice = { ...body.tool_choice, name: suffix(body.tool_choice.name) };
+    cloakedBody.tool_choice = { ...body.tool_choice, name: clientAliases.get(body.tool_choice.name) };
   }
 
   return {
@@ -125,67 +116,4 @@ export function decloakStreamChunk(chunk, toolNameMap) {
   const original = toolNameMap?.get(block.name);
   if (!original) return chunk;
   return { ...chunk, content_block: { ...block, name: original } };
-}
-
-// CC decoy tools — Claude Code native tool names, marked unavailable
-const CC_DECOY_TOOLS = [
-  { name: "Task", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskOutput", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskStop", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskCreate", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskGet", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskUpdate", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "TaskList", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Bash", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Glob", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Grep", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Read", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Edit", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Write", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "NotebookEdit", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "WebFetch", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "WebSearch", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "AskUserQuestion", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "Skill", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "EnterPlanMode", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-  { name: "ExitPlanMode", description: "This tool is currently unavailable.", input_schema: { type: "object", properties: {} } },
-];
-
-/**
- * Apply Claude cloaking to request body:
- * 1. Inject billing header as first system block
- * 2. Inject fake user ID into metadata (JSON format, session_id aligned with X-Claude-Code-Session-Id)
- * Only applies when using OAuth token (sk-ant-oat).
- * @param {object} body - Claude API request body
- * @param {string} apiKey - API key or OAuth token
- * @param {string} [sessionId] - Session ID to align with X-Claude-Code-Session-Id header
- * @returns {object} Modified body
- */
-export function applyCloaking(body, apiKey, sessionId) {
-  if (!apiKey || !apiKey.includes("sk-ant-oat")) return body;
-
-  const result = { ...body };
-
-  // Inject billing header as system[0], preserve existing system blocks
-  const billingText = generateBillingHeader(body);
-  const billingBlock = { type: "text", text: billingText };
-
-  if (Array.isArray(result.system)) {
-    // Skip if already injected
-    if (!result.system[0]?.text?.startsWith("x-anthropic-billing-header:")) {
-      result.system = [billingBlock, ...result.system];
-    }
-  } else if (typeof result.system === "string") {
-    result.system = [billingBlock, { type: "text", text: result.system }];
-  } else {
-    result.system = [billingBlock];
-  }
-
-  // Inject fake user ID into metadata (session_id must match X-Claude-Code-Session-Id)
-  const existingUserId = result.metadata?.user_id;
-  if (!existingUserId) {
-    result.metadata = { ...result.metadata, user_id: generateFakeUserID(sessionId, apiKey) };
-  }
-
-  return result;
 }

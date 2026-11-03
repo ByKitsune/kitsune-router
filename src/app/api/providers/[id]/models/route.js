@@ -10,7 +10,7 @@ async function requireAuth(request) {
 import { GEMINI_CONFIG } from "@/lib/oauth/constants/oauth";
 import { refreshGoogleToken, refreshCodexToken, updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveOllamaLocalHost } from "open-sse/config/providers.js";
-import { getModelsByProviderId } from "open-sse/config/providerModels.js";
+import { getModelsByProviderId, filterAdvertisedModels } from "open-sse/config/providerModels.js";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
 import { resolveKimchiModels } from "open-sse/services/kimchiModels.js";
 import { resolveQoderModels } from "open-sse/services/qoderModels.js";
@@ -519,7 +519,7 @@ export async function GET(request, { params }) {
           return NextResponse.json({
             provider: connection.provider,
             connectionId: connection.id,
-            models: live,
+            models: filterAdvertisedModels(connection.provider, live),
           });
         }
       }
@@ -539,7 +539,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({
         provider: connection.provider,
         connectionId: connection.id,
-        models: result.models,
+        models: filterAdvertisedModels(connection.provider, result.models),
         ...(result.warning ? { warning: result.warning } : {})
       });
     }
@@ -589,7 +589,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({
       provider: connection.provider,
       connectionId: connection.id,
-      models
+      models: filterAdvertisedModels(connection.provider, models)
     });
   } catch (error) {
     const proxyRejected = error.message?.includes("strictProxy=true");

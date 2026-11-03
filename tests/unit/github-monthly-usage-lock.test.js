@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from "node:util";
 
 const dbMocks = vi.hoisted(() => ({
   getProviderConnections: vi.fn(),
@@ -17,6 +18,44 @@ vi.mock("@/shared/constants/providers.js", () => ({
 vi.mock("@/sse/utils/logger.js", () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn() }));
 
 const { markAccountUnavailable } = await import("../../src/sse/services/auth.js");
+
+const diagnosticExpectations = {
+  "locks the whole account until the next UTC month": [
+    ["error", "❌ github [402]: You've reached your additional usage limit for your plan. Go to GitHub settings for details."],
+  ],
+  "keeps unrelated GitHub 402 errors model-scoped": [
+    ["error", "❌ github [402]: Payment required"],
+  ],
+};
+
+let expectedDiagnostics = [];
+let diagnosticCalls = [];
+let diagnosticSpies = [];
+
+beforeEach(({ task }) => {
+  expectedDiagnostics = diagnosticExpectations[task.name] || [];
+  diagnosticCalls = [];
+  diagnosticSpies = ["warn","error"].map(method => {
+    const original = console[method].bind(console);
+    return vi.spyOn(console, method).mockImplementation((...args) => {
+      const call = [method, ...args];
+      const expected = expectedDiagnostics[diagnosticCalls.length];
+      diagnosticCalls.push(call);
+      const matches = expected?.length === call.length && expected.every((value, index) =>
+        typeof value?.asymmetricMatch === "function" ? value.asymmetricMatch(call[index]) : isDeepStrictEqual(value, call[index]));
+      if (!matches) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(diagnosticCalls, "console diagnostics must match this case exactly").toEqual(expectedDiagnostics);
+  } finally {
+    diagnosticSpies.forEach(spy => spy.mockRestore());
+  }
+});
+
 
 beforeEach(() => {
   vi.clearAllMocks();

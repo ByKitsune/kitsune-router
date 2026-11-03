@@ -2,7 +2,6 @@ import crypto from "crypto";
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import {
-  OAUTH_ENDPOINTS,
   ANTIGRAVITY_HEADERS,
   AG_DEFAULT_TOOLS,
   AG_TOOL_SUFFIX,
@@ -14,15 +13,15 @@ import { ANTIGRAVITY_MAX_OUTPUT_TOKENS } from "../config/antigravity.js";
 import { isGemini4Model } from "../config/models.js";
 import { readOutputTokenCap } from "../translator/formats/maxTokens.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { refreshGoogleToken } from "../services/tokenRefresh/providers.js";
+import { readCloudCodeProjectId, requireCloudCodeProjectId } from "../utils/cloudCodeProject.js";
 import { cleanJSONSchemaForAntigravity, normalizeGeminiContents } from "../translator/formats/gemini.js";
 import { FORMATS } from "../translator/formats.js";
 import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
 import { getThinkingContext, setThinkingContext, thinkingBudgetError } from "../translator/concerns/thinking.js";
 import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
 import { sanitizeAntigravitySystemPrompt } from "../translator/request/openai-to-gemini.js";
-import { DEFAULT_THINKING_AG_SIGNATURE } from "../config/defaultThinkingSignature.js";
-import { isValidBase64 } from "../translator/concerns/thoughtSignature.js";
+import { normalizeThoughtSignaturePart, validateGoogleThoughtSignatures } from "../translator/concerns/thoughtSignature.js";
 
 // Sanitize function name: Gemini requires [a-zA-Z_][a-zA-Z0-9_.:\-]{0,63}
 function sanitizeFunctionName(name) {
@@ -108,41 +107,9 @@ const IMAGE_MODEL_PATTERNS = [
   /image-generation/i,
 ];
 
-// Stable per-connection fallback project id.
-//
-// Google evaluates quota/eligibility per project. When the connection has no
-// stored projectId (e.g. loadCodeAssist provisioning failed — which is exactly
-// what happens behind Google's "User location is not supported" geo-gate),
-// minting a FRESH RANDOM id on every request looks abusive, breaks any
-// project-scoped check, and makes logs undebuggable. So generate once per
-// connection identity and reuse for process lifetime. A real stored
-// projectId (provisioned via loadCodeAssist and persisted to the connection)
-// always wins — this cache is strictly a last-resort fallback.
-const stableProjectCache = new Map(); // connectionKey -> projectId
-const MAX_STABLE_PROJECTS = 500;
-
-function connectionProjectKey(credentials) {
-  return credentials?.connectionId || credentials?.email || "anonymous";
-}
-
-export function resolveAntigravityProjectId(credentials, generate) {
-  if (credentials?.projectId) return credentials.projectId;
-  const key = connectionProjectKey(credentials);
-  let id = stableProjectCache.get(key);
-  if (!id) {
-    id = generate();
-    if (stableProjectCache.size >= MAX_STABLE_PROJECTS) {
-      stableProjectCache.delete(stableProjectCache.keys().next().value);
-    }
-    stableProjectCache.set(key, id);
-  }
-  return id;
-}
-
-// Test-only: reset the fallback cache between cases.
-export function _resetAntigravityProjectCache() {
-  stableProjectCache.clear();
-}
+// Exposed for callers preparing a pure request snapshot; dispatch below requires
+// an account-provisioned value and never substitutes generated project data.
+export const resolveAntigravityProjectId = readCloudCodeProjectId;
 
 // Detect if a model is an image generation model
 function isImageModel(model) {
@@ -206,9 +173,7 @@ export class AntigravityExecutor extends BaseExecutor {
     return `${baseUrl}/v1internal:${action}`;
   }
 
-  // sessionId comes from transformRequest output; base.execute runs transformRequest before
-  // buildHeaders, so we read it from instance state cached there (fallback: explicit arg).
-  buildHeaders(credentials, stream = true, sessionId = null) {
+  buildHeaders(credentials, stream = true) {
     const headers = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${credentials.accessToken}`,
@@ -232,10 +197,9 @@ export class AntigravityExecutor extends BaseExecutor {
       body = { ...body };
       if (context) setThinkingContext(body, context);
     }
-    // Prefer the real provisioned projectId (chat.js resolves + persists it via
-    // loadCodeAssist before dispatch). Fall back to ONE stable id per connection
-    // — never a fresh random id per request (see resolveAntigravityProjectId).
-    const projectId = resolveAntigravityProjectId(credentials, () => this.generateProjectId());
+    // The final dispatch requires the provisioned account project; translation
+    // itself never invents a binding when preparing a request without credentials.
+    const projectId = resolveAntigravityProjectId(credentials);
     const cleanModel = String(model || "").replace(/-(\d+)x(\d+)$/, "");
     validateSupportedParams(this.provider, cleanModel, body, FORMATS.ANTIGRAVITY);
 
@@ -253,17 +217,21 @@ export class AntigravityExecutor extends BaseExecutor {
       const srcContents = body.request?.contents || body.contents || [];
       for (const c of srcContents) {
         const parts = (c.parts || [])
-          .filter(p => p.text !== undefined || p.inlineData?.data || p.inline_data?.data)
-          .map(p => {
-            if (p.text !== undefined) return { text: p.text };
-            const d = p.inlineData || p.inline_data;
-            return { inlineData: { mimeType: d.mimeType || d.mime_type || "image/png", data: d.data } };
+          .filter(p => p.text !== undefined || p.inlineData?.data || p.inline_data?.data || p.thoughtSignature !== undefined || p.thought_signature !== undefined)
+          .map((p, index) => {
+            const part = normalizeThoughtSignaturePart(p, `contents[${contents.length}].parts[${index}]`);
+            const data = part.inlineData || part.inline_data;
+            if (!data) return part;
+            const normalized = { ...part, inlineData: { mimeType: data.mimeType || data.mime_type || "image/png", data: data.data } };
+            delete normalized.inline_data;
+            return normalized;
           });
         if (parts.length > 0) {
           contents.push({ role: c.role || "user", parts });
         }
       }
 
+      validateGoogleThoughtSignatures(contents, cleanModel);
       const sessionId = resolveSessionId({
         headers: credentials?.rawHeaders,
         body,
@@ -271,7 +239,6 @@ export class AntigravityExecutor extends BaseExecutor {
         scope: "antigravity",
       });
 
-      this._lastSessionId = sessionId;
       const request = {
         contents,
         generationConfig: {
@@ -299,7 +266,6 @@ export class AntigravityExecutor extends BaseExecutor {
     // ─── Standard (non-image) request ───
     const rawContents = body.request?.contents || [];
     const cleanedContents = [];
-    const isClaudeOnAg = typeof cleanModel === "string" && cleanModel.startsWith("claude");
 
     // Google Antigravity wire protocol:
     //   - In Google Gemini API, tool results (functionResponse) are provided by the client/user.
@@ -307,10 +273,6 @@ export class AntigravityExecutor extends BaseExecutor {
     //     multi-turn tool histories and causes Google to reject with:
     //     "Requests ending with a model turn are not supported." (INVALID_ARGUMENT 400).
     const functionResponseRole = "user";
-    // Official documented bypass sentinel (Google Cloud Code / Antigravity):
-    // "skip_thought_signature_validator" is accepted verbatim by the server.
-    const isAcceptedSignature = (sig) =>
-      typeof sig === "string" && (sig === "skip_thought_signature_validator" || isValidBase64(sig));
 
     for (const c of rawContents) {
       let role = c.role;
@@ -319,32 +281,15 @@ export class AntigravityExecutor extends BaseExecutor {
       }
 
       const validParts = (c.parts || [])
-        .filter(p => {
-          if (p.thought && !p.functionCall) return false;
-          if (p.thoughtSignature && !p.functionCall && !p.text &&
-              Object.keys(p).every(key => key === "thoughtSignature" || key === "thought" || key === "text")) return false;
-          if (p.text === "") return false;
-          return true;
-        })
-        .map(p => {
-          if (p.functionCall) {
-            const hasValidSig = isAcceptedSignature(p.thoughtSignature);
-            return {
-              ...p,
-              thoughtSignature: hasValidSig ? p.thoughtSignature : DEFAULT_THINKING_AG_SIGNATURE
-            };
-          }
-          if (p.thoughtSignature && !isAcceptedSignature(p.thoughtSignature)) {
-            return { ...p, thoughtSignature: DEFAULT_THINKING_AG_SIGNATURE };
-          }
-          return p;
-        });
+        .map((part, index) => normalizeThoughtSignaturePart(part, `contents[${cleanedContents.length}].parts[${index}]`))
+        .filter(part => !(part.text === "" && Object.keys(part).length === 1));
 
       if (validParts.length > 0) {
         cleanedContents.push({ role, parts: validParts });
       }
     }
 
+    validateGoogleThoughtSignatures(cleanedContents, cleanModel);
     const mergedContents = normalizeGeminiContents(cleanedContents, cleanModel, { ensureUserTurns: false });
     if (mergedContents.length === 0) {
       mergedContents.push({ role: "user", parts: [{ text: "..." }] });
@@ -500,8 +445,6 @@ export class AntigravityExecutor extends BaseExecutor {
     const cleanedBody = stripHarnessTelemetry(outboundBody);
     const cleanedRequest = stripHarnessTelemetry(transformedRequest);
 
-    this._lastSessionId = cleanedRequest.sessionId; // cached for buildHeaders (base.execute order)
-
     // Omit top-level requestType="agent" to prevent false upstream 429 quota exhaustion (#3986)
     const result = {
       ...cleanedBody,
@@ -516,44 +459,15 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 
   async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
-    signal?.throwIfAborted();
-    if (!credentials.refreshToken) return null;
-
-    try {
-      const response = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
-        signal,
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: credentials.refreshToken,
-          client_id: this.config.clientId,
-          client_secret: this.config.clientSecret
-        })
-      }, proxyOptions);
-
-      if (!response.ok) return null;
-
-      const tokens = await response.json();
-      log?.info?.("TOKEN", "Antigravity refreshed");
-
-      return {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || credentials.refreshToken,
-        expiresIn: tokens.expires_in,
-        projectId: credentials.projectId
-      };
-    } catch (error) {
-      signal?.throwIfAborted();
-      log?.error?.("TOKEN", `Antigravity refresh error: ${error.message}`);
-      return null;
-    }
+    const refreshed = await refreshGoogleToken(credentials.refreshToken, this.config.clientId,
+      this.config.clientSecret, log, proxyOptions, signal);
+    return refreshed ? { ...refreshed, projectId: credentials.projectId } : null;
   }
 
-  generateProjectId() {
-    const adj = ["useful", "bright", "swift", "calm", "bold"][Math.floor(Math.random() * 5)];
-    const noun = ["fuze", "wave", "spark", "flow", "core"][Math.floor(Math.random() * 5)];
-    return `${adj}-${noun}-${crypto.randomUUID().slice(0, 5)}`;
+  async execute(args) {
+    args.signal?.throwIfAborted();
+    requireCloudCodeProjectId(args.credentials);
+    return super.execute(args);
   }
 
   generateSessionId() {
@@ -617,6 +531,7 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 
   isTransientAntigravityError(status, message) {
+    if (status >= 400 && status < 500 && status !== HTTP_STATUS.RATE_LIMITED) return false;
     if (status === HTTP_STATUS.RATE_LIMITED) return true;
     if (ANTIGRAVITY_TRANSIENT_STATUSES.has(status)) return true;
     return ANTIGRAVITY_TRANSIENT_ERROR_PATTERNS.some(pattern => pattern.test(message || ""));
@@ -650,6 +565,9 @@ export class AntigravityExecutor extends BaseExecutor {
   // cap at MAX_RETRY_AFTER_MS, else retry transient Antigravity failures with backoff.
   // Return false to veto (fallback URL / final error).
   async computeRetryDelay(response, attempt) {
+    // Retry hints and ambiguous words in an auth/policy denial never authorize
+    // repeating the rejected request. Preserve the provider's explicit failure.
+    if (response.status >= 400 && response.status < 500 && response.status !== HTTP_STATUS.RATE_LIMITED) return false;
     let bodyText = "";
     let errorJson = null;
     let retryMs = this.parseRetryHeaders(response.headers);

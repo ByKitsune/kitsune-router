@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { execFileSync } from "node:child_process";
-import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
-const fixtureRoot = "/tmp/opencode";
+const fixtureRoot = join(tmpdir(), "kitsune-router-test-fixtures");
 const fixtureGlobals = [
   "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter",
   "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers",
@@ -20,7 +21,6 @@ const secretMarkers = [
 let directory;
 let previousGlobals;
 let previousListeners;
-let originalEmit;
 let usage;
 let db;
 let metricsGet;
@@ -30,10 +30,12 @@ let server;
 let proxyModule;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(fixtureRoot, "reconciliation-metrics-"));
   previousGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
   previousListeners = new Map(shutdownEvents.map((event) => [event, process.rawListeners(event)]));
-  originalEmit = process.emit;
+  directory = undefined;
+  for (const key of fixtureGlobals) delete global[key];
+  await mkdir(fixtureRoot, { recursive: true, mode: 0o700 });
+  directory = await mkdtemp(join(fixtureRoot, "reconciliation-metrics-"));
   for (const [name, value] of Object.entries({
     DATA_DIR: join(directory, "data"), HOME: directory, TMPDIR: directory,
     JWT_SECRET: "synthetic-metrics-session-signing-secret-minimum-32-chars",
@@ -47,7 +49,6 @@ beforeEach(async () => {
     HTTP_PROXY: "", HTTPS_PROXY: "", ALL_PROXY: "", NO_PROXY: "*",
     http_proxy: "", https_proxy: "", all_proxy: "", no_proxy: "*", TZ: "UTC",
   })) vi.stubEnv(name, value);
-  for (const key of fixtureGlobals) delete global[key];
   vi.resetModules();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-21T12:00:00.000Z"));
@@ -73,7 +74,6 @@ afterEach(async () => {
   } finally {
     server = null;
     proxyModule = null;
-    process.emit = originalEmit;
     for (const event of shutdownEvents) {
       const existing = [...previousListeners.get(event)];
       for (const listener of process.rawListeners(event)) {
@@ -91,11 +91,13 @@ afterEach(async () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.resetModules();
-    const resolved = await realpath(directory);
-    if (dirname(resolved) !== await realpath(fixtureRoot) || !resolved.includes("reconciliation-metrics-")) {
-      throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
+    if (directory) {
+      const resolved = await realpath(directory);
+      if (dirname(resolved) !== await realpath(fixtureRoot) || !resolved.includes("reconciliation-metrics-")) {
+        throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
+      }
+      await rm(resolved, { recursive: true, force: true });
     }
-    await rm(resolved, { recursive: true, force: true });
   }
 });
 
@@ -267,11 +269,18 @@ describe("metrics reconcile terminal events separately from usage/UI logs", () =
 
   it("starts fresh in another process rather than claiming restart-durable failure history", async () => {
     const repoUrl = new URL("../../src/lib/db/repos/usageRepo.js", import.meta.url).href;
-    const run = (recordFailure) => JSON.parse(execFileSync(process.execPath, ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", "--input-type=module", "-e", `
-      import { appendRequestLog, getRequestFailureCounts } from ${JSON.stringify(repoUrl)};
-      if (${recordFailure}) await appendRequestLog({ status: "FAILED 429" });
-      console.log(JSON.stringify(getRequestFailureCounts()));
-    `], { cwd: fileURLToPath(new URL("../..", import.meta.url)), env: { ...process.env }, encoding: "utf8" }));
+    const run = (recordFailure) => {
+      const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+        import { appendRequestLog, getRequestFailureCounts } from ${JSON.stringify(repoUrl)};
+        if (${recordFailure}) await appendRequestLog({ status: "FAILED 429" });
+        console.log(JSON.stringify(getRequestFailureCounts()));
+      `], { cwd: fileURLToPath(new URL("../..", import.meta.url)), env: { ...process.env }, encoding: "utf8" });
+      expect(child.error).toBeUndefined();
+      expect(child.signal).toBeNull();
+      expect(child.status, child.stderr).toBe(0);
+      expect(child.stderr).toBe("");
+      return JSON.parse(child.stdout);
+    };
     expect(run(true)).toEqual({ 429: 1 });
     expect(run(false)).toEqual({});
   });

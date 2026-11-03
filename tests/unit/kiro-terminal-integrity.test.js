@@ -1,4 +1,88 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from "node:util";
+
+// These negative fixtures own only their exact warning/error arguments. Forward
+// any unexpected diagnostic and fail the case; ordinary logs remain visible.
+const expectedDiagnosticsByTest = {
+  "Kiro terminal integrity recovery > repairs malformed wrapper tools without leaking the invalid call": {
+    "error": [
+      [
+        "[Kiro] dropping unusable tool call bad (tool_call): Invalid Kiro tool_call payload: missing nested MCP tool name"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > requires complete direct tool input and keeps the failure private": {
+    "error": [
+      [
+        "[Kiro] dropping unusable tool call pending (read_file): Kiro tool call is missing input"
+      ],
+      [
+        "[Kiro] dropping unusable tool call pending (read_file): Kiro tool call is missing input"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > repairs a non-string toolUseId before releasing the tool call": {
+    "error": [
+      [
+        "[Kiro] tool fragment rejected, keeping 0 buffered tool(s): Kiro toolUseEvent has an invalid toolUseId"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > keeps model-controlled parser detail out of the retry system prompt": {
+    "error": [
+      [
+        "[Kiro] dropping unusable tool call bad-json (tool_call): Kiro tool input must be valid object JSON (Expected ',' or '}' after property value in JSON at position 33 (line 1 column 34))"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > continues past eager tool-shape errors to authoritative stop content_filtered": {
+    "error": [
+      [
+        "[Kiro] tool fragment rejected, keeping 0 buffered tool(s): Kiro toolUseEvent has an invalid toolUseId"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > continues past eager tool-shape errors to authoritative stop cancelled": {
+    "error": [
+      [
+        "[Kiro] tool fragment rejected, keeping 0 buffered tool(s): Kiro toolUseEvent is missing a tool name"
+      ]
+    ]
+  },
+  "Kiro terminal integrity recovery > continues past eager tool-shape errors to authoritative stop max_tokens": {
+    "error": [
+      [
+        "[Kiro] tool fragment rejected, keeping 1 buffered tool(s): Kiro tool name changed between fragments"
+      ]
+    ]
+  }
+};
+let observedDiagnostics;
+let diagnosticSpies;
+let expectedDiagnostics;
+
+beforeEach(() => {
+  expectedDiagnostics = expectedDiagnosticsByTest[expect.getState().currentTestName] || {};
+  observedDiagnostics = { warn: [], error: [] };
+  diagnosticSpies = ["warn", "error"].map(level => {
+    const original = console[level].bind(console);
+    return vi.spyOn(console, level).mockImplementation((...args) => {
+      const expected = expectedDiagnostics[level]?.[observedDiagnostics[level].length];
+      observedDiagnostics[level].push(args);
+      if (!isDeepStrictEqual(args, expected)) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(observedDiagnostics.warn).toEqual(expectedDiagnostics.warn || []);
+    expect(observedDiagnostics.error).toEqual(expectedDiagnostics.error || []);
+  } finally {
+    for (const spy of diagnosticSpies) spy.mockRestore();
+  }
+});
+
 
 const fetchMock = vi.fn();
 vi.mock("../../open-sse/utils/proxyFetch.js", () => ({

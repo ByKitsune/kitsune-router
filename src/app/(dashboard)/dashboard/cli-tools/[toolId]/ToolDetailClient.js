@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CardSkeleton } from "@/shared/components";
 import { CLI_TOOLS } from "@/shared/constants/cliTools";
-import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
+import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS, filterAdvertisedModels } from "@/shared/constants/models";
 import {
   ClaudeToolCard, CodexToolCard, DroidToolCard, OpenClawToolCard,
   HermesToolCard, DefaultToolCard, OpenCodeToolCard, CoworkToolCard,
@@ -73,7 +73,7 @@ export default function ToolDetailClient({ toolId, machineId }) {
     const seenModels = new Set();
     activeProviders.forEach(conn => {
       const alias = PROVIDER_ID_TO_ALIAS[conn.provider] || conn.provider;
-      const providerModels = getModelsByProviderId(conn.provider);
+      const providerModels = filterAdvertisedModels(conn.provider, getModelsByProviderId(conn.provider));
       providerModels.forEach(m => {
         const modelValue = `${alias}/${m.id}`;
         if (!seenModels.has(modelValue)) {

@@ -19,6 +19,7 @@ export default {
   transport: {
     baseUrl: "https://api.cline.bot/api/v1/chat/completions",
     headers: {
+      "X-Response-Format": "openai",
       "HTTP-Referer": "https://cline.bot",
       "X-Title": "Cline",
     },
@@ -49,6 +50,12 @@ export default {
     { id: "cline-pass/minimax-m3", name: "MiniMax M3 (ClinePass)" },
     { id: "cline-pass/qwen3.7-max", name: "Qwen3.7 Max (ClinePass)" },
     { id: "cline-pass/qwen3.7-plus", name: "Qwen3.7 Plus (ClinePass)" },
+    // Exact publisher catalog IDs reviewed 2026-11-04; account policy remains authoritative.
+    {id: "cline-pass/mimo-v2.6-pro", name: "MiMo V2.6 Pro (ClinePass)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "cline-pass/mimo-v2.6-flash", name: "MiMo V2.6 Flash (ClinePass)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "cline-pass/deepseek-v4.1-flash-1017", name: "DeepSeek V4.1 Flash 1017 (ClinePass)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "cline-pass/kimi-k3.1-pro", name: "Kimi K3.1 Pro (ClinePass)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "cline-pass/minimax-m3.1-flash", name: "MiniMax M3.1 Flash (ClinePass)", targetFormat: "openai", supportedFormats: ["openai"]},
   ],
   oauth: {
     appBaseUrl: "https://app.cline.bot",

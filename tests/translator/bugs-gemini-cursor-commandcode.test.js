@@ -1,5 +1,5 @@
 // OpenAI → Gemini / Cursor / CommandCode request translation.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import "./registerAll.js";
 import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
@@ -32,22 +32,28 @@ describe("OpenAI → CommandCode", () => {
   // fabricate parameters the model never produced, so this asserts the honest
   // contract (fail-open, call preserved, args empty) rather than inventing data.
   it("keeps a malformed tool call rather than dropping it, without fabricating arguments", () => {
-    const out = O2CC({
-      messages: [
-        { role: "user", content: "go" },
-        { role: "assistant", content: "", tool_calls: [
-          { id: "c1", type: "function", function: { name: "f", arguments: "{bad" } },
-        ] },
-        { role: "tool", tool_call_id: "c1", content: "r" },
-      ],
-    });
-    const asst = out.params.messages.find((m) => m.role === "assistant");
-    const call = asst.content.find((b) => b.type === "tool-call");
-    // The call survives (a dropped call would desynchronise the tool pairing).
-    expect(call, "tool call must not be dropped").toBeTruthy();
-    expect(call.toolName).toBe("f");
-    // Arguments are empty rather than invented.
-    expect(call.input).toEqual({});
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const out = O2CC({
+        messages: [
+          { role: "user", content: "go" },
+          { role: "assistant", content: "", tool_calls: [
+            { id: "c1", type: "function", function: { name: "f", arguments: "{bad" } },
+          ] },
+          { role: "tool", tool_call_id: "c1", content: "r" },
+        ],
+      });
+      const asst = out.params.messages.find((m) => m.role === "assistant");
+      const call = asst.content.find((b) => b.type === "tool-call");
+      // The call survives (a dropped call would desynchronise the tool pairing).
+      expect(call, "tool call must not be dropped").toBeTruthy();
+      expect(call.toolName).toBe("f");
+      // Arguments are empty rather than invented.
+      expect(call.input).toEqual({});
+      expect(warning.mock.calls).toEqual([["[commandcode] discarding malformed tool arguments (len=4)"]]);
+    } finally {
+      warning.mockRestore();
+    }
   });
 
 

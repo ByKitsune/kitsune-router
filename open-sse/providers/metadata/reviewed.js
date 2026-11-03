@@ -8,11 +8,12 @@ import antigravityModels from "./antigravityModels.js";
 import oauthModels from "./oauthModels.js";
 import codebuddyModels from "./codebuddyModels.js";
 import opencodeRefreshModels from "./opencodeRefreshModels.js";
+import loginCatalogRefreshModels from "./loginCatalogRefreshModels.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
 import { applyExactCatalogCapabilities, getCapabilityVerification, getPublicCapabilityCatalogReference } from "./modelsDevCapabilityResolution.js";
 
 export const REVIEWED_MODEL_METADATA = {};
-for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antigravityModels, oauthModels, codebuddyModels, opencodeRefreshModels]) {
+for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antigravityModels, oauthModels, codebuddyModels, opencodeRefreshModels, loginCatalogRefreshModels]) {
   for (const [provider, models] of Object.entries(shard)) {
     const target = REVIEWED_MODEL_METADATA[provider] ||= {};
     for (const [model, record] of Object.entries(models)) {

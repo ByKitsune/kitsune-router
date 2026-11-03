@@ -74,6 +74,29 @@ const outputSelect = (tree) => find(tree, (node) => node.type === "select" && no
 const runButton = (tree) => find(tree, (node) => node.type === "button" && Array.isArray(node.props.children) && node.props.children.includes("Run"));
 
 describe("Ollama TTS example card", () => {
+  it("omits retired config models and uses the same active list for its default", () => {
+    const view = fixture();
+    const tree = view.render("cartesia");
+    const select = find(tree, node => node.type === "select" && node.props.value === "sonic-3.6");
+    expect(select).toBeTruthy();
+    const ids = findAll(select, node => node.type === "option").map(node => node.props.value);
+    expect(ids).toContain("sonic-3");
+    expect(ids).not.toContain("sonic-2");
+  });
+
+  it("does not turn a voice into a model or send a request when all native TTS models retired", async () => {
+    const view = fixture();
+    const tree = view.render("openai");
+    expect(runButton(tree).props.disabled).toBe(true);
+    const request = findAll(tree, node => node.type === "pre")[0].props.children;
+    expect(request).toContain('"model":""');
+    expect(request).not.toContain('"model":"openai/alloy"');
+    await runButton(tree).props.onClick();
+    expect(view.fetch).not.toHaveBeenCalled();
+    const options = findAll(tree, node => node.type === "option").map(node => node.props.value);
+    for (const id of ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"]) expect(options).not.toContain(id);
+  });
+
   it("offers WAV, PCM and JSON with a WAV default and an accurate curl request", () => {
     const view = fixture();
     const tree = view.render();
@@ -139,7 +162,10 @@ describe("Ollama TTS example card", () => {
     tree = view.render("openai");
     expect(outputSelect(tree).props.value).toBe("mp3");
     expect(findAll(outputSelect(tree), (node) => node.type === "option").map((node) => node.props.value)).toEqual(["mp3", "json"]);
-    expect(findAll(tree, (node) => node.type === "pre")[0].props.children).toContain("openai/");
+    // The new provider has no advertised native TTS models after its sunset.
+    // A stale Ollama tag or voice must not become an OpenAI speech request.
+    expect(findAll(tree, (node) => node.type === "pre")[0].props.children).toContain('"model":""');
+    expect(runButton(tree).props.disabled).toBe(true);
   });
 
   it("does not show the previous provider's audio after changing provider", async () => {

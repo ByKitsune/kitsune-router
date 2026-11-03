@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 // Exercise the public request handler, real core response classification, and
 // real account selection/health logic. Only persistence and upstream I/O are fake.
@@ -363,6 +368,7 @@ describe("output-budget exhaustion through handleChat and real account health lo
   });
 
   it("still cools down a repeatedly failing upstream account for 30 seconds and uses its sibling", async () => {
+    diagnostics.expectError("❌ claude [500]: [500]: Upstream internal server error");
     mocks.connections.push(connection("account-b"));
     mocks.execute.mockImplementation(async ({ credentials }) =>
       credentials.connectionId === "account-a" ? serverFailure() : completed()

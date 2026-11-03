@@ -16,15 +16,11 @@ function chunkMeta(state) {
 // Build a tool_call chunk from a gemini functionCall part (shared by sig/non-sig branches)
 function emitFunctionCall(functionCall, state) {
   const rawName = functionCall.name;
-  const functionCallWithSignature = {
-    ...functionCall,
-    thoughtSignature: functionCall.thoughtSignature || state.pendingThoughtSignature || "",
-  };
   // Restore original tool name from mapping (AG cloaking)
   const fcName = state.toolNameMap?.get(rawName) || rawName;
   const fcArgs = functionCall.args || {};
   const toolCallIndex = state.functionIndex++;
-  const thoughtSignature = functionCallWithSignature.thoughtSignature;
+  const thoughtSignature = functionCall.thoughtSignature || "";
   const toolCall = {
     id: buildToolCallId(fcName, toolCallIndex, thoughtSignature, functionCall.id),
     index: toolCallIndex,
@@ -103,14 +99,11 @@ export function geminiToOpenAIResponse(chunk, state) {
           ...(hasThoughtSig ? { extra_content: { google: { thought_signature: hasThoughtSig } } } : {}) };
         state.geminiImageIndex = image.index + 1;
         results.push(buildChunk(chunkMeta(state), { images: [image] }, null));
-        // An image signature belongs to that occurrence, never to a later tool.
-        state.pendingThoughtSignature = null;
         continue;
       }
       
       // Handle thought signature (thinking mode)
       if (hasThoughtSig) {
-        state.pendingThoughtSignature = hasThoughtSig;
         const hasTextContent = part.text !== undefined && part.text !== "";
         const hasFunctionCall = !!part.functionCall;
         
@@ -124,7 +117,6 @@ export function geminiToOpenAIResponse(chunk, state) {
         
         if (hasFunctionCall) {
           results.push(emitFunctionCall({ ...part.functionCall, thoughtSignature: hasThoughtSig }, state));
-          state.pendingThoughtSignature = null;
         }
         continue;
       }
@@ -144,7 +136,6 @@ export function geminiToOpenAIResponse(chunk, state) {
       // Function call
       if (part.functionCall) {
         results.push(emitFunctionCall({ ...part.functionCall, thoughtSignature: hasThoughtSig }, state));
-        state.pendingThoughtSignature = null;
       }
 
     }

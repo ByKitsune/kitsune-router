@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -80,7 +85,7 @@ describe.skipIf(process.platform === "win32")("sql.js private atomic replacement
     fs.writeFileSync(target, "synthetic-sentinel");
     const collision = path.join(root, `.state.sqlite.tmp-${process.pid}-0`);
     fs.symlinkSync(target, collision);
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    diagnostics.expectError("[sqljs] save failed:", expect.objectContaining({ code: "EEXIST", path: collision }));
     adapter.exec("CREATE TABLE synthetic_state(value TEXT)");
     await vi.advanceTimersByTimeAsync(100);
     expect(fs.readFileSync(target, "utf8") === "synthetic-sentinel").toBe(true);
@@ -95,7 +100,7 @@ describe.skipIf(process.platform === "win32")("sql.js private atomic replacement
     await vi.advanceTimersByTimeAsync(100);
     const before = fs.readFileSync(file);
     const write = fs.writeFileSync;
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    diagnostics.expectError("[sqljs] save failed:", expect.objectContaining({ code: "ENOSPC", message: "synthetic disk failure" }));
     const failing = vi.spyOn(fs, "writeFileSync").mockImplementation((target, ...args) => {
       if (typeof target === "number") throw Object.assign(new Error("synthetic disk failure"), { code: "ENOSPC" });
       return write(target, ...args);
@@ -112,7 +117,7 @@ describe.skipIf(process.platform === "win32")("sql.js private atomic replacement
 
   it("does not publish when a filesystem fails to apply private replacement permissions", async () => {
     const { adapter, file } = await sqlJs();
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    diagnostics.expectError("[sqljs] save failed:", expect.objectContaining({ message: "synthetic permission failure" }));
     const failing = vi.spyOn(fs, "fchmodSync").mockImplementation(() => { throw new Error("synthetic permission failure"); });
     try {
       adapter.exec("CREATE TABLE synthetic_state(value TEXT)");
@@ -204,6 +209,7 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
     const backup = path.join(backupDir, "data.sqlite");
     fs.writeFileSync(backup, "synthetic-prior-backup");
     const { runMigrationOnce } = await import("@/lib/db/migrate.js");
+    diagnostics.expectWarn("[DB][migrate] pre-schema backup failed (continuing): Backup already exists; refusing overwrite");
     await runMigrationOnce(adapter);
     expect(fs.readFileSync(backup, "utf8") === "synthetic-prior-backup").toBe(true);
   });
@@ -232,6 +238,7 @@ describe.skipIf(process.platform === "win32")("migration backup permissions and 
     adapter.run("INSERT INTO _meta VALUES (?, ?)", ["schemaVersion", "1"]);
     adapter.run("INSERT INTO settings VALUES (?, ?)", [1, '{"synthetic":"preserved"}']);
     const { runMigrationOnce } = await import("@/lib/db/migrate.js");
+    diagnostics.expectWarn(expect.stringMatching(/^\[DB\]\[migrate\] pre-schema backup failed \(continuing\): unable to open database: .*\/db\/backups\/schema-1-to-\d+-.*\/data\.sqlite$/));
     await expect(runMigrationOnce(adapter)).resolves.toBeUndefined();
     expect(adapter.get("SELECT data FROM settings WHERE id = 1").data).toBe('{"synthetic":"preserved"}');
     expect(adapter.all("SELECT name FROM sqlite_master WHERE type = 'table'").map(row => row.name)).toContain("usageHistory");

@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { CONSOLE_LOG_CONFIG } from "@/shared/constants/config.js";
-import { hardenEmitter } from "@/lib/schedulerLifecycle.js";
+import { hardenEmitter } from "@/lib/schedulerLifecycle.mjs";
 
 const consoleLevels = ["log", "info", "warn", "error", "debug"];
 

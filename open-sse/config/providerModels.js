@@ -14,7 +14,23 @@ export function getProviderModels(aliasOrId) {
 
 export function getDefaultModel(aliasOrId) {
   const models = PROVIDER_MODELS[aliasOrId];
-  return models?.[0]?.id || null;
+  return models?.find((model) => isAdvertisedModel(aliasOrId, model))?.id || null;
+}
+
+// Keep historical declarations available to explicit routes and alias resolution,
+// while publisher-deprecated models stay out of suggestions and automatic defaults.
+// Operator declarations can still deliberately expose an existing route.
+export function isAdvertisedModel(aliasOrId, model) {
+  if (!model || model.deprecated === true) return false;
+  if (model.isCustom === true) return true;
+  const provider = REGISTRY.find((entry) => entry.id === aliasOrId
+    || entry.alias === aliasOrId || entry.uiAlias === aliasOrId
+    || entry.aliases?.includes(aliasOrId));
+  return !provider?.models?.some((entry) => entry.id === model.id && entry.deprecated === true);
+}
+
+export function filterAdvertisedModels(aliasOrId, models) {
+  return (models || []).filter((model) => isAdvertisedModel(aliasOrId, model));
 }
 
 // Providers whose registry uses dots in version numbers (e.g. "claude-sonnet-4.5").

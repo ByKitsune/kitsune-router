@@ -49,11 +49,12 @@ import { POST } from "../../src/app/api/v1beta/models/[...path]/route.js";
 
 const pngA = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const pngB = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=";
-const signatures = ["image-occurrence-A", "image-occurrence-B"];
+const signatures = ["image-occurrence-A", "image-occurrence-B"].map(value => Buffer.from(`synthetic opaque ${value}`).toString("base64"));
+const requestSignature = Buffer.from("synthetic opaque first-call request history").toString("base64");
 const usage = { prompt_tokens: 32, completion_tokens: 7, total_tokens: 39, completion_tokens_details: { reasoning_tokens: 3 } };
 const images = signatures.map((signature, index) => ({ type: "image_url", image_url: { url: `data:image/png;base64,${pngB}` }, index, extra_content: { google: { thought_signature: signature } } }));
 const nativeParts = [
-  { thought: true, text: "Inspecting", thoughtSignature: "reasoning-signature" }, { text: "東京" },
+  { thought: true, text: "Inspecting", thoughtSignature: Buffer.from("synthetic opaque reasoning").toString("base64") }, { text: "東京" },
   ...signatures.map((thoughtSignature) => ({ inlineData: { mimeType: "image/png", data: pngB }, thoughtSignature })),
   { functionCall: { id: "call_next", name: "read_page", args: { page: 2 } } },
 ];
@@ -106,7 +107,7 @@ function requestBody() {
   return {
     contents: [
       { role: "user", parts: [{ text: "Compacted history: compare these screenshots." }, { inlineData: { mimeType: "image/png", data: pngA } }] },
-      { role: "model", parts: [1, 2].map((page) => ({ functionCall: { id: `call_${page}`, name: "read_page", args: { page } } })) },
+      { role: "model", parts: [1, 2].map((page) => ({ ...(page === 1 ? { thoughtSignature: requestSignature } : {}), functionCall: { id: `call_${page}`, name: "read_page", args: { page } } })) },
       { role: "user", parts: [pngA, pngB].map((data, index) => ({ functionResponse: { id: `call_${index + 1}`, name: "read_page", response: { result: [{ type: "text", text: `Page ${index + 1}` }, { type: "image", mimeType: "image/png", data }] } } })) },
     ],
     generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low", includeThoughts: true } },
@@ -130,7 +131,10 @@ describe.each([
     expect(wire.model).toBe(model);
     expect(media(wire)).toEqual([pngA, pngA, pngB]);
     expect(JSON.stringify(wire).split(pngA).length - 1).toBe(2);
-    if (provider === "gemini") expect(wire.generationConfig.thinkingConfig).toMatchObject({ thinkingLevel: "low", includeThoughts: true });
+    if (provider === "gemini") {
+      expect(wire.generationConfig.thinkingConfig).toMatchObject({ thinkingLevel: "low", includeThoughts: true });
+      expect(wire.contents[1].parts.map(part => part.thoughtSignature)).toEqual([requestSignature, undefined]);
+    }
     else expect(wire.reasoning).toMatchObject({ effort: "low" });
     const frames = stream ? text.split(/\r?\n\r?\n/).filter((frame) => frame.trim()).map((frame) => JSON.parse(frame.replace(/^data:\s*/, ""))) : [JSON.parse(text)];
     expect(text).not.toContain("[DONE]");

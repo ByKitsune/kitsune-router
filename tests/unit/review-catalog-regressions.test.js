@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 import { getPricingForModel as staticPrice, calculateCostFromTokens, calculateCostBreakdown } from "../../open-sse/providers/pricing.js";
-import { PROVIDER_MODELS } from "../../open-sse/config/providerModels.js";
+import { PROVIDER_MODELS, getModelUpstreamId } from "../../open-sse/config/providerModels.js";
+import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 
 const mocks = vi.hoisted(() => ({
   getProviderConnections: vi.fn(), getCombos: vi.fn(), getCustomModels: vi.fn(),
@@ -106,7 +107,7 @@ describe("review P2: saved reasoning tariff", () => {
 
 describe("review P2: media service floors", () => {
   it.each([
-    ["openai", "openai/whisper-1", "stt", "audioInput"],
+    ["openai", "openai/gpt-transcribe", "stt", "audioInput"],
     ["fal-ai", "fal/fal-ai/flux/schnell", "image", "imageOutput"],
     ["edge-tts", `edge-tts/${PROVIDER_MODELS["edge-tts"][0].id}`, "tts", "audioOutput"],
     ["openai", "openai/text-embedding-3-small", "embedding", "tools"],
@@ -118,6 +119,18 @@ describe("review P2: media service floors", () => {
     expect(row.capabilities.tools).not.toBe(true);
     expect(Number.isFinite(row.capabilities.contextWindow)).toBe(false);
     expect(Number.isFinite(row.capabilities.maxOutput)).toBe(false);
+  });
+  it("hides deprecated Whisper advertisements without losing native billing and capability facts", async () => {
+    connect("openai");
+    expect((await buildModelsList(["stt"])).some(row => row.id === "openai/whisper-1")).toBe(false);
+    expect(getModelUpstreamId("openai", "whisper-1")).toBe("whisper-1");
+    expect(getCapabilitiesForModel("openai", "whisper-1")).toMatchObject({
+      audioInput: true, tools: false, contextWindow: null, maxInput: null, maxOutput: null,
+    });
+    expect(getReviewedModelMetadata("openai", "whisper-1")).toMatchObject({ billing: {
+      currency: "USD", unit: "audio_minute", rates: { rate: 0.006 }, tokenPricingSupported: false,
+    } });
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 100 }, staticPrice("openai", "whisper-1"))).toBeNull();
   });
   it("keeps researched audio limits and live/custom per-kind facts", async () => {
     connect("gemini");

@@ -4,7 +4,6 @@ import { translateRequest } from "../../open-sse/translator/index.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
 import { buildToolCallId, splitToolCallId } from "../../open-sse/translator/concerns/thoughtSignature.js";
-import { DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE } from "../../open-sse/config/defaultThinkingSignature.js";
 
 const model = "gemini-2.5-flash";
 const targets = [FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY];
@@ -124,8 +123,7 @@ describe.each(targets)("%s duplicate tool call IDs", (target) => {
       response("call_unique", { value: "first" }),
     ] });
     expect(payload.contents.flatMap((turn) => turn.parts).filter((part) => part.functionCall)).toEqual([
-      { thoughtSignature: target === FORMATS.GEMINI ? DEFAULT_THINKING_AG_SIGNATURE : DEFAULT_THINKING_GEMINI_CLI_SIGNATURE,
-        functionCall: { id: "call_unique", name: "lookup", args: { key: "first" } } },
+      { functionCall: { id: "call_unique", name: "lookup", args: { key: "first" } } },
       { thoughtSignature: signature, functionCall: { id: rawId, name: "lookup", args: { key: "second" } } },
     ]);
     expect(exchanges(payload).responses).toEqual([

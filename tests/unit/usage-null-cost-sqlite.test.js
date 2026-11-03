@@ -13,7 +13,6 @@ const defaultTokens = { prompt_tokens: 1000, completion_tokens: 500 };
 let originalEnv;
 let originalGlobals;
 let originalAdapter;
-let originalEmit;
 let originalListeners;
 let dataDir;
 let usage;
@@ -52,16 +51,17 @@ beforeEach(async () => {
   originalEnv = Object.fromEntries(fixtureEnv.map((key) => [key, process.env[key]]));
   originalGlobals = Object.fromEntries(usageGlobals.map((key) => [key, global[key]]));
   originalAdapter = global._dbAdapter;
-  originalEmit = process.emit;
   originalListeners = new Map(shutdownEvents.map((event) => [event, new Set(process.listeners(event))]));
+  dataDir = undefined;
+  for (const key of usageGlobals) delete global[key];
+  delete global._dbAdapter;
+  await mkdir(tmpdir(), { recursive: true });
   dataDir = await mkdtemp(join(tmpdir(), "kitsunerouter-usage-null-cost-"));
   process.env.DATA_DIR = join(dataDir, "data");
   process.env.TMPDIR = dataDir;
   process.env.JWT_SECRET = "synthetic-null-cost-jwt-secret-32-bytes-minimum";
   process.env.API_KEY_SECRET = "synthetic-null-cost-api-key-secret";
   process.env.MACHINE_ID_SALT = "synthetic-null-cost-machine-salt";
-  for (const key of usageGlobals) delete global[key];
-  delete global._dbAdapter;
   vi.resetModules();
   usage = await import("../../src/lib/db/repos/usageRepo.js");
   pricing = await import("../../src/lib/db/repos/pricingRepo.js");
@@ -79,7 +79,6 @@ afterEach(async () => {
     for (const timer of Object.values(global._pendingTimers || {})) clearTimeout(timer);
     for (const timer of Object.values(global._statsEmitTimers || {})) clearTimeout(timer);
     vi.useRealTimers();
-    process.emit = originalEmit;
     for (const event of shutdownEvents) {
       for (const listener of process.listeners(event)) {
         if (!originalListeners.get(event).has(listener)) process.removeListener(event, listener);
@@ -290,8 +289,10 @@ describe("SQLite usage consumers preserve unknown cost", () => {
     vi.spyOn(calculator, "calculateCostBreakdown").mockImplementation(() => {
       throw new Error("synthetic calculator failure");
     });
+    const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
     const entry = request({ tokens });
     await usage.saveRequestUsage(entry);
+    expect(diagnostic).toHaveBeenCalledExactlyOnceWith("Error calculating cost:", expect.objectContaining({ message: "synthetic calculator failure" }));
     expect((await usage.getUsageHistory())[0]).toMatchObject(expected);
     expect(db.get("SELECT COUNT(*) AS n FROM usageHistory").n).toBe(1);
   });

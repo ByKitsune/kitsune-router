@@ -1,7 +1,4 @@
-import { buildToolCallId } from "./thoughtSignature.js";
-import { DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE } from "../../config/defaultThinkingSignature.js";
-
-const syntheticSignatures = new Set([DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE, DEFAULT_THINKING_VERTEX_SIGNATURE]);
+import { buildToolCallId, isLegacyThoughtSignature } from "./thoughtSignature.js";
 
 export function geminiToolHistory(contents) {
   const ids = new WeakMap();
@@ -22,7 +19,7 @@ export function geminiToolHistory(contents) {
         while (!call.id && (used.has(rawId) || reserved.has(rawId))) rawId = `${base}_d${suffix++}`;
         used.add(rawId);
         const signature = part.thoughtSignature ?? part.thought_signature ?? call.thoughtSignature ?? "";
-        const id = buildToolCallId(call.name, index++, syntheticSignatures.has(signature) ? "" : signature, rawId);
+        const id = buildToolCallId(call.name, index++, isLegacyThoughtSignature(signature) ? "" : signature, rawId);
         ids.set(part, id);
         pending.push({ id, rawId: call.id, name: call.name });
       }

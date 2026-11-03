@@ -20,6 +20,7 @@ vi.mock("open-sse/shared/zedAuth.js", () => ({ resolveZedModels: mocks.live }));
 const { buildModelsList } = await import("@/app/api/v1/models/route.js");
 const { parseModel } = await import("open-sse/services/model.js");
 const { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS, getModelUpstreamId } = await import("open-sse/config/providerModels.js");
+const { getReviewedModelMetadata } = await import("open-sse/providers/metadata/reviewed.js");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -178,18 +179,18 @@ describe("catalog live and declared metadata", () => {
   });
   it("preserves service capability floors under architecture-only live rows", async () => {
     mocks.getProviderConnections.mockResolvedValue([{ provider: "openai", apiKey: "fixture" }]);
-    mocks.live.mockResolvedValue([{ id: "whisper-1", kind: "stt", architecture: { input_modalities: ["image"] } }]);
-    expect((await buildModelsList(["stt"])).find(m => m.id === "openai/whisper-1")?.capabilities).toMatchObject({ audioInput: true, vision: true });
+    mocks.live.mockResolvedValue([{ id: "gpt-transcribe", kind: "stt", architecture: { input_modalities: ["image"] } }]);
+    expect((await buildModelsList(["stt"])).find(m => m.id === "openai/gpt-transcribe")?.capabilities).toMatchObject({ audioInput: true, vision: true });
   });
   it("retains both intentional Gemini chat and STT kinds in a whitelist", async () => {
-    // Uses gemini-2.5-flash rather than the retired gemini-2.5-pro: same
-    // chat+STT id collision, and verified live with HTTP 200.
-    connect("gemini", { enabledModels: ["gemini-2.5-flash"] });
-    for (const kind of ["llm", "stt"]) expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-flash")).toBe(true);
+    // Flash-Lite still has both documented kinds. Prior-use eligibility does
+    // not make this deprecated, or establish that this fixture owns access.
+    connect("gemini", { enabledModels: ["gemini-2.5-flash-lite"] });
+    for (const kind of ["llm", "stt"]) expect((await buildModelsList([kind])).some(m => m.id === "gemini/gemini-2.5-flash-lite")).toBe(true);
   });
 
-  it.each(["gemini-2.5-pro", "gemini-2.5-flash-lite"])("preserves %s for eligible existing accounts across kinds", async model => {
-    // Official Google docs distinguish prior-use eligibility from shutdown.
+  it("retains Flash-Lite's prior-use eligibility across kinds", async () => {
+    const model = "gemini-2.5-flash-lite";
     connect("gemini", { enabledModels: [model] });
     for (const kind of ["llm", "stt", "imageToText"]) {
       const row = (await buildModelsList([kind])).find(m => m.id === `gemini/${model}`);
@@ -197,6 +198,26 @@ describe("catalog live and declared metadata", () => {
       expect(row.metadata?.limits?.routeAvailable).not.toBe(false);
       expect(row.metadata?.limits?.accountEligibility).toBe("prior-use-required");
     }
+  });
+  it.each([
+    ["gemini-2.5-pro", 1.25, 10],
+    ["gemini-2.5-flash", 0.3, 2.5],
+  ])("hides deprecated %s advertisements while retaining historical metadata", async (model, input, output) => {
+    connect("gemini", { enabledModels: [model] });
+    for (const kind of ["llm", "stt", "imageToText"]) {
+      expect((await buildModelsList([kind])).some(row => row.id === `gemini/${model}`), kind).toBe(false);
+    }
+    expect(PROVIDER_MODELS.gemini.filter(row => row.id === model)).toHaveLength(2);
+    expect(getModelUpstreamId("gemini", model)).toBe(model);
+    expect(getReviewedModelMetadata("gemini", model)).toMatchObject({
+      capabilities: { audioInput: true, vision: true },
+      pricing: { input, output },
+      billing: { currency: "USD", unit: "1M tokens" },
+      limits: { lifecycleStatus: "deprecated", accountEligibility: "prior-use-required", shutdownDate: "2026-12-01" },
+    });
+    const metadata = getReviewedModelMetadata("gemini", model);
+    expect(metadata.limits.note).toContain("reviewed 2026-11-04");
+    expect(metadata.sources).toContain("https://ai.google.dev/gemini-api/docs/deprecations");
   });
   it.each([[[]], [[{ provider: "openai" }]]])("lists noAuth independently of unrelated connections (%j)", async connections => {
     mocks.getProviderConnections.mockResolvedValue(connections);

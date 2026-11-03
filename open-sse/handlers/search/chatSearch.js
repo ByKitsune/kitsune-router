@@ -1,5 +1,5 @@
 /**
- * Wrap chat-completions endpoints (with built-in web search) into the unified
+ * Wrap provider endpoints (with built-in web search) into the unified
  * /v1/search response format. Supports gemini, antigravity, openai, xai, kimi,
  * minimax, perplexity.
  */
@@ -180,35 +180,37 @@ const CHAT_SEARCH_CONFIG = {
 
   openai: {
     endpoint: () => searchEndpoint("openai"),
-    buildBody: (query, model) => {
-      const body = {
-        model,
-        messages: [{ role: "user", content: query }]
-      };
-      // Non-search-preview models need explicit web_search tool
-      if (!/search/i.test(model)) {
-        body.tools = [{ type: "web_search" }];
-      }
-      return body;
-    },
+    // Hosted web_search uses Responses; require the tool for this search lane.
+    // https://developers.openai.com/api/docs/guides/tools-web-search
+    buildBody: (query, model) => ({
+      model,
+      input: query,
+      store: false,
+      tools: [{ type: "web_search" }],
+      tool_choice: "required"
+    }),
     buildHeaders: (token) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
     }),
     extractAnswer: (data) => {
-      const msg = data?.choices?.[0]?.message || {};
-      const text = msg.content || "";
-      const annotations = Array.isArray(msg.annotations) ? msg.annotations : [];
-      const fromAnn = annotations
-        .map((a) => a?.url_citation)
-        .filter(Boolean)
-        .map((u) => ({ url: u.url, title: u.title || "" }));
-      const fromTop = Array.isArray(data?.citations)
-        ? data.citations.map(normalizeCitation).filter(Boolean)
-        : [];
-      const citations = fromAnn.length ? fromAnn : fromTop;
+      const textParts = [];
+      const sources = new Map();
+      for (const item of Array.isArray(data?.output) ? data.output : []) {
+        if (item?.type !== "message" || item.role !== "assistant") continue;
+        for (const part of Array.isArray(item.content) ? item.content : []) {
+          if (part?.type !== "output_text") continue;
+          if (typeof part.text === "string") textParts.push(part.text);
+          for (const annotation of Array.isArray(part.annotations) ? part.annotations : []) {
+            if (annotation?.type !== "url_citation" || typeof annotation.url !== "string" || !annotation.url) continue;
+            if (!sources.has(annotation.url)) {
+              sources.set(annotation.url, { url: annotation.url, title: annotation.title || "" });
+            }
+          }
+        }
+      }
       const tokens = data?.usage?.total_tokens || 0;
-      return { text, citations, tokens };
+      return { text: textParts.join(""), citations: [...sources.values()], tokens };
     }
   },
 

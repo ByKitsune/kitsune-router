@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 const io = vi.hoisted(() => ({ connection: null, fetch: vi.fn(), refreshKiro: vi.fn(), persist: vi.fn() }));
 vi.mock("@/models", () => ({ getProviderConnectionById: async () => io.connection }));
@@ -98,6 +103,7 @@ describe("dashboard model lookup preserves the real request cancellation boundar
   });
 
   it("does not mutate the selected Kiro connection or retry after cancellation during an existing credential commit", async () => {
+    diagnostics.expectWarn("KIRO_MODELS", "onCredentialsRefreshed failed: synthetic-cancel-during-commit");
     const connection = select("kiro");
     const controller = new AbortController();
     io.fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));

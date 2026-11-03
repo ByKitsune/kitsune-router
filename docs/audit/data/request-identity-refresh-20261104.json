@@ -1,0 +1,393 @@
+{
+  "reviewLabel": "2026-11-04 follow-up request",
+  "observedAtUtc": "2026-11-03T19:24:38.999342+00:00",
+  "scope": "Claude/Codex request identity, real opaque thinking continuity and caller payload ownership; verified Kimchi release-only UA follow-up.",
+  "publisherReleaseMetadata": [
+    {
+      "url": "https://registry.npmjs.org/@openai%2fcodex/latest",
+      "sha256": "12c1f3bb84f0235e52ccea4f26811e4671257e80b3c870da429674d29ca6b50d",
+      "bytes": 3517,
+      "package": "@openai/codex",
+      "version": "0.166.0",
+      "integrity": "sha512-2Szlp1l1cz5TX1ccpX4Zok3DZrot9xeZe0km+6/1v8JmqxADwyJxKBJah4dBymkwtS25j/u6dipJusTOI97Z8Q=="
+    },
+    {
+      "url": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code/latest",
+      "sha256": "a0deb8d4d702bd8998587eeeab6d917e5a1d694fbde0ee0c033546dff7de814b",
+      "bytes": 3530,
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.317",
+      "integrity": "sha512-k467+KT/LcqJXr3Ye/C4lXnfRNmxOa/TZcIiWKoiyc/XbZGzAR0fxiI/IEOkpic+BFhYRP6BiXa7cvTx4fsOSg=="
+    }
+  ],
+  "retainedPins": {
+    "claudeApp": "2.1.317",
+    "claudeDelayedStable": "2.1.311",
+    "claudeBundledSdk": "0.128.0",
+    "claudeApi": "2023-06-01",
+    "codexStable": "0.166.0",
+    "codexAlphaExcluded": "0.167.0-alpha.4",
+    "decision": "Official main SDK/API/alpha source is not a reason to change bundled stable CLI protocol or account entitlements."
+  },
+  "officialSourceCheckouts": {
+    "codex": {
+      "repository": "https://github.com/openai/codex",
+      "path": "/tmp/kitsune-provider-sources/codex",
+      "tag": "rust-v0.166.0",
+      "commit": "6ff1e1ca3b30fc8b914720681fcf5fe62e95f856",
+      "sources": [
+        {
+          "url": "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/core/src/client.rs",
+          "sha256": "6a2e95e2b7014c480f5c543b95f112d79c23551c281050cffaad85d32a9847db",
+          "bytes": 133039,
+          "excerpts": [
+            {
+              "startLine": 707,
+              "endLine": 738,
+              "text": "    /// The caller's policy controls the request body independently of the session-id header.\n    fn prompt_cache_key(&self, metadata: &CodexResponsesMetadata) -> Option<String> {\n        match &self.prompt_cache_key_policy {\n            PromptCacheKey::SessionDerived => Some(self.session_derived_cache_key(metadata)),\n            PromptCacheKey::Custom(key) => Some(key.clone()),\n            PromptCacheKey::Omit => None,\n        }\n    }\n\n    fn session_derived_cache_key(&self, metadata: &CodexResponsesMetadata) -> String {\n        if let Some(session_id) = &self.session_id_override {\n            return session_id.clone();\n        }\n\n        if let SessionSource::Internal(source) = &self.state.session_source\n            && let Some(parent_thread_id) = metadata.parent_thread_id\n        {\n            return format!(\"{source}:{parent_thread_id}\");\n        }\n\n        metadata.session_id.clone()\n    }\n\n    // ChatGPT derives cache affinity from the Responses session-id header. Keep the\n    // actual session identity in turn metadata, hooks, and history/notes requests.\n    fn responses_session_id(&self, metadata: &CodexResponsesMetadata) -> String {\n        if self.state.session_source.is_non_root_agent() {\n            metadata.session_id.clone()\n        } else {\n            self.session_derived_cache_key(metadata)\n        }\n    }"
+            },
+            {
+              "startLine": 1281,
+              "endLine": 1288,
+              "text": "        // Capture before resolving credentials so an account switch during setup cannot label\n        // an old connection with the new owner's revision.\n        let auth_owner_generation = self.auth_owner_generation();\n        let auth_changes = provider\n            .auth_manager()\n            .map(|manager| manager.auth_change_receiver());\n        loop {\n            let revision = auth_changes.as_ref().map(|changes| *changes.borrow());"
+            },
+            {
+              "startLine": 1591,
+              "endLine": 1604,
+              "text": "    /// Keeping option construction in one place ensures request-scoped headers are consistent\n    /// regardless of transport choice.\n    async fn build_responses_options(\n        &self,\n        turn_state: &Arc<OnceLock<String>>,\n        responses_metadata: &CodexResponsesMetadata,\n        compression: Compression,\n        use_responses_lite: bool,\n    ) -> ApiResponsesOptions {\n        ApiResponsesOptions {\n            session_id: Some(self.client.responses_session_id(responses_metadata)),\n            thread_id: Some(responses_metadata.thread_id.to_string()),\n            session_source: Some(self.client.state.session_source.clone()),\n            extra_headers: {"
+            }
+          ]
+        },
+        {
+          "url": "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/codex-api/src/requests/headers.rs",
+          "sha256": "98c9579a8f17327fda1792ffbf22e8d09241fdc79620c37b699d94cd9637cd47",
+          "bytes": 1444,
+          "excerpts": [
+            {
+              "startLine": 5,
+              "endLine": 14,
+              "text": "pub fn build_session_headers(session_id: Option<String>, thread_id: Option<String>) -> HeaderMap {\n    let mut headers = HeaderMap::new();\n    if let Some(id) = session_id {\n        insert_header(&mut headers, \"session-id\", &id);\n    }\n    if let Some(id) = thread_id {\n        insert_header(&mut headers, \"thread-id\", &id);\n    }\n    headers\n}"
+            },
+            {
+              "startLine": 34,
+              "endLine": 41,
+              "text": "    if let (Ok(header_name), Ok(header_value)) = (\n        name.parse::<http::HeaderName>(),\n        HeaderValue::from_str(value),\n    ) {\n        headers.insert(header_name, header_value);\n    }\n}"
+            }
+          ]
+        },
+        {
+          "url": "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/codex-api/src/endpoint/responses.rs",
+          "sha256": "4f2fff3da4ca3ca9fcfa40ada8e98a0229af296094e03febb4d823f32ef932c8",
+          "bytes": 4961,
+          "excerpts": [
+            {
+              "startLine": 75,
+              "endLine": 96,
+              "text": "        let ResponsesOptions {\n            session_id,\n            thread_id,\n            session_source,\n            extra_headers,\n            compression,\n            turn_state,\n        } = options;\n        let body = EncodedJsonBody::encode(&request)\n            .map_err(|e| ApiError::Stream(format!(\"failed to encode responses request: {e}\")))?;\n\n        let mut headers = extra_headers;\n        if let Some(ref thread_id) = thread_id {\n            insert_header(&mut headers, \"x-client-request-id\", thread_id);\n        }\n        headers.extend(build_session_headers(session_id, thread_id));\n        if let Some(subagent) = subagent_header(&session_source) {\n            insert_header(&mut headers, \"x-openai-subagent\", &subagent);\n        }\n\n        self.stream_encoded(body, headers, compression, turn_state)\n            .await"
+            }
+          ]
+        },
+        {
+          "url": "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/login/src/auth/auth_headers.rs",
+          "sha256": "b36cf260abf2929011a7e02c0ac66c321e92e807266c6dfbb774ca982ca5dc32",
+          "bytes": 868,
+          "excerpts": [
+            {
+              "startLine": 5,
+              "endLine": 13,
+              "text": "/// Request headers returned by an external auth provider.\n///\n/// The provider owns credential validation, rotation, and persistence. Codex\n/// keeps the resolved headers in memory and attaches them to backend requests.\n/// Identity headers must be derived from and bound to the validated credentials;\n/// Codex may use them to enforce managed authentication policy.\n#[derive(Clone, PartialEq, Eq)]\npub struct AuthHeaders {\n    headers: HeaderMap,"
+            },
+            {
+              "startLine": 25,
+              "endLine": 32,
+              "text": "\nimpl fmt::Debug for AuthHeaders {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        f.debug_struct(\"AuthHeaders\")\n            .field(\"headers\", &\"<redacted>\")\n            .finish()\n    }\n}"
+            }
+          ]
+        },
+        {
+          "url": "https://github.com/openai/codex/blob/6ff1e1ca3b30fc8b914720681fcf5fe62e95f856/codex-rs/codex-api/src/common.rs",
+          "sha256": "d761418f9fe1fa4b5397f291fd6f8f041a8b9cf5800c134c665fe9bc5bed1e85",
+          "bytes": 15048,
+          "excerpts": [
+            {
+              "startLine": 281,
+              "endLine": 305,
+              "text": "pub struct ResponsesApiRequest {\n    // Keep routing fields first: serde serializes struct fields in declaration order, and\n    // gateways may inspect request bodies incrementally before potentially multi-megabyte input.\n    pub model: String,\n    pub stream: bool,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub service_tier: Option<String>,\n    pub input: Vec<ResponseItem>,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub tools: Option<ResponsesApiTools>,\n    pub tool_choice: String,\n    pub parallel_tool_calls: bool,\n    pub reasoning: Option<Reasoning>,\n    pub store: bool,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub stream_options: Option<StreamOptions>,\n    pub include: Vec<String>,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub prompt_cache_key: Option<String>,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub text: Option<TextControls>,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub client_metadata: Option<HashMap<String, String>>,\n    #[serde(skip_serializing_if = \"Option::is_none\")]\n    pub access_programs: Option<AccessPrograms>,"
+            }
+          ]
+        }
+      ]
+    },
+    "anthropicSdk": {
+      "repository": "https://github.com/anthropics/anthropic-sdk-typescript",
+      "path": "/tmp/kitsune-provider-sources/anthropic-sdk-typescript",
+      "tag": "sdk-v0.128.0",
+      "commit": "1926adb4d292090975e6b5d19ebafe2274d2469e",
+      "sources": [
+        {
+          "url": "https://github.com/anthropics/anthropic-sdk-typescript/blob/1926adb4d292090975e6b5d19ebafe2274d2469e/src/client.ts",
+          "sha256": "3c40bda2c0d2f6941edbe73f66b8435e8d427625319461184110a7d6fd7fb5b6",
+          "bytes": 82914,
+          "excerpts": [
+            {
+              "startLine": 939,
+              "endLine": 959,
+              "text": "    // If we have a token cache and no API key is set, use token auth\n    if (this._authState.tokenCache && this.apiKey == null) {\n      const token = await this._authState.tokenCache.getToken();\n      this._authFlags(opts).usedTokenCache = true;\n      return buildHeaders([{ Authorization: `Bearer ${token}` }]);\n    }\n    return buildHeaders([await this.apiKeyAuth(opts), await this.bearerAuth(opts)]);\n  }\n\n  protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {\n    if (this.apiKey == null) {\n      return undefined;\n    }\n    return buildHeaders([{ 'X-Api-Key': this.apiKey }]);\n  }\n\n  protected async bearerAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {\n    if (this.authToken == null) {\n      return undefined;\n    }\n    return buildHeaders([{ Authorization: `Bearer ${this.authToken}` }]);"
+            },
+            {
+              "startLine": 1571,
+              "endLine": 1586,
+              "text": "      {\n        Accept: 'application/json',\n        'User-Agent': this.getUserAgent(),\n        'X-Stainless-Retry-Count': String(retryCount),\n        ...(options.timeout ? { 'X-Stainless-Timeout': String(Math.trunc(options.timeout / 1000)) } : {}),\n        ...getPlatformHeaders(),\n        ...(this._options.dangerouslyAllowBrowser ?\n          { 'anthropic-dangerous-direct-browser-access': 'true' }\n        : undefined),\n        'anthropic-version': '2023-06-01',\n      },\n      await this.authHeaders(options),\n      this._options.defaultHeaders,\n      bodyHeaders,\n      options.headers,\n    ]);"
+            }
+          ]
+        },
+        {
+          "url": "https://github.com/anthropics/anthropic-sdk-typescript/blob/1926adb4d292090975e6b5d19ebafe2274d2469e/src/resources/messages/messages.ts",
+          "sha256": "cfaf71d250689fe3f3b268a6092e29709dd2f1291f3c4f3ccb6267ff666ac610",
+          "bytes": 153098,
+          "excerpts": [
+            {
+              "startLine": 2619,
+              "endLine": 2628,
+              "text": "export interface Metadata {\n  /**\n   * An external identifier for the user who is associated with the request.\n   *\n   * This should be a uuid, hash value, or other opaque identifier. Anthropic may use\n   * this id to help detect abuse. Do not include any identifying information such as\n   * name, email address, or phone number.\n   */\n  user_id?: string | null;\n}"
+            },
+            {
+              "startLine": 2818,
+              "endLine": 2827,
+              "text": "export interface RedactedThinkingBlockParam {\n  /**\n   * The `data` value of this redacted thinking block, exactly as returned by the API\n   * in a previous response. Opaque and encrypted; pass it back unchanged.\n   */\n  data: string;\n\n  type: 'redacted_thinking';\n}\n"
+            },
+            {
+              "startLine": 3181,
+              "endLine": 3197,
+              "text": "export interface ThinkingBlockParam {\n  /**\n   * The `signature` value of this thinking block, exactly as returned by the API in\n   * a previous response. Used to verify that the block was generated by Claude.\n   *\n   * Thinking blocks must be passed back unmodified and in their original order; a\n   * modified block results in a 400 `invalid_request_error`.\n   */\n  signature: string;\n\n  /**\n   * The `thinking` text of this block as returned by the API.\n   */\n  thinking: string;\n\n  type: 'thinking';\n}"
+            },
+            {
+              "startLine": 4715,
+              "endLine": 4719,
+              "text": "  /**\n   * Body param: An object describing metadata about the request.\n   */\n  metadata?: Metadata;\n"
+            }
+          ]
+        }
+      ]
+    },
+    "claudeCode": {
+      "repository": "https://github.com/anthropics/claude-code",
+      "path": "/tmp/kitsune-provider-sources/claude-code",
+      "commit": "964d69565952a176ac1975ed218362991db71433",
+      "sources": [
+        {
+          "url": "https://github.com/anthropics/claude-code/blob/964d69565952a176ac1975ed218362991db71433/README.md",
+          "sha256": "07445fe9698dd4e038fa5b30ea3bde5f8f1480068b2f275fdd20725cecda0a6c",
+          "bytes": 2867,
+          "excerpts": [
+            {
+              "startLine": 1,
+              "endLine": 15,
+              "text": "# Claude Code\n\n![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)\n\n[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square\n\nClaude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.\n\n**Learn more in the [official documentation](https://code.claude.com/docs/en/overview)**.\n\n<img src=\"./demo.gif\" />\n\n## Get started\n> [!NOTE]\n> Installation via npm is deprecated. Use one of the recommended methods below."
+            }
+          ]
+        }
+      ],
+      "boundary": "This is the official public documentation/changelog/plugins repository, not source disclosure of the proprietary CLI runtime. The unchanged app/SDK identities retain prior integrity-checked native-artifact evidence in client-wire-refresh-20261103.json; no new native runtime claim is inferred from this clone."
+    }
+  },
+  "officialClaudeContracts": [
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/thinking.md",
+      "sha256": "99d6c2e5f495a44d6e89f0ee4876e9a6e125edb1beaecd2ecb0b9e956050a2b5",
+      "bytes": 87664,
+      "excerpts": [
+        {
+          "startLine": 936,
+          "endLine": 961,
+          "text": "## Thinking with tool use\n\nThinking works alongside [tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview), letting Claude reason through tool selection and process tool results. Two constraints apply:\n\n1. **Tool choice limitation (manual mode):** tool use with manual extended thinking (`thinking: {type: \"enabled\"}`) only supports `tool_choice: {\"type\": \"auto\"}` (the default) or `tool_choice: {\"type\": \"none\"}`. Using `tool_choice: {\"type\": \"any\"}` or `tool_choice: {\"type\": \"tool\", \"name\": \"...\"}` results in an error because these options force tool use, which is incompatible with manual extended thinking. Adaptive thinking, including on models where thinking is on by default, supports forced tool use, except on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1, and Claude Mythos 5.1 (see [Response prefill and forced tool use](https://platform.claude.com/docs/en/build-with-claude/thinking#limits-and-feature-compatibility)). Where forced tool use is accepted, the response starts with the tool call and has no `thinking` block.\n2. **Preserving thinking blocks:** when you return tool results, you must pass the thinking blocks from the assistant message back to the API, complete and unmodified. See [Preserving thinking blocks](https://platform.claude.com/docs/en/build-with-claude/thinking#preserving-thinking-blocks).\n\n**A tool-use loop is one assistant turn.** From the model’s perspective, an assistant turn ends only when Claude completes its full response, which might include multiple tool calls and results. This whole sequence is a single assistant turn:\n\n```text wrap\nUser: \"What's the weather in Paris?\"\nAssistant: [thinking] + [tool_use: get_weather]\nUser: [tool_result: \"20°C, sunny\"]\nAssistant: [text: \"The weather in Paris is 20°C and sunny\"]\n```\n\nThe entire turn runs in a single thinking mode: you can’t toggle thinking in the middle of a turn, including during the tool-use loop. In extended (manual) mode, the API additionally enforces that the final assistant turn of a thinking-enabled request starts with a thinking block. Adaptive mode relaxes this: no assistant turn needs to start with one.\n\n**Mid-turn conflicts degrade gracefully.** If you toggle thinking mid-turn (for example, between sending a tool call and returning its result), the API doesn’t error. Instead, it silently disables thinking for that request. To preserve model quality, the API might strip thinking blocks that would create an invalid turn structure, or disable thinking when the conversation history is incompatible with thinking being enabled. To confirm whether thinking was active, check for the presence of `thinking` blocks in the response.\n\n**Toggle between turns, not within them.** Plan your thinking strategy at the start of each turn. Complete the assistant turn, then change the thinking configuration for the next one:\n\n```text wrap\nUser: \"What's the weather?\"\nAssistant: [tool_use] (thinking disabled)\nUser: [tool_result]"
+        },
+        {
+          "startLine": 973,
+          "endLine": 986,
+          "text": "1. **Reasoning continuity:** the thinking blocks capture the step-by-step reasoning that led to the tool requests. Including them lets Claude continue reasoning from where it left off.\n2. **Context maintenance:** tool results appear as user messages in the API structure, but they’re part of one continuous reasoning flow. Preserving thinking blocks maintains that flow across API calls.\n\nIn short:\n\n* **Required:** within a tool-use turn, pass thinking blocks back.\n* **Recommended:** across turns, pass everything back.\n* **Allowed:** outside tool use, omit prior turns’ thinking.\n\nYou don’t need to prune old thinking yourself. Pass all thinking blocks back in multi-turn conversations, and the API automatically filters them, keeps the blocks needed to preserve the model’s reasoning, and bills input tokens only for the blocks actually shown to Claude. Which prior-turn blocks are kept is per-model. See [Thinking block preservation by model](https://platform.claude.com/docs/en/build-with-claude/thinking#thinking-block-preservation-by-model). To override the default, use the [`clear_thinking_20251015` context-editing strategy](https://platform.claude.com/docs/en/build-with-claude/context-editing#thinking-block-clearing).\n\nWithin the latest assistant message, the sequence of consecutive `thinking` blocks must match what the model generated in the original request: you can’t rearrange, edit, or partially drop them. This includes [`redacted_thinking` blocks](https://platform.claude.com/docs/en/build-with-claude/thinking#redacted-thinking-blocks).\n\n<Note>"
+        }
+      ]
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md",
+      "sha256": "1119615176f358ed104a9537414ce1ec33f1049a2db9b787da66a3f299884c66",
+      "bytes": 23927,
+      "excerpts": [
+        {
+          "startLine": 324,
+          "endLine": 326,
+          "text": "The general turn-structure rules, including the single-turn tool-use loop, mid-turn conflict handling, and toggling thinking between turns, are on [Thinking with tool use](https://platform.claude.com/docs/en/build-with-claude/thinking#thinking-with-tool-use).\n\nManual mode adds one requirement: the final assistant turn of a thinking-enabled request must start with a thinking block ([adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) drops that requirement). Changing the thinking configuration between turns also invalidates prompt caching; see the following section."
+        }
+      ]
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/messages/create.md",
+      "sha256": "7bdae71980a2aff09491755da1744932b5cf722f459c1d4a2a8c818539f82ce3",
+      "bytes": 143315,
+      "excerpts": [
+        {
+          "startLine": 1248,
+          "endLine": 1258,
+          "text": "- `metadata: optional Metadata`\n\n  An object describing metadata about the request.\n\n  - `user_id: optional string or null`\n\n    An external identifier for the user who is associated with the request.\n\n    This should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.\n\n    maxLength: 512"
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "problem": "Codex header identity depended on _currentSessionId state from an earlier executor transform.",
+      "result": "Headers resolve from the actual current body and selected credentials; prompt cache policy stays independent and caller account/auth headers cannot override destination account credentials."
+    },
+    {
+      "problem": "Headers objects/mixed-case session records were missed; control characters could reach session HTTP values.",
+      "result": "Shared session lookup supports standard Headers and case-insensitive records, and rejects controls/overlong candidates; Claude optional metadata itself is retained verbatim."
+    },
+    {
+      "problem": "Static captured Claude signatures were assigned to unsigned source reasoning, synthetic thinking placeholders and third-party thinking/redacted blocks.",
+      "result": "No captured Claude signature export or injection remains. Real valid thinking/redacted opaque bytes are preserved. Missing required manual continuity or malformed current tool-turn blocks are explicit missing_thought_signature/invalid_thought_signature errors; adaptive turns may omit thinking. Multi-round tool use is one assistant turn and does not require fake thinking on later tool calls. Existing separate DeepSeek unsigned compatibility remains."
+    },
+    {
+      "problem": "OAuth token hashes were serialized as fabricated account/device identity and random bytes were presented as a Claude build/billing suffix.",
+      "result": "Removed token-derived account/device identifiers, generated billing claims and application identity system prompt. Optional caller metadata, user instructions and caller billing-looking text remain unchanged."
+    },
+    {
+      "problem": "Synthetic unavailable tools changed the advertised tool set, while all historical tool_use names were renamed regardless of ownership.",
+      "result": "Only caller declarations are advertised; aliases apply only to request-local declared client tools, remain unique and within existing tool-name limits, and preserve forced choices/history/stream restoration. Server and unrelated historical names remain exact."
+    },
+    {
+      "problem": "Translation selected stale accessToken before an explicit API key, despite outbound auth preferring the API key.",
+      "result": "Translation uses the same credential precedence as dispatch; stale OAuth cannot enable OAuth tool aliases for the selected API-key request."
+    },
+    {
+      "problem": "Codex dropped caller parallel_tool_calls even though stable publisher source serializes it, and overwrote include[] with a single encrypted-continuity entry.",
+      "result": "Preserve explicit true/false parallel tool intent and union the required reasoning.encrypted_content include with the caller array. Malformed include array intent is an actionable unsupported_parameter error before network dispatch; no privileged access_programs/attestation fields or invented thread identity were added."
+    },
+    {
+      "problem": "Native Haiku adaptive-to-manual normalization previously occurred after thinking-continuity validation, so the final manual tool continuation could escape its required original leading thinking check.",
+      "result": "Continuity now validates after effective thinking reconciliation and adaptive downgrade. Regression tests distinguish missing manual continuation from valid initial requests and intact signed continuations; supported adaptive models retain their independent omission rule."
+    },
+    {
+      "problem": "A new alias could collide with an undeclared historical tool_use name left unchanged, so response restoration would conflate the two original identities.",
+      "result": "Reserve untouched historical tool_use names before allocating current client aliases. The exact lookup/current versus lookup_ide/historical case preserves distinct outbound identities, forced choice, declared history and both JSON/SSE response restoration without mutating the caller body."
+    },
+    {
+      "problem": "The lossy Responses-to-Chat codec treated a namespace wrapper as a flat function named after the namespace and discarded its child custom/function tools.",
+      "result": "Reject namespace wrappers only inside convertResponsesApiFormat tool conversion with unsupported_parameter and tools.<index>, explaining that a native Responses-compatible route preserves the wrapper. The sole production call site is the registered Responses-to-Chat translator in translator/request/openai-responses.js; same-format/native Responses and Codex paths bypass the conversion guard. No namespace flattening or invented aliases were added."
+    }
+  ],
+  "kimchiReleaseOnlyUpdate": {
+    "oldVersion": "1.26.0",
+    "selectedVersion": "1.28.0",
+    "publishedAtUtc": "2026-11-03T15:25:08Z",
+    "releaseUrl": "https://github.com/getkimchi/kimchi/releases/tag/v1.28.0",
+    "releaseMetadata": {
+      "url": "https://api.github.com/repos/getkimchi/kimchi/releases/latest",
+      "sha256": "74e873b8be65c4d21bedcf36f860eab3513a4d038c2f4ff925565871b6ede65c",
+      "bytes": 15951
+    },
+    "annotatedTag": "1dd99090d9aa3515d766828aeddadb50b652980b",
+    "tag": "v1.28.0",
+    "commit": "d27263c73c00d56984b21b9ac293c13b80f4152e",
+    "sources": [
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/src/cli.ts",
+        "sha256": "83d577d8d08f654f3bc661d00a4d8baffe5b917fc45e8fd5e2fb4c1e2b7fc6f3",
+        "bytes": 51356,
+        "excerpts": [
+          {
+            "startLine": 803,
+            "endLine": 806,
+            "text": "\t\t\tinstallGlobalFetchInstrumentation({\n\t\t\t\tuserAgent: `kimchi/${getVersion()}`,\n\t\t\t\tonModelRequest: prepareProviderRequest,\n\t\t\t\tonModelResponse: recordProviderResponse,"
+          }
+        ]
+      },
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/src/utils.ts",
+        "sha256": "138f72a423f11b14f9f794b4ac6a928abe833352a99d5d6576228c9abef2fe46",
+        "bytes": 4252,
+        "excerpts": [
+          {
+            "startLine": 103,
+            "endLine": 125,
+            "text": "export function getVersion(): string {\n\tif (cachedVersion !== undefined) return cachedVersion\n\ttry {\n\t\tconst pkgDir = process.env.PI_PACKAGE_DIR\n\t\tconst pkgPath = pkgDir\n\t\t\t? resolve(pkgDir, \"package.json\")\n\t\t\t: resolve(dirname(fileURLToPath(import.meta.url)), \"../package.json\")\n\t\tconst pkg = JSON.parse(readFileSync(pkgPath, \"utf-8\"))\n\t\tlet version = pkg.version ?? \"unknown\"\n\t\t// When the version field is the development placeholder (0.0.0)\n\t\t// report a simple \"dev\" string so that the transform backend does\n\t\t// not have to deal with stale/partial git-describe noise.\n\t\tif (version === \"0.0.0\") {\n\t\t\tversion = \"dev\"\n\t\t}\n\t\tcachedVersion = version\n\t} catch {\n\t\tcachedVersion = \"unknown\"\n\t}\n\treturn cachedVersion ?? \"unknown\"\n}"
+          }
+        ]
+      },
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/.github/workflows/release.yml",
+        "sha256": "ae308dfaf8549203628eeadde177c1e6c1bf8d4136170e4bcb543bd306b056d1",
+        "bytes": 12861,
+        "excerpts": [
+          {
+            "startLine": 78,
+            "endLine": 80,
+            "text": "    runs-on: ${{ matrix.runner }}\n    env:\n      RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.0-dry-run.{0}', github.sha) }}"
+          },
+          {
+            "startLine": 97,
+            "endLine": 103,
+            "text": "      - name: Set version from tag\n        if: ${{ matrix.os != 'windows' }}\n        run: node scripts/set-version.js \"$RELEASE_VERSION\"\n\n      - name: Set version from tag - windows\n        if: ${{ matrix.os == 'windows' }}\n        run: node scripts/set-version.js $env:RELEASE_VERSION"
+          }
+        ]
+      },
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/scripts/set-version.js",
+        "sha256": "465e0b2dc8b43287ecfdbd0ab065cc94a0a7d1b4ab8a21b211d5d6ba0142add5",
+        "bytes": 984,
+        "excerpts": [
+          {
+            "startLine": 21,
+            "endLine": 30,
+            "text": "const version = ref.replace(/^v/, \"\")\nif (!/^\\d+\\.\\d+\\.\\d+/.test(version)) {\n\tconsole.error(`Invalid semver version: \"${version}\" (from ref \"${ref}\")`)\n\tprocess.exit(1)\n}\n\nconst pkg = JSON.parse(readFileSync(packageJsonPath, \"utf-8\"))\npkg.version = version\nwriteFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\\n`)\n"
+          }
+        ]
+      },
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/scripts/copy-resources.js",
+        "sha256": "6e42752b32ab3dcb86ce4e42c257a1522d155df4339417d44518034c56e73761",
+        "bytes": 14190,
+        "excerpts": [
+          {
+            "startLine": 117,
+            "endLine": 119,
+            "text": "if (!isDev) {\n\tcpSync(join(projectRoot, \"package.json\"), join(projectRoot, \"dist\", \"share\", \"kimchi\", \"package.json\"))\n"
+          }
+        ]
+      },
+      {
+        "url": "https://github.com/getkimchi/kimchi/blob/d27263c73c00d56984b21b9ac293c13b80f4152e/package.json",
+        "sha256": "6777c9421db38ad7dc986a94642da844b28cc22c59d920a50545e0da78804a1e",
+        "bytes": 8383,
+        "excerpts": [
+          {
+            "startLine": 1,
+            "endLine": 5,
+            "text": "{\n\t\"name\": \"@kimchi-dev/cli\",\n\t\"version\": \"0.0.0\",\n\t\"description\": \"kimchi — a coding agent CLI powered by Cast AI\",\n\t\"type\": \"module\","
+          }
+        ]
+      }
+    ],
+    "binding": "Official cli.ts supplies kimchi/${getVersion()}; tagged getVersion reads runtime package.json; release workflow derives version from tag, set-version strips v and writes package.version; resource copier packages that file. Source 0.0.0 is a development placeholder, not the released wire value.",
+    "changelogReview": "Read official release notes: background bash, CLI/TUI login unification, secret-redaction false positives, sidechat read-only scope and first-install bridge consent. These local-client changes do not establish new gateway headers, authentication grants, SDK/API versions or account entitlements.",
+    "decision": "Update exact central Kimchi UA release value, current wire regression and one intentional provider-baseline UA entry only."
+  },
+  "validation": {
+    "focusedCore": "131 passed in 10 files before later multi-round additions.",
+    "broadCore": "470 passed, 4 existing opt-in live skips in 54 files (53 passed, 1 skipped), after all final Claude continuity and Codex include/parallel changes; no warnings.",
+    "finalThinkingAndAlias": "63 passed in 4 files after multi-round and bare-content additions.",
+    "kimchi": "19 passed in 2 files.",
+    "lint": "Composed lint --max-warnings=0 passed across owned production/test files; final edited paths rechecked.",
+    "providerBaseline": "83 providers byte-for-byte equal after reviewed exact Kimchi UA entry and concurrent catalog-agent Cline/Clinepass response-format header entries; no bulk snapshot regeneration.",
+    "network": "Only public publisher metadata/documentation/static source reads. No publisher scripts/native binaries executed, no live provider OAuth/account calls or paid requests.",
+    "codexSourcePayload": "45 passed in 5 files after source-backed parallel/include preservation.",
+    "postReviewEffectiveMode": "97 passed in 5 files after the final Haiku effective-mode guard; strict lint --max-warnings=0 and git diff --check passed. Root runs final complete suite and rebuilds against the integrated frozen source.",
+    "postReviewHistoricalAlias": "39 passed in 2 files after reserving historical tool identities; strict lint --max-warnings=0 and git diff --check passed. Production frozen after this bounded fix.",
+    "responsesNamespaceBoundary": "23 passed in 3 files, including real outer routing with real account error classification: custom/function namespace conversion returns 400 before upstream dispatch, token refresh, account reads/writes or rotation; native public OpenAI Responses and Codex preserve wrapper JSON byte-for-byte, and actual Codex executor shaping preserves the supported wrapper. Strict lint --max-warnings=0 and git diff --check passed."
+  },
+  "limits": [
+    "Shape validation does not authenticate opaque signatures or establish account/model ownership; only the provider can verify cryptographic validity.",
+    "Do not recover a signature from another request/account, synthesize a fingerprint/attestation, claim entitlement from header presence or silently retry forbidden account operations.",
+    "Official source and isolated mocked wire tests establish request behavior, not a promise against provider account restrictions."
+  ]
+}

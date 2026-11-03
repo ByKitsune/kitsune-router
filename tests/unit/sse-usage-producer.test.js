@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
 const db = vi.hoisted(() => ({ enqueueRequestUsage: vi.fn(), saveRequestUsage: vi.fn(), saveRequestDetail: vi.fn(async () => {}), appendRequestLog: vi.fn(async () => {}), trackPendingRequest: vi.fn() }));
 vi.mock("@/lib/usageDb.js", () => db);
 import { buildOnStreamComplete, handleStreamingResponse } from "../../open-sse/handlers/chatCore/streamingHandler.js";
@@ -10,7 +11,9 @@ const usage = { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 };
 const encoder = new TextEncoder();
 const frame = value => `data: ${JSON.stringify(value)}\n\n`;
 const ctx = () => ({ provider: "offline", model: "offline", connectionId: "fixture", body: { messages: [] }, stream: true, requestStartTime: Date.now(), usageEventId: "attempt-one", usageTimestamp: "2026-10-26T01:00:00.000Z", sourceFormat: F.OPENAI_RESPONSES, targetFormat: F.OPENAI_RESPONSES, trackDone: vi.fn(), appendLog: vi.fn(), reqLogger: { logProviderResponse: vi.fn(), logConvertedResponse: vi.fn() } });
-beforeEach(() => { vi.clearAllMocks(); db.enqueueRequestUsage.mockImplementation(async entry => ({ accepted: true, eventId: entry.eventId })); });
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); vi.clearAllMocks(); db.enqueueRequestUsage.mockImplementation(async entry => ({ accepted: true, eventId: entry.eventId })); });
+afterEach(() => diagnostics.verify());
 
 describe("chat producers await durable acceptance only", () => {
   it("shares one synchronous terminal claim and stable identity across duplicate completion/abort callbacks", async () => {
@@ -31,6 +34,7 @@ describe("chat producers await durable acceptance only", () => {
     expect(db.enqueueRequestUsage.mock.calls[1][0].eventId).toBe("attempt-two");
   });
   it.each([false, true])("surfaces rejected acceptance rather than resolving success (acceptedFalse=%s)", async acceptedFalse => {
+    if (!acceptedFalse) diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     db.enqueueRequestUsage.mockImplementation(async () => { if (acceptedFalse) return { accepted: false }; throw new Error("private database path"); });
     const callbacks = buildOnStreamComplete(ctx());
     await expect(callbacks.onStreamComplete({ content: "answer" }, usage)).rejects.toMatchObject({ code: "usage_acceptance_failed", message: "Usage accounting could not be accepted" });
@@ -49,6 +53,7 @@ describe("chat producers await durable acceptance only", () => {
     accept({ accepted: true }); expect(await text).toContain("response.completed"); expect(db.saveRequestUsage).not.toHaveBeenCalled();
   });
   it.each([false, true])("gates Chat finish on trailing usage acceptance (reject=%s)", async rejectAcceptance => {
+    if (rejectAcceptance) diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     let accept; let reject;
     db.enqueueRequestUsage.mockImplementation(() => new Promise((resolve, failed) => { accept = resolve; reject = failed; }));
     const context = { ...ctx(), sourceFormat: F.OPENAI, targetFormat: F.OPENAI }; const onStreamFailed = vi.fn();
@@ -64,6 +69,7 @@ describe("chat producers await durable acceptance only", () => {
     expect(onStreamFailed).not.toHaveBeenCalled(); expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1); expect(input.locked).toBe(false);
   });
   it("fails the native terminal stream when durable acceptance rejects without poisoning the account", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     db.enqueueRequestUsage.mockRejectedValue(new Error("private storage details"));
     const context = ctx(); const onStreamFailed = vi.fn();
     const input = new Response(frame({ type: "response.completed", response: { id: "resp_failed_accept", status: "completed", output: [], usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 } } }), { headers: { "content-type": "text/event-stream" } });
@@ -72,6 +78,7 @@ describe("chat producers await durable acceptance only", () => {
     expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1); expect(onStreamFailed).not.toHaveBeenCalled(); expect(input.body.locked).toBe(false);
   });
   it("caller signal cancellation releases upstream before rejecting failed acceptance", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     const context = { ...ctx(), sourceFormat: F.OPENAI, targetFormat: F.OPENAI }; const cancel = vi.fn(); const streamController = createStreamController();
     const input = new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(frame({ choices: [{ index: 0, delta: { content: "partial" } }], usage }))); }, cancel });
     const result = await handleStreamingResponse({ ...context, ...buildOnStreamComplete(context), streamController, providerResponse: new Response(input, { headers: { "content-type": "text/event-stream" } }) });
@@ -90,6 +97,7 @@ describe("chat producers await durable acceptance only", () => {
     expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1); expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 7, completion_tokens: 3 }); expect(cancel).toHaveBeenCalledTimes(1); expect(pull).not.toHaveBeenCalled(); expect(input.locked).toBe(false);
   });
   it("cancels a locked upstream before awaiting slow cancel accounting and surfaces rejection", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     let accept;
     const cancel = vi.fn();
     const context = { ...ctx(), sourceFormat: F.OPENAI, targetFormat: F.OPENAI };
@@ -121,6 +129,7 @@ describe("aborted JSON aggregation retains observed usage", () => {
     accept({ accepted: true }); await observed; expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1);
   });
   it.each(["forced", "nonstream"])("does not swallow failed acceptance after %s cancellation", async mode => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     const controller = new AbortController(); const cancel = vi.fn(); db.enqueueRequestUsage.mockRejectedValue(new Error("private storage detail"));
     const input = new ReadableStream({ start(upstream) { upstream.enqueue(encoder.encode(frame({ choices: [{ index: 0, delta: { content: "partial" } }], usage }))); }, pull() { controller.abort(new Error("caller left")); }, cancel }, { highWaterMark: 0 });
     const context = { ...ctx(), stream: false, sourceFormat: F.OPENAI, targetFormat: F.OPENAI, signal: controller.signal, providerResponse: new Response(input, { headers: { "content-type": "text/event-stream" } }) };
@@ -147,6 +156,7 @@ describe("unsupported-media JSON producer boundary", () => {
     expect(db.enqueueRequestUsage).toHaveBeenCalledTimes(1); expect(db.enqueueRequestUsage.mock.calls[0][0].tokens).toMatchObject({ prompt_tokens: 7, completion_tokens: 2 });
   });
   it("returns a public 503 rather than a nonstream success when acceptance fails", async () => {
+    diagnostics.expectError("[USAGE] Persistence failed:", "Error");
     db.enqueueRequestUsage.mockRejectedValue(new Error("private database path"));
     const result = await handleNonStreamingResponse({ ...ctx(), stream: false, sourceFormat: F.OPENAI, targetFormat: F.OPENAI, providerResponse: Response.json({ choices: [{ message: { content: "answer" }, finish_reason: "stop" }], usage }) });
     expect(result.response.status).toBe(503); const text = await result.response.text(); expect(text).toContain("usage_acceptance_failed"); expect(text).not.toContain("private database path");

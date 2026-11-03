@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -159,6 +164,9 @@ describe("Performance Optimizations (Kitsune Router hardened port of #3629)", ()
 
   describe("Auth Service per-provider mutex", () => {
     it("resolves distinct providers in parallel", async () => {
+      for (const provider of ["openai", "anthropic", "deepseek"]) {
+        diagnostics.expectWarn(expect.stringMatching(new RegExp(`^\\[\\d{2}:\\d{2}:\\d{2}\\] ⚠️  \\[AUTH\\] No credentials for ${provider}$`)));
+      }
       const start = Date.now();
       const [a, b, c] = await Promise.all([
         getProviderCredentials("openai"),

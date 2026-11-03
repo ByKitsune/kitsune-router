@@ -244,7 +244,13 @@ export function convertResponsesApiFormat(body, { model = body.model, stream = b
   ];
   if (responseTools.length > 0) {
     result.tools = responseTools
-      .map(tool => {
+      .map((tool, index) => {
+        if (tool?.type === "namespace") {
+          const error = new Error("This Chat Completions route cannot preserve Responses namespace tool wrappers. Use a native Responses-compatible route to keep the namespace and its tools unchanged.");
+          error.code = "unsupported_parameter";
+          error.param = `tools.${index}`;
+          throw error;
+        }
         // Already in Chat Completions format: { type: "function", function: { name, ... } }
         if (tool.function) return tool;
         // Responses API function/custom tool: { type, name, description, parameters|format }.

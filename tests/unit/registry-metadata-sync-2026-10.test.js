@@ -83,18 +83,20 @@ describe("October registry metadata reaches effective consumers", () => {
     expect(model).not.toHaveProperty("max_completion_tokens");
   });
 
-  it("removes confirmed Anthropic API retirements while retaining scheduled OpenAI rows", async () => {
+  it("hides publisher-deprecated API advertisements while retaining explicit route definitions", async () => {
     // Claude API retirement is not proof of retirement on Claude Code or a reseller.
-    // OpenAI's 2026-10-23 schedule is still in the future on this snapshot date.
+    // The November refresh suppresses deprecated suggestions even before a scheduled shutdown.
     const models = (await buildModelsList(["llm"])).map(m => m.id);
     for (const id of ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022"]) {
       expect(models).not.toContain(`anthropic/${id}`);
     }
     for (const id of ["gpt-4-turbo", "gpt-4.1-nano", "o3-mini", "o4-mini", "o1", "o1-pro"]) {
-      expect(models).toContain(`openai/${id}`);
+      expect(models).not.toContain(`openai/${id}`);
+      expect(PROVIDER_MODELS.openai.some((row) => row.id === id)).toBe(true);
     }
     expect(models).not.toContain("openai/o1-mini");
-    expect(models).toContain("gemini/gemini-2.5-pro");
+    expect(models).not.toContain("gemini/gemini-2.5-pro");
+    expect(models).toContain("gemini/gemini-2.5-flash-lite");
   });
 
   it("does not advertise coding-plan IDs excluded by the provider's exhaustive allowlist", async () => {

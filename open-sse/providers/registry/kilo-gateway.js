@@ -33,5 +33,14 @@ export default {
     { id: "kwaipilot/kat-coder-pro-v2.5:free", name: "Kat Coder Pro v2.5 (Free)", contextLength: 256000 },
     { id: "kilo-auto/frontier", name: "Kilo Auto Frontier", contextLength: 1000000 },
     { id: "kilo-auto/balanced", name: "Kilo Auto Balanced", contextLength: 1000000 },
+    // Exact publisher catalog IDs reviewed 2026-11-04; account policy remains authoritative.
+    {id: "nvidia/nemotron-3.5-super-vl:free", name: "Nemotron 3.5 Super VL (Free)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "reflection/beam-free", name: "Beam 1.0 (Free)", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "openai/gpt-6.1-terra", name: "GPT-6.1 Terra", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "openai/gpt-6.1-terra-pro", name: "GPT-6.1 Terra Pro", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "moonshotai/kimi-k3.1-pro", name: "Kimi K3.1 Pro", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "google/gemini-4-argon", name: "Gemini 4 Argon", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "openai/gpt-6-astra", name: "GPT-6 Astra", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "anthropic/claude-opus-5.5", name: "Claude Opus 5.5", targetFormat: "openai", supportedFormats: ["openai"]},
   ],
 };

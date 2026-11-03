@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 4 provider request-safety and catalog review](30-provider-request-safety-and-catalog-refresh-2026-11-04.md)
+compares official source clones, removes fabricated request material, audits all
+121 provider catalogs, and records CI/runtime warning and fixture corrections.
+
 The [November 3 account/request consistency review](29-upstream-account-request-consistency-2026-11-03.md)
 indexes 2,327 upstream issues, records selective source/comment dispositions,
 and covers verified client, signature, credential-egress and connection-UI repairs.

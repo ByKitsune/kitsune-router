@@ -12,6 +12,15 @@ beforeEach(() => {
 });
 
 describe("resolveSessionId", () => {
+  it.each([new Headers({ "X-Session-ID": "current-session" }), { "X-Session-ID": "current-session" }])("reads Headers and mixed-case records with the same session priority", headers => {
+    expect(resolveSessionId({ headers, body: { prompt_cache_key: "body-session" }, connectionId: "session-record", scope: "codex" })).toBe("current-session");
+  });
+
+  it.each(["bad\r\nsession", "bad\u0000session", "bad\u001fsession", "bad\u007fsession"])("rejects control characters in session metadata: %j", session => {
+    expect(resolveSessionId({ headers: { "x-session-id": session }, body: { prompt_cache_key: "safe-body-session" }, scope: "codex" })).toBe("safe-body-session");
+    expect(resolveSessionId({ body: { prompt_cache_key: session }, workspaceId: "safe-workspace", scope: "codex" })).toBe("safe-workspace");
+  });
+
   it("stickiness: same body+connectionId+scope -> same id", () => {
     const opts = { body: bodyWithAssistant, connectionId: "conn1", scope: "codex" };
     expect(resolveSessionId(opts)).toBe(resolveSessionId(opts));

@@ -122,13 +122,13 @@ describe("Gemini ingress identity, native names and signature isolation", () => 
     expect(chunk.candidates[0].content.parts[0].functionCall.name).toBe(wire);
   });
 
-  it("does not turn gateway fallback signatures into opaque native identity during replay", () => {
+  it("keeps unsigned history and tool identity unchanged through replay", () => {
     const source = { messages: [
       { role: "assistant", content: null, tool_calls: [{ id: "call_original", type: "function", function: { name: "lookup", arguments: "{}" } }] },
       { role: "tool", tool_call_id: "call_original", content: "ok" },
     ] };
     const native = translateRequest(FORMATS.OPENAI, FORMATS.GEMINI, "gemini-2.5-flash", source, false);
-    expect(native.contents.flatMap(turn => turn.parts).find(part => part.functionCall).thoughtSignature).toBeTruthy();
+    expect(native.contents.flatMap(turn => turn.parts).find(part => part.functionCall)).not.toHaveProperty("thoughtSignature");
     const replay = translateRequest(FORMATS.GEMINI, FORMATS.CLAUDE, "claude-sonnet-4.5", native, false);
     const parts = replay.messages.flatMap(turn => turn.content);
     expect(parts.find(part => part.type === "tool_use").id).toBe("call_original");

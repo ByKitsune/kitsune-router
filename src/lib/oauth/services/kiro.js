@@ -1,5 +1,6 @@
 import { KIRO_CONFIG, assertValidAwsRegion } from "../constants/oauth.js";
 import { KIRO_USER_AGENT, KIRO_AMZ_USER_AGENT } from "open-sse/config/clientVersions.js";
+import { isKiroToken, isKiroTokenResponse, kiroDeviceError, readKiroGrant, readKiroJson } from "../kiroResponse.js";
 
 /**
  * Kiro OAuth Service
@@ -23,6 +24,7 @@ export class KiroService {
 
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
       },
@@ -36,11 +38,14 @@ export class KiroService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to register client: ${error}`);
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`Failed to register client (HTTP ${response.status})`);
     }
 
-    const data = await response.json();
+    const data = await readKiroJson(response, "Client registration");
+    if (!isKiroToken(data?.clientId) || !isKiroToken(data?.clientSecret)) {
+      throw new Error("Client registration returned invalid credentials");
+    }
     return {
       clientId: data.clientId,
       clientSecret: data.clientSecret,
@@ -57,6 +62,7 @@ export class KiroService {
 
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
       },
@@ -68,11 +74,14 @@ export class KiroService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to start device authorization: ${error}`);
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`Failed to start device authorization (HTTP ${response.status})`);
     }
 
-    const data = await response.json();
+    const data = await readKiroJson(response, "Device authorization");
+    if (!isKiroToken(data?.deviceCode) || !isKiroToken(data?.userCode)) {
+      throw new Error("Device authorization returned invalid codes");
+    }
     return {
       deviceCode: data.deviceCode,
       userCode: data.userCode,
@@ -92,6 +101,7 @@ export class KiroService {
 
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
       },
@@ -103,15 +113,23 @@ export class KiroService {
       }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await readKiroJson(response, "Device token request");
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      const failure = kiroDeviceError(response);
+      return { success: false, error: failure.error, errorDescription: failure.error_description, pending: false };
+    }
 
     // Handle pending/slow_down/errors
-    if (!response.ok || data.error) {
+    if (!response.ok || !isKiroTokenResponse(data)) {
+      const failure = kiroDeviceError(response, data);
       return {
         success: false,
-        error: data.error,
-        errorDescription: data.error_description,
-        pending: data.error === "authorization_pending" || data.error === "slow_down",
+        error: failure.error,
+        errorDescription: failure.error_description,
+        pending: failure.error === "authorization_pending" || failure.error === "slow_down",
       };
     }
 
@@ -148,6 +166,7 @@ export class KiroService {
 
     const response = await fetch(`${KIRO_AUTH_SERVICE}/oauth/token`, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
       },
@@ -158,12 +177,7 @@ export class KiroService {
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
-    }
-
-    const data = await response.json();
+    const data = await readKiroGrant(response, "Token exchange");
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
@@ -186,6 +200,7 @@ export class KiroService {
 
       const response = await fetch(endpoint, {
         method: "POST",
+        redirect: "error",
         headers: {
           "Content-Type": "application/json",
         },
@@ -197,12 +212,7 @@ export class KiroService {
         }),
       });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Token refresh failed: ${error}`);
-      }
-
-      const data = await response.json();
+      const data = await readKiroGrant(response, "Token refresh");
       return {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken || refreshToken,
@@ -214,6 +224,7 @@ export class KiroService {
     // Social auth refresh (Google/GitHub)
     const response = await fetch(`${KIRO_AUTH_SERVICE}/refreshToken`, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
       },
@@ -222,12 +233,7 @@ export class KiroService {
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Token refresh failed: ${error}`);
-    }
-
-    const data = await response.json();
+    const data = await readKiroGrant(response, "Token refresh");
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken || refreshToken,
@@ -271,6 +277,7 @@ export class KiroService {
 
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/x-amz-json-1.0",
         "x-amz-target": "AmazonCodeWhispererService.ListAvailableProfiles",
@@ -281,11 +288,11 @@ export class KiroService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list profiles: ${error}`);
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`Failed to list profiles (HTTP ${response.status})`);
     }
 
-    const data = await response.json();
+    const data = await readKiroJson(response, "Profile lookup");
     const profiles = Array.isArray(data?.profiles) ? data.profiles : [];
     const arnOf = (p) => p?.arn || p?.profileArn || null;
     const match = profiles.find((p) => arnOf(p)?.split(":")[3] === region) || profiles[0];
@@ -303,6 +310,7 @@ export class KiroService {
     const endpoint = `https://q.${region}.amazonaws.com/ListAvailableModels?${params}`;
     const response = await fetch(endpoint, {
       method: "GET",
+      redirect: "error",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "TokenType": "API_KEY",
@@ -313,11 +321,11 @@ export class KiroService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list API-key models: ${error}`);
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`Failed to list API-key models (HTTP ${response.status})`);
     }
 
-    const data = await response.json();
+    const data = await readKiroJson(response, "API-key model lookup");
     const models = Array.isArray(data?.models) ? data.models : [];
     if (models.length === 0) {
       throw new Error("API key returned no available models");
@@ -359,6 +367,7 @@ export class KiroService {
 
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/x-amz-json-1.0",
         "x-amz-target": target,
@@ -372,11 +381,11 @@ export class KiroService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list models: ${error}`);
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`Failed to list models (HTTP ${response.status})`);
     }
 
-    const data = await response.json();
+    const data = await readKiroJson(response, "Model lookup");
     return (data.models || []).map(m => ({
       id: m.modelId,
       name: m.modelName || m.modelId,

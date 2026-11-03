@@ -49,7 +49,13 @@ describe("native media tariffs on provider-owned wire kinds", () => {
     ["gpt-image-2.5-flare", { text_input: 5, image_input: 8, image_output: 30 }],
   ])("keeps %s's modality prices out of the ordinary flat token tariff", async (id, rates) => {
     const row = (await buildModelsList(["image"])).find(model => model.id === `openai/${id}`);
-    expect(row).toMatchObject({ metadata: { billing: { rates, tokenPricingSupported: false } }, capabilities: { imageOutput: true, vision: false } });
+    if (id === "gpt-image-1") {
+      expect(row).toBeUndefined();
+      expect(getReviewedModelMetadata("openai", id)).toMatchObject({ billing: { rates, tokenPricingSupported: false } });
+      expect(getCapabilitiesForModel("openai", id)).toMatchObject({ imageOutput: true, vision: false });
+    } else {
+      expect(row).toMatchObject({ metadata: { billing: { rates, tokenPricingSupported: false } }, capabilities: { imageOutput: true, vision: false } });
+    }
     expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1 }, getPricingForModel("openai", id))).toBeNull();
   });
 

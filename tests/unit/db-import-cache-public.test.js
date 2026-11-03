@@ -36,6 +36,17 @@ let server;
 let serve;
 let version;
 let releases;
+let warningSpy;
+let errorSpy;
+let importDiagnostics;
+let expectedWarnings;
+let expectedImportDiagnostics;
+
+const codexExhausted = "[12:00:00] ⚠️  [AUTH] codex | all accounts blocked by quota-aware filter (reset after 1h)";
+const antigravityExhausted = "[12:00:00] ⚠️  [AUTH] antigravity | accounts locked for claude-sonnet-4-6 (reset after 1h)";
+const rollbackDiagnostic = () => ["Error importing database:", expect.objectContaining({
+  name: "SqliteError", code: "SQLITE_CONSTRAINT_NOTNULL", message: "NOT NULL constraint failed: combos.name",
+})];
 
 function payload(stage) {
   return {
@@ -144,6 +155,18 @@ function serveQuotas(oldRemaining = 0) {
 }
 
 beforeEach(async () => {
+  expectedWarnings = [];
+  expectedImportDiagnostics = [];
+  importDiagnostics = [];
+  warningSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const originalLog = console.log.bind(console);
+  // Import failures are intentionally logged with console.log by the route.
+  // Capture only that diagnostic; keep ordinary DB/migration output visible.
+  vi.spyOn(console, "log").mockImplementation((...args) => {
+    if (args[0] === "Error importing database:") importDiagnostics.push(args);
+    else originalLog(...args);
+  });
   previousGlobals = Object.fromEntries(globalKeys.map(key => [key, Object.getOwnPropertyDescriptor(global, key)]));
   previousEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
   previousListeners = new Map(shutdownEvents.map(event => [event, process.rawListeners(event)]));
@@ -206,6 +229,11 @@ afterEach(async () => {
     await global._dbAdapter?.instance?.close();
     server?.closeAllConnections();
     if (server) await new Promise(resolve => server.close(resolve));
+    // Every negative fixture declares its exact diagnostic arguments. All other
+    // cases must remain warning/error free, including resource cleanup.
+    expect(warningSpy.mock.calls).toEqual(expectedWarnings);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(importDiagnostics).toEqual(expectedImportDiagnostics);
   } finally {
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -277,6 +305,7 @@ describe("public database import consistency", () => {
   });
 
   it("keeps warmed public snapshots and the alias file when the transaction rolls back", async () => {
+    expectedImportDiagnostics = [rollbackDiagnostic()];
     const caps = await declared.getDeclaredModelCaps("openai", "import-declared");
     const models = await modelList();
     const catalog = await live.fetchProviderLiveModels("openai", "provider-old");
@@ -384,6 +413,10 @@ describe("public database import consistency", () => {
   });
 
   it("does not report success if committed aliases cannot be published", async () => {
+    expectedImportDiagnostics = [["Error importing database:", expect.objectContaining({
+      name: "Error", code: "DB_IMPORT_SYNC_FAILED", message: "Database imported, but MITM alias synchronization failed",
+      cause: expect.objectContaining({ code: "EISDIR", syscall: "rename", dest: join(root, "data", "mitm", "aliases.json") }),
+    })]];
     const manager = await import("@/mitm/manager.js");
     manager.setCachedPassword("old-sudo-password");
     await rm(join(root, "data", "mitm", "aliases.json"));
@@ -407,6 +440,7 @@ describe("public database import consistency", () => {
   });
 
   it("keeps cached sudo credentials when the transaction rolls back", async () => {
+    expectedImportDiagnostics = [rollbackDiagnostic()];
     const manager = await import("@/mitm/manager.js");
     manager.setCachedPassword("old-sudo-password");
 
@@ -418,6 +452,7 @@ describe("public database import consistency", () => {
 
 describe("imported same-ID quota credentials", () => {
   it("selects the imported Codex credential immediately despite a warmed exhausted snapshot", async () => {
+    expectedWarnings = [[codexExhausted]];
     const { getProviderCredentials } = await import("@/sse/services/auth.js");
     const requests = serveQuotas();
     await db.importDb(quotaPayload("codex", "old"));
@@ -446,6 +481,9 @@ describe("imported same-ID quota credentials", () => {
   });
 
   it.each(["codex", "antigravity"])("preserves the %s exhausted quota on transaction rollback", async provider => {
+    const exhausted = provider === "codex" ? codexExhausted : antigravityExhausted;
+    expectedWarnings = [[exhausted], [exhausted]];
+    expectedImportDiagnostics = [rollbackDiagnostic()];
     const { getProviderCredentials } = await import("@/sse/services/auth.js");
     const ag = await import("@/sse/services/antigravityQuota.js");
     serveQuotas();
@@ -462,6 +500,7 @@ describe("imported same-ID quota credentials", () => {
   });
 
   it("clears Antigravity exhaustion and its refresh throttle for imported credentials", async () => {
+    expectedWarnings = [[antigravityExhausted]];
     const { getProviderCredentials } = await import("@/sse/services/auth.js");
     const ag = await import("@/sse/services/antigravityQuota.js");
     serveQuotas();
@@ -502,6 +541,10 @@ describe("imported same-ID quota credentials", () => {
   });
 
   it("clears Antigravity strike blocks on import without carrying them into the new quota", async () => {
+    expectedWarnings = [
+      ["[12:00:00] ⚠️  [AG_QUOTA] import-c | STRIKE_429 claude-sonnet-4-6 — 3x 429 (quota 100%, resetAt 2026-10-19T13:00:00.000Z) within 0s; CACHE_BLOCK 15m until 2026-10-19T12:15:00.000Z (strike window 60s, block 15m)"],
+      ["[12:00:00] ⚠️  [AUTH] antigravity | accounts locked for claude-sonnet-4-6 (reset after 15m)"],
+    ];
     const { getProviderCredentials } = await import("@/sse/services/auth.js");
     const ag = await import("@/sse/services/antigravityQuota.js");
     serveQuotas(1);

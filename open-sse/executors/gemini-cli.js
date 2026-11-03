@@ -1,9 +1,11 @@
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
-import { OAUTH_ENDPOINTS, GEMINI_CLI_API_CLIENT, geminiCLIUserAgent } from "../config/appConstants.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { GEMINI_CLI_API_CLIENT, geminiCLIUserAgent } from "../config/appConstants.js";
+import { refreshGoogleToken } from "../services/tokenRefresh/providers.js";
+import { readCloudCodeProjectId, requireCloudCodeProjectId } from "../utils/cloudCodeProject.js";
 import { FORMATS } from "../translator/formats.js";
-import { applyThinking, captureThinking } from "../translator/concerns/thinkingUnified.js";
+import { applyThinking, captureThinking, stripThinkingSuffix } from "../translator/concerns/thinkingUnified.js";
+import { validateGoogleThoughtSignatures } from "../translator/concerns/thoughtSignature.js";
 
 const GEMINI_CLI_REQUEST_BLACKLIST = [
   "output_config", "thinking", "reasoning_effort", "reasoning",
@@ -24,7 +26,7 @@ export class GeminiCLIExecutor extends BaseExecutor {
     return {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${credentials.accessToken}`,
-      "User-Agent": geminiCLIUserAgent(model),
+      "User-Agent": geminiCLIUserAgent(stripThinkingSuffix(model)),
       "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
       "Accept": stream ? "text/event-stream" : "application/json"
     };
@@ -34,14 +36,18 @@ export class GeminiCLIExecutor extends BaseExecutor {
     // Cloud Code Assist wraps the Gemini payload: { project, model, request: <body> }
     const wrapped = !!(body?.request && body.model);
     const sourceRequest = wrapped ? body.request : body;
+    const wireModel = stripThinkingSuffix(wrapped ? body.model : model);
     const compatibilityControls = GEMINI_CLI_REQUEST_BLACKLIST.some(field =>
       body?.[field] !== undefined || sourceRequest?.[field] !== undefined);
+    const project = readCloudCodeProjectId(credentials);
+    const contents = validateGoogleThoughtSignatures(sourceRequest?.contents, wireModel);
+    const normalizedRequest = contents === sourceRequest?.contents ? sourceRequest : { ...sourceRequest, contents };
     if (!compatibilityControls) {
-      return wrapped ? body : { project: credentials?.projectId || body?.project, model, request: body };
+      return wrapped ? { ...body, project, model: wireModel, request: normalizedRequest } : { project, model: wireModel, request: normalizedRequest };
     }
 
     const thinkingIntent = captureThinking(body) || captureThinking(sourceRequest);
-    const request = { ...sourceRequest, generationConfig: { ...sourceRequest?.generationConfig } };
+    const request = { ...normalizedRequest, generationConfig: { ...normalizedRequest?.generationConfig } };
     const nativeThinking = request.generationConfig.thinkingConfig;
     if (thinkingIntent && nativeThinking?.thinkingBudget === undefined && nativeThinking?.thinkingLevel === undefined) {
       applyThinking(FORMATS.GEMINI_CLI, model, request, this.provider, thinkingIntent);
@@ -49,11 +55,17 @@ export class GeminiCLIExecutor extends BaseExecutor {
     for (const field of GEMINI_CLI_REQUEST_BLACKLIST) delete request[field];
 
     if (wrapped) {
-      const transformed = { ...body, request };
+      const transformed = { ...body, project, model: wireModel, request };
       for (const field of GEMINI_CLI_REQUEST_BLACKLIST) delete transformed[field];
       return transformed;
     }
-    return { project: credentials?.projectId || body?.project, model, request };
+    return { project, model: wireModel, request };
+  }
+
+  async execute(args) {
+    args.signal?.throwIfAborted();
+    requireCloudCodeProjectId(args.credentials);
+    return super.execute(args);
   }
 
   // Parse RetryInfo.retryDelay from Google API 429 body to surface upstream retry hint
@@ -76,38 +88,9 @@ export class GeminiCLIExecutor extends BaseExecutor {
   }
 
   async refreshCredentials(credentials, log, proxyOptions = null, signal = null) {
-    signal?.throwIfAborted();
-    if (!credentials.refreshToken) return null;
-
-    try {
-      const response = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
-        signal,
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: credentials.refreshToken,
-          client_id: this.config.clientId,
-          client_secret: this.config.clientSecret
-        })
-      }, proxyOptions);
-
-      if (!response.ok) return null;
-
-      const tokens = await response.json();
-      log?.info?.("TOKEN", "Gemini CLI refreshed");
-
-      return {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || credentials.refreshToken,
-        expiresIn: tokens.expires_in,
-        projectId: credentials.projectId
-      };
-    } catch (error) {
-      signal?.throwIfAborted();
-      log?.error?.("TOKEN", `Gemini CLI refresh error: ${error.message}`);
-      return null;
-    }
+    const refreshed = await refreshGoogleToken(credentials.refreshToken, this.config.clientId,
+      this.config.clientSecret, log, proxyOptions, signal);
+    return refreshed ? { ...refreshed, projectId: credentials.projectId } : null;
   }
 }
 

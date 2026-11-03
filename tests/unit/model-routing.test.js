@@ -10,10 +10,10 @@ const fixtureGlobals = [
 let originalDataDir;
 let originalGlobals;
 let originalListeners;
-let originalEmit;
 let tempDir;
 
 async function setupDb() {
+  fs.mkdirSync(os.tmpdir(), { recursive: true });
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "kitsunerouter-model-routing-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
@@ -29,7 +29,6 @@ describe("model routing", () => {
     originalDataDir = process.env.DATA_DIR;
     originalGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
     originalListeners = new Map(["beforeExit", "SIGINT", "SIGTERM"].map((event) => [event, process.rawListeners(event)]));
-    originalEmit = process.emit;
     tempDir = undefined;
     for (const key of fixtureGlobals) delete global[key];
     vi.clearAllMocks();
@@ -49,7 +48,6 @@ describe("model routing", () => {
           if (!listeners.includes(listener)) process.removeListener(event, listener);
         }
       }
-      process.emit = originalEmit;
       for (const [key, descriptor] of originalGlobals) {
         if (descriptor) Object.defineProperty(global, key, descriptor);
         else delete global[key];

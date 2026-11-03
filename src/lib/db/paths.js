@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
-import { DATA_DIR } from "../dataDir.js";
+import { DATA_DIR } from "../dataDir.mjs";
 
 const CONFIGURED_DATA_DIR = process.env.DATA_DIR;
 

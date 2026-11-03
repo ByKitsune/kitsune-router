@@ -31,7 +31,15 @@ export const DEFAULT_ERROR_MESSAGES = {
 };
 
 export const FALLBACK_SCOPE = { ACCOUNT: "account", COMBO: "combo" };
-export const NON_RETRYABLE_ROUTER_CODES = new Set(["usage_acceptance_failed", "usage_accounting_uncertain"]);
+// Missing authentic continuity/account binding cannot be repaired by replaying
+// the same history on another credential or silently generating replacement data.
+export const REQUEST_SAFETY_ERROR_MESSAGES = {
+  invalid_thought_signature: "The supplied thought signature is malformed or incomplete. Resend the complete original assistant response unchanged or start a new conversation.",
+  missing_thought_signature: "This tool-result continuation is missing its original signed thinking. Resend the complete original assistant response unchanged or start a new conversation.",
+  provider_project_required: "The selected connection is missing a required project binding. Reconnect the account or complete project setup before retrying.",
+};
+export const REQUEST_SAFETY_ERROR_CODES = new Set(Object.keys(REQUEST_SAFETY_ERROR_MESSAGES));
+export const NON_RETRYABLE_ROUTER_CODES = new Set(["usage_acceptance_failed", "usage_accounting_uncertain", ...REQUEST_SAFETY_ERROR_CODES]);
 export const NONFINAL_CHAT_FINISH_REASONS = new Set([null, undefined, "in_progress", "incomplete"]);
 
 // Exponential backoff config for rate limits

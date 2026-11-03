@@ -24,6 +24,7 @@ import { createHash } from "crypto";
 import { refreshKiroToken } from "./tokenRefresh.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { assertValidAwsRegion } from "../config/awsRegions.js";
 import {
   MODEL_CATALOG_CACHE_TTL_MS,
   MODEL_CATALOG_MAX_CACHE_BYTES,
@@ -95,7 +96,7 @@ function stripSyntheticSuffixes(id) {
 function regionFromProfileArn(profileArn) {
   if (!profileArn || typeof profileArn !== "string") return DEFAULT_REGION;
   const parts = profileArn.split(":");
-  if (parts.length >= 4 && parts[3]) return parts[3];
+  if (parts.length >= 4 && parts[3]) return assertValidAwsRegion(parts[3]);
   return DEFAULT_REGION;
 }
 

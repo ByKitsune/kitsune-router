@@ -24,6 +24,19 @@ export default {
   },
   models: [
     { id: "gpt-oss:120b", name: "GPT OSS 120B" },
+    // Exact provider-hosted catalog IDs reviewed 2026-11-04; account entitlement may differ.
+    {id: "mimo-v2.6-flash", name: "Mimo V2.6 Flash"},
+    {id: "mimo-v2.6-pro", name: "Mimo V2.6 Pro"},
+    {id: "deepseek-v4-pro:0813", name: "Deepseek V4 Pro:0813"},
+    {id: "mistral-large-3:675b", name: "Mistral Large 3:675B"},
+    {id: "nemotron-3-nano:30b", name: "Nemotron 3 Nano:30B"},
+    {id: "nemotron-3-ultra", name: "Nemotron 3 Ultra"},
+    {id: "mistral-large-4", name: "Mistral Large 4"},
+    {id: "muse-spark-open", name: "Muse Spark Open"},
+    {id: "beam", name: "Beam"},
+    {id: "gpt-oss:20b", name: "Gpt Oss:20B"},
+    {id: "gemma4:31b", name: "Gemma4:31B"},
+    {id: "nemotron-3-super", name: "Nemotron 3 Super"},
     // Public cloud tags, 2026-10-21; cloud usage credits are not unlimited free API calls.
     { id: "minimax-m3.1-flash", name: "MiniMax M3.1 Flash" },
     { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash" },

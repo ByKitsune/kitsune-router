@@ -1,13 +1,11 @@
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { openaiToGeminiRequest } from "./openai-to-gemini.js";
-import { DEFAULT_THINKING_VERTEX_SIGNATURE, DEFAULT_THINKING_AG_SIGNATURE, DEFAULT_THINKING_GEMINI_CLI_SIGNATURE } from "../../config/defaultThinkingSignature.js";
 
 /**
  * Post-process a Gemini-format body for Vertex AI compatibility:
  *
- * 1. Replace all synthetic thoughtSignatures with Vertex-native signature.
- * 2. Strip `id` from functionCall and functionResponse (Vertex rejects these).
+ * Strip `id` from functionCall and functionResponse (Vertex rejects these).
  */
 function postProcessForVertex(body) {
   if (!body?.contents) return body;
@@ -16,10 +14,6 @@ function postProcessForVertex(body) {
     if (!Array.isArray(turn.parts)) continue;
 
     for (const part of turn.parts) {
-      // Replace any synthetic signature with Vertex-native one
-      if (part.thoughtSignature === DEFAULT_THINKING_AG_SIGNATURE || part.thoughtSignature === DEFAULT_THINKING_GEMINI_CLI_SIGNATURE) {
-        part.thoughtSignature = DEFAULT_THINKING_VERTEX_SIGNATURE;
-      }
       // Strip id from functionCall
       if (part.functionCall && "id" in part.functionCall) {
         delete part.functionCall.id;

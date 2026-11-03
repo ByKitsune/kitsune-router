@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { afterEach, describe, it, expect, beforeEach } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import { compressMessages, formatRtkLog } from "../../open-sse/rtk/index.js";
 import { gitDiff } from "../../open-sse/rtk/filters/gitDiff.js";
 import { gitStatus } from "../../open-sse/rtk/filters/gitStatus.js";
@@ -405,6 +410,7 @@ describe("autoDetectFilter (extras)", () => {
 
 describe("safeApply", () => {
   it("returns input if filter throws", () => {
+    diagnostics.expectWarn("[rtk] warning: filter 'anonymous' panicked — passing through raw output: boom");
     const out = safeApply(() => { throw new Error("boom"); }, "hello");
     expect(out).toBe("hello");
   });

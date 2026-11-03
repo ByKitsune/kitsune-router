@@ -44,6 +44,7 @@ import { getServiceTierAccounting, prepareServiceTierRequest } from "../provider
 import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.js";
 import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
 import { startRequestPhase } from "../utils/requestTiming.js";
+import { REQUEST_SAFETY_ERROR_CODES, REQUEST_SAFETY_ERROR_MESSAGES } from "../config/errorConfig.js";
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -75,8 +76,8 @@ export function stripContinuityFields(body) {
 }
 
 function requestParameterError(error) {
-  if (!["invalid_thinking_budget", "invalid_output_budget", "unsupported_parameter", "invalid_service_tier", "unsupported_service_tier"].includes(error?.code)) return null;
-  return createErrorResult(HTTP_STATUS.BAD_REQUEST, error.message, undefined, {
+  if (!REQUEST_SAFETY_ERROR_CODES.has(error?.code) && !["invalid_thinking_budget", "invalid_output_budget", "unsupported_parameter", "invalid_service_tier", "unsupported_service_tier"].includes(error?.code)) return null;
+  return createErrorResult(HTTP_STATUS.BAD_REQUEST, REQUEST_SAFETY_ERROR_MESSAGES[error.code] || error.message, undefined, {
     type: "invalid_request_error", code: error.code, param: error.param,
   });
 }

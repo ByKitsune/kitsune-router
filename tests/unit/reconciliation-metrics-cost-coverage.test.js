@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 
-const fixtureRoot = "/tmp/opencode";
+const fixtureRoot = join(tmpdir(), "kitsune-router-test-fixtures");
 const fixtureGlobals = [
   "_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter",
   "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers", "_requestFailureCounts",
@@ -22,16 +23,17 @@ const indeterminate = { knownCost: null, unknownRequests: null };
 let directory;
 let previousGlobals;
 let previousListeners;
-let originalEmit;
 let usage;
 let pricing;
 let db;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(fixtureRoot, "reconciliation-coverage-"));
   previousGlobals = new Map(fixtureGlobals.map((key) => [key, Object.getOwnPropertyDescriptor(global, key)]));
   previousListeners = new Map(shutdownEvents.map((event) => [event, process.rawListeners(event)]));
-  originalEmit = process.emit;
+  directory = undefined;
+  for (const key of fixtureGlobals) delete global[key];
+  await mkdir(fixtureRoot, { recursive: true, mode: 0o700 });
+  directory = await mkdtemp(join(fixtureRoot, "reconciliation-coverage-"));
   for (const [key, value] of Object.entries({
     DATA_DIR: join(directory, "data"), HOME: directory, TMPDIR: directory, TZ: "UTC",
     RUN_REAL: "0", RUN_E2E: "0", RUN_LIVE_TESTS: "0", AG_CACHE_TEST: "0",
@@ -39,7 +41,6 @@ beforeEach(async () => {
     KITSUNE_ROUTER_DISABLE_MITM: "1", NEXT_TELEMETRY_DISABLED: "1",
     ENABLE_REQUEST_LOGS: "false", OBSERVABILITY_ENABLED: "false",
   })) vi.stubEnv(key, value);
-  for (const key of fixtureGlobals) delete global[key];
   vi.resetModules();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-21T12:00:00.000Z"));
@@ -56,7 +57,6 @@ afterEach(async () => {
     global._statsEmitter?.removeAllListeners();
     await global._dbAdapter?.instance?.close();
   } finally {
-    process.emit = originalEmit;
     for (const event of shutdownEvents) {
       const existing = [...previousListeners.get(event)];
       for (const listener of process.rawListeners(event)) {
@@ -73,11 +73,13 @@ afterEach(async () => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.resetModules();
-    const resolved = await realpath(directory);
-    if (dirname(resolved) !== await realpath(fixtureRoot) || !resolved.includes("reconciliation-coverage-")) {
-      throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
+    if (directory) {
+      const resolved = await realpath(directory);
+      if (dirname(resolved) !== await realpath(fixtureRoot) || !resolved.includes("reconciliation-coverage-")) {
+        throw new Error(`Refusing to remove unexpected fixture directory: ${resolved}`);
+      }
+      await rm(resolved, { recursive: true, force: true });
     }
-    await rm(resolved, { recursive: true, force: true });
   }
 });
 

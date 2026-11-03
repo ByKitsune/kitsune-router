@@ -83,6 +83,12 @@ export default {
     {"id": "gemini-3.5-flash", "name": "Gemini-3.5-Flash", "contextLength": 1000000, "maxOutputTokens": 65536, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
     {"id": "glm-5.3-flash", "name": "GLM-5.3-Flash", "contextLength": 300000, "maxOutputTokens": 32000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
     {"id": "glm-5.3", "name": "GLM-5.3", "contextLength": 1000000, "maxOutputTokens": 48000, "capabilities": {"vision": true, "tools": true, "reasoning": true}},
+    // Publisher INTL CLI product catalog 2.179.3; independent of the CN catalog and IDE wire pin.
+    { id: "default-model", name: "Auto (CodeBuddy)" },
+    { id: "fast-model", name: "Fast (CodeBuddy)" },
+    { id: "balanced-model", name: "Balanced (CodeBuddy)" },
+    { id: "primary-model", name: "Primary (CodeBuddy)" },
+    { id: "deep-model", name: "Deep (CodeBuddy)" },
   ],
   oauth: {
     baseUrl: "https://www.codebuddy.ai",

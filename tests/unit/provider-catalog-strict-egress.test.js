@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
+import { isDeepStrictEqual } from "node:util";
 
 // Capture the native fetch before the real transport patches it. Never permit
 // a failing regression to send the synthetic credentials to a public service.
@@ -96,6 +97,50 @@ async function withRelay(handler, run) {
 }
 
 const networkBranches = ["codex", "gemini-cli", "openai", "kiro", "cursor", "zed", "openai-compatible-catalog", "anthropic-compatible-catalog"];
+
+const catalogProxyFailure = ["log", "Error fetching provider models:", "Configured account proxy unavailable (strictProxy=true)"];
+const codexProxyFailure = ["log", expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\] ❌ \[TOKEN_REFRESH\] Network error refreshing Codex token: \[ProxyFetch\] Proxy required but no proxy URL configured \(strictProxy=true\)$/)];
+const diagnosticExpectations = {
+  ...Object.fromEntries(networkBranches.map(provider => [
+    `does not dispatch ${provider} credentials when the strict pool is missing`, [catalogProxyFailure],
+  ])),
+  "preserves strict policy from an inactive pool": [catalogProxyFailure],
+  "does not directly refresh credentials through the shared wrapper without their strict proxy": [codexProxyFailure],
+  "does not share a successful relay refresh with the same token under a missing strict proxy": [codexProxyFailure],
+  "isolates cached project identity by credentialed lookup policy": [
+    ["warn", "[ProjectId] Project lookup failed (Error)"],
+  ],
+};
+
+let expectedDiagnostics = [];
+let diagnosticCalls = [];
+let diagnosticSpies = [];
+
+beforeEach(({ task }) => {
+  expectedDiagnostics = diagnosticExpectations[task.name] || [];
+  diagnosticCalls = [];
+  diagnosticSpies = ["warn","error","log"].map(method => {
+    const original = console[method].bind(console);
+    return vi.spyOn(console, method).mockImplementation((...args) => {
+      if (method === "log" && !(args[0] === "Error fetching provider models:" || (typeof args[0] === "string" && /^\[\d{2}:\d{2}:\d{2}\] ❌ \[TOKEN_REFRESH\] /.test(args[0])))) return original(...args);
+      const call = [method, ...args];
+      const expected = expectedDiagnostics[diagnosticCalls.length];
+      diagnosticCalls.push(call);
+      const matches = expected?.length === call.length && expected.every((value, index) =>
+        typeof value?.asymmetricMatch === "function" ? value.asymmetricMatch(call[index]) : isDeepStrictEqual(value, call[index]));
+      if (!matches) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(diagnosticCalls, "console diagnostics must match this case exactly").toEqual(expectedDiagnostics);
+  } finally {
+    diagnosticSpies.forEach(spy => spy.mockRestore());
+  }
+});
+
 describe("provider catalog account egress", () => {
   it.each(networkBranches)("does not dispatch %s credentials when the strict pool is missing", async (provider) => {
     state.connection = account(provider, { proxyPoolId: "missing", strictProxy: true,

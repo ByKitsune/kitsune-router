@@ -1,6 +1,8 @@
 // OpenAI TTS — model format: "tts-model/voice"
 import { Buffer } from "node:buffer";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { createErrorResult } from "../../utils/error.js";
+import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 
 const DEFAULT_TTS_MODEL = PROVIDER_MEDIA["openai"]?.ttsConfig?.defaultModel;
 
@@ -15,6 +17,9 @@ export default {
       if (parts.length === 2) [ttsModel, voice] = parts;
     } else if (model) {
       voice = model;
+    }
+    if (!ttsModel) {
+      return createErrorResult(HTTP_STATUS.BAD_REQUEST, "Select an explicit OpenAI TTS model and voice; this Speech endpoint has no active default model.");
     }
 
     const baseUrl = (credentials.baseUrl || "https://api.openai.com").replace(/\/+$/, "");

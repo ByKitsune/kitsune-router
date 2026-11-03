@@ -6974,4 +6974,1130 @@ for (const [model, quote] of Object.entries(tokenRouterNativeUnits)) {
   };
 }
 
+// Exact provider-hosted additions reviewed 2026-11-04. Do not propagate facts
+// between products or infer account availability from a public catalog.
+const nativeCatalogRefresh20261104 = {
+  "chutes": {
+    "deepseek-ai/DeepSeek-V4.1-Flash-1017": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "deepseek-ai/DeepSeek-V4-Pro-0813": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "zai-org/GLM-5.3": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "zai-org/GLM-5.2-Fast": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "moonshotai/Kimi-K2.7-Code": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "Qwen/Qwen3.8-Max-0902": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    },
+    "Qwen/Qwen3.8-2.4T-A95B": {
+      "sources": [
+        "https://llm.chutes.ai/v1/models"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "confidentialCompute": false,
+        "scope": "Chutes public LLM endpoint; this literal non-TEE ID does not inherit another route's TEE guarantee."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "public-catalog-reference",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact provider-hosted catalog reference. Public listing is not account entitlement or an authenticated inference check; undocumented limits and prices remain unknown."
+      }
+    }
+  },
+  "ollama": {
+    "mimo-v2.6-flash": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "mimo-v2.6-pro": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "deepseek-v4-pro:0813": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "mistral-large-3:675b": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": false,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "nemotron-3-nano:30b": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "nemotron-3-ultra": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "mistral-large-4": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "muse-spark-open": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "beam": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "gpt-oss:20b": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "gemma4:31b": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    },
+    "nemotron-3-super": {
+      "sources": [
+        "https://ollama.com/api/tags"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "imageOutput": false,
+        "audioOutput": false
+      },
+      "pricing": {
+        "input": null,
+        "output": null,
+        "cached": null,
+        "reasoning": null,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": null,
+        "unit": "subscription_usage",
+        "kind": "subscription",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact public Ollama Cloud completion tag and declared capability flags. Cloud plan limits and account eligibility apply; no native-vendor USD price or independent token ceiling is inferred."
+      }
+    }
+  },
+  "morph": {
+    "morph-glm52-744b": {
+      "sources": [
+        "https://www.morphllm.com/api/models/json"
+      ],
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxInput": null,
+        "maxOutput": 1048576,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "structuredOutput": true
+      },
+      "pricing": {
+        "input": 0.087,
+        "output": 1.4,
+        "cached": 0.06899999999999999,
+        "reasoning": 1.4,
+        "cache_creation": 0.0,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "maxInput"
+        ],
+        "fieldSources": {
+          "contextWindow": "https://www.morphllm.com/api/models/json",
+          "maxOutput": "https://www.morphllm.com/api/models/json"
+        },
+        "scope": "Morph ready text-output route; independent maximum input remains unknown. Output and total context are separate native schema fields."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "metered",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Morph schema2.4 cost_usd per token, converted to USD per million tokens for this exact hosted ID; implicit zero cache-write price is explicit. Native model-vendor tariffs and standby discounts are not applied."
+      }
+    },
+    "morph-dsv4flash-0731": {
+      "sources": [
+        "https://www.morphllm.com/api/models/json"
+      ],
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxInput": null,
+        "maxOutput": 1048576,
+        "vision": false,
+        "tools": true,
+        "reasoning": true,
+        "structuredOutput": true
+      },
+      "pricing": {
+        "input": 0.142,
+        "output": 0.39999999999999997,
+        "cached": 0.036,
+        "reasoning": 0.39999999999999997,
+        "cache_creation": 0.0,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "maxInput"
+        ],
+        "fieldSources": {
+          "contextWindow": "https://www.morphllm.com/api/models/json",
+          "maxOutput": "https://www.morphllm.com/api/models/json"
+        },
+        "scope": "Morph ready text-output route; independent maximum input remains unknown. Output and total context are separate native schema fields."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "metered",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Morph schema2.4 cost_usd per token, converted to USD per million tokens for this exact hosted ID; implicit zero cache-write price is explicit. Native model-vendor tariffs and standby discounts are not applied."
+      }
+    },
+    "morph-kimik3-fast": {
+      "sources": [
+        "https://www.morphllm.com/api/models/json"
+      ],
+      "capabilities": {
+        "contextWindow": 1048576,
+        "maxInput": null,
+        "maxOutput": 1048576,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "structuredOutput": true
+      },
+      "pricing": {
+        "input": 6.0,
+        "output": 22.5,
+        "cached": 0.6,
+        "reasoning": 22.5,
+        "cache_creation": 0.0,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "maxInput"
+        ],
+        "fieldSources": {
+          "contextWindow": "https://www.morphllm.com/api/models/json",
+          "maxOutput": "https://www.morphllm.com/api/models/json"
+        },
+        "scope": "Morph ready text-output route; independent maximum input remains unknown. Output and total context are separate native schema fields."
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "metered",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Morph schema2.4 cost_usd per token, converted to USD per million tokens for this exact hosted ID; implicit zero cache-write price is explicit. Native model-vendor tariffs and standby discounts are not applied."
+      }
+    }
+  },
+  "perplexity-agent": {
+    "anthropic/claude-haiku-5-5": {
+      "sources": [
+        "https://docs.perplexity.ai/docs/agent-api/models.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": 0.1,
+        "output": 0.5,
+        "cached": 0.01,
+        "reasoning": 0.5,
+        "cache_creation": null,
+        "cache_creation_1h": null,
+        "tier": {
+          "threshold": 100000,
+          "input": 0.5,
+          "output": 2.5,
+          "reasoning": 2.5,
+          "cached": 0.05
+        }
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg-tiered",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Perplexity Agent native quote: <=100k and >100k input tiers. Third-party API is not an Anthropic invoice; tools are separate. Independent route limits and modalities are unverified."
+      }
+    },
+    "openai/gpt-6-astra": {
+      "sources": [
+        "https://docs.perplexity.ai/docs/agent-api/models.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": 10,
+        "output": 50,
+        "cached": 1,
+        "reasoning": 50,
+        "cache_creation": null,
+        "cache_creation_1h": null,
+        "tier": {
+          "threshold": 272000,
+          "input": 20,
+          "output": 75,
+          "reasoning": 75,
+          "cached": 2
+        },
+        "service_tiers": {
+          "flex": {
+            "input": 5.0,
+            "output": 25.0,
+            "cached": 0.5,
+            "reasoning": 25.0,
+            "cache_creation": null,
+            "cache_creation_1h": null,
+            "tier": {
+              "threshold": 272000,
+              "input": 10.0,
+              "output": 37.5,
+              "reasoning": 37.5,
+              "cached": 1.0
+            }
+          },
+          "priority": {
+            "input": 20,
+            "output": 100,
+            "cached": 2,
+            "reasoning": 100,
+            "cache_creation": null,
+            "cache_creation_1h": null,
+            "tier": {
+              "threshold": 272000,
+              "input": 40,
+              "output": 150,
+              "reasoning": 150,
+              "cached": 4
+            }
+          }
+        }
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg-tiered",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Perplexity Agent default-processing quote; 272k input-length tier, Flex0.5x and Priority2x are documented Agent multipliers. Not an OpenAI direct invoice; tools are separate. Independent route limits and modalities remain unverified."
+      }
+    },
+    "google/gemini-4-argon": {
+      "sources": [
+        "https://docs.perplexity.ai/docs/agent-api/models.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": 2,
+        "output": 10,
+        "cached": 0.1,
+        "reasoning": 10,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact Perplexity Agent default-processing USD quote, not a native-vendor tariff. Tools are separate; no independent context/input/output or provider-wide modality claims."
+      }
+    },
+    "perplexity/deepseek-v4-pro-0813": {
+      "sources": [
+        "https://docs.perplexity.ai/docs/agent-api/models.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null
+      },
+      "pricing": {
+        "input": 1.32,
+        "output": 3.96,
+        "cached": 0.044,
+        "reasoning": 3.96,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ]
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Exact Perplexity Agent default-processing USD quote, not a native-vendor tariff. Tools are separate; no independent context/input/output or provider-wide modality claims."
+      }
+    }
+  },
+  "mistral": {
+    "mistral-large-4-0": {
+      "sources": [
+        "https://docs.mistral.ai/models/mistral-large-4-0.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "structuredOutput": true
+      },
+      "pricing": {
+        "input": 0.7,
+        "output": 2.1,
+        "cached": 0.07,
+        "reasoning": 2.1,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "providerContextLabel": "1M"
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Mistral-hosted standard USD per million token quote. Primary model page gives abbreviated context/output labels, retained as labels instead of manufacturing exact token counts."
+      }
+    },
+    "zai-glm-5-3-flash": {
+      "sources": [
+        "https://docs.mistral.ai/models/zai-glm-5-3-flash.md"
+      ],
+      "capabilities": {
+        "contextWindow": null,
+        "maxInput": null,
+        "maxOutput": null,
+        "vision": true,
+        "tools": true,
+        "reasoning": true,
+        "structuredOutput": true
+      },
+      "pricing": {
+        "input": 0.15,
+        "output": 0.5,
+        "cached": 0.03,
+        "reasoning": 0.5,
+        "cache_creation": null,
+        "cache_creation_1h": null
+      },
+      "limits": {
+        "authenticatedRouteVerified": false,
+        "unverifiedCapabilityFields": [
+          "contextWindow",
+          "maxInput",
+          "maxOutput"
+        ],
+        "providerContextLabel": "1M",
+        "providerMaxOutputLabel": "128k"
+      },
+      "billing": {
+        "currency": "USD",
+        "unit": "per_1000000_tokens",
+        "kind": "payg",
+        "reviewedAt": "2026-11-04",
+        "invoiceVerified": false,
+        "note": "Mistral-hosted standard USD per million token quote. Primary model page gives abbreviated context/output labels, retained as labels instead of manufacturing exact token counts."
+      }
+    }
+  }
+};
+for (const [provider, models] of Object.entries(nativeCatalogRefresh20261104)) {
+  const table = gatewayModels[provider] ||= {};
+  for (const [model, record] of Object.entries(models)) {
+    if (Object.hasOwn(table, model)) throw new Error(`Conflicting native refresh metadata: ${provider}/${model}`);
+    table[model] = record;
+  }
+}
+
 export default gatewayModels;

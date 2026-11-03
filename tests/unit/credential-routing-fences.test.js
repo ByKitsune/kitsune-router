@@ -1,4 +1,68 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from "node:util";
+
+// These negative fixtures own only their exact warning/error arguments. Forward
+// any unexpected diagnostic and fail the case; ordinary logs remain visible.
+const expectedDiagnosticsByTest = {
+  "routed credential persistence fences > does not repeat incurred inference or write account health when usage acceptance fails": {
+    "error": [
+      [
+        "[USAGE] Persistence failed:",
+        "Error"
+      ]
+    ]
+  },
+  "routed credential persistence fences > stops before fallback when usage from an HTTP error cannot be accepted": {
+    "error": [
+      [
+        "[USAGE] Persistence failed:",
+        "Error"
+      ]
+    ]
+  },
+  "routed credential persistence fences > preserves failed usage acceptance over concurrent cancellation of SSE aggregation": {
+    "error": [
+      [
+        "[USAGE] Persistence failed:",
+        "Error"
+      ]
+    ]
+  },
+  "routed credential persistence fences > accepts known auth-error usage before cancellation and preserves failed ACK priority (reject=true)": {
+    "error": [
+      [
+        "[USAGE] Persistence failed:",
+        "Error"
+      ]
+    ]
+  }
+};
+let observedDiagnostics;
+let diagnosticSpies;
+let expectedDiagnostics;
+
+beforeEach(() => {
+  expectedDiagnostics = expectedDiagnosticsByTest[expect.getState().currentTestName] || {};
+  observedDiagnostics = { warn: [], error: [] };
+  diagnosticSpies = ["warn", "error"].map(level => {
+    const original = console[level].bind(console);
+    return vi.spyOn(console, level).mockImplementation((...args) => {
+      const expected = expectedDiagnostics[level]?.[observedDiagnostics[level].length];
+      observedDiagnostics[level].push(args);
+      if (!isDeepStrictEqual(args, expected)) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(observedDiagnostics.warn).toEqual(expectedDiagnostics.warn || []);
+    expect(observedDiagnostics.error).toEqual(expectedDiagnostics.error || []);
+  } finally {
+    for (const spy of diagnosticSpies) spy.mockRestore();
+  }
+});
+
 import { getEventListeners } from "node:events";
 
 const io = vi.hoisted(() => ({

@@ -2,7 +2,7 @@ import { spawn, execSync } from "child_process";
 import path from "path";
 import fs from "fs";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
-import { DATA_DIR } from "./dataDir.js";
+import { DATA_DIR } from "./dataDir.mjs";
 
 const KILL_TIMEOUT_MS = 5000;
 const PROCESS_WAIT_MS = 1500;

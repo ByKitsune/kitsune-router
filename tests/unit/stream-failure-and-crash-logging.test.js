@@ -12,7 +12,8 @@
 // src/app/api/v1/responses/route.js swallowed every unexpected exception. The
 // client still received a `serverRequestId`, but nothing in the server log
 // contained that id, so the correlation it was meant to enable did not exist.
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 vi.mock("@/lib/usageDb.js", () => ({
@@ -23,6 +24,10 @@ vi.mock("@/lib/usageDb.js", () => ({
 }));
 
 import { buildOnStreamComplete } from "../../open-sse/handlers/chatCore/streamingHandler.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => diagnostics.verify());
 
 const ROOT = new URL("../..", import.meta.url).pathname;
 
@@ -95,6 +100,7 @@ describe("mid-stream failure marks the account unavailable (P10-B)", () => {
   });
 
   it("never throws out of the completion callback when the handler fails", async () => {
+    diagnostics.expectError("[ChatCore] onStreamFailed failed:", "handler exploded");
     // Accounting must not break the response path.
     const onStreamFailed = vi.fn(() => { throw new Error("handler exploded"); });
     const { onStreamComplete } = makeComplete({ onStreamFailed });

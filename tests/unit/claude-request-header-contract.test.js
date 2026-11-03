@@ -36,6 +36,12 @@ beforeEach(() => {
 });
 
 describe("Claude outbound request header contract", () => {
+  it.each(["bad\r\nsession", "bad\u0000session", "bad\u001fsession", "bad\u007fsession", "x".repeat(257)])("does not send invalid session metadata in HTTP headers: %j", async session => {
+    const sent = await outbound(new DefaultExecutor("claude"), requestBody(null, session), credentials());
+    expect(sent.headers.has("x-claude-code-session-id")).toBe(false);
+    expect(JSON.parse(sent.body.metadata.user_id).session_id).toBe(session);
+  });
+
   it("uses the transformed body when selecting summarized-thinking betas", async () => {
     const executor = new DefaultExecutor("claude");
     const transform = executor.transformRequest.bind(executor);

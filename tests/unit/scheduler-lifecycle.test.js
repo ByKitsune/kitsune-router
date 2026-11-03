@@ -7,7 +7,7 @@ import {
   hardenEmitter,
   listManagedSchedulers,
   shutdownAllManaged,
-} from "@/lib/schedulerLifecycle.js";
+} from "@/lib/schedulerLifecycle.mjs";
 
 afterEach(() => {
   shutdownAllManaged();

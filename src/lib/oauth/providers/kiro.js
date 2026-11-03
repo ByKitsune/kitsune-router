@@ -1,5 +1,6 @@
 import { KIRO_CONFIG, assertValidAwsRegion } from "../constants/oauth.js";
 import { extractEmailFromAccessToken } from "../providerHelpers.js";
+import { isKiroToken, isKiroTokenResponse, kiroDeviceError, readKiroJson } from "../kiroResponse.js";
 
 const kiro = {
   config: KIRO_CONFIG,
@@ -18,6 +19,7 @@ const kiro = {
     // Step 1: Register client with AWS SSO OIDC
     const registerRes = await fetch(registerClientUrl, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -32,15 +34,19 @@ const kiro = {
     });
 
     if (!registerRes.ok) {
-      const error = await registerRes.text();
-      throw new Error(`Client registration failed: ${error}`);
+      await registerRes.body?.cancel().catch(() => {});
+      throw new Error(`Client registration failed (HTTP ${registerRes.status})`);
     }
 
-    const clientInfo = await registerRes.json();
+    const clientInfo = await readKiroJson(registerRes, "Client registration");
+    if (!isKiroToken(clientInfo?.clientId) || !isKiroToken(clientInfo?.clientSecret)) {
+      throw new Error("Client registration returned invalid credentials");
+    }
 
     // Step 2: Request device authorization
     const deviceRes = await fetch(deviceAuthUrl, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -53,11 +59,14 @@ const kiro = {
     });
 
     if (!deviceRes.ok) {
-      const error = await deviceRes.text();
-      throw new Error(`Device authorization failed: ${error}`);
+      await deviceRes.body?.cancel().catch(() => {});
+      throw new Error(`Device authorization failed (HTTP ${deviceRes.status})`);
     }
 
-    const deviceData = await deviceRes.json();
+    const deviceData = await readKiroJson(deviceRes, "Device authorization");
+    if (!isKiroToken(deviceData?.deviceCode) || !isKiroToken(deviceData?.userCode)) {
+      throw new Error("Device authorization returned invalid codes");
+    }
 
     // Return combined data for polling
     return {
@@ -81,6 +90,7 @@ const kiro = {
     const tokenUrl = `https://oidc.${region}.amazonaws.com/token`;
     const response = await fetch(tokenUrl, {
       method: "POST",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -95,14 +105,14 @@ const kiro = {
 
     let data;
     try {
-      data = await response.json();
-    } catch (e) {
-      const text = await response.text();
-      data = { error: "invalid_response", error_description: text };
+      data = await readKiroJson(response, "Device token request");
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      return { ok: false, data: kiroDeviceError(response) };
     }
 
     // AWS SSO OIDC returns camelCase
-    if (data.accessToken) {
+    if (response.ok && isKiroTokenResponse(data)) {
       return {
         ok: true,
         data: {
@@ -122,10 +132,7 @@ const kiro = {
 
     return {
       ok: false,
-      data: {
-        error: data.error || "authorization_pending",
-        error_description: data.error_description || data.message,
-      },
+      data: kiroDeviceError(response, data),
     };
   },
   mapTokens: (tokens) => {

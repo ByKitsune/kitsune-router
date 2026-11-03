@@ -20,6 +20,10 @@ export default {
   },
   models: [
     { id: "morph-v3-large", name: "Morph v3 Large" },
+    // Exact provider-hosted catalog IDs reviewed 2026-11-04; account entitlement may differ.
+    {id: "morph-glm52-744b", name: "Morph: GLM-5.2", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "morph-dsv4flash-0731", name: "Morph: DeepSeek V4 Flash 0731", targetFormat: "openai", supportedFormats: ["openai"]},
+    {id: "morph-kimik3-fast", name: "Morph: Kimi K3 Fast", targetFormat: "openai", supportedFormats: ["openai"]},
     { id: "morph-dsv41flash-1017", name: "DeepSeek V4.1 Flash 1017 (Morph)", targetFormat: "openai", supportedFormats: ["openai"] },
     { id: "morph-v3-fast", name: "Morph v3 Fast" },
     { id: "morph-qwen35-397b", name: "Qwen 3.5 397B (Morph)", contextLength: 262144 },

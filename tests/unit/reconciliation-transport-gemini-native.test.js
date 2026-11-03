@@ -1,4 +1,43 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from "node:util";
+
+// These negative fixtures own only their exact warning/error arguments. Forward
+// any unexpected diagnostic and fail the case; ordinary logs remain visible.
+const expectedDiagnosticsByTest = {
+  "native Gemini audio transport reconciliation > fails native EOF honestly when durable usage cannot be accepted": {
+    "error": [
+      [
+        "[GEMINI_NATIVE] Durable usage acceptance failed"
+      ]
+    ]
+  }
+};
+let observedDiagnostics;
+let diagnosticSpies;
+let expectedDiagnostics;
+
+beforeEach(() => {
+  expectedDiagnostics = expectedDiagnosticsByTest[expect.getState().currentTestName] || {};
+  observedDiagnostics = { warn: [], error: [] };
+  diagnosticSpies = ["warn", "error"].map(level => {
+    const original = console[level].bind(console);
+    return vi.spyOn(console, level).mockImplementation((...args) => {
+      const expected = expectedDiagnostics[level]?.[observedDiagnostics[level].length];
+      observedDiagnostics[level].push(args);
+      if (!isDeepStrictEqual(args, expected)) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(observedDiagnostics.warn).toEqual(expectedDiagnostics.warn || []);
+    expect(observedDiagnostics.error).toEqual(expectedDiagnostics.error || []);
+  } finally {
+    for (const spy of diagnosticSpies) spy.mockRestore();
+  }
+});
+
 import { createServer } from "node:http";
 
 const state = vi.hoisted(() => ({ credentials: null, failures: [], directCalls: 0, usage: [], accept: null }));

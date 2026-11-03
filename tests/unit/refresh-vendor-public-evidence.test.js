@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
+import { getModelUpstreamId } from "../../open-sse/config/providerModels.js";
 
 // Only mock persisted settings; the real registry, capability resolver and
 // dashboard serializer run, with no database or authenticated provider traffic.
@@ -35,7 +37,6 @@ describe("vendor billing provenance in the public dashboard catalog", () => {
       ["qianfan", "ernie-5.1", "quote-verified"],
       ["mistral", "mistral-large-latest", "quote-verified"],
       ["ps", "poolside/laguna-s-2.1", "unpublished"],
-      ["pplx", "sonar-pro", "unpublished"],
       ["pa", "perplexity/sonar", "quote-verified"],
       ["hunyuan", "hy3-preview", "unpublished"],
       ["ark", "DeepSeek-V4-Pro", "subscription-unknown"],
@@ -46,6 +47,17 @@ describe("vendor billing provenance in the public dashboard catalog", () => {
       expect(row, `${provider}/${model} must retain billing provenance`).toBeDefined();
       expect(row.metadata.billing).toMatchObject({ quoteStatus: status, reviewedAt: "2026-10-21", authenticatedRouteVerified: false });
     }
+  });
+
+  it("hides retired Sonar advertisements while preserving historical billing provenance", async () => {
+    const { models } = await (await GET()).json();
+    expect(models.some(row => row.model === "sonar-pro" && (
+      ["pplx", "perplexity"].includes(row.provider) || ["pplx/sonar-pro", "perplexity/sonar-pro"].includes(row.routedModel)
+    ))).toBe(false);
+    expect(getModelUpstreamId("pplx", "sonar-pro")).toBe("sonar-pro");
+    expect(getReviewedModelMetadata("pplx", "sonar-pro")).toMatchObject({ billing: {
+      kind: "legacy-migrating", quoteStatus: "unpublished", reviewedAt: "2026-10-21", authenticatedRouteVerified: false,
+    } });
   });
 
   it("publishes unknown native output ceilings instead of reviving generic caps", async () => {

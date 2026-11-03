@@ -51,7 +51,7 @@ vi.mock("@/mitm/manager", () => ({
 }));
 vi.mock("@/lib/mitmAliasCache", () => ({ syncToJson: calls.aliases }));
 vi.mock("@/lib/mcp/stdioSseBridge", () => ({ killAllBridges: calls.bridges }));
-vi.mock("@/lib/schedulerLifecycle.js", () => ({ shutdownAllManaged: calls.managed }));
+vi.mock("@/lib/schedulerLifecycle.mjs", () => ({ shutdownAllManaged: calls.managed }));
 vi.mock("../../src/lib/usageDb.js", () => ({ flushUsageQueue: calls.usage, flushRequestDetails: calls.details }));
 vi.mock("../../open-sse/utils/requestLogger.js", () => ({ flushRequestLogs: calls.logs }));
 vi.mock("../../open-sse/utils/transportPool.js", () => ({ closeUpstreamPools: calls.pools }));

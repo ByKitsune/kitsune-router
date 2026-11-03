@@ -46,7 +46,7 @@ export default {
     { id: "grok-4.20-multi-agent", name: "Grok 4.20 Multi-Agent (Alias)", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "grok-imagine-image-2.0", name: "Grok Imagine Image 2.0", params: ["n", "response_format", "aspect_ratio", "resolution", "quality"], paramOptions: { quality: ["auto", "low", "medium"] }, kind: "image" },
     { id: "grok-imagine-image", name: "Grok Imagine Image", params: ["n", "response_format", "aspect_ratio", "resolution"], kind: "image" },
-    { id: "grok-imagine-image-quality", name: "Grok Imagine Image Quality", params: ["n", "response_format", "aspect_ratio", "resolution"], kind: "image" },
+    { id: "grok-imagine-image-quality", deprecated: true, deprecationDate: "2026-11-02", deprecationNotice: "Retired by xAI November 2, 2026; the legacy slug redirects to Grok Imagine Image 2.0 at low quality.", name: "Grok Imagine Image Quality", params: ["n", "response_format", "aspect_ratio", "resolution"], kind: "image" },
     { id: "grok-imagine-video", name: "Grok Imagine Video", params: ["duration","aspect_ratio","resolution"], kind: "video" },
     { id: "grok-imagine-video-1.5", name: "Grok Imagine Video 1.5", params: ["duration", "aspect_ratio", "resolution"], kind: "video" },
     { id: "grok-imagine-video-1.5-lite", name: "Grok Imagine Video 1.5 Lite", params: ["duration", "aspect_ratio", "resolution"], kind: "video" },

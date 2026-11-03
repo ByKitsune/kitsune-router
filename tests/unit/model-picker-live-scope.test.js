@@ -93,6 +93,60 @@ const button = (tree, name) => nodes(tree).find(node => node.type === "button" &
 const connection = (id, provider, isActive = true) => ({ id, provider, isActive });
 
 describe("model picker live catalogs use enabled connection scope", () => {
+  it("preserves an explicit custom declaration that shares a deprecated built-in ID", async () => {
+    const ui = picker([connection("enabled", "gemini")], {
+      enabled: { models: [{ id: "gemini-2.5-pro", name: "Deprecated upstream suggestion" }] },
+    }, [{ providerAlias: "gemini", id: "gemini-2.5-pro", name: "Operator retained Gemini" }]);
+    try {
+      ui.render();
+      const tree = await ui.flush();
+      expect(button(tree, "Deprecated upstream suggestion")).toBeUndefined();
+      const custom = button(tree, "Operator retained Gemini");
+      expect(custom).toBeDefined();
+      custom.props.onClick();
+      expect(ui.onSelect).toHaveBeenCalledWith(expect.objectContaining({ value: "gemini/gemini-2.5-pro", isCustom: true }));
+    } finally { ui.close(); }
+  });
+
+  it("preserves an operator's same-ID alias for a deprecated built-in", async () => {
+    const ui = picker([connection("enabled", "gemini")]);
+    const options = { modelAliases: { "gemini-2.5-pro": "gemini/gemini-2.5-pro" } };
+    try {
+      ui.render(options);
+      const tree = await ui.flush(options);
+      const custom = button(tree, "gemini-2.5-pro");
+      expect(custom).toBeDefined();
+      custom.props.onClick();
+      expect(ui.onSelect).toHaveBeenCalledWith(expect.objectContaining({ value: "gemini/gemini-2.5-pro", isCustom: true }));
+    } finally { ui.close(); }
+  });
+
+  it("retains an explicit live custom marker when a retired identity is deliberately enabled", async () => {
+    const ui = picker([connection("enabled", "gemini")], {
+      enabled: { models: [{ id: "gemini-2.5-pro", name: "Explicit account model", isCustom: true }] },
+    });
+    try {
+      ui.render();
+      const tree = await ui.flush();
+      const custom = button(tree, "Explicit account model");
+      expect(custom).toBeDefined();
+      custom.props.onClick();
+      expect(ui.onSelect).toHaveBeenCalledWith(expect.objectContaining({ value: "gemini/gemini-2.5-pro", isCustom: true }));
+    } finally { ui.close(); }
+  });
+
+  it("hides a deprecated live or built-in suggestion without an explicit custom declaration", async () => {
+    const ui = picker([connection("enabled", "gemini")], {
+      enabled: { models: [{ id: "gemini-2.5-pro", name: "Deprecated upstream suggestion" }] },
+    });
+    try {
+      ui.render();
+      const tree = await ui.flush();
+      expect(button(tree, "Deprecated upstream suggestion")).toBeUndefined();
+      expect(nodes(tree).filter(node => node.type === "button").map(text).join("\n")).not.toContain("gemini-2.5-pro");
+    } finally { ui.close(); }
+  });
+
   it("offers authenticated passthrough models without requiring a manual alias", async () => {
     const ui = picker([connection("enabled", "bykitsune"), connection("disabled", "bykitsune", false)], {
       enabled: { models: [{ id: "synthetic-live-model", name: "Observed model" }] },

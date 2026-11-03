@@ -1,10 +1,10 @@
-import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE, NON_RETRYABLE_ROUTER_CODES } from "../config/errorConfig.js";
+import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, MAX_RATE_LIMIT_COOLDOWN_MS, FALLBACK_SCOPE, NON_RETRYABLE_ROUTER_CODES, REQUEST_SAFETY_ERROR_CODES } from "../config/errorConfig.js";
 import { getModelUpstreamId, getModelQuotaFamily, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
 
 const QUOTA_CODES = new Set(["rate_limit", "rate_limit_exceeded", "quota_exceeded", "quota_exhausted", "insufficient_quota", "usage_limit_reached", "resource_exhausted", "too_many_requests"]);
 const QUOTA_TYPES = new Set(["rate_limit_error", "quota_error", "resource_exhausted"]);
 const BILLING_CODES = new Set(["insufficient_credits", "insufficient_credit", "insufficient_balance", "insufficient_funds", "credit_balance_exhausted", "balance_zero", "payment_required"]);
-const REQUEST_VALIDATION_CODES = new Set(["invalid_parameter", "invalid_value", "invalid_argument", "invalid_role", "invalid_type", "invalid_enum", "missing_parameter", "validation_error", "malformed_request", "unsupported_parameter", "invalid_thinking_budget", "invalid_output_budget", "context_length_exceeded", "context_window_exceeded"]);
+const REQUEST_VALIDATION_CODES = new Set([...REQUEST_SAFETY_ERROR_CODES, "invalid_parameter", "invalid_value", "invalid_argument", "invalid_role", "invalid_type", "invalid_enum", "missing_parameter", "validation_error", "malformed_request", "unsupported_parameter", "invalid_thinking_budget", "invalid_output_budget", "context_length_exceeded", "context_window_exceeded"]);
 const DESTINATION_VALIDATION_CODES = new Set(["unsupported_parameter", "context_length_exceeded", "context_window_exceeded"]);
 
 function unquotedDiagnostic(message) {

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   recover:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
@@ -45,7 +45,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24.19.0
 
       - name: Validate separate tooling and release source boundaries
         run: node release-tools/scripts/recover-container-release.mjs validate

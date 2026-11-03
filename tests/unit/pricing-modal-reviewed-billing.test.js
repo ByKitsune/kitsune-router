@@ -1,4 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -234,6 +239,7 @@ describe("PricingModal reviewed billing behavior", () => {
   });
 
   it("keeps the editor read-only when either pricing view cannot be loaded", async () => {
+    diagnostics.expectError("Failed to load pricing:", expect.objectContaining({ message: "Pricing could not be loaded" }));
     const modal = fixture(sample(), {}, { fallback: true });
     const tree = await modal.mount();
     expect(nodes(tree).find(node => node.props.role === "alert")).toBeDefined();

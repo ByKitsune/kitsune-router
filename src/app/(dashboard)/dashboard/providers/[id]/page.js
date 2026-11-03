@@ -7,7 +7,7 @@ import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
 import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, ZedAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
-import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
+import { getModelsByProviderId, getModelKind, filterAdvertisedModels } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
 import { getServiceTierOptions, isServiceTierMode } from "open-sse/providers/serviceTiers.js";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
@@ -181,10 +181,10 @@ export default function ProviderDetailPage() {
   const isOAuth = !!OAUTH_PROVIDERS[providerId] || !!FREE_PROVIDERS[providerId] || authModes.includes("oauth");
   const supportsApiKeyAuth = !!APIKEY_PROVIDERS[providerId] || authModes.includes("apikey");
   const isFreeNoAuth = !!FREE_PROVIDERS[providerId]?.noAuth;
-  const staticModels = getModelsByProviderId(providerId);
-  const models = liveModels.length > 0
+  const staticModels = filterAdvertisedModels(providerId, getModelsByProviderId(providerId));
+  const models = filterAdvertisedModels(providerId, liveModels.length > 0
     ? [...liveModels.filter((m) => !staticModels.some((s) => s.id === m.id)), ...staticModels]
-    : staticModels;
+    : staticModels);
   const providerAlias = getProviderAlias(providerId);
   
   const isOpenAICompatible = isOpenAICompatibleProvider(providerId);
@@ -1511,7 +1511,7 @@ export default function ProviderDetailPage() {
             ...customModelRows.map((model) => model.fullModel),
           ]);
           const hardcodedIds = new Set(models.map((m) => m.id));
-          const notAdded = suggestedModels.filter(
+          const notAdded = filterAdvertisedModels(providerId, suggestedModels).filter(
             (m) => !addedFullModels.has(`${providerStorageAlias}/${m.id}`) && !hardcodedIds.has(m.id)
           );
           if (notAdded.length === 0) return null;

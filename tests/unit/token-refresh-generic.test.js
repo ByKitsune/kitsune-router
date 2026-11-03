@@ -7,8 +7,47 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { isDeepStrictEqual } from "node:util";
 
 const originalFetch = global.fetch;
+
+const diagnosticExpectations = {
+  "returns null on non-ok response": [
+    ["error", "TOKEN_REFRESH", "Failed to refresh token for iflow", { status: 400, error: '{"error":"invalid_grant"}' }],
+  ],
+  "returns null when refreshToken missing": [
+    ["warn", "TOKEN_REFRESH", "No refresh token available for provider: iflow"],
+  ],
+};
+
+let expectedDiagnostics = [];
+let diagnosticCalls = [];
+let diagnosticSpies = [];
+
+beforeEach(({ task }) => {
+  expectedDiagnostics = diagnosticExpectations[task.name] || [];
+  diagnosticCalls = [];
+  diagnosticSpies = ["warn","error"].map(method => {
+    const original = console[method].bind(console);
+    return vi.spyOn(console, method).mockImplementation((...args) => {
+      const call = [method, ...args];
+      const expected = expectedDiagnostics[diagnosticCalls.length];
+      diagnosticCalls.push(call);
+      const matches = expected?.length === call.length && expected.every((value, index) =>
+        typeof value?.asymmetricMatch === "function" ? value.asymmetricMatch(call[index]) : isDeepStrictEqual(value, call[index]));
+      if (!matches) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(diagnosticCalls, "console diagnostics must match this case exactly").toEqual(expectedDiagnostics);
+  } finally {
+    diagnosticSpies.forEach(spy => spy.mockRestore());
+  }
+});
+
 
 function mockFetchOnce(payload, { ok = true, status = 200 } = {}) {
   const fn = vi.fn().mockResolvedValue({

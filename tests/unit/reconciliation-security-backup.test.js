@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -323,6 +328,10 @@ describe.skipIf(process.platform === "win32")("legacy migration restart safety",
     const first = await createNodeSqliteAdapter(DATA_FILE);
     adapters.push(first);
     const { runMigrationOnce } = await import("@/lib/db/migrate.js");
+    diagnostics.expectWarn("[DB][migrate] combos row-count mismatch: expected 1, got 0. Dropped:", [
+      { id: "invalid-combo", name: null, reason: "NOT NULL constraint failed: combos.name" },
+    ]);
+    diagnostics.expectError(expect.stringMatching(/^\[DB\]\[migrate\] aborted: combos row-count mismatch: expected 1, got 0 \| legacy JSON kept \| backup: /));
     await expect(runMigrationOnce(first)).rejects.toMatchObject({ name: "MigrationAborted" });
     expect(first.all("SELECT name FROM sqlite_master WHERE type = 'table'")).toEqual([]);
     expect(fs.existsSync(path.join(DB_DIR, ".migrated-from-json"))).toBe(false);

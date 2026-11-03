@@ -6,8 +6,47 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { isDeepStrictEqual } from "node:util";
 
 const NOW = Date.parse("2026-08-01T12:00:00.000Z");
+
+const diagnosticExpectations = {
+  "calls refresh only for due connections and swallows per-connection errors": [
+    ["warn", expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\] ⚠️  \[BG_TOKEN_REFRESH\] Connection refresh failed \(swallowed\) \{"id":"due","provider":"grok-cli","error":"boom"\}$/)],
+  ],
+  "swallows top-level load errors": [
+    ["warn", expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\] ⚠️  \[BG_TOKEN_REFRESH\] Tick failed \(swallowed\) \{"error":"db down"\}$/)],
+  ],
+};
+
+let expectedDiagnostics = [];
+let diagnosticCalls = [];
+let diagnosticSpies = [];
+
+beforeEach(({ task }) => {
+  expectedDiagnostics = diagnosticExpectations[task.name] || [];
+  diagnosticCalls = [];
+  diagnosticSpies = ["warn","error"].map(method => {
+    const original = console[method].bind(console);
+    return vi.spyOn(console, method).mockImplementation((...args) => {
+      const call = [method, ...args];
+      const expected = expectedDiagnostics[diagnosticCalls.length];
+      diagnosticCalls.push(call);
+      const matches = expected?.length === call.length && expected.every((value, index) =>
+        typeof value?.asymmetricMatch === "function" ? value.asymmetricMatch(call[index]) : isDeepStrictEqual(value, call[index]));
+      if (!matches) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(diagnosticCalls, "console diagnostics must match this case exactly").toEqual(expectedDiagnostics);
+  } finally {
+    diagnosticSpies.forEach(spy => spy.mockRestore());
+  }
+});
+
 
 function conn(overrides = {}) {
   return {

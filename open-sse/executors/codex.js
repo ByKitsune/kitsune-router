@@ -69,7 +69,7 @@ const CODEX_PASSTHROUGH_TOOL_TYPES = new Set(["custom"]);
 const RESPONSES_API_ALLOWLIST = new Set([
   "model", "input", "instructions", "tools", "tool_choice", "stream", "store",
   "reasoning", "service_tier", "include", "prompt_cache_key", "client_metadata",
-  "text"
+  "text", "parallel_tool_calls"
 ]);
 
 // Convert role=system → role=developer in body.input (keeps content in cacheable prefix)
@@ -232,16 +232,14 @@ function waitForCodexRetry(delayMs, signal) {
 export class CodexExecutor extends BaseExecutor {
   constructor() {
     super("codex", PROVIDERS.codex);
-    this._currentSessionId = null;
   }
 
   /**
-   * Override headers to add codex-specific identity headers.
-   * transformRequest runs BEFORE buildHeaders, sets this._currentSessionId.
+   * Resolve identity from this request, never from a previous executor call.
    */
-  buildHeaders(credentials, stream = true) {
+  buildHeaders(credentials, stream = true, url, model, body = null) {
     const headers = super.buildHeaders(credentials, stream);
-    const sid = this._currentSessionId || credentials?.connectionId || "default";
+    const sid = resolveCacheSessionId(body, credentials);
     headers["session_id"] = sid;
     headers["session-id"] = sid;
     headers["version"] = CODEX_CLI_VERSION;
@@ -310,7 +308,7 @@ export class CodexExecutor extends BaseExecutor {
       requestContext: { ...args.requestContext, compact: args.body?._compact === true } };
     const imgCount = Array.isArray(args.body?.input) ? args.body.input.reduce((n, it) => n + (Array.isArray(it.content) ? it.content.filter(c => c.type === "image_url").length : 0), 0) : 0;
     const inputLen = Array.isArray(args.body?.input) ? args.body.input.length : 0;
-    dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount} | sessionId=${this._currentSessionId || "pending"}`);
+    dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount}`);
     if (imgCount > 0) {
       const t0 = Date.now();
       await this.prefetchImages(args.body, { signal: args.signal });
@@ -582,7 +580,7 @@ export class CodexExecutor extends BaseExecutor {
     validateThinkingParams(this.provider, getModelUpstreamId("cx", body.model || model), body, FORMATS.OPENAI_RESPONSES, body.model || model);
     delete body._compact;
     // Resolve conversation-stable session_id (priority: body → assistant-text → workspace → machine)
-    this._currentSessionId = resolveCacheSessionId(body, credentials);
+    const sessionId = resolveCacheSessionId(body, credentials);
     // Convert string input to array format (Codex API requires input as array)
     const normalized = normalizeResponsesInput(body.input);
     if (normalized) body.input = normalized;
@@ -611,8 +609,8 @@ export class CodexExecutor extends BaseExecutor {
     body.store = false;
 
     // Inject prompt_cache_key for stable Codex prompt caching
-    if (!body.prompt_cache_key && this._currentSessionId) {
-      body.prompt_cache_key = this._currentSessionId;
+    if (!body.prompt_cache_key && sessionId) {
+      body.prompt_cache_key = sessionId;
     }
 
     // Map virtual Codex review models to the upstream Codex model before suffix parsing.
@@ -648,7 +646,10 @@ export class CodexExecutor extends BaseExecutor {
 
     // Include reasoning encrypted content (required by Codex backend for reasoning models)
     if (body.reasoning && body.reasoning.effort && body.reasoning.effort !== 'none') {
-      body.include = ["reasoning.encrypted_content"];
+      if (body.include != null && (!Array.isArray(body.include) || body.include.some(value => typeof value !== "string"))) {
+        throw Object.assign(new Error("Codex include must be an array of strings; resend the requested response fields in that form."), { code: "unsupported_parameter", param: "include" });
+      }
+      body.include = [...new Set([...(body.include || []), "reasoning.encrypted_content"])];
     }
 
     // Remove unsupported parameters for Codex API

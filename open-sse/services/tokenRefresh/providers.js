@@ -4,6 +4,7 @@ import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { parseTimeMs } from "../oauthCredentialManager.js";
 import { dedupRefresh } from "./dedup.js";
 import { KIRO_CLI_USER_AGENT, TRAE_USER_AGENT } from "../../config/clientVersions.js";
+import { assertValidAwsRegion } from "../../config/awsRegions.js";
 
 let _xaiServiceSingleton = null;
 export async function refreshXaiToken(refreshToken, log, proxyOptions = null, signal = null) {
@@ -216,6 +217,7 @@ export async function refreshGoogleToken(refreshToken, clientId, clientSecret, l
   try {
     const response = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -230,17 +232,26 @@ export async function refreshGoogleToken(refreshToken, clientId, clientSecret, l
     }, proxyOptions);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      log?.error?.("TOKEN_REFRESH", "Failed to refresh Google token", { status: response.status, error: errorText });
+      await response.body?.cancel().catch(() => {});
+      log?.error?.("TOKEN_REFRESH", "Failed to refresh Google token", { status: response.status });
       return null;
     }
 
     const tokens = await response.json();
+    const validToken = token => typeof token === "string" && token.length > 0 && !/\s/.test(token);
+    const expiresIn = Number(tokens?.expires_in);
+    if (tokens?.error || !validToken(tokens?.access_token) || !["number", "string"].includes(typeof tokens?.expires_in) ||
+        !Number.isFinite(expiresIn) || expiresIn <= 0 ||
+        (tokens.refresh_token !== undefined && !validToken(tokens.refresh_token)) ||
+        (tokens.token_type !== undefined && (typeof tokens.token_type !== "string" || tokens.token_type.toLowerCase() !== "bearer"))) {
+      log?.error?.("TOKEN_REFRESH", "Google refresh returned an invalid token response");
+      return null;
+    }
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Google token", { hasNewAccessToken: !!tokens.access_token, expiresIn: tokens.expires_in });
-    return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
+    return { accessToken: tokens.access_token, refreshToken: validToken(tokens.refresh_token) ? tokens.refresh_token : refreshToken, expiresIn };
   } catch (error) {
     refreshSignal.throwIfAborted();
-    log?.error?.("TOKEN_REFRESH", `Network error refreshing Google token: ${error.message}`);
+    log?.error?.("TOKEN_REFRESH", "Google token refresh failed", { error: error.name || "Error" });
     return null;
   }
   }, log, proxyOptions, signal);
@@ -350,11 +361,14 @@ async function resolveKiroProfileArnPatch(providerSpecificData, accessToken, ref
 export async function refreshKiroToken(refreshToken, providerSpecificData, log, proxyOptions = null, signal = null) {
   signal?.throwIfAborted();
   if (!refreshToken) return null;
+  const configuredRegion = providerSpecificData?.region;
+  const region = assertValidAwsRegion(typeof configuredRegion === "string"
+    ? configuredRegion.trim() || "us-east-1" : configuredRegion ?? "us-east-1");
+  const validToken = token => typeof token === "string" && token.length > 0 && !/\s/.test(token);
   return dedupRefresh("kiro", refreshToken, async (refreshSignal) => {
   const authMethod = providerSpecificData?.authMethod;
   const clientId = providerSpecificData?.clientId;
   const clientSecret = providerSpecificData?.clientSecret;
-  const region = providerSpecificData?.region;
 
   if (authMethod === "external_idp") {
     let refreshRequest;
@@ -372,6 +386,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
     refreshSignal.throwIfAborted();
     const response = await proxyAwareFetch(refreshRequest.tokenEndpoint, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -381,15 +396,16 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
     }, proxyOptions);
 
     if (!response.ok) {
-      const errorText = await response.text();
+      await response.body?.cancel().catch(() => {});
       log?.error?.("TOKEN_REFRESH", "Failed to refresh Kiro external_idp token", {
         status: response.status,
-        error: errorText,
       });
       return null;
     }
 
     const tokens = await response.json();
+    if (!validToken(tokens?.access_token)) return null;
+    if (tokens.refresh_token != null && !validToken(tokens.refresh_token)) return null;
 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro external_idp token", {
       hasNewAccessToken: !!tokens.access_token,
@@ -406,13 +422,13 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
   }
 
   if (clientId && clientSecret) {
-    const isIDC = authMethod === "idc";
-    const endpoint = isIDC && region
-      ? `https://oidc.${region}.amazonaws.com/token`
-      : "https://oidc.us-east-1.amazonaws.com/token";
+    // Builder-ID and IDC clients are both registered on a regional OIDC host.
+    // Refresh on that same host instead of moving Builder-ID grants to us-east-1.
+    const endpoint = `https://oidc.${region}.amazonaws.com/token`;
 
     const response = await proxyAwareFetch(endpoint, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -427,15 +443,16 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
     }, proxyOptions);
 
     if (!response.ok) {
-      const errorText = await response.text();
+      await response.body?.cancel().catch(() => {});
       log?.error?.("TOKEN_REFRESH", "Failed to refresh Kiro AWS token", {
         status: response.status,
-        error: errorText,
       });
       return null;
     }
 
     const tokens = await response.json();
+    if (!validToken(tokens?.accessToken)) return null;
+    if (tokens.refreshToken != null && !validToken(tokens.refreshToken)) return null;
 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro AWS token", {
       hasNewAccessToken: !!tokens.accessToken,
@@ -452,6 +469,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
 
   const response = await proxyAwareFetch(PROVIDERS.kiro.tokenUrl, {
     signal: refreshSignal,
+    redirect: "error",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -464,15 +482,16 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
   }, proxyOptions);
 
   if (!response.ok) {
-    const errorText = await response.text();
+    await response.body?.cancel().catch(() => {});
     log?.error?.("TOKEN_REFRESH", "Failed to refresh Kiro social token", {
       status: response.status,
-      error: errorText,
     });
     return null;
   }
 
   const tokens = await response.json();
+  if (!validToken(tokens?.accessToken)) return null;
+  if (tokens.refreshToken != null && !validToken(tokens.refreshToken)) return null;
 
   log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro social token", {
     hasNewAccessToken: !!tokens.accessToken,

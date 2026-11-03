@@ -1,4 +1,50 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from "node:util";
+
+// These negative fixtures own only their exact warning/error arguments. Forward
+// any unexpected diagnostic and fail the case; ordinary logs remain visible.
+const expectedDiagnosticsByTest = {
+  "embeddings shared inference admission > charges once across account fallback and attaches the shared advisory headers": {
+    "warn": [
+      [
+        "[00:00:00] ⚠️  [AUTH] Account acc_20e7ebad unavailable (503), trying fallback"
+      ]
+    ]
+  },
+  "embeddings shared inference admission > does not charge an unauthorized caller": {
+    "warn": [
+      [
+        "[00:00:00] ⚠️  [AUTH] Invalid API key (requireApiKey=true)"
+      ]
+    ]
+  }
+};
+let observedDiagnostics;
+let diagnosticSpies;
+let expectedDiagnostics;
+
+beforeEach(() => {
+  expectedDiagnostics = expectedDiagnosticsByTest[expect.getState().currentTestName] || {};
+  observedDiagnostics = { warn: [], error: [] };
+  diagnosticSpies = ["warn", "error"].map(level => {
+    const original = console[level].bind(console);
+    return vi.spyOn(console, level).mockImplementation((...args) => {
+      const expected = expectedDiagnostics[level]?.[observedDiagnostics[level].length];
+      observedDiagnostics[level].push(args);
+      if (!isDeepStrictEqual(args, expected)) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(observedDiagnostics.warn).toEqual(expectedDiagnostics.warn || []);
+    expect(observedDiagnostics.error).toEqual(expectedDiagnostics.error || []);
+  } finally {
+    for (const spy of diagnosticSpies) spy.mockRestore();
+  }
+});
+
 
 const state = vi.hoisted(() => {
   vi.stubEnv("V1_RATE_LIMIT_RPM", "8");

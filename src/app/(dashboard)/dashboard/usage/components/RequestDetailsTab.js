@@ -100,6 +100,22 @@ function UsageQuality({ tokens }) {
   );
 }
 
+function RequestDetailResponseContent({ response }) {
+  let content = response?.content;
+  if (response?.redacted === true) content = "Content redacted";
+  else if (content == null) content = "[No content]";
+  else if (typeof content === "object") {
+    try { content = JSON.stringify(content, null, 2) ?? "[No content]"; }
+    catch { content = "[Unable to display content]"; }
+  } else content = String(content);
+
+  return (
+    <pre className="max-h-[300px] max-w-full overflow-auto rounded-lg border border-black/5 bg-black/5 p-3 font-mono text-xs text-text-main dark:border-white/5 dark:bg-white/5 sm:p-4">
+      {content}
+    </pre>
+  );
+}
+
 export default function RequestDetailsTab() {
   const [details, setDetails] = useState([]);
   const [pagination, setPagination] = useState({
@@ -535,9 +551,7 @@ export default function RequestDetailsTab() {
                 <h4 className="font-semibold text-text-main mb-2 text-xs uppercase tracking-wide opacity-70">
                   Content
                 </h4>
-                <pre className="max-h-[300px] max-w-full overflow-auto rounded-lg border border-black/5 bg-black/5 p-3 font-mono text-xs text-text-main dark:border-white/5 dark:bg-white/5 sm:p-4">
-                  {selectedDetail.response?.redacted === true ? "Content redacted" : selectedDetail.response?.content ?? "[No content]"}
-                </pre>
+                <RequestDetailResponseContent response={selectedDetail.response} />
               </CollapsibleSection>
             </div>
           </div>

@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 
 // Real public route, combo, Copilot executor, chat core and accounting. Only
 // persistence and transport are replaced; unexpected network/DB access fails.
@@ -188,6 +193,7 @@ describe("public chat combo caller cancellation", () => {
   });
 
   it("interrupts a transient backoff without dispatching the next model or writing new health state", async () => {
+    diagnostics.expectError("❌ github [502]: [502]: request not allowed");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     let waiting;
     const inBackoff = new Promise(resolve => { waiting = resolve; });
@@ -219,7 +225,8 @@ describe("public chat combo caller cancellation", () => {
     const accepting = new Promise(resolve => { started = resolve; });
     io.transport.mockImplementation(async () => successWithUsage());
     io.enqueue.mockImplementation(() => new Promise((resolve, reject) => { resolveAcceptance = resolve; rejectAcceptance = reject; started(); }));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = diagnostics.error;
+    if (outcome === "rejected") diagnostics.expectError("[USAGE] Persistence failed:", "SQLITE_FULL");
     const caller = new AbortController();
     const pending = chatRoute(request(caller.signal, false));
     await accepting;
@@ -239,7 +246,8 @@ describe("public chat combo caller cancellation", () => {
     let accepting, finishAcceptance, rejectAcceptance;
     const acceptanceStarted = new Promise(resolve => { accepting = resolve; });
     io.enqueue.mockImplementation(() => new Promise((resolve, reject) => { finishAcceptance = resolve; rejectAcceptance = reject; accepting(); }));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = diagnostics.error;
+    if (outcome === "rejected") diagnostics.expectError("[USAGE] Persistence failed:", "SQLITE_FULL");
     const wire = [
       { id: "fixture", object: "chat.completion.chunk", choices: [{ index: 0, delta: { content: "first" }, finish_reason: null }] },
       { id: "fixture", object: "chat.completion.chunk", choices: [], usage: { prompt_tokens: 3, completion_tokens: 5, total_tokens: 8 } },
@@ -275,7 +283,8 @@ describe("public chat combo caller cancellation", () => {
   it("keeps an uncancelled real acceptance rejection terminal and does not rotate or cool an account", async () => {
     io.transport.mockImplementation(async () => successWithUsage());
     io.enqueue.mockRejectedValue(Object.assign(new Error(privateDetail), { code: "SQLITE_FULL" }));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = diagnostics.error;
+    diagnostics.expectError("[USAGE] Persistence failed:", "SQLITE_FULL");
     const response = await chatRoute(request(undefined, false));
     expect(response.status).toBe(503);
     expect(response.headers.get("x-should-retry")).toBe("false");

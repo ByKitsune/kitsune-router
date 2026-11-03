@@ -6,6 +6,7 @@ import { parseVertexSaJson, refreshVertexToken, refreshGoogleToken } from "../se
 import { getRefreshProxyKey } from "../services/tokenRefresh/dedup.js";
 import { getEnvProxyUrl, proxyAwareFetch } from "../utils/proxyFetch.js";
 import { createHash } from "node:crypto";
+import { validateGoogleThoughtSignatures } from "../translator/concerns/thoughtSignature.js";
 
 // Only digests and validated project IDs are retained, never raw API/proxy keys.
 const projectIdCache = new Map();
@@ -225,6 +226,10 @@ export class VertexExecutor extends BaseExecutor {
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
     signal?.throwIfAborted();
+    if (this.provider === "vertex") {
+      const contents = validateGoogleThoughtSignatures(body?.contents, model);
+      if (contents !== body?.contents) body = { ...body, contents };
+    }
     const saJson = parseVertexSaJson(credentials?.apiKey);
     const adcJson = parseVertexAdcJson(credentials?.apiKey);
     const { projectId } = getRouteMetadata(credentials, saJson, adcJson);

@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { randomUUID } from "node:crypto";
 import { getDbImportGeneration } from "./db/helpers/importGeneration.js";
-import { DATA_DIR } from "./dataDir.js";
+import { DATA_DIR } from "./dataDir.mjs";
 
 const CACHE_FILE = path.join(DATA_DIR, "mitm", "aliases.json");
 

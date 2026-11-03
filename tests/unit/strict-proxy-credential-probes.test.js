@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
+import { isDeepStrictEqual } from "node:util";
 
 const mocks = vi.hoisted(() => ({
   getProviderConnectionById: vi.fn(), updateProviderConnection: vi.fn(),
@@ -16,6 +17,49 @@ vi.mock("@/lib/network/proxyTest", () => ({ testProxyUrl: vi.fn() }));
 // Load the real transport: mocking global fetch after import skips its strict guard.
 import "../../open-sse/utils/proxyFetch.js";
 import { testApiKeyConnection, testSingleConnection } from "../../src/app/api/providers/[id]/test/testUtils.js";
+
+const strictProxyFailure = "[ProxyFetch] Proxy required but no proxy URL configured (strictProxy=true)";
+const diagnosticExpectations = {
+  "does not directly refresh an expired OAuth token when its strict proxy is unavailable": [
+    ["log", "Error refreshing gemini-cli token:", strictProxyFailure],
+  ],
+  "does not directly refresh expired codex credentials without its strict proxy": [
+    ["error", "TOKEN_REFRESH", `Network error refreshing Codex token: ${strictProxyFailure}`],
+  ],
+  "does not directly refresh expired grok-cli credentials without its strict proxy": [
+    ["warn", "TOKEN_REFRESH", `xai refresh failed: ${strictProxyFailure}`],
+  ],
+};
+
+let expectedDiagnostics = [];
+let diagnosticCalls = [];
+let diagnosticSpies = [];
+
+beforeEach(({ task }) => {
+  expectedDiagnostics = diagnosticExpectations[task.name] || [];
+  diagnosticCalls = [];
+  diagnosticSpies = ["warn","error","log"].map(method => {
+    const original = console[method].bind(console);
+    return vi.spyOn(console, method).mockImplementation((...args) => {
+      if (method === "log" && !(typeof args[0] === "string" && /^Error refreshing [a-z0-9-]+ token:$/.test(args[0]))) return original(...args);
+      const call = [method, ...args];
+      const expected = expectedDiagnostics[diagnosticCalls.length];
+      diagnosticCalls.push(call);
+      const matches = expected?.length === call.length && expected.every((value, index) =>
+        typeof value?.asymmetricMatch === "function" ? value.asymmetricMatch(call[index]) : isDeepStrictEqual(value, call[index]));
+      if (!matches) original(...args);
+    });
+  });
+});
+
+afterEach(() => {
+  try {
+    expect(diagnosticCalls, "console diagnostics must match this case exactly").toEqual(expectedDiagnostics);
+  } finally {
+    diagnosticSpies.forEach(spy => spy.mockRestore());
+  }
+});
+
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,10 +1,8 @@
 /**
  * Project ID Service - Fetch and cache real Project IDs from Google Cloud Code API
  *
- *
- * Instead of generating random project IDs (e.g. "useful-spark-a1b2c"),
- * this service fetches the real Project ID bound to the authenticated user's account.
- * This significantly reduces the risk of being flagged by Google's anti-abuse systems.
+ * Fetches only a real project provisioned for the authenticated account.
+ * Missing or denied provisioning must never create a replacement account binding.
  */
 
 import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA } from "../config/appConstants.js";
@@ -82,7 +80,7 @@ startCacheCleanup();
 
 /**
  * Get the Project ID for a connection, with caching.
- * Returns null on failure (callers should fall back to random generation).
+ * Returns null on failure; callers must stop dispatch until account provisioning succeeds.
  *
  * @param {string} connectionId - The connection identifier for cache keying
  * @param {string} accessToken  - Valid OAuth access token
@@ -121,7 +119,7 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
             console.warn("[ProjectId] could not fetch projectId for connection", connectionId.slice(0, 8));
             return null;
         } catch (error) {
-            if (!sharedSignal.aborted) console.warn(`[ProjectId] Error fetching project ID: ${error.message}`);
+            if (!sharedSignal.aborted) console.warn(`[ProjectId] Project lookup failed (${error.name || "Error"})`);
             return null;
         }
     });
@@ -177,6 +175,7 @@ async function fetchProjectId(accessToken, signal, provider, proxyOptions = null
     const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
     const response = await proxyAwareFetch(endpoints.loadCodeAssist, {
         method: "POST",
+        redirect: "error",
         headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
         body: JSON.stringify({ metadata: LOAD_CODE_ASSIST_METADATA }),
         // This deadline includes the JSON/error body, not just response headers.
@@ -184,12 +183,13 @@ async function fetchProjectId(accessToken, signal, provider, proxyOptions = null
     }, proxyOptions);
 
     if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        throw new Error(`loadCodeAssist failed: HTTP ${response.status} ${errorText.slice(0, 200)}`);
+        await response.body?.cancel().catch(() => {});
+        throw new Error(`loadCodeAssist failed: HTTP ${response.status}`);
     }
 
     const data = await response.json();
     signal.throwIfAborted();
+    if (!data || typeof data !== "object" || Array.isArray(data) || data.error) return null;
     const projectId = extractProjectId(data);
     if (projectId) return projectId;
 
@@ -240,28 +240,37 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
         try {
             const response = await proxyAwareFetch(endpoints.onboardUser, {
                 method: "POST",
+                redirect: "error",
                 headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
                 body: JSON.stringify(reqBody),
                 signal: requestSignal
             }, proxyOptions);
 
             if (!response.ok) {
-                const errorText = await response.text().catch(() => "");
-                throw new Error(`onboardUser HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+                if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                    await response.body?.cancel().catch(() => {});
+                    return null;
+                }
+                await response.body?.cancel().catch(() => {});
+                throw new Error(`onboardUser HTTP ${response.status}`);
             }
 
-            const data = await response.json();
+            let data;
+            try { data = await response.json(); }
+            catch { requestSignal.throwIfAborted(); return null; }
             clearTimeout(timeoutId);
             externalSignal.throwIfAborted();
 
+            if (!data || typeof data !== "object" || Array.isArray(data) || data.error ||
+                (data.done !== undefined && typeof data.done !== "boolean")) return null;
             if (data.done === true) {
                 const projectId = extractProjectIdFromOnboard(data);
                 if (projectId) {
-                    console.log(`[ProjectId] Successfully onboarded, project ID: ${projectId}`);
+                    console.log("[ProjectId] Successfully provisioned account project");
                     return projectId;
                 }
                 // Server indicated onboarding is done, but no project ID was provisioned (e.g. personal account without a default GCP project).
-                // Do not retry 5 times pointlessly; return null so the system falls back to synthetic project IDs immediately.
+                // Do not retry pointlessly or invent a project binding; return null and stop dispatch.
                 console.log(`[ProjectId] Onboarding done (no project ID assigned by server)`);
                 return null;
             }
@@ -278,11 +287,11 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
                 continue;
             }
             if (attempt === MAX_ATTEMPTS) {
-                console.warn(`[ProjectId] onboardUser failed after ${MAX_ATTEMPTS} attempts: ${error.message}`);
+                console.warn(`[ProjectId] onboardUser failed after ${MAX_ATTEMPTS} attempts (${error.name || "Error"})`);
                 return null;
             }
             // Continue to next attempt instead of throwing (which would skip remaining retries)
-            console.warn(`[ProjectId] onboardUser attempt ${attempt} failed: ${error.message}, retrying...`);
+            console.warn(`[ProjectId] onboardUser attempt ${attempt} failed (${error.name || "Error"}), retrying...`);
             await delay(2000, undefined, { signal: externalSignal });
         } finally {
             clearTimeout(timeoutId);
@@ -300,12 +309,12 @@ function extractProjectId(data) {
 
     if (typeof data.cloudaicompanionProject === "string") {
         const id = data.cloudaicompanionProject.trim();
-        if (id) return id;
+        if (id && !/\s/.test(id)) return id;
     }
 
     if (data.cloudaicompanionProject && typeof data.cloudaicompanionProject === "object") {
         const id = data.cloudaicompanionProject.id;
-        if (typeof id === "string" && id.trim()) return id.trim();
+        if (typeof id === "string" && id.trim() && !/\s/.test(id.trim())) return id.trim();
     }
 
     return null;
@@ -321,12 +330,12 @@ function extractProjectIdFromOnboard(data) {
 
     if (typeof project === "string") {
         const id = project.trim();
-        if (id) return id;
+        if (id && !/\s/.test(id)) return id;
     }
 
     if (project && typeof project === "object") {
         const id = project.id;
-        if (typeof id === "string" && id.trim()) return id.trim();
+        if (typeof id === "string" && id.trim() && !/\s/.test(id.trim())) return id.trim();
     }
 
     return null;

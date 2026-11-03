@@ -1,6 +1,11 @@
 // Adversarial / edge-case tests for PR #1175
 // Goals: find corruption, boundary bugs, false positives, integration regressions
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect } from "vitest";
+import { captureExpectedDiagnostics } from "../helpers/expectedDiagnostics.js";
+
+let diagnostics;
+beforeEach(() => { diagnostics = captureExpectedDiagnostics(); });
+afterEach(() => { diagnostics.verify(); });
 import { autoDetectFilter } from "../../open-sse/rtk/autodetect.js";
 import { buildOutput } from "../../open-sse/rtk/filters/buildOutput.js";
 import { gitDiff } from "../../open-sse/rtk/filters/gitDiff.js";
@@ -387,6 +392,7 @@ describe("PR #1175 - pathological", () => {
 
   it("null/undefined safety via safeApply", () => {
     // buildOutput would throw on null.split() — safeApply must catch
+    diagnostics.expectWarn("[rtk] warning: filter 'build-output' panicked — passing through raw output: Cannot read properties of null (reading 'split')");
     const out = safeApply(buildOutput, null);
     expect(out).toBe(null);
   });

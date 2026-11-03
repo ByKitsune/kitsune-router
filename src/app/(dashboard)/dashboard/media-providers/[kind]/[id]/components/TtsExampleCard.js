@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/shared/components";
 import { AI_PROVIDERS, getProviderAlias } from "@/shared/constants/providers";
-import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
+import { getModelsByProviderId, getModelKind, filterAdvertisedModels } from "@/shared/constants/models";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { TTS_PROVIDER_CONFIG } from "@/shared/constants/ttsProviders";
 import { translate } from "@/i18n/runtime";
@@ -17,10 +17,16 @@ const DEFAULT_FORMAT_OPTIONS = [
   { value: "json", label: "JSON (Base64)" },
 ];
 
+function ttsModelOptions(providerId, config) {
+  const registered = getModelsByProviderId(providerId).filter(model => getModelKind(model) === "tts");
+  const configured = AI_PROVIDERS[providerId]?.ttsConfig?.models || [];
+  const auxiliary = config.modelKey ? getModelsByProviderId(config.modelKey) : [];
+  const candidates = registered.length ? registered : configured.length ? configured : auxiliary;
+  return filterAdvertisedModels(providerId, candidates);
+}
+
 function initialModel(providerId, config) {
-  const configured = AI_PROVIDERS[providerId]?.ttsConfig?.models;
-  if (configured?.length) return configured[0].id;
-  return config.hasModelSelector && config.modelKey ? (getModelsByProviderId(config.modelKey)?.[0]?.id || "") : "";
+  return config.hasModelSelector ? (ttsModelOptions(providerId, config)[0]?.id || "") : "";
 }
 
 function formatFromContentType(value) {
@@ -101,9 +107,7 @@ export function TtsExampleCard({ providerId }) {
 
     // Pre-select default voice based on provider config
     if (config.voiceSource === "hardcoded") {
-      const defaultModel = config.hasModelSelector && config.modelKey
-        ? (getModelsByProviderId(config.modelKey)?.[0]?.id || "")
-        : "";
+      const defaultModel = initialModel(providerId, config);
       // Use per-model voices if available, else flat list
       const voices = (config.voicesPerModel && defaultModel)
         ? (getTtsVoicesForModel(providerId, defaultModel) || [])
@@ -141,7 +145,7 @@ export function TtsExampleCard({ providerId }) {
     // config (nvidia, hyperbolic, deepgram, huggingface, cartesia, playht, coqui, tortoise, inworld, qwen):
     // use ttsConfig.models for model selector; voice is empty by default (backend uses provider default)
     return () => { cancelled = true; };
-  }, [providerId, config.hasBrowseButton, config.hasModelSelector, config.modelKey, config.voiceKey, config.voiceSource, config.voicesPerModel]);
+  }, [providerId, config]);
 
   // Update voices when model changes (voicesPerModel providers)
   useEffect(() => {
@@ -232,6 +236,9 @@ export function TtsExampleCard({ providerId }) {
   // For ElevenLabs/config-driven: prefer manual voiceId (if any), else fall back to selectedVoice
   const activeVoiceId = config.hasVoiceIdInput ? (voiceId || selectedVoice) : selectedVoice;
   const modelFull = (() => {
+    // A voice cannot substitute for a model when every documented model has
+    // retired. Keep the example disabled until a supported model is available.
+    if (config.hasModelSelector && !selectedModel) return "";
     if (config.hasModelSelector && selectedModel && activeVoiceId) return `${providerAlias}/${selectedModel}/${activeVoiceId}`;
     if (config.hasModelSelector && selectedModel) return `${providerAlias}/${selectedModel}`;
     if (activeVoiceId) return `${providerAlias}/${activeVoiceId}`;
@@ -346,12 +353,10 @@ export function TtsExampleCard({ providerId }) {
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
               >
-                {(() => {
-                  const ttsModels = getModelsByProviderId(providerId).filter(m => getModelKind(m) === "tts");
-                  return (ttsModels.length ? ttsModels : getModelsByProviderId(config.modelKey) || []).map((m) => (
-                    <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                  ));
-                })()}
+                {!ttsModelOptions(providerId, config).length && <option value="" disabled>{translate("No models found")}</option>}
+                {ttsModelOptions(providerId, config).map((m) => (
+                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                ))}
               </select>
             </Row>
           )}

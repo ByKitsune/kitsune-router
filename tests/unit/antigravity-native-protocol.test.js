@@ -99,7 +99,8 @@ describe("Antigravity protocol and capability alignment", () => {
       },
     };
     const transformed = ex.transformRequest("gemini-3.8-flash-high", req, false, {});
-    const call = transformed.request.contents[0].parts[0].functionCall;
-    expect(call.thoughtSignature).toBe("skip_thought_signature_validator");
+    const part = transformed.request.contents[0].parts[0];
+    expect(part.thoughtSignature).toBe("skip_thought_signature_validator");
+    expect(part.functionCall.thoughtSignature).toBeUndefined();
   });
 });

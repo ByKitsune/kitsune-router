@@ -67,8 +67,6 @@ describe("Claude Code CLI context → OpenAI", () => {
       thinking: { type: "enabled", budget_tokens: 1024 },
       messages: [{ role: "assistant", content: [
         opaqueFirst,
-        { type: "thinking", thinking: "foreign reasoning", signature: "invalid" },
-        { type: "redacted_thinking", data: "" },
         opaqueSecond,
         { type: "tool_use", id: "call_1", name: "lookup", input: {} },
       ] }, { role: "user", content: [
