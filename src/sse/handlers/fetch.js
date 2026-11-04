@@ -8,6 +8,7 @@ import {
 import { getSettings, getCombos, isApiKeyRequired } from "@/lib/localDb";
 import { AI_PROVIDERS, resolveProviderId } from "@/shared/constants/providers.js";
 import { handleFetchCore } from "open-sse/handlers/fetch/index.js";
+import { getWebFetchFormatError } from "open-sse/config/webFetchFormats.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
@@ -130,6 +131,15 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
   if (!providerConfig) {
     log.warn("FETCH", "Provider does not support web fetch", { provider: providerId });
     return errorResponse(HTTP_STATUS.BAD_REQUEST, `Provider ${providerId} does not support web fetch`);
+  }
+
+  // Request format errors belong to the caller, before account selection or
+  // token refresh; they must not enter the account-unavailability fallback.
+  const formatError = getWebFetchFormatError(providerId, format);
+  if (formatError) {
+    const response = errorResponse(HTTP_STATUS.BAD_REQUEST, formatError, { param: "format" });
+    response.headers.set("x-should-retry", "false");
+    return response;
   }
 
   if (providerInput !== providerId) {

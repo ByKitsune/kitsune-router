@@ -54,6 +54,7 @@ describe("Jina Reader fetch", () => {
     expect(lookup).toHaveBeenCalledOnce();
     expect(init.headers).toEqual({
       "content-type": "application/json",
+      "x-return-format": "markdown",
       authorization: "Bearer jina-test-key",
     });
     expect(JSON.parse(init.body)).toEqual({ url: "https://example.com/article" });

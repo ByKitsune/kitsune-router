@@ -1,3 +1,5 @@
+import { WEB_FETCH_FORMATS } from "../../config/webFetchFormats.js";
+
 export default {
   id: "tavily",
   alias: "tavily",
@@ -41,10 +43,7 @@ export default {
     // Official unit is per 5 URLs (1 credit basic / 2 advanced), not per query.
     costPerQuery: 0.008,
     freeMonthlyQuota: 1000,
-    formats: [
-      "markdown",
-      "text"
-    ],
+    formats: [...WEB_FETCH_FORMATS.tavily],
     maxCharacters: 100000,
     timeoutMs: 15000
   }

@@ -62,20 +62,25 @@ function stopTextBlock(state, results) {
   state.textBlockStarted = false;
 }
 
+function flushToolArguments(state, index, tool, results) {
+  const parts = state.toolArgBuffers?.get(index);
+  if (tool.name === "Read" || !parts?.length) return;
+  results.push({ type: "content_block_delta", index: tool.blockIndex,
+    delta: { type: "input_json_delta", partial_json: parts.join("") } });
+  state.toolArgBuffers.delete(index);
+}
+
 function startPendingTools(state, results, finishing = false) {
-  for (const [index, tool] of state.toolCalls) {
-    if (!tool.started) {
-      if (!tool.id || !tool.name || (!finishing && !tool.ready)) break;
-      tool.started = true;
-      tool.name = state.toolNameMap?.get(tool.name) || tool.name;
-      results.push({ type: "content_block_start", index: tool.blockIndex,
-        content_block: { type: CLAUDE_BLOCK.TOOL_USE, id: tool.id, name: tool.name, input: {} } });
-    }
-    const parts = state.toolArgBuffers?.get(index);
-    if (tool.name === "Read" || !parts?.length) continue;
-    results.push({ type: "content_block_delta", index: tool.blockIndex,
-      delta: { type: "input_json_delta", partial_json: parts.join("") } });
-    state.toolArgBuffers.delete(index);
+  // Started tools are immutable. Retain only the unresolved opener frontier so
+  // fragmented arguments do not rescan every earlier parallel tool.
+  for (const [index, tool] of state.pendingClaudeToolStarts || []) {
+    if (!tool.id || !tool.name || (!finishing && !tool.ready)) break;
+    tool.started = true;
+    tool.name = state.toolNameMap?.get(tool.name) || tool.name;
+    state.pendingClaudeToolStarts.delete(index);
+    results.push({ type: "content_block_start", index: tool.blockIndex,
+      content_block: { type: CLAUDE_BLOCK.TOOL_USE, id: tool.id, name: tool.name, input: {} } });
+    flushToolArguments(state, index, tool, results);
   }
 }
 
@@ -216,6 +221,7 @@ export function openaiToClaudeResponse(chunk, state) {
   // order on first sight, but publish each immutable native start only once its
   // name is complete (the first argument, an exact declaration, or terminal).
   if (delta?.tool_calls) {
+    const activeTools = new Map();
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
       let tool = state.toolCalls.get(idx);
@@ -224,6 +230,7 @@ export function openaiToClaudeResponse(chunk, state) {
         stopTextBlock(state, results);
         tool = { id: tc.id, name: "", blockIndex: state.nextBlockIndex++, started: false, ready: false };
         state.toolCalls.set(idx, tool);
+        (state.pendingClaudeToolStarts ??= new Map()).set(idx, tool);
       }
       if (!tool.started) {
         if (tc.id) tool.id = tc.id;
@@ -237,8 +244,14 @@ export function openaiToClaudeResponse(chunk, state) {
         if (!parts) { parts = []; state.toolArgBuffers.set(idx, parts); }
         parts.push(tc.function.arguments);
         tool.ready = true;
+        if (tool.started && tool.name !== "Read") activeTools.set(idx, tool);
       }
     }
+    // Preserve native block order even when a single Chat delta lists active
+    // tools in reverse order; untouched tools need no work.
+    const ordered = activeTools.size > 1
+      ? [...activeTools].sort((left, right) => left[1].blockIndex - right[1].blockIndex) : activeTools;
+    for (const [index, tool] of ordered) flushToolArguments(state, index, tool, results);
     startPendingTools(state, results);
   }
 

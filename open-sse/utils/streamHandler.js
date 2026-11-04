@@ -139,8 +139,7 @@ export function createDisconnectAwareStream(
   let terminationPromise;
   let lastActivityAt = Date.now();
   let atEventBoundary = true;
-  let suffix = "";
-  const boundaryDecoder = new TextDecoder();
+  let suffixBytes = 0;
   const setDemand = () => lifecycle.onDemand?.(!ended && output.desiredSize > 0);
   const cleanup = reason => {
     if (cleanupPromise) return cleanupPromise;
@@ -225,9 +224,18 @@ export function createDisconnectAwareStream(
             streamController.handleComplete(); setDemand();
             await cleanup(); controller.close(); return;
           }
-          const text = boundaryDecoder.decode(value, { stream: true });
-          suffix = (suffix + text.slice(-4)).slice(-4);
-          atEventBoundary = /(?:\r\n\r\n|\n\n|\r\r)$/.test(suffix);
+          // SSE separators are ASCII bytes; decoding a complete image/tool
+          // payload merely to inspect its trailing separator wastes a full
+          // string allocation. Carry at most the last four bytes across reads.
+          let bytes = value;
+          if (!(bytes instanceof Uint8Array)) {
+            if (ArrayBuffer.isView(value)) bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+            else if (value instanceof ArrayBuffer || (typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer)) bytes = new Uint8Array(value);
+            else throw new TypeError("Stream output must contain bytes");
+          }
+          for (let index = Math.max(0, bytes.length - 4); index < bytes.length; index++) suffixBytes = (suffixBytes << 8) | bytes[index];
+          const lastTwoBytes = suffixBytes & 0xffff;
+          atEventBoundary = lastTwoBytes === 0x0a0a || lastTwoBytes === 0x0d0d || suffixBytes === 0x0d0a0d0a;
           reading = false; controller.enqueue(value); setDemand();
         } catch (error) { reading = false; await closeOnError(error); }
       })();

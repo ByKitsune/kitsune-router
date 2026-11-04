@@ -1,3 +1,5 @@
+import { WEB_FETCH_FORMATS } from "../../config/webFetchFormats.js";
+
 export default {
   id: "jina-reader",
   alias: "jina-reader",
@@ -24,11 +26,7 @@ export default {
     costPerQuery: 0,
     // Official: 10M-token ONE-TIME signup grant (not monthly); field kept for UI compat.
     freeMonthlyQuota: 10000000,
-    formats: [
-      "markdown",
-      "text",
-      "html"
-    ],
+    formats: [...WEB_FETCH_FORMATS["jina-reader"]],
     maxCharacters: 200000,
     timeoutMs: 30000
   }

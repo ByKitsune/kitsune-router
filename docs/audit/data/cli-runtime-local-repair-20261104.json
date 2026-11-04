@@ -1,0 +1,104 @@
+{
+  "issue": "https://github.com/decolua/9router/issues/5443",
+  "reviewDateUtc": "2026-11-04",
+  "capturedAtUtc": "2026-11-04T07:52:06.199321+00:00",
+  "changedFiles": [
+    "cli/hooks/sqliteRuntime.js",
+    "tests/unit/cli-runtime-local-install.test.js"
+  ],
+  "disposition": "reproduced-and-repaired",
+  "originalFailure": "Successful nested npm install inherited global mode, populated the isolated global prefix and left runtime/node_modules empty.",
+  "correction": "Child-only case-insensitive npm global/prefix/location selectors are replaced with the explicit runtime project; explicit local/project argv overrides config. Other environment fields, package/script options, proxy/TLS/auth/userconfig and parent state survive unchanged. Directory paths are kept in child env/cwd rather than new Windows shell-parsed argv.",
+  "probes": [
+    {
+      "label": "before",
+      "capturedAtUtc": "2026-11-04T07:38:59.429Z",
+      "node": "v24.19.0",
+      "npm": "11.9.0",
+      "fixtureName": "kitsune-runtime-local-fixture",
+      "offline": true,
+      "lifecycleScriptsDisabled": true,
+      "privateScratchPrefix": true,
+      "helperSha256": "67eefc154bfbbec04fe3d796d58ff7c92dbcc41cf5930b8c74f1f60e8831c172",
+      "runnerStatus": 0,
+      "runnerStderr": "",
+      "helperResult": {
+        "ok": true,
+        "code": 0,
+        "stderr": "",
+        "stdout": "\nadded 1 package in 181ms\n"
+      },
+      "runtimePackageExists": false,
+      "isolatedGlobalPackageExists": true,
+      "area": "/workspace/.cloud-setup/kitsune-router/translator-perf-20261104/npm-local-repair/before paths with spaces M04BTd"
+    },
+    {
+      "label": "after",
+      "capturedAtUtc": "2026-11-04T07:41:30.452Z",
+      "node": "v24.19.0",
+      "npm": "11.9.0",
+      "fixtureName": "kitsune-runtime-local-fixture",
+      "offline": true,
+      "lifecycleScriptsDisabled": true,
+      "privateScratchPrefix": true,
+      "helperSha256": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1",
+      "runnerStatus": 0,
+      "runnerStderr": "",
+      "helperResult": {
+        "ok": true,
+        "code": 0,
+        "stderr": "",
+        "stdout": "\nadded 1 package in 167ms\n"
+      },
+      "runtimePackageExists": true,
+      "isolatedGlobalPackageExists": false,
+      "area": "/workspace/.cloud-setup/kitsune-router/translator-perf-20261104/npm-local-repair/after paths with spaces 1b6pjp"
+    },
+    {
+      "label": "after-npm1117",
+      "capturedAtUtc": "2026-11-04T07:43:12.768Z",
+      "node": "v24.19.0",
+      "npm": "11.17.0",
+      "fixtureName": "kitsune-runtime-local-fixture",
+      "offline": true,
+      "lifecycleScriptsDisabled": true,
+      "privateScratchPrefix": true,
+      "helperSha256": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1",
+      "runnerStatus": 0,
+      "runnerStderr": "",
+      "helperResult": {
+        "ok": true,
+        "code": 0,
+        "stderr": "",
+        "stdout": "\nadded 1 package in 195ms\n"
+      },
+      "runtimePackageExists": true,
+      "isolatedGlobalPackageExists": false,
+      "area": "/workspace/.cloud-setup/kitsune-router/translator-perf-20261104/npm-local-repair/after-npm1117 paths with spaces 39hnVt"
+    }
+  ],
+  "probeFileSha256": {
+    "before.json": "6cdd284bda131176cb48a7db153bc988b78d05565f12c36c4ef85ebfcc32ce38",
+    "after.json": "472edf0908539d299a3a10a0e69b4efcf71c5a68e9e13b34db27ce78de22358f",
+    "after-npm1117.json": "96bb004dbed0f01eed025cac071d2af10abd07195d3e15fc93d655c161d77835"
+  },
+  "focusedVerification": {
+    "command": "node tests/node_modules/vitest/vitest.mjs run --config tests/vitest.config.js tests/unit/cli-runtime-local-install.test.js tests/unit/cli-runtime-dependency-pins.test.js",
+    "files": 2,
+    "tests": 7,
+    "newTests": 4,
+    "result": "passed",
+    "lint": "node scripts/lint.mjs cli/hooks/sqliteRuntime.js tests/unit/cli-runtime-local-install.test.js passed",
+    "diffCheck": "passed"
+  },
+  "sourceSha256": {
+    "cli/hooks/sqliteRuntime.js": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1",
+    "tests/unit/cli-runtime-local-install.test.js": "733f727cf3566fab05e97fd3bb4e03d7e18a9afc0836889c104dee4f1b35bd7f"
+  },
+  "limits": [
+    "Offline local package fixture only; no registry package or actual global installation was modified.",
+    "Actual POSIX npm11.9 and exact CI npm11.17 ran on Node24.19. Native Windows environment/command contract is simulated; no native Windows/macOS install certification.",
+    "No full online SQLite/tray warm-up or independently reported sibling-install pruning repair is claimed.",
+    "Final combined tests/build are owned by parent."
+  ]
+}

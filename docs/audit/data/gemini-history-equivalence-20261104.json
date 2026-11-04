@@ -1,0 +1,8 @@
+{
+  "cases": 2000,
+  "seed": "0x419402",
+  "baseline": "d598b149f965e026c1de2dace79f17a4232feac7",
+  "allMappingsEqual": true,
+  "scope": "Seeded synthetic native history equivalence; explicit/absent/repeated/object/NaN keys, name-vs-ID priority, missing results, signatures and mixed call/response parts; no provider traffic.",
+  "mappingSha256": "eadbbe4855cae20c18947f7ad1db5cf6de00a799ca3dea9e73de147b56e35daf"
+}

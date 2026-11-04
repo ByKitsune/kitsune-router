@@ -4,6 +4,7 @@ export const SSE_COMPLETION_GRACE_MS = 3000;
 export function createSSEParser({ mode = "sse", maxEventChars = SSE_LIMITS.eventChars } = {}) {
   if (mode !== "sse" && mode !== "ndjson") throw new TypeError("Unsupported stream framing");
   const decoder = new TextDecoder();
+  const lineEnding = /[\r\n]/g;
   let lineParts = [];
   let lineBlocks = [];
   let lineLength = 0;
@@ -54,26 +55,66 @@ export function createSSEParser({ mode = "sse", maxEventChars = SSE_LIMITS.event
     return null;
   };
   function* scan(text) {
-    let start = 0;
-    for (let cursor = 0; cursor < text.length; cursor++) {
+    if (text.length === 1) {
+      // Byte-fragmented transports otherwise pay the bulk scanner setup once
+      // per character, even though there is no delimiter search to perform.
+      const code = text.charCodeAt(0);
       scannedChars++;
-      const code = text.charCodeAt(cursor);
-      if (skipLF) {
-        skipLF = false;
-        if (code === 10) { start = cursor + 1; continue; }
-      }
+      if (skipLF) { skipLF = false; if (code === 10) return; }
       if (++eventLength > maxEventChars) throw new RangeError("Upstream stream event exceeds limit");
-      if (code !== 10 && code !== 13) continue;
+      if (code !== 10 && code !== 13) { appendLine(text); return; }
+      skipLF = code === 13;
+      const event = line(lineLength ? takeLine("") : "");
+      if (mode === "ndjson") eventLength = 0;
+      if (event) yield event;
+      return;
+    }
+    let start = 0;
+    if (skipLF && text.length) {
+      skipLF = false;
+      if (text.charCodeAt(0) === 10) { scannedChars++; start = 1; }
+    }
+    while (start < text.length) {
+      // Search only through the next line ending. A generator paused after one
+      // event must not scan/allocate the unused suffix of a large network chunk.
+      let cursor;
+      if (text.length - start <= 8) {
+        // Tiny transport fragments cost less to inspect inline than invoking
+        // the delimiter search; bulk text still stays out of the JS loop.
+        for (cursor = start; cursor < text.length; cursor++) {
+          const code = text.charCodeAt(cursor);
+          if (code === 10 || code === 13) break;
+        }
+      } else {
+        lineEnding.lastIndex = start;
+        const ending = lineEnding.exec(text);
+        cursor = ending ? ending.index : text.length;
+      }
+      const hasEnding = cursor < text.length;
+      const consumed = cursor - start + (hasEnding ? 1 : 0);
+      if (eventLength + consumed > maxEventChars) {
+        const throughLimit = Math.max(1, Math.floor(maxEventChars - eventLength) + 1);
+        scannedChars += throughLimit;
+        eventLength += throughLimit;
+        throw new RangeError("Upstream stream event exceeds limit");
+      }
+      scannedChars += consumed;
+      eventLength += consumed;
+      if (!hasEnding) { appendLine(text.slice(start)); break; }
       const part = text.slice(start, cursor);
       const value = lineLength ? takeLine(part) : part;
       start = cursor + 1;
-      skipLF = code === 13;
+      skipLF = text.charCodeAt(cursor) === 13;
       const event = line(value);
       if (mode === "ndjson") eventLength = 0;
       if (event) yield event;
+      if (skipLF && start < text.length) {
+        skipLF = false;
+        if (text.charCodeAt(start) === 10) { scannedChars++; start++; }
+      }
     }
-    if (start < text.length) appendLine(text.slice(start));
   }
+
   return {
     *feed(chunk) {
       if (ended) return;

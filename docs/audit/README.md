@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 4 translator-performance follow-up](31-translator-performance-and-upstream-followup-2026-11-04.md)
+records measured request/SSE CPU improvements, current upstream issue dispositions,
+and local-install/web-fetch request-fidelity corrections.
+
 The [November 4 provider request-safety and catalog review](30-provider-request-safety-and-catalog-refresh-2026-11-04.md)
 compares official source clones, removes fabricated request material, audits all
 121 provider catalogs, and records CI/runtime warning and fixture corrections.

@@ -3,9 +3,9 @@
 
 import { lookup } from "node:dns/promises";
 import { Agent, Dispatcher1Wrapper } from "undici";
+import { DEFAULT_WEB_FETCH_FORMAT, getWebFetchFormatError } from "../../config/webFetchFormats.js";
 
 const DEFAULT_TIMEOUT_MS = 15000;
-const DEFAULT_FORMAT = "markdown";
 
 // Private/reserved IP ranges for SSRF protection
 function isPrivateIp(ip) {
@@ -146,7 +146,10 @@ export async function handleFetchCore({ url, format, maxCharacters, provider, pr
     return { success: false, status: 400, error: "provider is required" };
   }
 
-  const fmt = format || DEFAULT_FORMAT;
+  const formatError = getWebFetchFormatError(provider, format);
+  if (formatError) return { success: false, status: 400, error: formatError };
+
+  const fmt = format || DEFAULT_WEB_FETCH_FORMAT;
   const timeoutMs = providerConfig?.timeoutMs || DEFAULT_TIMEOUT_MS;
   const apiKey = credentials?.apiKey || credentials?.key || credentials?.token || "";
   const costPerQuery = providerConfig?.costPerQuery ?? null;
@@ -221,6 +224,7 @@ async function runJina({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuer
     method: "POST",
     headers: {
       "content-type": "application/json",
+      "x-return-format": fmt,
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
     body: JSON.stringify({ url })
@@ -252,7 +256,7 @@ async function runTavily({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQu
       "content-type": "application/json",
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
-    body: JSON.stringify({ urls: [url], extract_depth: "basic" })
+    body: JSON.stringify({ urls: [url], extract_depth: "basic", format: fmt })
   }, timeoutMs);
 
   if (!r.ok) {

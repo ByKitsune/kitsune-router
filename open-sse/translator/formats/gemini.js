@@ -436,6 +436,7 @@ function mergeAllOf(obj) {
 
   if (obj.allOf && Array.isArray(obj.allOf)) {
     const merged = {};
+    const requiredSeen = new Set();
 
     for (const item of obj.allOf) {
       if (item.properties) {
@@ -445,7 +446,8 @@ function mergeAllOf(obj) {
       if (item.required && Array.isArray(item.required)) {
         if (!merged.required) merged.required = [];
         for (const req of item.required) {
-          if (!merged.required.includes(req)) {
+          if (!requiredSeen.has(req)) {
+            requiredSeen.add(req);
             merged.required.push(req);
           }
         }

@@ -7,12 +7,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const options = { iterations: 60, parallelTools: 400, output: null, baselineRef: null };
-const flags = { "--iterations": "iterations", "--parallel-tools": "parallelTools", "--output": "output", "--baseline-ref": "baselineRef" };
+const options = { iterations: 60, parallelTools: 400, output: null, baselineRef: null, baselineScope: "history" };
+const flags = { "--iterations": "iterations", "--parallel-tools": "parallelTools", "--output": "output", "--baseline-ref": "baselineRef", "--baseline-scope": "baselineScope" };
 const args = process.argv.slice(2);
 for (let index = 0; index < args.length; index++) {
   const option = flags[args[index]];
-  if (!option || !args[index + 1]) throw new Error("Usage: node scripts/benchmark-translator.mjs [--iterations N] [--parallel-tools N] [--baseline-ref REF] [--output FILE]");
+  if (!option || !args[index + 1]) throw new Error("Usage: node scripts/benchmark-translator.mjs [--iterations N] [--parallel-tools N] [--baseline-ref REF] [--baseline-scope history|engine] [--output FILE]");
   options[option] = args[++index];
 }
 const iterations = Number(options.iterations);
@@ -20,9 +20,14 @@ const parallel = Number(options.parallelTools);
 if (!Number.isInteger(iterations) || iterations < 10 || iterations > 10000) throw new Error("iterations must be an integer from 10 to 10000");
 if (!Number.isInteger(parallel) || parallel < 1 || parallel > 5000) throw new Error("parallel-tools must be an integer from 1 to 5000");
 const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+if (!["history", "engine"].includes(options.baselineScope)) throw new Error("baseline-scope must be history or engine");
 const baselineCommit = options.baselineRef ? git("rev-parse", "--verify", "--end-of-options", `${options.baselineRef}^{commit}`) : null;
-const baselinePaths = ["open-sse/translator/concerns/toolCall.js", "open-sse/translator/formats/claude.js"];
-const snapshots = new Map(baselineCommit ? baselinePaths.map(path => [pathToFileURL(resolve(root, path)).href, git("show", `${baselineCommit}:${path}`)]) : []);
+// The legacy history scope preserves older studies. Engine scope loads a
+// coherent baseline, including request, response, schema and SSE helpers.
+const baselinePaths = options.baselineScope === "engine" && baselineCommit
+  ? git("ls-tree", "-r", "--name-only", baselineCommit, "--", "open-sse").split("\n").filter(path => /\.(?:m?js|json)$/.test(path))
+  : ["open-sse/translator/concerns/toolCall.js", "open-sse/translator/formats/claude.js"];
+const snapshots = new Map(baselineCommit ? baselinePaths.map(path => [pathToFileURL(resolve(root, path)).href, execFileSync("git", ["show", `${baselineCommit}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] })]) : []);
 globalThis.fetch = async () => { throw new Error("Translator benchmark forbids network requests"); };
 
 // Synthetic, local CPU work only. Keep the real translator and SSE pipeline;
@@ -31,7 +36,7 @@ registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier === "@/lib/usageDb.js") return { shortCircuit: true, url: "data:text/javascript," + encodeURIComponent("export function trackPendingRequest(){};export async function appendRequestLog(){};export async function saveRequestUsage(){}") };
   return nextResolve(specifier, context);
 }, load(url, context, nextLoad) {
-  if (snapshots.has(url)) return { format: "module", shortCircuit: true, source: snapshots.get(url) };
+  if (snapshots.has(url)) return { format: url.endsWith(".json") ? "json" : "module", shortCircuit: true, source: snapshots.get(url) };
   return nextLoad(url, context);
 } });
 const { translateRequest } = await import(pathToFileURL(root + "open-sse/translator/index.js"));
@@ -52,7 +57,7 @@ const chat = count => ({ model: "fixture", max_tokens: 4096, tools, messages: co
   ...Array.from({ length: count }, (_, i) => ({ role: "tool", tool_call_id: `call_${count - i - 1}`, content: `record:${count - i - 1}:` + "x".repeat(256) })),
   { role: "user", content: [{ type: "text", text: "Describe what changed." }, { type: "image_url", image_url: { url: `data:image/png;base64,${png}` } }] },
 ] : [{ role: "user", content: "Hello, return first-token." }] });
-const convert = (from, to, body, model, provider) => translateRequest(from, to, model, body, true, { projectId: "fixture-project", connectionId: "fixture-connection" }, provider);
+const convert = (from, to, body, model, provider, apiKey) => translateRequest(from, to, model, body, true, { projectId: "fixture-project", connectionId: "fixture-connection", ...(apiKey ? { apiKey } : {}) }, provider);
 const fixtures = [];
 for (const [size, count] of [["normal", 0], ["parallel-tools-media", parallel]]) {
   const original = chat(count);
@@ -67,6 +72,13 @@ for (const [size, count] of [["normal", 0], ["parallel-tools-media", parallel]])
     ["chat-to-responses", F.OPENAI, F.OPENAI_RESPONSES, original, "gpt-4.1", "openai"],
     ["responses-to-claude", F.OPENAI_RESPONSES, F.CLAUDE, responses, "claude-sonnet-4-6", "claude"],
   ]) fixtures.push({ name: `${name}/${size}`, source, target, body, model, provider });
+  fixtures.push({ name: `claude-oauth/${size}`, source: F.CLAUDE, target: F.CLAUDE, body: claude, model: "claude-sonnet-4-6", provider: "claude", apiKey: "sk-ant-oat-synthetic-benchmark-not-a-credential" });
+  const idFree = structuredClone(gemini);
+  for (const content of idFree.contents || []) for (const part of content.parts || []) {
+    if (part.functionCall) delete part.functionCall.id;
+    if (part.functionResponse) delete part.functionResponse.id;
+  }
+  fixtures.push({ name: `gemini-id-free-to-chat/${size}`, source: F.GEMINI, target: F.OPENAI, body: idFree, model: "gpt-4.1", provider: "openai" });
 }
 
 function frame(target) {
@@ -77,7 +89,7 @@ function frame(target) {
 }
 async function firstEvent(fixture) {
   const started = performance.now();
-  const wire = convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider);
+  const wire = convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider, fixture.apiKey);
   JSON.stringify(wire); // include the executor's unavoidable wire serialization
   let controller;
   const source = new ReadableStream({ start(value) { controller = value; } });
@@ -100,25 +112,26 @@ async function firstEvent(fixture) {
 const results = [];
 for (const fixture of fixtures) {
   const inputHash = hash(fixture.body);
-  for (let i = 0; i < 15; i++) convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider);
+  for (let i = 0; i < 15; i++) convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider, fixture.apiKey);
   const translate = [];
   const first = [];
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider);
+    convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider, fixture.apiKey);
     translate.push(performance.now() - start);
   }
   for (let i = 0; i < 5; i++) await firstEvent(fixture);
   for (let i = 0; i < Math.min(iterations, 30); i++) first.push(await firstEvent(fixture));
   if (inputHash !== hash(fixture.body)) throw new Error("Borrowed fixture mutated: " + fixture.name);
-  const wire = convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider);
-  results.push({ fixture: fixture.name, input_sha256: inputHash, output_sha256: hash(wire), input_bytes: JSON.stringify(fixture.body).length, translate: summary(translate), request_serialization_and_first_semantic_event: summary(first) });
+  const wire = convert(fixture.source, fixture.target, fixture.body, fixture.model, fixture.provider, fixture.apiKey);
+  results.push({ fixture: fixture.name, input_sha256: inputHash, output_sha256: hash(wire), tool_alias_sha256: hash(wire._toolNameMap ? [...wire._toolNameMap] : []), input_bytes: Buffer.byteLength(JSON.stringify(fixture.body)), translate: summary(translate), request_serialization_and_first_semantic_event: summary(first) });
 }
 const report = {
   node: process.version,
   source_commit: git("rev-parse", "HEAD"),
   source_worktree_dirty: git("status", "--porcelain", "--untracked-files=no").length > 0,
   baseline_commit: baselineCommit,
+  baseline_scope: options.baselineScope,
   baseline_paths: baselineCommit ? baselinePaths : [],
   iterations,
   first_event_iterations: Math.min(iterations, 30),

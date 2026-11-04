@@ -94,10 +94,26 @@ function summarizeNpmError(stderr = "") {
 }
 
 function runNpmInstall({ cwd, pkgs, extraArgs = [], timeout = 180000 }) {
-  const args = ["install", ...pkgs, "--no-audit", "--no-fund", "--prefer-online", ...extraArgs];
+  const installDir = path.resolve(cwd);
+  const env = { ...process.env };
+  // A global npm install passes its global mode/prefix to postinstall. cwd
+  // alone does not make the nested install local (#5443). Replace only these
+  // destination selectors; registry auth, proxy and TLS configuration survive.
+  // Remove case variants too: Windows env keys are case-insensitive, and Node
+  // otherwise may choose the inherited uppercase spelling over our override.
+  for (const key of Object.keys(env)) {
+    if (/^npm_config_(global|prefix|location)$/i.test(key)) delete env[key];
+  }
+  env.npm_config_global = "false";
+  env.npm_config_prefix = installDir;
+  env.npm_config_location = "project";
+  // Keep the directory out of shell-parsed argv on Windows (paths may contain
+  // spaces); the child-only prefix above and cwd select the same local project.
+  const args = ["install", ...pkgs, "--no-audit", "--no-fund", "--prefer-online", ...extraArgs, "--global=false", "--location=project"];
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
   const res = spawnSync(npmCmd, args, {
-    cwd,
+    cwd: installDir,
+    env,
     stdio: ["ignore", "pipe", "pipe"],
     timeout,
     shell: process.platform === "win32",

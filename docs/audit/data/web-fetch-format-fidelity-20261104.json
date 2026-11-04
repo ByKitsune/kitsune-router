@@ -1,0 +1,180 @@
+{
+  "generatedAtUtc": "2026-11-04T07:56:53.834133+00:00",
+  "baseCommit": "d598b149f965e026c1de2dace79f17a4232feac7",
+  "scope": "Jina/Tavily web-fetch output format forwarding and local unsupported-format validation; no translator/stream transport, models or version refresh changes.",
+  "untrustedUpstreamContext": {
+    "issue": "https://github.com/decolua/9router/issues/2239",
+    "pullRequest": "https://github.com/decolua/9router/pull/5442",
+    "authority": "Discovery leads only. Official primary documentation/source contracts below establish actual wire support."
+  },
+  "verifiedContracts": [
+    {
+      "provider": "jina-reader",
+      "sourceUrl": "https://raw.githubusercontent.com/jina-ai/reader/main/src/dto/crawler-options.ts",
+      "sourceSha256": "7154f88bd4c884f0375fcb2a6a307c795f520706e51ca69ac12b7f2977cd94ae",
+      "retrievedAtUtc": "2026-11-04T07:47:48.470410+00:00",
+      "quote": "const customMode = ctx?.get('x-respond-with') || ctx?.get('x-return-format');",
+      "supportedRouterFormats": [
+        "markdown",
+        "text",
+        "html"
+      ],
+      "note": "Official README/API schema documents X-Respond-With; official DTO additionally accepts X-Return-Format. This patch uses that verified alias."
+    },
+    {
+      "provider": "tavily",
+      "sourceUrl": "https://docs.tavily.com/documentation/api-reference/endpoint/extract.md",
+      "sourceSha256": "200fb5074a7131a24105c09eeb756c1e6deee7db35cc640244c9ecf36d4c06db",
+      "retrievedAtUtc": "2026-11-04T07:47:01.504872+00:00",
+      "quote": "format: string; enum markdown,text; default markdown. markdown returns content in markdown format; text returns plain text and may increase latency.",
+      "supportedRouterFormats": [
+        "markdown",
+        "text"
+      ]
+    }
+  ],
+  "wireExamples": [
+    {
+      "provider": "jina-reader",
+      "method": "POST",
+      "endpoint": "https://r.jina.ai/",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Return-Format": "html",
+        "Authorization": "Bearer <provider-api-key>"
+      },
+      "body": {
+        "url": "https://example.com/article"
+      },
+      "normalizedContentFormat": "html"
+    },
+    {
+      "provider": "tavily",
+      "method": "POST",
+      "endpoint": "https://api.tavily.com/extract",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <provider-api-key>"
+      },
+      "body": {
+        "urls": [
+          "https://example.com/article"
+        ],
+        "extract_depth": "basic",
+        "format": "text"
+      },
+      "normalizedContentFormat": "text"
+    }
+  ],
+  "requestValidation": {
+    "status": 400,
+    "errorType": "invalid_request_error",
+    "errorCode": "bad_request",
+    "param": "format",
+    "headers": {
+      "x-should-retry": "false"
+    },
+    "accountSelection": false,
+    "tokenRefresh": false,
+    "accountHealthMutation": false,
+    "nativeNetworkDispatch": false,
+    "rejectedRequestValueReflected": false
+  },
+  "transportPreservation": {
+    "unchanged": [
+      "DNS validation and pinned dispatcher",
+      "redirect manual policy",
+      "existing proxy/global-fetch path",
+      "configured timeout AbortSignal and 504 classification"
+    ],
+    "note": "No transport, caller-abort plumbing or deadline behavior changes are introduced by this patch."
+  },
+  "registryImpact": [
+    {
+      "provider": "jina-reader",
+      "serializedRegistryUnchanged": true,
+      "serializedSha256": "a71826607a6778cbc3c1ac61b8e7accd8bd5e79b56267e6ec8cb50a9d1478906",
+      "formats": [
+        "markdown",
+        "text",
+        "html"
+      ]
+    },
+    {
+      "provider": "tavily",
+      "serializedRegistryUnchanged": true,
+      "serializedSha256": "92e45233c5660b255d899faa2af7a946ccb35b021f741a051b69835570617fc7",
+      "formats": [
+        "markdown",
+        "text"
+      ]
+    }
+  ],
+  "validation": {
+    "focusedTests": {
+      "files": 5,
+      "passed": 104,
+      "failed": 0,
+      "stderrSections": 0,
+      "log": "focused-tests.log",
+      "sha256": "c3f7cd7c9d3500ad7df2900d3432541f601ee599e681d3595808bc3a311468d7"
+    },
+    "lint": {
+      "result": "passed",
+      "maxWarnings": 0,
+      "files": 7,
+      "log": "lint.log",
+      "sha256": "5e3a5da5a2ea18a2e6c196a194e5e3e0353ae1b5609354ae8a2af91f779eba3a"
+    },
+    "providerBaseline": {
+      "providers": 83,
+      "result": "byte-for-byte-equal",
+      "log": "provider-baseline.log",
+      "sha256": "a786574dd0bc8a9e54541f106fa35c687941956beebbfb82d390501aba8f3783"
+    }
+  },
+  "files": [
+    {
+      "path": "open-sse/config/webFetchFormats.js",
+      "sha256": "2b18b77b325babb302c85a0edff17330063bc866fcdb8bf4ad511c6ab052b1fa"
+    },
+    {
+      "path": "open-sse/providers/registry/jina-reader.js",
+      "sha256": "4e8d413edc1603afda36179175a8eded919524f4e899d90331f61872246ef528"
+    },
+    {
+      "path": "open-sse/providers/registry/tavily.js",
+      "sha256": "b8529b7706df0b086ed33db2ab4b7d973a88a48e8145b0258a4d3eba68d684eb"
+    },
+    {
+      "path": "open-sse/handlers/fetch/index.js",
+      "sha256": "103e8b705b463b1bb823381d319302a451a25d962d2b7c6e5129fdc64ef16c97"
+    },
+    {
+      "path": "src/sse/handlers/fetch.js",
+      "sha256": "c704c4d3f7618b7d4d25836c2f088fb861b313f1768ba1d81fc8c9b80c035ad0"
+    },
+    {
+      "path": "tests/unit/jina-reader-fetch.test.js",
+      "sha256": "8b5d064743e412532ba931b39f98d135c323f1cae198f42f195d04793657c07a"
+    },
+    {
+      "path": "tests/unit/web-fetch-format-fidelity.test.js",
+      "sha256": "a18548ed175fd34913b7d53b02f6ac969aedc991977da4918d67940c1efcc084"
+    }
+  ],
+  "deferredFindings": [
+    {
+      "provider": "tavily",
+      "sourceUrl": "https://docs.tavily.com/documentation/api-reference/endpoint/extract.md",
+      "sourceSha256": "200fb5074a7131a24105c09eeb756c1e6deee7db35cc640244c9ecf36d4c06db",
+      "quote": "HTTP 200 can have an empty results array when all valid URLs fail during extraction; output order is not guaranteed.",
+      "currentBehavior": "Existing normalization can return empty success for a failed_results-only response.",
+      "disposition": "Recorded separately; deliberately outside this narrow format fix at parent instruction."
+    }
+  ],
+  "limitations": [
+    "No live provider credentials, inference calls or target-page extraction. Only public official documentation/source GETs were used.",
+    "Native screenshots, structured envelopes and other unsupported output surfaces remain unavailable through this text-normalizing router endpoint."
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "reviewDate": "2026-11-04",
+  "timezone": "Asia/Jakarta",
+  "verifiedAtUtc": "2026-11-04T08:08:15.491306+00:00",
+  "baselineCommit": "d598b149f965e026c1de2dace79f17a4232feac7",
+  "gitIdentity": {
+    "name": "joyccn",
+    "email": "ohmyarthurr@gmail.com"
+  },
+  "upstreamRemote": "https://github.com/decolua/9router.git",
+  "upstreamMaster": "1fe586bb1cf35e1ed0cb2150a8ef7d1db040b21d",
+  "checks": {
+    "suite": {
+      "passed": 10934,
+      "skipped": 99,
+      "failed": 0,
+      "files": 859,
+      "reportSha256": "61674b7a3733088c7e0f41983e213a8a9bc21d59cb2304f79b8e2116692d7b79",
+      "logSha256": "5a92208455d832bee223e6d2a9cbc5c259a7e6f8e29ff82c6450caec1374916c",
+      "stderrSections": 0,
+      "nodeWarningLines": 0,
+      "baselineLogSha256": "c08316ae3d57af95cee23a03aab43bbae1398a5e958a0dd1370a89f2f102e8f0"
+    },
+    "lint": {
+      "result": "passed",
+      "maxWarnings": 0,
+      "logSha256": "03aecd5268af29933aeff8ed9b574860e1c22c6d0b87656d5b485d130bb0151a"
+    },
+    "browser": {
+      "passed": 32,
+      "failed": 0,
+      "logSha256": "5de333899b6432c5be2fa48523363b32ae97985052d3249a6767e4ffea4dedb8"
+    },
+    "productionBuild": {
+      "result": "passed",
+      "logSha256": "bfdbf2f68b3785b93e573e910186e132d183c5b3d0c4303ee6d527df64915862"
+    },
+    "documentationTests": {
+      "passed": 18,
+      "logSha256": "cc0d107adf8a9a677fced39ab37a9dedbeed30cf6093c7bd433d254a6c9d3656"
+    },
+    "cliCandidate": {
+      "published": false,
+      "result": "passed",
+      "sha256": "c021647667dab9a5414c6c90b9c6baae0a985bd60fd3aa0d16a70fdcb648d23c",
+      "buildLogSha256": "db3c09344108ded28197826f4194f5eefac84dd4bc28bad1838b2c5d07fb46c5",
+      "sqlJsFallbackLogSha256": "b608d8c078bf3997b24d13accb4249c0538013dbf519f499fb4b6d6feb372636",
+      "packedSourceCheck": {
+        "runtimeSourceMatches": [
+          {
+            "source": "cli/hooks/sqliteRuntime.js",
+            "archiveMember": "package/hooks/sqliteRuntime.js",
+            "sha256": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1"
+          },
+          {
+            "source": "cli/hooks/sqliteRuntime.js",
+            "archiveMember": "package/app/cli/hooks/sqliteRuntime.js",
+            "sha256": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1"
+          }
+        ],
+        "enginePackaging": "Translator and format modules are compiled into Next standalone Webpack server bundles; raw source paths are not separate archive members.",
+        "compiledMarkers": {
+          "pendingClaudeToolStarts": [
+            "package/app/.next-cli-build/server/chunks/4141.js",
+            "package/app/.next-cli-build/server/chunks/7168.js"
+          ],
+          "Unsupported web fetch format for": [
+            "package/app/.next-cli-build/server/chunks/5957.js"
+          ],
+          "x-return-format": [
+            "package/app/.next-cli-build/server/app/api/v1/web/fetch/route.js"
+          ]
+        },
+        "archiveSha256": "c021647667dab9a5414c6c90b9c6baae0a985bd60fd3aa0d16a70fdcb648d23c"
+      }
+    },
+    "compatibility": {
+      "result": "passed",
+      "logsSha256": {
+        "brand.log": "691398f86c07e0cb1ae4012d317b1dbb0f8c5fd7a09c6ed747bf0930b51485a3",
+        "i18n.log": "4e4688daf01bc4f0727b948492dffce7e1fb1fad9066837ddd96995a59751955",
+        "identity.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providers.log": "a786574dd0bc8a9e54541f106fa35c687941956beebbfb82d390501aba8f3783",
+        "aliases.log": "67c070e00c10118c9fedcb12560e3414681539dd7387245aba3e993f58c46849",
+        "oauth.log": "a3e7e5039eb383acf2b546f1179dced6e35a27227a05f0f6ea33a50668ec45a5",
+        "compat.log": "e29068df38e917c8d7ac7e549719b4d4af1808082d906966b5a8ddeeb98f241c"
+      }
+    }
+  },
+  "sourceSha256": {
+    "cli/hooks/sqliteRuntime.js": "564ba40b4c767eded8af26ad285d6bec4f74cd7f63b625bb1467432a15fdefb1",
+    "open-sse/config/webFetchFormats.js": "2b18b77b325babb302c85a0edff17330063bc866fcdb8bf4ad511c6ab052b1fa",
+    "open-sse/handlers/fetch/index.js": "103e8b705b463b1bb823381d319302a451a25d962d2b7c6e5129fdc64ef16c97",
+    "open-sse/providers/registry/jina-reader.js": "4e8d413edc1603afda36179175a8eded919524f4e899d90331f61872246ef528",
+    "open-sse/providers/registry/tavily.js": "b8529b7706df0b086ed33db2ab4b7d973a88a48e8145b0258a4d3eba68d684eb",
+    "open-sse/translator/concerns/geminiToolHistory.js": "fa8ab5e18400ff6e517a4d6ed63c570cb12a9270d8118dfe0aad2771bc3317b3",
+    "open-sse/translator/concerns/json.js": "7b39b72e0794afb1700f079f55196378c24a100bb06d6957f328cb1e8f684b39",
+    "open-sse/translator/formats/gemini.js": "8ae3705782287656e98900999a092c30a2d6015fbe692835ce37d587cf24d8f0",
+    "open-sse/translator/index.js": "466e4980c978441a833bc83891d921493fa9ea43a7e1342d668861b8f480503e",
+    "open-sse/translator/response/openai-to-claude.js": "b1902f13e528a89381bac8262d51e63338b51231699b80d6e5c3d407e9afd967",
+    "open-sse/utils/sse.js": "246f930a85dae65897e5c95411ab8e3802423c3d65ace6303fd871a0a15466e5",
+    "open-sse/utils/streamHandler.js": "074f59ebeb0d63f545183369434849dbd11a8b11c764ff8bb4d3b8e9a05e80ab",
+    "scripts/benchmark-translator-stream.mjs": "659c555139e07bca3319d4b34de5293d5c94131e8f1eef9db178c8a62022472f",
+    "scripts/benchmark-translator.mjs": "3d6f537c6c4f7cff8d5fad19cc57bf0fcabbb1f8575ecad13cf09c96101b855f",
+    "src/sse/handlers/fetch.js": "c704c4d3f7618b7d4d25836c2f088fb861b313f1768ba1d81fc8c9b80c035ad0",
+    "tests/unit/cli-runtime-local-install.test.js": "733f727cf3566fab05e97fd3bb4e03d7e18a9afc0836889c104dee4f1b35bd7f",
+    "tests/unit/gemini-schema-required-work.test.js": "385152eeb8315836d55c4aec7e3e9ba9d0c6befb2b6fbe6d2b262b799fab21bb",
+    "tests/unit/gemini-tool-history-performance.test.js": "eb0fd81d428d6e9bae58fc436526fad9a914f7c0cf7a5b096053961b8e07e037",
+    "tests/unit/jina-reader-fetch.test.js": "8b5d064743e412532ba931b39f98d135c323f1cae198f42f195d04793657c07a",
+    "tests/unit/openai-to-claude-response-performance.test.js": "64790495512f5075db3eaa23da86487bed39a47182e3550b4fbc65471d7474f5",
+    "tests/unit/safe-json-parse-fast-path.test.js": "6fd3b674da98dcd30f9bf84668a6d0b3fb250f5dface069565e428bfadf7f5eb",
+    "tests/unit/sse-framing-fast-path.test.js": "fe7a35f14528bc6997f3ec6b9f1f9954f3179490aff95880e4321da103e02d11",
+    "tests/unit/translator-owned-cloak-performance.test.js": "c6d4ce4a34990f3b2051bc55988847f23cb6ba20fde76423259de3f17b853eb2",
+    "tests/unit/web-fetch-format-fidelity.test.js": "a18548ed175fd34913b7d53b02f6ac969aedc991977da4918d67940c1efcc084"
+  },
+  "sourceBoundary": "Changed source/tests/scripts hashed after the final local checks and before commit; audit files excluded to avoid recursive hashes. Remote CI provides its own final exact-commit report and unpublished candidate metadata.",
+  "limits": [
+    "Local CPU benchmarks do not measure provider/network latency or establish a universal speedup.",
+    "Some small/byte-fragment and unaffected-route medians move upward; controls are retained in benchmark data.",
+    "99 live/E2E/cache/benchmark cases remain gated by explicit flags, not counted as passes. No upstream provider credentials or paid inference were used.",
+    "POSIX real npm execution and Windows argv/env simulation do not certify native Windows/macOS installation.",
+    "No release, npm/image publication or deployment was triggered."
+  ]
+}

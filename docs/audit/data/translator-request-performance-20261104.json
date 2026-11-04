@@ -1,0 +1,1959 @@
+{
+  "reviewDate": "2026-11-04",
+  "capturedAtUtc": "2026-11-04T07:52:39.677716+00:00",
+  "baselineCommit": "d598b149f965e026c1de2dace79f17a4232feac7",
+  "scope": "Synthetic local CPU translation and serialization-to-first-semantic-event; network forbidden and persistence stubbed. No provider/account/network TTFT claim.",
+  "order": [
+    "baseline",
+    "current",
+    "current",
+    "baseline"
+  ],
+  "fixtureHashesEqual": true,
+  "wireOutputHashesEqual": true,
+  "toolAliasHashesEqual": true,
+  "runs": [
+    {
+      "sequence": 1,
+      "variant": "baseline",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "source_worktree_dirty": true,
+        "baseline_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "baseline_scope": "engine",
+        "baseline_paths": [
+          "open-sse/config/antigravity.js",
+          "open-sse/config/appConstants.js",
+          "open-sse/config/awsRegions.js",
+          "open-sse/config/clientVersions.js",
+          "open-sse/config/codexInstructions.js",
+          "open-sse/config/codexModels.js",
+          "open-sse/config/constants.js",
+          "open-sse/config/cursorConstants.js",
+          "open-sse/config/defaultThinkingSignature.js",
+          "open-sse/config/documentConfig.js",
+          "open-sse/config/errorConfig.js",
+          "open-sse/config/googleTtsLanguages.js",
+          "open-sse/config/grokCli.js",
+          "open-sse/config/kimchiConfig.js",
+          "open-sse/config/kiroConstants.js",
+          "open-sse/config/mediaConfig.js",
+          "open-sse/config/modelCatalog.js",
+          "open-sse/config/models.js",
+          "open-sse/config/ollamaModels.js",
+          "open-sse/config/ollamaUsageConfig.js",
+          "open-sse/config/pricingConfig.js",
+          "open-sse/config/processingSpeedPricing.js",
+          "open-sse/config/providerModels.js",
+          "open-sse/config/providers.js",
+          "open-sse/config/runtimeConfig.js",
+          "open-sse/config/serviceTierConfig.js",
+          "open-sse/config/thoughtSignatures.js",
+          "open-sse/config/timeOfUsePricing.js",
+          "open-sse/config/ttsModels.js",
+          "open-sse/config/vertexConfig.js",
+          "open-sse/executors/antigravity.js",
+          "open-sse/executors/azure.js",
+          "open-sse/executors/base.js",
+          "open-sse/executors/codebuddy-cn.js",
+          "open-sse/executors/codebuddy-intl.js",
+          "open-sse/executors/codex.js",
+          "open-sse/executors/commandcode.js",
+          "open-sse/executors/cursor.js",
+          "open-sse/executors/default.js",
+          "open-sse/executors/devin-cli.js",
+          "open-sse/executors/gemini-cli.js",
+          "open-sse/executors/github.js",
+          "open-sse/executors/grok-cli.js",
+          "open-sse/executors/grok-web.js",
+          "open-sse/executors/iflow.js",
+          "open-sse/executors/index.js",
+          "open-sse/executors/kimchi.js",
+          "open-sse/executors/kiro.js",
+          "open-sse/executors/mimo-free.js",
+          "open-sse/executors/ollama-local.js",
+          "open-sse/executors/opencode.js",
+          "open-sse/executors/perplexity-web.js",
+          "open-sse/executors/qoder.js",
+          "open-sse/executors/trae.js",
+          "open-sse/executors/vertex.js",
+          "open-sse/executors/windsurf.js",
+          "open-sse/executors/xiaomi-tokenplan.js",
+          "open-sse/executors/zed.js",
+          "open-sse/handlers/chatCore.js",
+          "open-sse/handlers/chatCore/jsonCompletionOutcome.js",
+          "open-sse/handlers/chatCore/nonStreamingHandler.js",
+          "open-sse/handlers/chatCore/requestDetail.js",
+          "open-sse/handlers/chatCore/sseToJsonHandler.js",
+          "open-sse/handlers/chatCore/streamMode.js",
+          "open-sse/handlers/chatCore/streamingHandler.js",
+          "open-sse/handlers/embeddingProviders/_base.js",
+          "open-sse/handlers/embeddingProviders/gemini.js",
+          "open-sse/handlers/embeddingProviders/github.js",
+          "open-sse/handlers/embeddingProviders/index.js",
+          "open-sse/handlers/embeddingProviders/ollamaLocal.js",
+          "open-sse/handlers/embeddingProviders/openai.js",
+          "open-sse/handlers/embeddingProviders/openaiCompatNode.js",
+          "open-sse/handlers/embeddingProviders/selfhostedEmbedding.js",
+          "open-sse/handlers/embeddingsCore.js",
+          "open-sse/handlers/fetch/index.js",
+          "open-sse/handlers/imageGenerationCore.js",
+          "open-sse/handlers/imageProviders/_base.js",
+          "open-sse/handlers/imageProviders/antigravity.js",
+          "open-sse/handlers/imageProviders/blackForestLabs.js",
+          "open-sse/handlers/imageProviders/cloudflareAi.js",
+          "open-sse/handlers/imageProviders/codex.js",
+          "open-sse/handlers/imageProviders/comfyui.js",
+          "open-sse/handlers/imageProviders/falAi.js",
+          "open-sse/handlers/imageProviders/gemini.js",
+          "open-sse/handlers/imageProviders/huggingface.js",
+          "open-sse/handlers/imageProviders/index.js",
+          "open-sse/handlers/imageProviders/nanobanana.js",
+          "open-sse/handlers/imageProviders/openai.js",
+          "open-sse/handlers/imageProviders/runwayml.js",
+          "open-sse/handlers/imageProviders/sdwebui.js",
+          "open-sse/handlers/imageProviders/stabilityAi.js",
+          "open-sse/handlers/responsesHandler.js",
+          "open-sse/handlers/search/callers.js",
+          "open-sse/handlers/search/chatSearch.js",
+          "open-sse/handlers/search/index.js",
+          "open-sse/handlers/search/normalizers.js",
+          "open-sse/handlers/sttCore.js",
+          "open-sse/handlers/ttsCore.js",
+          "open-sse/handlers/ttsProviders/_base.js",
+          "open-sse/handlers/ttsProviders/edgeTts.js",
+          "open-sse/handlers/ttsProviders/elevenlabs.js",
+          "open-sse/handlers/ttsProviders/gemini.js",
+          "open-sse/handlers/ttsProviders/genericFormats.js",
+          "open-sse/handlers/ttsProviders/googleTts.js",
+          "open-sse/handlers/ttsProviders/index.js",
+          "open-sse/handlers/ttsProviders/localDevice.js",
+          "open-sse/handlers/ttsProviders/minimax.js",
+          "open-sse/handlers/ttsProviders/ollamaLocal.js",
+          "open-sse/handlers/ttsProviders/openai.js",
+          "open-sse/handlers/ttsProviders/openrouter.js",
+          "open-sse/handlers/ttsProviders/selfhostedTts.js",
+          "open-sse/handlers/ttsProviders/xiaomi-mimo.js",
+          "open-sse/handlers/videoCore.js",
+          "open-sse/index.js",
+          "open-sse/package.json",
+          "open-sse/providers/REGISTRY_TEMPLATE.js",
+          "open-sse/providers/capabilities.js",
+          "open-sse/providers/catalogOverride.js",
+          "open-sse/providers/catalogProviders.js",
+          "open-sse/providers/declaredCaps.js",
+          "open-sse/providers/identity.js",
+          "open-sse/providers/index.js",
+          "open-sse/providers/metadata/antigravityModels.js",
+          "open-sse/providers/metadata/codebuddyModels.js",
+          "open-sse/providers/metadata/copilotCatalogRetirements.js",
+          "open-sse/providers/metadata/coreModels.js",
+          "open-sse/providers/metadata/gatewayModels.js",
+          "open-sse/providers/metadata/loginCatalogRefreshModels.js",
+          "open-sse/providers/metadata/mediaModels.js",
+          "open-sse/providers/metadata/modelsDevCapabilities.js",
+          "open-sse/providers/metadata/modelsDevCapabilityResolution.js",
+          "open-sse/providers/metadata/modelsDevPricing.js",
+          "open-sse/providers/metadata/modelsDevPricing20261029.js",
+          "open-sse/providers/metadata/modelsDevPricingCurrent.js",
+          "open-sse/providers/metadata/modelsDevPricingObservation.js",
+          "open-sse/providers/metadata/modelsDevPricingRegistry.js",
+          "open-sse/providers/metadata/oauthModels.js",
+          "open-sse/providers/metadata/opencodeRefreshModels.js",
+          "open-sse/providers/metadata/reviewed.js",
+          "open-sse/providers/metadata/vendorModels.js",
+          "open-sse/providers/models/helpers.js",
+          "open-sse/providers/models/namePatterns.js",
+          "open-sse/providers/models/schema.js",
+          "open-sse/providers/pricing.js",
+          "open-sse/providers/registry/alicode-intl.js",
+          "open-sse/providers/registry/alicode.js",
+          "open-sse/providers/registry/alims-intl.js",
+          "open-sse/providers/registry/alitp-intl.js",
+          "open-sse/providers/registry/anthropic.js",
+          "open-sse/providers/registry/antigravity.js",
+          "open-sse/providers/registry/api-airforce.js",
+          "open-sse/providers/registry/assemblyai.js",
+          "open-sse/providers/registry/aws-polly.js",
+          "open-sse/providers/registry/azure.js",
+          "open-sse/providers/registry/baidu.js",
+          "open-sse/providers/registry/bazaarlink.js",
+          "open-sse/providers/registry/black-forest-labs.js",
+          "open-sse/providers/registry/blackbox.js",
+          "open-sse/providers/registry/bluesminds.js",
+          "open-sse/providers/registry/brave-search.js",
+          "open-sse/providers/registry/bykitsune.js",
+          "open-sse/providers/registry/byteplus.js",
+          "open-sse/providers/registry/cartesia.js",
+          "open-sse/providers/registry/cerebras.js",
+          "open-sse/providers/registry/chutes.js",
+          "open-sse/providers/registry/claude.js",
+          "open-sse/providers/registry/cline.js",
+          "open-sse/providers/registry/clinepass.js",
+          "open-sse/providers/registry/cloudflare-ai.js",
+          "open-sse/providers/registry/codebuddy-cn.js",
+          "open-sse/providers/registry/codebuddy-intl.js",
+          "open-sse/providers/registry/codex.js",
+          "open-sse/providers/registry/cohere.js",
+          "open-sse/providers/registry/comfyui.js",
+          "open-sse/providers/registry/commandcode.js",
+          "open-sse/providers/registry/coqui.js",
+          "open-sse/providers/registry/cursor.js",
+          "open-sse/providers/registry/deepgram.js",
+          "open-sse/providers/registry/deepseek.js",
+          "open-sse/providers/registry/devin-cli.js",
+          "open-sse/providers/registry/edge-tts.js",
+          "open-sse/providers/registry/elevenlabs.js",
+          "open-sse/providers/registry/exa.js",
+          "open-sse/providers/registry/fal-ai.js",
+          "open-sse/providers/registry/featherless.js",
+          "open-sse/providers/registry/firecrawl.js",
+          "open-sse/providers/registry/fireworks.js",
+          "open-sse/providers/registry/fish-audio.js",
+          "open-sse/providers/registry/gemini-cli.js",
+          "open-sse/providers/registry/gemini.js",
+          "open-sse/providers/registry/github.js",
+          "open-sse/providers/registry/gitlab.js",
+          "open-sse/providers/registry/glm-cn.js",
+          "open-sse/providers/registry/glm.js",
+          "open-sse/providers/registry/google-pse.js",
+          "open-sse/providers/registry/google-tts.js",
+          "open-sse/providers/registry/grok-cli.js",
+          "open-sse/providers/registry/grok-web.js",
+          "open-sse/providers/registry/groq.js",
+          "open-sse/providers/registry/huggingface.js",
+          "open-sse/providers/registry/hyperbolic.js",
+          "open-sse/providers/registry/iflow.js",
+          "open-sse/providers/registry/index.js",
+          "open-sse/providers/registry/inworld.js",
+          "open-sse/providers/registry/jina-ai.js",
+          "open-sse/providers/registry/jina-reader.js",
+          "open-sse/providers/registry/kilo-gateway.js",
+          "open-sse/providers/registry/kilocode.js",
+          "open-sse/providers/registry/kimchi.js",
+          "open-sse/providers/registry/kimi.js",
+          "open-sse/providers/registry/kiro.js",
+          "open-sse/providers/registry/linkup.js",
+          "open-sse/providers/registry/llm7.js",
+          "open-sse/providers/registry/local-device.js",
+          "open-sse/providers/registry/mimo-free.js",
+          "open-sse/providers/registry/minimax-cn.js",
+          "open-sse/providers/registry/minimax.js",
+          "open-sse/providers/registry/mistral.js",
+          "open-sse/providers/registry/mmf.js",
+          "open-sse/providers/registry/morph.js",
+          "open-sse/providers/registry/nanobanana.js",
+          "open-sse/providers/registry/nebius.js",
+          "open-sse/providers/registry/nvidia.js",
+          "open-sse/providers/registry/ollama-local.js",
+          "open-sse/providers/registry/ollama-search.js",
+          "open-sse/providers/registry/ollama.js",
+          "open-sse/providers/registry/openai.js",
+          "open-sse/providers/registry/opencode-go.js",
+          "open-sse/providers/registry/opencode.js",
+          "open-sse/providers/registry/openrouter.js",
+          "open-sse/providers/registry/paraloncloud.js",
+          "open-sse/providers/registry/perplexity-agent.js",
+          "open-sse/providers/registry/perplexity-web.js",
+          "open-sse/providers/registry/perplexity.js",
+          "open-sse/providers/registry/playht.js",
+          "open-sse/providers/registry/poolside.js",
+          "open-sse/providers/registry/qoder.js",
+          "open-sse/providers/registry/recraft.js",
+          "open-sse/providers/registry/runwayml.js",
+          "open-sse/providers/registry/sambanova.js",
+          "open-sse/providers/registry/sdwebui.js",
+          "open-sse/providers/registry/searchapi.js",
+          "open-sse/providers/registry/searxng.js",
+          "open-sse/providers/registry/selfhosted-embedding.js",
+          "open-sse/providers/registry/selfhosted-stt.js",
+          "open-sse/providers/registry/selfhosted-tts.js",
+          "open-sse/providers/registry/serper.js",
+          "open-sse/providers/registry/siliconflow.js",
+          "open-sse/providers/registry/stability-ai.js",
+          "open-sse/providers/registry/tavily.js",
+          "open-sse/providers/registry/tencent.js",
+          "open-sse/providers/registry/together.js",
+          "open-sse/providers/registry/tokenrouter.js",
+          "open-sse/providers/registry/topaz.js",
+          "open-sse/providers/registry/tortoise.js",
+          "open-sse/providers/registry/trae.js",
+          "open-sse/providers/registry/venice.js",
+          "open-sse/providers/registry/vercel-ai-gateway.js",
+          "open-sse/providers/registry/vertex-partner.js",
+          "open-sse/providers/registry/vertex.js",
+          "open-sse/providers/registry/volcengine-ark.js",
+          "open-sse/providers/registry/voyage-ai.js",
+          "open-sse/providers/registry/windsurf.js",
+          "open-sse/providers/registry/xai.js",
+          "open-sse/providers/registry/xiaomi-mimo.js",
+          "open-sse/providers/registry/xiaomi-tokenplan.js",
+          "open-sse/providers/registry/xquik.js",
+          "open-sse/providers/registry/youcom.js",
+          "open-sse/providers/registry/zed.js",
+          "open-sse/providers/schema.js",
+          "open-sse/providers/serviceTiers.js",
+          "open-sse/providers/shared.js",
+          "open-sse/providers/thinkingLevels.js",
+          "open-sse/providers/visionPatterns.js",
+          "open-sse/rtk/applyFilter.js",
+          "open-sse/rtk/autodetect.js",
+          "open-sse/rtk/caveman.js",
+          "open-sse/rtk/cavemanPrompts.js",
+          "open-sse/rtk/constants.js",
+          "open-sse/rtk/filters/buildOutput.js",
+          "open-sse/rtk/filters/cargoTest.js",
+          "open-sse/rtk/filters/dedupLog.js",
+          "open-sse/rtk/filters/env.js",
+          "open-sse/rtk/filters/find.js",
+          "open-sse/rtk/filters/gitDiff.js",
+          "open-sse/rtk/filters/gitLog.js",
+          "open-sse/rtk/filters/gitStatus.js",
+          "open-sse/rtk/filters/goTest.js",
+          "open-sse/rtk/filters/grep.js",
+          "open-sse/rtk/filters/jsonCompact.js",
+          "open-sse/rtk/filters/ls.js",
+          "open-sse/rtk/filters/mypy.js",
+          "open-sse/rtk/filters/pytest.js",
+          "open-sse/rtk/filters/readNumbered.js",
+          "open-sse/rtk/filters/searchList.js",
+          "open-sse/rtk/filters/smartTruncate.js",
+          "open-sse/rtk/filters/tree.js",
+          "open-sse/rtk/filters/truncate.js",
+          "open-sse/rtk/filters/vitest.js",
+          "open-sse/rtk/headroom.js",
+          "open-sse/rtk/index.js",
+          "open-sse/rtk/ponytail.js",
+          "open-sse/rtk/ponytailPrompt.js",
+          "open-sse/rtk/pxpipe.js",
+          "open-sse/rtk/registry.js",
+          "open-sse/rtk/systemInject.js",
+          "open-sse/rtk/tomlEngine.js",
+          "open-sse/services/accountFallback.js",
+          "open-sse/services/capacityAdapter.js",
+          "open-sse/services/clinepassModels.js",
+          "open-sse/services/codexModels.js",
+          "open-sse/services/combo.js",
+          "open-sse/services/compact.js",
+          "open-sse/services/copilotModels.js",
+          "open-sse/services/cursorModels.js",
+          "open-sse/services/googleOAuthModels.js",
+          "open-sse/services/grokCliModels.js",
+          "open-sse/services/kimchiModels.js",
+          "open-sse/services/kiroModels.js",
+          "open-sse/services/model.js",
+          "open-sse/services/oauthCredentialManager.js",
+          "open-sse/services/projectId.js",
+          "open-sse/services/provider.js",
+          "open-sse/services/qoderModels.js",
+          "open-sse/services/tokenRefresh.js",
+          "open-sse/services/tokenRefresh/dedup.js",
+          "open-sse/services/tokenRefresh/providers.js",
+          "open-sse/services/usage.js",
+          "open-sse/services/usage/antigravity.js",
+          "open-sse/services/usage/claude.js",
+          "open-sse/services/usage/codebuddy-cn.js",
+          "open-sse/services/usage/codex.js",
+          "open-sse/services/usage/deepseek.js",
+          "open-sse/services/usage/github.js",
+          "open-sse/services/usage/glm.js",
+          "open-sse/services/usage/google.js",
+          "open-sse/services/usage/grok-cli.js",
+          "open-sse/services/usage/grokCliQuotaFrame.js",
+          "open-sse/services/usage/groq.js",
+          "open-sse/services/usage/kimi.js",
+          "open-sse/services/usage/kiro.js",
+          "open-sse/services/usage/minimax.js",
+          "open-sse/services/usage/misc.js",
+          "open-sse/services/usage/ollama.js",
+          "open-sse/services/usage/shared.js",
+          "open-sse/services/usage/zed.js",
+          "open-sse/shared/clineAuth.js",
+          "open-sse/shared/commandCodeHeaders.js",
+          "open-sse/shared/machineId.js",
+          "open-sse/shared/qoder/constants.js",
+          "open-sse/shared/qoder/cosy.js",
+          "open-sse/shared/qoder/encoding.js",
+          "open-sse/shared/zedAuth.js",
+          "open-sse/transformer/responsesTransformer.js",
+          "open-sse/transformer/streamToJsonConverter.js",
+          "open-sse/translator/concerns/assistantPrefillPolicy.js",
+          "open-sse/translator/concerns/chunk.js",
+          "open-sse/translator/concerns/deferredTools.js",
+          "open-sse/translator/concerns/finishReason.js",
+          "open-sse/translator/concerns/geminiToolHistory.js",
+          "open-sse/translator/concerns/geminiToolNames.js",
+          "open-sse/translator/concerns/image.js",
+          "open-sse/translator/concerns/json.js",
+          "open-sse/translator/concerns/kiroConversation.js",
+          "open-sse/translator/concerns/message.js",
+          "open-sse/translator/concerns/modality.js",
+          "open-sse/translator/concerns/multimodal.js",
+          "open-sse/translator/concerns/paramSupport.js",
+          "open-sse/translator/concerns/prefetch.js",
+          "open-sse/translator/concerns/reasoning.js",
+          "open-sse/translator/concerns/reasoningAliases.js",
+          "open-sse/translator/concerns/requestMedia.js",
+          "open-sse/translator/concerns/requestOwnership.js",
+          "open-sse/translator/concerns/responseError.js",
+          "open-sse/translator/concerns/responseMedia.js",
+          "open-sse/translator/concerns/structuredOutput.js",
+          "open-sse/translator/concerns/thinking.js",
+          "open-sse/translator/concerns/thinkingUnified.js",
+          "open-sse/translator/concerns/thoughtSignature.js",
+          "open-sse/translator/concerns/toolCall.js",
+          "open-sse/translator/concerns/typedContent.js",
+          "open-sse/translator/concerns/usage.js",
+          "open-sse/translator/formats.js",
+          "open-sse/translator/formats/claude.js",
+          "open-sse/translator/formats/gemini.js",
+          "open-sse/translator/formats/maxTokens.js",
+          "open-sse/translator/formats/openai.js",
+          "open-sse/translator/formats/responsesApi.js",
+          "open-sse/translator/index.js",
+          "open-sse/translator/request/antigravity-to-openai.js",
+          "open-sse/translator/request/claude-to-kiro.js",
+          "open-sse/translator/request/claude-to-openai.js",
+          "open-sse/translator/request/gemini-to-openai.js",
+          "open-sse/translator/request/openai-responses.js",
+          "open-sse/translator/request/openai-to-claude.js",
+          "open-sse/translator/request/openai-to-commandcode.js",
+          "open-sse/translator/request/openai-to-cursor.js",
+          "open-sse/translator/request/openai-to-gemini.js",
+          "open-sse/translator/request/openai-to-kiro.js",
+          "open-sse/translator/request/openai-to-ollama.js",
+          "open-sse/translator/request/openai-to-vertex.js",
+          "open-sse/translator/response/claude-to-openai.js",
+          "open-sse/translator/response/commandcode-to-openai.js",
+          "open-sse/translator/response/cursor-to-openai.js",
+          "open-sse/translator/response/gemini-to-openai.js",
+          "open-sse/translator/response/kiro-to-claude.js",
+          "open-sse/translator/response/kiro-to-openai.js",
+          "open-sse/translator/response/ollama-to-openai.js",
+          "open-sse/translator/response/openai-responses.js",
+          "open-sse/translator/response/openai-to-antigravity.js",
+          "open-sse/translator/response/openai-to-claude.js",
+          "open-sse/translator/schema/blocks.js",
+          "open-sse/translator/schema/defaults.js",
+          "open-sse/translator/schema/finishReasons.js",
+          "open-sse/translator/schema/index.js",
+          "open-sse/translator/schema/roles.js",
+          "open-sse/translator/schema/structuredOutput.js",
+          "open-sse/utils/boundedCache.js",
+          "open-sse/utils/bypassHandler.js",
+          "open-sse/utils/claudeCloaking.js",
+          "open-sse/utils/claudeSignature.js",
+          "open-sse/utils/clientDetector.js",
+          "open-sse/utils/clientErrors.js",
+          "open-sse/utils/cloudCodeProject.js",
+          "open-sse/utils/codexToolSchema.js",
+          "open-sse/utils/cursorChecksum.js",
+          "open-sse/utils/cursorProtobuf.js",
+          "open-sse/utils/debugLog.js",
+          "open-sse/utils/error.js",
+          "open-sse/utils/kiroSessionReplay.js",
+          "open-sse/utils/modelCatalog.js",
+          "open-sse/utils/modelMarkers.js",
+          "open-sse/utils/ollamaTransform.js",
+          "open-sse/utils/proxyFetch.js",
+          "open-sse/utils/reasoningContentInjector.js",
+          "open-sse/utils/requestBody.js",
+          "open-sse/utils/requestLogger.js",
+          "open-sse/utils/requestTiming.js",
+          "open-sse/utils/responsesStreamHelpers.js",
+          "open-sse/utils/sessionManager.js",
+          "open-sse/utils/sse.js",
+          "open-sse/utils/sseConstants.js",
+          "open-sse/utils/stream.js",
+          "open-sse/utils/streamHandler.js",
+          "open-sse/utils/streamHelpers.js",
+          "open-sse/utils/toolCompressor.js",
+          "open-sse/utils/toolDeduper.js",
+          "open-sse/utils/toolSchemaCompatibility.js",
+          "open-sse/utils/transportPool.js",
+          "open-sse/utils/usageTracking.js"
+        ],
+        "iterations": 80,
+        "first_event_iterations": 30,
+        "parallel_tools": 1000,
+        "fixture_sha256": "eb7983539690a4d00e3863fe52140c8355637d45790322a15c281f83a4b6d0f3",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.030105000000048676,
+              "p95_ms": 0.08680099999992308
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3085049999999683,
+              "p95_ms": 0.5951370000000225
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.036734999999907814,
+              "p95_ms": 0.09351100000003498
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2398319999999785,
+              "p95_ms": 0.3433070000000953
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.037968000000091706,
+              "p95_ms": 0.1112470000000485
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2229859999999917,
+              "p95_ms": 0.3811449999998331
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.033972000000176195,
+              "p95_ms": 0.04794199999992088
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.19388299999991432,
+              "p95_ms": 0.2856899999999314
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.02616000000011809,
+              "p95_ms": 0.0576170000001639
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.18287599999985105,
+              "p95_ms": 0.2397209999999177
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.03164700000002085,
+              "p95_ms": 0.06501800000000912
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.26391800000010335,
+              "p95_ms": 0.34398799999985386
+            }
+          },
+          {
+            "fixture": "claude-oauth/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "f8aa560dfd13d5c8646eff0963d3458b6aa2fcd23d8bbfdd6cfcb871a452969e",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.027041000000053828,
+              "p95_ms": 0.09088700000006611
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.20361700000012206,
+              "p95_ms": 0.34184499999992113
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.030627000000094995,
+              "p95_ms": 0.12573900000006688
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.22428800000011506,
+              "p95_ms": 0.3904090000000906
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.079723000000058,
+              "p95_ms": 5.513691999999992
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.878607000000102,
+              "p95_ms": 5.15433999999982
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b54028c49f875f552bf3c9585ab8aaa50d883a789017ea32a263c6f400a08ff5",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.554984000000104,
+              "p95_ms": 2.7575879999999415
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.698106999999709,
+              "p95_ms": 3.174575999999888
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 14.512770000000273,
+              "p95_ms": 16.9508450000003
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 15.88404700000001,
+              "p95_ms": 18.011643000000277
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "output_sha256": "a9479e0d63e892a2c7d1bd1d6f646724af02f25ef2e7b64007e7082ca2c9b74a",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 421601,
+            "translate": {
+              "p50_ms": 2.775043000000551,
+              "p95_ms": 7.867310999999972
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.715070000000196,
+              "p95_ms": 9.077174999999443
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 2.3488509999997405,
+              "p95_ms": 3.2421180000001186
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.9891170000000784,
+              "p95_ms": 3.8581259999991744
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 425268,
+            "translate": {
+              "p50_ms": 2.654412000000775,
+              "p95_ms": 3.999399999999696
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.5972430000001623,
+              "p95_ms": 4.224028999999973
+            }
+          },
+          {
+            "fixture": "claude-oauth/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b51f26d65f89635ac69ac3ffe247cec3b46b6fd89a3e36132afc4d5dc069e8af",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.9172300000000178,
+              "p95_ms": 2.394450999999208
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.1154169999999795,
+              "p95_ms": 3.6203379999997196
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/parallel-tools-media",
+            "input_sha256": "a3f22fd668f2aa6a02133b86c909277c3e037b2b5190c58f1419e4801737a8dc",
+            "output_sha256": "f5a4523f7efce1f7d3690612d11562759dee8c55a665f61535344d611e1f3d00",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 389821,
+            "translate": {
+              "p50_ms": 72.93167200000062,
+              "p95_ms": 75.84279100000094
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 75.94273199999952,
+              "p95_ms": 83.41854299999977
+            }
+          }
+        ]
+      },
+      "reportSha256": "96b4c8129b7b6650ae09aa94149ab3cc7a65882c11cb65e9cf4d5a11108d0207"
+    },
+    {
+      "sequence": 2,
+      "variant": "current",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "source_worktree_dirty": true,
+        "baseline_commit": null,
+        "baseline_scope": "engine",
+        "baseline_paths": [],
+        "iterations": 80,
+        "first_event_iterations": 30,
+        "parallel_tools": 1000,
+        "fixture_sha256": "eb7983539690a4d00e3863fe52140c8355637d45790322a15c281f83a4b6d0f3",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03872799999999188,
+              "p95_ms": 0.11137800000000198
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3073830000000157,
+              "p95_ms": 0.502898000000016
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.04611899999997604,
+              "p95_ms": 0.10350600000003851
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2675140000000056,
+              "p95_ms": 0.3867930000000115
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03133700000000772,
+              "p95_ms": 0.08491799999995919
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.21758800000003475,
+              "p95_ms": 0.2928410000000099
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03549399999997149,
+              "p95_ms": 0.08176300000002357
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.20891399999999294,
+              "p95_ms": 0.27035799999998744
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.0262299999999982,
+              "p95_ms": 0.06582000000003063
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.18742300000002388,
+              "p95_ms": 0.2533820000000446
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.03292900000002419,
+              "p95_ms": 0.09697600000004059
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.28288600000001907,
+              "p95_ms": 0.3648200000000088
+            }
+          },
+          {
+            "fixture": "claude-oauth/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "f8aa560dfd13d5c8646eff0963d3458b6aa2fcd23d8bbfdd6cfcb871a452969e",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.021382000000016887,
+              "p95_ms": 0.04844300000002022
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.16525899999999183,
+              "p95_ms": 0.2928420000000074
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03377100000000155,
+              "p95_ms": 0.07942900000000463
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.18789400000002843,
+              "p95_ms": 0.3166879999999992
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.2417780000000675,
+              "p95_ms": 4.923853000000008
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.104137000000037,
+              "p95_ms": 5.680433999999991
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b54028c49f875f552bf3c9585ab8aaa50d883a789017ea32a263c6f400a08ff5",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.539822000000072,
+              "p95_ms": 2.088749000000007
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.409161999999924,
+              "p95_ms": 3.3393639999999323
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.1287260000001424,
+              "p95_ms": 4.372011000000157
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.478571000000102,
+              "p95_ms": 5.871583000000101
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "output_sha256": "a9479e0d63e892a2c7d1bd1d6f646724af02f25ef2e7b64007e7082ca2c9b74a",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 421601,
+            "translate": {
+              "p50_ms": 2.8839379999999437,
+              "p95_ms": 5.54471999999987
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.932408000000123,
+              "p95_ms": 7.003608999999869
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 2.4269380000000638,
+              "p95_ms": 4.622898999999961
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.1867839999999887,
+              "p95_ms": 4.082324999999855
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 425268,
+            "translate": {
+              "p50_ms": 2.818449000000328,
+              "p95_ms": 4.986427000000276
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.840349999999944,
+              "p95_ms": 4.450379000000339
+            }
+          },
+          {
+            "fixture": "claude-oauth/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b51f26d65f89635ac69ac3ffe247cec3b46b6fd89a3e36132afc4d5dc069e8af",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.5667819999998756,
+              "p95_ms": 2.85278100000005
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.871928999999909,
+              "p95_ms": 3.2512509999996837
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/parallel-tools-media",
+            "input_sha256": "a3f22fd668f2aa6a02133b86c909277c3e037b2b5190c58f1419e4801737a8dc",
+            "output_sha256": "f5a4523f7efce1f7d3690612d11562759dee8c55a665f61535344d611e1f3d00",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 389821,
+            "translate": {
+              "p50_ms": 4.206232,
+              "p95_ms": 8.331931000000168
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 5.028250999999727,
+              "p95_ms": 5.467052999999851
+            }
+          }
+        ]
+      },
+      "reportSha256": "4e4c695e0fe97ba7142114f22049e1a3cd20e767a6e19e66b99c9d8c3ec67290"
+    },
+    {
+      "sequence": 3,
+      "variant": "current",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "source_worktree_dirty": true,
+        "baseline_commit": null,
+        "baseline_scope": "engine",
+        "baseline_paths": [],
+        "iterations": 80,
+        "first_event_iterations": 30,
+        "parallel_tools": 1000,
+        "fixture_sha256": "eb7983539690a4d00e3863fe52140c8355637d45790322a15c281f83a4b6d0f3",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.032559000000048854,
+              "p95_ms": 0.14158300000002555
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.34076399999997875,
+              "p95_ms": 0.7264850000000251
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.05321100000003298,
+              "p95_ms": 0.13591500000001133
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3008829999999989,
+              "p95_ms": 0.4194729999999822
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.04397599999998647,
+              "p95_ms": 0.1796810000000164
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.21152899999998453,
+              "p95_ms": 0.3045190000000275
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03568400000000338,
+              "p95_ms": 0.06848300000001473
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.20383700000002136,
+              "p95_ms": 0.3285060000000044
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.02701099999995904,
+              "p95_ms": 0.06237399999997706
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.22242599999998447,
+              "p95_ms": 0.45580799999999044
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.03510199999999486,
+              "p95_ms": 0.10857399999997597
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.31449399999996785,
+              "p95_ms": 0.5491880000000151
+            }
+          },
+          {
+            "fixture": "claude-oauth/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "f8aa560dfd13d5c8646eff0963d3458b6aa2fcd23d8bbfdd6cfcb871a452969e",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.02024099999999862,
+              "p95_ms": 0.09554400000001806
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.19041699999996808,
+              "p95_ms": 0.357970000000023
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03282899999999245,
+              "p95_ms": 0.07390099999997801
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.21411299999999756,
+              "p95_ms": 0.3434379999999919
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.344161999999983,
+              "p95_ms": 6.877128999999968
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.242305999999985,
+              "p95_ms": 5.314022000000023
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b54028c49f875f552bf3c9585ab8aaa50d883a789017ea32a263c6f400a08ff5",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.6853810000000067,
+              "p95_ms": 2.9008339999998043
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.5473309999999856,
+              "p95_ms": 3.5919510000001083
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.2259639999999763,
+              "p95_ms": 4.024118000000044
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.615459999999985,
+              "p95_ms": 5.9626700000001165
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "output_sha256": "a9479e0d63e892a2c7d1bd1d6f646724af02f25ef2e7b64007e7082ca2c9b74a",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 421601,
+            "translate": {
+              "p50_ms": 3.069167000000107,
+              "p95_ms": 5.577710000000025
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.013281000000006,
+              "p95_ms": 6.653201000000081
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 2.5578770000001896,
+              "p95_ms": 4.350690000000213
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.333154999999806,
+              "p95_ms": 4.765095000000201
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 425268,
+            "translate": {
+              "p50_ms": 3.059784000000036,
+              "p95_ms": 4.4393740000000435
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.171800000000076,
+              "p95_ms": 5.4498170000001664
+            }
+          },
+          {
+            "fixture": "claude-oauth/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b51f26d65f89635ac69ac3ffe247cec3b46b6fd89a3e36132afc4d5dc069e8af",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.621806000000106,
+              "p95_ms": 2.833842999999888
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.7726699999998345,
+              "p95_ms": 3.9198889999997846
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/parallel-tools-media",
+            "input_sha256": "a3f22fd668f2aa6a02133b86c909277c3e037b2b5190c58f1419e4801737a8dc",
+            "output_sha256": "f5a4523f7efce1f7d3690612d11562759dee8c55a665f61535344d611e1f3d00",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 389821,
+            "translate": {
+              "p50_ms": 4.242235999999593,
+              "p95_ms": 8.087492999999995
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 5.2624839999998585,
+              "p95_ms": 9.60162500000024
+            }
+          }
+        ]
+      },
+      "reportSha256": "4ba58f92e5896b8a48bc84e8437ac43288032fdd4bdec3bc6bdcab2ad9506ddd"
+    },
+    {
+      "sequence": 4,
+      "variant": "baseline",
+      "report": {
+        "node": "v24.19.0",
+        "source_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "source_worktree_dirty": true,
+        "baseline_commit": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "baseline_scope": "engine",
+        "baseline_paths": [
+          "open-sse/config/antigravity.js",
+          "open-sse/config/appConstants.js",
+          "open-sse/config/awsRegions.js",
+          "open-sse/config/clientVersions.js",
+          "open-sse/config/codexInstructions.js",
+          "open-sse/config/codexModels.js",
+          "open-sse/config/constants.js",
+          "open-sse/config/cursorConstants.js",
+          "open-sse/config/defaultThinkingSignature.js",
+          "open-sse/config/documentConfig.js",
+          "open-sse/config/errorConfig.js",
+          "open-sse/config/googleTtsLanguages.js",
+          "open-sse/config/grokCli.js",
+          "open-sse/config/kimchiConfig.js",
+          "open-sse/config/kiroConstants.js",
+          "open-sse/config/mediaConfig.js",
+          "open-sse/config/modelCatalog.js",
+          "open-sse/config/models.js",
+          "open-sse/config/ollamaModels.js",
+          "open-sse/config/ollamaUsageConfig.js",
+          "open-sse/config/pricingConfig.js",
+          "open-sse/config/processingSpeedPricing.js",
+          "open-sse/config/providerModels.js",
+          "open-sse/config/providers.js",
+          "open-sse/config/runtimeConfig.js",
+          "open-sse/config/serviceTierConfig.js",
+          "open-sse/config/thoughtSignatures.js",
+          "open-sse/config/timeOfUsePricing.js",
+          "open-sse/config/ttsModels.js",
+          "open-sse/config/vertexConfig.js",
+          "open-sse/executors/antigravity.js",
+          "open-sse/executors/azure.js",
+          "open-sse/executors/base.js",
+          "open-sse/executors/codebuddy-cn.js",
+          "open-sse/executors/codebuddy-intl.js",
+          "open-sse/executors/codex.js",
+          "open-sse/executors/commandcode.js",
+          "open-sse/executors/cursor.js",
+          "open-sse/executors/default.js",
+          "open-sse/executors/devin-cli.js",
+          "open-sse/executors/gemini-cli.js",
+          "open-sse/executors/github.js",
+          "open-sse/executors/grok-cli.js",
+          "open-sse/executors/grok-web.js",
+          "open-sse/executors/iflow.js",
+          "open-sse/executors/index.js",
+          "open-sse/executors/kimchi.js",
+          "open-sse/executors/kiro.js",
+          "open-sse/executors/mimo-free.js",
+          "open-sse/executors/ollama-local.js",
+          "open-sse/executors/opencode.js",
+          "open-sse/executors/perplexity-web.js",
+          "open-sse/executors/qoder.js",
+          "open-sse/executors/trae.js",
+          "open-sse/executors/vertex.js",
+          "open-sse/executors/windsurf.js",
+          "open-sse/executors/xiaomi-tokenplan.js",
+          "open-sse/executors/zed.js",
+          "open-sse/handlers/chatCore.js",
+          "open-sse/handlers/chatCore/jsonCompletionOutcome.js",
+          "open-sse/handlers/chatCore/nonStreamingHandler.js",
+          "open-sse/handlers/chatCore/requestDetail.js",
+          "open-sse/handlers/chatCore/sseToJsonHandler.js",
+          "open-sse/handlers/chatCore/streamMode.js",
+          "open-sse/handlers/chatCore/streamingHandler.js",
+          "open-sse/handlers/embeddingProviders/_base.js",
+          "open-sse/handlers/embeddingProviders/gemini.js",
+          "open-sse/handlers/embeddingProviders/github.js",
+          "open-sse/handlers/embeddingProviders/index.js",
+          "open-sse/handlers/embeddingProviders/ollamaLocal.js",
+          "open-sse/handlers/embeddingProviders/openai.js",
+          "open-sse/handlers/embeddingProviders/openaiCompatNode.js",
+          "open-sse/handlers/embeddingProviders/selfhostedEmbedding.js",
+          "open-sse/handlers/embeddingsCore.js",
+          "open-sse/handlers/fetch/index.js",
+          "open-sse/handlers/imageGenerationCore.js",
+          "open-sse/handlers/imageProviders/_base.js",
+          "open-sse/handlers/imageProviders/antigravity.js",
+          "open-sse/handlers/imageProviders/blackForestLabs.js",
+          "open-sse/handlers/imageProviders/cloudflareAi.js",
+          "open-sse/handlers/imageProviders/codex.js",
+          "open-sse/handlers/imageProviders/comfyui.js",
+          "open-sse/handlers/imageProviders/falAi.js",
+          "open-sse/handlers/imageProviders/gemini.js",
+          "open-sse/handlers/imageProviders/huggingface.js",
+          "open-sse/handlers/imageProviders/index.js",
+          "open-sse/handlers/imageProviders/nanobanana.js",
+          "open-sse/handlers/imageProviders/openai.js",
+          "open-sse/handlers/imageProviders/runwayml.js",
+          "open-sse/handlers/imageProviders/sdwebui.js",
+          "open-sse/handlers/imageProviders/stabilityAi.js",
+          "open-sse/handlers/responsesHandler.js",
+          "open-sse/handlers/search/callers.js",
+          "open-sse/handlers/search/chatSearch.js",
+          "open-sse/handlers/search/index.js",
+          "open-sse/handlers/search/normalizers.js",
+          "open-sse/handlers/sttCore.js",
+          "open-sse/handlers/ttsCore.js",
+          "open-sse/handlers/ttsProviders/_base.js",
+          "open-sse/handlers/ttsProviders/edgeTts.js",
+          "open-sse/handlers/ttsProviders/elevenlabs.js",
+          "open-sse/handlers/ttsProviders/gemini.js",
+          "open-sse/handlers/ttsProviders/genericFormats.js",
+          "open-sse/handlers/ttsProviders/googleTts.js",
+          "open-sse/handlers/ttsProviders/index.js",
+          "open-sse/handlers/ttsProviders/localDevice.js",
+          "open-sse/handlers/ttsProviders/minimax.js",
+          "open-sse/handlers/ttsProviders/ollamaLocal.js",
+          "open-sse/handlers/ttsProviders/openai.js",
+          "open-sse/handlers/ttsProviders/openrouter.js",
+          "open-sse/handlers/ttsProviders/selfhostedTts.js",
+          "open-sse/handlers/ttsProviders/xiaomi-mimo.js",
+          "open-sse/handlers/videoCore.js",
+          "open-sse/index.js",
+          "open-sse/package.json",
+          "open-sse/providers/REGISTRY_TEMPLATE.js",
+          "open-sse/providers/capabilities.js",
+          "open-sse/providers/catalogOverride.js",
+          "open-sse/providers/catalogProviders.js",
+          "open-sse/providers/declaredCaps.js",
+          "open-sse/providers/identity.js",
+          "open-sse/providers/index.js",
+          "open-sse/providers/metadata/antigravityModels.js",
+          "open-sse/providers/metadata/codebuddyModels.js",
+          "open-sse/providers/metadata/copilotCatalogRetirements.js",
+          "open-sse/providers/metadata/coreModels.js",
+          "open-sse/providers/metadata/gatewayModels.js",
+          "open-sse/providers/metadata/loginCatalogRefreshModels.js",
+          "open-sse/providers/metadata/mediaModels.js",
+          "open-sse/providers/metadata/modelsDevCapabilities.js",
+          "open-sse/providers/metadata/modelsDevCapabilityResolution.js",
+          "open-sse/providers/metadata/modelsDevPricing.js",
+          "open-sse/providers/metadata/modelsDevPricing20261029.js",
+          "open-sse/providers/metadata/modelsDevPricingCurrent.js",
+          "open-sse/providers/metadata/modelsDevPricingObservation.js",
+          "open-sse/providers/metadata/modelsDevPricingRegistry.js",
+          "open-sse/providers/metadata/oauthModels.js",
+          "open-sse/providers/metadata/opencodeRefreshModels.js",
+          "open-sse/providers/metadata/reviewed.js",
+          "open-sse/providers/metadata/vendorModels.js",
+          "open-sse/providers/models/helpers.js",
+          "open-sse/providers/models/namePatterns.js",
+          "open-sse/providers/models/schema.js",
+          "open-sse/providers/pricing.js",
+          "open-sse/providers/registry/alicode-intl.js",
+          "open-sse/providers/registry/alicode.js",
+          "open-sse/providers/registry/alims-intl.js",
+          "open-sse/providers/registry/alitp-intl.js",
+          "open-sse/providers/registry/anthropic.js",
+          "open-sse/providers/registry/antigravity.js",
+          "open-sse/providers/registry/api-airforce.js",
+          "open-sse/providers/registry/assemblyai.js",
+          "open-sse/providers/registry/aws-polly.js",
+          "open-sse/providers/registry/azure.js",
+          "open-sse/providers/registry/baidu.js",
+          "open-sse/providers/registry/bazaarlink.js",
+          "open-sse/providers/registry/black-forest-labs.js",
+          "open-sse/providers/registry/blackbox.js",
+          "open-sse/providers/registry/bluesminds.js",
+          "open-sse/providers/registry/brave-search.js",
+          "open-sse/providers/registry/bykitsune.js",
+          "open-sse/providers/registry/byteplus.js",
+          "open-sse/providers/registry/cartesia.js",
+          "open-sse/providers/registry/cerebras.js",
+          "open-sse/providers/registry/chutes.js",
+          "open-sse/providers/registry/claude.js",
+          "open-sse/providers/registry/cline.js",
+          "open-sse/providers/registry/clinepass.js",
+          "open-sse/providers/registry/cloudflare-ai.js",
+          "open-sse/providers/registry/codebuddy-cn.js",
+          "open-sse/providers/registry/codebuddy-intl.js",
+          "open-sse/providers/registry/codex.js",
+          "open-sse/providers/registry/cohere.js",
+          "open-sse/providers/registry/comfyui.js",
+          "open-sse/providers/registry/commandcode.js",
+          "open-sse/providers/registry/coqui.js",
+          "open-sse/providers/registry/cursor.js",
+          "open-sse/providers/registry/deepgram.js",
+          "open-sse/providers/registry/deepseek.js",
+          "open-sse/providers/registry/devin-cli.js",
+          "open-sse/providers/registry/edge-tts.js",
+          "open-sse/providers/registry/elevenlabs.js",
+          "open-sse/providers/registry/exa.js",
+          "open-sse/providers/registry/fal-ai.js",
+          "open-sse/providers/registry/featherless.js",
+          "open-sse/providers/registry/firecrawl.js",
+          "open-sse/providers/registry/fireworks.js",
+          "open-sse/providers/registry/fish-audio.js",
+          "open-sse/providers/registry/gemini-cli.js",
+          "open-sse/providers/registry/gemini.js",
+          "open-sse/providers/registry/github.js",
+          "open-sse/providers/registry/gitlab.js",
+          "open-sse/providers/registry/glm-cn.js",
+          "open-sse/providers/registry/glm.js",
+          "open-sse/providers/registry/google-pse.js",
+          "open-sse/providers/registry/google-tts.js",
+          "open-sse/providers/registry/grok-cli.js",
+          "open-sse/providers/registry/grok-web.js",
+          "open-sse/providers/registry/groq.js",
+          "open-sse/providers/registry/huggingface.js",
+          "open-sse/providers/registry/hyperbolic.js",
+          "open-sse/providers/registry/iflow.js",
+          "open-sse/providers/registry/index.js",
+          "open-sse/providers/registry/inworld.js",
+          "open-sse/providers/registry/jina-ai.js",
+          "open-sse/providers/registry/jina-reader.js",
+          "open-sse/providers/registry/kilo-gateway.js",
+          "open-sse/providers/registry/kilocode.js",
+          "open-sse/providers/registry/kimchi.js",
+          "open-sse/providers/registry/kimi.js",
+          "open-sse/providers/registry/kiro.js",
+          "open-sse/providers/registry/linkup.js",
+          "open-sse/providers/registry/llm7.js",
+          "open-sse/providers/registry/local-device.js",
+          "open-sse/providers/registry/mimo-free.js",
+          "open-sse/providers/registry/minimax-cn.js",
+          "open-sse/providers/registry/minimax.js",
+          "open-sse/providers/registry/mistral.js",
+          "open-sse/providers/registry/mmf.js",
+          "open-sse/providers/registry/morph.js",
+          "open-sse/providers/registry/nanobanana.js",
+          "open-sse/providers/registry/nebius.js",
+          "open-sse/providers/registry/nvidia.js",
+          "open-sse/providers/registry/ollama-local.js",
+          "open-sse/providers/registry/ollama-search.js",
+          "open-sse/providers/registry/ollama.js",
+          "open-sse/providers/registry/openai.js",
+          "open-sse/providers/registry/opencode-go.js",
+          "open-sse/providers/registry/opencode.js",
+          "open-sse/providers/registry/openrouter.js",
+          "open-sse/providers/registry/paraloncloud.js",
+          "open-sse/providers/registry/perplexity-agent.js",
+          "open-sse/providers/registry/perplexity-web.js",
+          "open-sse/providers/registry/perplexity.js",
+          "open-sse/providers/registry/playht.js",
+          "open-sse/providers/registry/poolside.js",
+          "open-sse/providers/registry/qoder.js",
+          "open-sse/providers/registry/recraft.js",
+          "open-sse/providers/registry/runwayml.js",
+          "open-sse/providers/registry/sambanova.js",
+          "open-sse/providers/registry/sdwebui.js",
+          "open-sse/providers/registry/searchapi.js",
+          "open-sse/providers/registry/searxng.js",
+          "open-sse/providers/registry/selfhosted-embedding.js",
+          "open-sse/providers/registry/selfhosted-stt.js",
+          "open-sse/providers/registry/selfhosted-tts.js",
+          "open-sse/providers/registry/serper.js",
+          "open-sse/providers/registry/siliconflow.js",
+          "open-sse/providers/registry/stability-ai.js",
+          "open-sse/providers/registry/tavily.js",
+          "open-sse/providers/registry/tencent.js",
+          "open-sse/providers/registry/together.js",
+          "open-sse/providers/registry/tokenrouter.js",
+          "open-sse/providers/registry/topaz.js",
+          "open-sse/providers/registry/tortoise.js",
+          "open-sse/providers/registry/trae.js",
+          "open-sse/providers/registry/venice.js",
+          "open-sse/providers/registry/vercel-ai-gateway.js",
+          "open-sse/providers/registry/vertex-partner.js",
+          "open-sse/providers/registry/vertex.js",
+          "open-sse/providers/registry/volcengine-ark.js",
+          "open-sse/providers/registry/voyage-ai.js",
+          "open-sse/providers/registry/windsurf.js",
+          "open-sse/providers/registry/xai.js",
+          "open-sse/providers/registry/xiaomi-mimo.js",
+          "open-sse/providers/registry/xiaomi-tokenplan.js",
+          "open-sse/providers/registry/xquik.js",
+          "open-sse/providers/registry/youcom.js",
+          "open-sse/providers/registry/zed.js",
+          "open-sse/providers/schema.js",
+          "open-sse/providers/serviceTiers.js",
+          "open-sse/providers/shared.js",
+          "open-sse/providers/thinkingLevels.js",
+          "open-sse/providers/visionPatterns.js",
+          "open-sse/rtk/applyFilter.js",
+          "open-sse/rtk/autodetect.js",
+          "open-sse/rtk/caveman.js",
+          "open-sse/rtk/cavemanPrompts.js",
+          "open-sse/rtk/constants.js",
+          "open-sse/rtk/filters/buildOutput.js",
+          "open-sse/rtk/filters/cargoTest.js",
+          "open-sse/rtk/filters/dedupLog.js",
+          "open-sse/rtk/filters/env.js",
+          "open-sse/rtk/filters/find.js",
+          "open-sse/rtk/filters/gitDiff.js",
+          "open-sse/rtk/filters/gitLog.js",
+          "open-sse/rtk/filters/gitStatus.js",
+          "open-sse/rtk/filters/goTest.js",
+          "open-sse/rtk/filters/grep.js",
+          "open-sse/rtk/filters/jsonCompact.js",
+          "open-sse/rtk/filters/ls.js",
+          "open-sse/rtk/filters/mypy.js",
+          "open-sse/rtk/filters/pytest.js",
+          "open-sse/rtk/filters/readNumbered.js",
+          "open-sse/rtk/filters/searchList.js",
+          "open-sse/rtk/filters/smartTruncate.js",
+          "open-sse/rtk/filters/tree.js",
+          "open-sse/rtk/filters/truncate.js",
+          "open-sse/rtk/filters/vitest.js",
+          "open-sse/rtk/headroom.js",
+          "open-sse/rtk/index.js",
+          "open-sse/rtk/ponytail.js",
+          "open-sse/rtk/ponytailPrompt.js",
+          "open-sse/rtk/pxpipe.js",
+          "open-sse/rtk/registry.js",
+          "open-sse/rtk/systemInject.js",
+          "open-sse/rtk/tomlEngine.js",
+          "open-sse/services/accountFallback.js",
+          "open-sse/services/capacityAdapter.js",
+          "open-sse/services/clinepassModels.js",
+          "open-sse/services/codexModels.js",
+          "open-sse/services/combo.js",
+          "open-sse/services/compact.js",
+          "open-sse/services/copilotModels.js",
+          "open-sse/services/cursorModels.js",
+          "open-sse/services/googleOAuthModels.js",
+          "open-sse/services/grokCliModels.js",
+          "open-sse/services/kimchiModels.js",
+          "open-sse/services/kiroModels.js",
+          "open-sse/services/model.js",
+          "open-sse/services/oauthCredentialManager.js",
+          "open-sse/services/projectId.js",
+          "open-sse/services/provider.js",
+          "open-sse/services/qoderModels.js",
+          "open-sse/services/tokenRefresh.js",
+          "open-sse/services/tokenRefresh/dedup.js",
+          "open-sse/services/tokenRefresh/providers.js",
+          "open-sse/services/usage.js",
+          "open-sse/services/usage/antigravity.js",
+          "open-sse/services/usage/claude.js",
+          "open-sse/services/usage/codebuddy-cn.js",
+          "open-sse/services/usage/codex.js",
+          "open-sse/services/usage/deepseek.js",
+          "open-sse/services/usage/github.js",
+          "open-sse/services/usage/glm.js",
+          "open-sse/services/usage/google.js",
+          "open-sse/services/usage/grok-cli.js",
+          "open-sse/services/usage/grokCliQuotaFrame.js",
+          "open-sse/services/usage/groq.js",
+          "open-sse/services/usage/kimi.js",
+          "open-sse/services/usage/kiro.js",
+          "open-sse/services/usage/minimax.js",
+          "open-sse/services/usage/misc.js",
+          "open-sse/services/usage/ollama.js",
+          "open-sse/services/usage/shared.js",
+          "open-sse/services/usage/zed.js",
+          "open-sse/shared/clineAuth.js",
+          "open-sse/shared/commandCodeHeaders.js",
+          "open-sse/shared/machineId.js",
+          "open-sse/shared/qoder/constants.js",
+          "open-sse/shared/qoder/cosy.js",
+          "open-sse/shared/qoder/encoding.js",
+          "open-sse/shared/zedAuth.js",
+          "open-sse/transformer/responsesTransformer.js",
+          "open-sse/transformer/streamToJsonConverter.js",
+          "open-sse/translator/concerns/assistantPrefillPolicy.js",
+          "open-sse/translator/concerns/chunk.js",
+          "open-sse/translator/concerns/deferredTools.js",
+          "open-sse/translator/concerns/finishReason.js",
+          "open-sse/translator/concerns/geminiToolHistory.js",
+          "open-sse/translator/concerns/geminiToolNames.js",
+          "open-sse/translator/concerns/image.js",
+          "open-sse/translator/concerns/json.js",
+          "open-sse/translator/concerns/kiroConversation.js",
+          "open-sse/translator/concerns/message.js",
+          "open-sse/translator/concerns/modality.js",
+          "open-sse/translator/concerns/multimodal.js",
+          "open-sse/translator/concerns/paramSupport.js",
+          "open-sse/translator/concerns/prefetch.js",
+          "open-sse/translator/concerns/reasoning.js",
+          "open-sse/translator/concerns/reasoningAliases.js",
+          "open-sse/translator/concerns/requestMedia.js",
+          "open-sse/translator/concerns/requestOwnership.js",
+          "open-sse/translator/concerns/responseError.js",
+          "open-sse/translator/concerns/responseMedia.js",
+          "open-sse/translator/concerns/structuredOutput.js",
+          "open-sse/translator/concerns/thinking.js",
+          "open-sse/translator/concerns/thinkingUnified.js",
+          "open-sse/translator/concerns/thoughtSignature.js",
+          "open-sse/translator/concerns/toolCall.js",
+          "open-sse/translator/concerns/typedContent.js",
+          "open-sse/translator/concerns/usage.js",
+          "open-sse/translator/formats.js",
+          "open-sse/translator/formats/claude.js",
+          "open-sse/translator/formats/gemini.js",
+          "open-sse/translator/formats/maxTokens.js",
+          "open-sse/translator/formats/openai.js",
+          "open-sse/translator/formats/responsesApi.js",
+          "open-sse/translator/index.js",
+          "open-sse/translator/request/antigravity-to-openai.js",
+          "open-sse/translator/request/claude-to-kiro.js",
+          "open-sse/translator/request/claude-to-openai.js",
+          "open-sse/translator/request/gemini-to-openai.js",
+          "open-sse/translator/request/openai-responses.js",
+          "open-sse/translator/request/openai-to-claude.js",
+          "open-sse/translator/request/openai-to-commandcode.js",
+          "open-sse/translator/request/openai-to-cursor.js",
+          "open-sse/translator/request/openai-to-gemini.js",
+          "open-sse/translator/request/openai-to-kiro.js",
+          "open-sse/translator/request/openai-to-ollama.js",
+          "open-sse/translator/request/openai-to-vertex.js",
+          "open-sse/translator/response/claude-to-openai.js",
+          "open-sse/translator/response/commandcode-to-openai.js",
+          "open-sse/translator/response/cursor-to-openai.js",
+          "open-sse/translator/response/gemini-to-openai.js",
+          "open-sse/translator/response/kiro-to-claude.js",
+          "open-sse/translator/response/kiro-to-openai.js",
+          "open-sse/translator/response/ollama-to-openai.js",
+          "open-sse/translator/response/openai-responses.js",
+          "open-sse/translator/response/openai-to-antigravity.js",
+          "open-sse/translator/response/openai-to-claude.js",
+          "open-sse/translator/schema/blocks.js",
+          "open-sse/translator/schema/defaults.js",
+          "open-sse/translator/schema/finishReasons.js",
+          "open-sse/translator/schema/index.js",
+          "open-sse/translator/schema/roles.js",
+          "open-sse/translator/schema/structuredOutput.js",
+          "open-sse/utils/boundedCache.js",
+          "open-sse/utils/bypassHandler.js",
+          "open-sse/utils/claudeCloaking.js",
+          "open-sse/utils/claudeSignature.js",
+          "open-sse/utils/clientDetector.js",
+          "open-sse/utils/clientErrors.js",
+          "open-sse/utils/cloudCodeProject.js",
+          "open-sse/utils/codexToolSchema.js",
+          "open-sse/utils/cursorChecksum.js",
+          "open-sse/utils/cursorProtobuf.js",
+          "open-sse/utils/debugLog.js",
+          "open-sse/utils/error.js",
+          "open-sse/utils/kiroSessionReplay.js",
+          "open-sse/utils/modelCatalog.js",
+          "open-sse/utils/modelMarkers.js",
+          "open-sse/utils/ollamaTransform.js",
+          "open-sse/utils/proxyFetch.js",
+          "open-sse/utils/reasoningContentInjector.js",
+          "open-sse/utils/requestBody.js",
+          "open-sse/utils/requestLogger.js",
+          "open-sse/utils/requestTiming.js",
+          "open-sse/utils/responsesStreamHelpers.js",
+          "open-sse/utils/sessionManager.js",
+          "open-sse/utils/sse.js",
+          "open-sse/utils/sseConstants.js",
+          "open-sse/utils/stream.js",
+          "open-sse/utils/streamHandler.js",
+          "open-sse/utils/streamHelpers.js",
+          "open-sse/utils/toolCompressor.js",
+          "open-sse/utils/toolDeduper.js",
+          "open-sse/utils/toolSchemaCompatibility.js",
+          "open-sse/utils/transportPool.js",
+          "open-sse/utils/usageTracking.js"
+        ],
+        "iterations": 80,
+        "first_event_iterations": 30,
+        "parallel_tools": 1000,
+        "fixture_sha256": "eb7983539690a4d00e3863fe52140c8355637d45790322a15c281f83a4b6d0f3",
+        "scope": "Synthetic local CPU; translation + serialization + real SSE to first semantic event; persistence stubbed, network forbidden, no provider/account latency",
+        "results": [
+          {
+            "fixture": "chat-to-claude/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.05135799999993651,
+              "p95_ms": 0.11298999999985426
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.3079139999999825,
+              "p95_ms": 0.48084499999981745
+            }
+          },
+          {
+            "fixture": "claude-to-chat/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.03978000000006432,
+              "p95_ms": 0.1525800000001709
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.2682640000000447,
+              "p95_ms": 0.3816559999997935
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.03641499999980624,
+              "p95_ms": 0.1445480000002135
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.23795799999993505,
+              "p95_ms": 0.33592600000019956
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03562400000009802,
+              "p95_ms": 0.06445699999994758
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.205600000000004,
+              "p95_ms": 0.3454710000000887
+            }
+          },
+          {
+            "fixture": "chat-to-responses/normal",
+            "input_sha256": "671f24fa048b139d5d743f8d9f1c2a45126225439ccacf878d2759055290f7df",
+            "output_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 294,
+            "translate": {
+              "p50_ms": 0.026629999999840948,
+              "p95_ms": 0.06952499999988504
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.19232000000010885,
+              "p95_ms": 0.3440579999999045
+            }
+          },
+          {
+            "fixture": "responses-to-claude/normal",
+            "input_sha256": "f5dfe56a533580fefb02f525e0307ecfef95cf988e2994b608097211a760f179",
+            "output_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 379,
+            "translate": {
+              "p50_ms": 0.03996100000017577,
+              "p95_ms": 0.10508800000002338
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.31023800000002666,
+              "p95_ms": 0.4440999999999349
+            }
+          },
+          {
+            "fixture": "claude-oauth/normal",
+            "input_sha256": "263e89abab25abfb0c9e4840e6bc222c782cc47b7735fe77cf0784d7e0773093",
+            "output_sha256": "f8aa560dfd13d5c8646eff0963d3458b6aa2fcd23d8bbfdd6cfcb871a452969e",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 380,
+            "translate": {
+              "p50_ms": 0.025098000000070897,
+              "p95_ms": 0.0862609999999222
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.19991200000004028,
+              "p95_ms": 0.3429069999999683
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/normal",
+            "input_sha256": "8031d2d0a0ddf81642390b2c2076d4dc8de8a24b74147e64a7fbe45c346b6d5a",
+            "output_sha256": "fe3e8b3f9be467fc178c12ee3c9fbd75e13e9d67d11a458b1b73238956fa1c90",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 691,
+            "translate": {
+              "p50_ms": 0.03135700000007091,
+              "p95_ms": 0.0720890000000054
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 0.18100299999991876,
+              "p95_ms": 0.36010299999998097
+            }
+          },
+          {
+            "fixture": "chat-to-claude/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 3.0801839999999174,
+              "p95_ms": 3.7552820000000793
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 4.101574000000028,
+              "p95_ms": 5.198055999999951
+            }
+          },
+          {
+            "fixture": "claude-to-chat/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b54028c49f875f552bf3c9585ab8aaa50d883a789017ea32a263c6f400a08ff5",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.5716990000000806,
+              "p95_ms": 2.919251000000031
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 2.3888319999996384,
+              "p95_ms": 3.0645399999998517
+            }
+          },
+          {
+            "fixture": "chat-to-gemini/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 14.158685999999761,
+              "p95_ms": 17.39991199999986
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 16.170810000000074,
+              "p95_ms": 18.60813399999961
+            }
+          },
+          {
+            "fixture": "gemini-to-chat/parallel-tools-media",
+            "input_sha256": "d501f0286d49fd730460dd5c8279e8c31069aa120af0fce4f84d1f9125adaed5",
+            "output_sha256": "a9479e0d63e892a2c7d1bd1d6f646724af02f25ef2e7b64007e7082ca2c9b74a",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 421601,
+            "translate": {
+              "p50_ms": 2.9442690000005314,
+              "p95_ms": 5.958332999999584
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.7022720000004483,
+              "p95_ms": 5.175333000000137
+            }
+          },
+          {
+            "fixture": "chat-to-responses/parallel-tools-media",
+            "input_sha256": "f498ec9df5524330a62a089cc14814ad66cc4c929bdad6e16ee18bec1ff1a8a9",
+            "output_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 418232,
+            "translate": {
+              "p50_ms": 2.3598080000001573,
+              "p95_ms": 2.98165599999993
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.1092069999995147,
+              "p95_ms": 3.5099719999998342
+            }
+          },
+          {
+            "fixture": "responses-to-claude/parallel-tools-media",
+            "input_sha256": "1113f66716426146bd6e8283ed83ff69ed065f81c77d2096a515837359418a2e",
+            "output_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "tool_alias_sha256": "63a61db852e7bc5e9003ae22b6dcc3a66e1127e0abdf41186c412e019a55c34e",
+            "input_bytes": 425268,
+            "translate": {
+              "p50_ms": 2.7728699999997843,
+              "p95_ms": 4.989372000000003
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.735942999999679,
+              "p95_ms": 4.146190999999817
+            }
+          },
+          {
+            "fixture": "claude-oauth/parallel-tools-media",
+            "input_sha256": "570b2cf49a18b29d8752abdc41503025e7b3d1948cb5385f04682eea8adec778",
+            "output_sha256": "b51f26d65f89635ac69ac3ffe247cec3b46b6fd89a3e36132afc4d5dc069e8af",
+            "tool_alias_sha256": "795acc1523b4aa4ce0e894c4177de7f5dbbb941e61feee130251936e25cde62d",
+            "input_bytes": 420441,
+            "translate": {
+              "p50_ms": 1.9415170000002036,
+              "p95_ms": 3.6800380000004225
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 3.1157979999998133,
+              "p95_ms": 3.6309849999997823
+            }
+          },
+          {
+            "fixture": "gemini-id-free-to-chat/parallel-tools-media",
+            "input_sha256": "a3f22fd668f2aa6a02133b86c909277c3e037b2b5190c58f1419e4801737a8dc",
+            "output_sha256": "f5a4523f7efce1f7d3690612d11562759dee8c55a665f61535344d611e1f3d00",
+            "tool_alias_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "input_bytes": 389821,
+            "translate": {
+              "p50_ms": 77.32030200000008,
+              "p95_ms": 81.37690400000065
+            },
+            "request_serialization_and_first_semantic_event": {
+              "p50_ms": 78.46033100000022,
+              "p95_ms": 80.73557199999959
+            }
+          }
+        ]
+      },
+      "reportSha256": "24dcf0df4fcace5d2f73b256d0e6855660812654204b8b73aaafc43fa3c8f1b0"
+    }
+  ]
+}

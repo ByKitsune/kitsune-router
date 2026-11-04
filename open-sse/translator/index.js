@@ -285,7 +285,9 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     const apiKey = credentials?.apiKey || credentials?.accessToken || null;
     if (apiKey?.includes("sk-ant-oat")) {
       const { body: cloakedBody, toolNameMap } = cloakClaudeTools(result);
-      result = ownRequestBody(cloakedBody);
+      // The input is already attempt-owned. Aliasing only rebuilds containers
+      // from that private graph; copying the complete history again is wasteful.
+      result = cloakedBody;
       if (toolNameMap?.size > 0) {
         if (result._toolNameMap) {
           const merged = new Map(result._toolNameMap);
