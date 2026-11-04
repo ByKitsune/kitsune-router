@@ -343,6 +343,8 @@ flowchart TD
 
 `checkFallbackError` uses `FALLBACK_SCOPE.ACCOUNT` by default. The combo boundary passes `FALLBACK_SCOPE.COMBO` and retains structured error codes. Only configured destination-dependent request failures advance a combo without rotating or cooling healthy accounts; generic client failures and cancellation remain terminal.
 
+A Codex ChatGPT account whose plan rejects a model ("not supported when using Codex with a ChatGPT account") keeps cooldown 0, so its credential health is never written. `auth.js` separately remembers that connection+model denial in process memory for `CODEX_ENTITLEMENT_DENIAL_MS` (30 minutes) and orders entitled accounts first for that model; a success on the denied account clears the entry, and a pool where every account was denied still asks upstream and returns its 400.
+
 The nonstream handlers reject zero-output, nonfinal Chat completions as HTTP 502 `empty_response`, including SSE aggregation. Detection reuses parsed objects. Generated content, opaque reasoning, tools, refusals, images/audio, positive incurred usage and valid terminal no-ops prevent empty-response replay. Empty upstream failures retain the existing bounded retry/account policy.
 
 ## OAuth Onboarding and Token Refresh Lifecycle

@@ -84,6 +84,15 @@ const COOLDOWN = {
 // first, so a token that a refresh CAN heal never reaches this cooldown.
 export const REVOKED_TOKEN_COOLDOWN_MS = COOLDOWN.revoked;
 
+// A ChatGPT plan that does not include a Codex model rejects every request for
+// it ("The '<model>' model is not supported when using Codex with a ChatGPT
+// account."). The router keeps that account+model pair out of selection for
+// this window instead of re-asking on every request. It is process-local and
+// writes no account health: the credential still serves its other models, and
+// a plan upgrade takes effect once the window ends.
+export const CODEX_ENTITLEMENT_DENIAL_MS = 30 * 60 * 1000;
+export const CODEX_ENTITLEMENT_DENIAL_TEXT = "not supported when using codex with a chatgpt account";
+
 /**
  * Unified error classification rules.
  * Checked top-to-bottom: text rules first (by order), then status rules.
@@ -161,8 +170,10 @@ export const ERROR_RULES = [
   // Request-scoped reasoning exhaustion: a different combo model may fit the
   // budget, but the upstream account is healthy and must never be locked.
   { text: "output budget exhausted before any text or tool calls", cooldownMs: 0 },
-  // ChatGPT account model restriction on Codex (9router #4369)
-  { text: "not supported when using codex with a chatgpt account", cooldownMs: 0 },
+  // ChatGPT account model restriction on Codex (9router #4369). Cooldown 0
+  // keeps the credential healthy; auth.js separately remembers the
+  // account+model denial for CODEX_ENTITLEMENT_DENIAL_MS.
+  { text: CODEX_ENTITLEMENT_DENIAL_TEXT, cooldownMs: 0 },
   { text: "chatgpt account",            cooldownMs: 0 },
   { text: "response.failed",            cooldownMs: 0 },
   // AiHubMix free-tier abuse gate (#3602): "Sorry, to prevent abuse of free resources..."
