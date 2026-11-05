@@ -1,0 +1,33 @@
+{
+  "capturedAtUtc": "2026-11-05T17:26:56.099791+00:00",
+  "scope": "Only the executable workflow test harness changed; no production workflow/helper, metadata, version, tag, registry or publication modifications.",
+  "baseSourceSha": "48c83b2a7608ded1c239447cf854ac33c0be3c65",
+  "file": "tests/unit/reconciliation-release-verification.test.js",
+  "beforeSha256": "e53f4d4fd5b8c124a8cc8bb0a3deb9357e4ff36652ac842376bd80d3d7a56b16",
+  "afterSha256": "f1d818ab352111c54d6ac13cc7d5cf980d8048d3287b1f72c35825e5aff33abc",
+  "originalAssertionStatementsPreservedInOrder": 15,
+  "behavior": [
+    "Fake root npm ci creates the local node_modules/playwright/cli.js installer required by actual publisher commands; it validates exact install --with-deps chromium arguments and records isolated environment context.",
+    "Both explicit local node CLI and existing CI npm-exec route use that same fake locked installer; no downloads occur.",
+    "Browser-first fake npm test requires recorded browser readiness; full source-test report generation and full-test exit failure remain separate.",
+    "Green release/docker/CI cases assert dependencies\u2192browser install\u2192browser-first test\u2192full source report ordering and preserve exact-SHA/report-hash/identity/compatibility/isolation assertions.",
+    "Six new failure cases (two publishers \u00d7 missing local CLI, failed install, failed browser prerequisite) ensure no full report, source evidence or publication occurs.",
+    "All prior source-gate failure-before-publish cases remain intact."
+  ],
+  "verification": {
+    "singleHarnessTests": 35,
+    "relatedFiles": 14,
+    "relatedTestsPassed": 241,
+    "failed": 0,
+    "strictOwnedLint": "pass --max-warnings=0",
+    "diffCheck": "pass",
+    "stderrSections": 0,
+    "fullSuite": "Not run by this task; coordinator owns fresh exact-source CI."
+  },
+  "evidenceSha256": {
+    "focused.log": "cf75a51d0ca35d345cd7e02d312604186bc4d905dc4e414090c78d0f2716be4c",
+    "related.log": "143220f98c10c65d1c2e4f1cd96acef89af39c6c95ebac3684d21876b48bb721",
+    "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limits": "Controlled local subprocess/Git/Bash and mocked install/browser/build/registry boundaries; actual Chromium19-case CI prerequisite already passed on48c83. Failed48c83 full CI is not reclassified as green by these local tests."
+}
