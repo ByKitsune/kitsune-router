@@ -1,0 +1,63 @@
+{
+  "observedAt": "2026-11-05T20:03:04.065891+00:00",
+  "releaseId": 435666392,
+  "tag": "v1.0.8",
+  "publishedAt": "2026-11-05T20:00:19Z",
+  "peeledSource": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "actualAssetBytesCompared": 3,
+  "originalTgzSha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+  "assets": [
+    {
+      "id": 714635561,
+      "name": "bykitsune-router-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60.tgz",
+      "url": "https://github.com/ByKitsune/kitsune-router/releases/download/v1.0.8/bykitsune-router-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60.tgz",
+      "finalHost": "release-assets.githubusercontent.com",
+      "status": 200,
+      "bytes": 23026359,
+      "sha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+      "githubApiDigest": "sha256:71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+      "bytesEqualExactOriginalOrTagSource": true,
+      "headers": {
+        "etag": "\"0x8DF3B776A5A1E14\"",
+        "date": "Thu, 05 Nov 2026 20:03:03 GMT",
+        "content-type": "application/octet-stream",
+        "content-length": "23026359"
+      }
+    },
+    {
+      "id": 714635560,
+      "name": "docker-compose.yml",
+      "url": "https://github.com/ByKitsune/kitsune-router/releases/download/v1.0.8/docker-compose.yml",
+      "finalHost": "release-assets.githubusercontent.com",
+      "status": 200,
+      "bytes": 1088,
+      "sha256": "36e7348d6907eff0652941931ed0cb6b5e6e92b264a6d2a972d4b163248de7eb",
+      "githubApiDigest": "sha256:36e7348d6907eff0652941931ed0cb6b5e6e92b264a6d2a972d4b163248de7eb",
+      "bytesEqualExactOriginalOrTagSource": true,
+      "headers": {
+        "etag": "\"0x8DF3B7769650C1A\"",
+        "date": "Thu, 05 Nov 2026 20:03:03 GMT",
+        "content-type": "application/octet-stream",
+        "content-length": "1088"
+      }
+    },
+    {
+      "id": 714635562,
+      "name": "install.sh",
+      "url": "https://github.com/ByKitsune/kitsune-router/releases/download/v1.0.8/install.sh",
+      "finalHost": "release-assets.githubusercontent.com",
+      "status": 200,
+      "bytes": 44415,
+      "sha256": "e2b1966a7b314e530a66e14e23574fce99fcd6d0de37427b2853f8891b636c72",
+      "githubApiDigest": "sha256:e2b1966a7b314e530a66e14e23574fce99fcd6d0de37427b2853f8891b636c72",
+      "bytesEqualExactOriginalOrTagSource": true,
+      "headers": {
+        "etag": "\"0x8DF3B7769694D15\"",
+        "date": "Thu, 05 Nov 2026 20:03:03 GMT",
+        "content-type": "application/octet-stream",
+        "content-length": "44415"
+      }
+    }
+  ],
+  "noOriginalWorkflowZipDuplicate": true
+}

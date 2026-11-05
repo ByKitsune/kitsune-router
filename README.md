@@ -26,50 +26,54 @@ These source changes are separate from the published-artifact record below.
 They do not imply that a newer npm package, container or hosted documentation
 has been released.
 
-## Release status
+## Version 1.0.8
 
-**Current source target: 1.0.8 (2026-11-05), unpublished.** This follow-up retains
-exact optional SQLite/tray runtime dependencies and extends bounded read-only
-registry readback without repeating publication writes. It carries forward the
-reviewed 1.0.7 provider/account, catalog and translation work with the same runtime
-dependency graph. See the [1.0.8 notes](releases/RELEASE_NOTES_v1.0.8.md) and
-[publication/known-issue receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+Immutable `v1.0.8` identifies source `1314af7b228e91226be4e8bbc3beff962dd5ae60`.
+Both exact-source CI runs pass 11,042 tests with 99 gated skips, zero failures and
+32 browser cases without retries each. Fresh normal global-install candidates
+pass on Node 22.19 and Node 24.19/npm 11.17; candidate verification remains
+separate from the actual public-package verification below.
 
-**1.0.8 is not yet available from a release tag or registry.** Full exact-source
-CI and a normally installed final-candidate smoke must pass before tagging or
-publication. A working-tree local precheck is separate evidence; use the versioned
-commands below only after that channel's actual publication/readback succeeds.
+**1.0.8 is published on npm, GitHub Release and canonical GHCR.** Public npm
+bytes match the original release archive, and an actual public-registry install
+with two offline CLI starts passes. The published image passes authenticated
+default/custom-data runtime checks. An anonymous GHCR pull grant returned HTTP
+401; that observation does not establish its visibility setting. The
+[publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records integrity, provenance, exact runtime and access boundaries. This patch
+retains managed SQLite/tray dependencies and uses bounded read-only readbacks. Use `@bykitsune/router@1.0.8` for the launcher and
+`ghcr.io/bykitsune/kitsune-router:1.0.8` for the linux/amd64 image; container download
+access is verified separately from authenticated publication. See
+[installation](docs/INSTALLATION.md), [Docker](DOCKER.md),
+[1.0.8 notes](releases/RELEASE_NOTES_v1.0.8.md) and [migration](docs/MIGRATION.md).
 
-**Published 1.0.7 and known installer issue.** npm, canonical GHCR and GitHub
-Release published immutable `b7f77d07`; original bytes/assets remain unchanged.
-Sequential SQLite/tray `--no-save` installs prune siblings. The contained offline
-CLI did not reach health in 30 seconds during synchronous self-heal; its final
-driver/outcome was not observed, so a hard database failure is not established.
-The successful Docker entrypoint smoke is a separate path. See the publication
-receipt for cryptographic, runtime, access and cancellation-race evidence.
-
-**Historical 1.0.2 distribution record.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. At that recorded check, the [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) was **private** and anonymous grants returned HTTP 401. npm publication was denied with E403; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment occurred. These observations do not determine 1.0.7 availability. [Historical evidence](releases/RELEASE_NOTES_v1.0.2.md).
-
-GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm target: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`. The current installation target is unpublished 1.0.8; the receipt keeps published 1.0.7 and its known installer defect separate. If the published GHCR package requires authorization, use an account with package-read permission; anonymous access needs its own confirmation.
-
-**Previous tags stay immutable.** [v1.0.1](releases/RELEASE_NOTES_v1.0.1.md) remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: SSH/CI passed, but the GHCR gate failed before login/push and npm's publish command failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. [v1.0.0](releases/RELEASE_NOTES_v1.0.0.md) remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Source tags are not registry artifacts.
-
-Version 1.0.2 makes timestamp-sensitive cache tests deterministic and npm failure diagnostics readable; production priority ordering and fail-closed migration ownership checks are unchanged. Source verification is not registry publication or production deployment. Earlier 0.x records remain original ZenRouter artifacts. Read the [migration guide](docs/MIGRATION.md).
-
-Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-router-docs.pages.dev/en/) on the verified official Cloudflare account. It has not been refreshed to the verified 1.0.2 source and is not release, production-deployment or custom-domain/DNS evidence.
+The receipt and [changelog](CHANGELOG.md) preserve the published 1.0.7 installer
+issue, earlier attempts and immutable tags/assets. Historical source checks and
+registry failures do not establish current availability or production deployment.
 
 ## Quick start
 
 Requires **Node.js >=22.19.0** for the launcher.
 
 ```bash
-# Only after 1.0.8 candidate/CI gates and npm publication/readback:
+# Published 1.0.8; see the receipt for integrity and npm 11.17 review:
 npx @bykitsune/router@1.0.8
 
 # Or install the launcher globally:
 npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
+
+npm 11.17 requires an explicit review of the exact CLI lifecycle. After reviewing
+its `postinstall`, use this one-time approval for the global installation:
+
+```bash
+npm install -g --allow-scripts=@bykitsune/router@1.0.8 @bykitsune/router@1.0.8
+```
+
+The selector approves only this exact CLI version in this global transaction.
+Do not append it to NPX or source/project installs; see the
+[npm 11.17 guidance](docs/INSTALLATION.md#npm-1117-script-review).
 
 For a source checkout, run these commands from the repository root (there is no `app/` subdirectory):
 
@@ -114,11 +118,10 @@ the authenticated deployment rather than a bundled seed list.
 
 ### Containers
 
-The current image target is **1.0.8, linux/amd64 only**, and is not published yet.
-Use this command only after candidate/CI gates and that version's authenticated
-publication/digest/access readbacks succeed. The published 1.0.7 image and its
-anonymous HTTP 401 observation remain separate historical evidence. See [Docker](DOCKER.md)
-for inspecting the versioned image and verifying its digest.
+Use the **1.0.8, linux/amd64** image only after confirming its publication,
+digest and access mode in the [publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+See [Docker](DOCKER.md) for versioned-image inspection and digest pinning; earlier
+versions' access observations do not determine this version's availability.
 
 ```bash
 docker run -d --name kitsune-router \

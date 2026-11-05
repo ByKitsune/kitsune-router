@@ -10,9 +10,9 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 发布状态
 
-**当前修复准备目标为 1.0.8。** GitHub Release、npm 和 GHCR 的实际发布结果及可获取性分别记录在 [1.0.8 发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)。以下指南中的 npm 和容器示例仅在对应产物发布且 registry 读回确认后适用；源码验证或标签存在本身不代表发布完成。
+**1.0.8 已发布到 npm、GitHub Release 和规范 GHCR。** 此版本修复了 SQLite/tray 依赖保留问题；产物标识、验证结果和获取方式以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。GHCR 匿名 pull-grant 观测到 HTTP 401，须与认证读取分开判断；仅凭该响应不能断言 visibility 为 private，也不能推断发布工作流缺少写入权限。
 
-**发布历史与修复准备：** 1.0.7 已从不可变源码 `b7f77d07` 发布到 npm、GHCR 和 GitHub Release，但存在顺序执行 `--no-save` 安装时 SQLite/tray 相互裁剪的已知问题。1.0.8 尚未发布，正在等待精确源码 CI 与常规安装候选验证；各渠道的实际结果与已知问题以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
+**1.0.7 发布历史与已知问题：** 从不可变源码 `b7f77d07` 发布到 npm、GHCR 和 GitHub Release 的 1.0.7，已确认存在顺序执行 `--no-save` 安装时 SQLite/tray 相互裁剪的问题。修复内容及各渠道的实际结果以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准；旧标签和历史产物保持不变。
 
 **1.0.2 历史记录（当时的验证结果）：** **1.0.2 容器已私有发布，匿名拉取待确认，npm 受阻。** Runtime 固定于 `65c8b97d`（9,041 通过、100 跳过、零失败）。Recovery `40485038668` 发布 GHCR `1.0.2`/`latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。包最近读回仍为 **private**，所有者选择 Public 但未确认，匿名 grant HTTP 401。npm 仍 E403/公开读回 HTTP 404，token 替换未确认。可用源码或获授权私有容器访问；npm 命令仅 npm 发布验证后适用。无 GitHub Release 或生产部署。见 [分发证据](/zh-CN/changelog/)。
 

@@ -8,13 +8,15 @@ Node.js >=22.19.0、固定依存、ルート build を [手順](/ja/getting-star
 
 ## コンテナー
 
-**現在のコンテナー対象は `ghcr.io/bykitsune/kitsune-router:1.0.8`、プラットフォームは linux/amd64 です。** 以下は対象イメージの公開、読戻し、必要なアクセス権が [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認された後に使用してください。認証付き取得の成功だけで匿名 pull を利用可能とみなさないでください。1.0.8 のダイジェストは同記録にある実際の値を使い、下記の歴史的な 1.0.2 ダイジェストを流用しません。
+対象は `ghcr.io/bykitsune/kitsune-router:1.0.8`、プラットフォームは **linux/amd64** です。
 
-**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+**1.0.8 は npm・GitHub Release・正規 GHCR に公開済みです。** SQLite/tray の依存保持を修正しています。公開物の識別子、検証結果と取得方法は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。GHCR の匿名 pull-grant では HTTP 401 を観測しており、認証付き取得とは別に扱います。この応答だけでは visibility が private とも、公開ワークフローの書込権限が不足したとも判断しません。
+
+**1.0.7 の配布履歴と既知の問題:** 不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布された 1.0.7 では、逐次 `--no-save` インストールで SQLite/tray が互いに削除される問題が確認されました。修正内容と各チャネルの実結果は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。旧タグと成果物の履歴は変更しません。
 
 **1.0.2 の履歴（当時の確認）:** **GHCR 1.0.2 は配布済みですが private です。** Recovery `40485038668` は tooling `802c61bf` と不変 runtime `65c8b97d` を使用し、認証付き digest/provenance/SPDX 読戻しと配布イメージ smoke に成功。`1.0.2`/`latest` index は `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。以下は許可済み private GHCR アクセス、または Public 設定・匿名読戻し確認後のみ使用してください。Public 選択は未確認、匿名 grant は HTTP 401。**linux/amd64 のみ**。[Digest pin と証拠](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
-### 1.0.8 の構成例（GHCR 確認後）
+### 1.0.8 の構成例
 
 ```yaml
 services:

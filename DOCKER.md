@@ -2,12 +2,12 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-**Current image target: `ghcr.io/bykitsune/kitsune-router:1.0.8`, unpublished.**
-Full exact-source CI and a normally installed final-candidate smoke are required
-before tagging/publication. The target is **linux/amd64** only; Docker Hub remains
-unverified and optional. Use examples only after that version's authenticated
-publication/digest/access readbacks succeed. The [publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-records current gates separately from older published artifacts.
+**Published version 1.0.8:** `ghcr.io/bykitsune/kitsune-router:1.0.8`,
+**linux/amd64** only. Authenticated publication, default/custom-data entrypoint
+runtime and latest promotion pass. The [publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records source/provenance and the exact digest below. An anonymous pull grant
+returned HTTP 401 at 20:02 UTC; this does not establish the package visibility
+setting. Use authorized registry access; Docker Hub remains unverified and optional.
 
 ### Published 1.0.7 and installer limitation
 
@@ -30,11 +30,11 @@ write failure. This image result does not certify the distinct CLI installer.
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
-## Run 1.0.8 only after candidate/CI and registry verification
+## Run 1.0.8
 
-Before using the unpublished 1.0.8 target, confirm its own publication, digest
-and access results. The 1.0.7 anonymous HTTP 401 is historical, not proof of an
-unpublished version's visibility. Never paste tokens in commands, source, chat
+Before using version 1.0.8, confirm its own publication, digest
+and access results. The 1.0.7 anonymous HTTP 401 is historical and does not
+establish this version's visibility. Never paste tokens in commands, source, chat
 or logs. Set a strong `INITIAL_PASSWORD` privately; `-e INITIAL_PASSWORD` forwards
 it without embedding a value in these examples.
 
@@ -55,8 +55,18 @@ Using the registry access confirmed for your account, inspect the versioned imag
 docker buildx imagetools inspect ghcr.io/bykitsune/kitsune-router:1.0.8
 ```
 
-No verified 1.0.8 digest is recorded yet. After publication, compare its reported
-index digest with the actual 1.0.8 receipt.
+The verified **1.0.8** index digest is:
+
+```text
+ghcr.io/bykitsune/kitsune-router@sha256:b2d6206350b38c3ffb568b470640d57c740222a413e9e72f3b010a416c90cf5d
+```
+
+Both actual default/custom-data entrypoint cases pass on Node 22.23.4 as UID 1000:
+health/login/1,082 models, retained session/key/secret bytes and 0600 modes, graceful
+exit 0 and cleanup, with zero runtime warnings/errors. Authenticated SLSA/SPDX
+gates pass; independent OCI/source/hash parsing is separate from raw attached
+predicates, which were not independently available. See the versioned receipt
+before using the image.
 
 ### Historical 1.0.7 digest and authenticated runtime
 
@@ -77,7 +87,7 @@ remain separate from authenticated runtime proof. The historical 1.0.2 digest ab
 
 Digest pinning does not bypass private-package authorization. Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. The gateway does not require a ByKitsune account or prescribe a provider; GHCR download authorization, when required, is separate.
 
-### Compose 1.0.8 — only after its candidate/CI and registry gates
+### Compose 1.0.8
 
 ```yaml
 services:

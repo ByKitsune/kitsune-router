@@ -1,21 +1,52 @@
 # 変更履歴
 
-## Kitsune Router 1.0.8 — インストーラー修正の準備
+## Kitsune Router 1.0.8 — インストーラー修正
+
+### 準備時点の集中検証
 
 SQLite/tray の正確なバージョンを optional 依存として保存し、高速経路に入る前に
 両方を含む runtime メタデータを原子的に保持します。インストール済みバージョンを
 検証し、ビルドツールなしの N-API バイナリ経路を扱います。23 件の集中テストには、
 実 npm による依存保持・アップグレードと、不正な manifest を変更せず保持する動作を
 カバーする、新しい 12 件の回帰テストを含みます。
-これは公開済み 1.0.8 の native 起動確認ではありません。
+これは 1.0.8 配布物の native 起動を確認したものではありません。
 
 公開後の読戻しは最大 24 回／571 秒の予算で読み取り専用の再試行を行い、
 公開書込みを繰り返しません。この経路は 54 件の集中テストで確認します。
 依存関係のグラフは Undici **8.12.4** を含めて維持します。
 
-1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。
+上記は準備時点の集中検証記録であり、公開や通常インストール候補の実結果を置き換えるものではありません。
 各配布チャネルの実結果と取得可否は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
 既存の 1.0.7／1.0.6 のタグや成果物は変更しません。
+
+### 確定ソースと配布結果の確認
+
+不変タグ `v1.0.8` のソースは `1314af7b228e91226be4e8bbc3beff962dd5ae60` です。
+[手動 CI 42094761177](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761177) と
+[push CI 42094761905](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761905) は
+ともに成功し、各実行で 866 ファイル、11,042 テスト成功、99 件の明示的なゲート付きスキップ、
+失敗 0 件を記録しました。ブラウザー検証は各 32 件成功、再試行 0 件です。
+
+GitHub Release・npm・GHCR の公開、読戻し、取得権限はそれぞれ別に確認します。
+現在の実結果と利用可能な取得方法は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+ソース CI の成功だけでは、いずれのチャネルの公開や匿名取得も証明しません。
+
+### 公開成果物と公開レジストリーからのインストール確認
+
+1.0.8 の [GitHub Release／npm ワークフロー 42096709552](https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552) と
+[正規 GHCR ワークフロー 42096714778](https://github.com/ByKitsune/kitsune-router/actions/runs/42096714778) は
+ともに成功しました。不変タグ `v1.0.8` とソース `1314af7b228e91226be4e8bbc3beff962dd5ae60` は変更しません。
+公開 npm 原本は先行 CI 候補とは別の成果物として照合しています。完全なハッシュと取得範囲は
+[公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)に保持します。
+
+Node **24.19.0**／npm **11.17.0** で、公開 registry の正確な版 `@bykitsune/router@1.0.8` に
+対する一度限りのグローバルインストール用スクリプト承認を使い、通常のインストールを確認しました。
+その後のオフライン CLI 起動 2 回と help/version は成功し、キー、セッション、mode 0600 の
+秘密情報は保持され、後片付けも完了しました。警告・エラーや起動時 npm 実行は観測されませんでした。
+これは確認した環境の結果であり、全 OS や実プロバイダーの利用権を検証したものではありません。
+
+GHCR の公開確認と匿名取得は別です。匿名 pull-grant の HTTP 401 を観測しましたが、この応答だけでは
+visibility が private とも、公開処理の書込権限が不足したとも判断しません。アクセス条件は上の記録を参照してください。
 
 ## Kitsune Router 1.0.7 — 2026-11-05 配布ゲート修正の準備
 

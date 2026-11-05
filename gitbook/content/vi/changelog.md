@@ -2,6 +2,8 @@
 
 ## Kitsune Router 1.0.8 — chuẩn bị sửa trình cài đặt
 
+**Ảnh chụp giai đoạn chuẩn bị:** các kết quả kiểm tra tập trung và giới hạn fixture dưới đây thuộc giai đoạn này, không xác minh runtime đã xuất bản.
+
 Trình cài đặt lưu đồng thời các pin phiên bản chính xác của SQLite và khay hệ
 thống dưới dạng phụ thuộc tùy chọn bằng một lần ghi nguyên tử, trước các nhánh
 xử lý nhanh. Nó kiểm tra phiên bản đã cài và tìm đường dẫn N-API mà không yêu cầu
@@ -16,9 +18,34 @@ kiểm tra byte nhận dạng, không được nạp. Đây không phải kiểm
 lại chỉ đọc, không lặp thao tác ghi xuất bản; kiểm tra tập trung gồm 54 trường
 hợp. Đồ thị phụ thuộc giữ nguyên, bao gồm Undici 8.12.4.
 
-**1.0.8 chưa xuất bản.** CI cho SHA chính xác và phép thử cài đặt bình thường của
-bản ứng viên còn chờ; chưa kiểm tra CLI 1.0.8 đã xuất bản hay provider thật.
-[Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả thực tế của từng kênh.
+Trong giai đoạn chuẩn bị này, CI cho SHA chính xác và phép thử cài đặt bình
+thường của bản ứng viên còn chờ. Kiểm tra tập trung chưa xác minh CLI đã xuất
+bản hay provider thật. Kết quả sau đó được ghi riêng ở phần dưới.
+
+### Hoàn tất xác minh mã nguồn và trạng thái phân phối
+
+Tag bất biến `v1.0.8` xác định mã nguồn `1314af7b228e91226be4e8bbc3beff962dd5ae60`.
+CI [chạy thủ công 42094761177](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761177) và [push 42094761905](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761905) đều thành công: mỗi lần ghi nhận **11.042 trường hợp đạt, 99 trường hợp bỏ qua có điều kiện, không lỗi trong 866 tệp và 32 trường hợp trình duyệt, không thử lại và không có chẩn đoán lỗi**.
+
+Xác minh mã nguồn không tự chứng minh đã xuất bản hoặc có quyền truy cập hiện
+vật. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả thực tế riêng của GitHub Release, npm và GHCR cùng phép đọc lại và kiểm tra runtime tương ứng.
+
+### Xuất bản và xác minh gói công khai 1.0.8
+
+Quy trình chính thức [GitHub Release/npm 42096709552](https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552) và [Docker 42096714778](https://github.com/ByKitsune/kitsune-router/actions/runs/42096714778) đều thành công. Kết quả xuất bản và đọc xác minh 1.0.8 trên GitHub Release, npm và GHCR chính thức đã được ghi nhận.
+
+Gói gốc từ registry npm công khai đã được cài bằng Node 24.19.0 và npm 11.17.0,
+với phê duyệt script một lần cho đúng phiên bản `@bykitsune/router@1.0.8` trong
+lần cài global.
+Sau đó hai lần khởi động CLI không dùng mạng ngoài cùng các phép kiểm tra
+help/version đều đạt, không có cảnh báo hay lỗi. Không quan sát thấy npm được gọi
+trong các lần khởi động đó. Khóa, phiên đăng nhập và secret được giữ nguyên;
+secret giữ mode 0600 và bước dọn môi trường thử nghiệm đạt. Tarball gốc của npm
+khác bản ứng viên CI; không hoán đổi định danh hay kết quả của hai hiện vật.
+
+Xuất bản không chứng minh có thể truy cập container ẩn danh: yêu cầu cấp quyền
+GHCR ẩn danh quan sát được trả HTTP 401 và tự nó không xác định tính công khai
+của gói. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu checksum đầy đủ, giới hạn truy cập và bằng chứng cài đặt/runtime riêng biệt. Các phép kiểm tra này không xác minh tài khoản provider thật.
 
 ## Kitsune Router 1.0.7 — chuẩn bị phát hành ngày 2026-11-05
 

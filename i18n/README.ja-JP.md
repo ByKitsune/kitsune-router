@@ -14,9 +14,9 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 
 ## リリース状況とインストール
 
-**現在のソース版と安定版の対象は 1.0.8 です。** GitHub Release、npm、GHCR の実際の結果は、それぞれ[公開記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認してください。以下のコマンドは npm 1.0.8 の公開と読戻し検証の成功後に使用します。コンテナの利用可否は、その配布経路での確認が別途必要です。
+**1.0.8 は npm・GitHub Release・正規 GHCR に公開済みです。** SQLite/tray の依存保持を修正しています。公開物の識別子、検証結果と取得方法は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。GHCR の匿名 pull-grant では HTTP 401 を観測しており、認証付き取得とは別に扱います。この応答だけでは visibility が private とも、公開ワークフローの書込権限が不足したとも判断しません。
 
-**1.0.8 は未公開です。** タグ作成・公開の前に、正確なソースの CI と通常インストールした候補の smoke 確認が必要です。
+**公開 npm 版の確認:** Node 24.19.0／npm 11.17.0 で、レジストリー上の正確な `@bykitsune/router@1.0.8` に対する一度限りのスクリプト承認を使った通常のグローバルインストールを確認しました。その後のオフライン CLI 起動 2 回、help/version、キー・セッション・mode 0600 の秘密情報の保持、後片付けが成功し、警告・エラーや起動時 npm 実行は観測されませんでした。確認した環境の結果と限界は上の記録を参照してください。
 
 **1.0.7 の履歴：** `b7f77d07` から npm・GHCR・GitHub Release が公開されましたが、SQLite と tray の連続した `--no-save` インストールが互いの依存関係を削除します。観測したオフライン起動は runtime 修復中に 30 秒以内に health に達しませんでした。確定的な DB 障害が証明されたわけではありません。タグと公開物は変更せず、詳細は上の記録に保持します。
 

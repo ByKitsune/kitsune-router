@@ -1,19 +1,18 @@
 # Kitsune Router container
 
-**1.0.8 is an unpublished source target.** Exact-source CI and the normally
-installed candidate smoke must pass before a new tag or publication. **Published
-1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
-sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
-CLI launch did not reach health in 30 seconds while synchronous self-healing
-retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-keeps actual outcomes and the separate 1.0.8 preparation evidence.
+**Version 1.0.8 is published on npm, GitHub Release and canonical GHCR.** The
+[publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) records original-byte integrity, provenance and successful actual public-package
+installation/runtime checks. GHCR publication/runtime verification is authenticated;
+an anonymous pull grant returned HTTP 401, without establishing the visibility
+setting. This patch fixes the managed-dependency retention issue recorded for
+1.0.7 (`b7f77d07`). For npm 11.17, follow the [exact CLI lifecycle review guidance](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INSTALLATION.md#npm-1117-script-review).
 
 **Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
 - Repository: [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router)
 - Canonical image target: **`ghcr.io/bykitsune/kitsune-router`**
 - CLI package target: **`@bykitsune/router`**, command **`kitsune-router`**
-- **Stable target:** `ghcr.io/bykitsune/kitsune-router:1.0.8`. Use it only after publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). The receipt records version-specific digest, platform and access results; GitHub Release and npm have their own gates.
+- **Stable image:** `ghcr.io/bykitsune/kitsune-router:1.0.8`. Use it only after publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). The receipt records version-specific digest, platform and access results; GitHub Release and npm have their own gates.
 - **Historical 1.0.2 release status:** GHCR 1.0.2 is published from immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; authenticated digest/provenance/SPDX readback and published-image smoke passed. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) remains **private** at last read. The owner selected Public but has not confirmed completion; anonymous grants return HTTP 401. npm remains blocked, and Docker Hub is unverified.
 - Publication platform: **linux/amd64 only**. The image supplies its own Node runtime; the launcher requires Node.js >=22.19.0.
 
@@ -21,7 +20,7 @@ keeps actual outcomes and the separate 1.0.8 preparation evidence.
 
 The 1.0.2 follow-up controls timestamp-sensitive cache tests and improves npm failure diagnostics without changing production priority ordering or fail-closed migration ownership checks. Bounded Linux evidence is not general non-root support; native Windows/macOS migration is unverified. Restricted operators must stop/back up state and keep it at explicit `DATA_DIR` without relocation, or seek privileged review—not ignore permission errors.
 
-After 1.0.8 publication and registry readback succeed, use the access mode recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) and set a strong `INITIAL_PASSWORD` in your private environment:
+For published 1.0.8, use the access mode recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) and set a strong `INITIAL_PASSWORD` in your private environment:
 
 ```bash
 docker run -d --name kitsune-router \

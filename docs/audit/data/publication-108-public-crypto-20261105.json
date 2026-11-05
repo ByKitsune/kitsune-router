@@ -1,0 +1,37 @@
+{
+  "status": "cryptographically-verified",
+  "package": "@bykitsune/router",
+  "version": "1.0.8",
+  "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "originalRun": "42096709552",
+  "originalSha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+  "originalIntegrity": "sha512-zeEArHP3xZhEGgEBqjfx11afyLv4aF2uIUpECwTeI56OCaoO4E1eUFhNA8yixFfSpx0UOprb8PtbeNgeuYEMlg==",
+  "publicBytesExactlyOriginal": true,
+  "registryGitHead": null,
+  "gitHeadObserved": false,
+  "cryptographicallyVerified": true,
+  "canonicalNpmAuditReceipt": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/canonical-signature-audit/audit-receipt.json",
+  "verifier": {
+    "package": "sigstore",
+    "version": "4.1.0"
+  },
+  "statements": [
+    {
+      "subject": {
+        "name": "pkg:npm/%40bykitsune/router@1.0.8",
+        "digest": {
+          "sha512": "cde100ac73f7c598441a0101aa37f1d7569fc8bbf8685dae214a440b04de239e8e09aa0ee04d5e50584d03cca2c457d2a71d143a9adbf0fb5b78d81eb9810c96"
+        }
+      },
+      "workflow": {
+        "ref": "refs/tags/v1.0.8",
+        "repository": "https://github.com/ByKitsune/kitsune-router",
+        "path": ".github/workflows/release.yml"
+      },
+      "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+      "invocation": "https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552/attempts/1",
+      "certificateIdentity": "https://github.com/ByKitsune/kitsune-router/.github/workflows/release.yml@refs/tags/v1.0.8",
+      "cryptographicallyVerified": true
+    }
+  ]
+}

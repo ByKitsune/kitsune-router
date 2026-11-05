@@ -14,9 +14,9 @@ Esta integração se refere ao código-fonte atual.
 
 ## Publicação e instalação
 
-**Versão atual do código e alvo estável: 1.0.8.** Consulte o [registro de publicação](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para os resultados reais de GitHub Release, npm e GHCR separadamente. Os comandos abaixo exigem publicação e leitura de verificação bem-sucedidas do npm 1.0.8; o acesso ao contêiner depende da verificação do próprio canal.
+**A versão 1.0.8 foi publicada no npm, GitHub Release e GHCR canônico.** O [registro de publicação](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) contém integridade, proveniência e testes bem-sucedidos de instalação/runtime do pacote público. A publicação e o runtime GHCR foram verificados com autenticação; o grant de pull anônimo retornou HTTP 401 sem comprovar a configuração de visibilidade.
 
-**1.0.8 ainda não foi publicada.** O CI do código exato e o teste do candidato com instalação normal devem passar antes de criar o tag ou publicar.
+Esta correção mantém as dependências de runtime SQLite/tray. No npm 11.17, revise o lifecycle exato da CLI conforme o [guia de instalação](../docs/INSTALLATION.md#npm-1117-script-review); a aprovação única vale apenas para a instalação global dessa versão.
 
 **Histórico da 1.0.7:** npm, GHCR e GitHub Release foram publicados a partir de `b7f77d07`, mas as instalações sequenciais de SQLite/tray com `--no-save` removem dependências uma da outra. A inicialização offline observada não chegou a health em 30 segundos durante o reparo do runtime; não foi demonstrada falha definitiva do banco. O tag e os artefatos permanecem imutáveis; consulte o registro acima.
 

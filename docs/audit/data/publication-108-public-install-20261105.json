@@ -1,0 +1,199 @@
+{
+  "mode": "execute",
+  "archive": "/workspace/.cloud-setup/kitsune-router/publication-106-20261105/release108-actions/npm/bykitsune-router-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60.tgz",
+  "sha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+  "source": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "sourceMeaning": "supplied artifact source commit",
+  "artifactBoundary": "original-release",
+  "version": "1.0.8",
+  "image": "sha256:1746248f2a138f128577ca74d86c9d4a0a17fcc9922c77dfdf92ba7307a4fa3c",
+  "node": "v24.19.0",
+  "workDir": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-node24.19.0-npm11.17.0",
+  "installNetwork": "default bridge",
+  "runtimeNetwork": "none",
+  "privatePidNamespace": true,
+  "nonrootUid": 1000,
+  "boundary": "Exact supplied packed artifact; never substitutes for a different original publication artifact",
+  "originalReleaseVerification": {
+    "runId": "42096709552",
+    "originalProof": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/original-proof.json",
+    "originalProofSha256": "cbfc3466a4b6fdc706cde76312b60b63696250c7f8552b9dfb9904f87367e82a",
+    "cryptoProof": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-crypto-proof.json",
+    "cryptoProofSha256": "8cd5a6bcc67014710900505ff7fdea5bf37dd5d60be998b60606e8153746e0b5",
+    "originalIntegrity": "sha512-zeEArHP3xZhEGgEBqjfx11afyLv4aF2uIUpECwTeI56OCaoO4E1eUFhNA8yixFfSpx0UOprb8PtbeNgeuYEMlg=="
+  },
+  "expectedNpm": "11.17.0",
+  "installSpec": "@bykitsune/router@1.0.8",
+  "oneTimeReviewedPostinstallApproval": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-own-postinstall-approval.json",
+    "sha256": "427c17630c586d3d3cf1c60ec90215ba782ea9e939d855ef1700022efd3b0937",
+    "selector": "@bykitsune/router@1.0.8",
+    "scope": "single verified own CLI postinstall transaction only",
+    "persistentConfigChanges": false
+  },
+  "status": "passed",
+  "containers": [
+    {
+      "name": "kitsune-108-toolchain-39ba15d5bb",
+      "runningBeforeCleanup": false,
+      "exitCodeBeforeCleanup": 0,
+      "network": "none",
+      "privatePidNamespace": true
+    },
+    {
+      "name": "kitsune-108-install-52080d331e",
+      "runningBeforeCleanup": false,
+      "exitCodeBeforeCleanup": 0,
+      "network": "bridge",
+      "privatePidNamespace": true
+    },
+    {
+      "name": "kitsune-108-runtime-a3c8baa9c5",
+      "runningBeforeCleanup": false,
+      "exitCodeBeforeCleanup": 0,
+      "network": "none",
+      "privatePidNamespace": true
+    }
+  ],
+  "stages": [
+    {
+      "phase": "normal-install",
+      "exitCode": 0,
+      "npmPolicy": "root-reviewed exact registry name/version selector for this single own postinstall transaction; no persistent configuration",
+      "warningLines": 0,
+      "blockedOrPendingScriptDiagnosticLines": 0,
+      "ownPostinstallEvidence": {
+        "secretsJson": true,
+        "runtimeManifest": true,
+        "nativePackage": true,
+        "trayPackage": true
+      }
+    },
+    {
+      "phase": "initial",
+      "probeExitCode": 0,
+      "processObservation": {
+        "samples": 83,
+        "npmPids": [],
+        "appUids": [
+          1000
+        ]
+      },
+      "probe": {
+        "phase": "initial",
+        "version": "1.0.8",
+        "node": "v24.19.0",
+        "database": "ready",
+        "providerAccounts": 0,
+        "unauthenticatedSettings": "rejected",
+        "invalidPassword": "rejected",
+        "login": "passed",
+        "dashboard": "passed",
+        "modelCount": 1082,
+        "secretsMode": "0600",
+        "databaseMode": "0600",
+        "actualInstalledNative": "passed"
+      },
+      "dependencyAndNpmCacheSnapshotUnchanged": true,
+      "stopExitCode": 0
+    },
+    {
+      "phase": "restart",
+      "probeExitCode": 0,
+      "processObservation": {
+        "samples": 83,
+        "npmPids": [],
+        "appUids": [
+          1000
+        ]
+      },
+      "probe": {
+        "phase": "restart",
+        "version": "1.0.8",
+        "node": "v24.19.0",
+        "database": "ready",
+        "providerAccounts": 0,
+        "existingSession": "passed",
+        "originalApiKeyBytesAccepted": "passed",
+        "secretsUnchanged": "passed",
+        "modelCount": 1082,
+        "temporaryKeyCleanup": "passed",
+        "actualInstalledNative": "passed"
+      },
+      "dependencyAndNpmCacheSnapshotUnchanged": true,
+      "stopExitCode": 0
+    }
+  ],
+  "providerCalls": false,
+  "sqlJsOptIn": false,
+  "injectedRuntimeModules": false,
+  "healthProbeTimeoutSeconds": 30,
+  "defaultDatabaseDriver": "better-sqlite3",
+  "launcherTerminalOutcome": "two clean stops with exit code 0",
+  "actualToolchain": {
+    "node": "v24.19.0",
+    "npm": "11.17.0",
+    "napi": "10",
+    "uid": 1000
+  },
+  "installedCriticalFilesMatchExactArchive": {
+    "cli.js": "5c3a03ea8606dca84422194eb4a6665bcb9eddb1b7ad73082a030ef67cfc8a70",
+    "package.json": "cd5e7b806feaa47cfb1dabebafb7137044f3f16a8ca17ef168694e97767b6a5d",
+    "hooks/postinstall.js": "2e2e0966a49e70ce588efd1275d0063bc2aced2f79e75618848b5efc96abed06",
+    "hooks/sqliteRuntime.js": "0390312baabea2eee535804b3899b9ef2387fdbecc2e81007666859dc0714424",
+    "hooks/trayRuntime.js": "c55bc2e30a1d073b288c256ad52389363dd907633aa9a33d1475f59b4361d277",
+    "hooks/runtimeSecrets.js": "921420eeecb0333ca9c1215be2ad262926ef9dbb12a085e497f6f45a56c79261",
+    "hooks/dataDirectory.js": "b6fd64aa5683eeb8d91271164f5bad33069e1f59841f9f373bd4bd24a855ac40",
+    "app/package.json": "0e938bce37eb0970deda1869db0e1840e7814b61417b326b08f8f80c4069fe7c",
+    "app/custom-server.js": "9333d86b3e33e8c7d5a789a52a969775211bdb29546de2708c5bcf4b834f4292"
+  },
+  "postInstallSnapshot": {
+    "runtimeManifest": "a51a1e91c9b294c21bee3ec380d0dfcd7fa3c2c4687842fba25b53e027dac046",
+    "runtimeLock": "674049c8be22e870cc64a544ce18eda3127a13a7bccf0ac6c078d78b4a342bca",
+    "packages": {
+      "better-sqlite3": {
+        "version": "13.0.3",
+        "sha256": "286594b744709c1601709e77e4b36ce72543f8d2feaac6349a8d9b1303d8dda9",
+        "files": 68
+      },
+      "systray2": {
+        "version": "2.1.4",
+        "sha256": "3cab1e2d2c0aca5c6c1f4857abc03d06c841f3e7f10d20396305050a8107c02d",
+        "files": 9
+      }
+    },
+    "npmCache": {
+      "sha256": "48ad5290bd95ba2bbe044b790764443a10c9b33e71e8f455cace6c7f06045f81",
+      "files": 76
+    },
+    "nativeAllowScriptsPolicy": {
+      "better-sqlite3@13.0.3": false
+    },
+    "nativeBinarySha256": "d661495d2dd4a026ccda893dd8ea1e2c245c3a681bd28224064953c8a9cc0a72"
+  },
+  "runtimeWarnings": 0,
+  "runtimeErrors": 0,
+  "startupNpmObservedCalls": 0,
+  "observationBoundary": "25ms process sampling plus unchanged managed dependency and complete npm cache content snapshots; no npm shim or child-process interception",
+  "cleanup": [
+    {
+      "name": "kitsune-108-toolchain-39ba15d5bb",
+      "removed": true
+    },
+    {
+      "name": "kitsune-108-install-52080d331e",
+      "removed": true
+    },
+    {
+      "name": "kitsune-108-runtime-a3c8baa9c5",
+      "removed": true
+    }
+  ],
+  "ownContainersRemoved": true,
+  "reportCorrection": {
+    "type": "descriptive label only; actual execution/arguments/results unchanged",
+    "previousReceipt": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-node24.19.0-npm11.17.0/verification-prior-label.json",
+    "previousReceiptSha256": "5913a2e45c8838ac10b57008e3ea34b6a705dd3c0f7785b2fae32a5743584630",
+    "reason": "Old descriptive text said local artifact selector despite actual registry installSpec/selector. Corrected to exact registry name/version selector. No installation or runtime repeated."
+  }
+}

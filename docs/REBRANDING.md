@@ -1,12 +1,11 @@
 # Kitsune Router rebranding and migration
 
-**1.0.8 is an unpublished source target.** Exact-source CI and the normally
-installed candidate smoke must pass before a new tag or publication. **Published
-1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
-sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
-CLI launch did not reach health in 30 seconds while synchronous self-healing
-retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-keeps actual outcomes and the separate 1.0.8 preparation evidence.
+**Version 1.0.8 is published on npm, GitHub Release and canonical GHCR.** The
+[publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) records original-byte integrity, provenance and successful actual public-package
+installation/runtime checks. GHCR publication/runtime verification is authenticated;
+an anonymous pull grant returned HTTP 401, without establishing the visibility
+setting. This patch fixes the managed-dependency retention issue recorded for
+1.0.7 (`b7f77d07`). For npm 11.17, follow the [exact CLI lifecycle review guidance](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INSTALLATION.md#npm-1117-script-review).
 
 For current 1.0.8 publication and access results, use the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). GitHub Release, npm and GHCR require separate confirmation; this ledger retains the earlier rebranding evidence and does not establish their current availability.
 

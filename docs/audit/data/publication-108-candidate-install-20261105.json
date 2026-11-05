@@ -1,0 +1,56 @@
+{
+  "verifiedAtUtc": "2026-11-05T19:37:14.747070+00:00",
+  "status": "passed",
+  "version": "1.0.8",
+  "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "sourceTree": "9c2913bc13cc272c1527078c8eeb9d53f0c443be",
+  "runId": 42094761177,
+  "candidateSha256": "d656c63c937f15d7b3230751194d5924ad86c1708d1da4852308ae3dee59543f",
+  "boundary": "exact committed CI candidate only; not original/public release artifact",
+  "independentArchiveProof": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-1314af7b-integrity.json",
+    "sha256": "4f96b7afc98038a7d15c8e92ed8b71aecffc1b04ea3440ec3f0524e17f4a572e"
+  },
+  "lanes": {
+    "floor22.19": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-1314af7b-floor22.19.0/verification.json",
+      "sha256": "1d340a2ab12f3f662683923c8c835836122aeb40d45b7e4546367bed30a01937",
+      "actualNode": "v22.19.0",
+      "actualNpm": "10.9.3",
+      "globalLifecycleInstallation": "passed",
+      "twoOfflineOrdinaryCliStarts": "passed",
+      "runtimeWarnings": 0,
+      "runtimeErrors": 0,
+      "startupNpmObservedCalls": 0,
+      "ownCleanup": "passed"
+    },
+    "node24.19-npm11.17-reviewed-own-file": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-1314af7b-node24-reviewed-file-selector/verification.json",
+      "sha256": "90b5000cea135ae23d4afd12c4514ab816e62395b4be75364584f731e746c995",
+      "actualNode": "v24.19.0",
+      "actualNpm": "11.17.0",
+      "globalLifecycleInstallation": "passed",
+      "twoOfflineOrdinaryCliStarts": "passed",
+      "runtimeWarnings": 0,
+      "runtimeErrors": 0,
+      "startupNpmObservedCalls": 0,
+      "ownCleanup": "passed"
+    }
+  },
+  "reviewedApproval": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-1314af7b-reviewed-local-postinstall-approval.json",
+    "sha256": "dad5921316bf706c694d7b296be2208f9fe4fcd898f525bb190cb369abcc5391",
+    "selector": "file:/artifact/package.tgz",
+    "scope": "single verified own CLI postinstall transaction only",
+    "persistentConfigChanges": false
+  },
+  "actualAppDatabaseDriver": "better-sqlite3",
+  "nativeAndTrayExactSavedPinsRetained": true,
+  "nativeBuildPolicyExactFalsePreserved": true,
+  "noInjectedNativeOrSqlJsOptInOrHarnessEnvRepair": true,
+  "persistentPolicyAndPreviousProofsUnmodified": true,
+  "authDashboardCatalogAndExactActiveKeySessionSecretBytesPersistence": "passed",
+  "runtimeAndNpmCacheHashesUnchangedAcrossStarts": true,
+  "processObservationBoundary": "25ms real process sampling plus unchanged managed dependencies, lock and complete npm cache content snapshots; no npm shim",
+  "laterOriginalPublicIntegrityAndImageVerification": "required separately after actual publication"
+}

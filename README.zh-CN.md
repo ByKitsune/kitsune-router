@@ -14,9 +14,9 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 发布状态
 
-**当前源码版本与稳定版目标为 1.0.8。** 请分别在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中确认 GitHub Release、npm 与 GHCR 的实际结果。下方命令仅适用于 npm 1.0.8 发布并读回验证成功之后；容器可用性需单独确认相应渠道的结果。
+**1.0.8 已发布到 npm、GitHub Release 和规范 GHCR。** 此版本修复了 SQLite/tray 依赖保留问题；产物标识、验证结果和获取方式以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。GHCR 匿名 pull-grant 观测到 HTTP 401，须与认证读取分开判断；仅凭该响应不能断言 visibility 为 private，也不能推断发布工作流缺少写入权限。
 
-**1.0.8 尚未发布。** 创建标签或发布前，必须通过精确源码的 CI 和采用正常安装方式的候选版本 smoke 验证。
+**公开 npm 版本验证：** 在 Node 24.19.0／npm 11.17.0 下，对 registry 中精确的 `@bykitsune/router@1.0.8` 使用一次性脚本批准后完成正常全局安装。随后两次离线 CLI 启动、help/version、密钥与会话持久性、mode 0600 私密文件及清理均通过；未观测到警告、错误或启动时 npm 执行。该结果仅对应已验证环境，具体限制见上方记录。
 
 **1.0.7 历史：** npm、GHCR 和 GitHub Release 已从 `b7f77d07` 发布，但 SQLite/tray 连续使用 `--no-save` 安装会互相移除依赖。观测的离线启动在 runtime 修复期间未能于 30 秒内到达 health；这不证明数据库已发生确定性故障。标签和已发布产物保持不变，详情见上方记录。
 
@@ -92,7 +92,7 @@ curl http://localhost:20128/v1/models \
 
 提供协议转换、多账户/模型回退、用量统计，以及可选 RTK/Headroom 等压缩功能。支持情况取决于具体传输与模型；无法表示的参数或文档可能明确拒绝。没有固定节省比例、无限免费额度或不中断运行的保证。成本估算不是账单；未知价格不等于免费，订阅积分不等于 API 美元费用。
 
-当前容器目标为 `ghcr.io/bykitsune/kitsune-router:1.0.8`，仅面向 **linux/amd64**。请先在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认该版本的发布、摘要和访问验证结果；不能用旧版本的摘要或访问状态推断新版本可用性。
+当前容器 `ghcr.io/bykitsune/kitsune-router:1.0.8` 已发布，仅面向 **linux/amd64**。摘要与认证验证结果见[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)；匿名 pull-grant 观测到 HTTP 401，不足以证明包的 visibility 设置。请按该记录中的访问要求获取，不复用旧版摘要。Docker Hub 的发布不能由 GHCR 结果推断；保留既有私有状态，并参阅 [Docker](DOCKER.md)、[安装](docs/INSTALLATION.md)及[迁移](docs/MIGRATION.md)。
 
 **历史 1.0.2 容器记录：** 已发布容器仅面向 **linux/amd64**：`ghcr.io/bykitsune/kitsune-router:1.0.2`，当前须获授权私有访问；匿名拉取需先确认 Public 设置与无认证读回。认证读回及已发布镜像 smoke 已通过，摘要锁定见 [Docker](DOCKER.md)。Docker Hub 仍未验证。原生 Windows/macOS 迁移仍未验证，远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [验证记录](docs/CHANGELOG_v1.0.2.md)。
 

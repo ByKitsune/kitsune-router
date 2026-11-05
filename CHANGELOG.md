@@ -31,6 +31,21 @@ and [actual publication/known-issue receipt](docs/audit/33-1.0.6-publication-and
   Exact committed-source CI and a normally installed final candidate must pass
   before tagging/publication. Keep published 1.0.7 and its known issue below.
 
+- Verify immutable `v1.0.8` source `1314af7b` through both full-source CI runs:
+  11,042 tests passed, 99 gated skips, zero failures across 866 files and 32 browser
+  cases without retries each. Fresh normal global-install candidates pass both
+  Node 22.19 and Node 24.19/npm 11.17 lanes and all four offline CLI starts.
+  Candidate and actual per-channel release outcomes remain distinct in the receipt.
+
+- Publish npm, GitHub Release and canonical GHCR 1.0.8 from immutable `1314af7b`.
+  Original/public npm bytes and provenance match; actual public-registry global
+  installation on Node 24.19/npm 11.17, help/version and two offline CLI starts pass
+  with retained state, zero warning/error diagnostics and no observed startup npm.
+  All three actual GitHub assets match. Authenticated Docker default/custom-data
+  runtime/latest pass; anonymous grant HTTP 401 remains a separate access observation.
+  See the [final verification aggregate](docs/audit/data/publication-108-final-verification-20261105.json)
+  and [central receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
 ## [1.0.7] — 2026-11-05
 
 Production publication follow-up. See the [1.0.7 notes](releases/RELEASE_NOTES_v1.0.7.md)

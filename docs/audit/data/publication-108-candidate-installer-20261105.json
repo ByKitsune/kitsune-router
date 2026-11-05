@@ -1,0 +1,378 @@
+{
+  "recordedAt": "2026-11-05T19:37:11.775031+00:00",
+  "status": "passed",
+  "source": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "sourceTree": "9c2913bc13cc272c1527078c8eeb9d53f0c443be",
+  "runId": "42094761177",
+  "version": "1.0.8",
+  "archiveSha256": "d656c63c937f15d7b3230751194d5924ad86c1708d1da4852308ae3dee59543f",
+  "artifactBoundary": "fresh committed source CI candidate only; original/public release bytes must be independently verified later",
+  "lanes": [
+    {
+      "label": "final-1314af7b-floor22.19.0",
+      "receipt": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-1314af7b-floor22.19.0/verification.json",
+      "receiptSha256": "1d340a2ab12f3f662683923c8c835836122aeb40d45b7e4546367bed30a01937",
+      "actualToolchain": {
+        "node": "v22.19.0",
+        "npm": "10.9.3",
+        "napi": "10",
+        "uid": 1000
+      },
+      "globalInstall": {
+        "phase": "normal-install",
+        "exitCode": 0,
+        "npmPolicy": "unchanged default; no allow/approval flags or config edits",
+        "warningLines": 0,
+        "blockedOrPendingScriptDiagnosticLines": 0,
+        "ownPostinstallEvidence": {
+          "secretsJson": true,
+          "runtimeManifest": true,
+          "nativePackage": true,
+          "trayPackage": true
+        }
+      },
+      "twoOfflineStarts": [
+        {
+          "phase": "initial",
+          "probeExitCode": 0,
+          "processObservation": {
+            "samples": 105,
+            "npmPids": [],
+            "appUids": [
+              1000
+            ]
+          },
+          "probe": {
+            "phase": "initial",
+            "version": "1.0.8",
+            "node": "v22.19.0",
+            "database": "ready",
+            "providerAccounts": 0,
+            "unauthenticatedSettings": "rejected",
+            "invalidPassword": "rejected",
+            "login": "passed",
+            "dashboard": "passed",
+            "modelCount": 1082,
+            "secretsMode": "0600",
+            "databaseMode": "0600",
+            "actualInstalledNative": "passed"
+          },
+          "dependencyAndNpmCacheSnapshotUnchanged": true,
+          "stopExitCode": 0
+        },
+        {
+          "phase": "restart",
+          "probeExitCode": 0,
+          "processObservation": {
+            "samples": 97,
+            "npmPids": [],
+            "appUids": [
+              1000
+            ]
+          },
+          "probe": {
+            "phase": "restart",
+            "version": "1.0.8",
+            "node": "v22.19.0",
+            "database": "ready",
+            "providerAccounts": 0,
+            "existingSession": "passed",
+            "originalApiKeyBytesAccepted": "passed",
+            "secretsUnchanged": "passed",
+            "modelCount": 1082,
+            "temporaryKeyCleanup": "passed",
+            "actualInstalledNative": "passed"
+          },
+          "dependencyAndNpmCacheSnapshotUnchanged": true,
+          "stopExitCode": 0
+        }
+      ],
+      "defaultDatabaseDriver": "better-sqlite3",
+      "runtimeWarnings": 0,
+      "runtimeErrors": 0,
+      "startupNpmObservedCalls": 0,
+      "managedOptionalDependencies": {
+        "better-sqlite3": "13.0.3",
+        "systray2": "2.1.4"
+      },
+      "managedNativePolicy": {
+        "better-sqlite3@13.0.3": false
+      },
+      "actualChildInstalls": [
+        {
+          "log": "2026-11-05T19_36_15_888Z-debug-0.log",
+          "argv": [
+            "8 verbose argv \"install\" \"better-sqlite3@13.0.3\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--ignore-scripts\" \"--global\" \"false\" \"--location\" \"project\""
+          ],
+          "errorCodeLines": []
+        },
+        {
+          "log": "2026-11-05T19_36_18_805Z-debug-0.log",
+          "argv": [
+            "8 verbose argv \"install\" \"systray2@2.1.4\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--global\" \"false\" \"--location\" \"project\""
+          ],
+          "errorCodeLines": []
+        }
+      ],
+      "childDebugWarningsErrors": 0,
+      "ownPostinstallDebugEvidence": [
+        "65 info run @bykitsune/router@1.0.8 postinstall node_modules/@bykitsune/router node hooks/postinstall.js",
+        "66 info run @bykitsune/router@1.0.8 postinstall { code: 0, signal: null }"
+      ],
+      "postInstallSnapshot": {
+        "runtimeManifest": "a51a1e91c9b294c21bee3ec380d0dfcd7fa3c2c4687842fba25b53e027dac046",
+        "runtimeLock": "674049c8be22e870cc64a544ce18eda3127a13a7bccf0ac6c078d78b4a342bca",
+        "packages": {
+          "better-sqlite3": {
+            "version": "13.0.3",
+            "sha256": "286594b744709c1601709e77e4b36ce72543f8d2feaac6349a8d9b1303d8dda9",
+            "files": 68
+          },
+          "systray2": {
+            "version": "2.1.4",
+            "sha256": "3cab1e2d2c0aca5c6c1f4857abc03d06c841f3e7f10d20396305050a8107c02d",
+            "files": 9
+          }
+        },
+        "npmCache": {
+          "sha256": "d75deaa9d605a17f0df6450440841cccd44cd95b97ed77be2df43300042f97ed",
+          "files": 75
+        },
+        "nativeAllowScriptsPolicy": {
+          "better-sqlite3@13.0.3": false
+        },
+        "nativeBinarySha256": "d661495d2dd4a026ccda893dd8ea1e2c245c3a681bd28224064953c8a9cc0a72"
+      },
+      "oneTimeReviewedPostinstallApproval": null,
+      "ownContainersRemoved": true,
+      "logs": {
+        "install.redacted.log": {
+          "sha256": "294c7b4f31b424a176863177db189473ffe3acd36c4a7f5a894df34de304abe9",
+          "bytes": 233,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "probe-initial.redacted.log": {
+          "sha256": "0afcdfceece952fb886a76161b3cc2ecdb5bb3231d56403b9a7edf842767f588",
+          "bytes": 294,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "probe-restart.redacted.log": {
+          "sha256": "fa8eaded879191612ceb7fa7ad1e9be6e9417d5f0fb081a55d91259f67bec785",
+          "bytes": 272,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "runtime.redacted.log": {
+          "sha256": "94d3fc86e965f897a25a002fb16bf0de1a456efa6bffda221ea3008b1c412d0f",
+          "bytes": 1066,
+          "warningsErrors": 0,
+          "driverLines": [
+            "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite",
+            "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite"
+          ]
+        },
+        "toolchain.redacted.log": {
+          "sha256": "d2b7a6eb2d35bc637c1a4a3d3f06f3a6d6235fe6accba17b2fea207cdeafcd85",
+          "bytes": 58,
+          "warningsErrors": 0,
+          "driverLines": []
+        }
+      }
+    },
+    {
+      "label": "final-1314af7b-node24-reviewed-file-selector",
+      "receipt": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-1314af7b-node24-reviewed-file-selector/verification.json",
+      "receiptSha256": "90b5000cea135ae23d4afd12c4514ab816e62395b4be75364584f731e746c995",
+      "actualToolchain": {
+        "node": "v24.19.0",
+        "npm": "11.17.0",
+        "napi": "10",
+        "uid": 1000
+      },
+      "globalInstall": {
+        "phase": "normal-install",
+        "exitCode": 0,
+        "npmPolicy": "root-reviewed exact local artifact selector for this single own postinstall transaction; no persistent configuration",
+        "warningLines": 0,
+        "blockedOrPendingScriptDiagnosticLines": 0,
+        "ownPostinstallEvidence": {
+          "secretsJson": true,
+          "runtimeManifest": true,
+          "nativePackage": true,
+          "trayPackage": true
+        }
+      },
+      "twoOfflineStarts": [
+        {
+          "phase": "initial",
+          "probeExitCode": 0,
+          "processObservation": {
+            "samples": 96,
+            "npmPids": [],
+            "appUids": [
+              1000
+            ]
+          },
+          "probe": {
+            "phase": "initial",
+            "version": "1.0.8",
+            "node": "v24.19.0",
+            "database": "ready",
+            "providerAccounts": 0,
+            "unauthenticatedSettings": "rejected",
+            "invalidPassword": "rejected",
+            "login": "passed",
+            "dashboard": "passed",
+            "modelCount": 1082,
+            "secretsMode": "0600",
+            "databaseMode": "0600",
+            "actualInstalledNative": "passed"
+          },
+          "dependencyAndNpmCacheSnapshotUnchanged": true,
+          "stopExitCode": 0
+        },
+        {
+          "phase": "restart",
+          "probeExitCode": 0,
+          "processObservation": {
+            "samples": 94,
+            "npmPids": [],
+            "appUids": [
+              1000
+            ]
+          },
+          "probe": {
+            "phase": "restart",
+            "version": "1.0.8",
+            "node": "v24.19.0",
+            "database": "ready",
+            "providerAccounts": 0,
+            "existingSession": "passed",
+            "originalApiKeyBytesAccepted": "passed",
+            "secretsUnchanged": "passed",
+            "modelCount": 1082,
+            "temporaryKeyCleanup": "passed",
+            "actualInstalledNative": "passed"
+          },
+          "dependencyAndNpmCacheSnapshotUnchanged": true,
+          "stopExitCode": 0
+        }
+      ],
+      "defaultDatabaseDriver": "better-sqlite3",
+      "runtimeWarnings": 0,
+      "runtimeErrors": 0,
+      "startupNpmObservedCalls": 0,
+      "managedOptionalDependencies": {
+        "better-sqlite3": "13.0.3",
+        "systray2": "2.1.4"
+      },
+      "managedNativePolicy": {
+        "better-sqlite3@13.0.3": false
+      },
+      "actualChildInstalls": [
+        {
+          "log": "2026-11-05T19_36_21_982Z-debug-0.log",
+          "argv": [
+            "8 verbose argv \"install\" \"better-sqlite3@13.0.3\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--ignore-scripts\" \"--global\" \"false\" \"--location\" \"project\""
+          ],
+          "errorCodeLines": []
+        },
+        {
+          "log": "2026-11-05T19_36_23_261Z-debug-0.log",
+          "argv": [
+            "8 verbose argv \"install\" \"systray2@2.1.4\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--global\" \"false\" \"--location\" \"project\""
+          ],
+          "errorCodeLines": []
+        }
+      ],
+      "childDebugWarningsErrors": 0,
+      "ownPostinstallDebugEvidence": [
+        "65 info run @bykitsune/router@1.0.8 postinstall node_modules/@bykitsune/router node hooks/postinstall.js",
+        "66 info run @bykitsune/router@1.0.8 postinstall { code: 0, signal: null }"
+      ],
+      "postInstallSnapshot": {
+        "runtimeManifest": "a51a1e91c9b294c21bee3ec380d0dfcd7fa3c2c4687842fba25b53e027dac046",
+        "runtimeLock": "674049c8be22e870cc64a544ce18eda3127a13a7bccf0ac6c078d78b4a342bca",
+        "packages": {
+          "better-sqlite3": {
+            "version": "13.0.3",
+            "sha256": "286594b744709c1601709e77e4b36ce72543f8d2feaac6349a8d9b1303d8dda9",
+            "files": 68
+          },
+          "systray2": {
+            "version": "2.1.4",
+            "sha256": "3cab1e2d2c0aca5c6c1f4857abc03d06c841f3e7f10d20396305050a8107c02d",
+            "files": 9
+          }
+        },
+        "npmCache": {
+          "sha256": "db541925a7a37770a7db6500473be90446377abd01adbd9ae73e8e7cf27348b2",
+          "files": 75
+        },
+        "nativeAllowScriptsPolicy": {
+          "better-sqlite3@13.0.3": false
+        },
+        "nativeBinarySha256": "d661495d2dd4a026ccda893dd8ea1e2c245c3a681bd28224064953c8a9cc0a72"
+      },
+      "oneTimeReviewedPostinstallApproval": {
+        "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-1314af7b-reviewed-local-postinstall-approval.json",
+        "sha256": "dad5921316bf706c694d7b296be2208f9fe4fcd898f525bb190cb369abcc5391",
+        "selector": "file:/artifact/package.tgz",
+        "scope": "single verified own CLI postinstall transaction only",
+        "persistentConfigChanges": false
+      },
+      "ownContainersRemoved": true,
+      "logs": {
+        "install.redacted.log": {
+          "sha256": "8f4a9b5874fa7211892481731389482002dac8dea4b4687e7ac4762fc3991ed0",
+          "bytes": 234,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "probe-initial.redacted.log": {
+          "sha256": "f9c3a7376b0d274b83406332e3f63fdb072fa4612fd4041a45b3dabd8c873957",
+          "bytes": 294,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "probe-restart.redacted.log": {
+          "sha256": "b7673410a25690396f4de483761bc59946953b7c3cbde05c9398f11ba3895276",
+          "bytes": 272,
+          "warningsErrors": 0,
+          "driverLines": []
+        },
+        "runtime.redacted.log": {
+          "sha256": "2e061de9b944e5f59089d9045152db3d47ae88761f3ac0478a561b55ec2eca30",
+          "bytes": 1064,
+          "warningsErrors": 0,
+          "driverLines": [
+            "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite",
+            "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite"
+          ]
+        },
+        "toolchain.redacted.log": {
+          "sha256": "25273dd24e3c55750c8ae085113345a476ec3b5f3e317af0e2a79ba0c0483f73",
+          "bytes": 59,
+          "warningsErrors": 0,
+          "driverLines": []
+        }
+      }
+    }
+  ],
+  "allFourActualOfflineStartsPassed": true,
+  "allInstallChildAndRuntimeLogsWarningsErrors": 0,
+  "startupNpmObservedCalls": 0,
+  "observationBoundary": "25ms real process sampling plus unchanged full npm cache and actual native/tray package tree hashes after both starts; no npm shim/interception",
+  "providerCalls": false,
+  "nativeModulesSuppliedByHarness": false,
+  "sqlJsOptIn": false,
+  "harnessChildSelectorRepair": false,
+  "persistentApprovalChanges": false,
+  "allOwnContainersRemoved": true,
+  "sourceWrites": 0,
+  "registryWrites": 0,
+  "historicalCandidates": "all prior archive and receipts preserved unchanged; no previous artifact reuse",
+  "furtherChecks": "frozen until original/public release artifacts supplied"
+}

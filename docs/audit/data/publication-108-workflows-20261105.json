@@ -1,0 +1,218 @@
+{
+  "capturedAtUtc": "2026-11-05T20:04:11.712494+00:00",
+  "repository": "ByKitsune/kitsune-router",
+  "version": "1.0.8",
+  "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "tag": "v1.0.8",
+  "tagObject": "e753e61c661e448ad759d3f70f40dffba5391ac2",
+  "disposition": "both-official-publication-workflows-success-await-independent-public-artifact-checks",
+  "runs": [
+    {
+      "kind": "npm",
+      "id": 42096709552,
+      "workflowPath": ".github/workflows/release.yml",
+      "runAttempt": 1,
+      "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552",
+      "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+      "tagRef": "v1.0.8",
+      "conclusion": "success",
+      "sourceReportSha256": "2dbce0fd9e4028e68dc1c27975fb733600fef3978b49b3bdbf56c08374ec835e",
+      "sourceArtifactZipSha256": "5fa5ebca7eb52799f717399c227082ed5fa1cac19270ccd1733c07f12049dfce",
+      "counts": {
+        "passed": 11042,
+        "skipped": 99,
+        "failed": 0,
+        "files": 866
+      },
+      "requiredBrowserFirst": {
+        "passed": 19
+      },
+      "jobLogSha256": "ad1ab3be2ecd8547a0025c9c385927db68f116e06acae4093c0ade48cc80a6e2",
+      "annotations": 0,
+      "actualNpmNodeReactDiagnosticCandidates": 0,
+      "vitestStderrSections": 0,
+      "excludedQuotedDiagnosticTestTitles": 1,
+      "nextFreshCacheAdvisories": 3,
+      "selectedSteps": [
+        {
+          "name": "Install Chromium for isolated browser checks",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:44:50Z",
+          "completed_at": "2026-11-05T19:45:10Z"
+        },
+        {
+          "name": "Run synthetic Usage browser regressions first",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:45:10Z",
+          "completed_at": "2026-11-05T19:46:01Z"
+        },
+        {
+          "name": "Verify exact source with shared CI gates",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:46:01Z",
+          "completed_at": "2026-11-05T19:52:18Z"
+        },
+        {
+          "name": "Build and pack CLI package",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:52:29Z",
+          "completed_at": "2026-11-05T19:53:56Z"
+        },
+        {
+          "name": "Verify SQL.js fallback in the packed CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:53:56Z",
+          "completed_at": "2026-11-05T19:53:59Z"
+        },
+        {
+          "name": "Publish exact CLI tarball to npm",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:54:02Z",
+          "completed_at": "2026-11-05T19:59:50Z"
+        },
+        {
+          "name": "Advance latest without rolling back a newer release",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:59:50Z",
+          "completed_at": "2026-11-05T20:00:08Z"
+        },
+        {
+          "name": "Create GitHub Release and upload assets",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T20:00:08Z",
+          "completed_at": "2026-11-05T20:00:19Z"
+        }
+      ]
+    },
+    {
+      "kind": "docker",
+      "id": 42096714778,
+      "workflowPath": ".github/workflows/docker-publish.yml",
+      "runAttempt": 1,
+      "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/42096714778",
+      "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+      "tagRef": "v1.0.8",
+      "conclusion": "success",
+      "sourceReportSha256": "65d4e32be32fa1d52bc48410048bea3c35a5c3d31e93d264f2426d47d2e7837e",
+      "sourceArtifactZipSha256": "4c9fd4026a530d9fec4ccdadd95ebd76e97195c9cc9e88baba74ddbfcc500eda",
+      "counts": {
+        "passed": 11042,
+        "skipped": 99,
+        "failed": 0,
+        "files": 866
+      },
+      "requiredBrowserFirst": {
+        "passed": 19
+      },
+      "jobLogSha256": "52ea670a88b0b5c2ce015ef63165b783947bde1e50682d5d5fb7bb0056af9cd4",
+      "annotations": 0,
+      "actualNpmNodeReactDiagnosticCandidates": 0,
+      "vitestStderrSections": 0,
+      "excludedQuotedDiagnosticTestTitles": 1,
+      "nextFreshCacheAdvisories": 1,
+      "selectedSteps": [
+        {
+          "name": "Install Chromium for isolated browser checks",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:44:46Z",
+          "completed_at": "2026-11-05T19:45:12Z"
+        },
+        {
+          "name": "Run synthetic Usage browser regressions first",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:45:12Z",
+          "completed_at": "2026-11-05T19:46:07Z"
+        },
+        {
+          "name": "Verify exact source with shared CI gates",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:46:07Z",
+          "completed_at": "2026-11-05T19:53:46Z"
+        },
+        {
+          "name": "Verify immutable digest and attached provenance and SBOM",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:57:29Z",
+          "completed_at": "2026-11-05T19:57:35Z"
+        },
+        {
+          "name": "Verify the published immutable image with its default entrypoint",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:57:35Z",
+          "completed_at": "2026-11-05T19:58:20Z"
+        },
+        {
+          "name": "Promote latest from the original verified digest without rebuilding",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-05T19:58:20Z",
+          "completed_at": "2026-11-05T19:58:31Z"
+        }
+      ]
+    }
+  ],
+  "originalNpmReleaseArtifact": {
+    "id": 13448325868,
+    "name": "npm-release-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60",
+    "file": "bykitsune-router-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60.tgz",
+    "sha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+    "integrity": "sha512-zeEArHP3xZhEGgEBqjfx11afyLv4aF2uIUpECwTeI56OCaoO4E1eUFhNA8yixFfSpx0UOprb8PtbeNgeuYEMlg==",
+    "zipSha256": "fdaa5faf4e4b15c5b7e85d7cbf50c4a7abbcd074836aa27052b3c46ecf94e2c2",
+    "configuredRetentionDays": 90,
+    "apiExpiresAt": "2027-02-03T19:44:11Z",
+    "captureProofSha256": "90bf1055f34bde8f042ecd93fc7d241e2a8b627f7054bcd538171fc6af8ea71e",
+    "distinctCiCandidateSha256": "d656c63c937f15d7b3230751194d5924ad86c1708d1da4852308ae3dee59543f"
+  },
+  "npmReadback": {
+    "attemptBudget": 24,
+    "maxCappedReadOnlyBackoffSeconds": 571,
+    "actualPublishAndReadbackStepSeconds": 348,
+    "stepConcluded": "success",
+    "latestAndGithubReleaseSteps": "success",
+    "noWatcherWritesOrRetries": true
+  },
+  "docker": {
+    "reference": "ghcr.io/bykitsune/kitsune-router@sha256:b2d6206350b38c3ffb568b470640d57c740222a413e9e72f3b010a416c90cf5d",
+    "runtimeStatus": "passed",
+    "runtimeCases": 2,
+    "runtimeProofSha256": "276002f0a77b8c3edffda13d290cd1f395bac93e989d4d94c94778ff170c0eda",
+    "verificationZipSha256": "4c9fd4026a530d9fec4ccdadd95ebd76e97195c9cc9e88baba74ddbfcc500eda",
+    "buildRecordRawGzipSha256": "7db2cc01c1a8d6404ddf4878922489d7a46be71d8242dcc3fd2d8e765b3f0615",
+    "buildRecordArtifactId": 13449365699,
+    "attachedSlsaSpdx": "Authenticated canonical workflow verifier succeeded; no independent raw attached-predicate claim in watcher proof.",
+    "latest": "Authenticated monotonic promotion step succeeded after actual image/default-entrypoint runtime."
+  },
+  "reportedCommitChecks": {
+    "total": 10,
+    "success": 9,
+    "expectedSkip": 1,
+    "apiSha256": "c80252ce632d4729668ceb6de5ace01a9959ac1e593e7e40489c04b56172637a"
+  },
+  "externalLegacyStatus": {
+    "reported": false,
+    "totalCount": 0,
+    "apiCombinedState": "pending",
+    "note": "No legacy statuses means not reported; do not claim external GitBook success.",
+    "apiSha256": "7065691fc8d0ecdd864a1eb88cc201e4461c84ccd756a5f6286a9f599f2aa66f"
+  },
+  "diagnosticPolicy": "No actual npm/Node/React diagnostic candidates, Vitest stderr or Actions warning/error annotations in complete captured logs. Known Next fresh-cache advisories are counted separately; broad word matches also include Git initialization hint, command flags, quoted test titles and npm notice filenames. No literal zero warning-symbol claim.",
+  "independentChecksPending": [
+    "Public npm SRI/Sigstore/audit signatures and actual public global-install/two-start lane",
+    "Actual three GitHub Release asset bytes (TGZ/install.sh/docker-compose.yml)",
+    "Independent Docker build record/runtime parsing and fresh anonymous registry visibility readback"
+  ],
+  "limits": "Read-only watcher proof. No candidate bytes substitute for originals; no live provider-account/ban-prevention/anonymous GHCR access claim. Historical6/7/failed8source evidence remains archived unchanged."
+}

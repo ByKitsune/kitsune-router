@@ -1,12 +1,14 @@
 # ローカル配置
 
-画面と API は **20128** を共有し、既定 3000 ではありません。現在の対象は **1.0.8** です。下記のランチャー例は Node.js >=22.19.0 と npm 成果物の公開・読戻し確認が必要です。[公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で実際の結果を確認し、確認前は [ソース手順](/ja/getting-started/installation/)を使用してください。[コンテナー](/ja/deployment/cloud/)の可用性と権限は別に確認します。
+画面と API は **20128** を共有し、既定 3000 ではありません。
 
-**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+**1.0.8 は npm・GitHub Release・正規 GHCR に公開済みです。** SQLite/tray の依存保持を修正しています。公開物の識別子、検証結果と取得方法は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。GHCR の匿名 pull-grant では HTTP 401 を観測しており、認証付き取得とは別に扱います。この応答だけでは visibility が private とも、公開ワークフローの書込権限が不足したとも判断しません。
+
+**1.0.7 の配布履歴と既知の問題:** 不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布された 1.0.7 では、逐次 `--no-save` インストールで SQLite/tray が互いに削除される問題が確認されました。修正内容と各チャネルの実結果は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。旧タグと成果物の履歴は変更しません。
 
 **1.0.2 の履歴（当時の確認）:** 画面と API は **20128** を共有し、既定 3000 ではありません。Runtime 1.0.2 は `65c8b97d` のまま、コンテナは **private 配布済み**、匿名アクセス未確認、npm ブロック中。[ソース手順](/ja/getting-started/installation/)（Node.js >=22.19.0）か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下の launcher は npm 配布/readback 確認後のみ使用します。
 
-## 1.0.8 のローカル利用（npm 確認後）
+## 1.0.8 のローカル利用
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

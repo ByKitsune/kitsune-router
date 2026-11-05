@@ -1,18 +1,47 @@
 # 更新日志
 
-## Kitsune Router 1.0.8 — 安装器修复准备
+## Kitsune Router 1.0.8 — 安装器修复
+
+### 准备阶段的集中验证快照
 
 将 SQLite/tray 的精确版本保存为 optional 依赖，并在快速路径之前原子保留同时包含
 两者的 runtime 元数据；验证已安装版本，并支持无需构建工具的 N-API 二进制路径。
 23 项集中测试包含 12 项新增回归，覆盖真实 npm 的依赖保留与升级，以及无效 manifest 的原样保留，
-并非已发布 1.0.8 的原生启动验证。
+并非 1.0.8 发行产物的原生启动验证。
 
 发布后的读回采用最多 24 次／571 秒预算的只读重试，不重复发布写入；该路径有
 54 项集中测试覆盖。依赖图保持不变，继续使用 Undici **8.12.4**。
 
-1.0.8 尚未发布，精确源码 CI 和常规安装候选验证仍在等待中；各渠道的实际发布结果
+以上是准备阶段的集中验证记录，不能替代发布或常规安装候选的实际结果；各渠道的实际发布结果
 与可获取性以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
 现有 1.0.7／1.0.6 标签及产物保持不变。
+
+### 精确源码与分发结果确认
+
+不可变标签 `v1.0.8` 的源码为 `1314af7b228e91226be4e8bbc3beff962dd5ae60`。
+[手动 CI 42094761177](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761177) 和
+[push CI 42094761905](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761905) 均成功；
+每次执行覆盖 866 个文件、11,042 项测试通过、99 项显式门控跳过、0 项失败，
+并各有 32 项浏览器检查通过、0 次重试。
+
+GitHub Release、npm 和 GHCR 的发布、读回及访问权限须分别确认。当前实际结果及可用的
+获取方式以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
+源码 CI 成功本身不证明任一渠道已完成发布或可匿名获取。
+
+### 已发布产物与公开 registry 安装验证
+
+1.0.8 的 [GitHub Release／npm 工作流 42096709552](https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552)
+和[规范 GHCR 工作流 42096714778](https://github.com/ByKitsune/kitsune-router/actions/runs/42096714778)均已成功。
+不可变标签 `v1.0.8` 与源码 `1314af7b228e91226be4e8bbc3beff962dd5ae60` 保持不变。
+公开 npm 原始归档与较早的 CI 候选产物分别核验；完整哈希和验证范围保存在[发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中。
+
+在 Node **24.19.0**／npm **11.17.0** 下，对公开 registry 的精确版本 `@bykitsune/router@1.0.8`
+使用一次性全局安装脚本批准后，完成正常安装。随后两次离线 CLI 启动与 help/version 均通过，
+密钥、会话及 mode 0600 私密文件保持有效，并已完成清理；未观测到警告、错误或启动时 npm 执行。
+这些结果仅对应已验证环境，不代表所有操作系统或真实上游账户权限均已验证。
+
+GHCR 的发布验证与匿名获取是独立检查。匿名 pull-grant 观测到 HTTP 401，但该响应本身不证明
+visibility 为 private，也不证明发布处理缺少写入权限；实际访问条件请以上方记录为准。
 
 ## Kitsune Router 1.0.7 — 2026-11-05 发布门槛修复准备
 

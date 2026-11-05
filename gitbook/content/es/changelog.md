@@ -2,6 +2,8 @@
 
 ## Kitsune Router 1.0.8 — preparación de la corrección del instalador
 
+**Instantánea de preparación:** los resultados enfocados y las limitaciones de fixtures siguientes corresponden a esta etapa; no prueban un runtime publicado.
+
 El instalador guarda de forma atómica los pins exactos de SQLite y bandeja como
 dependencias opcionales antes de sus rutas rápidas. Valida las versiones instaladas y
 resuelve las rutas N-API sin exigir herramientas de compilación. La verificación
@@ -17,9 +19,34 @@ La lectura posterior del publisher dispone de 24 intentos y un presupuesto de
 publicación; la verificación dirigida cubre 54 pruebas. El grafo de dependencias
 no cambia, incluido Undici 8.12.4.
 
-**1.0.8 aún no está publicado.** Están pendientes CI sobre el SHA exacto y la
-prueba de instalación normal del candidato; no se ha probado un CLI 1.0.8
-publicado ni proveedores reales. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva los resultados reales de cada canal.
+En esta instantánea de preparación estaban pendientes CI sobre el SHA exacto y la
+prueba de instalación normal del candidato. Las pruebas enfocadas no verificaban
+un CLI publicado ni proveedores reales. El cierre posterior se registra aparte.
+
+### Cierre del código exacto y estado de distribución
+
+El tag inmutable `v1.0.8` identifica la fuente `1314af7b228e91226be4e8bbc3beff962dd5ae60`.
+Los CI [manual 42094761177](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761177) y [push 42094761905](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761905) terminaron correctamente: cada uno registra **11.042 pruebas aprobadas, 99 omisiones condicionadas, cero fallos en 866 archivos y 32 casos de navegador sin reintentos ni diagnósticos**.
+
+Esta verificación del código no establece por sí sola publicación ni acceso a
+los artefactos. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva los resultados reales de GitHub Release, npm y GHCR y sus comprobaciones de lectura y runtime por separado.
+
+### Publicación y verificación del paquete público 1.0.8
+
+Los flujos oficiales de [GitHub Release/npm 42096709552](https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552) y [Docker 42096714778](https://github.com/ByKitsune/kitsune-router/actions/runs/42096714778) finalizaron correctamente. GitHub Release, npm y el GHCR canónico tienen resultados de publicación y lectura de verificación registrados para 1.0.8.
+
+El paquete original obtenido del registro público npm se instaló con Node
+24.19.0 y npm 11.17.0, con una aprobación puntual del script de la versión exacta
+`@bykitsune/router@1.0.8` durante la instalación global. Después pasaron dos arranques del CLI sin red
+externa y las comprobaciones de ayuda/versión, sin advertencias ni errores.
+No se observaron invocaciones de npm durante esos arranques. Claves, sesión y
+secretos persistieron, los secretos conservaron modo 0600 y la limpieza del
+entorno de prueba pasó. El tarball original de npm es distinto del candidato CI;
+no se intercambian sus identidades ni sus resultados.
+
+La publicación no demuestra acceso anónimo al contenedor: el grant GHCR anónimo
+observado devolvió HTTP 401 y no permite inferir por sí solo la visibilidad del
+paquete. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva checksums completos, límites de acceso y evidencia de instalación/runtime por separado. Estas comprobaciones no validan cuentas de proveedores reales.
 
 ## Kitsune Router 1.0.7 — preparación de la publicación del 2026-11-05
 

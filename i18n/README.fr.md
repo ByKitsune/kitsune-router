@@ -14,9 +14,9 @@ Cette intégration concerne le code source actuel.
 
 ## Publication et installation
 
-**Version actuelle du code et cible stable : 1.0.8.** Consultez le [relevé de publication](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) pour les résultats réels de GitHub Release, npm et GHCR, séparément. Les commandes ci-dessous nécessitent la publication et la vérification par lecture de npm 1.0.8 ; l’accès au conteneur dépend de sa propre vérification.
+**La version 1.0.8 est publiée sur npm, GitHub Release et le GHCR canonique.** Le [relevé de publication](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) consigne l’intégrité, la provenance et les tests réussis d’installation/runtime du paquet public. La publication et le runtime GHCR sont vérifiés avec authentification ; le grant de pull anonyme a répondu HTTP 401 sans établir le paramètre de visibilité.
 
-**1.0.8 n’est pas encore publié.** Le CI du code exact et le test du candidat après une installation normale doivent réussir avant tout tag ou publication.
+Ce correctif conserve les dépendances runtime SQLite/tray. Avec npm 11.17, examinez le lifecycle exact du CLI selon le [guide d’installation](../docs/INSTALLATION.md#npm-1117-script-review) ; l’autorisation ponctuelle concerne uniquement l’installation globale de cette version.
 
 **Historique 1.0.7 :** npm, GHCR et GitHub Release ont été publiés depuis `b7f77d07`, mais les installations successives de SQLite et du tray avec `--no-save` suppriment leurs dépendances mutuelles. Le démarrage hors ligne observé n’a pas atteint health en 30 secondes pendant la réparation du runtime ; aucune panne définitive de base de données n’a été démontrée. Le tag et les fichiers publiés restent immuables ; voir le relevé ci-dessus.
 

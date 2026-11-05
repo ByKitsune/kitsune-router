@@ -1,0 +1,296 @@
+{
+  "recordedAt": "2026-11-05T20:11:20.163623+00:00",
+  "status": "passed",
+  "package": "@bykitsune/router",
+  "version": "1.0.8",
+  "source": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "tag": "v1.0.8",
+  "tagObject": "e753e61c661e448ad759d3f70f40dffba5391ac2",
+  "originalReleaseRun": "42096709552",
+  "originalArtifactId": 13448325868,
+  "boundary": "Original release-workflow artifact independently verified against public registry tarball and actual GitHub assets; no CI candidate substitution",
+  "originalZipSha256": "fdaa5faf4e4b15c5b7e85d7cbf50c4a7abbcd074836aa27052b3c46ecf94e2c2",
+  "originalPublicAndGithubTgzSha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+  "originalPublicTgzIntegrity": "sha512-zeEArHP3xZhEGgEBqjfx11afyLv4aF2uIUpECwTeI56OCaoO4E1eUFhNA8yixFfSpx0UOprb8PtbeNgeuYEMlg==",
+  "canonicalAudit": {
+    "exitCode": 0,
+    "verifiedRegistrySignatures": 9,
+    "verifiedAttestations": 4,
+    "stderrBytes": 0,
+    "targetInstalledAsDependency": true,
+    "lifecycleScriptsDisabled": true,
+    "syntheticDataDirCreated": false
+  },
+  "sigstore": {
+    "cryptographicallyVerified": true,
+    "statements": [
+      {
+        "subject": {
+          "name": "pkg:npm/%40bykitsune/router@1.0.8",
+          "digest": {
+            "sha512": "cde100ac73f7c598441a0101aa37f1d7569fc8bbf8685dae214a440b04de239e8e09aa0ee04d5e50584d03cca2c457d2a71d143a9adbf0fb5b78d81eb9810c96"
+          }
+        },
+        "workflow": {
+          "ref": "refs/tags/v1.0.8",
+          "repository": "https://github.com/ByKitsune/kitsune-router",
+          "path": ".github/workflows/release.yml"
+        },
+        "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+        "invocation": "https://github.com/ByKitsune/kitsune-router/actions/runs/42096709552/attempts/1",
+        "certificateIdentity": "https://github.com/ByKitsune/kitsune-router/.github/workflows/release.yml@refs/tags/v1.0.8",
+        "cryptographicallyVerified": true
+      }
+    ],
+    "registryGitHead": null,
+    "gitHeadObserved": false,
+    "canonicalAuditPrerequisitePassed": true
+  },
+  "githubRelease": {
+    "id": 435666392,
+    "publishedAt": "2026-11-05T20:00:19Z",
+    "actualAssetBytesCompared": 3,
+    "assetHashes": {
+      "bykitsune-router-1.0.8-1314af7b228e91226be4e8bbc3beff962dd5ae60.tgz": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+      "docker-compose.yml": "36e7348d6907eff0652941931ed0cb6b5e6e92b264a6d2a972d4b163248de7eb",
+      "install.sh": "e2b1966a7b314e530a66e14e23574fce99fcd6d0de37427b2853f8891b636c72"
+    }
+  },
+  "publicRegistryGlobalInstall": {
+    "spec": "@bykitsune/router@1.0.8",
+    "actualToolchain": {
+      "node": "v24.19.0",
+      "npm": "11.17.0",
+      "napi": "10",
+      "uid": 1000
+    },
+    "oneTimeSelector": "@bykitsune/router@1.0.8",
+    "approvalScope": "only reviewed exact own package version in this single fresh public global transaction",
+    "persistentConfigChanges": false,
+    "globalInstall": {
+      "phase": "normal-install",
+      "exitCode": 0,
+      "npmPolicy": "root-reviewed exact registry name/version selector for this single own postinstall transaction; no persistent configuration",
+      "warningLines": 0,
+      "blockedOrPendingScriptDiagnosticLines": 0,
+      "ownPostinstallEvidence": {
+        "secretsJson": true,
+        "runtimeManifest": true,
+        "nativePackage": true,
+        "trayPackage": true
+      }
+    },
+    "actualGlobalArgv": [
+      "7 verbose argv \"install\" \"--global\" \"--prefix\" \"/verify/prefix\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--allow-scripts\" \"@bykitsune/router@1.0.8\" \"@bykitsune/router@1.0.8\""
+    ],
+    "actualRegistryTarballHTTP200": [
+      "68 http fetch GET 200 https://registry.npmjs.org/@bykitsune/router/-/router-1.0.8.tgz 2056ms (cache miss)"
+    ],
+    "ownPostinstallDebugEvidence": [
+      "69 info run @bykitsune/router@1.0.8 postinstall node_modules/@bykitsune/router node hooks/postinstall.js",
+      "70 info run @bykitsune/router@1.0.8 postinstall { code: 0, signal: null }"
+    ],
+    "actualManagedChildInstalls": [
+      {
+        "file": "2026-11-05T20_08_11_453Z-debug-0.log",
+        "argv": [
+          "8 verbose argv \"install\" \"better-sqlite3@13.0.3\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--ignore-scripts\" \"--global\" \"false\" \"--location\" \"project\""
+        ],
+        "errorCodeLines": []
+      },
+      {
+        "file": "2026-11-05T20_08_12_622Z-debug-0.log",
+        "argv": [
+          "8 verbose argv \"install\" \"systray2@2.1.4\" \"--no-audit\" \"--no-fund\" \"--prefer-online\" \"--save-optional\" \"--save-exact\" \"--global\" \"false\" \"--location\" \"project\""
+        ],
+        "errorCodeLines": []
+      }
+    ],
+    "managedOptionalDependencies": {
+      "better-sqlite3": "13.0.3",
+      "systray2": "2.1.4"
+    },
+    "nativeAllowScripts": {
+      "better-sqlite3@13.0.3": false
+    },
+    "criticalInstalledFilesEqualOriginal": {
+      "cli.js": "5c3a03ea8606dca84422194eb4a6665bcb9eddb1b7ad73082a030ef67cfc8a70",
+      "package.json": "cd5e7b806feaa47cfb1dabebafb7137044f3f16a8ca17ef168694e97767b6a5d",
+      "hooks/postinstall.js": "2e2e0966a49e70ce588efd1275d0063bc2aced2f79e75618848b5efc96abed06",
+      "hooks/sqliteRuntime.js": "0390312baabea2eee535804b3899b9ef2387fdbecc2e81007666859dc0714424",
+      "hooks/trayRuntime.js": "c55bc2e30a1d073b288c256ad52389363dd907633aa9a33d1475f59b4361d277",
+      "hooks/runtimeSecrets.js": "921420eeecb0333ca9c1215be2ad262926ef9dbb12a085e497f6f45a56c79261",
+      "hooks/dataDirectory.js": "b6fd64aa5683eeb8d91271164f5bad33069e1f59841f9f373bd4bd24a855ac40",
+      "app/package.json": "0e938bce37eb0970deda1869db0e1840e7814b61417b326b08f8f80c4069fe7c",
+      "app/custom-server.js": "9333d86b3e33e8c7d5a789a52a969775211bdb29546de2708c5bcf4b834f4292"
+    }
+  },
+  "ordinaryOfflineRuntime": {
+    "starts": [
+      {
+        "phase": "initial",
+        "probeExitCode": 0,
+        "processObservation": {
+          "samples": 83,
+          "npmPids": [],
+          "appUids": [
+            1000
+          ]
+        },
+        "probe": {
+          "phase": "initial",
+          "version": "1.0.8",
+          "node": "v24.19.0",
+          "database": "ready",
+          "providerAccounts": 0,
+          "unauthenticatedSettings": "rejected",
+          "invalidPassword": "rejected",
+          "login": "passed",
+          "dashboard": "passed",
+          "modelCount": 1082,
+          "secretsMode": "0600",
+          "databaseMode": "0600",
+          "actualInstalledNative": "passed"
+        },
+        "dependencyAndNpmCacheSnapshotUnchanged": true,
+        "stopExitCode": 0
+      },
+      {
+        "phase": "restart",
+        "probeExitCode": 0,
+        "processObservation": {
+          "samples": 83,
+          "npmPids": [],
+          "appUids": [
+            1000
+          ]
+        },
+        "probe": {
+          "phase": "restart",
+          "version": "1.0.8",
+          "node": "v24.19.0",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "originalApiKeyBytesAccepted": "passed",
+          "secretsUnchanged": "passed",
+          "modelCount": 1082,
+          "temporaryKeyCleanup": "passed",
+          "actualInstalledNative": "passed"
+        },
+        "dependencyAndNpmCacheSnapshotUnchanged": true,
+        "stopExitCode": 0
+      }
+    ],
+    "actualDatabaseDriver": "better-sqlite3",
+    "warnings": 0,
+    "errors": 0,
+    "startupNpmObservedCalls": 0,
+    "observationBoundary": "25ms process sampling plus unchanged managed dependency and complete npm cache content snapshots; no npm shim or child-process interception",
+    "dependencyAndFullNpmCacheUnchangedAcrossBothStarts": true,
+    "nativeModulesSuppliedByHarness": false,
+    "harnessChildSelectorRepair": false,
+    "sqlJsOptIn": false,
+    "providerAccounts": 0,
+    "providerCalls": false,
+    "secretAndDatabaseModes": "0600",
+    "actualCliHelpVersionPassed": true,
+    "ownContainersRemoved": true
+  },
+  "allCurrentInstallChildAndRuntimeLogsWarningsErrors": 0,
+  "logs": {
+    "install.redacted.log": {
+      "sha256": "f886cea220db4715430d1a89c5c8f6c5dbf1f2e8d5f0d3de618091ffc4e3c3dc",
+      "bytes": 233,
+      "warningsErrors": 0,
+      "actualDriverLines": []
+    },
+    "probe-initial.redacted.log": {
+      "sha256": "f9c3a7376b0d274b83406332e3f63fdb072fa4612fd4041a45b3dabd8c873957",
+      "bytes": 294,
+      "warningsErrors": 0,
+      "actualDriverLines": []
+    },
+    "probe-restart.redacted.log": {
+      "sha256": "b7673410a25690396f4de483761bc59946953b7c3cbde05c9398f11ba3895276",
+      "bytes": 272,
+      "warningsErrors": 0,
+      "actualDriverLines": []
+    },
+    "runtime.redacted.log": {
+      "sha256": "846e1456471d93a90aa1ee20d2dbbd290f320e82a3fa09e9be23a05a54ddc1f4",
+      "bytes": 1066,
+      "warningsErrors": 0,
+      "actualDriverLines": [
+        "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite",
+        "[DB] Driver: better-sqlite3 | file: /verify/data/db/data.sqlite"
+      ]
+    },
+    "toolchain.redacted.log": {
+      "sha256": "25273dd24e3c55750c8ae085113345a476ec3b5f3e317af0e2a79ba0c0483f73",
+      "bytes": 59,
+      "warningsErrors": 0,
+      "actualDriverLines": []
+    }
+  },
+  "finalNpmDistTags": {
+    "latest": "1.0.8",
+    "release-1.0.7": "1.0.7",
+    "release-1.0.8": "1.0.8"
+  },
+  "availabilityHistory": {
+    "earlierPublicBlob404": "Preserved direct/cache-busted and actual npm consumer observations; cause not established",
+    "firstObservedPlainPublicBlob200": "2026-11-05T20:06:09.831750+00:00",
+    "noPublicationRetriesOrRegistryWrites": true
+  },
+  "reportCorrection": "Prior receipt5913 preserved; only descriptive selector label corrected to registry, no installation/runtime repeated",
+  "trackedSourceWrites": 0,
+  "registryPublicationWrites": 0,
+  "allCandidatesAndHistoricalReceiptsPreserved": true,
+  "receipts": {
+    "originalProof": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/original-proof.json",
+      "sha256": "cbfc3466a4b6fdc706cde76312b60b63696250c7f8552b9dfb9904f87367e82a"
+    },
+    "publicDownload": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/registry-download-receipt.json",
+      "sha256": "4c9e16680d976323a4f513e3030b18f762cea6d6be5db3cdc593ffa62a57eec9"
+    },
+    "canonicalAudit": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/canonical-signature-audit/audit-receipt.json",
+      "sha256": "6d68ad9e4c33333e781b443b2b9b00e4c7b7dfe881f114605af2a1ddb3d5b175"
+    },
+    "publicCrypto": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-crypto-proof.json",
+      "sha256": "8cd5a6bcc67014710900505ff7fdea5bf37dd5d60be998b60606e8153746e0b5"
+    },
+    "githubActualAssetBytes": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/github-actual-assets-proof.json",
+      "sha256": "e2dbf5af1527717968420c71c94bf8dc9f385d6bd973e3585de8b846c4aa3d2b"
+    },
+    "publicGlobalInstallerRuntime": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-node24.19.0-npm11.17.0/verification.json",
+      "sha256": "3c8e50b8787ff937ae855d47d0364e0397ec9cb15833a0bcb091ca90e3635825"
+    },
+    "publicGlobalInstallerPriorLabel": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-node24.19.0-npm11.17.0/verification-prior-label.json",
+      "sha256": "5913a2e45c8838ac10b57008e3ea34b6a705dd3c0f7785b2fae32a5743584630"
+    },
+    "publicRegistryOwnHookApproval": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-registry-own-postinstall-approval.json",
+      "sha256": "427c17630c586d3d3cf1c60ec90215ba782ea9e939d855ef1700022efd3b0937"
+    },
+    "actualCliHelpVersion": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/public-cli-help-version-proof.json",
+      "sha256": "0c5286a271438ee1f626fc35d173eeedc20de2043dc63bbfd89870e549285ce9"
+    },
+    "finalDistTags": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/registry-final-tags-proof.json",
+      "sha256": "5aa0a6174a2b8b38daff88d6259df1eb577df1fa63b49dd9f761e32f18dea149"
+    },
+    "historicalActualConsumerE404": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/normal-npm-cache-fetch-receipt.json",
+      "sha256": "3450ad6d5f9002a824c26cebbab3dd1292e5b8edffdf119d266b6a27247250b9"
+    }
+  }
+}

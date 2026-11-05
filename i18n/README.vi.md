@@ -14,11 +14,11 @@ Tích hợp này thuộc mã nguồn hiện tại.
 
 ## Phát hành và cài đặt
 
-**Phiên bản mã nguồn hiện tại và mục tiêu ổn định: 1.0.8.** Xem [hồ sơ xuất bản](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế riêng của GitHub Release, npm và GHCR. Các lệnh dưới đây chỉ dùng sau khi xuất bản và đọc xác minh npm 1.0.8 thành công; quyền truy cập container cần được xác minh riêng theo kênh đó.
+**1.0.8 đã xuất bản trên npm, GitHub Release và GHCR chính thức.** [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả đọc xác minh và giới hạn của từng kênh. Truy cập GHCR ẩn danh được kiểm tra riêng: yêu cầu cấp quyền ẩn danh quan sát được trả HTTP 401; chỉ kết quả này không xác định tính công khai của gói.
 
-**1.0.8 chưa được xuất bản.** CI của đúng mã nguồn và smoke test ứng viên qua cài đặt bình thường phải thành công trước khi tạo tag hoặc xuất bản.
+Xác minh mã nguồn và khả năng sử dụng một bản phân phối là hai kết quả riêng. Kiểm tra từng kênh trong hồ sơ phía trên trước khi cài.
 
-**Lịch sử 1.0.7:** npm, GHCR và GitHub Release đã xuất bản từ `b7f77d07`, nhưng các lượt cài SQLite/tray liên tiếp bằng `--no-save` xóa phụ thuộc của nhau. Lần khởi động offline được quan sát chưa đạt health trong 30 giây khi sửa runtime; chưa chứng minh lỗi cơ sở dữ liệu cuối cùng. Tag và hiện vật giữ nguyên; xem hồ sơ phía trên.
+**Lịch sử 1.0.7:** npm, GHCR và GitHub Release đã xuất bản từ `b7f77d07`; các lần cài SQLite và khay hệ thống tuần tự bằng `--no-save` có thể xóa phụ thuộc của nhau. Mã nguồn 1.0.8 sửa việc giữ các pin này. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) giữ lại vấn đề đã quan sát và trạng thái của từng bản phân phối.
 
 **Lịch sử phân phối 1.0.2 (kết quả đọc xác minh tại thời điểm đó):**
 

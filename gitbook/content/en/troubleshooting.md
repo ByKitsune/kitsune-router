@@ -1,18 +1,17 @@
 # Troubleshooting
 
-**1.0.8 is an unpublished source target.** Exact-source CI and the normally
-installed candidate smoke must pass before a new tag or publication. **Published
-1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
-sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
-CLI launch did not reach health in 30 seconds while synchronous self-healing
-retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-keeps actual outcomes and the separate 1.0.8 preparation evidence.
+**Version 1.0.8 is published on npm, GitHub Release and canonical GHCR.** The
+[publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) records original-byte integrity, provenance and successful actual public-package
+installation/runtime checks. GHCR publication/runtime verification is authenticated;
+an anonymous pull grant returned HTTP 401, without establishing the visibility
+setting. This patch fixes the managed-dependency retention issue recorded for
+1.0.7 (`b7f77d07`). For npm 11.17, follow the [exact CLI lifecycle review guidance](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INSTALLATION.md#npm-1117-script-review).
 
 Start with the installed version/source SHA, absolute `DATA_DIR`, sanitized error and exact route. Do not delete state, replace client config or expose secrets to resolve a branding mismatch.
 
 ## Startup and migration
 
-- **Package not found:** Check the exact `@bykitsune/router@1.0.8` result in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Use [source installation](/en/getting-started/installation/) until that npm version is published and readback succeeds. Earlier version-specific publication failures do not establish the current credential result; never share tokens in chat or logs.
+- **Package not found:** Check the exact `@bykitsune/router@1.0.8` result in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). If your network cannot fetch the verified package, use [source installation](/en/getting-started/installation/) while diagnosing that access path. Earlier version-specific publication failures do not establish the current credential result; never share tokens in chat or logs.
 - **GHCR pull denied/not found:** Confirm the 1.0.8 version, digest and access mode in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Anonymous access requires its own successful readback; an authorization denial alone does not prove the image is missing. Use only authorized registry access or [source installation](/en/getting-started/installation/).
 - **Old Node:** use Node.js >=22.19.0. Migration needs supported native Node/Bun SQLite snapshot APIs; no unsafe raw-copy fallback is provided.
 - **Port in use:** dashboard/API share 20128. Identify the owner and stop it gracefully; avoid broad `pkill` or `kill -9` recipes.

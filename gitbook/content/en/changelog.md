@@ -1,6 +1,8 @@
 # Changelog
 
-## Kitsune Router 1.0.8 — 2026-11-05 unpublished preparation
+## Kitsune Router 1.0.8 — 2026-11-05
+
+### Initial preparation snapshot
 
 Retain exact optional SQLite/tray pins atomically before fast paths, adopt old
 unsaved states and validate installed versions. N-API paths avoid native build
@@ -16,7 +18,17 @@ with no repeated writes; 54 focused tests pass. The working-tree local ordinary
 install/two-start precheck passes, but exact-source CI and a normally installed
 final candidate remain required before tag/publication. Actual channel outcomes
 are recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
-**1.0.8 is unpublished; 1.0.7 history below is preserved.**
+### Tagged-source verification
+
+Immutable `v1.0.8` identifies source `1314af7b228e91226be4e8bbc3beff962dd5ae60`.
+Both CI runs, [manual 42094761177](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761177)
+and [push 42094761905](https://github.com/ByKitsune/kitsune-router/actions/runs/42094761905),
+pass with 11,042 tests, 99 gated skips, zero failures across 866 files and
+32 browser cases without retries each. Separate fresh CI-candidate global installs
+on Node 22.19 and Node 24.19/npm 11.17 pass four offline CLI starts with retained
+state and no observed startup npm calls or runtime warnings/errors. These results
+concern the CI candidate, not a published archive. Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+for actual per-channel outcomes; all 1.0.7-and-older history remains intact.
 
 ## Kitsune Router 1.0.7 — 2026-11-05 publication-gate follow-up
 

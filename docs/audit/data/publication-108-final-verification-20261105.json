@@ -1,0 +1,44 @@
+{
+  "verifiedAtUtc": "2026-11-05T20:11:54.808262+00:00",
+  "version": "1.0.8",
+  "sourceSha": "1314af7b228e91226be4e8bbc3beff962dd5ae60",
+  "tag": "v1.0.8",
+  "tagObject": "e753e61c661e448ad759d3f70f40dffba5391ac2",
+  "status": "all required published artifact and runtime checks passed; anonymous GHCR access separately401",
+  "npm": {
+    "proofPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/original-1314-public/npm108-final-verification.json",
+    "proofSha256": "00eae237ec8fa0b1399fe901c716c69bf2b3cdbd40f3f8e5344807933f1c9e61",
+    "originalRunId": 42096709552,
+    "originalPublicAndGithubTarballSha256": "71817f3bfba90e9cc66186ee114bb4069d1d87a08e5624a1b7ebba0f511aeed5",
+    "originalIntegrity": "sha512-zeEArHP3xZhEGgEBqjfx11afyLv4aF2uIUpECwTeI56OCaoO4E1eUFhNA8yixFfSpx0UOprb8PtbeNgeuYEMlg==",
+    "publicBytesEqualOriginal": true,
+    "canonicalAuditVerifiedRegistrySignatures": 9,
+    "canonicalAuditVerifiedAttestations": 4,
+    "sigstoreSourceWorkflowTagRunAndSha512Verified": true,
+    "githubThreeActualAssetBytes": "match exact original tgz and immutable install.sh/docker-compose.yml",
+    "publicDistTags": "latest=release-1.0.8=1.0.8",
+    "actualRegistryGlobalInstall": "Node24.19.0/npm11.17.0 nonroot1000, one-time exact registry own-hook selector only",
+    "actualRegistryRuntime": "two network-none ordinary CLI starts passed native driver, pins/policy, login/dashboard/catalog, session/exact active key/secret bytes, zero warnings/errors/observed startup npm, clean stops/owned cleanup",
+    "actualCliVersionAndHelp": "1.0.8, exit0, stderr0",
+    "earlierReadback404s": "preserved; normal public blob became200 at20:06:09 UTC; cause not assumed; no publication retry"
+  },
+  "docker": {
+    "proofPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/docker/108/independent-proof.json",
+    "proofSha256": "12f1555a66eff98fca3ff6332de786f7eb3378d3d1c9fd6882a0ea3be513ba9d",
+    "runId": 42096714778,
+    "reference": "ghcr.io/bykitsune/kitsune-router@sha256:b2d6206350b38c3ffb568b470640d57c740222a413e9e72f3b010a416c90cf5d",
+    "apiArtifactAndOciBlobHashesVerified": true,
+    "immutableSourceDockerfileAndLabelsVerified": true,
+    "authenticatedAttachedSlsaSpdxGate": "passed, raw predicates not independently available",
+    "actualDefaultEntrypointRuntime": "Node22.23.4, default and custom DATA_DIR, login/catalog/session/exact key/secret bytes,0600,UID1000,0warning/error/stderr,exit0,cleanup",
+    "latest": "same verified immutable digest by authenticated workflow readback",
+    "anonymousPublicPullGrantStatus": 401,
+    "anonymousLimit": "Does not establish package visibility setting or configured credential validity."
+  },
+  "verificationBoundaries": [
+    "The final npm proof uses ORIGINAL release artifact and public registry bytes, not a CI candidate.",
+    "Docker runtime and attached SLSA/SPDX checks used authenticated Actions; independently parsed source SLSAv1 build record and OCI digest linkage, anonymous pull was not accepted.",
+    "No provider calls, configured credential exports, source edits, publication retries or registry writes by these verification agents."
+  ],
+  "candidateFloorCoverage": "Separate exact-source1314 CI candidate passed fresh ordinary global installation and two offline starts on Node22.19; candidate not relabeled as published original."
+}

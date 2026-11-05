@@ -1,8 +1,8 @@
 # Khắc phục sự cố
 
-**1.0.8 đang được chuẩn bị, chưa xuất bản.** Cần hoàn tất CI cho SHA chính xác và phép thử cài đặt bình thường của bản ứng viên trước khi tạo tag hoặc xuất bản.
+**1.0.8 đã xuất bản trên npm, GitHub Release và GHCR chính thức.** [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả đọc xác minh và giới hạn của từng kênh. Truy cập GHCR ẩn danh được kiểm tra riêng: yêu cầu cấp quyền ẩn danh quan sát được trả HTTP 401; chỉ kết quả này không xác định tính công khai của gói.
 
-**Lưu ý về 1.0.7:** GitHub Release, npm và Docker đã được xuất bản từ `b7f77d07`, nhưng các lần cài SQLite và khay hệ thống tuần tự bằng `--no-save` có thể xóa phụ thuộc của nhau. Xem kết quả và giới hạn quan sát trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+**Lịch sử 1.0.7:** npm, GHCR và GitHub Release đã xuất bản từ `b7f77d07`; các lần cài SQLite và khay hệ thống tuần tự bằng `--no-save` có thể xóa phụ thuộc của nhau. Mã nguồn 1.0.8 sửa việc giữ các pin này. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) giữ lại vấn đề đã quan sát và trạng thái của từng bản phân phối.
 
 Thu thập version/SHA hiện tại, `DATA_DIR` tuyệt đối, route và lỗi đã xóa secret. Không xóa trạng thái, thay toàn config hay lộ key vì đổi tên.
 

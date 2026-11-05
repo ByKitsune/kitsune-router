@@ -1,8 +1,8 @@
 # Bienvenido a Kitsune Router
 
-**1.0.8 está en preparación y aún no está publicado.** Antes de crear su tag o publicar, deben completarse CI sobre el SHA exacto y la prueba de instalación normal del candidato.
+**1.0.8 publicado en npm, GitHub Release y el GHCR canónico.** El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) reúne las lecturas de verificación y los límites de cada canal. El acceso anónimo a GHCR se comprueba por separado: el grant anónimo observado devolvió HTTP 401, lo que por sí solo no determina la visibilidad del paquete.
 
-**Aviso sobre 1.0.7:** GitHub Release, npm y Docker se publicaron desde `b7f77d07`, pero su instalador usa operaciones secuenciales `--no-save` de SQLite y bandeja que pueden eliminar las dependencias de la otra operación. Consulta los resultados y límites observados en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+**Antecedente de 1.0.7:** npm, GHCR y GitHub Release se publicaron desde `b7f77d07`; su instalador podía eliminar dependencias entre las operaciones secuenciales `--no-save` de SQLite y bandeja. El código 1.0.8 corrige la retención de esos pins. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva el problema observado y el estado de cada distribución.
 
 **Your models. Your routes.** Gateway de IA local-first y neutral entre proveedores, mantenido y patrocinado por [ByKitsune](https://bykitsune.com). Elige tus modelos, cuentas y orden de fallback, sin cuenta ByKitsune ni compra obligatoria. Las solicitudes siguen llegando a los upstreams configurados; no es inferencia offline.
 

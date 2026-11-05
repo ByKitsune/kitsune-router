@@ -55,6 +55,7 @@ entrypoint smoke is a separate execution path.
 
 The [actual-outcome receipt](audit/data/publication-107-actual-outcomes-20261105.json)
 and [publication record](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-retain these boundaries. A separate **unpublished 1.0.8** source follow-up addresses
-runtime retention and bounded registry readback; it does not rewrite 1.0.7 history
-or establish 1.0.8 availability.
+retain these boundaries. The separate **published 1.0.8** patch fixes runtime
+retention and extends bounded registry readback. Actual public-registry install
+and offline runtime checks pass; consult the publication record for integrity,
+channel and access evidence. All 1.0.7 artifacts and history remain intact.

@@ -6,9 +6,9 @@
 
 ## 1.0.8 の公開状況は？
 
-GitHub Release、npm、GHCR は別々に公開・検証されます。[1.0.8 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で各チャネルの結果と取得可否を確認してください。公開と読戻しが確認された成果物に限って [インストール手順](/ja/getting-started/installation/)を使います。ソースの検証や既存タグだけでは、公開、匿名アクセス、実プロバイダーの利用権を証明しません。
+**1.0.8 は npm・GitHub Release・正規 GHCR に公開済みです。** SQLite/tray の依存保持を修正しています。公開物の識別子、検証結果と取得方法は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。GHCR の匿名 pull-grant では HTTP 401 を観測しており、認証付き取得とは別に扱います。この応答だけでは visibility が private とも、公開ワークフローの書込権限が不足したとも判断しません。
 
-**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+**1.0.7 の配布履歴と既知の問題:** 不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布された 1.0.7 では、逐次 `--no-save` インストールで SQLite/tray が互いに削除される問題が確認されました。修正内容と各チャネルの実結果は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。旧タグと成果物の履歴は変更しません。
 
 ## 1.0.2 の公開履歴（当時の確認）
 

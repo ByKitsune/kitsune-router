@@ -14,9 +14,9 @@ Integrasi ini tersedia pada source checkout saat ini.
 
 ## Status rilis dan instalasi
 
-**Versi sumber dan target stabil saat ini: 1.0.8.** Lihat [catatan publikasi](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) untuk hasil nyata GitHub Release, npm, dan GHCR secara terpisah. Perintah berikut hanya berlaku setelah publikasi dan readback npm 1.0.8 berhasil; akses container memerlukan verifikasi kanalnya sendiri.
+**Versi 1.0.8 telah dipublikasikan melalui npm, GitHub Release, dan GHCR resmi.** [Catatan publikasi](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) memuat verifikasi integritas, provenance, serta instalasi dan runtime paket publik. Publikasi/runtime GHCR diverifikasi dengan autentikasi; grant pull anonim mengembalikan HTTP 401 tanpa membuktikan pengaturan visibilitas paket.
 
-**1.0.8 belum dipublikasikan.** CI pada sumber yang tepat dan smoke kandidat melalui instalasi normal harus lulus sebelum tag atau publikasi dibuat.
+Patch ini mempertahankan dependensi runtime SQLite/tray. Untuk npm 11.17, tinjau lifecycle CLI yang tepat mengikuti [panduan instalasi](../docs/INSTALLATION.md#npm-1117-script-review); persetujuan sekali pakai hanya berlaku pada instalasi global versi tersebut.
 
 **Riwayat 1.0.7:** npm, GHCR, dan GitHub Release terbit dari `b7f77d07`, tetapi instalasi SQLite/tray berurutan dengan `--no-save` saling memangkas dependensi. Startup offline yang diamati belum mencapai health dalam 30 detik saat memperbaiki runtime; kegagalan database permanen tidak terbukti. Tag dan artefak tetap; lihat catatan di atas.
 

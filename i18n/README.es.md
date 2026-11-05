@@ -14,11 +14,11 @@ Esta integración corresponde al código fuente actual.
 
 ## Estado e instalación
 
-**Versión del código y objetivo estable actuales: 1.0.8.** Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para el resultado real de GitHub Release, npm y GHCR por separado. Los comandos siguientes requieren que la publicación y la lectura de verificación de npm 1.0.8 hayan terminado correctamente; el acceso al contenedor depende de su propia verificación.
+**1.0.8 publicado en npm, GitHub Release y el GHCR canónico.** El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) reúne las lecturas de verificación y los límites de cada canal. El acceso anónimo a GHCR se comprueba por separado: el grant anónimo observado devolvió HTTP 401, lo que por sí solo no determina la visibilidad del paquete.
 
-**1.0.8 todavía no está publicado.** Antes de crear su tag o publicarlo deben pasar el CI del código exacto y la prueba del candidato mediante una instalación normal.
+La verificación del código y la disponibilidad de una distribución son resultados distintos. Comprueba cada canal en el registro anterior antes de instalar.
 
-**Historial de 1.0.7:** npm, GHCR y GitHub Release se publicaron desde `b7f77d07`, pero las instalaciones sucesivas de SQLite y tray con `--no-save` eliminan dependencias entre sí. El arranque offline observado no llegó a health en 30 segundos mientras reparaba el runtime; no se demostró un fallo definitivo de la base de datos. Los artefactos y el tag permanecen inmutables; véase el registro anterior.
+**Antecedente de 1.0.7:** npm, GHCR y GitHub Release se publicaron desde `b7f77d07`; su instalador podía eliminar dependencias entre las operaciones secuenciales `--no-save` de SQLite y bandeja. El código 1.0.8 corrige la retención de esos pins. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva el problema observado y el estado de cada distribución.
 
 **Historial de distribución de 1.0.2 (lecturas de aquella revisión):**
 
