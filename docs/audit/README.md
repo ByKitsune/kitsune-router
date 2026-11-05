@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 5 stable publication follow-up](33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records the fresh Undici patch, authenticated registry reconciliation and actual
+container runtime gate used before stable distribution.
+
 The [November 5 PR #6 and 1.0.6 readiness review](32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md)
 records Codex denial-cache lifecycle corrections, the stable dependency refresh,
 changelog coverage, the green exact-source pre-bump gate and 1.0.6 synchronization.

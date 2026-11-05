@@ -61,7 +61,7 @@
     "recharts": "^3.10.1",
     "reflect-metadata": "^0.2.2",
     "sql.js": "^1.15.2",
-    "undici": "^8.12.3",
+    "undici": "^8.12.4",
     "uuid": "^14.0.3",
     "zustand": "^5.0.16"
   },

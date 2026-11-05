@@ -96,10 +96,10 @@ Source versioning is separate from artifact publication and deployment.
 ### Dependency installation and verification
 
 - Review all 67 direct dependency declarations (56 unique packages) against the
-  November 5 publisher stable snapshot. Update 17 declarations across 13 packages,
-  including Next/third-parties 16.4.5, Vite 8.3.6, Vitest 5.1.0 and compatible
+  November 5 publisher stable snapshot. Update 18 declarations across 14 packages,
+  including Next/third-parties 16.4.5, Undici 8.12.4, Vite 8.3.6, Vitest 5.1.0 and compatible
   UI/build tooling; the remaining direct dependencies already match that snapshot.
-- Refresh 164 of 885 locked package locations: 107 patch, 55 minor and two
+- Refresh 165 of 885 locked package locations: 108 patch, 55 minor and two
   publisher-authorized `magic-string` major-version locations required by the
   updated Tailwind dependency range. Retain Recharts' exact `reselect` 5.2.0
   requirement, reviewed native/runtime pins and publisher-bundled WASM internals.
@@ -134,6 +134,22 @@ Source versioning is separate from artifact publication and deployment.
   unchanged. Legacy callers without attempt context keep
   zero-cooldown fallback without caching a hint. This routing uses observed denials,
   not inferred catalog entitlement.
+
+
+### Stable publication safeguards
+
+- Refresh the November 5 publisher snapshot before tagging: Undici 8.12.4
+  supersedes the morning's 8.12.3 selection without changing the Node >=22.19.0
+  floor or adding dependency lifecycle scripts.
+- Use authenticated structured GHCR manifest evidence for canonical release
+  preparation, verification and latest promotion. A successful grant followed by
+  `MANIFEST_UNKNOWN` HTTP 404 is required to plan an absent version; generic
+  Buildx `not found`, authentication failures and missing child evidence cannot
+  authorize a rebuild or overwrite.
+- Verify the actual immutable container with its default entrypoint before
+  latest promotion, using isolated synthetic state and no provider network.
+  Retain source labels, provenance, SPDX, persistent sessions/API keys and runtime
+  secrets. See the [publication review](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
 
 ## [1.0.5] — 2026-10-31
 

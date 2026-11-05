@@ -12,30 +12,36 @@ dependency refresh. Source verification is separate from npm/GHCR publication.
 See the [1.0.6 source notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)
 and [readiness review](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
 
-**1.0.2 source is verified**, at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`:
+**Stable installation target: 1.0.6.** The commands below apply after the 1.0.6
+publication workflow and npm registry readback succeed. Source version alone
+does not establish availability. See the [publication follow-up](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
+**Historical 1.0.2 verification**, at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`:
 9,041 passed, 100 skipped, zero failed assertions/suites; strict lint and builds
-passed. **npm publication is blocked:** publish was denied with E403 requiring
+passed. **Its npm publication was blocked:** publish was denied with E403 requiring
 two-factor authentication or a granular token with bypass 2fa enabled; public
-readback remained HTTP 404. The user will replace the Actions secret through
-GitHub's UI but has not confirmed completion. Original CI artifact `12718343077`
+readback remained HTTP 404. Secret replacement through GitHub's UI had not been
+confirmed at that check. Original CI artifact `12718343077`
 independently passed help/version/runtime/upgrade smoke, retained state/keys,
-mode 0600 and graceful exit 0, but npm acceptance/readback remain blocked.
+mode 0600 and graceful exit 0, but npm acceptance/readback remained blocked.
 GHCR recovery published a verified and smoke-tested **private** container;
-anonymous access is pending the owner's unconfirmed Public change. See Docker
+anonymous access was not confirmed at that check. See Docker
 guidance for authorized access/digest pinning. No GitHub Release was created.
 Both older attempt tags
 remain immutable; the 1.0.1 npm failure cause remains unknown. See the
 [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
+These records do not determine 1.0.6 availability.
 Historical 0.x packages retain their original ZenRouter identities.
 
 ## Install and start
 
-Requires **Node.js >=22.19.0**. After the package has been published:
+Requires **Node.js >=22.19.0**. After the 1.0.6 publication workflow and registry
+readback succeed:
 
 ```sh
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.6
 # Or install once:
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.6
 kitsune-router
 ```
 

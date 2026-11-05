@@ -72,15 +72,19 @@ jobs:
       - name: Reconcile immutable version digests before any build
         id: immutable
         env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-publication-helpers.mjs docker-prepare "$RELEASE_VERSION" "$GHCR_IMAGE"
+        run: node scripts/publish-canonical-container.mjs prepare
 
       - name: Check current registry latest versions before promotion
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-publication-helpers.mjs docker-latest "$RELEASE_VERSION" "$GHCR_IMAGE"
+        run: node scripts/publish-canonical-container.mjs latest
 
       - name: Extract metadata
         id: meta
@@ -118,19 +122,28 @@ jobs:
           provenance: mode=min
           sbom: true
 
-      - name: Verify new immutable digest and attached provenance and SBOM
-        if: steps.immutable.outputs.build == 'true'
+      - name: Verify immutable digest and attached provenance and SBOM
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
+        run: node scripts/publish-canonical-container.mjs verify
+
+      - name: Verify the published immutable image with its default entrypoint
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          RELEASE_DIGEST: ${{ steps.build.outputs.digest }}
-        run: node scripts/release-publication-helpers.mjs docker-verify "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE"
+          RELEASE_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
+        run: node scripts/verify-published-container.mjs "$GHCR_IMAGE@$RELEASE_DIGEST" "$RELEASE_VERSION" "$GITHUB_SHA"
 
       - name: Promote latest from the original verified digest without rebuilding
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           RELEASE_DIGEST: ${{ steps.immutable.outputs.digest || steps.build.outputs.digest }}
-        run: node scripts/release-publication-helpers.mjs docker-promote "$RELEASE_VERSION" "$RELEASE_DIGEST" "$GHCR_IMAGE"
+        run: node scripts/publish-canonical-container.mjs promote
 
       - name: Preserve exact-SHA source verification evidence
         if: always()

@@ -22,13 +22,22 @@ October 31 source closing and the reviewed Codex model-plan routing follow-up.
   cannot clear newer hints or health across import or reauthentication. Existing
   generic failure-health semantics are unchanged.
 - Review all 67 direct dependency declarations / 56 packages against the November
-  5 stable snapshot. Update 17 declarations / 13 packages and 164 of 885 locked
-  locations, including Next 16.4.5, Vite 8.3.6 and Vitest 5.1.0. Keep required
+  5 stable snapshot. Update 18 declarations / 14 packages and 165 of 885 locked
+  locations, including Next 16.4.5, Undici 8.12.4, Vite 8.3.6 and Vitest 5.1.0. Keep required
   transitive/runtime pins and the minimatch 11.0.4 compatibility coverage.
 
 See the [technical notes](../docs/CHANGELOG_v1.0.6.md),
 [readiness audit](../docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md)
 and [full changelog](../CHANGELOG.md#106--2026-11-05).
+
+## Stable publication preparation
+
+The later November 5 stable readback adds Undici 8.12.4. Canonical Docker
+publication uses authenticated structured registry evidence and verifies the
+actual immutable image with synthetic state before promoting latest. The
+[publication review](../docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records the source and distribution boundaries. Existing version tags and
+published bytes are preserved; retries reuse verified original artifacts.
 
 ## Verification scope
 

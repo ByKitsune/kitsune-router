@@ -84,19 +84,30 @@ installer approvals remain separate from the **Node >=22.19.0** runtime floor.
 ## Stable dependency refresh
 
 All **67 direct declaration rows / 56 packages** match the reviewed November 5
-publisher stable snapshot. **17 declarations / 13 packages** advance, including
-Next/third-parties 16.4.5, Vite 8.3.6 and Vitest 5.1.0. The scoped minimatch override
+publisher stable snapshot. **18 declarations / 14 packages** advance, including
+Next/third-parties 16.4.5, Undici 8.12.4, Vite 8.3.6 and Vitest 5.1.0. The scoped minimatch override
 advances to 11.0.4 while retaining the existing adapter and behavioral coverage.
 No application API source migration or new lifecycle-script approval is required.
 
-The graph retains **885 locked locations**, with **164 version changes**:
-107 patch, 55 minor and two magic-string major-version locations selected by the
+The graph retains **885 locked locations**, with **165 version changes**:
+108 patch, 55 minor and two magic-string major-version locations selected by the
 updated Tailwind publisher range. Recharts' exact reselect 5.2.0 requirement is
 retained even where another consumer permits 5.3. Existing native/runtime pins
 already match the reviewed stable branches. Publisher-bundled WASM internals are
 preserved. The unchanged optional Sharp WASM rows remain recorded even where npm
 lists them as extraneous on this host; dependency checks exit successfully without
 concealing platform-specific entries or claiming upstream peer ranges changed.
+
+## Stable publication preparation
+
+A later stable publisher readback selects Undici 8.12.4 while retaining Node
+>=22.19.0 and existing install-script policy. The canonical GHCR workflow now
+uses authenticated structured manifest evidence for preparation, verification
+and latest promotion, and tests the actual default container entrypoint with
+isolated state before promoting latest. The
+[publication follow-up](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+separates this refreshed source and its actual publication/readback evidence
+from the morning's source/CI candidate below.
 
 ## Verification and distribution boundary
 
