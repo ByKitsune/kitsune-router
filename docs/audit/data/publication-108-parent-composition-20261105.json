@@ -1,0 +1,65 @@
+{
+  "capturedAtUtc": "2026-11-05T19:31:21.902908+00:00",
+  "scope": "Read-only independent validation of coordinator-owned parent-selector expectation patch; no production edit",
+  "invocation": {
+    "command": [
+      "node",
+      "/workspace/.cloud-setup/kitsune-router/npm1117-runtime-retention/tooling/node_modules/npm/bin/npm-cli.js",
+      "test",
+      "--",
+      "--maxWorkers=1",
+      "--reporter=default",
+      "--reporter=json",
+      "--outputFile=/workspace/.cloud-setup/kitsune-router/npm1117-parent-composition/vitest.json",
+      "tests/unit/cli-runtime-retention.test.js",
+      "tests/unit/cli-runtime-local-install.test.js",
+      "tests/unit/cli-runtime-dependency-pins.test.js",
+      "tests/unit/cli-tray-lifecycle.test.js"
+    ],
+    "outerNpm": "11.17.0",
+    "childNpm": "11.17.0",
+    "node": "v24.19.0",
+    "pathSelection": "SDK wrapper first in per-command PATH; no global changes"
+  },
+  "verification": {
+    "focusedFiles": 4,
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0,
+    "outerStderrBytes": 0,
+    "outerNpmLifecycle": "SDK npm11.17 npm test with pretest, not direct Vitest invocation",
+    "innerNpm": "Same npm11.17 SDK selected first in per-command PATH",
+    "emptyDefaultProbe": {
+      "exit": 0,
+      "selectors": {
+        "npm_config_allow_scripts": ""
+      },
+      "stderr": ""
+    },
+    "parentAssertions": "Before and after compare the complete composed inherited+injected selector snapshot, including the empty lowercase lifecycle default",
+    "childAssertions": "Strict stderr-empty, exact native denial, ignore-scripts, retained packages, no-second-startup-installs and policy/transport invariants unchanged",
+    "lintWarnings": 0,
+    "lintErrors": 0,
+    "diffCheck": "passed"
+  },
+  "fileSha256": {
+    "cli/hooks/sqliteRuntime.js": "0390312baabea2eee535804b3899b9ef2387fdbecc2e81007666859dc0714424",
+    "tests/unit/cli-runtime-retention.test.js": "376d07cacf1a6f2deea38db663493413805c47c74183e62bfec1bc933fee8a17",
+    "tests/unit/cli-runtime-local-install.test.js": "69dd18b30e0f617c96edee87a47ee4d09b1561d3eaef3ce1803ba784d205e0ba"
+  },
+  "evidenceSha256": {
+    "invocation.json": "2bddd57be1ff827d6283036f875d55ca216448d52803a358e5be610db232860d",
+    "stdout.log": "777a306b4a6f510f42392e2cc46b59d9d76b13f667c5528d27a80f23a517cefe",
+    "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vitest.json": "6be9badab92c64796f4938d237835936789f6a6498d5ae944b6d199401945375",
+    "exit.json": "5bc232b82de377a5655a39a2af9d7ae0fc868de5b9df957e18905cb914606c88",
+    "lifecycle-selector-probe.json": "3784185accac988ab2bc2e92cb0407efc2ed7cfd00790538387d901d93876b55"
+  },
+  "boundaries": {
+    "sourceEditsByVerifier": false,
+    "globalNpmChanged": false,
+    "hostGatewayStarted": false,
+    "providerCalls": false,
+    "publicationWrites": false
+  }
+}

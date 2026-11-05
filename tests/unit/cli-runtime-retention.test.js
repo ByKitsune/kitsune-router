@@ -229,10 +229,14 @@ describe("managed runtime dependencies survive real npm sibling installs", () =>
     const userconfig = "strict-ssl=true\nsave-exact=true\n";
     fs.writeFileSync(fixture.userconfig, userconfig);
     const approval = { [key]: `file:${path.join(fixture.area, "verified-own-cli-1.0.8.tgz")}` };
+    // npm test can export an empty lowercase default alongside the injected
+    // variant. Preserve the entire composed parent, including that default.
+    const expectedParentSelectors = Object.fromEntries(Object.entries({ ...process.env, ...approval })
+      .filter(([name]) => /^npm_config_allow[-_]scripts$/i.test(name)));
     const result = await runHooks(fixture, registry, ["sqlite", "tray"], {}, approval);
     expect(result.error).toBeUndefined();
-    expect(result.parentSelectorsBefore).toEqual(approval);
-    expect(result.parentSelectorsAfter).toEqual(approval);
+    expect(result.parentSelectorsBefore).toEqual(expectedParentSelectors);
+    expect(result.parentSelectorsAfter).toEqual(expectedParentSelectors);
     expect(result.firstInstalled).toEqual({ "better-sqlite3": true, systray2: true });
     expect(result.secondInstallCalls).toBe(0);
     expect(result.warnings).toEqual([]);

@@ -1,0 +1,257 @@
+{
+  "capturedAtUtc": "2026-11-05T19:29:00.582072+00:00",
+  "sourceSha": "f170a9bacb49d797e016e7cac2110f49e3874afb",
+  "version": "1.0.8",
+  "disposition": "source-ci-failed-no-tag-or-publication",
+  "rootCause": "Three newly added casevariant parent-selector snapshot assertions incorrectly expect only the injected approval. npm test exports an existing empty npm_config_allow_scripts; the child fixture inherits that alongside the injected casevariant. Actual runtime child installs completed; failure occurs at parentSelectorsBefore equality line234. Preserve full immutable parent composition and exact child isolation assertions when fixing the fixture.",
+  "runs": [
+    {
+      "id": 42092588743,
+      "event": "workflow_dispatch",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "dependency-security",
+          "jobId": 127474242237,
+          "conclusion": "success",
+          "annotations": [],
+          "logSha256": "dac32895dbe0a74aedbaf66ea4af04792ae60453bf051f6998ffbc32bdb6ea6b",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0,
+          "actionWarnings": [],
+          "actionErrors": []
+        },
+        {
+          "name": "test",
+          "jobId": 127474242501,
+          "conclusion": "failure",
+          "annotations": [
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/f170a9bacb49d797e016e7cac2110f49e3874afb/.github",
+              "start_line": 31,
+              "start_column": null,
+              "end_line": 31,
+              "end_column": null,
+              "annotation_level": "warning",
+              "title": "",
+              "message": "No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded.",
+              "raw_details": ""
+            },
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/f170a9bacb49d797e016e7cac2110f49e3874afb/.github",
+              "start_line": 11944,
+              "start_column": null,
+              "end_line": 11944,
+              "end_column": null,
+              "annotation_level": "failure",
+              "title": "",
+              "message": "Process completed with exit code 1.",
+              "raw_details": ""
+            }
+          ],
+          "logSha256": "7fc3001fc66979bb86b9c2d15a87a20420bf5a9571ca9ee83e73fee091abb793",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0,
+          "actionWarnings": [
+            "2026-11-05T19:26:29.2795618Z ##[warning]No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded."
+          ],
+          "actionErrors": [
+            "2026-11-05T19:26:28.0658086Z ##[error]Process completed with exit code 1."
+          ]
+        },
+        {
+          "name": "docs",
+          "jobId": 127474242619,
+          "conclusion": "success",
+          "annotations": [],
+          "logSha256": "8ffeabe095a4dd228e0168a8b58887b651c8f96267183ee36aa9761c7172809b",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1,
+          "actionWarnings": [],
+          "actionErrors": []
+        },
+        {
+          "name": "candidate-package",
+          "jobId": 127474242966,
+          "conclusion": "success",
+          "annotations": [],
+          "logSha256": "526b0b1637449eb4328faba45bca270b0a37dbce29a3ec724245e3b315bf6170",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1,
+          "actionWarnings": [],
+          "actionErrors": []
+        }
+      ],
+      "counts": {
+        "passed": 11039,
+        "failed": 3,
+        "skipped": 99,
+        "files": 866
+      },
+      "failedAssertions": [
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector NPM_CONFIG_ALLOW_SCRIPTS from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (NPM_CONFIG_ALLOW_SCRIPTS) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        },
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector npm_config_allow-scripts from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (npm_config_allow-scripts) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        },
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector NpM_CoNfIg_AlLoW_sCrIpTs from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (NpM_CoNfIg_AlLoW_sCrIpTs) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        }
+      ],
+      "reportSha256": "5b15bfa5f72ff4951400e466afc885c3d063b3d173468adf31b4f3ff7730db35",
+      "sourceArtifactZipSha256": "0cd5bd39f908049c7f54d6cb27c0a40f6765697d19b60d0806f054bcfe844580",
+      "sourceJson": "Not generated because exact-source verification failed. Failed report is bound by exact-SHA run metadata and artifact API digest.",
+      "browserFirst": {
+        "passed": 19
+      },
+      "productionBrowser32": "Not run after source gate failure; missing UI artifact warning is retained."
+    },
+    {
+      "id": 42092589130,
+      "event": "push",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "test",
+          "jobId": 127474230719,
+          "conclusion": "failure",
+          "annotations": [
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/f170a9bacb49d797e016e7cac2110f49e3874afb/.github",
+              "start_line": 31,
+              "start_column": null,
+              "end_line": 31,
+              "end_column": null,
+              "annotation_level": "warning",
+              "title": "",
+              "message": "No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded.",
+              "raw_details": ""
+            },
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/f170a9bacb49d797e016e7cac2110f49e3874afb/.github",
+              "start_line": 11952,
+              "start_column": null,
+              "end_line": 11952,
+              "end_column": null,
+              "annotation_level": "failure",
+              "title": "",
+              "message": "Process completed with exit code 1.",
+              "raw_details": ""
+            }
+          ],
+          "logSha256": "abbd53d758f95ad71fba509dfa75123fe0f2ad5123e546f52fc990add7e173ad",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0,
+          "actionWarnings": [
+            "2026-11-05T19:26:15.5040278Z ##[warning]No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded."
+          ],
+          "actionErrors": [
+            "2026-11-05T19:26:13.6252864Z ##[error]Process completed with exit code 1."
+          ]
+        },
+        {
+          "name": "dependency-security",
+          "jobId": 127474231271,
+          "conclusion": "success",
+          "annotations": [],
+          "logSha256": "eb45e6f236be56b16c52d0c372e7c31afd7da1cc1d3f69a3f66f2999390a070d",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0,
+          "actionWarnings": [],
+          "actionErrors": []
+        },
+        {
+          "name": "docs",
+          "jobId": 127474231411,
+          "conclusion": "success",
+          "annotations": [],
+          "logSha256": "91728e02b7d7f1ef75a8256d3e1e68d46884e1a0233461e24ff9388bb917a650",
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1,
+          "actionWarnings": [],
+          "actionErrors": []
+        },
+        {
+          "name": "candidate-package",
+          "jobId": 127474233161,
+          "conclusion": "skipped",
+          "annotations": []
+        }
+      ],
+      "counts": {
+        "passed": 11039,
+        "failed": 3,
+        "skipped": 99,
+        "files": 866
+      },
+      "failedAssertions": [
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector NPM_CONFIG_ALLOW_SCRIPTS from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (NPM_CONFIG_ALLOW_SCRIPTS) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        },
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector npm_config_allow-scripts from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (npm_config_allow-scripts) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        },
+        {
+          "file": "unit/cli-runtime-retention.test.js",
+          "title": "managed runtime dependencies survive real npm sibling installs isolates the inherited own-CLI transaction selector NpM_CoNfIg_AlLoW_sCrIpTs from both managed installs",
+          "failureMessages": [
+            "AssertionError: expected { npm_config_allow_scripts: '', \u2026(1) } to deeply equal { Object (NpM_CoNfIg_AlLoW_sCrIpTs) }\n    at /home/runner/work/kitsune-router/kitsune-router/tests/unit/cli-runtime-retention.test.js:234:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///home/runner/work/kitsune-router/kitsune-router/tests/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:20"
+          ]
+        }
+      ],
+      "reportSha256": "4581d43de08c31c319c3b4cb952d7500420af854f77780e9a52eabc7c4a4caa0",
+      "sourceArtifactZipSha256": "e77d5787538cd679c8ba903dac773043b9ce56a9dbe2fd1ce340af18b4a2881c",
+      "sourceJson": "Not generated because exact-source verification failed. Failed report is bound by exact-SHA run metadata and artifact API digest.",
+      "browserFirst": {
+        "passed": 19
+      },
+      "productionBrowser32": "Not run after source gate failure; missing UI artifact warning is retained."
+    }
+  ],
+  "actualCandidateInstall": {
+    "status": "passed-separate-package-gate",
+    "candidateSha256": "c50eb70a0aa5bdf43744b7d0791fdb9ea02a875c6168e48cd281dfbe5c84af2e",
+    "signoffPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-f170a9ba-signoff.json",
+    "signoffSha256": "eb08f0301a2fe1c9567ca857854ba68a99e5d61667d67806d5f45c9d44806c9b",
+    "note": "Two actual global install lanes and four offline CLI starts pass; does not supersede failed full-source CI."
+  },
+  "reportedChecks": {
+    "total": 8,
+    "success": 5,
+    "failure": 2,
+    "expectedSkip": 1,
+    "sha256": "b20b3293583536c064fe49061cd116e304fa2aad4321519540cfcd68a06b0e27"
+  },
+  "externalLegacyStatus": {
+    "reported": false,
+    "totalCount": 0,
+    "apiState": "pending",
+    "statuses": []
+  },
+  "limits": "Read-only diagnosis; source and production assertions unchanged by watcher. No tag8 or release write; old10c2/481/candidate receipts preserved separately. Real Actions warning/error annotations retained and no warning-free or fullbrowser success claim."
+}
