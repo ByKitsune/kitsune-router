@@ -5,11 +5,12 @@ sponsored by [ByKitsune](https://bykitsune.com/).
 
 The public package is `@bykitsune/router`; its executable is `kitsune-router`.
 
-**Current source: 1.0.5.** Dependency versions and runtime pins were reviewed
-against stable npm releases, with SAML/PKI and lint compatibility fixes. This
-is separate from the earlier artifact record below; new registry publication
-is not established by a source bump. See the
-[dependency/CI review](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md).
+**Current source: 1.0.6.** This revision includes scoped Codex model-plan routing,
+provider request/credential safeguards, matching SQL.js package assets, local
+runtime installation repairs, translation/SSE improvements and a reviewed stable
+dependency refresh. Source verification is separate from npm/GHCR publication.
+See the [1.0.6 source notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)
+and [readiness review](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
 
 **1.0.2 source is verified**, at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`:
 9,041 passed, 100 skipped, zero failed assertions/suites; strict lint and builds

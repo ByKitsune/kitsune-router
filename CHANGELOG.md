@@ -7,6 +7,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [1.0.6] — 2026-11-05
+
+Source follow-up after the exact pre-bump CI gate passed. See the
+[1.0.6 notes](releases/RELEASE_NOTES_v1.0.6.md) and
+[review evidence](docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
+Source versioning is separate from artifact publication and deployment.
+
 ### CLI packaging and runtime installation
 
 - Include the matching locked SQL.js WebAssembly binary in the CLI package and
@@ -119,11 +126,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
   error bodies in the cache. Apply hint preference after quota, lock and exclusion
   eligibility; a denied-only eligible pool still probes upstream and returns its
   real error. Expiry permits another probe and a current success clears the hint.
-- Keep stale or cancelled outcomes from updating hints or health across database
-  import and credential/account replacement. Late failures cannot publish hints
-  for replacement credentials, and late successes cannot clear newer hints or
-  health; a transactional fence also guards health cleanup against import/reauth
-  races. Legacy callers without attempt context keep
+- Keep entitlement-hint updates and Codex success health cleanup scoped to the
+  attempt across imports and credential/account replacement. Stale or cancelled
+  entitlement failures cannot publish hints for replacement credentials, and late
+  successes cannot clear their hints or health; a transactional fence also guards
+  cleanup against import/reauth races. Generic failure-health semantics remain
+  unchanged. Legacy callers without attempt context keep
   zero-cooldown fallback without caching a hint. This routing uses observed denials,
   not inferred catalog entitlement.
 

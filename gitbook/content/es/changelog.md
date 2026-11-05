@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## Kitsune Router 1.0.6 — actualización del código del 2026-11-05
+
+Esta revisión refuerza el aislamiento de solicitudes y cuentas, el historial
+firmado original, la validación de OAuth/proyectos y las comprobaciones de
+credenciales. Incluye la revisión de catálogos de 121 proveedores, mejoras de CPU
+medidas en traducción/SSE, reparaciones SQL.js y de instalación local del runtime
+CLI, y rutas con ámbito aislado tras rechazos de modelos por el plan de una cuenta
+Codex. Las dependencias se alinean con la versión estable revisada, incluidos
+Next 16.4.5, Vite 8.3.6 y Vitest 5.1.0.
+
+La verificación del código no acredita publicación npm/GHCR, despliegue ni acceso
+de cuentas reales. Conserva los registros de artefactos, datos privados y secretos
+existentes al actualizar.
+
+[Notas técnicas del código](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [Estado de código y artefactos](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md).
+
 ## Kitsune Router 1.0.5 — cierre del código del 2026-10-31
 
 La versión 1.0.5 reúne las entradas de desarrollo fechadas que siguen. Añade

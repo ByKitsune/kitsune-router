@@ -1,5 +1,17 @@
 # 更新日志
 
+## Kitsune Router 1.0.6 — 2026-11-05 源码后续更新
+
+本次源码更新加强请求与账户隔离、原始签名历史、OAuth/项目绑定验证和连接凭据检查。
+更新涵盖 121 个提供商的目录审查、实测请求转换/SSE CPU 优化、CLI 的 SQL.js 打包与
+本地运行时安装修复，以及在 Codex 因账户套餐拒绝模型后的隔离路由提示。
+依赖关系同步至已审查的稳定版本快照，包括 Next 16.4.5、Vite 8.3.6 和 Vitest 5.1.0。
+
+源码验证不代表 npm/GHCR 已发布、已部署或实际账户拥有模型使用权限。
+原有产物记录保持不变；升级时请保留现有私有数据和密钥。
+
+[源码技术说明](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [源码与产物状态](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)。
+
 ## Kitsune Router 1.0.5 — 2026-10-31 源码收尾
 
 1.0.5 汇总下方带日期的源码开发记录，增加显式 OIDC nonce 校验，限制 Kiro

@@ -1,0 +1,221 @@
+{
+  "capturedAtUtc": "2026-11-05T09:02:11.934660+00:00",
+  "preBumpCi": {
+    "runId": 41997372229,
+    "headSha": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+    "conclusion": "success",
+    "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/41997372229",
+    "jobs": [
+      {
+        "name": "docs",
+        "conclusion": "success"
+      },
+      {
+        "name": "dependency-security",
+        "conclusion": "success"
+      },
+      {
+        "name": "candidate-package",
+        "conclusion": "success"
+      },
+      {
+        "name": "test",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "bump": {
+    "from": "1.0.5",
+    "to": "1.0.6",
+    "performedOnlyAfterAllFourCiJobsSucceeded": true,
+    "command": "node scripts/bump-version.mjs 1.0.6",
+    "eightFilesVersionMetadataOnly": true,
+    "historicalChangelogSuffixUnchanged": true
+  },
+  "preBumpRuntime": {
+    "sourceCommit": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+    "expectedVersion": "1.0.5",
+    "network": "none",
+    "boundary": "Verified candidate app mounted read-only; exact-version existing Node22 native SQLite supplied through normal CLI NODE_PATH runtime. No npm install or image rebuild.",
+    "runs": [
+      {
+        "label": "floor22.19.0",
+        "expectedNode": "v22.19.0",
+        "initial": {
+          "phase": "initial",
+          "node": "v22.19.0",
+          "nodeAbi": "127",
+          "version": "1.0.5",
+          "manifestEngine": ">=22.19.0",
+          "database": "ready",
+          "providerAccounts": 0,
+          "unauthenticatedSettings": "rejected",
+          "invalidPassword": "rejected",
+          "login": "passed",
+          "dashboard": "passed",
+          "temporaryKeyModelCatalog": "passed",
+          "modelCount": 1082,
+          "secretMode": "0600",
+          "databaseMode": "0600"
+        },
+        "restart": {
+          "phase": "restart",
+          "node": "v22.19.0",
+          "version": "1.0.5",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "persistedApiKey": "passed",
+          "persistedKeyModelCatalog": "passed",
+          "modelCount": 1082,
+          "temporaryKeyCleanup": "passed"
+        },
+        "logSha256": "4db472f6743e1a97e8bcecfb5ba2c18a7eed3d6317f46fa64a09737390b5b7e2",
+        "nodeWarningLines": 0,
+        "temporaryContainerRemoved": true,
+        "allWarningLines": 0,
+        "errorLines": 0,
+        "confirmedNativeDatabaseBoots": 2
+      },
+      {
+        "label": "current22.23.4",
+        "expectedNode": "v22.23.4",
+        "initial": {
+          "phase": "initial",
+          "node": "v22.23.4",
+          "nodeAbi": "127",
+          "version": "1.0.5",
+          "manifestEngine": ">=22.19.0",
+          "database": "ready",
+          "providerAccounts": 0,
+          "unauthenticatedSettings": "rejected",
+          "invalidPassword": "rejected",
+          "login": "passed",
+          "dashboard": "passed",
+          "temporaryKeyModelCatalog": "passed",
+          "modelCount": 1082,
+          "secretMode": "0600",
+          "databaseMode": "0600"
+        },
+        "restart": {
+          "phase": "restart",
+          "node": "v22.23.4",
+          "version": "1.0.5",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "persistedApiKey": "passed",
+          "persistedKeyModelCatalog": "passed",
+          "modelCount": 1082,
+          "temporaryKeyCleanup": "passed"
+        },
+        "logSha256": "7a60ff2dc774e24ee24c1c5295c723b2bcc2b85a3598770b0947b634ce873c7e",
+        "nodeWarningLines": 0,
+        "temporaryContainerRemoved": true,
+        "allWarningLines": 0,
+        "errorLines": 0,
+        "confirmedNativeDatabaseBoots": 2
+      }
+    ]
+  },
+  "postBumpLocal": {
+    "releaseContracts": {
+      "files": 5,
+      "passed": 81,
+      "failed": 0
+    },
+    "documentationTests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "brand": "passed",
+    "releaseVersionGuard": "passed",
+    "documentationBuild": "passed"
+  },
+  "postBumpExactSourceEvidence": "CI verification-<sha> and candidate-package-<sha> artifacts record the exact committed source; source versioning does not publish or deploy.",
+  "preBumpCiProof": {
+    "capturedAtUtc": "2026-11-05T09:02:34.306724+00:00",
+    "run": {
+      "databaseId": 41997372229,
+      "headSha": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/41997372229"
+    },
+    "productVersion": "1.0.5",
+    "jobs": [
+      {
+        "name": "docs",
+        "jobId": 127143758355,
+        "conclusion": "success",
+        "logSha256": "259c3df315d40c4738b7923857f22c2bad76cf6810633e034064a46d77c6b53b"
+      },
+      {
+        "name": "dependency-security",
+        "jobId": 127143758729,
+        "conclusion": "success",
+        "logSha256": "8c7e49fe925422141a0000a792dbf393bae4abb236b6e0e9df2cdc12f0943fa0"
+      },
+      {
+        "name": "candidate-package",
+        "jobId": 127143758925,
+        "conclusion": "success",
+        "logSha256": "100464a4bfff3b5ea7a5d0426c3078ec11de44e70459693a6ee1c6ff9f32561f"
+      },
+      {
+        "name": "test",
+        "jobId": 127143759104,
+        "conclusion": "success",
+        "logSha256": "acc3e24e295f488182f5cbeeeeb2b0718bbbe31a9c7a6854faf9dc8ba08eb2c0"
+      }
+    ],
+    "source": {
+      "sha": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+      "ref": "refs/heads/integration/pr-6-release-1.0.6",
+      "reportSha256": "3a7d950701d61bf70a65f0856714900aede04677b9529fb250b4e2bb2159dfb5"
+    },
+    "sourceJsonSha256": "4dc9af17bf036b6ca92055780e9da3bda3d79b8edf2e1a52d176da85ce583e9b",
+    "vitest": {
+      "numTotalTests": 11074,
+      "numPassedTests": 10975,
+      "numPendingTests": 99,
+      "numFailedTests": 0,
+      "numTotalTestSuites": 2417,
+      "numPassedTestSuites": 2417,
+      "numFailedTestSuites": 0,
+      "success": true,
+      "files": 862
+    },
+    "browser": {
+      "passed": 32,
+      "retryMarkers": 0,
+      "durationSeconds": 48.6
+    },
+    "candidate": {
+      "sourceSha": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+      "sourceTree": "feebbc5cb289ae9aa405f3f66208ad0aa68a5e3d",
+      "runId": "41997372229",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "glibc": "2.39",
+      "file": "bykitsune-router-1.0.5.tgz",
+      "sha256": "f8a77873c9ef4332d507aec7cbfd9ef84809a77e36a43a2c06b87ddc4bbb3a7c"
+    },
+    "artifactDigests": {
+      "source-artifact.zip": "dd62668dc168fba3802a38e1fffd48f385527052a6cdb14a52003edf117b2c5b",
+      "candidate-artifact.zip": "abe71390d6b84310423be0ff69141143e530890edd6e91ee566c346fef40f5a7"
+    },
+    "diagnostics": {
+      "allCheckAnnotations": 0,
+      "actualNpmNodeReactWarnings": 0,
+      "vitestStderrSections": 0,
+      "nextFreshBuildCacheAdvisoryCount": 3,
+      "literalZeroWarningSymbolLinesClaimed": false,
+      "excludedTestTitleMatches": 1
+    },
+    "fullSummarySha256": "c8b41214bb587a74cdd1463670cf74ce29c553a974130dffd729830313801f40",
+    "limits": "Pre-bump version1.0.5; synthetic/offline CI and package provenance only. Next fresh-build-cache advisory is retained separately. No live provider, publication or deployment claim."
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "kitsune-router-docs",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Kitsune Router documentation. Your models. Your routes.",
   "private": true,
   "allowScripts": {

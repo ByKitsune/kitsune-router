@@ -1,0 +1,1257 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-11-05T08:49:05.464775+00:00",
+  "stage": "Pre-bump readiness snapshot; source remains1.0.5; exact final-source remote CI pending",
+  "source": {
+    "baseSha": "e03cec826a9c3c09943631e4253872dce1d7bff5",
+    "originalPrHeadSha": "e57480ef43cf0839dcf7b2a414ff2bf711082b6e",
+    "integratedPrMergeSha": "980d0558bbe684fdd4e39630e8b70ffba2f75044",
+    "pullRequest": "https://github.com/ByKitsune/kitsune-router/pull/6",
+    "versions": [
+      {
+        "project": "root",
+        "manifest": "1.0.5",
+        "lock": "1.0.5",
+        "lockRoot": "1.0.5"
+      },
+      {
+        "project": "cli",
+        "manifest": "1.0.5",
+        "lock": "1.0.5",
+        "lockRoot": "1.0.5"
+      },
+      {
+        "project": "tests",
+        "manifest": "1.0.5",
+        "lock": "1.0.5",
+        "lockRoot": "1.0.5"
+      },
+      {
+        "project": "gitbook",
+        "manifest": "1.0.5",
+        "lock": "1.0.5",
+        "lockRoot": "1.0.5"
+      }
+    ],
+    "finalCodexFileSha256": {
+      "src/sse/services/auth.js": "a521262d6ef1cd92536b8df213c38de0d85d6cb7a0ebbe7291f3dd3f916f5134",
+      "src/sse/services/codexEntitlementScope.js": "094e73d04a97c7b40af2f513574dfbab603d9163da644fcaf90241a1eefa651c",
+      "src/sse/handlers/chat.js": "addd4e4634c819e297b4b62441cb38c1013eff3e665bd6a02f8513743304c36f",
+      "tests/unit/codex-entitlement-hint-scope.test.js": "1e4624c2f791f7e52fdccf04302b7cc4db8c19ee0ef5ab87df915c9e641ae01d",
+      "tests/unit/codex-entitlement-lifecycle-public.test.js": "a69b9bc665bdaaff0b3d27ad7e0bc853b0438d68c2c3c584ae1d150e9def03d8"
+    },
+    "fileHashesRecheckedAtCapture": true,
+    "preBumpCodeCommitSha": "17be4150ac247624f49bcb1ea49b55b00b29fd95",
+    "reviewedCodexFileSha256": {
+      "src/sse/services/auth.js": "a521262d6ef1cd92536b8df213c38de0d85d6cb7a0ebbe7291f3dd3f916f5134",
+      "src/sse/services/codexEntitlementScope.js": "f50767df99bf6228f6c6470c4d18baea4acda8956a293c668ab74a1e48045123",
+      "src/sse/handlers/chat.js": "addd4e4634c819e297b4b62441cb38c1013eff3e665bd6a02f8513743304c36f",
+      "tests/unit/codex-entitlement-hint-scope.test.js": "1e4624c2f791f7e52fdccf04302b7cc4db8c19ee0ef5ab87df915c9e641ae01d",
+      "tests/unit/codex-entitlement-lifecycle-public.test.js": "a69b9bc665bdaaff0b3d27ad7e0bc853b0438d68c2c3c584ae1d150e9def03d8"
+    },
+    "hashTransitions": [
+      {
+        "path": "src/sse/services/codexEntitlementScope.js",
+        "reviewedSha256": "f50767df99bf6228f6c6470c4d18baea4acda8956a293c668ab74a1e48045123",
+        "committedSha256": "094e73d04a97c7b40af2f513574dfbab603d9163da644fcaf90241a1eefa651c",
+        "reason": "Coordinator removed one redundant trailing newline before source commit; semantic implementation unchanged. Focused/independent proof hashes retain the exact earlier reviewed bytes; final exact-source CI pending."
+      }
+    ],
+    "fileHashesRecheckedAfterWhitespaceCorrectionAtUtc": "2026-11-05T08:48:45.782289+00:00"
+  },
+  "originalReview": {
+    "reviewedFiles": 6,
+    "workflowManifestInstallScriptChanges": false,
+    "confirmedOriginalFinding": "Account replacement or import inherits stale Codex entitlement denial and can return local 429",
+    "originalProbe": {
+      "pr": "https://github.com/ByKitsune/kitsune-router/pull/6",
+      "headSha": "e57480ef43cf0839dcf7b2a414ff2bf711082b6e",
+      "capturedAtUtc": "2026-11-05T08:17:39.623Z",
+      "classification": "reproduced stale process-global denial after DB import/account replacement",
+      "sequence": [
+        "Remember model denial for connection-a with old-denied-token",
+        "Replace imported connection-a under same ID with new entitled credentials and advance DB import generation",
+        "Keep connection-b quota blocked; default quota-aware selection enabled"
+      ],
+      "observed": {
+        "dbImportGeneration": 1,
+        "returnedAllRateLimited": true,
+        "statusCode": 429,
+        "deniedAccountUsageNotRead": true,
+        "healthWrites": 0
+      },
+      "controlAfterExplicitCacheClear": {
+        "selectedConnectionId": "connection-a"
+      },
+      "limits": "Actual PR auth/config/cache source; mocked storage, proxy, logging and quota adapters. No DB/network/provider requests or source edits."
+    },
+    "finalDisposition": "Corrected by scoped hint lifecycle, post-eligibility preference and transactional stale-health guard; covered by owner and independent local regression evidence below.",
+    "otherReproducedOriginalDefects": [
+      "Real DB import replacing denied A under same ID, B quota exhausted: local429 rather than serving entitled replacement A.",
+      "Direct re-auth replacing credentials under same ID without import: same local429.",
+      "Valid denied A still available while sibling B quota blocked: local429 rather than real upstream400.",
+      "Late old-credential denial attaches hint to replacement identity, so later replacement request skips A.",
+      "Late old-credential success clears newer denial for replacement identity, so next request repeats rejected A."
+    ]
+  },
+  "codex": {
+    "behavior": [
+      "Only canonical matching-model HTTP400 Codex entitlement denial, optionally exact internal [400] prefix, learns a hint.",
+      "Hint keys SHA256-bind database, selection import generation, actual credential/account identity and normalized wire-model lock family; entries contain only expiry and persistent import revision.",
+      "Post-await row, generation, signal, credential identity and persistent import revision checks prevent stale hint publication/deletion.",
+      "Denied preference is applied after genuine quota/lock/exclusion eligibility; denied-only eligible pools probe upstream.",
+      "Attempt context is captured before proactive refresh; original selection generation survives accepted refresh.",
+      "Codex stale-success context blocks all hint and health cleanup; transaction write fence covers subsequent import/re-auth race.",
+      "Hint cap500, TTL30minutes exact boundary; no raw credentials or upstream body retained.",
+      "After an awaited lookup, stale-entry invalidation deletes only the captured entry; successful completion deletes only a hint matching its attempt import revision, preventing newer concurrent publication from being erased."
+    ],
+    "verification": {
+      "ownerClusterBeforeLastTwoGuards": {
+        "files": 9,
+        "passed": 132
+      },
+      "finalScopeSuiteAfterTwoGuardRegressions": {
+        "passed": 27,
+        "failed": 0,
+        "beforeNewRegressions": {
+          "passedControls": 25,
+          "failedNewCases": 2
+        }
+      },
+      "realDatabasePublicLoopbackTests": 8,
+      "originalPrPublicLoopbackTests": 6,
+      "independentOfflineAssertions": 35,
+      "independentReviewVerdict": "No remaining blocker found within scoped independent review",
+      "independentSourceSha256": {
+        "src/sse/services/auth.js": "a521262d6ef1cd92536b8df213c38de0d85d6cb7a0ebbe7291f3dd3f916f5134",
+        "src/sse/services/codexEntitlementScope.js": "f50767df99bf6228f6c6470c4d18baea4acda8956a293c668ab74a1e48045123",
+        "src/sse/handlers/chat.js": "addd4e4634c819e297b4b62441cb38c1013eff3e665bd6a02f8513743304c36f"
+      },
+      "strictLintMaxWarnings": 0
+    },
+    "limits": [
+      "Synthetic requests and temporary local databases; no production account entitlements asserted.",
+      "Legacy -high executor alias safely misses the hint; only authoritative shared wire-model aliases/parenthesized efforts are coalesced.",
+      "Existing non-Codex/no-context account-health semantics unchanged.",
+      "Synthetic storage edges; no independent broad tests, real SQLite suite, lint, build, live inference or release actions. Parent exact-source CI remains required.",
+      "Cache hints do not verify a ChatGPT plan or guarantee provider acceptance. Unchanged-credential plan upgrades can remain unknown until expiry or a successful probe.",
+      "A strict HTTP400 cache intentionally does not memoize the existing generic HTTP503/pre-output SSE path."
+    ]
+  },
+  "dependencies": {
+    "capturedAtUtc": "2026-11-05T08:36:29.874531+00:00",
+    "counts": {
+      "directDeclarationRows": 67,
+      "uniqueDirectPackages": 56,
+      "updatedDirectDeclarationRows": 17,
+      "updatedUniqueDirectPackages": 13,
+      "alreadyLatestDeclarationRows": 50,
+      "alreadyLatestUniqueDirectPackages": 43,
+      "overrideUpdates": 1,
+      "lockedLocationsBefore": 885,
+      "lockedLocationsAfter": 885,
+      "changedLockedLocations": 164,
+      "changeKinds": {
+        "patch": 107,
+        "minor": 55,
+        "major": 2
+      },
+      "publisherLatestMetadataQueries": 63,
+      "exactVersionMetadataQueriesIncludingUnselectedCandidate": 121,
+      "newLifecycleScriptPackages": 0,
+      "newNode2219Or2419EngineConflicts": 0
+    },
+    "projects": [
+      {
+        "project": "root",
+        "manifestSha256": "737370f28ceec669bed33c7cdffbe78b139536ba75438648965bfda18057dadd",
+        "lockfileSha256": "84761037f9510f0a62c12866d10989f0da5cfc51f80316052fbf06ff7ad24711",
+        "productVersion": "1.0.5",
+        "beforePackageLocations": 551,
+        "afterPackageLocations": 551,
+        "changedLockedLocations": 107,
+        "auditVulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "npmLsExitCode": 0,
+        "actionableCompatibleTransitiveUpdatesRemaining": 0,
+        "uninstalledOptionalPlatformOrPeerSurfaces": 104,
+        "npmLsObservations": [
+          "extraneous: @emnapi/runtime@1.11.3 /workspace/kitsune-router/node_modules/@emnapi/runtime",
+          "extraneous: @img/sharp-wasm32@0.35.5 /workspace/kitsune-router/node_modules/@img/sharp-wasm32"
+        ]
+      },
+      {
+        "project": "cli",
+        "manifestSha256": "69ab4d0b4ac73291604b9a4a45f21a796920875ee243e3fb68ee87342358cbce",
+        "lockfileSha256": "acc4652e05e520303c1ad47bc6f7ca1ee2d0d9179f09092803742e5add2fd430",
+        "productVersion": "1.0.5",
+        "beforePackageLocations": 35,
+        "afterPackageLocations": 35,
+        "changedLockedLocations": 0,
+        "auditVulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "npmLsExitCode": 0,
+        "actionableCompatibleTransitiveUpdatesRemaining": 0,
+        "uninstalledOptionalPlatformOrPeerSurfaces": 25,
+        "npmLsObservations": []
+      },
+      {
+        "project": "tests",
+        "manifestSha256": "e4947287c6010a09f54c784496eda534cd60050f28d37a3b911488b4ab1a9b3d",
+        "lockfileSha256": "dd2fb41a67dba33cf8c712d7f3c23c06939401836d6d8e26f8e9b6baddca75b6",
+        "productVersion": "1.0.5",
+        "beforePackageLocations": 60,
+        "afterPackageLocations": 60,
+        "changedLockedLocations": 5,
+        "auditVulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "npmLsExitCode": 0,
+        "actionableCompatibleTransitiveUpdatesRemaining": 0,
+        "uninstalledOptionalPlatformOrPeerSurfaces": 47,
+        "npmLsObservations": []
+      },
+      {
+        "project": "gitbook",
+        "manifestSha256": "43ac9ab023aa143b8d632bd4212218671fa75956484f8ec5abcd469c85b3f7ce",
+        "lockfileSha256": "e06dfbef88a0278aa989ac96b457322767f3ab1b90da4ff89e57486194dddb22",
+        "productVersion": "1.0.5",
+        "beforePackageLocations": 239,
+        "afterPackageLocations": 239,
+        "changedLockedLocations": 52,
+        "auditVulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "npmLsExitCode": 0,
+        "actionableCompatibleTransitiveUpdatesRemaining": 0,
+        "uninstalledOptionalPlatformOrPeerSurfaces": 74,
+        "npmLsObservations": [
+          "extraneous: @emnapi/runtime@1.11.3 /workspace/kitsune-router/gitbook/node_modules/@emnapi/runtime",
+          "extraneous: @img/sharp-wasm32@0.35.5 /workspace/kitsune-router/gitbook/node_modules/@img/sharp-wasm32"
+        ]
+      }
+    ],
+    "manifestChanges": [
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "@next/third-parties",
+        "before": "^16.4.3",
+        "after": "^16.4.5"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "@xyflow/react",
+        "before": "^12.12.0",
+        "after": "^12.12.1"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "jose",
+        "before": "^6.2.14",
+        "after": "^6.2.15"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "lucide-react",
+        "before": "^1.66.0",
+        "after": "^1.69.0"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "material-symbols",
+        "before": "^0.48.2",
+        "after": "^0.48.3"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "motion",
+        "before": "^14.9.0",
+        "after": "^14.9.1"
+      },
+      {
+        "project": ".",
+        "section": "dependencies",
+        "name": "next",
+        "before": "^16.4.3",
+        "after": "^16.4.5"
+      },
+      {
+        "project": ".",
+        "section": "devDependencies",
+        "name": "@tailwindcss/postcss",
+        "before": "^4.3.3",
+        "after": "^4.3.4"
+      },
+      {
+        "project": ".",
+        "section": "devDependencies",
+        "name": "globals",
+        "before": "^17.13.0",
+        "after": "^17.14.0"
+      },
+      {
+        "project": ".",
+        "section": "devDependencies",
+        "name": "oxlint",
+        "before": "^1.90.0",
+        "after": "^1.91.0"
+      },
+      {
+        "project": ".",
+        "section": "devDependencies",
+        "name": "tailwindcss",
+        "before": "^4.3.3",
+        "after": "^4.3.4"
+      },
+      {
+        "project": ".",
+        "section": "overrides",
+        "name": "minimatch",
+        "before": "11.0.3",
+        "after": "11.0.4"
+      },
+      {
+        "project": "tests",
+        "section": "devDependencies",
+        "name": "vite",
+        "before": "^8.3.5",
+        "after": "^8.3.6"
+      },
+      {
+        "project": "tests",
+        "section": "devDependencies",
+        "name": "vitest",
+        "before": "^5.0.5",
+        "after": "^5.1.0"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "lucide-react",
+        "before": "^1.66.0",
+        "after": "^1.69.0"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "next",
+        "before": "^16.4.3",
+        "after": "^16.4.5"
+      },
+      {
+        "project": "gitbook",
+        "section": "devDependencies",
+        "name": "@tailwindcss/postcss",
+        "before": "^4.3.3",
+        "after": "^4.3.4"
+      },
+      {
+        "project": "gitbook",
+        "section": "devDependencies",
+        "name": "tailwindcss",
+        "before": "^4.3.3",
+        "after": "^4.3.4"
+      }
+    ],
+    "directLatestStableMatrix": [
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@dnd-kit/core",
+        "requested": "^6.3.1",
+        "locked": "6.3.1",
+        "publisherLatestStable": "6.3.1",
+        "sourceUrl": "https://registry.npmjs.org/@dnd-kit%2Fcore/latest",
+        "sourceSha256": "439df9d017fbdd3903fc75a3396f4c46ac852887c9723db87e85df67e7dc2c51"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@dnd-kit/modifiers",
+        "requested": "^9.0.0",
+        "locked": "9.0.0",
+        "publisherLatestStable": "9.0.0",
+        "sourceUrl": "https://registry.npmjs.org/@dnd-kit%2Fmodifiers/latest",
+        "sourceSha256": "06bc20e93b35bdcec18127055d3dace2f7c01f8371f2ff1180cddb6fb5095239"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@dnd-kit/sortable",
+        "requested": "^10.0.0",
+        "locked": "10.0.0",
+        "publisherLatestStable": "10.0.0",
+        "sourceUrl": "https://registry.npmjs.org/@dnd-kit%2Fsortable/latest",
+        "sourceSha256": "9086b106322c162c7303ff41cbf5319286ff9ce74d8ab15a542b6a6744c2184e"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@dnd-kit/utilities",
+        "requested": "^3.2.2",
+        "locked": "3.2.2",
+        "publisherLatestStable": "3.2.2",
+        "sourceUrl": "https://registry.npmjs.org/@dnd-kit%2Futilities/latest",
+        "sourceSha256": "61607320921f7dfc91dbb092725f4bade48fb60e6a6975368bac8b66d6e69619"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@fontsource-variable/dm-sans",
+        "requested": "^5.3.0",
+        "locked": "5.3.0",
+        "publisherLatestStable": "5.3.0",
+        "sourceUrl": "https://registry.npmjs.org/@fontsource-variable%2Fdm-sans/latest",
+        "sourceSha256": "e8100465cab60e7cbfd44f294a4bcc212031936345edcc7a68fbba6c094c77f1"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@monaco-editor/react",
+        "requested": "^4.7.0",
+        "locked": "4.7.0",
+        "publisherLatestStable": "4.7.0",
+        "sourceUrl": "https://registry.npmjs.org/@monaco-editor%2Freact/latest",
+        "sourceSha256": "a1042362e528e5aeb054b28a45bb242b002f8a8a5826d743d88b365403d8552a"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@next/third-parties",
+        "requested": "^16.4.5",
+        "locked": "16.4.5",
+        "publisherLatestStable": "16.4.5",
+        "sourceUrl": "https://registry.npmjs.org/@next%2Fthird-parties/latest",
+        "sourceSha256": "21b16684aadb88b60f69ef69b36a379ef03ff35587ca2beb7cb8cb682c6fc337"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@node-saml/node-saml",
+        "requested": "^5.2.0",
+        "locked": "5.2.0",
+        "publisherLatestStable": "5.2.0",
+        "sourceUrl": "https://registry.npmjs.org/@node-saml%2Fnode-saml/latest",
+        "sourceSha256": "8c1f3a648b59e0d1a438150d760685d82c7f61d2de76f3c7f117310059c2b77c"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@peculiar/x509",
+        "requested": "^3.1.0",
+        "locked": "3.1.0",
+        "publisherLatestStable": "3.1.0",
+        "sourceUrl": "https://registry.npmjs.org/@peculiar%2Fx509/latest",
+        "sourceSha256": "81328c05220086e563f51c7b918b64fea64a158d6450b4ea404be6cc15f2e4f5"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@radix-ui/react-tooltip",
+        "requested": "^1.4.1",
+        "locked": "1.4.1",
+        "publisherLatestStable": "1.4.1",
+        "sourceUrl": "https://registry.npmjs.org/@radix-ui%2Freact-tooltip/latest",
+        "sourceSha256": "87ab8b02f38f90e1016f3db3c335d70c68405cac73383e3d64a805e340c4b35c"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "@xyflow/react",
+        "requested": "^12.12.1",
+        "locked": "12.12.1",
+        "publisherLatestStable": "12.12.1",
+        "sourceUrl": "https://registry.npmjs.org/@xyflow%2Freact/latest",
+        "sourceSha256": "20983d42810fd0ae0457ac9cbcaf01b1f6a1502412810ebb0bde05643fc9c21b"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "bcryptjs",
+        "requested": "^3.0.3",
+        "locked": "3.0.3",
+        "publisherLatestStable": "3.0.3",
+        "sourceUrl": "https://registry.npmjs.org/bcryptjs/latest",
+        "sourceSha256": "9e15fc0a0d344237c298b6cb31f5af17cde72c299f6c514f4c2ab67f64282914"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "chalk",
+        "requested": "^6.0.1",
+        "locked": "6.0.1",
+        "publisherLatestStable": "6.0.1",
+        "sourceUrl": "https://registry.npmjs.org/chalk/latest",
+        "sourceSha256": "ef91fea49c1bc93aeed3089f5ec0c79a1791524f63ce57154b95e005178d078a"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "confbox",
+        "requested": "^0.3.2",
+        "locked": "0.3.2",
+        "publisherLatestStable": "0.3.2",
+        "sourceUrl": "https://registry.npmjs.org/confbox/latest",
+        "sourceSha256": "e26810b5cdfaec9985967c171fae6faa1002d8e82bbc61ed4a8c061093e3cc30"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "jose",
+        "requested": "^6.2.15",
+        "locked": "6.2.15",
+        "publisherLatestStable": "6.2.15",
+        "sourceUrl": "https://registry.npmjs.org/jose/latest",
+        "sourceSha256": "58d6f03d2fa924a83d2c5a1cf9e91226da16a52d533f8809a53bee7c51e03c10"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "lucide-react",
+        "requested": "^1.69.0",
+        "locked": "1.69.0",
+        "publisherLatestStable": "1.69.0",
+        "sourceUrl": "https://registry.npmjs.org/lucide-react/latest",
+        "sourceSha256": "a84cb3f65609ab37083de0079041afb8bf1a1c4b3df55ceff07e0d54bd8018c0"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "material-symbols",
+        "requested": "^0.48.3",
+        "locked": "0.48.3",
+        "publisherLatestStable": "0.48.3",
+        "sourceUrl": "https://registry.npmjs.org/material-symbols/latest",
+        "sourceSha256": "668bc87101f66b0dd2b3dc2d8c775a4658389f6a71f0df270d23d758f73c7d89"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "monaco-editor",
+        "requested": "^0.57.0",
+        "locked": "0.57.0",
+        "publisherLatestStable": "0.57.0",
+        "sourceUrl": "https://registry.npmjs.org/monaco-editor/latest",
+        "sourceSha256": "3ca51d8747b1cd8cb799d3da998d0d194d15f11209b8716c5a7505229be00e76"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "motion",
+        "requested": "^14.9.1",
+        "locked": "14.9.1",
+        "publisherLatestStable": "14.9.1",
+        "sourceUrl": "https://registry.npmjs.org/motion/latest",
+        "sourceSha256": "005fcb647c1dfd2748d344e16082bfe05239ad757e7674713811268391dad983"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "next",
+        "requested": "^16.4.5",
+        "locked": "16.4.5",
+        "publisherLatestStable": "16.4.5",
+        "sourceUrl": "https://registry.npmjs.org/next/latest",
+        "sourceSha256": "8483396571c53bbb6d03ff47cb4f741ebc6fc75b38c2aa95768f90665e4c0391"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "node-machine-id",
+        "requested": "^1.1.12",
+        "locked": "1.1.12",
+        "publisherLatestStable": "1.1.12",
+        "sourceUrl": "https://registry.npmjs.org/node-machine-id/latest",
+        "sourceSha256": "b3049f102b525ee1a795ccf75dd24e9e8c1bbeab07b79379ec9e65077e5ab9f8"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "open",
+        "requested": "^11.0.4",
+        "locked": "11.0.4",
+        "publisherLatestStable": "11.0.4",
+        "sourceUrl": "https://registry.npmjs.org/open/latest",
+        "sourceSha256": "0f6a1a8e8a0db7c0ff01032001b9780f3622e6f09d2666e6f598fd26bef16a6c"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "ora",
+        "requested": "^10.0.0",
+        "locked": "10.0.0",
+        "publisherLatestStable": "10.0.0",
+        "sourceUrl": "https://registry.npmjs.org/ora/latest",
+        "sourceSha256": "08000098453a96b7b8f887bbc2fb3f61f9a9fa916c9bea0cec196220160bf122"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "prop-types",
+        "requested": "^15.8.1",
+        "locked": "15.8.1",
+        "publisherLatestStable": "15.8.1",
+        "sourceUrl": "https://registry.npmjs.org/prop-types/latest",
+        "sourceSha256": "bc53818ce000b91f1f5c84e530a929edea66b9f65acd24b071065314b30a3a9d"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "react",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react/latest",
+        "sourceSha256": "ecf8c02b9096a7813842d87fae50a707a8809c5c3d0ec6b359ac51d40188ff6f"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "react-dom",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react-dom/latest",
+        "sourceSha256": "2d72d7d33a8b0fea5614e1b415d06470877efa8eebbdf638cee04e5b83c2c7a5"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "react-is",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react-is/latest",
+        "sourceSha256": "cd2243166b45b2806c5f3ff774f4fa26b349eb9ce1b95d7bf09d6a0aa6453eea"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "recharts",
+        "requested": "^3.10.1",
+        "locked": "3.10.1",
+        "publisherLatestStable": "3.10.1",
+        "sourceUrl": "https://registry.npmjs.org/recharts/latest",
+        "sourceSha256": "4f66e813a97ed16f061c6bd49a7d7da9cd989d86b4d867d748fe4a0448fa3520"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "reflect-metadata",
+        "requested": "^0.2.2",
+        "locked": "0.2.2",
+        "publisherLatestStable": "0.2.2",
+        "sourceUrl": "https://registry.npmjs.org/reflect-metadata/latest",
+        "sourceSha256": "ee5195271cb659d5fdd8b5ab329a4b747f75c95a42409f4105f167afa8f18e39"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "sql.js",
+        "requested": "^1.15.2",
+        "locked": "1.15.2",
+        "publisherLatestStable": "1.15.2",
+        "sourceUrl": "https://registry.npmjs.org/sql.js/latest",
+        "sourceSha256": "3f78010ec11e64892600de890ccf9dd5fbb39b8272a67d5976e59479af3593ef"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "undici",
+        "requested": "^8.12.3",
+        "locked": "8.12.3",
+        "publisherLatestStable": "8.12.3",
+        "sourceUrl": "https://registry.npmjs.org/undici/latest",
+        "sourceSha256": "003b2f06075e1b319f62570652ea64c0d55ec16c3ec3c289ac41bc96e5f3f115"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "uuid",
+        "requested": "^14.0.3",
+        "locked": "14.0.3",
+        "publisherLatestStable": "14.0.3",
+        "sourceUrl": "https://registry.npmjs.org/uuid/latest",
+        "sourceSha256": "1300ea3d9e133c623ba0c750c17d41ccfa1cc9b2a968a4e8f0fe22f2baf1630f"
+      },
+      {
+        "project": "root",
+        "section": "dependencies",
+        "name": "zustand",
+        "requested": "^5.0.16",
+        "locked": "5.0.16",
+        "publisherLatestStable": "5.0.16",
+        "sourceUrl": "https://registry.npmjs.org/zustand/latest",
+        "sourceSha256": "ef5d174910d3807a1242346175b7ca95377d5fb6bdb14e2936ca601ff4c5e942"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "@eslint-community/eslint-utils",
+        "requested": "^4.10.1",
+        "locked": "4.10.1",
+        "publisherLatestStable": "4.10.1",
+        "sourceUrl": "https://registry.npmjs.org/@eslint-community%2Feslint-utils/latest",
+        "sourceSha256": "7ea326d8feb1817339d64a7c31b579ab3dd2fa4b53b6adad1e31a01c79d15060"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "@eslint/compat",
+        "requested": "^2.1.1",
+        "locked": "2.1.1",
+        "publisherLatestStable": "2.1.1",
+        "sourceUrl": "https://registry.npmjs.org/@eslint%2Fcompat/latest",
+        "sourceSha256": "b9ed5f966a898bdae1d89868d1256b04019c3e06b03f17c4df5bbe48386bae43"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "@playwright/test",
+        "requested": "^1.64.1",
+        "locked": "1.64.1",
+        "publisherLatestStable": "1.64.1",
+        "sourceUrl": "https://registry.npmjs.org/@playwright%2Ftest/latest",
+        "sourceSha256": "c25ebb098c5a7c88dc09e3e82ca58cdaa1d7ab217e1de99ff8c2b5537777fa24"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "@tailwindcss/postcss",
+        "requested": "^4.3.4",
+        "locked": "4.3.4",
+        "publisherLatestStable": "4.3.4",
+        "sourceUrl": "https://registry.npmjs.org/@tailwindcss%2Fpostcss/latest",
+        "sourceSha256": "ba84c1d427612fd7e69ef5ee554b53626f38a6ff72361b116887a43a14eab517"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "eslint",
+        "requested": "^10.14.0",
+        "locked": "10.14.0",
+        "publisherLatestStable": "10.14.0",
+        "sourceUrl": "https://registry.npmjs.org/eslint/latest",
+        "sourceSha256": "3c71c8c1c80217a71251defcf0d211601ee3d51f1e9b808ec477a747a912b459"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "eslint-plugin-import",
+        "requested": "^2.32.0",
+        "locked": "2.32.0",
+        "publisherLatestStable": "2.32.0",
+        "sourceUrl": "https://registry.npmjs.org/eslint-plugin-import/latest",
+        "sourceSha256": "fabda695a071aca1bbde7d6b5e061de895b76cb21fd686e6cc9a49003bf0293f"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "eslint-plugin-jsx-a11y",
+        "requested": "^6.10.2",
+        "locked": "6.10.2",
+        "publisherLatestStable": "6.10.2",
+        "sourceUrl": "https://registry.npmjs.org/eslint-plugin-jsx-a11y/latest",
+        "sourceSha256": "bd753b4cdb39942ae9de30138c651a3e09234d2612e6f0dc5b953f1102f667a5"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "eslint-plugin-react",
+        "requested": "^7.37.5",
+        "locked": "7.37.5",
+        "publisherLatestStable": "7.37.5",
+        "sourceUrl": "https://registry.npmjs.org/eslint-plugin-react/latest",
+        "sourceSha256": "06272d95743c41ce23a30417fd444cd27d0c839eccb862cb5456f264e4063535"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "eslint-plugin-react-hooks",
+        "requested": "^7.1.1",
+        "locked": "7.1.1",
+        "publisherLatestStable": "7.1.1",
+        "sourceUrl": "https://registry.npmjs.org/eslint-plugin-react-hooks/latest",
+        "sourceSha256": "7ccb572d85841dc9e54fdd98886f5a7c4235392ef4fd1743542ce3aede252bda"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "espree",
+        "requested": "^11.2.0",
+        "locked": "11.2.0",
+        "publisherLatestStable": "11.2.0",
+        "sourceUrl": "https://registry.npmjs.org/espree/latest",
+        "sourceSha256": "7f00deb0251b68fbcc970d7324758411b24383634efc94f0e530d86d4933be56"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "globals",
+        "requested": "^17.14.0",
+        "locked": "17.14.0",
+        "publisherLatestStable": "17.14.0",
+        "sourceUrl": "https://registry.npmjs.org/globals/latest",
+        "sourceSha256": "083663fcd1e1367c43372dbcc3e67d7954f93587b7a6c69a79b43c92aef337f0"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "oxlint",
+        "requested": "^1.91.0",
+        "locked": "1.91.0",
+        "publisherLatestStable": "1.91.0",
+        "sourceUrl": "https://registry.npmjs.org/oxlint/latest",
+        "sourceSha256": "f1101d797130b251d2288ce70a1133eceab5d4f879bee624df7ed9a5b6feb3b0"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "postcss",
+        "requested": "^8.5.32",
+        "locked": "8.5.32",
+        "publisherLatestStable": "8.5.32",
+        "sourceUrl": "https://registry.npmjs.org/postcss/latest",
+        "sourceSha256": "9a29a73945980f4c243743e34b01fac170a2679ba9e1ca42f02c39d52ac0eddc"
+      },
+      {
+        "project": "root",
+        "section": "devDependencies",
+        "name": "tailwindcss",
+        "requested": "^4.3.4",
+        "locked": "4.3.4",
+        "publisherLatestStable": "4.3.4",
+        "sourceUrl": "https://registry.npmjs.org/tailwindcss/latest",
+        "sourceSha256": "0c201830dcf40f9eba96d30aa3da45a7c6b51f248daf766a6f8aa8a59389c917"
+      },
+      {
+        "project": "root",
+        "section": "optionalDependencies",
+        "name": "better-sqlite3",
+        "requested": "^13.0.3",
+        "locked": "13.0.3",
+        "publisherLatestStable": "13.0.3",
+        "sourceUrl": "https://registry.npmjs.org/better-sqlite3/latest",
+        "sourceSha256": "8730045f9578bcb32c9e84eebebaca59c7373f8e1b47d56a40aa4c743ce0b95b"
+      },
+      {
+        "project": "cli",
+        "section": "dependencies",
+        "name": "enquirer",
+        "requested": "^2.4.1",
+        "locked": "2.4.1",
+        "publisherLatestStable": "2.4.1",
+        "sourceUrl": "https://registry.npmjs.org/enquirer/latest",
+        "sourceSha256": "cb8201f17ae648bfdb8880a13f1d9e00a75076b9742c2285c2a3adc0681cd21e"
+      },
+      {
+        "project": "cli",
+        "section": "dependencies",
+        "name": "node-machine-id",
+        "requested": "^1.1.12",
+        "locked": "1.1.12",
+        "publisherLatestStable": "1.1.12",
+        "sourceUrl": "https://registry.npmjs.org/node-machine-id/latest",
+        "sourceSha256": "b3049f102b525ee1a795ccf75dd24e9e8c1bbeab07b79379ec9e65077e5ab9f8"
+      },
+      {
+        "project": "cli",
+        "section": "dependencies",
+        "name": "react",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react/latest",
+        "sourceSha256": "ecf8c02b9096a7813842d87fae50a707a8809c5c3d0ec6b359ac51d40188ff6f"
+      },
+      {
+        "project": "cli",
+        "section": "dependencies",
+        "name": "react-dom",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react-dom/latest",
+        "sourceSha256": "2d72d7d33a8b0fea5614e1b415d06470877efa8eebbdf638cee04e5b83c2c7a5"
+      },
+      {
+        "project": "cli",
+        "section": "devDependencies",
+        "name": "esbuild",
+        "requested": "^0.28.2",
+        "locked": "0.28.2",
+        "publisherLatestStable": "0.28.2",
+        "sourceUrl": "https://registry.npmjs.org/esbuild/latest",
+        "sourceSha256": "7a6838097b106ef5d8877fd543a1e25c46e5eb1730945fb7e57bc467c12c7c8c"
+      },
+      {
+        "project": "tests",
+        "section": "devDependencies",
+        "name": "vite",
+        "requested": "^8.3.6",
+        "locked": "8.3.6",
+        "publisherLatestStable": "8.3.6",
+        "sourceUrl": "https://registry.npmjs.org/vite/latest",
+        "sourceSha256": "408369a4f75887ea089b76b05e0be1cea6fa0d753e653d475c366a68ee0e1d73"
+      },
+      {
+        "project": "tests",
+        "section": "devDependencies",
+        "name": "vitest",
+        "requested": "^5.1.0",
+        "locked": "5.1.0",
+        "publisherLatestStable": "5.1.0",
+        "sourceUrl": "https://registry.npmjs.org/vitest/latest",
+        "sourceSha256": "dff890bc4ddb73e039099d602bc9cacf6392caf475315591c5b573955ac82e21"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "@fontsource-variable/dm-sans",
+        "requested": "^5.3.0",
+        "locked": "5.3.0",
+        "publisherLatestStable": "5.3.0",
+        "sourceUrl": "https://registry.npmjs.org/@fontsource-variable%2Fdm-sans/latest",
+        "sourceSha256": "e8100465cab60e7cbfd44f294a4bcc212031936345edcc7a68fbba6c094c77f1"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "lucide-react",
+        "requested": "^1.69.0",
+        "locked": "1.69.0",
+        "publisherLatestStable": "1.69.0",
+        "sourceUrl": "https://registry.npmjs.org/lucide-react/latest",
+        "sourceSha256": "a84cb3f65609ab37083de0079041afb8bf1a1c4b3df55ceff07e0d54bd8018c0"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "next",
+        "requested": "^16.4.5",
+        "locked": "16.4.5",
+        "publisherLatestStable": "16.4.5",
+        "sourceUrl": "https://registry.npmjs.org/next/latest",
+        "sourceSha256": "8483396571c53bbb6d03ff47cb4f741ebc6fc75b38c2aa95768f90665e4c0391"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "react",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react/latest",
+        "sourceSha256": "ecf8c02b9096a7813842d87fae50a707a8809c5c3d0ec6b359ac51d40188ff6f"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "react-dom",
+        "requested": "19.3.1",
+        "locked": "19.3.1",
+        "publisherLatestStable": "19.3.1",
+        "sourceUrl": "https://registry.npmjs.org/react-dom/latest",
+        "sourceSha256": "2d72d7d33a8b0fea5614e1b415d06470877efa8eebbdf638cee04e5b83c2c7a5"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "react-markdown",
+        "requested": "^10.1.0",
+        "locked": "10.1.0",
+        "publisherLatestStable": "10.1.0",
+        "sourceUrl": "https://registry.npmjs.org/react-markdown/latest",
+        "sourceSha256": "7bf2811d3003d510e3e98fc29ca9a1cdcb7353ea2a765687edab002e09cbfaba"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "rehype-highlight",
+        "requested": "^7.0.2",
+        "locked": "7.0.2",
+        "publisherLatestStable": "7.0.2",
+        "sourceUrl": "https://registry.npmjs.org/rehype-highlight/latest",
+        "sourceSha256": "071e30fed14dc45fdfa96af5ac5429b402c1987a55cc4c7471948c2bca05c54f"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "rehype-slug",
+        "requested": "^6.0.0",
+        "locked": "6.0.0",
+        "publisherLatestStable": "6.0.0",
+        "sourceUrl": "https://registry.npmjs.org/rehype-slug/latest",
+        "sourceSha256": "f855c489a5a7335a742e3789e327f2e8460efd079bf1c1463bb4ef93de25381f"
+      },
+      {
+        "project": "gitbook",
+        "section": "dependencies",
+        "name": "remark-gfm",
+        "requested": "^4.0.1",
+        "locked": "4.0.1",
+        "publisherLatestStable": "4.0.1",
+        "sourceUrl": "https://registry.npmjs.org/remark-gfm/latest",
+        "sourceSha256": "ae1cbed72bab19e87e57970427a94fdf29d97ac99dae8a27724ab4eea13587c4"
+      },
+      {
+        "project": "gitbook",
+        "section": "devDependencies",
+        "name": "@tailwindcss/postcss",
+        "requested": "^4.3.4",
+        "locked": "4.3.4",
+        "publisherLatestStable": "4.3.4",
+        "sourceUrl": "https://registry.npmjs.org/@tailwindcss%2Fpostcss/latest",
+        "sourceSha256": "ba84c1d427612fd7e69ef5ee554b53626f38a6ff72361b116887a43a14eab517"
+      },
+      {
+        "project": "gitbook",
+        "section": "devDependencies",
+        "name": "esbuild",
+        "requested": "^0.28.2",
+        "locked": "0.28.2",
+        "publisherLatestStable": "0.28.2",
+        "sourceUrl": "https://registry.npmjs.org/esbuild/latest",
+        "sourceSha256": "7a6838097b106ef5d8877fd543a1e25c46e5eb1730945fb7e57bc467c12c7c8c"
+      },
+      {
+        "project": "gitbook",
+        "section": "devDependencies",
+        "name": "tailwindcss",
+        "requested": "^4.3.4",
+        "locked": "4.3.4",
+        "publisherLatestStable": "4.3.4",
+        "sourceUrl": "https://registry.npmjs.org/tailwindcss/latest",
+        "sourceSha256": "0c201830dcf40f9eba96d30aa3da45a7c6b51f248daf766a6f8aa8a59389c917"
+      }
+    ],
+    "compatibilityDecisions": [
+      {
+        "package": "magic-string",
+        "before": "0.30.21",
+        "after": "1.4.5",
+        "scope": "root and docs transitive",
+        "reason": "Updated @tailwindcss/node4.3.4 explicitly depends on ^1.1.0; publisher-approved major transition rather than a forced override."
+      },
+      {
+        "package": "reselect",
+        "kept": "5.2.0",
+        "unselectedCandidate": "5.3.0",
+        "reason": "Redux Toolkit permits ^5.1.0 but Recharts3.10.1 pins the shared hoisted node exactly5.2.0. Standard npm resolution preserves the intersection; per-edge outdated wanted5.3.0 is not an actionable shared-node update."
+      },
+      {
+        "package": "@tailwindcss/oxide-wasm32-wasi bundled internals",
+        "reason": "npm outdated reports newer compatible wasm-runtime, wasm-util and tslib, but these exact inBundle:true rows are shipped inside the reviewed publisher tarball. No vendor bundle was modified or forced via overrides."
+      },
+      {
+        "package": "ESLint plugins",
+        "reason": "Latest react/import/jsx-a11y publishers still declare ESLint<=9 peer ranges. Existing local $eslint overrides and scoped matcher compatibility remain unchanged; real lint policy/matcher regressions pass on ESLint10.14.0. No claim that upstream peer ranges were expanded."
+      },
+      {
+        "package": "Sharp optional WASM graph",
+        "reason": "Fresh npm ci leaves the unchanged locked @img/sharp-wasm32@0.35.5 and @emnapi/runtime@1.11.3 marked extraneous in root/docs npm-ls JSON due OS-specific optional wrapper reachability. npm-ls exits0; no missing/invalid peer entries. Cross-platform locked entries were preserved rather than pruned to conceal the observation."
+      }
+    ],
+    "lazyRuntimePins": [
+      {
+        "name": "better-sqlite3",
+        "version": "13.0.3",
+        "status": "already-publisher-latest-stable"
+      },
+      {
+        "name": "better-sqlite3",
+        "version": "12.11.1",
+        "status": "already-latest-stable-in-retained-legacy12-branch; does not extend supported Node floor"
+      },
+      {
+        "name": "sql.js",
+        "version": "1.15.2",
+        "status": "already-publisher-latest-stable"
+      },
+      {
+        "name": "systray2",
+        "version": "2.1.4",
+        "status": "already-publisher-latest-stable"
+      },
+      {
+        "name": "esbuild",
+        "version": "0.28.2",
+        "status": "already-publisher-latest-stable; exact lifecycle approvals unchanged"
+      }
+    ],
+    "installerSafety": {
+      "newOrChangedLifecyclePackages": [],
+      "preservedApprovals": {
+        "cli": "esbuild@0.28.2",
+        "gitbook": "esbuild@0.28.2",
+        "root": "better-sqlite3@13.0.3 (N-API packaged native, no lifecycle script)"
+      },
+      "isolatedInstalls": true,
+      "globalNpmConfigurationChanged": false
+    },
+    "validation": {
+      "matchingInstalls": {
+        "projects": 4,
+        "result": "passed",
+        "warnings": 0
+      },
+      "installedDependencyChecks": {
+        "result": "passed",
+        "root": 48,
+        "cli": 5,
+        "tests": 2,
+        "docs": 12,
+        "log": "installed-check.log",
+        "sha256": "6c9f61b4543f1eeeaf66ecf07d1328edba0b8477bdff03272c631f6c3c92fccb"
+      },
+      "audits": {
+        "projects": 4,
+        "threshold": "low",
+        "findingsAtAllSeverities": 0
+      },
+      "focusedVitest": {
+        "files": 12,
+        "passed": 167,
+        "failed": 0,
+        "stderrSections": 0,
+        "log": "focused-compat-tests.log",
+        "sha256": "927221c5a9f61793f0880df0448a2ed4dcc4872f462982693d9911203952b4bd"
+      },
+      "docsTests": {
+        "passed": 2,
+        "failed": 0,
+        "log": "docs-tests.log",
+        "sha256": "ed7e4bf3025cca64e628a0d7574cd5bab87b1438f5640497188efd83bad7e2b3"
+      },
+      "focusedLint": {
+        "maxWarnings": 0,
+        "result": "passed",
+        "log": "focused-lint.log",
+        "sha256": "9dd68d293479896c908972baeb14533a412933444c8bb4b339d371ccc94c1034"
+      }
+    },
+    "unlockedToolingNote": "gitbook deploy uses unversioned npx wrangler; current publisher latest4.157.0 was inventoried, but deployment was not run and no new deployment-tool dependency was added. npm11.9.0 is the selected environment tool, not a project dependency; no global npm upgrade was attempted."
+  },
+  "changelog": {
+    "coveredHistoricalCommits": [
+      {
+        "sha": "5412f00462855fcefc38cd7c5ac4a48ecdeaf6b8",
+        "scope": "SQL.js JS/WASM actual CLI package and fallback persistence/restart"
+      },
+      {
+        "sha": "aad493863fc12385edbdefe555642179a5ce3d55",
+        "scope": "client/signature identity, credential destination and UI draft consistency"
+      },
+      {
+        "sha": "4c5b73c025856d3ed23521e00768348404e35f98",
+        "scope": "signed history, project/OAuth, native Responses/search, provider catalogs and Usage UI"
+      },
+      {
+        "sha": "d598b149f965e026c1de2dace79f17a4232feac7",
+        "scope": "reviewed exact-version dependency install-script approvals"
+      },
+      {
+        "sha": "e03cec826a9c3c09943631e4253872dce1d7bff5",
+        "scope": "translator/SSE hot paths, local npm repair, web-fetch format fidelity"
+      }
+    ],
+    "pr6AndFollowupCovered": true,
+    "historical105AndOlderSuffixUnchanged": true,
+    "historicalSuffixSha256": "b9c6acc10d5594703edd986b00e63219e2cd5a224141c7cc4f8b40039958654a",
+    "trackedChangelogSha256": "5b72e8c8ae6eeec010ad6f5205a429d646096ad930e6ca71f88675e9437327f7",
+    "productionTimings": "PR-author observations are not presented as independent measurements.",
+    "publicationState": "No1.0.6 tag/release/publication claimed. Historical1.0.5 header is source history; captured GitHub release/ref v1.0.5 reads returned404."
+  },
+  "localPreflight": {
+    "immutableExactSourceProof": false,
+    "timingLimit": "The broad run began before/during the final two asynchronous cache guards. Its green status is preliminary; exact final committed-source remote CI is mandatory before bump.",
+    "vitest": {
+      "passed": 10973,
+      "skipped": 99,
+      "failed": 0,
+      "files": 862,
+      "nestedSuites": 2417,
+      "stderrSections": 0
+    },
+    "browser": {
+      "passed": 32,
+      "exitCode": 0
+    },
+    "docsTests": {
+      "passed": 18,
+      "exitCode": 0
+    },
+    "checks": {
+      "prebump-lint": 0,
+      "prebump-app-build": 0,
+      "prebump-cli-pack": 0,
+      "docs-prebump-build": 0
+    },
+    "coordinatorReportedFinalScopedGate": {
+      "passed": 107,
+      "files": 8,
+      "reportedTimeUtc": "2026-11-05T08:45:32Z",
+      "wholeLintMaxWarnings": 0,
+      "versionGuard": "v1.0.5 passed",
+      "packedSqlJsFallbackPersistenceRestart": "passed",
+      "evidenceBoundary": "Reported by coordinating agent; exact-source remote evidence will be appended after CI."
+    }
+  },
+  "evidenceSha256": {
+    "prebump-vitest.json": "49f8eb649bd57c618a7b59d00f26897c2a248e6211c67eee2b9f01ff1d3932d6",
+    "prebump-vitest.log": "33b3ed090ff6fd9bf90855c8d3d9b7b3f8ec5ed7723c187effbc90a7e6be8dab",
+    "prebump-lint.log": "03aecd5268af29933aeff8ed9b574860e1c22c6d0b87656d5b485d130bb0151a",
+    "prebump-app-build.log": "d6f6da0e8b6893aefa0664f26f57c5de3e0f5db88e99e8d04cf364c59ca57829",
+    "prebump-browser.log": "f8903e86696d33f71dfcffaab9a89931e8277babee2f8d5dcdc46bb6de45551b",
+    "prebump-cli-pack.log": "efa195bfa8b71c43f17afd83bc7cee82de849112a4d606b54796efa0a5010277",
+    "docs-prebump-test.log": "96ad329194c833cf03e09ee80fb6ee7e1984eacd4be64b47247c1ce6637b6c7b",
+    "docs-prebump-build.log": "1799520401e111c074a17d4c59290e7247bc481fc96075895c3bd72e6de42bf2",
+    "codex/focused-final.log": "5d7d607df4ad113273b94cd64729847afb36c748f417698c0e8c8a745ac228be",
+    "codex/hint-aba-before.log": "1e05b95521a2e532621345326d2776576e7834803ca5dc992c7c6bde2c11d192",
+    "codex/hint-aba-after.log": "f806d7a654d6ad60a43447dfd946725c34c86c710b52f43c2f6e3c81cd749596",
+    "codex/lifecycle-public-proof.json": "a00e2d550a34bb451df3fa64d75dcf2a2ef075600fd935ef079b7dcbb38f9ee6",
+    "codex/final-proof.json": "b08959f153f02e78af72afeb13918317335b463c296f3de01a565e378d87b97e",
+    "entitlement-review/final-proof.json": "4a0eef7301cd9b767015a30616372157580ba205b005ed2f4254888d1dd14eeb",
+    "entitlement-review/final-context-probe.json": "2f0d87bcd42a581fa9a0a902362bf4ea870e3e629aaaf3456986a3cad622571e",
+    "deps/dependency-upgrade-proof.json": "9c6d44f5a3814cf25b12fe015af44e7e53327de5a460ecfd08614883f8334420",
+    "deps/lifecycle-review.json": "42c37c06c858818839c257a00120940bc02e83544e95887d37c74f8d6c47392d",
+    "changelog/coverage-map.md": "9ca698f294df6dc3eb87ad470e5daa6d28c7de45fab335076ffdb2f38f2f7781",
+    "changelog/summary.json": "2d739e573507890d8f937ece278515ca373e62391a8074f69806bba7085a9bab",
+    "pr-review/review-findings.json": "22348d49e0dae594a41198d61859475fa0017afae2c6b9faf55174f10015f721",
+    "pr-review/probe-import-entitlement.json": "b8b79f30ad1686713b62218e79b4576e35c62954835ee42d3507f56aacb9f889",
+    "pr-review/capture-index.json": "d23275b7f6f88670a4ee7846d8e3322ad53b360b32a726f7e745c4c5736b4183"
+  },
+  "limits": [
+    "No live provider/account entitlement tests, paid calls, production latency claims or ban-prevention guarantees.",
+    "Local synthetic fixtures and source hash verification do not establish release publication, deployment or cross-platform native execution.",
+    "Final version bump, exact-source post-bump checks, tag/release/npm/container publication remain separate gates."
+  ]
+}

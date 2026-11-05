@@ -1,5 +1,20 @@
 # Changelog
 
+## Kitsune Router 1.0.6 — 2026-11-05 source follow-up
+
+This source revision strengthens request/account isolation, original signed
+history, OAuth/project validation and credential checks. It includes the
+121-provider catalog review, translation/SSE CPU improvements, CLI SQL.js/local
+runtime repairs and scoped routing after observed Codex model-plan denials.
+The dependency refresh aligns the reviewed stable snapshot, including Next
+16.4.5, Vite 8.3.6 and Vitest 5.1.0.
+
+Source verification does not establish npm/GHCR publication, deployment or live
+account entitlement. Earlier artifact records and private-state requirements
+remain unchanged.
+
+[Technical source notes](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [Source/artifact status](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md).
+
 ## Kitsune Router 1.0.5 — 2026-10-31 source closing
 
 Version 1.0.5 consolidates the dated source-development entries below. It adds

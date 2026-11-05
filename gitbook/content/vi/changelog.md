@@ -1,5 +1,19 @@
 # Nhật ký thay đổi
 
+## Kitsune Router 1.0.6 — cập nhật mã nguồn ngày 2026-11-05
+
+Phiên bản này tăng cường cách ly yêu cầu/tài khoản, lịch sử có chữ ký gốc,
+xác thực OAuth/dự án và kiểm tra thông tin kết nối. Bản cập nhật gồm rà soát
+danh mục 121 nhà cung cấp, giảm chi phí CPU dịch yêu cầu/SSE đã đo, sửa đóng gói
+SQL.js và cài đặt runtime cục bộ của CLI, cùng định tuyến theo từ chối mô hình
+do gói tài khoản Codex với phạm vi cách ly rõ ràng. Các phụ thuộc theo bản ổn định
+đã rà soát được cập nhật, gồm Next 16.4.5, Vite 8.3.6 và Vitest 5.1.0.
+
+Kiểm tra mã nguồn không xác nhận xuất bản npm/GHCR, triển khai hay quyền truy cập
+tài khoản thực. Giữ nguyên hồ sơ hiện vật cũ, dữ liệu riêng và bí mật khi nâng cấp.
+
+[Chi tiết mã nguồn](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [Trạng thái mã nguồn và hiện vật](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md).
+
 ## Kitsune Router 1.0.5 — chốt mã nguồn ngày 2026-10-31
 
 Phiên bản 1.0.5 tổng hợp các ghi chép phát triển mã nguồn có ngày ở bên dưới.

@@ -1,5 +1,20 @@
 # 変更履歴
 
+## Kitsune Router 1.0.6 — 2026-11-05 ソースの追加更新
+
+リクエストとアカウントの分離、元の署名付き履歴、OAuth・プロジェクトの検証、
+接続資格情報の確認を強化しました。121 プロバイダーのカタログ確認、計測した変換・
+SSE の CPU 処理削減、CLI の SQL.js 梱包とローカル runtime インストール修正を含みます。
+Codex がアカウントのプランを理由にモデルを拒否した後のルーティング情報も、適切な
+範囲に分離します。依存関係は確認した安定版に合わせ、Next 16.4.5、Vite 8.3.6、
+Vitest 5.1.0 などを更新しました。
+
+ソースの検証は npm/GHCR の公開、配備、実アカウントの利用権限を証明しません。
+以前の成果物の記録を保持し、アップグレード時は既存の非公開データと秘密情報を
+引き継いでください。
+
+[ソース技術メモ](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [ソースと成果物の状態](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)。
+
 ## Kitsune Router 1.0.5 — 2026-10-31 ソースの締め
 
 1.0.5 は下記の日付付き開発記録をまとめたソース版です。OIDC nonce の明示的検証、
