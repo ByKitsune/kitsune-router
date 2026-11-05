@@ -16,12 +16,15 @@ and [actual publication/known-issue receipt](docs/audit/33-1.0.6-publication-and
   adopt old unsaved states and validate installed versions. Saved exact installs
   preserve siblings; N-API paths avoid native build tools without changing the
   reviewed dependency graph, including Undici 8.12.4.
+- Deny the exact managed N-API native build lifecycle under npm 11.17, preserving
+  unrelated script decisions and invalid manifest bytes without filtering warnings.
 - Extend bounded registry visibility checks to 24 reads / 571 seconds of total
   read-only backoff, with no repeated publish/tag writes. Preserve original bytes
   on exhaustion and terminal auth/network/malformed response handling.
-- Record 23 focused retention tests, including 12 new regressions covering real
-  npm retention/upgrade and invalid-manifest preservation, plus 54 publisher tests.
-  Four malformed-manifest cases intentionally run no npm. A normal-install/two-start working-tree local
+- Record 30 focused retention/script-policy tests under npm 11.17, including real
+  npm retention/upgrade, policy preservation and invalid-manifest checks, plus
+  54 publisher tests. Invalid-manifest and policy-only cases intentionally avoid
+  package installation. A normal-install/two-start working-tree local
   precheck passes on Node 22.19.0; it is not the final CI candidate or release.
   Exact committed-source CI and a normally installed final candidate must pass
   before tagging/publication. Keep published 1.0.7 and its known issue below.

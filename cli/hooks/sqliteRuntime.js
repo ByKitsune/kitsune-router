@@ -55,11 +55,19 @@ function retainRuntimeDependency(name, version) {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
   const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
   if (!isObject(pkg) || (pkg.dependencies !== undefined && !isObject(pkg.dependencies))
-      || (pkg.optionalDependencies !== undefined && !isObject(pkg.optionalDependencies))) {
-    throw new Error("Runtime package.json must contain valid dependency objects");
+      || (pkg.optionalDependencies !== undefined && !isObject(pkg.optionalDependencies))
+      || (pkg.allowScripts !== undefined && (!isObject(pkg.allowScripts)
+        || Object.values(pkg.allowScripts).some(value => typeof value !== "boolean")))) {
+    throw new Error("Runtime package.json must contain valid dependency and script-policy objects");
   }
-  if (pkg.optionalDependencies?.[name] === version && !Object.hasOwn(pkg.dependencies || {}, name)) return;
+  // New npm releases also review the implicit binding.gyp lifecycle after a
+  // later sibling install. This managed N-API pin uses its bundled prebuild:
+  // deny only that exact build lifecycle, retaining all other user decisions.
+  const deniedScript = USE_NAPI_BUILD && name === "better-sqlite3" ? `${name}@${version}` : null;
+  if (pkg.optionalDependencies?.[name] === version && !Object.hasOwn(pkg.dependencies || {}, name)
+      && (!deniedScript || pkg.allowScripts?.[deniedScript] === false)) return;
   const next = { ...pkg, optionalDependencies: { ...pkg.optionalDependencies, [name]: version } };
+  if (deniedScript) next.allowScripts = { ...pkg.allowScripts, [deniedScript]: false };
   if (Object.hasOwn(pkg.dependencies || {}, name)) {
     next.dependencies = { ...pkg.dependencies };
     delete next.dependencies[name];

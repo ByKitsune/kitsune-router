@@ -55,6 +55,20 @@ const tray = load('trayRuntime.js', sqlite);
 const installed = () => Object.fromEntries(['better-sqlite3', 'systray2'].map(name =>
   [name, fs.existsSync(path.join(options.data, 'runtime/node_modules', name, 'package.json'))]));
 try {
+  const specs = Object.entries(options.initial || {}).map(([name, version]) => name + '@' + version);
+  let seed;
+  if (specs.length) {
+    // Model an old --no-save npm installation, including its resolved hidden
+    // lock metadata. Copying package.json alone fabricates an untrusted source
+    // that current npm correctly refuses to match to an exact registry policy.
+    const result = cp.spawnSync('npm', ['install', ...specs, '--no-save', '--ignore-scripts',
+      '--no-audit', '--no-fund', '--prefer-online', '--global=false', '--location=project',
+      '--prefix', path.join(options.data, 'runtime')], {
+      cwd: path.join(options.data, 'runtime'), env, encoding: 'utf8', timeout: 60000,
+    });
+    seed = { status: result.status, stderr: result.stderr };
+    if (result.status !== 0) throw new Error('Legacy npm fixture seed failed: ' + result.stderr);
+  }
   const first = {};
   for (const which of options.order) first[which] = which === 'sqlite'
     ? sqlite.ensureSqliteRuntime({ silent: false }) : tray.ensureTrayRuntime({ silent: false });
@@ -62,13 +76,13 @@ try {
   const before = calls.length;
   const second = { sqlite: sqlite.ensureSqliteRuntime({ silent: false }), tray: tray.ensureTrayRuntime({ silent: false }) };
   process.stdout.write(JSON.stringify({ first, firstInstalled, second, installed: installed(),
-    secondInstallCalls: calls.length - before, calls, warnings }));
+    secondInstallCalls: calls.length - before, calls, warnings, seed }));
 } catch (error) {
   process.stdout.write(JSON.stringify({ error: error.message, calls, warnings }));
 }
 `;
 
-function createArea({ bundledSqlJs = true } = {}) {
+function createArea({ bundledSqlJs = true, allowScripts = { "better-sqlite3@13.0.3": false } } = {}) {
   const area = fs.mkdtempSync(path.join(os.tmpdir(), "kitsune runtime retention "));
   areas.push(area);
   const data = path.join(area, "private data");
@@ -81,6 +95,10 @@ function createArea({ bundledSqlJs = true } = {}) {
   fs.writeFileSync(path.join(runtime, "package.json"), JSON.stringify({
     name: "private-runtime-fixture", version: "1.0.0", private: true,
     fixtureMetadata: { keep: ["existing", "metadata"] },
+    // The synthetic native install script is a deliberate trap, reviewed as
+    // denied. Keep command assertions below so this policy cannot mask loss
+    // of the production --ignore-scripts guards on supported N-API installs.
+    ...(allowScripts === undefined ? {} : { allowScripts }),
   }));
   const script = path.join(area, "hooks-fixture.cjs");
   fs.writeFileSync(script, harness);
@@ -90,7 +108,7 @@ function createArea({ bundledSqlJs = true } = {}) {
 }
 
 function fixturePackage(area, name, version, { unsupported = false } = {}) {
-  const folder = path.join(area, name, "package");
+  const folder = path.join(area, `${name}-${version}`, "package");
   fs.mkdirSync(folder, { recursive: true });
   const pkg = { name, version, ...(unsupported ? { os: [`!${process.platform}`] } : {}),
     ...(name === "better-sqlite3" ? { scripts: { install: "node -e \"process.exit(97)\"" } } : {}) };
@@ -119,20 +137,22 @@ function fixturePackage(area, name, version, { unsupported = false } = {}) {
 
 async function fixtureRegistry(area, options = {}) {
   const packages = [fixturePackage(area, "better-sqlite3", "13.0.3", { unsupported: options.unsupportedNative }),
-    fixturePackage(area, "systray2", "2.1.4"), fixturePackage(area, "sql.js", "1.15.2")];
+    fixturePackage(area, "systray2", "2.1.4"), fixturePackage(area, "sql.js", "1.15.2"),
+    fixturePackage(area, "better-sqlite3", "12.11.1"), fixturePackage(area, "systray2", "2.1.3")];
   const requests = [];
   const server = http.createServer((req, res) => {
     requests.push(req.url);
     const requestPath = new URL(req.url, "http://fixture.invalid").pathname;
-    const pkg = packages.find(pkg => requestPath === `/${pkg.name}` || requestPath === `/${pkg.name}/-/${pkg.name}-${pkg.version}.tgz`);
-    if (!pkg) { res.writeHead(404).end(); return; }
-    if (requestPath.endsWith(".tgz")) { res.writeHead(200, { "content-type": "application/octet-stream" }).end(pkg.bytes); return; }
+    const tarball = packages.find(pkg => requestPath === `/${pkg.name}/-/${pkg.name}-${pkg.version}.tgz`);
+    if (tarball) { res.writeHead(200, { "content-type": "application/octet-stream" }).end(tarball.bytes); return; }
+    const matching = packages.filter(pkg => requestPath === `/${pkg.name}`);
+    if (!matching.length) { res.writeHead(404).end(); return; }
     const base = `http://127.0.0.1:${server.address().port}`;
     res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({
-      name: pkg.name, "dist-tags": { latest: pkg.version }, versions: { [pkg.version]: {
+      name: matching[0].name, "dist-tags": { latest: matching[0].version }, versions: Object.fromEntries(matching.map(pkg => [pkg.version, {
         ...pkg.pkg, dist: { tarball: `${base}/${pkg.name}/-/${pkg.name}-${pkg.version}.tgz`,
           integrity: `sha512-${createHash("sha512").update(pkg.bytes).digest("base64")}` },
-      } },
+      }])),
     }));
   });
   servers.push(server);
@@ -140,13 +160,13 @@ async function fixtureRegistry(area, options = {}) {
   return { packages, requests, url: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runHooks(fixture, registry, order) {
+async function runHooks(fixture, registry, order, initial = {}) {
   const env = { ...process.env, npm_config_userconfig: fixture.userconfig,
     npm_config_cache: path.join(fixture.area, "npm cache"), npm_config_update_notifier: "false",
     npm_config_registry: registry.url, npm_config_fetch_retries: "0",
     npm_config_global: "true", npm_config_prefix: path.join(fixture.area, "unused global prefix"),
     npm_config_location: "global" };
-  const child = await exec(process.execPath, [fixture.script, JSON.stringify({ ...fixture, root, order })], { env, timeout: 60000 });
+  const child = await exec(process.execPath, [fixture.script, JSON.stringify({ ...fixture, root, order, initial })], { env, timeout: 60000 });
   expect(child.stderr).toBe("");
   return JSON.parse(child.stdout);
 }
@@ -165,18 +185,11 @@ describe("managed runtime dependencies survive real npm sibling installs", () =>
   ])("retains both packages and skips second-startup installs: $initial / $order", async ({ initial, order, oldVersions, bundledSqlJs }) => {
     const fixture = createArea({ bundledSqlJs });
     const registry = await fixtureRegistry(fixture.area);
-    for (const name of initial) {
-      fs.cpSync(registry.packages.find(pkg => pkg.name === name).folder,
-        path.join(fixture.runtime, "node_modules", name), { recursive: true });
-      if (oldVersions) {
-        const manifest = path.join(fixture.runtime, "node_modules", name, "package.json");
-        const pkg = JSON.parse(fs.readFileSync(manifest, "utf8"));
-        pkg.version = name === "better-sqlite3" ? "12.11.1" : "2.1.3";
-        fs.writeFileSync(manifest, JSON.stringify(pkg));
-      }
-    }
-    const result = await runHooks(fixture, registry, order);
+    const seed = Object.fromEntries(initial.map(name => [name,
+      name === "better-sqlite3" ? (oldVersions ? "12.11.1" : "13.0.3") : (oldVersions ? "2.1.3" : "2.1.4")]));
+    const result = await runHooks(fixture, registry, order, seed);
     expect(result.error).toBeUndefined();
+    if (initial.length) expect(result.seed).toEqual({ status: 0, stderr: "" });
     expect(result.firstInstalled).toEqual({ "better-sqlite3": true, systray2: true });
     expect(result.installed).toEqual(result.firstInstalled);
     expect(result.second.sqlite).toEqual({ betterSqlite: true, sqlJs: true });
@@ -186,19 +199,46 @@ describe("managed runtime dependencies survive real npm sibling installs", () =>
     for (const call of result.calls) {
       expect(call.status, call.stderr).toBe(0);
       expect(call.stderr).toBe("");
+      if (call.args.some(arg => arg === "better-sqlite3@13.0.3" || arg === "sql.js@1.15.2")) {
+        expect(call.args).toContain("--ignore-scripts");
+      }
     }
     if (initial.length === 2 && !oldVersions) {
       expect(result.calls).toEqual([]);
-      expect(registry.requests).toEqual([]);
     }
     const manifest = JSON.parse(fs.readFileSync(path.join(fixture.runtime, "package.json"), "utf8"));
     expect(manifest.optionalDependencies).toEqual({ "better-sqlite3": "13.0.3", systray2: "2.1.4" });
+    expect(manifest.allowScripts["better-sqlite3@13.0.3"]).toBe(false);
     if (bundledSqlJs === false) expect(manifest.dependencies["sql.js"]).toBe("1.15.2");
     expect(manifest.fixtureMetadata).toEqual({ keep: ["existing", "metadata"] });
     expect(fs.readFileSync(path.join(fixture.data, "existing-state"), "utf8")).toBe("existing state stays byte identical");
     expect(fs.existsSync(path.join(fixture.area, "unused global prefix"))).toBe(false);
     expect(fs.readFileSync(fixture.userconfig, "utf8")).toBe("");
     expect(fs.readdirSync(fixture.runtime).some(name => name.endsWith(".tmp"))).toBe(false);
+  }, 90000);
+
+  it.skipIf(process.platform === "win32").each([
+    {},
+    { "better-sqlite3@13.0.3": true, "better-sqlite3@12.11.1": true, "unrelated-addon": true, "blocked-addon@2.0.0": false },
+    { "better-sqlite3": true, "better-sqlite3@13.0.3": false, "unrelated-addon": false },
+  ])("denies only the managed N-API lifecycle and preserves other reviewed decisions: %j", async allowScripts => {
+    const fixture = createArea({ allowScripts });
+    const registry = await fixtureRegistry(fixture.area);
+    for (const pkg of registry.packages.filter(pkg => (pkg.name === "better-sqlite3" && pkg.version === "13.0.3")
+      || (pkg.name === "systray2" && pkg.version === "2.1.4"))) {
+      fs.cpSync(pkg.folder, path.join(fixture.runtime, "node_modules", pkg.name), { recursive: true });
+    }
+    const result = await runHooks(fixture, registry, ["sqlite", "tray"]);
+    expect(result.error).toBeUndefined();
+    expect(result.calls).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(registry.requests).toEqual([]);
+    const manifest = JSON.parse(fs.readFileSync(path.join(fixture.runtime, "package.json"), "utf8"));
+    expect(manifest.allowScripts).toEqual({ ...allowScripts, "better-sqlite3@13.0.3": false });
+    const original = fs.readFileSync(path.join(fixture.runtime, "package.json"));
+    const second = await runHooks(fixture, registry, ["sqlite", "tray"]);
+    expect(second.calls).toEqual([]);
+    expect(fs.readFileSync(path.join(fixture.runtime, "package.json"))).toEqual(original);
   }, 90000);
 
   it.skipIf(process.platform === "win32")("keeps unsupported native installation optional and reports its absence", async () => {
@@ -212,7 +252,11 @@ describe("managed runtime dependencies survive real npm sibling installs", () =>
     expect(result.warnings.some(warning => /SQLite engine unavailable/.test(warning))).toBe(true);
   }, 90000);
 
-  it.skipIf(process.platform === "win32").each(["{malformed", "null", "[]", '{"optionalDependencies":[]}'])("preserves invalid runtime manifests byte-for-byte: %s", async original => {
+  it.skipIf(process.platform === "win32").each([
+    "{malformed", "null", "[]", '{"optionalDependencies":[]}',
+    '{"allowScripts":[]}', '{"allowScripts":null}', '{"allowScripts":true}',
+    '{"allowScripts":{"better-sqlite3@13.0.3":"true"}}',
+  ])("preserves invalid runtime manifests byte-for-byte: %s", async original => {
     const fixture = createArea();
     fs.writeFileSync(path.join(fixture.runtime, "package.json"), original);
     const result = await runHooks(fixture, { url: "http://127.0.0.1:1" }, ["sqlite", "tray"]);

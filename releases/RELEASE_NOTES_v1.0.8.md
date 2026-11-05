@@ -8,6 +8,8 @@ for actual channel availability and final-artifact verification.
 - Retain exact optional SQLite/tray pins atomically before runtime fast paths,
   adopt existing unsaved states and validate installed versions. Saved exact
   installs preserve siblings; supported N-API paths avoid native build tools.
+- Deny only the exact managed native N-API build lifecycle under npm 11.17;
+  preserve unrelated script decisions and reject malformed policy maps unchanged.
 - Preserve unrelated/invalid runtime manifests, local-project selection and
   existing registry/proxy/authentication/CA settings; optional failures remain
   visible. The dependency graph is unchanged, including Undici **8.12.4**.
@@ -17,10 +19,11 @@ for actual channel availability and final-artifact verification.
 
 ## Recorded validation and release gates
 
-The retention cluster passes **23 focused tests**, including **12 new regressions
-covering real npm retention/upgrade and invalid-manifest preservation**. Four
-malformed-manifest cases intentionally run no npm; real npm cases use local
-fixture registries. Successful retained cases have zero second-start installs. The registry-readback cluster passes **54 focused tests**. These
+The retention/script-policy cluster passes **30 focused tests under npm 11.17**,
+covering real npm retention/upgrade, policy preservation and invalid manifests.
+Policy-only and malformed-manifest cases intentionally avoid package installation;
+real npm cases use local fixture registries. Successful retained cases have zero
+second-start installs. The registry-readback cluster passes **54 focused tests**. These
 controlled fixtures do not establish a published 1.0.8 package or native runtime.
 
 A separate working-tree local precheck passes ordinary lifecycle-enabled install

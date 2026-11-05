@@ -1,0 +1,10 @@
+{
+  "capturedAtUtc": "2026-11-05T18:47:38.922123+00:00",
+  "scope": "Supplemental interpretation correction; original10c2 failure bytes/receipt retained unchanged.",
+  "originalFailureReceiptSha256": "2018b8315b792cabdb09eacf50a08fe0c75d84317b1d3aac335440f1c8144b40",
+  "correction": "Coordinator/runtime-owner exact npm11.17 reproduction also produced allow-scripts warnings for real installed better-sqlite3@13.0.3 due installed-package normalization to node-gyp rebuild, despite registry gypfile:false and no explicit install lifecycle. It is not solely a synthetic fixture warning.",
+  "evidenceBoundary": "The watcher independently captured the five actual synthetic-trap CI warning failures. The real-package reproduction is attributed to the coordinator/runtime owner and will have its own proof.",
+  "ordinaryCandidateGate": "The exact10c2 candidate floor Node22.19 ordinary-install/two-start pass remains valid at that tested npm/runtime combination. It does not establish npm11.17 readiness or override the two failed full source CI runs.",
+  "nextStep": "Runtime owner prepares narrow managed N-API lifecycle denial with strict stderr/ignore-scripts guards retained, then a new immutable source commit and fresh CI/candidate gates before any tag8.",
+  "mutationsByWatcher": false
+}

@@ -16,10 +16,15 @@ invalid manifest bytes, reports optional unavailability, and retains transport,
 authentication, CA and local-project boundaries. N-API/missing SQL.js repair paths
 do not require native build tools.
 
-Focused validation passes **23 tests**, including **12 new regressions covering
-real npm retention/upgrade and invalid-manifest preservation**. Actual npm cases
-use local HTTP registry fixtures; four malformed-manifest cases intentionally run
-no npm. Tiny tarballs and a fake native binary that is never loaded do not certify
+The exact managed N-API lifecycle is explicitly denied for npm 11.17, which can
+normalize an implicit native rebuild during a later sibling install. Unrelated
+approvals/denials remain intact; invalid policy maps are preserved without writes.
+
+Focused validation passes **30 tests under npm 11.17**, covering real npm
+retention/upgrades, script-policy preservation and invalid manifests. Policy-only
+and malformed-manifest cases intentionally avoid package installation; real npm
+cases use local HTTP registry fixtures. Tiny tarballs and a fake native binary
+that is never loaded do not certify
 the final published native runtime. Successful retained fixtures have zero
 second-start npm subprocesses.
 

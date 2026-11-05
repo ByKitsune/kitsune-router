@@ -1,0 +1,186 @@
+{
+  "capturedAtUtc": "2026-11-05T18:54:33.198393+00:00",
+  "scope": "Uncommitted correction of npm11.17 runtime lifecycle review; source CI/publication coordinator-owned",
+  "node": "v24.19.0",
+  "npm": "11.17.0",
+  "initialObservation": {
+    "syntheticFixture": "Original exactnpm11.17 run reproduced5 failures/7passes at strict empty stderr assertion",
+    "actualPublicPackages": "better-sqlite3@13.0.3 --ignore-scripts exited0/stderr0; following systray2@2.1.4 install exited0 but warned that native13 implicit node-gyp rebuild was unreviewed",
+    "registryMetadataBoundary": "Actual native13 has gypfile:false and no explicit install script; npm11.17 still reviews the implicit lifecycle after sibling install"
+  },
+  "correction": {
+    "managedPolicy": {
+      "better-sqlite3@13.0.3": false
+    },
+    "scope": "N-API branch only; exact managed pin denial intentionally replaces current managed true; other/older approvals and denials retained",
+    "invalidPolicy": "Malformed maps/values preserved byte-for-byte and rejected before writes",
+    "fixture": "Reviewed explicit denial for synthetic trap; real npm legacy seed preserves resolved provenance; --ignore-scripts assertions remain mandatory for native13 and missingSQLjs repair",
+    "warningSuppression": false,
+    "broadApproval": false
+  },
+  "focusedTests": {
+    "files": 4,
+    "passed": 30,
+    "failed": 0,
+    "retentionCases": 19,
+    "successfulInstallStderr": "empty, asserted",
+    "secondStartupNpmCalls": 0,
+    "lintWarnings": 0,
+    "lintErrors": 0,
+    "diffCheck": "passed"
+  },
+  "actualPublicPackageChecks": {
+    "native13ThenTray": {
+      "first": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "second": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "secondInstallCalls": 0,
+      "calls": [
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "better-sqlite3@13.0.3",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-optional",
+            "--save-exact",
+            "--ignore-scripts",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "systray2@2.1.4",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-optional",
+            "--save-exact",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "nativeQuery": 1,
+      "optionalDependencies": {
+        "better-sqlite3": "13.0.3",
+        "systray2": "2.1.4"
+      },
+      "allowScripts": {
+        "better-sqlite3@13.0.3": false
+      }
+    },
+    "missingSqlJsNative13ThenTray": {
+      "first": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "second": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "secondInstallCalls": 0,
+      "calls": [
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "sql.js@1.15.2",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-prod",
+            "--save-exact",
+            "--ignore-scripts",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "systray2@2.1.4",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-optional",
+            "--save-exact",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "nativeQuery": 1,
+      "optionalDependencies": {
+        "better-sqlite3": "13.0.3",
+        "systray2": "2.1.4"
+      },
+      "allowScripts": {
+        "better-sqlite3@13.0.3": false
+      }
+    }
+  },
+  "boundaries": {
+    "hostCliStarted": false,
+    "gatewayStarted": false,
+    "providerCalls": false,
+    "globalNpmChanged": false,
+    "frozenSourceMatchesRealHookCopy": true
+  },
+  "fileSha256": {
+    "cli/hooks/sqliteRuntime.js": "ef8bdd3b00a80274e64b4e2b27dc90035ad20e4249f071a7911ca2295601a679",
+    "cli/hooks/trayRuntime.js": "c55bc2e30a1d073b288c256ad52389363dd907633aa9a33d1475f59b4361d277",
+    "tests/unit/cli-runtime-retention.test.js": "2e6aa5aa5b515e3dca942acf660fb96a0c089f84e6e430028eebb6689c1f3069"
+  },
+  "evidenceSha256": {
+    "before.log": "1309c2cd4c6ab426274e548b34df5cac3a8f20ed9de595331bc67c901d26600b",
+    "real-runtime-results.json": "2b7acc69c9fb62311effaf3b423950e3f1dd6a8b179d6b4bae199e24e37066fa",
+    "real-tray.stderr.log": "e4e6e783c8d4df4f452469b1cbc6531a62009483769e6567381c8233723286f5",
+    "after-final.log": "9846b41597bd28b0f5a742c9b18d3c2898f28e10318424f9495896b898069b38",
+    "managed-real-results.json": "32d091103c2834c6760249ff9d42d44d89df2f94d87c65a4a75b359a6568f970",
+    "managed-real.stdout.log": "10086d00257bd844d4311f7c3f1b45f35f57da27bb70dd5b049374e77a5349c9",
+    "managed-real.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "managed-real-native-first-results.json": "3b5b4b16665e12e092d792ae50e6578e45b6febe5fa28a9df584d1eda6e3a4b4",
+    "managed-real-native-first.stdout.log": "440a2598358a07c028db535df3410ed1979f25d03d7b3e59f2fd4179ac2a932b",
+    "managed-real-native-first.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

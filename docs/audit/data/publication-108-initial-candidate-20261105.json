@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "boundary": "exact committed CI candidate only; not original/public release artifact",
+  "version": "1.0.8",
+  "sourceSha": "10c2a80eca9e02c7e561b5f20e942aa6b56742b9",
+  "sourceTree": "8bb83952e2bff10b8adb65e9278945538d5e84df",
+  "runId": 42085595199,
+  "candidateSha256": "c978d4bddf3ef96099f60247d849976852b6401d702ea2c10425abdb716a3185",
+  "independentCandidateArchiveProof": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/committed-candidate-integrity.json",
+    "sha256": "5bf071b710b7c52413df806edb603ebeadf3b7aa4c059cb5b39446ad4db9b783"
+  },
+  "actualNormalInstallAndTwoStartProof": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/committed-candidate-floor22.19.0/verification.json",
+    "sha256": "a847ab193120818f363915cea73fabc1a54c00e6751bcd494cae8fbe16e0f0f8"
+  },
+  "logReview": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/committed-candidate-log-review.json",
+    "sha256": "7329311c47e082ff27db66965d30be7de85d272d1c4f3a4c07919363517c99b6"
+  },
+  "normalLifecycleInstallation": true,
+  "supportedFloorRuntime": "Node22.19.0/Linuxx64musl/nonroot1000",
+  "nativeAndTrayExactSavedPinsRetained": true,
+  "noInjectedNativeOrSqlJsOptIn": true,
+  "ordinaryCliTwoStartsNetworkNone": true,
+  "actualAppDatabaseDriver": "better-sqlite3",
+  "authCatalogAndExactActiveKeySessionSecretBytePersistence": "passed",
+  "runtimeWarnings": 0,
+  "runtimeErrors": 0,
+  "startupNpmObservedCalls": 0,
+  "npmObservationLimit": "25ms process sampling plus unchanged managed dependency and complete npm cache content snapshots; no npm shim or child-process interception",
+  "ownContainersRemoved": true,
+  "releaseTagAndPublicArtifactVerified": false
+}

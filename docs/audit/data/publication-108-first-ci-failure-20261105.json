@@ -1,0 +1,117 @@
+{
+  "capturedAtUtc": "2026-11-05T18:46:15.716008+00:00",
+  "sourceSha": "10c2a80eca9e02c7e561b5f20e942aa6b56742b9",
+  "version": "1.0.8",
+  "sourceCiOutcome": "Both runs failed five real strict fixture-stderr assertions; they are not reclassified as green by the passing candidate runtime gate.",
+  "failure": {
+    "file": "tests/unit/cli-runtime-retention.test.js",
+    "line": 188,
+    "runnerNpm": "11.17.0",
+    "reason": "Synthetic better-sqlite3@13.0.3 trap install script lacks fixture allowScripts coverage; npm emits real allow-scripts pending warnings even though lifecycle execution is ignored.",
+    "warningExcerpt": "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts; better-sqlite3@13.0.3 (install: node -e process.exit(97)).",
+    "stderrAssertionPreserved": true,
+    "silenceOrSkipAppliedByWatcher": false
+  },
+  "runs": [
+    {
+      "runId": 42085595199,
+      "lane": "manual",
+      "conclusion": "failure",
+      "sourceSha": "10c2a80eca9e02c7e561b5f20e942aa6b56742b9",
+      "passed": 11026,
+      "failed": 5,
+      "skipped": 99,
+      "failedSuites": 2,
+      "files": 866,
+      "artifactZipSha256": "0144d51935a6c0bc9460787133c700cfdf860b5e480c9db09493e7c5aa24223a",
+      "reportSha256": "a7fee0e4a7044e1e148a96a6d322153a7173f26998d1cb970fef504fde40edf4",
+      "logSha256": "838702ee5ae1a20341165e34dc6e8ca4ccd8484b0aa9968d4cb31b23595246f0",
+      "annotations": [
+        {
+          "path": ".github",
+          "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/10c2a80eca9e02c7e561b5f20e942aa6b56742b9/.github",
+          "start_line": 31,
+          "start_column": null,
+          "end_line": 31,
+          "end_column": null,
+          "annotation_level": "warning",
+          "title": "",
+          "message": "No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded.",
+          "raw_details": ""
+        },
+        {
+          "path": ".github",
+          "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/10c2a80eca9e02c7e561b5f20e942aa6b56742b9/.github",
+          "start_line": 11860,
+          "start_column": null,
+          "end_line": 11860,
+          "end_column": null,
+          "annotation_level": "failure",
+          "title": "",
+          "message": "Process completed with exit code 1.",
+          "raw_details": ""
+        }
+      ]
+    },
+    {
+      "runId": 42085596067,
+      "lane": "push",
+      "conclusion": "failure",
+      "sourceSha": "10c2a80eca9e02c7e561b5f20e942aa6b56742b9",
+      "passed": 11026,
+      "failed": 5,
+      "skipped": 99,
+      "failedSuites": 2,
+      "files": 866,
+      "artifactZipSha256": "151dd2b93194c943b35de281d6c4417a446bea8b0b1023760459b9ac24b400d2",
+      "reportSha256": "182c156e2d1d43ac205c0369edb8f04aee64ac74f4ed70fbfac338688d9cf1c0",
+      "logSha256": "f37960a8adc606e6055cbec1a12c9b73dfdfd7fa3d62ca0e96dc2e449c77c6a5",
+      "annotations": [
+        {
+          "path": ".github",
+          "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/10c2a80eca9e02c7e561b5f20e942aa6b56742b9/.github",
+          "start_line": 31,
+          "start_column": null,
+          "end_line": 31,
+          "end_column": null,
+          "annotation_level": "warning",
+          "title": "",
+          "message": "No files were found with the provided path: verification/ui-playwright/. No artifacts will be uploaded.",
+          "raw_details": ""
+        },
+        {
+          "path": ".github",
+          "blob_href": "https://github.com/ByKitsune/kitsune-router/blob/10c2a80eca9e02c7e561b5f20e942aa6b56742b9/.github",
+          "start_line": 11887,
+          "start_column": null,
+          "end_line": 11887,
+          "end_column": null,
+          "annotation_level": "failure",
+          "title": "",
+          "message": "Process completed with exit code 1.",
+          "raw_details": ""
+        }
+      ]
+    }
+  ],
+  "candidate": {
+    "sourceSha": "10c2a80eca9e02c7e561b5f20e942aa6b56742b9",
+    "sourceTree": "8bb83952e2bff10b8adb65e9278945538d5e84df",
+    "runId": "42085595199",
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "glibc": "2.39",
+    "file": "bykitsune-router-1.0.8.tgz",
+    "sha256": "c978d4bddf3ef96099f60247d849976852b6401d702ea2c10425abdb716a3185"
+  },
+  "separateOrdinaryInstallPass": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/committed-candidate-signoff.json",
+    "sha256": "18dd1f89056623de75b39cfc24e3928de61eab90b377d44f119832aec8a826b3",
+    "scope": "Exact committed candidate c978/source10c2, real Node22.19 UID1000 ordinary lifecycle/two starts; production native/tray retention passed. This does not override failed full source CI."
+  },
+  "tag8OrPublicationByWatcher": false,
+  "historicalTags6And7Untouched": true,
+  "evidenceBoundary": "No source.json success evidence exists in either failed report archive. Actual npm fixture warnings are retained, not called zero diagnostics.",
+  "nextCaptureDirectoryRecommendation": "Keep patch108-ci as immutable10c2 failure history; use a distinct directory for the subsequent fixture-only corrected source."
+}
