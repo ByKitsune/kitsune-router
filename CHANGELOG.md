@@ -7,18 +7,125 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
-### Fixed
+### CLI packaging and runtime installation
 
-- Codex: a ChatGPT account whose plan rejects a model ("The '<model>' model is
-  not supported when using Codex with a ChatGPT account.") is no longer asked
-  first for that model on every request. The router remembers the
-  account+model denial for 30 minutes in process memory and sends the request
-  to an entitled account directly; the denied account keeps serving its other
-  models and its health state is never written. A success on that account
-  clears the denial early, and a pool where every account was denied still
-  asks upstream and returns its real 400. Production measured 1.2–1.6 failed
-  attempts (about 0.4 s each) per successful gpt-6-astra, gpt-6.1-terra and
-  gpt-6.1-sol request before this change.
+- Include the matching locked SQL.js WebAssembly binary in the CLI package and
+  reject missing or mismatched JS/WASM. Candidate and release workflows verify
+  the actual packed fallback with native drivers disabled, persistence and
+  restart. See the [packaging follow-up](docs/audit/28-cli-sqljs-fallback-2026-11-01.md).
+- Force nested CLI runtime repair installs into their local runtime project even
+  when parent npm uses global mode or a different prefix. Preserve the parent
+  environment, proxy, TLS, registry authentication and user configuration.
+
+### Provider request, signature and OAuth safety
+
+- Reject malformed/noncanonical Claude signature envelopes while preserving valid
+  opaque signatures, redacted content and complete signed tool continuations.
+  Remove captured fallback signatures, fabricated account/device identities,
+  random billing suffixes, injected application prompts and unavailable decoy
+  tools. Missing signed continuity returns an explicit terminal validation error.
+- Keep Google thought signatures attached to their original Parts, including
+  native thoughts and image-edit inputs. Preserve current-turn and parallel-call
+  rules; do not reuse a preceding Part's signature or inject a migrated-history
+  marker to replace missing history.
+- Require Antigravity/Gemini CLI accounts' actual project binding. Bound
+  onboarding and polling, stop on definitive denials, validate OAuth refresh and
+  Kiro response/region data, and refuse credential-bearing redirects. Local
+  signature/project failures return HTTP 400 with `x-should-retry: false` without
+  cooling healthy accounts or replaying incomplete history through other accounts.
+- Isolate Codex session identity per request/account and preserve explicit
+  `parallel_tool_calls` and `include[]`. Keep native Responses namespace tools;
+  reject lossy conversion to Chat before dispatch or account-health changes.
+- Refresh verified Claude Code, CodeBuddy CN and Kimchi client identities while
+  preserving separate SDK, OAuth/API and provider identities. Gemini quota/project
+  calls share the reviewed auth-library and executing-runtime metadata. See the
+  [account/request review](docs/audit/29-upstream-account-request-consistency-2026-11-03.md)
+  and [provider request-safety review](docs/audit/30-provider-request-safety-and-catalog-refresh-2026-11-04.md).
+
+### Credential checks and dashboard consistency
+
+- Bind credential Check/Save probes to the configured endpoint, region and
+  selected proxy/relay used by the connection. Refuse unavailable routes and
+  credential-bearing redirects; retain bounded deadlines and cancellation.
+- Keep Add/Edit Check results scoped to the exact draft that was tested. Editing
+  credentials or destinations clears stale validity, late responses cannot
+  certify another draft, and saved-connection checks do not validate unsaved
+  changes. Retain selected pools during bulk validation and refresh acknowledged
+  partial imports after cancellation.
+- Render structured response content in the Usage request drawer as escaped JSON
+  instead of passing objects to React as children.
+
+### Catalog and web-fetch fidelity
+
+- Review all 121 registered provider catalogs, adding 52 verified rows and marking
+  59 newly deprecated rows. Exclude deprecated built-ins from public suggestions,
+  defaults and dashboard/media/CLI selectors while retaining historical routes,
+  explicit custom models/aliases and usage/pricing provenance. Public catalog
+  membership does not establish account, subscription or region entitlement.
+- Route OpenAI web search through Responses with required `web_search`,
+  `store: false` and normalized citations, retaining proxy/deadline policy.
+  Citation URLs are not fetched automatically.
+- Send web-fetch format intent to Jina/Tavily through their native request fields.
+  Validate Jina `markdown|text|html` and Tavily `markdown|text` before credentials,
+  refresh or fallback; unsupported formats return terminal HTTP 400. Preserve
+  native returned text/HTML and the existing SSRF/proxy/transport checks.
+
+### Translation and streaming performance
+
+- Reduce request-translation work with impossible-JSON prefix rejection, stable
+  `allOf.required` deduplication, indexed Gemini tool-history queues and removal
+  of a redundant copy after OAuth tool cloaking. Preserve borrowed-input
+  isolation, attempt/account ownership, tool aliases, media and signed provenance.
+- Scan SSE framing by delimiters and track keepalive boundaries from trailing
+  bytes, retaining lazy event delivery, mixed CR/LF framing, split UTF-8,
+  event-size limits, cancellation and backpressure. Claude response lowering
+  tracks pending tool starts and active argument deltas while preserving block
+  order, fragmented names, `Read` sanitation, terminal events and usage accounting.
+- Add reproducible synthetic request/stream benchmarks with output, alias and
+  accounting equivalence checks. Measured CPU gains depend on workload; local
+  measurements do not establish provider/network latency or paid service speed.
+  See the [performance and upstream follow-up](docs/audit/31-translator-performance-and-upstream-followup-2026-11-04.md).
+
+### Dependency installation and verification
+
+- Review all 67 direct dependency declarations (56 unique packages) against the
+  November 5 publisher stable snapshot. Update 17 declarations across 13 packages,
+  including Next/third-parties 16.4.5, Vite 8.3.6, Vitest 5.1.0 and compatible
+  UI/build tooling; the remaining direct dependencies already match that snapshot.
+- Refresh 164 of 885 locked package locations: 107 patch, 55 minor and two
+  publisher-authorized `magic-string` major-version locations required by the
+  updated Tailwind dependency range. Retain Recharts' exact `reselect` 5.2.0
+  requirement, reviewed native/runtime pins and publisher-bundled WASM internals.
+- Advance the scoped `minimatch` override to 11.0.4 while retaining the existing
+  lint-plugin compatibility adapter, audit threshold and assertion coverage.
+- Verify all four locked installs and installed dependency checks, with zero
+  findings in all four low-threshold audits. Focused compatibility checks pass;
+  these checks do not establish final whole-source release verification.
+- Standardize verification runners on Ubuntu 24.04 and Node 24.19.0 while keeping
+  the Node >=22.19.0 runtime floor. Replace typeless-module warnings with narrow
+  scopes, retain unexpected warning visibility, normalize Playwright color inputs
+  before workers start, and make legacy fixtures own their cleanup.
+- Approve only reviewed exact-version `better-sqlite3`/`esbuild` install scripts
+  for their owning packages instead of suppressing lifecycle policy globally.
+  Existing dependency locks and runtime pins were unchanged by that approval.
+
+### Codex model-plan routing
+
+- Remember only canonical HTTP 400 ChatGPT-plan denials that name the requested
+  Codex wire model. Keep hints for 30 minutes in bounded process memory, with a
+  500-entry cap, without writing credential health or blocking other models.
+- Scope hints to the database/import revision, actual credential, account/workspace
+  and wire-model identity using hashed keys. Retain no raw credentials or upstream
+  error bodies in the cache. Apply hint preference after quota, lock and exclusion
+  eligibility; a denied-only eligible pool still probes upstream and returns its
+  real error. Expiry permits another probe and a current success clears the hint.
+- Keep stale or cancelled outcomes from updating hints or health across database
+  import and credential/account replacement. Late failures cannot publish hints
+  for replacement credentials, and late successes cannot clear newer hints or
+  health; a transactional fence also guards health cleanup against import/reauth
+  races. Legacy callers without attempt context keep
+  zero-cooldown fallback without caching a hint. This routing uses observed denials,
+  not inferred catalog entitlement.
 
 ## [1.0.5] — 2026-10-31
 

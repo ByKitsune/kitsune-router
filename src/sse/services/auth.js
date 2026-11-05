@@ -1,4 +1,4 @@
-import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
+import { getProviderConnections, getProviderConnectionById, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, classifyAvailabilityError, isRequestValidationError, isModelLockActive, getModelLockUntil, getModelLockIdentity, buildModelLockUpdate, needsOperatorReauth } from "open-sse/services/accountFallback.js";
@@ -16,6 +16,10 @@ import {
   DEFAULT_QUOTA_CACHE_TTL_MS,
 } from "./quotaAwareSelection.js";
 import * as log from "../utils/logger.js";
+import { getModelUpstreamId, PROVIDER_ID_TO_ALIAS } from "open-sse/config/providerModels.js";
+import { stripThinkingSuffix } from "open-sse/translator/concerns/thinkingUnified.js";
+import { codexDatabaseScope, codexCredentialIdentity, codexEntitlementKey, codexContextMatches } from "./codexEntitlementScope.js";
+export { captureCodexEntitlementContext } from "./codexEntitlementScope.js";
 
 // Per-provider mutexes to prevent race conditions without cross-provider serialization (#3629)
 // Previously a single global Promise chain serialized ALL providers, causing TTFT degradation
@@ -42,30 +46,43 @@ function noAuthProxyConnectionId(providerId, poolId) {
   return `${NO_AUTH_PROXY_PREFIX}${providerId}:${poolId}`;
 }
 
-// Codex account+model pairs that the account's ChatGPT plan rejected, keyed by
-// connection id and model lock identity, valued by the expiry (epoch ms).
-// Process-local on purpose: this is a routing hint, not account health, and it
-// is never persisted. One store per process even when the bundler duplicates
-// this module across server chunks; restarts and other processes start clean.
-const codexEntitlementDenials = globalThis[Symbol.for("kitsunerouter.codex-entitlement-denials.v1")] ??= new Map();
-
-function codexEntitlementKey(connectionId, model) {
-  return `${connectionId}\u0000${getModelLockIdentity("codex", model)}`;
-}
-
-function isCodexEntitlementDenial(provider, status, errorText) {
+// Process-local routing hints, never credential health. Hash the complete scope
+// so neither token material nor unbounded caller model strings remain in keys.
+const codexEntitlementDenials = globalThis[Symbol.for("kitsunerouter.codex-entitlement-denials.v2")] ??= new Map();
+function isCodexEntitlementDenial(provider, status, errorText, model) {
   if (resolveProviderId(provider) !== "codex" || Number(status) !== 400) return false;
-  const message = typeof errorText === "object" ? errorText?.message : errorText;
-  return String(message || "").toLowerCase().includes(CODEX_ENTITLEMENT_DENIAL_TEXT);
+  let source = errorText;
+  if (typeof source === "string" && source.length <= 8192 && /^\s*\{/.test(source)) {
+    try { source = JSON.parse(source); } catch { /* plain diagnostic */ }
+  }
+  if (source?.error && typeof source.error === "object") source = source.error;
+  const message = typeof source === "string" ? source : source?.message ?? source?.detail;
+  if (typeof message !== "string" || message.length > 8192 || typeof model !== "string") return false;
+  // chatCore's formatProviderError adds exactly this status prefix. Accept
+  // that known wrapper without searching arbitrary quoted diagnostics.
+  const canonical = message.trim().replace(/^\[400\]: /, "");
+  const match = /^The (['"`])([^'"`\r\n]{1,256})\1 model is (.+?)\.?$/i.exec(canonical);
+  const wireModel = stripThinkingSuffix(getModelUpstreamId(PROVIDER_ID_TO_ALIAS.codex, stripThinkingSuffix(model)));
+  return !!match && match[2] === wireModel && match[3].toLowerCase() === CODEX_ENTITLEMENT_DENIAL_TEXT;
 }
 
-function isCodexEntitlementDenied(connectionId, model, now = Date.now()) {
-  const key = codexEntitlementKey(connectionId, model);
-  const until = codexEntitlementDenials.get(key);
-  if (until === undefined) return false;
-  if (until > now) return true;
-  codexEntitlementDenials.delete(key);
-  return false;
+async function isCodexEntitlementDenied(connection, model, scope, now = Date.now()) {
+  if (scope.generation !== getDbImportGeneration()) return false;
+  const key = codexEntitlementKey(connection, model, scope);
+  const entry = codexEntitlementDenials.get(key);
+  if (!entry) return false;
+  if (entry.expiresAt <= now) { codexEntitlementDenials.delete(key); return false; }
+  // Persistent import revisions also catch imports committed by another worker.
+  const latest = await getProviderConnectionById(connection.id);
+  if (scope.generation !== getDbImportGeneration() || !latest
+    || resolveProviderId(latest.provider) !== "codex"
+    || codexCredentialIdentity(latest) !== codexCredentialIdentity(connection)
+    || (latest._writeFence?.importRevision ?? null) !== entry.importRevision) {
+    // Another attempt may have replaced this entry while the row was read.
+    if (codexEntitlementDenials.get(key) === entry) codexEntitlementDenials.delete(key);
+    return false;
+  }
+  return true;
 }
 
 /** Test seam: forget every remembered Codex entitlement denial. */
@@ -212,6 +229,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       };
     }
 
+    const codexScope = providerId === "codex" ? Object.freeze({ database: codexDatabaseScope, generation: getDbImportGeneration() }) : null;
     const connections = structuredClone(await getProviderConnections({ provider: providerId, isActive: true }));
     log.debug("AUTH", `${provider} | total connections: ${connections.length}, excludeIds: ${excludeSet.size > 0 ? [...excludeSet].join(",") : "none"}, model: ${model || "any"}`);
 
@@ -239,18 +257,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       }
       return true;
     });
-    // Accounts whose ChatGPT plan rejected this model go last, not away: an
-    // entitled account answers first, and a pool where every account was
-    // denied still asks upstream (which reports the real 400) instead of
-    // inventing a rate-limit outcome.
-    if (providerId === "codex" && model && codexEntitlementDenials.size > 0) {
-      const entitled = availableConnections.filter(c => !isCodexEntitlementDenied(c.id, model));
-      if (entitled.length > 0 && entitled.length < availableConnections.length) {
-        log.debug("AUTH", `${provider} | ${availableConnections.length - entitled.length} account(s) skipped: plan rejected ${model}`);
-        availableConnections.splice(0, availableConnections.length, ...entitled);
-      }
-    }
-
     log.debug("AUTH", `${provider} | available: ${availableConnections.length}/${connections.length}`);
     connections.forEach(c => {
       const excluded = excludeSet.has(c.id);
@@ -352,6 +358,16 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       };
     }
 
+    // Prefer non-denied accounts among the genuinely eligible pool. Hints must
+    // not manufacture quota exhaustion by hiding the only selectable account.
+    if (codexScope && model && codexEntitlementDenials.size > 0) {
+      const preferred = [];
+      for (const connection of selectable) {
+        if (!await isCodexEntitlementDenied(connection, model, codexScope)) preferred.push(connection);
+      }
+      if (preferred.length > 0 && preferred.length < selectable.length) selectable = preferred;
+    }
+
     // Per-provider strategy overrides global setting
     const providerOverride = (settings.providerStrategies || {})[providerId] || {};
     const strategy = providerOverride.fallbackStrategy || settings.fallbackStrategy || "fill-first";
@@ -431,7 +447,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
     const resolvedProxy = await resolveConnectionProxyConfig(connection.providerSpecificData || {});
 
-    return {
+    const selected = {
       authType: connection.authType,
       apiKey: connection.apiKey,
       accessToken: connection.accessToken,
@@ -459,6 +475,8 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       // Pass full connection for clearAccountError to read modelLock_* keys
       _connection: connection
     };
+    if (codexScope) Object.defineProperty(selected, "_codexEntitlementScope", { value: codexScope });
+    return selected;
   } finally {
     if (resolveMutex) resolveMutex();
   }
@@ -474,7 +492,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
  * @param {string|null} model - The specific model that triggered the error
  * @returns {{ shouldFallback: boolean, cooldownMs: number }}
  */
-export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null) {
+export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null, entitlementContext = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
   if (isRequestValidationError(status, errorText)) return { shouldFallback: false, cooldownMs: 0 };
   if (connectionId.startsWith(NO_AUTH_PROXY_PREFIX)) {
@@ -494,9 +512,22 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
       cooldownMs: 0,
     };
   }
-  const connections = await getProviderConnections({ provider });
+  const connections = await getProviderConnections({ provider: resolveProviderId(provider) === "codex" ? "codex" : provider });
   const conn = connections.find(c => c.id === connectionId);
   const backoffLevel = conn?.backoffLevel || 0;
+
+  if (isCodexEntitlementDenial(provider, status, errorText, model)) {
+    // Legacy callers still get zero-cooldown fallback, but cannot attribute a
+    // late response to whichever credentials happen to occupy this ID now.
+    if (entitlementContext && entitlementContext.connectionId === connectionId) {
+      const latest = await getProviderConnectionById(connectionId);
+      if (codexContextMatches(entitlementContext, latest)) {
+        setBounded(codexEntitlementDenials, codexEntitlementKey(latest, model, entitlementContext),
+          { expiresAt: Date.now() + CODEX_ENTITLEMENT_DENIAL_MS, importRevision: entitlementContext.importRevision }, CACHE_LIMITS.codexEntitlementDenials);
+      }
+    }
+    return { shouldFallback: true, cooldownMs: 0 };
+  }
 
   // GitHub premium-request exhaustion is account-wide until the next UTC month.
   const githubResetAtMs = githubMonthlyResetMs(status, errorText, provider);
@@ -516,9 +547,6 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     newBackoffLevel = 0;
   } else {
     ({ shouldFallback, cooldownMs, newBackoffLevel } = checkFallbackError(status, errorText, backoffLevel));
-  }
-  if (shouldFallback && model && isCodexEntitlementDenial(provider, status, errorText)) {
-    setBounded(codexEntitlementDenials, codexEntitlementKey(connectionId, model), Date.now() + CODEX_ENTITLEMENT_DENIAL_MS, CACHE_LIMITS.codexEntitlementDenials);
   }
   if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 
@@ -566,10 +594,23 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
  * @param {object} currentConnection - credentials object (has _connection) or raw connection
  * @param {string|null} model - model that succeeded
  */
-export async function clearAccountError(connectionId, currentConnection, model = null) {
+export async function clearAccountError(connectionId, currentConnection, model = null, entitlementContext = null) {
   if (!connectionId || connectionId === "noauth" || connectionId.startsWith(NO_AUTH_PROXY_PREFIX)) return;
-  // A served request proves this account is entitled to the model now.
-  if (model && codexEntitlementDenials.size > 0) codexEntitlementDenials.delete(codexEntitlementKey(connectionId, model));
+  let entitlementFence;
+  // Only a success from this same Codex account/import revision proves the
+  // remembered denial obsolete. Other providers and stale callbacks cannot.
+  if (entitlementContext) {
+    if (entitlementContext.connectionId !== connectionId) return;
+    const latest = await getProviderConnectionById(connectionId);
+    if (!codexContextMatches(entitlementContext, latest)) return;
+    entitlementFence = latest._writeFence;
+    if (model && codexEntitlementDenials.size > 0) {
+      const key = codexEntitlementKey(latest, model, entitlementContext);
+      if (codexEntitlementDenials.get(key)?.importRevision === entitlementContext.importRevision) {
+        codexEntitlementDenials.delete(key);
+      }
+    }
+  }
   const conn = currentConnection._connection || currentConnection;
   const now = Date.now();
   const allLockKeys = Object.keys(conn).filter(k => k.startsWith("modelLock_"));
@@ -606,7 +647,13 @@ export async function clearAccountError(connectionId, currentConnection, model =
     });
   }
 
-  await updateProviderConnection(connectionId, clearObj);
+  try {
+    await updateProviderConnection(connectionId, clearObj, entitlementContext ? { expected: entitlementFence } : undefined);
+  } catch (error) {
+    // The transaction fence also covers an import/re-auth committed after the
+    // row read above. A stale accounting callback must not fail a valid answer.
+    if (!entitlementContext || error?.code !== "STALE_CONNECTION_WRITE") throw error;
+  }
 }
 
 /**

@@ -15,7 +15,7 @@ const legacy = createRequire(pluginFile("eslint-plugin-react"))("minimatch");
 
 describe("scoped compatibility for the patched publisher matcher", () => {
   it("uses the pinned patched matcher and preserves modern named exports", () => {
-    expect(require("minimatch/package.json").version).toBe("11.0.3");
+    expect(require("minimatch/package.json").version).toBe("11.0.4");
     expect(typeof modern).toBe("object");
     expect(Reflect.ownKeys(modern)).toEqual(modernKeys);
     expect(modern.minimatch).toBe(modernFunction);

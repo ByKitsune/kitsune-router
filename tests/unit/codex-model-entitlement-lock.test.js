@@ -1,12 +1,13 @@
 import { createServer } from "node:http";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Production pattern (4 Nov 2026): a Plus ChatGPT account answers every
+// PR #6's reported production pattern (4 Nov 2026): a Plus ChatGPT account answers every
 // gpt-6-astra request with HTTP 400 "The 'gpt-6-astra' model is not supported
 // when using Codex with a ChatGPT account." while a Pro account serves it. A
 // zero cooldown re-asked the Plus account on every request, adding a failed
 // upstream round trip (~0.4 s, 1.3 extra attempts per success) before the
-// entitled account answered. Keep routing, account selection/health, core and
+// entitled account answered. Those production figures are author-reported,
+// not measurements from this synthetic test. Keep routing, account selection/health, core and
 // the Codex executor real; replace only storage, logging and the HTTP edge.
 const fixture = vi.hoisted(() => ({
   base: "", connections: [], requests: [], settings: {}, denied: new Map(),

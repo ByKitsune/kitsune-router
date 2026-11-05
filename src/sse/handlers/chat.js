@@ -7,6 +7,7 @@ import {
   extractApiKey,
   isValidApiKey,
 } from "../services/auth.js";
+import { captureCodexEntitlementContext } from "../services/codexEntitlementScope.js";
 import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../services/antigravityQuota.js";
 import { getSettings, isApiKeyRequired, getProviderConnectionById } from "@/lib/localDb";
 import { getDisabledByProvider } from "@/lib/disabledModelsDb";
@@ -564,6 +565,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
+    let entitlementContext = captureCodexEntitlementContext(provider, credentials, request?.signal);
     let refreshedCredentials;
     try {
       refreshedCredentials = credentials.id === "noauth" ? credentials : await checkAndRefreshToken(provider, credentials);
@@ -572,6 +574,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       excludeConnectionIds.add(credentials.connectionId);
       continue;
     }
+    entitlementContext = captureCodexEntitlementContext(provider, refreshedCredentials, request?.signal, entitlementContext);
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
@@ -660,6 +663,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           }
           Object.defineProperty(refreshedCredentials, "_writeFence", { value: latest._writeFence, configurable: true });
         }
+        entitlementContext = captureCodexEntitlementContext(provider, refreshedCredentials, request?.signal, entitlementContext);
       },
       // Mid-stream failure: the upstream returned 200 + SSE and then failed
       // inside the body (Codex response.failed, quota exhausted mid-generation).
@@ -676,11 +680,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           status || 502,
           streamError || "upstream stream failed",
           provider,
-          model
+          model,
+          null,
+          entitlementContext
         );
       },
       onRequestSuccess: async () => {
-        await clearAccountError(credentials.connectionId, credentials, model);
+        await clearAccountError(credentials.connectionId, credentials, model, entitlementContext);
         // Antigravity: success resets "consecutive" strike counter so a future
         // 429-burst must re-accumulate 3 strikes from scratch. Also clears any
         // synthesized 15m block (but keeps a real upstream 0% block intact).
@@ -756,7 +762,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // Do not persist a modelLock_* for this path.
     const shouldFallback = provider === "antigravity" && quotaResetMs
       ? true
-      : (await markAccountUnavailable(credentials.connectionId, result.status, errorEvidence, provider, model, resetsAtMs)).shouldFallback;
+      : (await markAccountUnavailable(credentials.connectionId, result.status, errorEvidence, provider, model, resetsAtMs, entitlementContext)).shouldFallback;
 
     if (shouldFallback) {
       log.warn("FALLBACK", `⇄ ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} UNAVAILABLE (${result.status}) → NEXT ACCOUNT`);
