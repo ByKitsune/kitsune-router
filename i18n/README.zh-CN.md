@@ -14,6 +14,10 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 发布与安装
 
+**当前源码版本与稳定版目标为 1.0.7。** 请分别在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中确认 GitHub Release、npm 与 GHCR 的实际结果。下方命令仅适用于 npm 1.0.7 发布并读回验证成功之后；容器可用性需单独确认相应渠道的结果。
+
+**1.0.2 分发历史（当时的读回结果）：**
+
 **1.0.2 容器已私有发布，匿名访问待确认，npm 受阻。** 源码固定于 `65c8b97d`：9,041 通过、100 跳过、零失败。Recovery `40485038668` 已发布 GHCR `1.0.2`/`latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。包最近读回仍为 **private**：所有者选择 Public 但未确认，匿名 grant HTTP 401。npm 仍为 E403/公开读回 HTTP 404，用户替换 token 未确认。npm 命令仅 npm 发布验证后适用，目前用源码或获授权私有容器访问；无 GitHub Release 或生产部署。见 [1.0.2 证据](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)。
 
 旧标签不移动：`v1.0.1` 在 `74583402`，SSH/CI 通过，但 GHCR 门槛在登录/推送前失败，未发布规范镜像；npm 发布命令失败，原因未知，2026-10-27 公开读回 HTTP 404，未创建 GitHub Release。`v1.0.0` 在 `390a6567`，迁移测试失败后未发布 npm/GHCR。见 [1.0.1 记录](../releases/RELEASE_NOTES_v1.0.1.md) 与 [1.0.2 草案](../releases/RELEASE_NOTES_v1.0.2.md)。确定性时钟测试和 npm 诊断不改变生产排序或所有权拒绝策略；旧数量不验证新版，0.x 来源保留。
@@ -21,9 +25,9 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 要求 **Node.js >=22.19.0**。以下仅在发布后使用：
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# 或：npx @bykitsune/router@1.0.2
+# 或：npx @bykitsune/router@1.0.7
 ```
 
 源码运行（使用已确认的规范仓库或现有工作副本，在根目录操作）：

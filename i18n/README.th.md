@@ -14,6 +14,10 @@ ByKitsune แสดงอย่างโดดเด่นในฐานะผ�
 
 ## สถานะและการติดตั้ง
 
+**เวอร์ชันซอร์สปัจจุบันและเป้าหมายรุ่นเสถียรคือ 1.0.7** ตรวจสอบผลจริงของ GitHub Release, npm และ GHCR แยกกันใน[บันทึกการเผยแพร่](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) ใช้คำสั่งด้านล่างได้เมื่อเผยแพร่ npm 1.0.7 และตรวจสอบอ่านกลับจาก registry สำเร็จแล้วเท่านั้น ส่วนการเข้าถึง container ต้องตรวจสอบช่องทางนั้นแยกต่างหาก
+
+**ประวัติการเผยแพร่ 1.0.2 (ผลตรวจสอบอ่านกลับในขณะนั้น):**
+
 **เผยแพร่ container 1.0.2 แบบ private แล้ว รอการเข้าถึงแบบไม่ยืนยันตัวตน ส่วน npm ยังถูกบล็อก** ซอร์สคงที่ `65c8b97d`: ผ่าน 9,041 ข้าม 100 ไม่ล้มเหลว Recovery `40485038668` เผยแพร่ GHCR `1.0.2`/`latest` ผ่าน readback digest/provenance/SPDX แบบยืนยันตัวตนและ smoke อิมเมจที่เผยแพร่แยกแล้ว แพ็กเกจยัง **private** ในการอ่านล่าสุด เจ้าของเลือก Public แต่ยังไม่ยืนยันเสร็จ grant แบบ anonymous HTTP 401 npm ยัง E403/readback สาธารณะ HTTP 404 และยังไม่ยืนยันเปลี่ยน token ใช้คำสั่ง npm หลังเผยแพร่ npm สำเร็จเท่านั้น ระหว่างนี้ใช้ซอร์สหรือสิทธิ์อ่าน container private ไม่มี GitHub Release หรือ production deploy [หลักฐาน 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)
 
 ไม่ย้าย tag: `v1.0.1` ที่ `74583402` ผ่าน SSH/CI แต่ gate GHCR ล้มเหลวก่อน login/push จึงไม่มีอิมเมจหลัก คำสั่ง npm publish ล้มเหลวโดยยังไม่ทราบสาเหตุ อ่าน registry สาธารณะได้ HTTP 404 เมื่อ 2026-10-27 และไม่ได้สร้าง GitHub Release ส่วน `v1.0.0` ที่ `390a6567` ไม่มี npm/GHCR หลัง test ย้ายข้อมูลล้มเหลว [บันทึก 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [ร่าง 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) นาฬิกาทดสอบและ diagnostic npm ไม่เปลี่ยนลำดับหรือการปฏิเสธ ownership ใน production ผลเก่าไม่ยืนยัน 1.0.2 และคงที่มา 0.x
@@ -21,9 +25,9 @@ ByKitsune แสดงอย่างโดดเด่นในฐานะผ�
 ต้องใช้ **Node.js >=22.19.0** คำสั่งนี้ใช้หลังเผยแพร่แล้วเท่านั้น:
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# หรือ: npx @bykitsune/router@1.0.2
+# หรือ: npx @bykitsune/router@1.0.7
 ```
 
 รันจากคลังทางการที่ยืนยันแล้วหรือ checkout ที่มีอยู่ ที่รากคลัง ไม่มีโฟลเดอร์ย่อย `app/`:

@@ -15,7 +15,7 @@ layout, smoother Usage interactions and the official ByKitsune artwork. Mobile
 quick navigation and a searchable language picker refine small-screen access.
 The [agent skills](skills/README.md) cover setup and eight API capabilities with
 model discovery and authenticated request guidance. See the current
-[1.0.6 source notes](docs/CHANGELOG_v1.0.6.md) and [UI design guide](docs/UI-DESIGN.md).
+[1.0.7 source notes](docs/CHANGELOG_v1.0.7.md) and [UI design guide](docs/UI-DESIGN.md).
 
 The [current pricing and capability audit](docs/audit/22-pricing-capability-localization-2026-10.md)
 distinguishes exact catalog facts, route limits, operator overrides and unknown
@@ -28,25 +28,25 @@ has been released.
 
 ## Release status
 
-**Current source: 1.0.6 (2026-11-05).** This revision consolidates provider
+**Current source: 1.0.7 (2026-11-05).** This revision consolidates provider
 request/signature and credential-check safety, reviewed model catalogs,
 translation/SSE CPU improvements, CLI runtime repairs and scoped Codex plan-denial
 routing. It also refreshes the reviewed stable dependency graph. See the
-[1.0.6 source notes](releases/RELEASE_NOTES_v1.0.6.md) and
+[1.0.7 source notes](releases/RELEASE_NOTES_v1.0.7.md) and
 [readiness review](docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
 The [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
 records the later Undici 8.12.4 refresh and authenticated container release gates.
 Source verification is separate from the earlier artifact record below; this
 revision does not establish new npm/GHCR publication or production deployment.
 
-**Stable publication target: 1.0.6.** Use the versioned npm and Docker commands
+**Stable publication target: 1.0.7.** Use the versioned npm and Docker commands
 below after the corresponding publication workflow and registry readback succeed.
 The publication follow-up records availability and any GHCR access requirements;
 publication is not yet established here.
 
-**Historical 1.0.2 distribution record.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. At that recorded check, the [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) was **private** and anonymous grants returned HTTP 401. npm publication was denied with E403; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment occurred. These observations do not determine 1.0.6 availability. [Historical evidence](releases/RELEASE_NOTES_v1.0.2.md).
+**Historical 1.0.2 distribution record.** Source remains immutable `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). GHCR recovery published `1.0.2` and `latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. At that recorded check, the [container package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) was **private** and anonymous grants returned HTTP 401. npm publication was denied with E403; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment occurred. These observations do not determine 1.0.7 availability. [Historical evidence](releases/RELEASE_NOTES_v1.0.2.md).
 
-GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm target: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`. Until 1.0.6 registry availability is confirmed, use a source checkout. If the published GHCR package requires authorization, use an account with package-read permission; anonymous access needs its own confirmation.
+GitHub: [`ByKitsune/kitsune-router`](https://github.com/ByKitsune/kitsune-router); npm target: [`@bykitsune/router`](https://www.npmjs.com/package/@bykitsune/router); command: `kitsune-router`; canonical image: `ghcr.io/bykitsune/kitsune-router`. Until 1.0.7 registry availability is confirmed, use a source checkout. If the published GHCR package requires authorization, use an account with package-read permission; anonymous access needs its own confirmation.
 
 **Previous tags stay immutable.** [v1.0.1](releases/RELEASE_NOTES_v1.0.1.md) remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: SSH/CI passed, but the GHCR gate failed before login/push and npm's publish command failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. [v1.0.0](releases/RELEASE_NOTES_v1.0.0.md) remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Source tags are not registry artifacts.
 
@@ -59,11 +59,11 @@ Documentation preview: [rebrand candidate](https://rebrand-candidate.kitsune-rou
 Requires **Node.js >=22.19.0** for the launcher.
 
 ```bash
-# After the 1.0.6 publication workflow and npm readback succeed:
-npx @bykitsune/router@1.0.6
+# After the 1.0.7 publication workflow and npm readback succeed:
+npx @bykitsune/router@1.0.7
 
 # Or install the launcher globally:
-npm install -g @bykitsune/router@1.0.6
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 
@@ -110,7 +110,7 @@ the authenticated deployment rather than a bundled seed list.
 
 ### Containers
 
-The 1.0.6 image workflow targets **linux/amd64 only**. Use this command after its
+The 1.0.7 image workflow targets **linux/amd64 only**. Use this command after its
 publication and registry readback succeed. Authenticate if the published package
 is private; anonymous access must be confirmed separately. See [Docker](DOCKER.md)
 for inspecting the versioned image and verifying its digest.
@@ -123,7 +123,7 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.6
+  ghcr.io/bykitsune/kitsune-router:1.0.7
 ```
 
 Set `INITIAL_PASSWORD` securely in the invoking environment first. The example uses default `/app/data`; for a supported custom absolute `DATA_DIR`, keep the same existing volume mounted at that exact effective path. Do not substitute an empty volume just to rename the service. See [Docker](DOCKER.md).
@@ -152,7 +152,7 @@ Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the datab
 - [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 
 The [historical 1.0.2 evidence](docs/CHANGELOG_v1.0.2.md) separates its runtime,
-recovery tooling, npm tarballs and published image. Current 1.0.6 publication and
+recovery tooling, npm tarballs and published image. Current 1.0.7 publication and
 access results belong to the [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
 
 **Languages:** [简体中文](README.zh-CN.md) · [Español](i18n/README.es.md) · [فارسی](i18n/README.fa_IR.md) · [Français](i18n/README.fr.md) · [Indonesia](i18n/README.id-ID.md) · [日本語](i18n/README.ja-JP.md) · [Português](i18n/README.pt-BR.md) · [Русский](i18n/README.ru.md) · [ไทย](i18n/README.th.md) · [Tiếng Việt](i18n/README.vi.md)

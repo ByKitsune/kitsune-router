@@ -10,6 +10,10 @@ This integration describes the current source checkout.
 
 ## Release status
 
+**Current source version and stable target: 1.0.7.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability.
+
+**Historical 1.0.2 distribution readback:**
+
 **1.0.2 container published privately; anonymous pulls pending; npm blocked.** Runtime stays at immutable `65c8b97d` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2`/`latest`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. The package remains **private** at last read: owner-selected Public visibility is not confirmed, anonymous grants HTTP 401. npm remains E403-denied, public readback HTTP 404, token replacement not confirmed. Use source or authorized private container access; npm commands require future accepted npm publication. No GitHub Release or production deployment. [Distribution evidence](/en/changelog/). Identities:
 
 | Surface | Identity |

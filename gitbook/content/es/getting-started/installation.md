@@ -1,13 +1,15 @@
 # Instalación
 
-**Fuente 1.0.2 verificada; contenedor publicado en privado; npm bloqueado.** Runtime sigue `65c8b97d`. Recovery `40485038668` publicó GHCR y pasó lectura autenticada digest/proveniencia/SPDX y smoke de la imagen publicada. Paquete aún **private**: Public seleccionado sin confirmar, grants anónimos HTTP 401. Usa fuentes o [acceso privado autorizado](/es/deployment/cloud/). npm `@bykitsune/router` sigue E403/readback público HTTP 404, cambio de token no confirmado. Los comandos de abajo solo tras publicación/readback npm, con **Node.js >=22.19.0**. [Evidencia](/es/changelog/).
+**Objetivo actual: 1.0.7.** Los comandos del launcher requieren **Node.js >=22.19.0** y la publicación/lectura confirmada de npm 1.0.7. Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) antes de instalarlos; GitHub Release, npm y GHCR tienen resultados independientes. La instalación desde fuentes sigue disponible.
+
+**Registro histórico de 1.0.2; no determina el estado de 1.0.6:** **Fuente 1.0.2 verificada; contenedor publicado en privado; npm bloqueado.** Runtime sigue `65c8b97d`. Recovery `40485038668` publicó GHCR y pasó lectura autenticada digest/proveniencia/SPDX y smoke de la imagen publicada. Paquete aún **private**: Public seleccionado sin confirmar, grants anónimos HTTP 401. Usa fuentes o [acceso privado autorizado](/es/deployment/cloud/). npm `@bykitsune/router` sigue E403/readback público HTTP 404, cambio de token no confirmado. Los comandos de 1.0.2 se condicionaban a publicación/readback npm, con **Node.js >=22.19.0**. [Evidencia](/es/changelog/).
 
 ## Launcher después de publicar
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 # O:
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 

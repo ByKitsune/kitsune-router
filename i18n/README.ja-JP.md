@@ -14,6 +14,10 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 
 ## リリース状況とインストール
 
+**現在のソース版と安定版の対象は 1.0.7 です。** GitHub Release、npm、GHCR の実際の結果は、それぞれ[公開記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認してください。以下のコマンドは npm 1.0.7 の公開と読戻し検証の成功後に使用します。コンテナの利用可否は、その配布経路での確認が別途必要です。
+
+**1.0.2 の配布履歴（当時の読戻し結果）：**
+
 **1.0.2 コンテナは private で配布済み、匿名 pull は未確認、npm はブロック中です。** 不変ソース `65c8b97d`：9,041 成功、100 skip、失敗ゼロ。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功しました。最新確認では **private** のまま：所有者は Public 変更を選びましたが完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換も未確認です。npm コマンドは npm 配布確認後のみ使用し、当面はソースか許可済み private コンテナアクセスを利用してください。GitHub Release・production 配備なし。[1.0.2 証拠](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md)。
 
 旧タグは移動しません。`v1.0.1` は `74583402` で SSH/CI に成功しましたが、GHCR ゲートは login/push 前に失敗し、正規イメージは未公開です。npm publish も失敗し原因は未確定、2026-10-27 の公開読戻しは HTTP 404、GitHub Release も未作成です。`v1.0.0` は `390a6567` に固定され、移行テスト失敗後 npm/GHCR 未公開です。[1.0.1 記録](../releases/RELEASE_NOTES_v1.0.1.md) · [1.0.2 草案](../releases/RELEASE_NOTES_v1.0.2.md)。テスト用時計と npm 診断の改善は本番の並び順・所有権拒否を変えません。旧件数は新版の証拠ではなく、0.x 出典も保持します。
@@ -21,9 +25,9 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 必要環境は **Node.js >=22.19.0**。公開後のみ使用してください。
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# または: npx @bykitsune/router@1.0.2
+# または: npx @bykitsune/router@1.0.7
 ```
 
 確認済みの正規リポジトリか既存チェックアウトから、ルートで実行します。`app/` サブディレクトリはありません。

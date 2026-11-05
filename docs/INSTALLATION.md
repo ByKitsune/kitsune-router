@@ -4,7 +4,7 @@
 
 ## Availability
 
-**Stable target: 1.0.6.** Use the versioned package/image commands after the
+**Stable target: 1.0.7.** Use the versioned package/image commands after the
 corresponding publication workflow and registry readback succeed. Until then,
 use a source checkout. The [publication follow-up](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
 records actual availability and GHCR access requirements; a source version is not
@@ -12,26 +12,26 @@ proof of publication.
 
 ### Historical distribution records
 
-**1.0.2 source verified; container published privately; npm denied at that check.** Runtime tag stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2` and `latest`, with independent authenticated digest/provenance/SPDX readback and published-image smoke. The package was **private** at that recorded readback and anonymous grants returned HTTP 401. npm publication received E403 with public readback HTTP 404; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment was established. These historical results do not determine 1.0.6 availability. See [1.0.2 evidence](CHANGELOG_v1.0.2.md).
+**1.0.2 source verified; container published privately; npm denied at that check.** Runtime tag stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2` and `latest`, with independent authenticated digest/provenance/SPDX readback and published-image smoke. The package was **private** at that recorded readback and anonymous grants returned HTTP 401. npm publication received E403 with public readback HTTP 404; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment was established. These historical results do not determine 1.0.7 availability. See [1.0.2 evidence](CHANGELOG_v1.0.2.md).
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR gate failed before login/push; npm publish failed with cause not yet known and public readback HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. `v1.0.0` remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Neither tag moves. See [1.0.2 status](../releases/RELEASE_NOTES_v1.0.2.md), not archived attempt commands. Original 0.x artifacts are unchanged.
 
-## Launcher 1.0.6 (after publication and registry readback)
+## Launcher 1.0.7 (after publication and registry readback)
 
 Use **Node.js >=22.19.0** and its supported npm. Check `node --version` first.
 
 ```bash
-npx @bykitsune/router@1.0.6
+npx @bykitsune/router@1.0.7
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @bykitsune/router@1.0.6
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 
-The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.6 --host 127.0.0.1` after publication/readback. Inspect supported options with `kitsune-router --help`.
+The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.7 --host 127.0.0.1` after publication/readback. Inspect supported options with `kitsune-router --help`.
 
 The package name and binary differ. Update/uninstall the **scoped package**, not a nonexistent bare `kitsune-router` npm package:
 
@@ -88,6 +88,6 @@ Defaults: `~/.kitsune-router` on macOS/Linux and `%APPDATA%\kitsune-router` on W
 
 For ZenRouter/9Router, stop the source and its helpers and back up the entire directory. First startup can discover `~/.zenrouter` or `~/.9router`, verify a consistent snapshot and copied files, then create the new directory without deleting originals. Existing destinations are never merged/overwritten. See [MIGRATION.md](MIGRATION.md) for source selection, skip controls, certificate/key preservation and rollback.
 
-Production migration permission policy is unchanged: unreadable native/same-UID ownership still fails closed. On restricted Linux, stop/back up the old state and select it with explicit `DATA_DIR` to keep it in place without relocation, or obtain privileged review. Do not ignore permission errors. Bounded Linux evidence is not general non-root support; native Windows/macOS migration remains unverified. See the [1.0.6 source notes](../releases/RELEASE_NOTES_v1.0.6.md) and [publication follow-up](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for current source checks and artifact availability.
+Production migration permission policy is unchanged: unreadable native/same-UID ownership still fails closed. On restricted Linux, stop/back up the old state and select it with explicit `DATA_DIR` to keep it in place without relocation, or obtain privileged review. Do not ignore permission errors. Bounded Linux evidence is not general non-root support; native Windows/macOS migration remains unverified. See the [1.0.7 source notes](../releases/RELEASE_NOTES_v1.0.7.md) and [publication follow-up](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for current source checks and artifact availability.
 
 For containers use [DOCKER.md](../DOCKER.md), keep the same volume mounted at the effective absolute `DATA_DIR` (`/app/data` by default or a supported custom path), and verify the canonical image/version before pulling. Remote access requires authenticated HTTPS and a reviewed proxy/firewall policy. See [integrations](INTEGRATIONS.md) and [operations](OPERATIONS.md).

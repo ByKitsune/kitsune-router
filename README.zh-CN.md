@@ -14,6 +14,10 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 发布状态
 
+**当前源码版本与稳定版目标为 1.0.7。** 请分别在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中确认 GitHub Release、npm 与 GHCR 的实际结果。下方命令仅适用于 npm 1.0.7 发布并读回验证成功之后；容器可用性需单独确认相应渠道的结果。
+
+**1.0.2 分发历史（当时的读回结果）：**
+
 **1.0.2 容器已发布，匿名拉取待确认，npm 仍受阻。** 源码固定于不可变 `v1.0.2` / `65c8b97d783becab3f1e1210d2ab9ce67992e13b`（9,041 通过、100 跳过、零失败）。恢复已发布 GHCR `1.0.2` 与 `latest`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。但 [容器包](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) 最近读回仍为 **private**；所有者选择将其设为 Public，尚未确认完成，匿名 grant 为 HTTP 401。npm 因 E403 未发布，用户自行替换 token 也未确认。没有 GitHub Release 1.0.2 或生产部署。包 `@bykitsune/router`、命令 `kitsune-router` 不变；npm 命令仅 npm 发布/读回成功后适用，目前可用源码或获授权的私有容器访问。见 [分发证据](releases/RELEASE_NOTES_v1.0.2.md)。
 
 旧标签均不移动：`v1.0.1` 固定于 `745834026a5a9f55dffce40c0ad01bf3106e8237`，SSH/CI 通过，但 GHCR 门槛在登录/推送前失败，未发布规范 1.0.1 镜像；npm 发布命令失败，原因尚未知，2026-10-27 公开读回为 HTTP 404，未创建 GitHub Release 1.0.1。`v1.0.0` 固定于 `390a65677c06a30084386d2a2adf8b0c48709281`，迁移测试失败后未发布 npm/GHCR。见 [1.0.1 尝试](releases/RELEASE_NOTES_v1.0.1.md) 与 [1.0.2 草案](releases/RELEASE_NOTES_v1.0.2.md)：接续确定性时钟测试和清晰 npm 诊断，不改变生产排序或所有权拒绝策略，也不沿用旧测试数量。0.x 来源保留。
@@ -25,10 +29,10 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 启动器要求 **Node.js >=22.19.0**：
 
 ```bash
-# 仅在 npm 1.0.2 发布并验证后：
-npx @bykitsune/router@1.0.2
+# 仅在 npm 1.0.7 发布并读回验证成功后：
+npx @bykitsune/router@1.0.7
 # 或：
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 
@@ -84,7 +88,9 @@ curl http://localhost:20128/v1/models \
 
 提供协议转换、多账户/模型回退、用量统计，以及可选 RTK/Headroom 等压缩功能。支持情况取决于具体传输与模型；无法表示的参数或文档可能明确拒绝。没有固定节省比例、无限免费额度或不中断运行的保证。成本估算不是账单；未知价格不等于免费，订阅积分不等于 API 美元费用。
 
-已发布容器仅面向 **linux/amd64**：`ghcr.io/bykitsune/kitsune-router:1.0.2`，当前须获授权私有访问；匿名拉取需先确认 Public 设置与无认证读回。认证读回及已发布镜像 smoke 已通过，摘要锁定见 [Docker](DOCKER.md)。Docker Hub 仍未验证。原生 Windows/macOS 迁移仍未验证，远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [验证记录](docs/CHANGELOG_v1.0.2.md)。
+当前容器目标为 `ghcr.io/bykitsune/kitsune-router:1.0.7`，仅面向 **linux/amd64**。请先在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认该版本的发布、摘要和访问验证结果；不能用旧版本的摘要或访问状态推断新版本可用性。
+
+**历史 1.0.2 容器记录：** 已发布容器仅面向 **linux/amd64**：`ghcr.io/bykitsune/kitsune-router:1.0.2`，当前须获授权私有访问；匿名拉取需先确认 Public 设置与无认证读回。认证读回及已发布镜像 smoke 已通过，摘要锁定见 [Docker](DOCKER.md)。Docker Hub 仍未验证。原生 Windows/macOS 迁移仍未验证，远程部署须自行配置认证、HTTPS 和代理策略。云同步已移除，不存在默认托管 Kitsune 服务。详见 [安装](docs/INSTALLATION.md)、[运维](docs/OPERATIONS.md)、[架构](docs/ARCHITECTURE.md) 和 [验证记录](docs/CHANGELOG_v1.0.2.md)。
 
 ## 致谢与许可证
 

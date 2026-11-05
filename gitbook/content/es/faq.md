@@ -4,9 +4,11 @@
 
 Gateway neutral y local-first mantenido/patrocinado por [ByKitsune](https://bykitsune.com), continuación de ZenRouter/9Router. **Your models. Your routes.** Usa tus upstreams, no envía automáticamente al patrocinador.
 
-## ¿Ya está 1.0.2?
+## ¿Está disponible 1.0.7?
 
-**Contenedor publicado pero privado; npm sigue bloqueado.** Recovery `40485038668` publicó runtime inmutable `65c8b97d`, con lectura autenticada digest/proveniencia/SPDX y smoke independiente pasados. Public seleccionado por el propietario no está confirmado; grants anónimos aún HTTP 401. Usa acceso privado autorizado o fuentes, no asumas pull anónimo. npm sigue E403/readback público HTTP 404 y cambio de token no confirmado. Sin GitHub Release 1.0.2 ni producción; causa npm 1.0.1 aún desconocida. [Instalación](/es/getting-started/installation/) · [Evidencia](/es/changelog/).
+El objetivo actual es **1.0.7**. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) distingue los resultados reales de GitHub Release, npm y GHCR. No des por publicada una distribución ni por público un contenedor hasta confirmar su lectura; si un canal sigue pendiente o denegado, usa las [fuentes](/es/getting-started/installation/) o el acceso autorizado que indique el registro.
+
+**Registro histórico de 1.0.2; no determina el estado de 1.0.6:** **Contenedor publicado pero privado; npm sigue bloqueado.** Recovery `40485038668` publicó runtime inmutable `65c8b97d`, con lectura autenticada digest/proveniencia/SPDX y smoke independiente pasados. Public seleccionado por el propietario no está confirmado; grants anónimos aún HTTP 401. Usa acceso privado autorizado o fuentes, no asumas pull anónimo. npm sigue E403/readback público HTTP 404 y cambio de token no confirmado. Sin GitHub Release 1.0.2 ni producción; causa npm 1.0.1 aún desconocida. [Instalación](/es/getting-started/installation/) · [Evidencia](/es/changelog/).
 
 ## ¿Cuenta u orden obligatorio?
 

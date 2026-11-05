@@ -1,6 +1,6 @@
 {
   "name": "kitsune-router-tests",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
   "description": "Regression and compatibility tests for the Kitsune Router provider-neutral AI gateway",

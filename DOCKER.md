@@ -2,7 +2,7 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-**Stable target: `ghcr.io/bykitsune/kitsune-router:1.0.6`.** Use the examples below
+**Stable target: `ghcr.io/bykitsune/kitsune-router:1.0.7`.** Use the examples below
 after its publication workflow and registry readback succeed. The workflow targets
 **linux/amd64**, not ARM64/multi-architecture. The [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
 records the actual digest, visibility and access results; none is assumed here.
@@ -10,11 +10,11 @@ Docker Hub remains unverified and optional.
 
 ### Historical 1.0.2 distribution record
 
-**`ghcr.io/bykitsune/kitsune-router:1.0.2` was published privately.** Recovery `40485038668` used tooling `802c61bf` to build immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; build/push, revision labels, SLSA v1/SPDX, `latest` promotion, independent authenticated readback and published-image smoke passed. At that readback, `1.0.2` and `latest` resolved to index **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) was private and anonymous grants returned HTTP 401. These historical results do not determine 1.0.6 visibility. See [1.0.2 evidence](docs/CHANGELOG_v1.0.2.md).
+**`ghcr.io/bykitsune/kitsune-router:1.0.2` was published privately.** Recovery `40485038668` used tooling `802c61bf` to build immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; build/push, revision labels, SLSA v1/SPDX, `latest` promotion, independent authenticated readback and published-image smoke passed. At that readback, `1.0.2` and `latest` resolved to index **`sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`**. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) was private and anonymous grants returned HTTP 401. These historical results do not determine 1.0.7 visibility. See [1.0.2 evidence](docs/CHANGELOG_v1.0.2.md).
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
-## Run 1.0.6 after publication and verification
+## Run 1.0.7 after publication and verification
 
 If the published package is private, authenticate to GHCR with package-read permission before using these examples. Anonymous access must be confirmed separately; a pre-publication HTTP 401 does not determine the published package's visibility. Do not paste tokens in commands, source, chat or logs. Set a strong `INITIAL_PASSWORD` in your private environment first; `-e INITIAL_PASSWORD` forwards it without embedding a value in the example.
 
@@ -26,27 +26,27 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.6
+  ghcr.io/bykitsune/kitsune-router:1.0.7
 ```
 
 After publication, inspect the versioned image:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/bykitsune/kitsune-router:1.0.6
+docker buildx imagetools inspect ghcr.io/bykitsune/kitsune-router:1.0.7
 ```
 
-For fixed bytes, compare the reported index digest with the verified 1.0.6 digest
+For fixed bytes, compare the reported index digest with the verified 1.0.7 digest
 and source/provenance evidence in the [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md),
 then use the canonical image name followed by `@` and that verified digest in
-`docker run` or Compose. No 1.0.6 digest is recorded here before publication;
-the historical 1.0.2 digest above is not a 1.0.6 pin.
+`docker run` or Compose. No 1.0.7 digest is recorded here before publication;
+the historical 1.0.2 digest above is not a 1.0.7 pin.
 
 Digest pinning does not bypass private-package authorization. Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. The gateway does not require a ByKitsune account or prescribe a provider; GHCR download authorization, when required, is separate.
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.6
+    image: ghcr.io/bykitsune/kitsune-router:1.0.7
     platform: linux/amd64
     restart: unless-stopped
     ports:
@@ -127,4 +127,4 @@ The verified source's **local** image `sha256:92aeda74d937e440bae4643523beaac9bc
 
 The **published registry image**, config `sha256:af6416b66810127f938479f8bf837ab338fd857ba366dfbaeef66a9f9ba04f51`, independently passed six real SSH start/restart scenarios for the same two paths and three secret sources. All 16 compressed-layer digests and rootfs diff hashes were verified before loading; each scenario was healthy at version 1.0.2, with keys stable and secrets mode 0600. This is separate from local image `92aeda74`; manifest, config and index identities are recorded in [release evidence](docs/CHANGELOG_v1.0.2.md).
 
-Recovery published unchanged release source without a version bump or tag move. Earlier preflight/context failures remain [historical](docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). That record's npm publication was denied with E403; it does not predict the 1.0.6 workflow result. Authenticated registry publication and runtime smoke do not establish anonymous access or production deployment.
+Recovery published unchanged release source without a version bump or tag move. Earlier preflight/context failures remain [historical](docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). That record's npm publication was denied with E403; it does not predict the 1.0.7 workflow result. Authenticated registry publication and runtime smoke do not establish anonymous access or production deployment.

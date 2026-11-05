@@ -1,11 +1,13 @@
 # Quick Start
 
-**Your models. Your routes.** No ByKitsune account or required provider ordering. **1.0.2 container is published privately; anonymous pulls are pending and npm is blocked.** Runtime tag stays `65c8b97d`. Use [source installation](/en/getting-started/installation/) or authorized [private container access](/en/deployment/cloud/). Package commands below apply only after **npm** publication/readback succeeds and require **Node.js >=22.19.0**; container publication does not publish the npm launcher.
+**Your models. Your routes.** No ByKitsune account or required provider ordering. The stable target is **1.0.7**; confirm the npm result in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) before using the launcher below. Container availability has its own publication/access gate. Use [source installation](/en/getting-started/installation/) or the verified [container instructions](/en/deployment/cloud/). The launcher requires **Node.js >=22.19.0**.
+
+**Historical 1.0.2 readback:** Runtime `65c8b97d` had a privately published container, pending anonymous access and blocked npm publication. These observations do not determine 1.0.7 availability; container publication does not publish the npm launcher.
 
 ## 1. Start the gateway
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 ```
 
 Set a strong `INITIAL_PASSWORD` in your private environment before exposing access. Open `http://localhost:20128/dashboard`.

@@ -10,7 +10,9 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 
 ## 公開状況
 
-**1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm はブロック中です。** 不変 runtime `65c8b97d`（9,041 成功、100 skip、失敗ゼロ）。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功。最新確認は **private**、所有者の Public 選択は完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換未確認です。ソースか許可済み private コンテナを利用し、npm コマンドは npm 配布確認後のみ使用してください。GitHub Release・production 配備なし。[証拠](/ja/changelog/)。
+**現在の安定版対象は 1.0.7 です。** GitHub Release、npm、GHCR の公開結果と取得可否は、それぞれ [1.0.7 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認してください。以下のガイドの npm・コンテナー例は、対象成果物の公開とレジストリー読戻しが確認された後に使用します。ソースの検証やタグの存在だけでは公開完了を意味しません。
+
+**1.0.2 の履歴（当時の確認）:** **1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm はブロック中です。** 不変 runtime `65c8b97d`（9,041 成功、100 skip、失敗ゼロ）。Recovery `40485038668` が GHCR `1.0.2`/`latest` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功。最新確認は **private**、所有者の Public 選択は完了未確認、匿名 grant HTTP 401。npm は E403/公開読戻し HTTP 404、token 交換未確認です。ソースか許可済み private コンテナを利用し、npm コマンドは npm 配布確認後のみ使用してください。GitHub Release・production 配備なし。[証拠](/ja/changelog/)。
 
 | 対象 | 識別子 |
 | --- | --- |

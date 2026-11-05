@@ -1,5 +1,15 @@
 # 変更履歴
 
+## Kitsune Router 1.0.7 — 2026-11-05 配布ゲート修正の準備
+
+配布ワークフローで、ロック済み Playwright に対応する Chromium をインストールし、
+公開前のブラウザー検証を必須にします。native SQLite のテスト fixture は 30 秒の
+実行予算を持ちますが、変更はテストハーネスだけで、本番の移行処理は変えません。
+
+依存関係のグラフは Undici **8.12.4** を含めて維持します。GitHub Release・npm・GHCR
+それぞれの実際の配布結果と取得可否は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+この準備は公開完了を意味せず、既存の 1.0.6 タグや成果物の履歴は変更しません。
+
 ## Kitsune Router 1.0.6 — 2026-11-05 ソースの追加更新
 
 リクエストとアカウントの分離、元の署名付き履歴、OAuth・プロジェクトの検証、
@@ -14,6 +24,8 @@ Vitest 5.1.0 などを更新しました。
 引き継いでください。
 
 [ソース技術メモ](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [ソースと成果物の状態](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)。
+
+後続の安定版確認で **Undici 8.12.4** を選択しました。ソース／runtime の検証と、GitHub Release・npm・GHCR の公開／読戻しは別のゲートです。各チャネルの実結果と取得可否は [1.0.6 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。この追記だけでは公開完了や実アカウントの利用権を主張しません。
 
 ## Kitsune Router 1.0.5 — 2026-10-31 ソースの締め
 

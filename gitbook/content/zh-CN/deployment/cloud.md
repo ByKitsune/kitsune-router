@@ -8,12 +8,16 @@
 
 ## 容器
 
-**GHCR 1.0.2 已发布，但为 private。** Recovery `40485038668` 用 tooling `802c61bf` 构建不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。`1.0.2`/`latest` 共用索引 `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。下列示例须获授权私有 GHCR 访问，或先确认所有者完成 Public 设置且匿名读回成功。Public 选择未确认，最近匿名 grant HTTP 401。仅 **linux/amd64**。见 [摘要锁定与证据](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
+**当前容器目标为 `ghcr.io/bykitsune/kitsune-router:1.0.7`，平台仅为 linux/amd64。** 以下示例仅在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认该镜像已发布、读回通过且具有所需访问权限后适用。认证拉取成功不代表可匿名拉取。1.0.7 应使用该记录中的实际摘要，不得复用下方历史 1.0.2 摘要。
+
+**1.0.2 历史记录（当时的验证结果）：** **GHCR 1.0.2 已发布，但为 private。** Recovery `40485038668` 用 tooling `802c61bf` 构建不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。`1.0.2`/`latest` 共用索引 `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。下列示例须获授权私有 GHCR 访问，或先确认所有者完成 Public 设置且匿名读回成功。Public 选择未确认，最近匿名 grant HTTP 401。仅 **linux/amd64**。见 [摘要锁定与证据](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
+
+### 1.0.7 配置示例（GHCR 确认后）
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.2
+    image: ghcr.io/bykitsune/kitsune-router:1.0.7
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"
@@ -24,7 +28,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set a strong dashboard password}
 ```
 
-在有效 `DATA_DIR` 保留旧卷/挂载：默认 `/app/data`，支持的自定义路径也保留，不以新空卷冒充迁移。Docker Hub 镜像源可选。见 [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
+在有效 `DATA_DIR` 保留旧卷/挂载：默认 `/app/data`，支持的自定义路径也保留，不以新空卷冒充迁移。不得据此推断 Docker Hub 镜像已发布。见 [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
 ## 安全边界
 

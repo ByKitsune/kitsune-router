@@ -8,12 +8,16 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**GHCR 1.0.2 is published, but private.** Recovery `40485038668` built immutable runtime `65c8b97d` using separate tooling `802c61bf`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. `1.0.2` and `latest` share index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Use the example with authorized private GHCR access, or after the owner completes Public visibility and anonymous readback succeeds. Public was selected but not confirmed; anonymous grants remain HTTP 401 at last read. **linux/amd64 only**. [Digest pin and evidence](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
+**Stable container target: `ghcr.io/bykitsune/kitsune-router:1.0.7`, linux/amd64 only.** Use the example only after its publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Follow the version-specific digest and access results recorded there; do not use a previous release’s digest as a 1.0.7 pin. npm and GitHub Release have separate gates.
+
+**Historical 1.0.2 registry readback:**
+
+**GHCR 1.0.2 is published, but private.** Recovery `40485038668` built immutable runtime `65c8b97d` using separate tooling `802c61bf`; authenticated digest/provenance/SPDX readback and independent published-image smoke passed. `1.0.2` and `latest` share index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. At that readback, authorized private GHCR access was required unless the owner completed Public visibility and anonymous readback succeeded. Public was selected but not confirmed; anonymous grants remain HTTP 401 at last read. **linux/amd64 only**. [Digest pin and evidence](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md).
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.2
+    image: ghcr.io/bykitsune/kitsune-router:1.0.7
     platform: linux/amd64
     restart: unless-stopped
     ports:

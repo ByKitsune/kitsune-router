@@ -10,7 +10,9 @@ Esta integración corresponde al código fuente actual.
 
 ## Estado de publicación
 
-**Contenedor 1.0.2 publicado en privado; pull anónimo pendiente; npm bloqueado.** Runtime inmutable `65c8b97d` (9.041 aprobados, 100 omitidos, cero fallos). Recovery `40485038668` publicó GHCR `1.0.2`/`latest`; lectura autenticada digest/proveniencia/SPDX y smoke independiente de la imagen publicada pasaron. El paquete sigue **private**: Public seleccionado pero no confirmado, grants anónimos HTTP 401. npm sigue E403/readback público HTTP 404, cambio de token no confirmado. Usa fuentes o acceso privado autorizado al contenedor; comandos npm solo tras publicación npm aceptada. Sin GitHub Release ni producción. [Evidencia](/es/changelog/).
+**Objetivo actual: 1.0.7.** Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para conocer por separado los resultados de GitHub Release, npm y GHCR. Instala una distribución solo cuando su publicación y lectura se hayan confirmado; una compilación correcta no demuestra disponibilidad ni acceso anónimo.
+
+**Registro histórico de 1.0.2; no determina el estado de 1.0.6:** **Contenedor 1.0.2 publicado en privado; pull anónimo pendiente; npm bloqueado.** Runtime inmutable `65c8b97d` (9.041 aprobados, 100 omitidos, cero fallos). Recovery `40485038668` publicó GHCR `1.0.2`/`latest`; lectura autenticada digest/proveniencia/SPDX y smoke independiente de la imagen publicada pasaron. El paquete sigue **private**: Public seleccionado pero no confirmado, grants anónimos HTTP 401. npm sigue E403/readback público HTTP 404, cambio de token no confirmado. Usa fuentes o acceso privado autorizado al contenedor; comandos npm solo tras publicación npm aceptada. Sin GitHub Release ni producción. [Evidencia](/es/changelog/).
 
 | Superficie | Destino |
 | --- | --- |

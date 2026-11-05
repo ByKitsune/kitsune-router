@@ -6,7 +6,7 @@ on:
       tag:
         description: "Stable release tag (must match all package versions)"
         required: true
-        default: "v1.0.6"
+        default: "v1.0.7"
 
 concurrency:
   group: docker-release
@@ -22,6 +22,7 @@ jobs:
       contents: read
       packages: write
     env:
+      KITSUNE_REQUIRE_BROWSER_TESTS: "1"
       JWT_SECRET: test-jwt-secret-at-least-32-chars-long-for-ci-simulation
       KITSUNE_ROUTER_PEER_TOKEN: test-peer-token-for-ci-1234567890abcdef
 
@@ -56,6 +57,12 @@ jobs:
         run: |
           npm ci
           npm --prefix tests ci
+
+      - name: Install Chromium for isolated browser checks
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+
+      - name: Run synthetic Usage browser regressions first
+        run: npm test -- --maxWorkers=1 tests/unit/upstream-usage-dashboard-browser.test.js
 
       - name: Verify exact source with shared CI gates
         run: node scripts/release-publication-helpers.mjs verify-source

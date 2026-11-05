@@ -1,15 +1,19 @@
 # Installation
 
-**1.0.2 source verified; container published privately; npm blocked.** Runtime tag stays `65c8b97d`. Recovery `40485038668` published GHCR with authenticated digest/provenance/SPDX readback and published-image smoke passed. The package remains **private**; Public was selected but not confirmed, anonymous grants HTTP 401. Use source installation or authorized [container access](/en/deployment/cloud/). npm `@bykitsune/router` remains E403-denied with public readback HTTP 404; user-managed token replacement is not confirmed. Commands below apply only after npm publication/readback succeeds, requiring **Node.js >=22.19.0**. [Evidence](/en/changelog/).
+**Current source version and stable target: 1.0.7.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability. The launcher requires **Node.js >=22.19.0**.
+
+**Historical 1.0.2 distribution readback:**
+
+**1.0.2 source verified; container published privately; npm blocked.** Runtime tag stays `65c8b97d`. Recovery `40485038668` published GHCR with authenticated digest/provenance/SPDX readback and published-image smoke passed. The package remains **private**; Public was selected but not confirmed, anonymous grants HTTP 401. Use source installation or authorized [container access](/en/deployment/cloud/). npm `@bykitsune/router` remains E403-denied with public readback HTTP 404; user-managed token replacement is not confirmed. Those observations did not establish npm availability; the old release required its own publication/readback verification. [Evidence](/en/changelog/).
 
 Both old tags remain immutable. v1.0.1 at `74583402` passed SSH/CI, but its GHCR gate failed before login/push and npm publish failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 at `390a6567` did not publish npm/GHCR after its migration-test failure. See [release history](/en/changelog/); source tags are not registry artifacts.
 
-## Launcher — after publication
+## Launcher 1.0.7 — after publication and readback
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 # Or:
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 

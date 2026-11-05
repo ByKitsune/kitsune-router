@@ -4,7 +4,11 @@
 
 [ByKitsune](https://bykitsune.com) が保守・支援する中立・ローカルファーストのゲートウェイで、ZenRouter/9Router を継続します。**Your models. Your routes.** 設定した上流を使い、スポンサーへ自動送信しません。
 
-## 1.0.2 は公開済み？
+## 1.0.7 の公開状況は？
+
+GitHub Release、npm、GHCR は別々に公開・検証されます。[1.0.7 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で各チャネルの結果と取得可否を確認してください。公開と読戻しが確認された成果物に限って [インストール手順](/ja/getting-started/installation/)を使います。ソースの検証や既存タグだけでは、公開、匿名アクセス、実プロバイダーの利用権を証明しません。
+
+## 1.0.2 の公開履歴（当時の確認）
 
 **コンテナは配布済みですが private、npm はブロック中です。** Recovery `40485038668` が不変 runtime `65c8b97d` を配布し、認証付き digest/provenance/SPDX 読戻しと配布イメージ独立 smoke に成功しました。所有者の Public 選択は完了未確認、匿名 grant は最新確認で HTTP 401。許可済み private アクセスかソースを使い、匿名 pull を前提にしないでください。npm は E403/公開読戻し HTTP 404、token 交換未確認。GitHub Release 1.0.2・production 配備はなく、旧タグと 1.0.1 npm 原因不明の証拠を維持します。[インストール](/ja/getting-started/installation/) · [証拠](/ja/changelog/)。
 

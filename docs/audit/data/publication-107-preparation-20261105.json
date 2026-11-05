@@ -1,0 +1,131 @@
+{
+  "version": "1.0.7",
+  "priorImmutableTag": {
+    "tag": "v1.0.6",
+    "sourceSha": "f9d4c50c386d2757b0446f9c35c46daa8ac10b4c",
+    "tagObject": "b8fbfc12c3478e924d4bb4abfc3a54059df6f42e"
+  },
+  "environmentRepair": {
+    "capturedAtUtc": "2026-11-05T16:40:29.694780+00:00",
+    "stage": "Reviewable main-worktree publisher environment repair, independent of pending version choice. No version/tag/publication changes by this task.",
+    "immutableHistoricalTag": {
+      "tag": "v1.0.6",
+      "sourceSha": "f9d4c50c386d2757b0446f9c35c46daa8ac10b4c",
+      "changed": false
+    },
+    "filesSha256": {
+      ".github/workflows/release.yml": "a874b515db1abb788525e79d6ad77a04e64ace03cbc253fbaff0a558e5d4bc24",
+      ".github/workflows/docker-publish.yml": "9b17cc8534c940b20103736cdd7ab41042ed389922268a9ca8f03784de860a13",
+      "tests/unit/rebrand-data-migration.test.js": "b8d5cdd81591c2d923f6ef9f87064210e617db6c5512714a989b415eb9fc9ab4",
+      "tests/unit/publication-browser-prerequisites.test.js": "3e708cc055613053f86a40b53749ab4acc63fdbdd4ae7c39a4e6845e31ca6203"
+    },
+    "behavior": [
+      "Both publishers require browser tests and install Chromium through the locked local Playwright CLI after isolated HOME setup and locked dependencies.",
+      "Both run the full19-case Usage browser fixture first, before the existing unmodified shared source-verification gate. No skip/continue-on-error or missing-browser fallback added.",
+      "Only first native SQLite/durable-filesystem migration fixture gets30000ms harness timeout; every test body byte/assertion is preserved and production migration bytes remain identical to immutable source."
+    ],
+    "migration": {
+      "nativeOperations": "SQLite DatabaseSync, PRAGMA quick_check, VACUUM INTO, scratch copy/hash/inventory, fsync and permission checks. Linux fixture limits/proc inventory and throws on any OS-command execution; there is no child-process cost in this specific test.",
+      "bodyAndAssertionsByteIdentical": true,
+      "productionSha256": "b6fd64aa5683eeb8d91271164f5bad33069e1f59841f9f373bd4bd24a855ac40",
+      "productionUnchanged": true,
+      "oldHarnessMilliseconds": 5000,
+      "newHarnessMilliseconds": 30000,
+      "observedLocalFixture": "\u2713 tests/unit/rebrand-data-migration.test.js > Kitsune Router state migration > migrates SQLite and security material without changing or deleting the original 26ms"
+    },
+    "verification": {
+      "focusedFiles": 5,
+      "passed": 107,
+      "failed": 0,
+      "actualChromiumBrowserCases": 19,
+      "browserExecutable": "/usr/bin/chromium",
+      "requiredBrowserTests": true,
+      "strictComposedLint": "pass --max-warnings=0 for owned JS tests",
+      "diffCheck": "pass",
+      "stderrSections": 0,
+      "fullSuite": "Not run by this task; coordinating agent owns final exact-source gates."
+    },
+    "evidenceSha256": {
+      "before.json": "fc5a9f2f96202bed0ec6990750a9a05866a72783046317416d008a625db7b456",
+      "focused.log": "5dc660a8855babf80285a27987d7741f1b8489bca04951165201c332ee15ccea",
+      "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "limits": [
+      "Failed v1.0.6 publication attempts retain their original failure evidence; this repair does not retroactively alter their outcome.",
+      "Only the four owned workflow/test paths changed. No tag/publication mutations, product version bump, production migration changes or dependency changes were performed by this task.",
+      "Local Chromium verifies the real browser fixture; the locked Playwright download/install on fresh GitHub runners still requires future exact-source workflow verification."
+    ]
+  },
+  "recoveryEnvironmentRepair": {
+    "capturedAtUtc": "2026-11-05T16:58:00.857489+00:00",
+    "scope": "Only container-recovery.yml and publication-browser-prerequisites.test.js changed in this follow-up. No version, tag, production helper, publish, dependency or documentation edits.",
+    "filesSha256": {
+      ".github/workflows/container-recovery.yml": "0ae2c8bd7a7ad450c9a26bce47043bcf9c59200f96fcc205f251e92a557d3117",
+      "tests/unit/publication-browser-prerequisites.test.js": "02be9b255000590704329dd4aaa3322b880af8599a15e44ba4de2c32d55560aa"
+    },
+    "historicalRecovery": {
+      "defaultTag": "v1.0.2",
+      "defaultSourceSha": "65c8b97d783becab3f1e1210d2ab9ce67992e13b",
+      "originalWorkflowByteIdenticalAfterRemovingOnlyBrowserSetupBlock": true,
+      "unconditionalOriginalSourceGatePreserved": true,
+      "separateToolingSourceValidationPreserved": true
+    },
+    "behavior": [
+      "Inspect actual release-source fixture presence after its locked dependency installation, independently of tooling version/content.",
+      "Only when fixture exists, set KITSUNE_REQUIRE_BROWSER_TESTS=1, install release-source locked Chromium and run19-case Usage fixture from release-source before original source-gate.",
+      "Older sources without fixture leave browser flag/output untouched and still run the unconditional original source gate. No unversioned downloads, passWithNoTests, skips or error suppression."
+    ],
+    "verification": {
+      "focusedFiles": 2,
+      "passed": 50,
+      "failed": 0,
+      "contractCases": 5,
+      "realPresenceDetectionCases": 2,
+      "strictLint": "pass --max-warnings=0",
+      "stderrSections": 0,
+      "diffCheck": "pass"
+    },
+    "evidenceSha256": {
+      "recovery-focused.log": "3d7bac285db332af2ff652e16d777449d54515f54788da6f735ab24579a285fe",
+      "recovery-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final-proof.json": "00c1ea7c6a88f1eee04da25e38128a5b0e17678203b4a4b41f4eec4668600e9b"
+    },
+    "limits": "Local real Bash/Git and registry-edge fixtures only. Fresh-runner actual Chromium installation and publication remain coordinating-agent exact-source gates; no actions were dispatched here."
+  },
+  "subsequentVersionDefaultChanges": {
+    ".github/workflows/release.yml": "Only the default tag changed1.0.6\u21921.0.7 after the original focused proof",
+    ".github/workflows/docker-publish.yml": "Only the default tag changed1.0.6\u21921.0.7 after the original focused proof"
+  },
+  "currentFileSha256": {
+    ".github/workflows/release.yml": "bcae98cadabdf47af5d67d97dbb079f8025aace1b0eed326fec0c66bed60f326",
+    ".github/workflows/docker-publish.yml": "5266928d88bf686eee8fd62bbf86c5d2a70c0770575c6e14ec27f112fc58e82c",
+    "tests/unit/rebrand-data-migration.test.js": "b8d5cdd81591c2d923f6ef9f87064210e617db6c5512714a989b415eb9fc9ab4",
+    "tests/unit/publication-browser-prerequisites.test.js": "02be9b255000590704329dd4aaa3322b880af8599a15e44ba4de2c32d55560aa",
+    ".github/workflows/container-recovery.yml": "0ae2c8bd7a7ad450c9a26bce47043bcf9c59200f96fcc205f251e92a557d3117"
+  },
+  "dependencyGraphsUnchangedFromF9d4": true,
+  "productionMigrationAndCodexCodeUnchangedFromF9d4": true,
+  "wholeLint": {
+    "maxWarnings": 0,
+    "exitCode": 0,
+    "boundary": "Before the final recovery-contract addition; owned lint and exact source CI cover it"
+  },
+  "publicationState": "Preparation only; new exact-source CI, tag and registry writes remain separate gates.",
+  "coordinatorChecks": {
+    "sourceVersion": "1.0.7",
+    "releaseContracts": {
+      "files": 3,
+      "passed": 36,
+      "failed": 0
+    },
+    "docsTests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "docsProductionBuild": "passed",
+    "brand": "passed",
+    "versionGuard": "passed",
+    "localCliVersion": "1.0.7",
+    "historicalTagV106Unchanged": true
+  }
+}

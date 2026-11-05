@@ -1,9 +1,11 @@
 # Bắt đầu nhanh
 
-**Your models. Your routes.** Không bắt buộc ByKitsune hoặc thứ tự provider. **Container 1.0.2 đã xuất bản private, pull ẩn danh còn chờ, npm bị chặn.** Runtime giữ `65c8b97d`. Dùng [mã nguồn](/vi/getting-started/installation/) hoặc [truy cập container private được phép](/vi/deployment/cloud/). Lệnh dưới chỉ sau xuất bản/readback **npm** thành công, với Node.js >=22.19.0; xuất bản container không xuất bản launcher npm.
+**Your models. Your routes.** Không bắt buộc tài khoản ByKitsune hay thứ tự provider. Mục tiêu hiện tại là **1.0.7**; launcher cần **Node.js >=22.19.0**. Chỉ dùng lệnh bên dưới sau khi [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) xác nhận npm 1.0.7 đã xuất bản và đọc lại được. Trong lúc chờ, dùng [mã nguồn](/vi/getting-started/installation/); khả năng dùng [container](/vi/deployment/cloud/) được xác minh riêng.
+
+**Ghi chép lịch sử của 1.0.2; không xác định trạng thái của 1.0.6:** **Container 1.0.2 đã xuất bản private, pull ẩn danh còn chờ, npm bị chặn.** Runtime giữ `65c8b97d`. Dùng [mã nguồn](/vi/getting-started/installation/) hoặc [truy cập container private được phép](/vi/deployment/cloud/). Các lệnh của 1.0.2 yêu cầu xuất bản/readback **npm** thành công, với Node.js >=22.19.0; xuất bản container không đồng nghĩa với xuất bản launcher npm.
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 ```
 
 ## Thiết lập

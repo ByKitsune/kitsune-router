@@ -72,6 +72,8 @@ function loadResolver(f, { filesystem = {}, platform = process.platform, version
 }
 
 describe("Kitsune Router state migration", () => {
+  // Real SQLite VACUUM/checks and durable fsync/copy operations can exceed the
+  // default five seconds on a shared runner; keep this fixture's budget bounded.
   it("migrates SQLite and security material without changing or deleting the original", () => {
     const f = fixture();
     for (const [file, content] of Object.entries({
@@ -93,7 +95,7 @@ describe("Kitsune Router state migration", () => {
     expect(JSON.parse(fs.readFileSync(path.join(f.target, ".migration.json"))).originalRetained).toBe(true);
     if (process.platform !== "win32") expect(fs.statSync(path.join(f.target, "secrets.json")).mode & 0o777).toBe(0o600);
     expect(f.resolve()).toBe(f.target);
-  });
+  }, 30000);
 
   it("preserves an explicit DATA_DIR and supports an explicit fresh start", () => {
     const f = fixture();

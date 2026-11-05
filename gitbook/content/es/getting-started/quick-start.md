@@ -1,9 +1,11 @@
 # Inicio rápido
 
-**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. **Contenedor 1.0.2 publicado en privado, pull anónimo pendiente, npm bloqueado.** Runtime sigue `65c8b97d`. Usa [fuentes](/es/getting-started/installation/) o [acceso privado autorizado al contenedor](/es/deployment/cloud/). Los comandos siguientes solo tras publicación/readback de **npm**, con Node.js >=22.19.0; publicar contenedor no publica el launcher npm.
+**Your models. Your routes.** No requiere cuenta ByKitsune ni orden fijo. El objetivo actual es **1.0.7**, con **Node.js >=22.19.0** para el launcher. Usa el comando siguiente solo tras confirmar npm 1.0.7 en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Mientras tanto, usa [fuentes](/es/getting-started/installation/); la disponibilidad del [contenedor](/es/deployment/cloud/) se verifica por separado.
+
+**Registro histórico de 1.0.2; no determina el estado de 1.0.6:** **Contenedor 1.0.2 publicado en privado, pull anónimo pendiente, npm bloqueado.** Runtime sigue `65c8b97d`. Usa [fuentes](/es/getting-started/installation/) o [acceso privado autorizado al contenedor](/es/deployment/cloud/). Las instrucciones de 1.0.2 condicionaban el launcher a publicación/readback de **npm**, con Node.js >=22.19.0; la publicación del contenedor no publicaba el launcher npm.
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 ```
 
 ## Configura el gateway

@@ -1,5 +1,14 @@
 # 更新日志
 
+## Kitsune Router 1.0.7 — 2026-11-05 发布门槛修复准备
+
+发布工作流安装与锁定 Playwright 版本匹配的 Chromium，并要求发布前通过浏览器检查。
+原生 SQLite 测试 fixture 的执行预算为 30 秒；此调整仅限测试工具，不改变生产迁移行为。
+
+依赖图保持不变，继续使用 Undici **8.12.4**。GitHub Release、npm 和 GHCR 各渠道的
+实际发布结果与可获取性以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
+本次准备不表示发布已经完成，也不修改现有 1.0.6 标签或历史产物记录。
+
 ## Kitsune Router 1.0.6 — 2026-11-05 源码后续更新
 
 本次源码更新加强请求与账户隔离、原始签名历史、OAuth/项目绑定验证和连接凭据检查。
@@ -11,6 +20,8 @@
 原有产物记录保持不变；升级时请保留现有私有数据和密钥。
 
 [源码技术说明](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [源码与产物状态](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)。
+
+后续稳定版读回选择了 **Undici 8.12.4**。源码／runtime 验证与 GitHub Release、npm、GHCR 的发布／读回是独立门槛；各渠道的实际结果和可获取性以 [1.0.6 发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。本条补充不自行宣称发布完成或上游账户权限。
 
 ## Kitsune Router 1.0.5 — 2026-10-31 源码收尾
 

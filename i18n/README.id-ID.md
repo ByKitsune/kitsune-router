@@ -14,6 +14,10 @@ Integrasi ini tersedia pada source checkout saat ini.
 
 ## Status rilis dan instalasi
 
+**Versi sumber dan target stabil saat ini: 1.0.7.** Lihat [catatan publikasi](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) untuk hasil nyata GitHub Release, npm, dan GHCR secara terpisah. Perintah berikut hanya berlaku setelah publikasi dan readback npm 1.0.7 berhasil; akses container memerlukan verifikasi kanalnya sendiri.
+
+**Riwayat distribusi 1.0.2 (hasil readback pada saat itu):**
+
 **Container 1.0.2 terbit privat; akses anonim menunggu; npm terblokir.** Sumber tetap `65c8b97d`: 9.041 lulus, 100 dilewati, nol gagal. Recovery `40485038668` menerbitkan GHCR `1.0.2`/`latest`; readback terautentikasi digest/provenance/SPDX dan smoke independen image terbit lulus. Paket masih **private** pada pembacaan terakhir: pemilik memilih Public tetapi belum mengonfirmasi, grant anonim HTTP 401. npm tetap E403/readback publik HTTP 404, penggantian token pengguna belum dikonfirmasi. Perintah npm hanya setelah publikasi npm terverifikasi; sekarang gunakan sumber atau akses container privat yang diizinkan. Tidak ada GitHub Release atau deployment produksi. [Bukti 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).
 
 Tag tidak dipindahkan: `v1.0.1` di `74583402` lulus SSH/CI, tetapi gate GHCR gagal sebelum login/push, tanpa image kanonis. Perintah npm publish gagal, penyebab belum diketahui; readback publik HTTP 404 pada 2026-10-27, tanpa GitHub Release. `v1.0.0` di `390a6567` tidak menerbitkan npm/GHCR setelah tes migrasi gagal. [Percobaan 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Kandidat 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). Jam tes dan diagnostik npm tidak mengubah urutan atau penolakan ownership produksi. Jumlah tes lama bukan bukti 1.0.2; asal 0.x dipertahankan.
@@ -21,9 +25,9 @@ Tag tidak dipindahkan: `v1.0.1` di `74583402` lulus SSH/CI, tetapi gate GHCR gag
 Memerlukan **Node.js >=22.19.0**. Hanya setelah dipublikasikan:
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# Atau: npx @bykitsune/router@1.0.2
+# Atau: npx @bykitsune/router@1.0.7
 ```
 
 Dari repositori kanonis yang dikonfirmasi atau checkout yang ada, jalankan di root tanpa subdirektori `app/`:

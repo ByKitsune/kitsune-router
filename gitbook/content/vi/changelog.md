@@ -1,5 +1,14 @@
 # Nhật ký thay đổi
 
+## Kitsune Router 1.0.7 — chuẩn bị phát hành ngày 2026-11-05
+
+Các quy trình phát hành cài Chromium khớp với Playwright đã khóa và yêu cầu
+kiểm tra trình duyệt trước khi xuất bản. Giới hạn 30 giây của bài kiểm tra SQLite
+native chỉ áp dụng trong bộ kiểm thử; di chuyển dữ liệu production không đổi.
+Đồ thị phụ thuộc giữ nguyên, bao gồm Undici 8.12.4.
+
+Xem [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế của từng kênh. Bước chuẩn bị này không xác nhận đã xuất bản trên GitHub Release, npm hay GHCR.
+
 ## Kitsune Router 1.0.6 — cập nhật mã nguồn ngày 2026-11-05
 
 Phiên bản này tăng cường cách ly yêu cầu/tài khoản, lịch sử có chữ ký gốc,
@@ -8,6 +17,8 @@ danh mục 121 nhà cung cấp, giảm chi phí CPU dịch yêu cầu/SSE đã �
 SQL.js và cài đặt runtime cục bộ của CLI, cùng định tuyến theo từ chối mô hình
 do gói tài khoản Codex với phạm vi cách ly rõ ràng. Các phụ thuộc theo bản ổn định
 đã rà soát được cập nhật, gồm Next 16.4.5, Vite 8.3.6 và Vitest 5.1.0.
+
+Lần đọc bản ổn định sau đó chọn **Undici 8.12.4**. Kiểm tra mã nguồn, runtime và xuất bản là các bước riêng. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả thực tế của GitHub Release, npm và GHCR; CI thành công tự nó không chứng minh đã xuất bản hay có quyền truy cập ẩn danh.
 
 Kiểm tra mã nguồn không xác nhận xuất bản npm/GHCR, triển khai hay quyền truy cập
 tài khoản thực. Giữ nguyên hồ sơ hiện vật cũ, dữ liệu riêng và bí mật khi nâng cấp.

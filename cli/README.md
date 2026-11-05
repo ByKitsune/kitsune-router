@@ -5,14 +5,14 @@ sponsored by [ByKitsune](https://bykitsune.com/).
 
 The public package is `@bykitsune/router`; its executable is `kitsune-router`.
 
-**Current source: 1.0.6.** This revision includes scoped Codex model-plan routing,
+**Current source: 1.0.7.** This revision includes scoped Codex model-plan routing,
 provider request/credential safeguards, matching SQL.js package assets, local
 runtime installation repairs, translation/SSE improvements and a reviewed stable
 dependency refresh. Source verification is separate from npm/GHCR publication.
-See the [1.0.6 source notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md)
+See the [1.0.7 source notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.7.md)
 and [readiness review](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
 
-**Stable installation target: 1.0.6.** The commands below apply after the 1.0.6
+**Stable installation target: 1.0.7.** The commands below apply after the 1.0.7
 publication workflow and npm registry readback succeed. Source version alone
 does not establish availability. See the [publication follow-up](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
 
@@ -30,18 +30,18 @@ guidance for authorized access/digest pinning. No GitHub Release was created.
 Both older attempt tags
 remain immutable; the 1.0.1 npm failure cause remains unknown. See the
 [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
-These records do not determine 1.0.6 availability.
+These records do not determine 1.0.7 availability.
 Historical 0.x packages retain their original ZenRouter identities.
 
 ## Install and start
 
-Requires **Node.js >=22.19.0**. After the 1.0.6 publication workflow and registry
+Requires **Node.js >=22.19.0**. After the 1.0.7 publication workflow and registry
 readback succeed:
 
 ```sh
-npx @bykitsune/router@1.0.6
+npx @bykitsune/router@1.0.7
 # Or install once:
-npm install -g @bykitsune/router@1.0.6
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 

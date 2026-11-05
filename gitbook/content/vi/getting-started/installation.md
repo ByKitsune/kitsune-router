@@ -1,13 +1,15 @@
 # Cài đặt
 
-**Nguồn 1.0.2 đã xác minh; container xuất bản private; npm bị chặn.** Runtime giữ `65c8b97d`. Recovery `40485038668` xuất bản GHCR, readback xác thực digest/provenance/SPDX và smoke image đã xuất bản qua. Gói vẫn **private**, chọn Public chưa xác nhận, grant ẩn danh HTTP 401. Dùng nguồn hoặc [truy cập container private được phép](/vi/deployment/cloud/). npm `@bykitsune/router` vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Lệnh bên dưới chỉ sau xuất bản/readback **npm** thành công, yêu cầu **Node.js >=22.19.0**. [Bằng chứng](/vi/changelog/).
+**Mục tiêu hiện tại: 1.0.7.** Các lệnh launcher cần **Node.js >=22.19.0** và kết quả xác nhận xuất bản/đọc lại npm 1.0.7. Kiểm tra [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) trước khi cài; kết quả GitHub Release, npm và GHCR độc lập với nhau. Bạn vẫn có thể cài từ mã nguồn.
+
+**Ghi chép lịch sử của 1.0.2; không xác định trạng thái của 1.0.6:** **Nguồn 1.0.2 đã xác minh; container xuất bản private; npm bị chặn.** Runtime giữ `65c8b97d`. Recovery `40485038668` xuất bản GHCR, readback xác thực digest/provenance/SPDX và smoke image đã xuất bản qua. Gói vẫn **private**, chọn Public chưa xác nhận, grant ẩn danh HTTP 401. Dùng nguồn hoặc [truy cập container private được phép](/vi/deployment/cloud/). npm `@bykitsune/router` vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Các lệnh của 1.0.2 yêu cầu xuất bản/readback **npm** thành công và **Node.js >=22.19.0**. [Bằng chứng](/vi/changelog/).
 
 ## Launcher sau khi phát hành
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 # Hoặc:
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 

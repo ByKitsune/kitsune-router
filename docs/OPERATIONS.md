@@ -51,6 +51,10 @@ Request/response debug logs can contain private prompts, credentials or account 
 
 ## Upgrades and verification
 
+**Current stable target: 1.0.7.** Confirm each GitHub Release, npm and GHCR outcome in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) before using a corresponding artifact. Follow the current [installation](INSTALLATION.md) and [Docker](../DOCKER.md) guides; a successful source gate does not establish registry publication or anonymous access.
+
+**Historical 1.0.2 distribution readback:**
+
 **1.0.2 source verified; container published privately; npm blocked.** Runtime tag stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published and promoted GHCR, with independent authenticated digest/provenance/SPDX readback and published-image smoke passed. The package remains private at last read; owner-selected Public visibility is not confirmed and anonymous grants return HTTP 401. Keep both independently smoke-tested npm tarballs distinct from the container; npm acceptance/readback remains blocked. Preserve all immutable tags. See [distribution evidence](CHANGELOG_v1.0.2.md), [installation](INSTALLATION.md) and [Docker](../DOCKER.md) for authorized access and digest pinning.
 
 Production ownership checks still fail closed for unreadable same-UID state. On restricted Linux, stop and back up the old installation and keep it in place with explicit `DATA_DIR` (no relocation), or obtain privileged ownership review. Do not ignore permission errors or remove locks to force migration. Bounded Linux evidence is not general non-root support; native Windows/macOS migration is unverified.

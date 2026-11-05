@@ -14,6 +14,10 @@ Cette intégration concerne le code source actuel.
 
 ## Publication et installation
 
+**Version actuelle du code et cible stable : 1.0.7.** Consultez le [relevé de publication](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) pour les résultats réels de GitHub Release, npm et GHCR, séparément. Les commandes ci-dessous nécessitent la publication et la vérification par lecture de npm 1.0.7 ; l’accès au conteneur dépend de sa propre vérification.
+
+**Historique de distribution de 1.0.2 (lectures effectuées à cette date) :**
+
 **Conteneur 1.0.2 publié en privé ; accès anonyme en attente ; npm bloqué.** Source immuable `65c8b97d` : 9 041 réussis, 100 ignorés, zéro échec. La récupération `40485038668` a publié GHCR `1.0.2`/`latest` ; lecture authentifiée digest/provenance/SPDX et smoke indépendant de l’image publiée réussis. Le paquet reste **private** à la dernière lecture : le propriétaire a choisi Public sans confirmer, accès anonyme HTTP 401. npm reste refusé E403, lecture publique HTTP 404 ; remplacement du token par l’utilisateur non confirmé. Commandes npm seulement après publication npm vérifiée ; utilisez les sources ou un accès privé autorisé au conteneur. Aucun GitHub Release ni déploiement production. [Preuves 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).
 
 Les tags restent immuables : `v1.0.1` à `74583402` a passé SSH/CI, mais le contrôle GHCR a échoué avant login/push, sans image canonique. La commande npm publish a échoué, cause encore inconnue ; lecture publique HTTP 404 le 2026-10-27, aucune GitHub Release créée. `v1.0.0` à `390a6567` n’a publié ni npm ni GHCR après l’échec du test de migration. [Tentative 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Candidate 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). L’horloge de test et les diagnostics npm ne changent ni le tri ni le refus de propriété en production. Les anciens résultats ne vérifient pas 1.0.2 ; provenance 0.x intacte.
@@ -21,9 +25,9 @@ Les tags restent immuables : `v1.0.1` à `74583402` a passé SSH/CI, mais le con
 Prérequis : **Node.js >=22.19.0**. Après publication uniquement :
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# Ou : npx @bykitsune/router@1.0.2
+# Ou : npx @bykitsune/router@1.0.7
 ```
 
 Depuis le dépôt canonique confirmé ou votre copie existante, à la racine sans sous-dossier `app/` :

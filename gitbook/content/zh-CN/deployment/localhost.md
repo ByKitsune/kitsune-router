@@ -1,6 +1,10 @@
 # 本地部署
 
-仪表盘和 API 共用 **20128**，不是 3000。Runtime 1.0.2 固定于 `65c8b97d`，容器已 **私有发布**，匿名访问待确认，npm 受阻。可用 [源码安装](/zh-CN/getting-started/installation/)（Node.js >=22.19.0）或 [获授权私有容器](/zh-CN/deployment/cloud/)。下列启动器命令仅 npm 发布/读回成功后适用。
+仪表盘和 API 共用 **20128**，不是 3000；当前目标为 **1.0.7**。下列启动器示例要求 Node.js >=22.19.0，以及 npm 产物的发布和读回确认。请以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中的实际结果为准，确认前可用 [源码安装](/zh-CN/getting-started/installation/)；[容器](/zh-CN/deployment/cloud/)的可用性与访问权限需分别确认。
+
+**1.0.2 历史记录（当时的验证结果）：** 仪表盘和 API 共用 **20128**，不是 3000。Runtime 1.0.2 固定于 `65c8b97d`，容器已 **私有发布**，匿名访问待确认，npm 受阻。可用 [源码安装](/zh-CN/getting-started/installation/)（Node.js >=22.19.0）或 [获授权私有容器](/zh-CN/deployment/cloud/)。下列启动器命令仅 npm 发布/读回成功后适用。
+
+## 1.0.7 本地使用（npm 确认后）
 
 - 仪表盘：`http://localhost:20128/dashboard`
 - API 基址：`http://localhost:20128/v1`

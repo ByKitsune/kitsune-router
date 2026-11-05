@@ -72,3 +72,11 @@ JWT/API/identity secrets, certificates and authentication during upgrades. Follo
 the [migration guide](../docs/MIGRATION.md). Synthetic checks do not establish live
 provider entitlement, paid inference, native Windows/macOS installation or
 provider invoice accuracy.
+
+
+## Publication attempt boundary
+
+Immutable `v1.0.6` remains at `f9d4c50c`. Its original publication workflows
+stopped at source verification before producing artifacts. The
+[1.0.7 follow-up](RELEASE_NOTES_v1.0.7.md) repairs the missing runner prerequisites;
+current per-channel results are recorded in the publication audit.

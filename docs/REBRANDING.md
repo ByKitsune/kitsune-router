@@ -1,5 +1,9 @@
 # Kitsune Router rebranding and migration
 
+For current 1.0.7 publication and access results, use the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). GitHub Release, npm and GHCR require separate confirmation; this ledger retains the earlier rebranding evidence and does not establish their current availability.
+
+## Historical 1.0.2 status and immutable source
+
 Status: source 1.0.2 is verified and merged; its GHCR image is published with
 authenticated digest/provenance/SBOM readback. GitHub initially made the package
 private, so public pull still awaits an owner visibility change. npm remains

@@ -1,9 +1,11 @@
 # Localhost Deployment
 
-Dashboard and API share port **20128**, not a separate default at 3000. Runtime 1.0.2 stays at `65c8b97d`. The container is published **privately**, anonymous access pending; npm is still blocked. Use [source installation](/en/getting-started/installation/) with Node.js >=22.19.0 or authorized [private container access](/en/deployment/cloud/). The launcher command below applies only after npm publication/readback succeeds.
+Dashboard and API share port **20128**, not a separate default at 3000. The current stable target is **1.0.7**. Use the launcher only after npm publication/readback is confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md); container publication and access require separate verification. Use [source installation](/en/getting-started/installation/) with Node.js >=22.19.0 or the current [container instructions](/en/deployment/cloud/).
+
+**Historical 1.0.2 readback:** Runtime `65c8b97d` had a privately published container, pending anonymous access and blocked npm publication. Those results do not determine 1.0.7 availability.
 
 ```bash
-# Only after package publication:
+# Only after npm 1.0.7 publication and readback:
 kitsune-router
 ```
 

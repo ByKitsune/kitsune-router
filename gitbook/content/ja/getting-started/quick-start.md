@@ -1,9 +1,13 @@
 # クイックスタート
 
-**Your models. Your routes.** ByKitsune アカウント・固定順序は不要。**1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm ブロック中です。** Runtime は `65c8b97d` のまま。[ソース手順](/ja/getting-started/installation/) か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下は **npm** 配布/readback 確認後のみ、Node.js >=22.19.0 で使用します。コンテナ配布は npm launcher の配布を意味しません。
+**Your models. Your routes.** ByKitsune アカウントや固定の順序は不要です。以下は Node.js >=22.19.0 向けの **1.0.7** ランチャー例です。npm の公開と読戻しが [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認されてから使用してください。コンテナーや GitHub Release の結果は別に確認し、npm が取得できるまでは [ソース手順](/ja/getting-started/installation/)を利用できます。
+
+**1.0.2 の履歴（当時の確認）:** **Your models. Your routes.** ByKitsune アカウント・固定順序は不要。**1.0.2 コンテナは private で配布済み、匿名 pull 未確認、npm ブロック中です。** Runtime は `65c8b97d` のまま。[ソース手順](/ja/getting-started/installation/) か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下は **npm** 配布/readback 確認後のみ、Node.js >=22.19.0 で使用します。コンテナ配布は npm launcher の配布を意味しません。
+
+## 1.0.7 ランチャー（npm 公開確認後）
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 ```
 
 ## 設定

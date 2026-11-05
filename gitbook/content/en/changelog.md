@@ -1,5 +1,17 @@
 # Changelog
 
+## Kitsune Router 1.0.7 — 2026-11-05 publication-gate follow-up
+
+The publisher workflows install Chromium matching the locked Playwright version
+and require browser checks before publication. The native SQLite fixture gets a
+30-second test-harness budget; production migration behavior is unchanged. The
+runtime dependency graph, including **Undici 8.12.4**, is unchanged.
+
+The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records actual GitHub Release, npm and GHCR outcomes separately. This preparation
+does not establish artifact availability; the immutable 1.0.6 tag and the
+historical source record below remain unchanged.
+
 ## Kitsune Router 1.0.6 — 2026-11-05 source follow-up
 
 This source revision strengthens request/account isolation, original signed
@@ -14,6 +26,11 @@ account entitlement. Earlier artifact records and private-state requirements
 remain unchanged.
 
 [Technical source notes](https://github.com/ByKitsune/kitsune-router/blob/master/docs/CHANGELOG_v1.0.6.md) · [Source/artifact status](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.6.md).
+
+The later stable publisher readback selects **Undici 8.12.4**. Source/runtime
+checks and publication/readback are separate gates. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records the actual GitHub Release, npm and GHCR outcomes; this entry does not
+claim availability before the corresponding artifact is verified.
 
 ## Kitsune Router 1.0.5 — 2026-10-31 source closing
 

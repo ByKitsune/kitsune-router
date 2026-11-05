@@ -4,9 +4,11 @@
 
 Gateway trung lập, local-first do [ByKitsune](https://bykitsune.com) duy trì/tài trợ, tiếp nối ZenRouter/9Router. **Your models. Your routes.** Gửi tới upstream bạn cấu hình, không tự tới nhà tài trợ.
 
-## 1.0.2 đã phát hành?
+## 1.0.7 đã sẵn sàng chưa?
 
-**Container đã xuất bản nhưng private; npm vẫn bị chặn.** Recovery `40485038668` xuất bản runtime bất biến `65c8b97d`, readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản qua. Chủ chọn Public nhưng chưa xác nhận; grant ẩn danh HTTP 401 ở lần đọc cuối. Dùng quyền private được phép hoặc nguồn, không mặc định pull ẩn danh. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Không GitHub Release 1.0.2 hay production; tag cũ giữ bằng chứng riêng, nguyên nhân npm 1.0.1 vẫn chưa rõ. [Cài đặt](/vi/getting-started/installation/) · [Bằng chứng](/vi/changelog/).
+Mục tiêu hiện tại là **1.0.7**. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) phân biệt kết quả thực tế của GitHub Release, npm và GHCR. Không coi một bản phân phối đã xuất bản hoặc container đã công khai khi chưa xác nhận đọc lại. Nếu một kênh còn chờ hay bị từ chối, dùng [mã nguồn](/vi/getting-started/installation/) hoặc quyền truy cập được phép mà bản ghi nêu rõ.
+
+**Ghi chép lịch sử của 1.0.2; không xác định trạng thái của 1.0.6:** **Container đã xuất bản nhưng private; npm vẫn bị chặn.** Recovery `40485038668` xuất bản runtime bất biến `65c8b97d`, readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản qua. Chủ chọn Public nhưng chưa xác nhận; grant ẩn danh HTTP 401 ở lần đọc cuối. Dùng quyền private được phép hoặc nguồn, không mặc định pull ẩn danh. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Không GitHub Release 1.0.2 hay production; tag cũ giữ bằng chứng riêng, nguyên nhân npm 1.0.1 vẫn chưa rõ. [Cài đặt](/vi/getting-started/installation/) · [Bằng chứng](/vi/changelog/).
 
 ## Bắt buộc tài khoản/thứ tự?
 

@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## Kitsune Router 1.0.7 — preparación de la publicación del 2026-11-05
+
+Los flujos de publicación instalan Chromium correspondiente al Playwright bloqueado
+y exigen las comprobaciones del navegador antes de publicar. La prueba nativa de
+SQLite dispone de un límite de 30 segundos solo en el entorno de pruebas; la
+migración de producción no cambia. Se conserva el mismo grafo de dependencias,
+incluido Undici 8.12.4.
+
+Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para conocer los resultados reales de cada canal. Esta preparación no confirma una publicación en GitHub Release, npm o GHCR.
+
 ## Kitsune Router 1.0.6 — actualización del código del 2026-11-05
 
 Esta revisión refuerza el aislamiento de solicitudes y cuentas, el historial
@@ -9,6 +19,8 @@ medidas en traducción/SSE, reparaciones SQL.js y de instalación local del runt
 CLI, y rutas con ámbito aislado tras rechazos de modelos por el plan de una cuenta
 Codex. Las dependencias se alinean con la versión estable revisada, incluidos
 Next 16.4.5, Vite 8.3.6 y Vitest 5.1.0.
+
+Una lectura estable posterior seleccionó **Undici 8.12.4**. Las comprobaciones del código, del runtime y de publicación son etapas distintas. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva los resultados reales de GitHub Release, npm y GHCR; superar CI no demuestra por sí solo publicación ni acceso anónimo.
 
 La verificación del código no acredita publicación npm/GHCR, despliegue ni acceso
 de cuentas reales. Conserva los registros de artefactos, datos privados y secretos

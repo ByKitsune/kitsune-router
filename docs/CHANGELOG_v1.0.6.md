@@ -138,3 +138,11 @@ no v1.0.5 Release/source tag; earlier 1.0.2 publication/access evidence remains
 historical. Preserve old tags/artifacts, complete private state and existing
 secrets; follow the [migration guide](MIGRATION.md). Live account entitlement,
 paid inference and native Windows/macOS installation require their own evidence.
+
+
+## Publication attempt boundary
+
+Immutable `v1.0.6` remains at `f9d4c50c`. Its original publication workflows
+stopped at source verification before producing artifacts. The
+[1.0.7 follow-up](../releases/RELEASE_NOTES_v1.0.7.md) repairs the missing runner prerequisites;
+current per-channel results are recorded in the publication audit.

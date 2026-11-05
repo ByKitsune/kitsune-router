@@ -1,13 +1,15 @@
 # 安装
 
-**1.0.2 源码已验证，容器已私有发布，npm 受阻。** Runtime 固定于 `65c8b97d`。Recovery `40485038668` 发布 GHCR，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。包仍为 **private**，Public 选择未确认，匿名 grant HTTP 401。可用源码或 [获授权私有容器](/zh-CN/deployment/cloud/)。npm `@bykitsune/router` 仍 E403/公开读回 HTTP 404，用户 token 替换未确认。下列命令仅 npm 发布/读回成功后适用，要求 **Node.js >=22.19.0**。见 [证据](/zh-CN/changelog/)。
+**当前安装目标为 1.0.7，启动器要求 Node.js >=22.19.0。** 下列 npm 命令仅在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认 1.0.7 已发布且读回通过后适用。GHCR 的可获取性也应单独查看该记录；未验证的渠道不应视为已经发布，必要时使用下方源码步骤。
 
-## 发布后的启动器
+**1.0.2 历史记录（当时的验证结果）：** **1.0.2 源码已验证，容器已私有发布，npm 受阻。** Runtime 固定于 `65c8b97d`。Recovery `40485038668` 发布 GHCR，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。包仍为 **private**，Public 选择未确认，匿名 grant HTTP 401。可用源码或 [获授权私有容器](/zh-CN/deployment/cloud/)。npm `@bykitsune/router` 仍 E403/公开读回 HTTP 404，用户 token 替换未确认。下列命令仅 npm 发布/读回成功后适用，要求 **Node.js >=22.19.0**。见 [证据](/zh-CN/changelog/)。
+
+## 1.0.7 启动器（发布确认后）
 
 ```bash
-npx @bykitsune/router@1.0.2
+npx @bykitsune/router@1.0.7
 # 或：
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
 ```
 

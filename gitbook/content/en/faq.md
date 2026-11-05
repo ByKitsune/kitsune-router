@@ -4,7 +4,11 @@
 
 A provider-neutral, local-first AI gateway and dashboard, maintained/sponsored by [ByKitsune](https://bykitsune.com). **Your models. Your routes.** It continues ZenRouter/9Router; requests go to your configured upstreams, not automatically to ByKitsune.
 
-## Is 1.0.2 published?
+## How do I check 1.0.7 availability?
+
+The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) records the actual GitHub Release, npm and GHCR outcomes separately. Use a channel only after its publication and readback are confirmed. Source verification does not prove registry availability, anonymous container access or live provider entitlement.
+
+## What was recorded for 1.0.2 (historical)?
 
 **The container is published, but private; npm is still blocked.** Recovery `40485038668` published unchanged runtime `65c8b97d`, with independent authenticated digest/provenance/SPDX readback and published-image smoke passed. The owner selected Public visibility but has not confirmed it; anonymous grants still return HTTP 401 at last read. Use authorized private access or source installation, not an assumed anonymous pull. npm remains E403-denied with public readback HTTP 404; user-managed token replacement is unconfirmed. No GitHub Release 1.0.2 or production deployment occurred. Previous tags retain their own evidence and **1.0.1's npm cause remains unknown**. [Installation](/en/getting-started/installation/) · [Evidence](/en/changelog/).
 

@@ -1,0 +1,43 @@
+{
+  "capturedAtUtc": "2026-11-05T16:34:04.598816+00:00",
+  "tag": "v1.0.6",
+  "tagObjectSha": "b8fbfc12c3478e924d4bb4abfc3a54059df6f42e",
+  "sourceSha": "f9d4c50c386d2757b0446f9c35c46daa8ac10b4c",
+  "outcome": "Both original publication workflows failed their source gate before any publication attempt.",
+  "runs": [
+    {
+      "runId": 42063840627,
+      "conclusion": "failure",
+      "failedStage": "Verify exact source with shared CI gates",
+      "vitest": {
+        "success": false,
+        "numPassedTests": 10982,
+        "numPendingTests": 118,
+        "numFailedTests": 1,
+        "numFailedTestSuites": 4,
+        "files": 864
+      },
+      "lane": "npm",
+      "failureProofSha256": "12cca0549b6252aefdf16684f0ec95df87deb2b91a27f6671d1ee7ce2fd5d846"
+    },
+    {
+      "runId": 42063845788,
+      "conclusion": "failure",
+      "failedStage": "Verify exact source with shared CI gates",
+      "vitest": {
+        "success": false,
+        "numPassedTests": 10983,
+        "numPendingTests": 118,
+        "numFailedTests": 0,
+        "numFailedTestSuites": 2,
+        "files": 864
+      },
+      "lane": "docker",
+      "failureProofSha256": "ab33ef5c568ad97f3228ebb8833ed219a14d74e8e896c9eafe5693f53150d016"
+    }
+  ],
+  "noOriginalTarball": true,
+  "noNpmOrGithubReleaseAttempt": true,
+  "noDockerBuildOrPushAttempt": true,
+  "noMutationsByWatcher": true
+}

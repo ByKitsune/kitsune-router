@@ -1,6 +1,10 @@
 # ローカル配置
 
-画面と API は **20128** を共有し、既定 3000 ではありません。Runtime 1.0.2 は `65c8b97d` のまま、コンテナは **private 配布済み**、匿名アクセス未確認、npm ブロック中。[ソース手順](/ja/getting-started/installation/)（Node.js >=22.19.0）か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下の launcher は npm 配布/readback 確認後のみ使用します。
+画面と API は **20128** を共有し、既定 3000 ではありません。現在の対象は **1.0.7** です。下記のランチャー例は Node.js >=22.19.0 と npm 成果物の公開・読戻し確認が必要です。[公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で実際の結果を確認し、確認前は [ソース手順](/ja/getting-started/installation/)を使用してください。[コンテナー](/ja/deployment/cloud/)の可用性と権限は別に確認します。
+
+**1.0.2 の履歴（当時の確認）:** 画面と API は **20128** を共有し、既定 3000 ではありません。Runtime 1.0.2 は `65c8b97d` のまま、コンテナは **private 配布済み**、匿名アクセス未確認、npm ブロック中。[ソース手順](/ja/getting-started/installation/)（Node.js >=22.19.0）か [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。以下の launcher は npm 配布/readback 確認後のみ使用します。
+
+## 1.0.7 のローカル利用（npm 確認後）
 
 - Dashboard: `http://localhost:20128/dashboard`
 - API: `http://localhost:20128/v1`

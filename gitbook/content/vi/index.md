@@ -10,7 +10,9 @@ Tích hợp này thuộc mã nguồn hiện tại.
 
 ## Trạng thái phát hành
 
-**Container 1.0.2 đã xuất bản private; pull ẩn danh chờ xác nhận; npm bị chặn.** Runtime cố định `65c8b97d` (9.041 qua, 100 skip, không lỗi). Recovery `40485038668` xuất bản GHCR `1.0.2`/`latest`, readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản qua. Gói vẫn **private** ở lần đọc cuối: chủ chọn Public nhưng chưa xác nhận, grant ẩn danh HTTP 401. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Dùng nguồn hoặc quyền container private được phép; lệnh npm chỉ sau xuất bản npm được chấp nhận. Không GitHub Release/production. [Bằng chứng](/vi/changelog/).
+**Mục tiêu hiện tại: 1.0.7.** Xem [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả riêng của GitHub Release, npm và GHCR. Chỉ cài một bản phân phối sau khi xác nhận đã xuất bản và đọc lại được; build thành công không chứng minh khả năng tải hay quyền truy cập ẩn danh.
+
+**Ghi chép lịch sử của 1.0.2; không xác định trạng thái của 1.0.6:** **Container 1.0.2 đã xuất bản private; pull ẩn danh chờ xác nhận; npm bị chặn.** Runtime cố định `65c8b97d` (9.041 qua, 100 skip, không lỗi). Recovery `40485038668` xuất bản GHCR `1.0.2`/`latest`, readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản qua. Gói vẫn **private** ở lần đọc cuối: chủ chọn Public nhưng chưa xác nhận, grant ẩn danh HTTP 401. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Dùng nguồn hoặc quyền container private được phép; lệnh npm chỉ sau xuất bản npm được chấp nhận. Không GitHub Release/production. [Bằng chứng](/vi/changelog/).
 
 | Thành phần | Định danh |
 | --- | --- |

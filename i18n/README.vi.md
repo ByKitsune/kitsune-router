@@ -14,6 +14,10 @@ Tích hợp này thuộc mã nguồn hiện tại.
 
 ## Phát hành và cài đặt
 
+**Phiên bản mã nguồn hiện tại và mục tiêu ổn định: 1.0.7.** Xem [hồ sơ xuất bản](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế riêng của GitHub Release, npm và GHCR. Các lệnh dưới đây chỉ dùng sau khi xuất bản và đọc xác minh npm 1.0.7 thành công; quyền truy cập container cần được xác minh riêng theo kênh đó.
+
+**Lịch sử phân phối 1.0.2 (kết quả đọc xác minh tại thời điểm đó):**
+
 **Container 1.0.2 đã xuất bản private; pull ẩn danh còn chờ; npm bị chặn.** Nguồn bất biến `65c8b97d`: 9.041 qua, 100 skip, không lỗi. Recovery `40485038668` xuất bản GHCR `1.0.2`/`latest`; readback xác thực digest/provenance/SPDX và smoke độc lập image đã xuất bản đều qua. Gói vẫn **private** ở lần đọc cuối: chủ chọn Public nhưng chưa xác nhận xong, grant ẩn danh HTTP 401. npm vẫn E403/readback công khai HTTP 404, thay token chưa xác nhận. Chỉ dùng lệnh npm sau xuất bản npm được xác minh; hiện dùng nguồn hoặc quyền truy cập container private được phép. Không GitHub Release hay triển khai production. [Bằng chứng 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).
 
 Không di chuyển tag: `v1.0.1` tại `74583402` qua SSH/CI, nhưng gate GHCR lỗi trước login/push nên không có image chính thức. Lệnh npm publish lỗi, chưa rõ nguyên nhân; readback công khai HTTP 404 ngày 2026-10-27, không tạo GitHub Release. `v1.0.0` tại `390a6567` không xuất bản npm/GHCR sau lỗi test di chuyển. [Lần thử 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Ứng viên 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). Đồng hồ test và chẩn đoán npm không thay đổi thứ tự hay chính sách ownership fail-closed production. Không dùng số test cũ xác minh 1.0.2; giữ nguồn gốc 0.x.
@@ -21,9 +25,9 @@ Không di chuyển tag: `v1.0.1` tại `74583402` qua SSH/CI, nhưng gate GHCR l
 Yêu cầu **Node.js >=22.19.0**. Chỉ dùng sau khi phát hành:
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# Hoặc: npx @bykitsune/router@1.0.2
+# Hoặc: npx @bykitsune/router@1.0.7
 ```
 
 Chạy từ kho chính thức đã xác nhận hoặc checkout hiện có, ở gốc không có thư mục con `app/`:

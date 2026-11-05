@@ -14,6 +14,10 @@ Esta integración corresponde al código fuente actual.
 
 ## Estado e instalación
 
+**Versión del código y objetivo estable actuales: 1.0.7.** Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para el resultado real de GitHub Release, npm y GHCR por separado. Los comandos siguientes requieren que la publicación y la lectura de verificación de npm 1.0.7 hayan terminado correctamente; el acceso al contenedor depende de su propia verificación.
+
+**Historial de distribución de 1.0.2 (lecturas de aquella revisión):**
+
 **Contenedor 1.0.2 publicado en privado; acceso anónimo pendiente; npm bloqueado.** Fuente inmutable `65c8b97d`: 9.041 aprobados, 100 omitidos, cero fallos. Recovery `40485038668` publicó GHCR `1.0.2`/`latest`; lectura autenticada digest/proveniencia/SPDX y smoke independiente de la imagen publicada pasaron. El paquete sigue **private**: el propietario seleccionó Public, sin confirmar, y grants anónimos HTTP 401. npm sigue E403 con lectura pública HTTP 404; reemplazo de token por el usuario no confirmado. Comandos npm solo tras publicación npm verificada; usa fuentes o acceso privado autorizado al contenedor. Sin GitHub Release ni despliegue de producción. [Evidencia 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).
 
 Los tags no se mueven: `v1.0.1` en `74583402` pasó SSH/CI, pero el control GHCR falló antes de login/push, sin imagen canónica. npm publish falló por causa aún desconocida; lectura pública HTTP 404 el 2026-10-27 y sin GitHub Release. `v1.0.0` en `390a6567` no publicó npm/GHCR tras fallar la prueba de migración. [Intento 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Candidata 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). El reloj de prueba y los diagnósticos npm no cambian el orden ni la política fail-closed de producción. Los recuentos antiguos no verifican 1.0.2; historia 0.x intacta.
@@ -21,9 +25,9 @@ Los tags no se mueven: `v1.0.1` en `74583402` pasó SSH/CI, pero el control GHCR
 Requiere **Node.js >=22.19.0**. Solo después de publicar:
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# Alternativa: npx @bykitsune/router@1.0.2
+# Alternativa: npx @bykitsune/router@1.0.7
 ```
 
 Desde el repositorio canónico confirmado o tu copia existente, en la raíz sin subdirectorio `app/`:

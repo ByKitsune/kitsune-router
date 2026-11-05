@@ -14,6 +14,10 @@ Esta integração se refere ao código-fonte atual.
 
 ## Publicação e instalação
 
+**Versão atual do código e alvo estável: 1.0.7.** Consulte o [registro de publicação](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para os resultados reais de GitHub Release, npm e GHCR separadamente. Os comandos abaixo exigem publicação e leitura de verificação bem-sucedidas do npm 1.0.7; o acesso ao contêiner depende da verificação do próprio canal.
+
+**Histórico de distribuição da versão 1.0.2 (leituras daquela data):**
+
 **Contêiner 1.0.2 publicado em privado; acesso anônimo pendente; npm bloqueado.** Fonte imutável `65c8b97d`: 9.041 aprovados, 100 ignorados, zero falhas. Recovery `40485038668` publicou GHCR `1.0.2`/`latest`; leitura autenticada digest/proveniência/SPDX e smoke independente da imagem publicada passaram. Pacote ainda **private** na última leitura: proprietário selecionou Public, não confirmou, grants anônimos HTTP 401. npm segue E403/leitura pública HTTP 404; troca do token pelo usuário não confirmada. Comandos npm somente após publicação npm verificada; use fontes ou acesso privado autorizado ao contêiner. Sem GitHub Release ou deploy em produção. [Evidências 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md) · [Docker](../DOCKER.md).
 
 Os tags ficam imutáveis: `v1.0.1` em `74583402` passou SSH/CI, mas a verificação GHCR falhou antes de login/push, sem imagem canônica. npm publish falhou por causa ainda desconhecida; leitura pública HTTP 404 em 2026-10-27, sem GitHub Release. `v1.0.0` em `390a6567` não publicou npm/GHCR após falha no teste de migração. [Tentativa 1.0.1](../releases/RELEASE_NOTES_v1.0.1.md) · [Candidata 1.0.2](../releases/RELEASE_NOTES_v1.0.2.md). O relógio de teste e os diagnósticos npm não mudam a ordem nem a política fail-closed em produção. Contagens antigas não verificam 1.0.2; histórico 0.x preservado.
@@ -21,9 +25,9 @@ Os tags ficam imutáveis: `v1.0.1` em `74583402` passou SSH/CI, mas a verificaç
 Requer **Node.js >=22.19.0**. Somente após a publicação:
 
 ```bash
-npm install -g @bykitsune/router@1.0.2
+npm install -g @bykitsune/router@1.0.7
 kitsune-router
-# Ou: npx @bykitsune/router@1.0.2
+# Ou: npx @bykitsune/router@1.0.7
 ```
 
 Pelo repositório canônico confirmado ou checkout existente, na raiz sem subdiretório `app/`:

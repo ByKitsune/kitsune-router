@@ -4,7 +4,11 @@
 
 Kitsune Router 是由 [ByKitsune](https://bykitsune.com) 维护/赞助的中立、本地优先 AI 网关，延续 ZenRouter/9Router。**Your models. Your routes.** 请求走你配置的上游，不自动发送到赞助方。
 
-## 1.0.2 发布了吗？
+## 1.0.7 发布了吗？
+
+GitHub Release、npm 和 GHCR 分别发布与验证；请查阅 [1.0.7 发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中的实际结果和可获取性。仅对已发布且读回确认的产物使用 [安装步骤](/zh-CN/getting-started/installation/)。源码验证或现有标签本身不证明发布完成、匿名访问或上游账户权限。
+
+## 1.0.2 发布历史（当时的验证结果）
 
 **容器已发布但私有，npm 仍受阻。** Recovery `40485038668` 发布不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像独立 smoke 通过。所有者选择 Public 但未确认，最近匿名 grant 仍 HTTP 401；请用获授权私有访问或源码，不假设可匿名拉取。npm 仍 E403/公开读回 HTTP 404，token 替换未确认。无 GitHub Release 1.0.2 或生产部署；旧标签保留各自证据，1.0.1 npm 原因仍未知。见 [安装](/zh-CN/getting-started/installation/) 与 [证据](/zh-CN/changelog/)。
 

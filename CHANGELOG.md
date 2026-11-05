@@ -7,12 +7,34 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [1.0.7] — 2026-11-05
+
+Production publication follow-up. See the [1.0.7 notes](releases/RELEASE_NOTES_v1.0.7.md)
+and [publication evidence](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
+- Install the locked Playwright Chromium in both publication runners after state
+  isolation and dependency installation. Require browser coverage and run the
+  synthetic Usage browser prerequisite before the full source gate.
+- Give one real SQLite/filesystem migration fixture a bounded 30-second harness
+  budget. Preserve its complete assertions and all production migration,
+  ownership and clock behavior.
+- Carry forward the 1.0.6 provider/account, catalog, translator, packaging and
+  dependency refresh, including Undici 8.12.4. Synchronize current installation
+  guides and localized documentation to the 1.0.7 target.
+- Preserve immutable tag `v1.0.6` at `f9d4c50c`: its original publication runners
+  stopped before publishing any artifacts. A new patch keeps the corrected
+  workflow and published source/provenance under one consistent release tag.
+
 ## [1.0.6] — 2026-11-05
 
 Source follow-up after the exact pre-bump CI gate passed. See the
 [1.0.6 notes](releases/RELEASE_NOTES_v1.0.6.md) and
 [review evidence](docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
 Source versioning is separate from artifact publication and deployment.
+
+Tag `v1.0.6` remains at `f9d4c50c`. Both original publication attempts stopped
+at source verification before producing artifacts; 1.0.7 repairs the runner
+prerequisites without changing this tag.
 
 ### CLI packaging and runtime installation
 

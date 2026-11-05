@@ -59,6 +59,24 @@ jobs:
           npm ci
           npm --prefix tests ci
 
+      - name: Detect tagged-source browser prerequisite
+        id: source-browser
+        run: |
+          if test -f release-source/tests/unit/upstream-usage-dashboard-browser.test.js; then
+            printf 'required=true\n' >> "$GITHUB_OUTPUT"
+            printf 'KITSUNE_REQUIRE_BROWSER_TESTS=1\n' >> "$GITHUB_ENV"
+          fi
+
+      - name: Install the tagged source's locked Chromium when required
+        if: steps.source-browser.outputs.required == 'true'
+        working-directory: release-source
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+
+      - name: Run required tagged-source Usage browser regressions first
+        if: steps.source-browser.outputs.required == 'true'
+        working-directory: release-source
+        run: npm test -- --maxWorkers=1 tests/unit/upstream-usage-dashboard-browser.test.js
+
       - name: Verify exact immutable release source with its original gates
         run: node release-tools/scripts/recover-container-release.mjs source-gate
 
