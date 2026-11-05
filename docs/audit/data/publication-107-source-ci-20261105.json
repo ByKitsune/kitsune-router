@@ -1,0 +1,221 @@
+{
+  "capturedAtUtc": "2026-11-05T17:44:18.453212+00:00",
+  "repository": "ByKitsune/kitsune-router",
+  "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "productVersion": "1.0.7",
+  "remoteMasterVerifiedSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "ciCheckRuns": {
+    "total": 8,
+    "success": 7,
+    "expectedAutomaticCandidateSkip": 1,
+    "allCompleted": true,
+    "jobIds": [
+      127412699190,
+      127412699685,
+      127412699850,
+      127412702360,
+      127412708997,
+      127412709290,
+      127412709368,
+      127412709594
+    ],
+    "rawCommitChecksSha256": "c821abb1e7bb74bd1dd0c4c092c382b30e67f6d07032dd9d4cb5dd305b0a0628"
+  },
+  "otherCommitCheckRunsAtCapture": [
+    {
+      "name": "release",
+      "status": "in_progress",
+      "conclusion": null,
+      "id": 127419361961
+    },
+    {
+      "name": "build-and-push",
+      "status": "in_progress",
+      "conclusion": null,
+      "id": 127419361392
+    }
+  ],
+  "externalStatus": {
+    "state": "pending",
+    "total": 0,
+    "contexts": [],
+    "gitBookReported": false,
+    "rawSha256": "fcc4a9caa5a69f3eb41c462dc6c0ffba157de731a70fc2779af0a62a8b9cfd4b",
+    "limit": "No legacy status contexts reported; combined pending/total0 is not an in-progress failing check and no GitBook success is asserted."
+  },
+  "candidate": {
+    "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+    "sourceTree": "048a5044ea78d1aeacfe731917b863647b9936a8",
+    "runId": "42074988325",
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "glibc": "2.39",
+    "file": "bykitsune-router-1.0.7.tgz",
+    "sha256": "bb481aba3b2442d687d65c55595fbd62b402364979313b236747728ea762aa62"
+  },
+  "candidateArtifactZipSha256": "2da7994f029da58c615b69d5d3dd7e9dd11a181fd2b809408f1f8e2f05e7405f",
+  "verifiedRemoteManifests": [
+    {
+      "project": "root",
+      "name": "kitsune-router-app",
+      "version": "1.0.7",
+      "githubBlobSha": "062b8026667474cd5fd6f4e884aff071983451f9",
+      "sha256": "ad621f530dfd849edcc8754e6ec8386f771d1672ad41c61fbcc0b9ee74543b64"
+    },
+    {
+      "project": "cli",
+      "name": "@bykitsune/router",
+      "version": "1.0.7",
+      "githubBlobSha": "14a7645f228ede77b8345b9b0328c7fa6ecd38d4",
+      "sha256": "8b2778240949aa4efa36f1fcb2718648d16ad86629e8c6855b9433e94243ee23"
+    },
+    {
+      "project": "tests",
+      "name": "kitsune-router-tests",
+      "version": "1.0.7",
+      "githubBlobSha": "5d35c40c509c39af16cafe2d4bce827f6cade626",
+      "sha256": "6ab03915a7455ba99e91750e56f20c3c92d2cf0d7c92bf2dc808f811d3edbba8"
+    },
+    {
+      "project": "gitbook",
+      "name": "kitsune-router-docs",
+      "version": "1.0.7",
+      "githubBlobSha": "101cbc7effe52b282d2472f439ec161424a71e55",
+      "sha256": "9e307ad4062e2d21440c020a380512d181ae49d60b54eecaf5fa367bae2f28fa"
+    }
+  ],
+  "diagnostics": {
+    "actualNpmNodeReactWarningErrorCandidates": 0,
+    "checkAnnotations": 0,
+    "vitestStderrSections": 0,
+    "nextFreshBuildCacheAdvisories": 5,
+    "excludedStdoutDiagnosticTestTitles": 2,
+    "literalZeroWarningSymbolClaimed": false
+  },
+  "separateRuntimeOwnerProof": {
+    "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/runtime22/pretag-b7f7-runtime-summary.json",
+    "sha256": "100085ba4984147c1ca3bbe94105f862d6c0a9ed9e92c01541ac349196299ca3",
+    "scope": "Fresh b7 candidate7 actualNode22.19/22.23 and direct CLI checks from separate validation agent; not an additional CI test executed by this watcher."
+  },
+  "historicalFailed48Receipts": [
+    {
+      "path": "/workspace/.cloud-setup/kitsune-router/publication-106-20261105/patch107-ci/manual/failure-proof.json",
+      "sha256": "949fe076b86555c2d7c8496a895d2429bf069fe4888b775011850352c09b4f58",
+      "outcome": "failed; not reclassified"
+    },
+    {
+      "path": "/workspace/.cloud-setup/kitsune-router/publication-106-20261105/patch107-ci/push/failure-proof.json",
+      "sha256": "a166825277b9823f4ba671dadb3aaf7658cdf1bc6f51a35e212194cca211de78",
+      "outcome": "failed; not reclassified"
+    }
+  ],
+  "limits": "Exact-source sourceCI and unpublishedCIcandidate provenance only. Actual npm/GitHub/Docker publication has distinct official7 workflow/artifact receipts; no candidate substitution. Source6 tag remains immutable and its failed publication attempts remain historical failures.",
+  "runs": [
+    {
+      "run": {
+        "databaseId": 42074988325,
+        "headSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+        "event": "workflow_dispatch",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/42074988325"
+      },
+      "source": {
+        "sha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+        "ref": "refs/heads/master",
+        "reportSha256": "48f889e9e8602f4c0f55ff705066008fee3b85ce3fe02ec00307974aa35147aa"
+      },
+      "sourceJsonSha256": "2dd96c51c32078e9b77b65303a1a45b9a80369cb8455c71421396ad7cb56f4e1",
+      "sourceArtifactZipSha256": "052012b4f768625a4127b3e43540c420798fa9e687757fa0040288436d2685a0",
+      "vitest": {
+        "numTotalTests": 11112,
+        "numPassedTests": 11013,
+        "numPendingTests": 99,
+        "numFailedTests": 0,
+        "numPassedTestSuites": 2424,
+        "numFailedTestSuites": 0,
+        "files": 865
+      },
+      "browser": {
+        "passed": 32,
+        "retryMarkers": 0
+      },
+      "jobConclusions": [
+        {
+          "name": "docs",
+          "id": 127412708997,
+          "conclusion": "success"
+        },
+        {
+          "name": "candidate-package",
+          "id": 127412709290,
+          "conclusion": "success"
+        },
+        {
+          "name": "test",
+          "id": 127412709368,
+          "conclusion": "success"
+        },
+        {
+          "name": "dependency-security",
+          "id": 127412709594,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "run": {
+        "databaseId": 42074988567,
+        "headSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/ByKitsune/kitsune-router/actions/runs/42074988567"
+      },
+      "source": {
+        "sha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+        "ref": "refs/heads/master",
+        "reportSha256": "77fdd19347c44b9a6589b97f0838e6e378ca3280d847209e206ae7fed6cf98c7"
+      },
+      "sourceJsonSha256": "9ed910274364640f6ce232eab2efb76fedd17871a3d48476bee6c7400c873ca7",
+      "sourceArtifactZipSha256": "e431fecd6c458218c5d205de060040f94015c720eaa63b2aa559b98603872cab",
+      "vitest": {
+        "numTotalTests": 11112,
+        "numPassedTests": 11013,
+        "numPendingTests": 99,
+        "numFailedTests": 0,
+        "numPassedTestSuites": 2424,
+        "numFailedTestSuites": 0,
+        "files": 865
+      },
+      "browser": {
+        "passed": 32,
+        "retryMarkers": 0
+      },
+      "jobConclusions": [
+        {
+          "name": "test",
+          "id": 127412699190,
+          "conclusion": "success"
+        },
+        {
+          "name": "docs",
+          "id": 127412699685,
+          "conclusion": "success"
+        },
+        {
+          "name": "dependency-security",
+          "id": 127412699850,
+          "conclusion": "success"
+        },
+        {
+          "name": "candidate-package",
+          "id": 127412702360,
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "fullSummarySha256": "e15a93e08a53a354ee017da3a8cb50eb800e46f0180e7b0f78abbf0d19481ae7"
+}

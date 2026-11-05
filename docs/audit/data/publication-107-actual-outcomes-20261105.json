@@ -1,0 +1,24 @@
+{
+  "version": "1.0.7",
+  "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "capturedAtUtc": "2026-11-05T18:11:47.067913+00:00",
+  "npm": {
+    "proofPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/107/npm107-aggregate.json",
+    "proofSha256": "58eca9a08c043881d8e50bac10b6c6303813bbf98b0347d4a9efc5b3a0be1049",
+    "publishedTarballSha256": "b5ae6a345f60012f878885923912c16ea532ea4b0b2e6fe1ed3d7e10614d8cc5",
+    "publicRegistryIntegrityAndCrypto": "passed",
+    "normalInstall": "exit0",
+    "installationDefect": "Sequential unsaved SQLite/tray npm installs prune each other; reproduced after actual normal registry install.",
+    "ordinaryOfflineLauncher": "No health within30s; four npm ENETUNREACH retries observed before server startup; terminal outcome/default driver not observed; no SQL.js opt-in.",
+    "githubRelease": "Published18:08:21UTC despite continuation cancellation race; three asset API digests match original tarball/immutable scripts."
+  },
+  "docker": {
+    "proofPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/docker/107/independent-proof.json",
+    "proofSha256": "5b27b5e61e34fc91ca0893750fca191e0fdb5cd7175dcb52d511c978d212045c",
+    "digest": "sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+    "authenticatedPublicationRuntime": "passed",
+    "anonymousPullGrant": 401,
+    "rawAttachedSlsaSpdxIndependentReadback": false
+  },
+  "disposition": "Published1.0.7 bytes/tag remain immutable; target1.0.8 addresses the concrete managed-runtime dependency pruning defect. No reviewer publication/source writes."
+}

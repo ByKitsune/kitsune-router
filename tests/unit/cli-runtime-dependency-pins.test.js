@@ -47,13 +47,13 @@ describe("CLI runtime dependency pins", () => {
     const sqlite = runtimeInstallRequests().find(({ args }) => args.some((arg) => arg.startsWith("better-sqlite3@")));
     expect(sqlite.args).toEqual(expect.arrayContaining([
       `better-sqlite3@${rootPackage.optionalDependencies["better-sqlite3"].replace(/^\^/, "")}`,
-      "--ignore-scripts", "--no-save",
+      "--ignore-scripts", "--save-optional", "--save-exact",
     ]));
   });
 
   it("keeps the legacy Node 20 branch on reviewed 12.x without treating it as N-API", () => {
     const sqlite = runtimeInstallRequests({ node: "20.20.0" }).find(({ args }) => args.some(arg => arg.startsWith("better-sqlite3@")));
-    expect(sqlite.args).toEqual(expect.arrayContaining(["better-sqlite3@12.11.1", "--no-save"]));
+    expect(sqlite.args).toEqual(expect.arrayContaining(["better-sqlite3@12.11.1", "--save-optional", "--save-exact"]));
     expect(sqlite.args).not.toContain("--ignore-scripts");
   });
 

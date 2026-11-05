@@ -14,7 +14,11 @@ Esta integração se refere ao código-fonte atual.
 
 ## Publicação e instalação
 
-**Versão atual do código e alvo estável: 1.0.7.** Consulte o [registro de publicação](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para os resultados reais de GitHub Release, npm e GHCR separadamente. Os comandos abaixo exigem publicação e leitura de verificação bem-sucedidas do npm 1.0.7; o acesso ao contêiner depende da verificação do próprio canal.
+**Versão atual do código e alvo estável: 1.0.8.** Consulte o [registro de publicação](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para os resultados reais de GitHub Release, npm e GHCR separadamente. Os comandos abaixo exigem publicação e leitura de verificação bem-sucedidas do npm 1.0.8; o acesso ao contêiner depende da verificação do próprio canal.
+
+**1.0.8 ainda não foi publicada.** O CI do código exato e o teste do candidato com instalação normal devem passar antes de criar o tag ou publicar.
+
+**Histórico da 1.0.7:** npm, GHCR e GitHub Release foram publicados a partir de `b7f77d07`, mas as instalações sequenciais de SQLite/tray com `--no-save` removem dependências uma da outra. A inicialização offline observada não chegou a health em 30 segundos durante o reparo do runtime; não foi demonstrada falha definitiva do banco. O tag e os artefatos permanecem imutáveis; consulte o registro acima.
 
 **Histórico de distribuição da versão 1.0.2 (leituras daquela data):**
 
@@ -25,9 +29,9 @@ Os tags ficam imutáveis: `v1.0.1` em `74583402` passou SSH/CI, mas a verificaç
 Requer **Node.js >=22.19.0**. Somente após a publicação:
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
-# Ou: npx @bykitsune/router@1.0.7
+# Ou: npx @bykitsune/router@1.0.8
 ```
 
 Pelo repositório canônico confirmado ou checkout existente, na raiz sem subdiretório `app/`:

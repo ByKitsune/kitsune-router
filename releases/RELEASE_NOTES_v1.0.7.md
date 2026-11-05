@@ -43,3 +43,38 @@ See the [technical notes](../docs/CHANGELOG_v1.0.7.md),
 [1.0.6 source scope](RELEASE_NOTES_v1.0.6.md),
 [full changelog](../CHANGELOG.md#107--2026-11-05) and
 [migration guide](../docs/MIGRATION.md).
+
+
+## Actual 1.0.7 publication and known installer limitation
+
+Source `b7f77d07` passed both source CI runs (11,013 passed, 99 gated skips,
+32 browser cases each). **npm, canonical GHCR and GitHub Release all published
+1.0.7.** The original npm bytes have SHA-256
+`b5ae6a345f60012f878885923912c16ea532ea4b0b2e6fe1ed3d7e10614d8cc5`,
+with matching registry integrity/signatures and provenance bound to the original
+publisher run. The first readback timed out after publish exited zero; later
+public readback succeeded without a second publish. Continuation 42080159497 is
+cancelled overall, but Release creation succeeded at 18:08:21 UTC before
+cancellation completed. All three asset API digests match the original bytes and
+immutable scripts. Tags and published assets are not replaced.
+
+The Docker digest is
+`sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d`.
+Authenticated source/provenance checks, default/custom-data runtime and latest
+promotion pass. Anonymous pull-grant readback returned HTTP 401; that observation
+does not prove a package visibility setting or workflow write failure.
+
+**Known CLI installer issue:** sequential SQLite/tray `--no-save` installs prune
+sibling dependencies in the shared runtime project, including during startup.
+Normal registry installation exits zero, but the contained offline launcher did
+not reach health within 30 seconds while silent synchronous self-healing made
+four npm `ENETUNREACH` retries before server startup. The terminal outcome/default
+driver was not observed; no hard database failure or SQL.js opt-in is established.
+Further published help/version/upgrade checks were stopped. The successful Docker
+entrypoint smoke is a separate execution path.
+
+The [actual-outcome receipt](../docs/audit/data/publication-107-actual-outcomes-20261105.json)
+and [publication record](../docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+retain these boundaries. A separate **unpublished 1.0.8** source follow-up addresses
+runtime retention and bounded registry readback; it does not rewrite 1.0.7 history
+or establish 1.0.8 availability.

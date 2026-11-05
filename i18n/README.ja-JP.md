@@ -14,7 +14,11 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 
 ## リリース状況とインストール
 
-**現在のソース版と安定版の対象は 1.0.7 です。** GitHub Release、npm、GHCR の実際の結果は、それぞれ[公開記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認してください。以下のコマンドは npm 1.0.7 の公開と読戻し検証の成功後に使用します。コンテナの利用可否は、その配布経路での確認が別途必要です。
+**現在のソース版と安定版の対象は 1.0.8 です。** GitHub Release、npm、GHCR の実際の結果は、それぞれ[公開記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認してください。以下のコマンドは npm 1.0.8 の公開と読戻し検証の成功後に使用します。コンテナの利用可否は、その配布経路での確認が別途必要です。
+
+**1.0.8 は未公開です。** タグ作成・公開の前に、正確なソースの CI と通常インストールした候補の smoke 確認が必要です。
+
+**1.0.7 の履歴：** `b7f77d07` から npm・GHCR・GitHub Release が公開されましたが、SQLite と tray の連続した `--no-save` インストールが互いの依存関係を削除します。観測したオフライン起動は runtime 修復中に 30 秒以内に health に達しませんでした。確定的な DB 障害が証明されたわけではありません。タグと公開物は変更せず、詳細は上の記録に保持します。
 
 **1.0.2 の配布履歴（当時の読戻し結果）：**
 
@@ -25,9 +29,9 @@ ByKitsune は主要な公式プロバイダーとして一覧の先頭に表示�
 必要環境は **Node.js >=22.19.0**。公開後のみ使用してください。
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
-# または: npx @bykitsune/router@1.0.7
+# または: npx @bykitsune/router@1.0.8
 ```
 
 確認済みの正規リポジトリか既存チェックアウトから、ルートで実行します。`app/` サブディレクトリはありません。

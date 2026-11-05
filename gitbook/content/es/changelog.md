@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## Kitsune Router 1.0.8 — preparación de la corrección del instalador
+
+El instalador guarda de forma atómica los pins exactos de SQLite y bandeja como
+dependencias opcionales antes de sus rutas rápidas. Valida las versiones instaladas y
+resuelve las rutas N-API sin exigir herramientas de compilación. La verificación
+dirigida cubre 23 pruebas, incluidas 12 regresiones nuevas sobre retención y
+actualización de dependencias con npm real y conservación de manifiestos inválidos.
+Los casos con npm usan un registro HTTP local y tarballs mínimos de prueba; los
+casos de manifiestos inválidos no ejecutan npm. El binario nativo simulado solo se
+comprueba por sus bytes de identificación y no se carga. No es una prueba del
+runtime publicado.
+
+La lectura posterior del publisher dispone de 24 intentos y un presupuesto de
+571 segundos para reintentos de solo lectura, sin repetir escrituras de
+publicación; la verificación dirigida cubre 54 pruebas. El grafo de dependencias
+no cambia, incluido Undici 8.12.4.
+
+**1.0.8 aún no está publicado.** Están pendientes CI sobre el SHA exacto y la
+prueba de instalación normal del candidato; no se ha probado un CLI 1.0.8
+publicado ni proveedores reales. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva los resultados reales de cada canal.
+
 ## Kitsune Router 1.0.7 — preparación de la publicación del 2026-11-05
 
 Los flujos de publicación instalan Chromium correspondiente al Playwright bloqueado
@@ -9,6 +30,8 @@ migración de producción no cambia. Se conserva el mismo grafo de dependencias,
 incluido Undici 8.12.4.
 
 Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) para conocer los resultados reales de cada canal. Esta preparación no confirma una publicación en GitHub Release, npm o GHCR.
+
+**Cierre posterior de 1.0.7:** GitHub Release, npm y Docker se publicaron desde la fuente inmutable `b7f77d07`. El instalador presenta un problema de eliminación mutua de dependencias entre las instalaciones secuenciales `--no-save` de SQLite y bandeja. En una prueba aislada del CLI sin red externa se observaron cuatro reintentos npm `ENETUNREACH`; no se alcanzó health en 30 segundos durante la autorreparación síncrona silenciosa. No se observó el resultado terminal ni el driver por defecto, y no se habilitó SQL.js. Esto no demuestra un fallo definitivo de la base de datos. El [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) conserva la evidencia de cada canal y del problema conocido.
 
 ## Kitsune Router 1.0.6 — actualización del código del 2026-11-05
 

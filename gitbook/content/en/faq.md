@@ -1,10 +1,18 @@
 # Frequently Asked Questions
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 ## What is Kitsune Router?
 
 A provider-neutral, local-first AI gateway and dashboard, maintained/sponsored by [ByKitsune](https://bykitsune.com). **Your models. Your routes.** It continues ZenRouter/9Router; requests go to your configured upstreams, not automatically to ByKitsune.
 
-## How do I check 1.0.7 availability?
+## How do I check 1.0.8 availability?
 
 The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) records the actual GitHub Release, npm and GHCR outcomes separately. Use a channel only after its publication and readback are confirmed. Source verification does not prove registry availability, anonymous container access or live provider entitlement.
 

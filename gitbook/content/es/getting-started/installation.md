@@ -1,15 +1,19 @@
 # Instalación
 
-**Objetivo actual: 1.0.7.** Los comandos del launcher requieren **Node.js >=22.19.0** y la publicación/lectura confirmada de npm 1.0.7. Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) antes de instalarlos; GitHub Release, npm y GHCR tienen resultados independientes. La instalación desde fuentes sigue disponible.
+**1.0.8 está en preparación y aún no está publicado.** Antes de crear su tag o publicar, deben completarse CI sobre el SHA exacto y la prueba de instalación normal del candidato.
+
+**Aviso sobre 1.0.7:** GitHub Release, npm y Docker se publicaron desde `b7f77d07`, pero su instalador usa operaciones secuenciales `--no-save` de SQLite y bandeja que pueden eliminar las dependencias de la otra operación. Consulta los resultados y límites observados en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
+**Objetivo actual: 1.0.8.** Los comandos del launcher requieren **Node.js >=22.19.0** y la publicación/lectura confirmada de npm 1.0.8. Consulta el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) antes de instalarlos; GitHub Release, npm y GHCR tienen resultados independientes. La instalación desde fuentes sigue disponible.
 
 **Registro histórico de 1.0.2; no determina el estado de 1.0.6:** **Fuente 1.0.2 verificada; contenedor publicado en privado; npm bloqueado.** Runtime sigue `65c8b97d`. Recovery `40485038668` publicó GHCR y pasó lectura autenticada digest/proveniencia/SPDX y smoke de la imagen publicada. Paquete aún **private**: Public seleccionado sin confirmar, grants anónimos HTTP 401. Usa fuentes o [acceso privado autorizado](/es/deployment/cloud/). npm `@bykitsune/router` sigue E403/readback público HTTP 404, cambio de token no confirmado. Los comandos de 1.0.2 se condicionaban a publicación/readback npm, con **Node.js >=22.19.0**. [Evidencia](/es/changelog/).
 
 ## Launcher después de publicar
 
 ```bash
-npx @bykitsune/router@1.0.7
+npx @bykitsune/router@1.0.8
 # O:
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 

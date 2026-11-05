@@ -9,14 +9,16 @@
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const { getRuntimeDir, getRuntimeNodeModules, runNpmInstall, summarizeNpmError } = require("./sqliteRuntime");
+const { getRuntimeDir, getRuntimeNodeModules, retainRuntimeDependency, runNpmInstall, summarizeNpmError } = require("./sqliteRuntime");
 
 const SYSTRAY_PKG = "systray2";
 const SYSTRAY_VERSION = "2.1.4";
 const LEGACY_SYSTRAY_PKG = "systray";
 
 function hasSystray() {
-  return fs.existsSync(path.join(getRuntimeNodeModules(), SYSTRAY_PKG, "package.json"));
+  try {
+    return JSON.parse(fs.readFileSync(path.join(getRuntimeNodeModules(), SYSTRAY_PKG, "package.json"), "utf8")).version === SYSTRAY_VERSION;
+  } catch { return false; }
 }
 
 // Remove the legacy `systray` package from all known locations.
@@ -74,7 +76,7 @@ function ensureRuntimeDir() {
 function npmInstall(pkgs, { silent = false } = {}) {
   const cwd = ensureRuntimeDir();
   if (!silent) console.log("⏳ Installing system tray (first run)...");
-  const res = runNpmInstall({ cwd, pkgs, extraArgs: ["--no-save"], timeout: 120000 });
+  const res = runNpmInstall({ cwd, pkgs, extraArgs: ["--save-optional", "--save-exact"], timeout: 120000 });
   if (!res.ok && !silent) {
     const reason = summarizeNpmError(res.stderr);
     console.warn("⚠️  System tray install failed — tray disabled");
@@ -94,6 +96,7 @@ function ensureTrayRuntime({ silent = false } = {}) {
   if (process.platform === "win32") {
     return { systray: false, skipped: true };
   }
+  retainRuntimeDependency(SYSTRAY_PKG, SYSTRAY_VERSION);
   if (hasSystray()) {
     chmodSystrayBin({ silent });
     if (!silent) console.log("✅ System tray ready");
@@ -101,7 +104,9 @@ function ensureTrayRuntime({ silent = false } = {}) {
   }
   const ok = npmInstall([`${SYSTRAY_PKG}@${SYSTRAY_VERSION}`], { silent });
   if (ok) chmodSystrayBin({ silent });
-  return { systray: ok && hasSystray() };
+  const systray = ok && hasSystray();
+  if (ok && !systray && !silent) console.warn("⚠️  System tray unavailable — tray disabled");
+  return { systray };
 }
 
 module.exports = { ensureTrayRuntime };

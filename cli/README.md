@@ -3,18 +3,26 @@
 **Your models. Your routes.** A provider-neutral AI gateway maintained and
 sponsored by [ByKitsune](https://bykitsune.com/).
 
-The public package is `@bykitsune/router`; its executable is `kitsune-router`.
+The npm package target is `@bykitsune/router`; its executable is `kitsune-router`.
 
-**Current source: 1.0.7.** This revision includes scoped Codex model-plan routing,
-provider request/credential safeguards, matching SQL.js package assets, local
-runtime installation repairs, translation/SSE improvements and a reviewed stable
-dependency refresh. Source verification is separate from npm/GHCR publication.
-See the [1.0.7 source notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.7.md)
-and [readiness review](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md).
+**Version 1.0.8** retains managed SQLite
+and tray dependencies in their shared private runtime project and extends bounded
+read-only registry propagation checks. The reviewed runtime dependency graph is
+unchanged. See the [1.0.8 source notes](https://github.com/ByKitsune/kitsune-router/blob/v1.0.8/releases/RELEASE_NOTES_v1.0.8.md)
+and [publication/known-issue receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
 
-**Stable installation target: 1.0.7.** The commands below apply after the 1.0.7
-publication workflow and npm registry readback succeed. Source version alone
-does not establish availability. See the [publication follow-up](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+Confirm channel availability and verification in the publication receipt before
+installing or upgrading. Publication requires exact-source CI and a normally
+installed final-candidate smoke; the dated local working-tree precheck is separate
+from final-artifact evidence.
+
+**Published 1.0.7 and known installer issue.** npm, canonical GHCR and GitHub
+Release published immutable `b7f77d07`; original bytes/assets remain unchanged.
+Sequential SQLite/tray `--no-save` installs prune siblings. The contained offline
+CLI did not reach health in 30 seconds during synchronous self-heal; its final
+driver/outcome was not observed, so a hard database failure is not established.
+The successful Docker entrypoint smoke is a separate path. See the publication
+receipt for cryptographic, runtime, access and cancellation-race evidence.
 
 **Historical 1.0.2 verification**, at immutable `65c8b97d783becab3f1e1210d2ab9ce67992e13b`:
 9,041 passed, 100 skipped, zero failed assertions/suites; strict lint and builds
@@ -35,13 +43,13 @@ Historical 0.x packages retain their original ZenRouter identities.
 
 ## Install and start
 
-Requires **Node.js >=22.19.0**. After the 1.0.7 publication workflow and registry
-readback succeed:
+Requires **Node.js >=22.19.0**. Confirm npm availability and integrity for 1.0.8 in
+the publication receipt before using these install or upgrade commands:
 
 ```sh
-npx @bykitsune/router@1.0.7
+npx @bykitsune/router@1.0.8
 # Or install once:
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 
@@ -89,12 +97,12 @@ Database, runtime secrets, machine identity, auth keys and existing certificates
 stay together. Originals remain available for rollback; busy, damaged or
 ambiguous state fails closed. An explicit `DATA_DIR` remains authoritative.
 
-Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md)
+Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/v1.0.8/docs/MIGRATION.md)
 before upgrading. Do not share data directories or secret values in issues.
 
 ## Source and license
 
-- [Repository and source setup](https://github.com/ByKitsune/kitsune-router)
+- [Repository and source setup](https://github.com/ByKitsune/kitsune-router/tree/v1.0.8)
 - [Release notes](https://github.com/ByKitsune/kitsune-router/releases)
 - [Issues](https://github.com/ByKitsune/kitsune-router/issues)
 

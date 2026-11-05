@@ -7,6 +7,25 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+## [1.0.8] — 2026-11-05
+
+Runtime retention and registry-readback follow-up; see the [1.0.8 notes](releases/RELEASE_NOTES_v1.0.8.md)
+and [actual publication/known-issue receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
+- Atomically retain exact optional SQLite/tray runtime pins before fast paths,
+  adopt old unsaved states and validate installed versions. Saved exact installs
+  preserve siblings; N-API paths avoid native build tools without changing the
+  reviewed dependency graph, including Undici 8.12.4.
+- Extend bounded registry visibility checks to 24 reads / 571 seconds of total
+  read-only backoff, with no repeated publish/tag writes. Preserve original bytes
+  on exhaustion and terminal auth/network/malformed response handling.
+- Record 23 focused retention tests, including 12 new regressions covering real
+  npm retention/upgrade and invalid-manifest preservation, plus 54 publisher tests.
+  Four malformed-manifest cases intentionally run no npm. A normal-install/two-start working-tree local
+  precheck passes on Node 22.19.0; it is not the final CI candidate or release.
+  Exact committed-source CI and a normally installed final candidate must pass
+  before tagging/publication. Keep published 1.0.7 and its known issue below.
+
 ## [1.0.7] — 2026-11-05
 
 Production publication follow-up. See the [1.0.7 notes](releases/RELEASE_NOTES_v1.0.7.md)
@@ -24,6 +43,22 @@ and [publication evidence](docs/audit/33-1.0.6-publication-and-registry-verifica
 - Preserve immutable tag `v1.0.6` at `f9d4c50c`: its original publication runners
   stopped before publishing any artifacts. A new patch keeps the corrected
   workflow and published source/provenance under one consistent release tag.
+
+- Record exact-source 1.0.7 CI, the published/runtime-verified canonical Docker
+  digest and later successful public npm readback with original archive integrity
+  and signatures.
+  Preserve the initial bounded npm readback timeout and original release bytes
+  separately from the CI candidate. GitHub Release and remaining package/access
+  checks are recorded separately in the publication receipt above.
+
+- npm, canonical GHCR and GitHub Release actually published 1.0.7 from immutable
+  `b7f77d07`. Continuation 42080159497 was cancelled overall after Release creation
+  succeeded; original assets and tarball remain unchanged.
+- Record the real CLI installer defect: sequential `--no-save` SQLite/tray
+  installs prune siblings. A contained offline launch did not reach health in
+  30 seconds during synchronous npm self-heal; the final driver/outcome was not
+  observed, so this is not a proven hard database failure. Docker entrypoint
+  success is separate; the new 1.0.8 source follow-up addresses retention.
 
 ## [1.0.6] — 2026-11-05
 

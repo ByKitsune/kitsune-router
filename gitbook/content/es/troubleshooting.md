@@ -1,12 +1,16 @@
 # Solución de problemas
 
+**1.0.8 está en preparación y aún no está publicado.** Antes de crear su tag o publicar, deben completarse CI sobre el SHA exacto y la prueba de instalación normal del candidato.
+
+**Aviso sobre 1.0.7:** GitHub Release, npm y Docker se publicaron desde `b7f77d07`, pero su instalador usa operaciones secuenciales `--no-save` de SQLite y bandeja que pueden eliminar las dependencias de la otra operación. Consulta los resultados y límites observados en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
 Recoge versión/SHA actual, `DATA_DIR` absoluto, ruta y error saneado. No borres estado, sustituyas toda configuración o publiques secretos por un cambio de marca.
 
 ## Inicio y migración
 
-- Paquete 1.0.7 ausente: comprueba la versión exacta y el resultado de npm en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Hasta confirmar publicación/lectura, usa [fuentes](/es/getting-started/installation/). No atribuyas a 1.0.7 el antiguo error E403 de 1.0.2 ni compartas tokens.
+- Paquete 1.0.8 ausente: comprueba la versión exacta y el resultado de npm en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Hasta confirmar publicación/lectura, usa [fuentes](/es/getting-started/installation/). No atribuyas a 1.0.8 el antiguo error E403 de 1.0.2 ni compartas tokens.
 - Registro histórico de 1.0.2 — paquete ausente: fuente 1.0.2 verificada, pero npm publish recibió E403 (2FA o token granular con bypass 2fa), lectura pública HTTP 404. El usuario cambiará el secreto en GitHub UI, aún no confirmado; no compartas tokens. Usa [fuentes](/es/getting-started/installation/) hasta verificar publicación/readback. La causa npm 1.0.1 sigue desconocida.
-- Pull GHCR 1.0.7 denegado/no encontrado: confirma en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) el tag, digest, plataforma y acceso disponibles. Una denegación no demuestra que la imagen no exista, y una publicación no implica acceso anónimo. Usa solo acceso autorizado y no compartas tokens.
+- Pull GHCR 1.0.8 denegado/no encontrado: confirma en el [registro de publicación](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) el tag, digest, plataforma y acceso disponibles. Una denegación no demuestra que la imagen no exista, y una publicación no implica acceso anónimo. Usa solo acceso autorizado y no compartas tokens.
 - Registro histórico de 1.0.2 — pull GHCR denegado/no encontrado: 1.0.2 está publicado con lectura autenticada/smoke pasados, pero el paquete sigue **private** a la última lectura; grants anónimos HTTP 401. Public seleccionado no está confirmado. Usa permiso de lectura privado o espera Public confirmado/readback anónimo; no confundas denegación enmascarada con publicación ausente. Fallos anteriores conservados en [operaciones](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). No compartas tokens.
 - Node antiguo: >=22.19.0; migración requiere snapshot SQLite nativo Node/Bun compatible, no copia cruda insegura.
 - Puerto ocupado: dashboard/API comparten 20128. Identifica y detén al dueño limpiamente, no `pkill`/`kill -9` amplios.

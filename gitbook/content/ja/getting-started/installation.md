@@ -1,15 +1,17 @@
 # インストール
 
-**現在のインストール対象は 1.0.7、ランチャーの要件は Node.js >=22.19.0 です。** 下記の npm コマンドは、1.0.7 の公開と読戻しが [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認されてから使用します。GHCR の取得可否も同記録で個別に確認してください。未確認のチャネルを公開済みと扱わず、必要に応じて下記のソース手順を使ってください。
+**現在のインストール対象は 1.0.8、ランチャーの要件は Node.js >=22.19.0 です。** 下記の npm コマンドは、1.0.8 の公開と読戻しが [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で確認されてから使用します。GHCR の取得可否も同記録で個別に確認してください。未確認のチャネルを公開済みと扱わず、必要に応じて下記のソース手順を使ってください。
+
+**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
 
 **1.0.2 の履歴（当時の確認）:** **1.0.2 ソース検証済み、コンテナは private で配布済み、npm ブロック中です。** Runtime は `65c8b97d` のまま。Recovery `40485038668` の認証付き digest/provenance/SPDX 読戻しと配布イメージ smoke に成功しました。最新確認は **private**、Public 選択は未確認、匿名 grant HTTP 401。下記のソース手順または [許可済み private コンテナ](/ja/deployment/cloud/) を利用してください。npm `@bykitsune/router` は E403/公開読戻し HTTP 404、token 交換未確認。以下のコマンドは npm 配布/readback 確認後のみ、**Node.js >=22.19.0** が必要です。[証拠](/ja/changelog/)。
 
-## 1.0.7 ランチャー（公開確認後）
+## 1.0.8 ランチャー（公開確認後）
 
 ```bash
-npx @bykitsune/router@1.0.7
+npx @bykitsune/router@1.0.8
 # または:
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 

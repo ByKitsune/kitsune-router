@@ -1,0 +1,28 @@
+{
+  "capturedAtUtc": "2026-11-05T18:11:27.054800+00:00",
+  "scope": "Uncommitted production108 readback-only fix; no publication writes by this agent",
+  "change": {
+    "defaultAttempts": 24,
+    "readOnlyBackoffMs": 571000,
+    "maximumIndividualDelayMs": 30000,
+    "publishAndTagWritesNotRepeated": true,
+    "originalBytesRetainedOnExhaustion": true,
+    "terminalAuthNetworkMalformedErrorsNotRetried": true
+  },
+  "verification": {
+    "command": "npm test -- --maxWorkers=1 tests/unit/release-registry-readback.test.js tests/unit/release-publication-latest.test.js tests/unit/release-publication-recovery.test.js",
+    "exitCode": 0,
+    "filesPassed": 3,
+    "testsPassed": 54,
+    "observedDurationSeconds": 3.16,
+    "newCases": 6,
+    "lintCommand": "node scripts/lint.mjs scripts/release-publication-helpers.mjs tests/unit/release-registry-readback.test.js --max-warnings=0",
+    "lintExitCode": 0,
+    "diffCheckExitCode": 0
+  },
+  "filesSha256": {
+    "scripts/release-publication-helpers.mjs": "9ef4b13eba03251b9972ec886452b4b502c445b3ec1520a3ea67611747294963",
+    "tests/unit/release-registry-readback.test.js": "aa9f029ce8563b353d2f1452ea7751f513b0ee06a3fdaaae2068946c9721a913"
+  },
+  "boundary": "Mocked registry reads and waits verify delayed visibility and terminal behavior; no real npm publish, tag write, registry authentication or provider calls. The motivating1.0.7 delayed-publication observations belong to root receipts."
+}

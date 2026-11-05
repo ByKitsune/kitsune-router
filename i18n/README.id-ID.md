@@ -14,7 +14,11 @@ Integrasi ini tersedia pada source checkout saat ini.
 
 ## Status rilis dan instalasi
 
-**Versi sumber dan target stabil saat ini: 1.0.7.** Lihat [catatan publikasi](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) untuk hasil nyata GitHub Release, npm, dan GHCR secara terpisah. Perintah berikut hanya berlaku setelah publikasi dan readback npm 1.0.7 berhasil; akses container memerlukan verifikasi kanalnya sendiri.
+**Versi sumber dan target stabil saat ini: 1.0.8.** Lihat [catatan publikasi](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) untuk hasil nyata GitHub Release, npm, dan GHCR secara terpisah. Perintah berikut hanya berlaku setelah publikasi dan readback npm 1.0.8 berhasil; akses container memerlukan verifikasi kanalnya sendiri.
+
+**1.0.8 belum dipublikasikan.** CI pada sumber yang tepat dan smoke kandidat melalui instalasi normal harus lulus sebelum tag atau publikasi dibuat.
+
+**Riwayat 1.0.7:** npm, GHCR, dan GitHub Release terbit dari `b7f77d07`, tetapi instalasi SQLite/tray berurutan dengan `--no-save` saling memangkas dependensi. Startup offline yang diamati belum mencapai health dalam 30 detik saat memperbaiki runtime; kegagalan database permanen tidak terbukti. Tag dan artefak tetap; lihat catatan di atas.
 
 **Riwayat distribusi 1.0.2 (hasil readback pada saat itu):**
 
@@ -25,9 +29,9 @@ Tag tidak dipindahkan: `v1.0.1` di `74583402` lulus SSH/CI, tetapi gate GHCR gag
 Memerlukan **Node.js >=22.19.0**. Hanya setelah dipublikasikan:
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
-# Atau: npx @bykitsune/router@1.0.7
+# Atau: npx @bykitsune/router@1.0.8
 ```
 
 Dari repositori kanonis yang dikonfirmasi atau checkout yang ada, jalankan di root tanpa subdirektori `app/`:

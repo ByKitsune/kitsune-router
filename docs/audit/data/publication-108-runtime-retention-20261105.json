@@ -1,0 +1,43 @@
+{
+  "capturedAtUtc": "2026-11-05T18:17:17.571150+00:00",
+  "scope": "Uncommitted runtime-retention implementation; production publication remains coordinator-owned",
+  "diagnosis": "Separate --no-save installs of SQLite and tray prune each other from the shared private runtime project. Existing unsaved fast paths also require manifest adoption.",
+  "changes": [
+    "Atomically retain exact optional managed dependency pins before fast paths; preserve unrelated fields and invalid manifest bytes",
+    "Install exact saved native/tray dependencies; retain global/prefix/location sanitization and transport/auth/CA configuration",
+    "Check installed managed versions; skip lifecycle scripts for N-API native and missing SQL.js repair",
+    "Keep unavailable optional components best-effort and visibly reported"
+  ],
+  "verification": {
+    "focusedFiles": 4,
+    "passed": 23,
+    "failed": 0,
+    "newRealNpmCases": 12,
+    "lintWarnings": 0,
+    "lintErrors": 0,
+    "diffCheck": "passed",
+    "hostCliStarted": false,
+    "liveProviderCalls": false,
+    "fixtures": "Local HTTP npm registry and tiny fixture tarballs only; fake native binary is checked for magic and never loaded",
+    "cases": [
+      "Fresh SQLite then tray",
+      "Fresh tray then SQLite",
+      "Old unsaved tray-only",
+      "Old unsaved native-only",
+      "Both old unsaved modules with no install",
+      "Old native12/tray upgrades with native lifecycle deliberately forbidden",
+      "Missing bundled SQL.js repair with native lifecycle deliberately forbidden",
+      "Unsupported optional native is nonfatal and reported",
+      "Four invalid/malformed runtime manifests remain byte-identical"
+    ],
+    "secondStartup": "Zero npm subprocesses for successful retained installations"
+  },
+  "fileSha256": {
+    "cli/hooks/sqliteRuntime.js": "40c099673df4930285d91ad4d2a020cd112aa62ae35484d7dbff7d93777709c5",
+    "cli/hooks/trayRuntime.js": "c55bc2e30a1d073b288c256ad52389363dd907633aa9a33d1475f59b4361d277",
+    "tests/unit/cli-runtime-retention.test.js": "1fae984fccb1f1c41ff50ca9e9c5da833522440852f38009f074f713ad0f376e",
+    "tests/unit/cli-runtime-dependency-pins.test.js": "6d6aada8a804cb1cca471e6b522fdd5b6d68bcf63a6fe9d4f34114fdbc918025"
+  },
+  "testLog": "/workspace/.cloud-setup/kitsune-router/runtime-retention-focused.log",
+  "testLogSha256": "5aad1c00e00a80efc4e33b979d86631a12fd189523b0a943b1aba83a7bd5d1a7"
+}

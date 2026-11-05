@@ -8,16 +8,18 @@
 
 ## 容器
 
-**当前容器目标为 `ghcr.io/bykitsune/kitsune-router:1.0.7`，平台仅为 linux/amd64。** 以下示例仅在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认该镜像已发布、读回通过且具有所需访问权限后适用。认证拉取成功不代表可匿名拉取。1.0.7 应使用该记录中的实际摘要，不得复用下方历史 1.0.2 摘要。
+**当前容器目标为 `ghcr.io/bykitsune/kitsune-router:1.0.8`，平台仅为 linux/amd64。** 以下示例仅在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认该镜像已发布、读回通过且具有所需访问权限后适用。认证拉取成功不代表可匿名拉取。1.0.8 应使用该记录中的实际摘要，不得复用下方历史 1.0.2 摘要。
+
+**发布历史与修复准备：** 1.0.7 已从不可变源码 `b7f77d07` 发布到 npm、GHCR 和 GitHub Release，但存在顺序执行 `--no-save` 安装时 SQLite/tray 相互裁剪的已知问题。1.0.8 尚未发布，正在等待精确源码 CI 与常规安装候选验证；各渠道的实际结果与已知问题以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
 
 **1.0.2 历史记录（当时的验证结果）：** **GHCR 1.0.2 已发布，但为 private。** Recovery `40485038668` 用 tooling `802c61bf` 构建不可变 runtime `65c8b97d`，认证摘要/来源/SPDX 读回及已发布镜像 smoke 通过。`1.0.2`/`latest` 共用索引 `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`。下列示例须获授权私有 GHCR 访问，或先确认所有者完成 Public 设置且匿名读回成功。Public 选择未确认，最近匿名 grant HTTP 401。仅 **linux/amd64**。见 [摘要锁定与证据](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)。
 
-### 1.0.7 配置示例（GHCR 确认后）
+### 1.0.8 配置示例（GHCR 确认后）
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.7
+    image: ghcr.io/bykitsune/kitsune-router:1.0.8
     platform: linux/amd64
     ports:
       - "127.0.0.1:20128:20128"

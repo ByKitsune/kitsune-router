@@ -1,11 +1,19 @@
 # Kitsune Router container
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 **Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
 - Repository: [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router)
 - Canonical image target: **`ghcr.io/bykitsune/kitsune-router`**
 - CLI package target: **`@bykitsune/router`**, command **`kitsune-router`**
-- **Stable target:** `ghcr.io/bykitsune/kitsune-router:1.0.7`. Use it only after publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). The receipt records version-specific digest, platform and access results; GitHub Release and npm have their own gates.
+- **Stable target:** `ghcr.io/bykitsune/kitsune-router:1.0.8`. Use it only after publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). The receipt records version-specific digest, platform and access results; GitHub Release and npm have their own gates.
 - **Historical 1.0.2 release status:** GHCR 1.0.2 is published from immutable runtime `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; authenticated digest/provenance/SPDX readback and published-image smoke passed. The [package](https://github.com/orgs/ByKitsune/packages/container/package/kitsune-router) remains **private** at last read. The owner selected Public but has not confirmed completion; anonymous grants return HTTP 401. npm remains blocked, and Docker Hub is unverified.
 - Publication platform: **linux/amd64 only**. The image supplies its own Node runtime; the launcher requires Node.js >=22.19.0.
 
@@ -13,7 +21,7 @@
 
 The 1.0.2 follow-up controls timestamp-sensitive cache tests and improves npm failure diagnostics without changing production priority ordering or fail-closed migration ownership checks. Bounded Linux evidence is not general non-root support; native Windows/macOS migration is unverified. Restricted operators must stop/back up state and keep it at explicit `DATA_DIR` without relocation, or seek privileged review—not ignore permission errors.
 
-After 1.0.7 publication and registry readback succeed, use the access mode recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) and set a strong `INITIAL_PASSWORD` in your private environment:
+After 1.0.8 publication and registry readback succeed, use the access mode recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) and set a strong `INITIAL_PASSWORD` in your private environment:
 
 ```bash
 docker run -d --name kitsune-router \
@@ -22,7 +30,7 @@ docker run -d --name kitsune-router \
   -v kitsune-router-data:/app/data \
   -e DATA_DIR=/app/data -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.7
+  ghcr.io/bykitsune/kitsune-router:1.0.8
 ```
 
 Open `http://localhost:20128/dashboard`, connect your chosen provider, create/copy a gateway API key, and use `http://localhost:20128/v1` in clients. No ByKitsune account, paid hosted service or prescribed provider order is required. Upstream account terms, costs, quotas and availability still apply.
@@ -43,6 +51,6 @@ Read the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/mast
 
 Use authenticated HTTPS for remote access, keep secrets out of source/logs and choose a strong initial password. Compression has no guaranteed savings; estimates are not invoices; synthetic tests do not establish entitlement or live availability.
 
-**Historical 1.0.2 verification:** Recovery `40485038668` published `1.0.2` and `latest` at index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Independent published-image smoke passed all six path/secret-source restart scenarios, and private authorization applied at that readback. See the [Docker guide](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md) for digest pinning and [release evidence](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) for distinct artifact identities. At that readback, npm E403/token replacement remained unresolved; no production deployment or GitHub Release 1.0.2 was established. These observations do not determine 1.0.7 availability; use the current publication receipt above.
+**Historical 1.0.2 verification:** Recovery `40485038668` published `1.0.2` and `latest` at index `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`. Independent published-image smoke passed all six path/secret-source restart scenarios, and private authorization applied at that readback. See the [Docker guide](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md) for digest pinning and [release evidence](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md) for distinct artifact identities. At that readback, npm E403/token replacement remained unresolved; no production deployment or GitHub Release 1.0.2 was established. These observations do not determine 1.0.8 availability; use the current publication receipt above.
 
 MIT licensed; upstream copyright notices remain in [LICENSE](https://github.com/ByKitsune/kitsune-router/blob/master/LICENSE).

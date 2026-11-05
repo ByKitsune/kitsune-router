@@ -14,7 +14,11 @@ Tích hợp này thuộc mã nguồn hiện tại.
 
 ## Phát hành và cài đặt
 
-**Phiên bản mã nguồn hiện tại và mục tiêu ổn định: 1.0.7.** Xem [hồ sơ xuất bản](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế riêng của GitHub Release, npm và GHCR. Các lệnh dưới đây chỉ dùng sau khi xuất bản và đọc xác minh npm 1.0.7 thành công; quyền truy cập container cần được xác minh riêng theo kênh đó.
+**Phiên bản mã nguồn hiện tại và mục tiêu ổn định: 1.0.8.** Xem [hồ sơ xuất bản](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế riêng của GitHub Release, npm và GHCR. Các lệnh dưới đây chỉ dùng sau khi xuất bản và đọc xác minh npm 1.0.8 thành công; quyền truy cập container cần được xác minh riêng theo kênh đó.
+
+**1.0.8 chưa được xuất bản.** CI của đúng mã nguồn và smoke test ứng viên qua cài đặt bình thường phải thành công trước khi tạo tag hoặc xuất bản.
+
+**Lịch sử 1.0.7:** npm, GHCR và GitHub Release đã xuất bản từ `b7f77d07`, nhưng các lượt cài SQLite/tray liên tiếp bằng `--no-save` xóa phụ thuộc của nhau. Lần khởi động offline được quan sát chưa đạt health trong 30 giây khi sửa runtime; chưa chứng minh lỗi cơ sở dữ liệu cuối cùng. Tag và hiện vật giữ nguyên; xem hồ sơ phía trên.
 
 **Lịch sử phân phối 1.0.2 (kết quả đọc xác minh tại thời điểm đó):**
 
@@ -25,9 +29,9 @@ Không di chuyển tag: `v1.0.1` tại `74583402` qua SSH/CI, nhưng gate GHCR l
 Yêu cầu **Node.js >=22.19.0**. Chỉ dùng sau khi phát hành:
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
-# Hoặc: npx @bykitsune/router@1.0.7
+# Hoặc: npx @bykitsune/router@1.0.8
 ```
 
 Chạy từ kho chính thức đã xác nhận hoặc checkout hiện có, ở gốc không có thư mục con `app/`:

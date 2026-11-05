@@ -127,7 +127,10 @@ export function canPromote(version, current) {
   for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
   return true;
 }
-async function waitForNpmReadback(read, confirmed, { attempts = 12, wait = sleep } = {}) {
+// Registry metadata can lag an accepted publish by several minutes. Allow
+// 571 seconds of capped, read-only backoff before requiring reconciliation;
+// this never repeats the publish or latest-tag write.
+async function waitForNpmReadback(read, confirmed, { attempts = 24, wait = sleep } = {}) {
   assert(Number.isInteger(attempts) && attempts > 0, "Invalid npm readback attempt limit");
   for (let attempt = 0; attempt < attempts; attempt++) {
     const value = read(); // Auth, network and malformed-response errors remain terminal.

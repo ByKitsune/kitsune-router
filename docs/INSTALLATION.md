@@ -4,11 +4,19 @@
 
 ## Availability
 
-**Stable target: 1.0.7.** Use the versioned package/image commands after the
-corresponding publication workflow and registry readback succeed. Until then,
-use a source checkout. The [publication follow-up](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-records actual availability and GHCR access requirements; a source version is not
-proof of publication.
+**Current target: 1.0.8, unpublished.** Exact-source CI and a normally installed
+final-candidate smoke must pass before a new tag or publication. Commands below
+apply only after the corresponding registry's publication/readback succeeds.
+The [publication receipt](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+separates the working-tree precheck from final candidate and release evidence.
+
+**Published 1.0.7 and known installer issue.** npm, canonical GHCR and GitHub
+Release published immutable `b7f77d07`; original bytes/assets remain unchanged.
+Sequential SQLite/tray `--no-save` installs prune siblings. The contained offline
+CLI did not reach health in 30 seconds during synchronous self-heal; its final
+driver/outcome was not observed, so a hard database failure is not established.
+The successful Docker entrypoint smoke is a separate path. See the publication
+receipt for cryptographic, runtime, access and cancellation-race evidence.
 
 ### Historical distribution records
 
@@ -16,22 +24,22 @@ proof of publication.
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR gate failed before login/push; npm publish failed with cause not yet known and public readback HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. `v1.0.0` remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Neither tag moves. See [1.0.2 status](../releases/RELEASE_NOTES_v1.0.2.md), not archived attempt commands. Original 0.x artifacts are unchanged.
 
-## Launcher 1.0.7 (after publication and registry readback)
+## Launcher 1.0.8 (after candidate/CI gates and publication)
 
 Use **Node.js >=22.19.0** and its supported npm. Check `node --version` first.
 
 ```bash
-npx @bykitsune/router@1.0.7
+npx @bykitsune/router@1.0.8
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 
-The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.7 --host 127.0.0.1` after publication/readback. Inspect supported options with `kitsune-router --help`.
+The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.8 --host 127.0.0.1`. Inspect supported options with `kitsune-router --help`.
 
 The package name and binary differ. Update/uninstall the **scoped package**, not a nonexistent bare `kitsune-router` npm package:
 

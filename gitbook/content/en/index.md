@@ -1,5 +1,13 @@
 # Welcome to Kitsune Router
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 **Your models. Your routes.** A provider-neutral, local-first AI gateway maintained and sponsored by [ByKitsune](https://bykitsune.com). Choose your own upstream accounts, models and fallback order. No ByKitsune account or hosted API purchase is required. Requests still go to the upstreams you configure; local-first does not mean offline inference.
 
 ## Official ByKitsune provider
@@ -10,7 +18,7 @@ This integration describes the current source checkout.
 
 ## Release status
 
-**Current source version and stable target: 1.0.7.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability.
+**Current source version and stable target: 1.0.8.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability.
 
 **Historical 1.0.2 distribution readback:**
 

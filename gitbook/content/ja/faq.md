@@ -4,9 +4,11 @@
 
 [ByKitsune](https://bykitsune.com) が保守・支援する中立・ローカルファーストのゲートウェイで、ZenRouter/9Router を継続します。**Your models. Your routes.** 設定した上流を使い、スポンサーへ自動送信しません。
 
-## 1.0.7 の公開状況は？
+## 1.0.8 の公開状況は？
 
-GitHub Release、npm、GHCR は別々に公開・検証されます。[1.0.7 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で各チャネルの結果と取得可否を確認してください。公開と読戻しが確認された成果物に限って [インストール手順](/ja/getting-started/installation/)を使います。ソースの検証や既存タグだけでは、公開、匿名アクセス、実プロバイダーの利用権を証明しません。
+GitHub Release、npm、GHCR は別々に公開・検証されます。[1.0.8 の公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で各チャネルの結果と取得可否を確認してください。公開と読戻しが確認された成果物に限って [インストール手順](/ja/getting-started/installation/)を使います。ソースの検証や既存タグだけでは、公開、匿名アクセス、実プロバイダーの利用権を証明しません。
+
+**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
 
 ## 1.0.2 の公開履歴（当時の確認）
 

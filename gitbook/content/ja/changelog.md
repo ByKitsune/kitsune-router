@@ -1,5 +1,22 @@
 # 変更履歴
 
+## Kitsune Router 1.0.8 — インストーラー修正の準備
+
+SQLite/tray の正確なバージョンを optional 依存として保存し、高速経路に入る前に
+両方を含む runtime メタデータを原子的に保持します。インストール済みバージョンを
+検証し、ビルドツールなしの N-API バイナリ経路を扱います。23 件の集中テストには、
+実 npm による依存保持・アップグレードと、不正な manifest を変更せず保持する動作を
+カバーする、新しい 12 件の回帰テストを含みます。
+これは公開済み 1.0.8 の native 起動確認ではありません。
+
+公開後の読戻しは最大 24 回／571 秒の予算で読み取り専用の再試行を行い、
+公開書込みを繰り返しません。この経路は 54 件の集中テストで確認します。
+依存関係のグラフは Undici **8.12.4** を含めて維持します。
+
+1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。
+各配布チャネルの実結果と取得可否は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+既存の 1.0.7／1.0.6 のタグや成果物は変更しません。
+
 ## Kitsune Router 1.0.7 — 2026-11-05 配布ゲート修正の準備
 
 配布ワークフローで、ロック済み Playwright に対応する Chromium をインストールし、
@@ -9,6 +26,8 @@
 依存関係のグラフは Undici **8.12.4** を含めて維持します。GitHub Release・npm・GHCR
 それぞれの実際の配布結果と取得可否は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
 この準備は公開完了を意味せず、既存の 1.0.6 タグや成果物の履歴は変更しません。
+
+**公開後の結果と既知の問題:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布されました。逐次 `--no-save` インストールによる SQLite/tray の相互削除が判明しています。隔離したオフライン CLI は無出力の同期自己修復中に npm `ENETUNREACH` を 4 回再試行し、30 秒以内には health に到達しませんでした。最終ドライバーは観測されておらず、SQL.js の利用を有効にした検証でもありません。この観測だけで恒久的な DB 障害とは判断しません。実結果と修正準備は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)に分けて記録します。
 
 ## Kitsune Router 1.0.6 — 2026-11-05 ソースの追加更新
 

@@ -2,11 +2,27 @@
 
 **Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com).
 
-**Stable target: `ghcr.io/bykitsune/kitsune-router:1.0.7`.** Use the examples below
-after its publication workflow and registry readback succeed. The workflow targets
-**linux/amd64**, not ARM64/multi-architecture. The [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
-records the actual digest, visibility and access results; none is assumed here.
-Docker Hub remains unverified and optional.
+**Current image target: `ghcr.io/bykitsune/kitsune-router:1.0.8`, unpublished.**
+Full exact-source CI and a normally installed final-candidate smoke are required
+before tagging/publication. The target is **linux/amd64** only; Docker Hub remains
+unverified and optional. Use examples only after that version's authenticated
+publication/digest/access readbacks succeed. The [publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+records current gates separately from older published artifacts.
+
+### Published 1.0.7 and installer limitation
+
+**Published 1.0.7 and known installer issue.** npm, canonical GHCR and GitHub
+Release published immutable `b7f77d07`; original bytes/assets remain unchanged.
+Sequential SQLite/tray `--no-save` installs prune siblings. The contained offline
+CLI did not reach health in 30 seconds during synchronous self-heal; its final
+driver/outcome was not observed, so a hard database failure is not established.
+The successful Docker entrypoint smoke is a separate path. See the publication
+receipt for cryptographic, runtime, access and cancellation-race evidence.
+
+The 1.0.7 Docker workflow **42076884964** passed authenticated source/provenance,
+actual default/custom-data runtime and latest promotion. Anonymous pull-grant
+readback returned HTTP 401; it does not establish a visibility setting or workflow
+write failure. This image result does not certify the distinct CLI installer.
 
 ### Historical 1.0.2 distribution record
 
@@ -14,9 +30,13 @@ Docker Hub remains unverified and optional.
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR exact-source gate failed before login/push, so **no canonical GHCR 1.0.1 image was published**. npm's publish command also failed; its cause is not yet known. `v1.0.0` stays at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after the ownership-test failure. Neither tag moves. See [1.0.2 notes](releases/RELEASE_NOTES_v1.0.2.md) for the deterministic test/diagnostic follow-up; production ordering and fail-closed ownership checks are unchanged.
 
-## Run 1.0.7 after publication and verification
+## Run 1.0.8 only after candidate/CI and registry verification
 
-If the published package is private, authenticate to GHCR with package-read permission before using these examples. Anonymous access must be confirmed separately; a pre-publication HTTP 401 does not determine the published package's visibility. Do not paste tokens in commands, source, chat or logs. Set a strong `INITIAL_PASSWORD` in your private environment first; `-e INITIAL_PASSWORD` forwards it without embedding a value in the example.
+Before using the unpublished 1.0.8 target, confirm its own publication, digest
+and access results. The 1.0.7 anonymous HTTP 401 is historical, not proof of an
+unpublished version's visibility. Never paste tokens in commands, source, chat
+or logs. Set a strong `INITIAL_PASSWORD` privately; `-e INITIAL_PASSWORD` forwards
+it without embedding a value in these examples.
 
 ```bash
 docker run -d --name kitsune-router \
@@ -26,27 +46,43 @@ docker run -d --name kitsune-router \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD \
   --restart unless-stopped \
-  ghcr.io/bykitsune/kitsune-router:1.0.7
+  ghcr.io/bykitsune/kitsune-router:1.0.8
 ```
 
-After publication, inspect the versioned image:
+Using the registry access confirmed for your account, inspect the versioned image:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/bykitsune/kitsune-router:1.0.7
+docker buildx imagetools inspect ghcr.io/bykitsune/kitsune-router:1.0.8
 ```
 
-For fixed bytes, compare the reported index digest with the verified 1.0.7 digest
-and source/provenance evidence in the [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md),
-then use the canonical image name followed by `@` and that verified digest in
-`docker run` or Compose. No 1.0.7 digest is recorded here before publication;
-the historical 1.0.2 digest above is not a 1.0.7 pin.
+No verified 1.0.8 digest is recorded yet. After publication, compare its reported
+index digest with the actual 1.0.8 receipt.
+
+### Historical 1.0.7 digest and authenticated runtime
+
+The following is the verified **1.0.7** reference, not a 1.0.8 pin. Use the
+[publication receipt](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+to check source/provenance evidence when inspecting the historical image:
+
+```text
+ghcr.io/bykitsune/kitsune-router@sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d
+```
+
+The authenticated Actions receipt has SHA-256
+`649dcf31dd39d0816da9661aefaf79a03dcb0cf03b645183102be0d4d40a765b`.
+Its real default/custom-data entrypoint cases pass on Node 22.23.4 with
+health/authentication/catalog, restart/session/API-key/secret persistence and
+0600 database/secret modes. The anonymous HTTP 401 observation and independent raw-attestation readback
+remain separate from authenticated runtime proof. The historical 1.0.2 digest above is not a 1.0.7 pin.
 
 Digest pinning does not bypass private-package authorization. Dashboard: `http://localhost:20128/dashboard`. Client API base: `http://localhost:20128/v1`. Loopback publishing is intentional; use authenticated HTTPS and a reviewed reverse proxy for remote access. The gateway does not require a ByKitsune account or prescribe a provider; GHCR download authorization, when required, is separate.
+
+### Compose 1.0.8 — only after its candidate/CI and registry gates
 
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.7
+    image: ghcr.io/bykitsune/kitsune-router:1.0.8
     platform: linux/amd64
     restart: unless-stopped
     ports:

@@ -116,6 +116,24 @@ describe("bounded npm publication readback", () => {
     expect(readFileSync(fixture.artifact)).toEqual(bytes);
   });
 
+  it("confirms delayed visibility after seven minutes without repeating the accepted publish", async () => {
+    const fixture = publication([...Array.from({ length: 20 }, missing), published]);
+    expect(await publishNpm(version, fixture.artifact, fixture)).toEqual(published);
+    expect(fixture.calls.filter(call => call[1] === "publish")).toHaveLength(1);
+    expect(fixture.waits.reduce((sum, delay) => sum + delay, 0)).toBe(451000);
+    expect(readFileSync(fixture.artifact)).toEqual(bytes);
+  });
+
+  it("exhausts the default read-only budget while retaining the original artifact for reconciliation", async () => {
+    const fixture = publication(Array.from({ length: 25 }, missing));
+    await expect(publishNpm(version, fixture.artifact, fixture)).rejects.toThrow(/not confirmed after 24 attempts.*original CI tarball/);
+    expect(fixture.calls.filter(call => call[1] === "view")).toHaveLength(25);
+    expect(fixture.calls.filter(call => call[1] === "publish")).toHaveLength(1);
+    expect(fixture.waits.reduce((sum, delay) => sum + delay, 0)).toBe(571000);
+    expect(Math.max(...fixture.waits)).toBe(30000);
+    expect(readFileSync(fixture.artifact)).toEqual(bytes);
+  });
+
   it("keeps terminal publish errors readable without weakening provenance or immutable tags", async () => {
     const fixture = publication([missing(), published]);
     await publishNpm(version, fixture.artifact, fixture);
@@ -153,6 +171,35 @@ describe("bounded npm publication readback", () => {
     expect(fixture.waits).toEqual([]);
   });
 
+  it.each([
+    ["authorization", Object.assign(new Error("E403 Forbidden"), { stderr: '{"error":{"code":"E403"}}' })],
+    ["network", Object.assign(new Error("Registry request timed out"), { code: "ETIMEDOUT" })],
+  ])("stops delayed readback immediately on a terminal %s error", async (_label, error) => {
+    const fixture = publication([missing(), missing(), error, published]);
+    await expect(publishNpm(version, fixture.artifact, fixture)).rejects.toThrow(error.message);
+    expect(fixture.calls.filter(call => call[1] === "view")).toHaveLength(3);
+    expect(fixture.calls.filter(call => call[1] === "publish")).toHaveLength(1);
+    expect(fixture.waits).toEqual([1000]);
+    expect(readFileSync(fixture.artifact)).toEqual(bytes);
+  });
+
+  it("does not treat malformed registry metadata as another visibility delay", async () => {
+    const fixture = publication([missing(), missing()]);
+    let views = 0;
+    const command = (cmd, args) => {
+      if (args[0] === "view" && ++views === 3) {
+        fixture.calls.push([cmd, ...args]);
+        return "<html>Registry unavailable</html>";
+      }
+      return fixture.command(cmd, args);
+    };
+    await expect(publishNpm(version, fixture.artifact, { ...fixture, command })).rejects.toThrow(SyntaxError);
+    expect(views).toBe(3);
+    expect(fixture.calls.filter(call => call[1] === "publish")).toHaveLength(1);
+    expect(fixture.waits).toEqual([1000]);
+    expect(readFileSync(fixture.artifact)).toEqual(bytes);
+  });
+
   it("propagates publish failure without pretending to wait for a successful upload", async () => {
     const fixture = publication([missing()]);
     const command = (cmd, args) => {
@@ -181,6 +228,13 @@ describe("bounded latest-tag readback", () => {
     expect(await promoteNpm(version, fixture.command, fixture)).toBe(true);
     expect(fixture.calls.filter(call => call[1] === "dist-tag")).toHaveLength(1);
     expect(fixture.waits).toEqual([1000]);
+  });
+
+  it("waits beyond seven minutes for latest visibility without repeating its tag write", async () => {
+    const fixture = publication([...Array.from({ length: 20 }, () => ({ latest: "0.9.6" })), { latest: version }]);
+    expect(await promoteNpm(version, fixture.command, fixture)).toBe(true);
+    expect(fixture.calls.filter(call => call[1] === "dist-tag")).toHaveLength(1);
+    expect(fixture.waits.reduce((sum, delay) => sum + delay, 0)).toBe(451000);
   });
 
   it("does not roll back a newer release that becomes visible during readback", async () => {

@@ -4,6 +4,7 @@
 const { execSync, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { randomUUID } = require("crypto");
 const { resolveDataDirectory } = require("./dataDirectory");
 
 // Gate the pinned version by Node major, mirroring src/lib/db/driver.js gating
@@ -45,8 +46,40 @@ function ensureRuntimeDir() {
   return dir;
 }
 
-function hasModule(name) {
-  return fs.existsSync(path.join(getRuntimeNodeModules(), name, "package.json"));
+// npm prunes packages installed with --no-save when a sibling is installed.
+// Retain existing managed packages too: older installations may already have
+// both binaries and take the no-install fast paths below. Only this managed
+// dependency is changed; malformed manifests are left untouched.
+function retainRuntimeDependency(name, version) {
+  const pkgPath = path.join(ensureRuntimeDir(), "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
+  if (!isObject(pkg) || (pkg.dependencies !== undefined && !isObject(pkg.dependencies))
+      || (pkg.optionalDependencies !== undefined && !isObject(pkg.optionalDependencies))) {
+    throw new Error("Runtime package.json must contain valid dependency objects");
+  }
+  if (pkg.optionalDependencies?.[name] === version && !Object.hasOwn(pkg.dependencies || {}, name)) return;
+  const next = { ...pkg, optionalDependencies: { ...pkg.optionalDependencies, [name]: version } };
+  if (Object.hasOwn(pkg.dependencies || {}, name)) {
+    next.dependencies = { ...pkg.dependencies };
+    delete next.dependencies[name];
+  }
+  const temporary = `${pkgPath}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporary, JSON.stringify(next, null, 2) + "\n", {
+      flag: "wx", mode: fs.statSync(pkgPath).mode & 0o777,
+    });
+    fs.renameSync(temporary, pkgPath);
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+}
+
+function hasModule(name, version) {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(getRuntimeNodeModules(), name, "package.json"), "utf8"));
+    return !version || manifest.version === version;
+  } catch { return false; }
 }
 
 function isGlibcRuntime() {
@@ -124,7 +157,7 @@ function runNpmInstall({ cwd, pkgs, extraArgs = [], timeout = 180000 }) {
 
 function npmInstall(pkgs, opts = {}) {
   const cwd = ensureRuntimeDir();
-  const extra = opts.optional ? ["--no-save"] : [];
+  const extra = [opts.optional ? "--save-optional" : "--save-prod", "--save-exact"];
   if (opts.ignoreScripts) extra.push("--ignore-scripts");
   if (!opts.silent) console.log("⏳ Installing SQLite engine (first run)...");
   const res = runNpmInstall({ cwd, pkgs, extraArgs: extra, timeout: opts.timeout || 180000 });
@@ -150,15 +183,17 @@ function isSqlJsWasmValid() {
 }
 
 function ensureSqliteRuntime({ silent = false } = {}) {
-  ensureRuntimeDir();
+  retainRuntimeDependency("better-sqlite3", BETTER_SQLITE3_VERSION);
 
   let sqlJsOk = isSqlJsWasmValid();
   if (!sqlJsOk) {
-    sqlJsOk = npmInstall([`sql.js@${SQL_JS_VERSION}`], { silent });
+    // The retained optional N-API package may also be installed during this
+    // repair; its bundled prebuild must not trigger implicit node-gyp rebuilds.
+    sqlJsOk = npmInstall([`sql.js@${SQL_JS_VERSION}`], { silent, ignoreScripts: USE_NAPI_BUILD });
     if (sqlJsOk) sqlJsOk = isSqlJsWasmValid();
   }
 
-  const needBetterSqlite = !hasModule("better-sqlite3") || !isBetterSqliteBinaryValid();
+  const needBetterSqlite = !hasModule("better-sqlite3", BETTER_SQLITE3_VERSION) || !isBetterSqliteBinaryValid();
   if (!needBetterSqlite) {
     if (!silent) console.log("✅ SQLite engine ready");
     return { betterSqlite: true, sqlJs: sqlJsOk };
@@ -168,8 +203,10 @@ function ensureSqliteRuntime({ silent = false } = {}) {
   // binding.gyp, which would demand build tools even though 13.x already bundles
   // the binary — skip scripts so the bundled prebuild is used as-is.
   const ok = npmInstall([`better-sqlite3@${BETTER_SQLITE3_VERSION}`], { optional: true, silent, ignoreScripts: USE_NAPI_BUILD });
+  const betterSqlite = ok && hasModule("better-sqlite3", BETTER_SQLITE3_VERSION) && isBetterSqliteBinaryValid();
+  if (ok && !betterSqlite && !silent) console.warn("⚠️  SQLite engine unavailable — using fallback");
   return {
-    betterSqlite: ok && hasModule("better-sqlite3") && isBetterSqliteBinaryValid(),
+    betterSqlite,
     sqlJs: sqlJsOk,
   };
 }
@@ -189,6 +226,7 @@ module.exports = {
   buildEnvWithRuntime,
   getRuntimeDir,
   getRuntimeNodeModules,
+  retainRuntimeDependency,
   runNpmInstall,
   summarizeNpmError,
 };

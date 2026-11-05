@@ -1,5 +1,23 @@
 # Changelog
 
+## Kitsune Router 1.0.8 — 2026-11-05 unpublished preparation
+
+Retain exact optional SQLite/tray pins atomically before fast paths, adopt old
+unsaved states and validate installed versions. N-API paths avoid native build
+tools; successful retained fixtures perform no second-start npm installs. The
+runtime graph, including Undici 8.12.4, is unchanged. Focused coverage passes
+23 tests, including 12 new regressions covering real npm retention/upgrade and
+invalid-manifest preservation. Four malformed-manifest cases run no npm; actual
+npm cases use local registry fixtures and never load the fake native binary.
+These are not published-package runtime checks.
+
+Publisher visibility checks allow 24 read attempts / 571 seconds of backoff,
+with no repeated writes; 54 focused tests pass. The working-tree local ordinary
+install/two-start precheck passes, but exact-source CI and a normally installed
+final candidate remain required before tag/publication. Actual channel outcomes
+are recorded in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+**1.0.8 is unpublished; 1.0.7 history below is preserved.**
+
 ## Kitsune Router 1.0.7 — 2026-11-05 publication-gate follow-up
 
 The publisher workflows install Chromium matching the locked Playwright version
@@ -11,6 +29,15 @@ The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/maste
 records actual GitHub Release, npm and GHCR outcomes separately. This preparation
 does not establish artifact availability; the immutable 1.0.6 tag and the
 historical source record below remain unchanged.
+
+**Actual 1.0.7 outcome and known issue:** npm, GHCR and GitHub Release published
+immutable `b7f77d07`; cancellation completed after Release creation. Sequential
+SQLite/tray `--no-save` installs prune siblings. The contained offline CLI made
+four npm `ENETUNREACH` retries and did not reach health within 30 seconds during
+synchronous self-heal. Its final driver/outcome was unobserved, with no SQL.js
+opt-in; this is not a proven hard database failure. Published bytes remain
+unchanged and the [actual receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps this separate from the successful Docker entrypoint path.
 
 ## Kitsune Router 1.0.6 — 2026-11-05 source follow-up
 

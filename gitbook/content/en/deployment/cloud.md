@@ -1,5 +1,13 @@
 # VPS and Container Deployment
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 Remote Kitsune Router is an **operator-managed** gateway, not an included hosted endpoint. Localhost always refers to the machine making the request. No ByKitsune account or provider ordering is required.
 
 ## Source service
@@ -8,7 +16,7 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 
 ## Containers
 
-**Stable container target: `ghcr.io/bykitsune/kitsune-router:1.0.7`, linux/amd64 only.** Use the example only after its publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Follow the version-specific digest and access results recorded there; do not use a previous release’s digest as a 1.0.7 pin. npm and GitHub Release have separate gates.
+**Stable container target: `ghcr.io/bykitsune/kitsune-router:1.0.8`, linux/amd64 only.** Use the example only after its publication and registry readback are confirmed in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Follow the version-specific digest and access results recorded there; do not use a previous release’s digest as a 1.0.8 pin. npm and GitHub Release have separate gates.
 
 **Historical 1.0.2 registry readback:**
 
@@ -17,7 +25,7 @@ Use Node.js >=22.19.0, locked dependencies and the repository-root build workflo
 ```yaml
 services:
   kitsune-router:
-    image: ghcr.io/bykitsune/kitsune-router:1.0.7
+    image: ghcr.io/bykitsune/kitsune-router:1.0.8
     platform: linux/amd64
     restart: unless-stopped
     ports:

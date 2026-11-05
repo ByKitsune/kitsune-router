@@ -1,5 +1,19 @@
 # 更新日志
 
+## Kitsune Router 1.0.8 — 安装器修复准备
+
+将 SQLite/tray 的精确版本保存为 optional 依赖，并在快速路径之前原子保留同时包含
+两者的 runtime 元数据；验证已安装版本，并支持无需构建工具的 N-API 二进制路径。
+23 项集中测试包含 12 项新增回归，覆盖真实 npm 的依赖保留与升级，以及无效 manifest 的原样保留，
+并非已发布 1.0.8 的原生启动验证。
+
+发布后的读回采用最多 24 次／571 秒预算的只读重试，不重复发布写入；该路径有
+54 项集中测试覆盖。依赖图保持不变，继续使用 Undici **8.12.4**。
+
+1.0.8 尚未发布，精确源码 CI 和常规安装候选验证仍在等待中；各渠道的实际发布结果
+与可获取性以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
+现有 1.0.7／1.0.6 标签及产物保持不变。
+
 ## Kitsune Router 1.0.7 — 2026-11-05 发布门槛修复准备
 
 发布工作流安装与锁定 Playwright 版本匹配的 Chromium，并要求发布前通过浏览器检查。
@@ -8,6 +22,8 @@
 依赖图保持不变，继续使用 Undici **8.12.4**。GitHub Release、npm 和 GHCR 各渠道的
 实际发布结果与可获取性以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
 本次准备不表示发布已经完成，也不修改现有 1.0.6 标签或历史产物记录。
+
+**发布后的结果与已知问题：** 1.0.7 已从不可变源码 `b7f77d07` 发布到 npm、GHCR 和 GitHub Release。现已发现顺序执行 `--no-save` 安装会使 SQLite/tray 相互裁剪。受限离线 CLI 在静默的同步自修复中进行了 4 次 npm `ENETUNREACH` 重试，30 秒内未达到 health；未观察到最终驱动选择，也没有启用 SQL.js 作为验证前提。因此，这一观测不能证明永久性数据库故障。实际结果与后续修复准备分别记录在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)。
 
 ## Kitsune Router 1.0.6 — 2026-11-05 源码后续更新
 

@@ -4,8 +4,10 @@
 
 ## 启动与迁移
 
-- 包找不到：当前目标为 `@bykitsune/router@1.0.7`。先在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认 npm 发布和读回；未确认时使用 [源码安装](/zh-CN/getting-started/installation/)。不要把旧版 E403 当作当前失败原因，应以实际 registry 结果判断，也不要在聊天或日志中分享 token。
-- GHCR 拉取拒绝/找不到：请在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)及 [Docker 指南](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)核对 `1.0.7` 标签、摘要、发布／读回结果与所需权限。认证读取与匿名读取是不同检查，不应将权限遮蔽的响应直接认定为未发布。
+**发布历史与修复准备：** 1.0.7 已从不可变源码 `b7f77d07` 发布到 npm、GHCR 和 GitHub Release，但存在顺序执行 `--no-save` 安装时 SQLite/tray 相互裁剪的已知问题。1.0.8 尚未发布，正在等待精确源码 CI 与常规安装候选验证；各渠道的实际结果与已知问题以 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)为准。
+
+- 包找不到：当前目标为 `@bykitsune/router@1.0.8`。先在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)确认 npm 发布和读回；未确认时使用 [源码安装](/zh-CN/getting-started/installation/)。不要把旧版 E403 当作当前失败原因，应以实际 registry 结果判断，也不要在聊天或日志中分享 token。
+- GHCR 拉取拒绝/找不到：请在 [发布验证记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)及 [Docker 指南](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)核对 `1.0.8` 标签、摘要、发布／读回结果与所需权限。认证读取与匿名读取是不同检查，不应将权限遮蔽的响应直接认定为未发布。
 - 旧 Node：需 >=22.19.0，迁移须支持 Node/Bun 原生 SQLite 快照，不做不安全原始复制。
 - 端口占用：仪表盘/API 共用 20128，识别拥有者并正常停止，不广泛 `pkill`/`kill -9`。
 - 状态空白：先查绝对路径和 `/app/data` 挂载；显式 `DATA_DIR` 阻止搬迁。

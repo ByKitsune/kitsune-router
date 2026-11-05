@@ -1,0 +1,52 @@
+{
+  "status": "passed",
+  "version": "1.0.7",
+  "sourceCommit": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "sourceTree": "048a5044ea78d1aeacfe731917b863647b9936a8",
+  "candidateRun": "42074988325",
+  "candidateArchiveSha256": "bb481aba3b2442d687d65c55595fbd62b402364979313b236747728ea762aa62",
+  "provenanceSha256": "81adaa0eaf03bbdaf19063ae3f2aaf9d8fecc488f1506aa762be1d34f4883ab3",
+  "runtimes": [
+    {
+      "node": "v22.19.0",
+      "version": "1.0.7",
+      "healthLoginDashboard": "passed",
+      "modelCount": 1082,
+      "restartSessionAndKeyRecord": "passed",
+      "directCliVersionAndHelp": "passed",
+      "databaseAndSecretModes": "0600",
+      "warnings": 0,
+      "errors": 0,
+      "providerAccounts": 0,
+      "containerRemoved": true
+    },
+    {
+      "node": "v22.23.4",
+      "version": "1.0.7",
+      "healthLoginDashboard": "passed",
+      "modelCount": 1082,
+      "restartSessionAndKeyRecord": "passed",
+      "directCliVersionAndHelp": "passed",
+      "databaseAndSecretModes": "0600",
+      "warnings": 0,
+      "errors": 0,
+      "providerAccounts": 0,
+      "containerRemoved": true
+    }
+  ],
+  "network": "none",
+  "providerCalls": false,
+  "sourceEdits": false,
+  "publicationWrites": false,
+  "boundary": "Fresh b7 candidate, Linuxx64 Alpine carrier with existing exact nativeSQLite13.0.3 through CLI NODE_PATH. All runtime and CLI checks rerun, not borrowed from old48/6. No published artifact/registry claim.",
+  "evidenceSha256": {
+    "pretag-b7f7-proof.json": "89abe04888e81e8224a3b1ef579d237a5194e0ba7330fcda5352bcacdb0a70e0",
+    "pretag-b7f7-cli-proof.json": "fafdeb1f3d3ad6662ed0346d8c6cac1026da05a4ec8933cc06a6defd4b2f985c",
+    "pretag-b7f7-floor22.19.0.log": "519573fca3e6772bf2c5cd7e22b2376b2245bc63342f3fa22ed679ae99934245",
+    "pretag-b7f7-current22.23.4.log": "50c29bd90467b2ad28652aeed9300ef1f5c8ee874307c924bbedf5d02f9e9c0d",
+    "pretag-b7f7-cli-floor22.19.0-version.stdout.log": "6d6b9230dd8b8aac527f8929b7c2fc1fa0365deccca856216de979d6f5c6a6fe",
+    "pretag-b7f7-cli-floor22.19.0-help.stdout.log": "f68688743792e3746142e2ce44fc583ced685150704d9a7e0048cba56f844d9d",
+    "pretag-b7f7-cli-current22.23.4-version.stdout.log": "6d6b9230dd8b8aac527f8929b7c2fc1fa0365deccca856216de979d6f5c6a6fe",
+    "pretag-b7f7-cli-current22.23.4-help.stdout.log": "f68688743792e3746142e2ce44fc583ced685150704d9a7e0048cba56f844d9d"
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "checkedAtUtc": "2026-11-05T18:04:37.301338+00:00",
+  "version": "1.0.7",
+  "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "runId": 42076884964,
+  "reference": "ghcr.io/bykitsune/kitsune-router@sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+  "artifactDigestVerification": "API artifact digest, exact size, safe archive membership, and extracted byte equality passed",
+  "runtime": {
+    "reference": "ghcr.io/bykitsune/kitsune-router@sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+    "version": "1.0.7",
+    "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+    "containerNetwork": "none",
+    "providerCalls": false,
+    "cases": [
+      {
+        "label": "default-data",
+        "dataDir": "/app/data",
+        "network": "none",
+        "initial": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "unauthenticatedSettings": "rejected",
+          "invalidPassword": "rejected",
+          "login": "passed",
+          "dashboard": "passed",
+          "modelCount": 1082,
+          "databaseMode": "0600",
+          "secretMode": "0600",
+          "appUid": 1000
+        },
+        "restart": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "originalKeyBytes": "unchanged and active",
+          "secretBytes": "unchanged",
+          "keyCleanup": "passed"
+        },
+        "gracefulStop": true,
+        "exitCode": 0,
+        "logsRead": true,
+        "stderrLines": 0,
+        "warnings": 0,
+        "errors": 0,
+        "logsWithheld": false,
+        "containerRemoved": true,
+        "volumeRemoved": true
+      },
+      {
+        "label": "custom-data",
+        "dataDir": "/var/lib/kitsune-router",
+        "network": "none",
+        "initial": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "unauthenticatedSettings": "rejected",
+          "invalidPassword": "rejected",
+          "login": "passed",
+          "dashboard": "passed",
+          "modelCount": 1082,
+          "databaseMode": "0600",
+          "secretMode": "0600",
+          "appUid": 1000
+        },
+        "restart": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "originalKeyBytes": "unchanged and active",
+          "secretBytes": "unchanged",
+          "keyCleanup": "passed"
+        },
+        "gracefulStop": true,
+        "exitCode": 0,
+        "logsRead": true,
+        "stderrLines": 0,
+        "warnings": 0,
+        "errors": 0,
+        "logsWithheld": false,
+        "containerRemoved": true,
+        "volumeRemoved": true
+      }
+    ],
+    "status": "passed",
+    "imageId": "sha256:8d075cb27a2cd97b9d81febe380f241ddfe6a9a6b6f27d24054455fb76f04467"
+  },
+  "buildRecord": {
+    "sha256": "c256c28260db68d2821fce362368474c6ec8e63b118b18863c1c4fb3dcd97810",
+    "format": "gzip/tar OCI content-addressed build record",
+    "allBlobHashesVerified": true,
+    "exportedIndexDigest": "sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+    "imageManifestDigest": "sha256:ec66974955d7889d169b713bd714a07ee1f39ef4b60392a8efb36c926db4fc83",
+    "attestationManifestDigest": "sha256:0dd9d9e0407ae7df3807867e1d0181a22098bc1c087743dd496e425a8da99dc5",
+    "configSource": {
+      "uri": "https://github.com/ByKitsune/kitsune-router.git#b7f77d0796af2afab1d849828732159ab7cbe897",
+      "digest": {
+        "sha1": "b7f77d0796af2afab1d849828732159ab7cbe897"
+      },
+      "path": "Dockerfile"
+    },
+    "resolvedSourceMaterialVerified": true,
+    "versionAndRevisionLabelsVerified": true,
+    "dockerfileBytesEqualImmutableSource": true,
+    "dockerfileSha256": "2f76873b3b62734f58eb85735fe979f03b0da7e3cdb3629d2b70cee4b42afcf6",
+    "builder": {
+      "id": "https://github.com/ByKitsune/kitsune-router/actions/runs/42076884964/attempts/1"
+    },
+    "buildRecordSlsaPredicateType": "https://slsa.dev/provenance/v1"
+  },
+  "authenticatedWorkflow": {
+    "immutableLabelsAndNonemptyAttachedSlsaSpdxGate": "passed",
+    "runtimeBeforeLatestPromotion": true,
+    "latestPromotionAndReadback": "passed by immutable-source helper"
+  },
+  "anonymousAccess": {
+    "observedAtUtc": "2026-11-05T18:02:54.996709+00:00",
+    "publicPullGrantStatus": 401,
+    "proofPath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/docker/107/anonymous-readback.json",
+    "inference": "Anonymous public pull grant was not accepted; no visibility-setting or configured-credential conclusion."
+  },
+  "hashes": {
+    "artifacts-final.json": "2541d89772488d98026a65120f063bbf10728eb41b375eeea8c5ba917d0a1e17",
+    "verification-artifact.zip": "c5b6d65440d0ca4e1978f573425e177af623171df07e0262051703c5698b1084",
+    "job.log": "70ee2e6320b044259d48785c11a7a3908f9b5d0b38801f4364374cc759be6e40",
+    "verification/source.json": "0dff35619c44a9445f79859056dad5c10037687600e8f7c39b691e6255cddb26",
+    "verification/container-runtime/proof.json": "33e4b8579e92de7963cbd4b994a769e24ca39d57f05b238e71f87ba7e70e954d",
+    "verification/container-runtime/default-data.log": "88ffd77f1750161601c0ad6791e85e6a7569f69dbb7f152d2f6f6dd2d3119b13",
+    "verification/container-runtime/custom-data.log": "1bcb57496f858a30f7f196d98b234fa2cc2ea1d6ed4d28c87f5e8881dfe42ed0"
+  },
+  "limits": [
+    "Actual runtime and attached SLSA/SPDX validation used authenticated GitHub Actions, not a successful local anonymous pull.",
+    "Raw attached registry SLSA/SPDX predicates were not independently available; source build-record SLSAv1 and OCI digest linkage were independently parsed from verified workflow artifact.",
+    "No provider calls or publication writes by this reviewer."
+  ]
+}

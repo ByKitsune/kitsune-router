@@ -1,12 +1,16 @@
 # Khắc phục sự cố
 
+**1.0.8 đang được chuẩn bị, chưa xuất bản.** Cần hoàn tất CI cho SHA chính xác và phép thử cài đặt bình thường của bản ứng viên trước khi tạo tag hoặc xuất bản.
+
+**Lưu ý về 1.0.7:** GitHub Release, npm và Docker đã được xuất bản từ `b7f77d07`, nhưng các lần cài SQLite và khay hệ thống tuần tự bằng `--no-save` có thể xóa phụ thuộc của nhau. Xem kết quả và giới hạn quan sát trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
+
 Thu thập version/SHA hiện tại, `DATA_DIR` tuyệt đối, route và lỗi đã xóa secret. Không xóa trạng thái, thay toàn config hay lộ key vì đổi tên.
 
 ## Startup và di chuyển
 
-- Không có gói 1.0.7: kiểm tra phiên bản chính xác và kết quả npm trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Khi chưa xác nhận xuất bản/đọc lại, dùng [mã nguồn](/vi/getting-started/installation/). Không gán lỗi E403 cũ của 1.0.2 cho 1.0.7 và không chia sẻ token.
+- Không có gói 1.0.8: kiểm tra phiên bản chính xác và kết quả npm trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Khi chưa xác nhận xuất bản/đọc lại, dùng [mã nguồn](/vi/getting-started/installation/). Không gán lỗi E403 cũ của 1.0.2 cho 1.0.8 và không chia sẻ token.
 - Ghi chép lịch sử của 1.0.2 — không có gói: nguồn 1.0.2 đã xác minh nhưng npm publish bị E403 (2FA hoặc granular token bật bypass 2fa), readback HTTP 404. Người dùng sẽ thay secret qua GitHub UI, chưa xác nhận; không chia sẻ token. Dùng [nguồn](/vi/getting-started/installation/) đến khi xác minh xuất bản/readback. Nguyên nhân npm 1.0.1 vẫn chưa rõ.
-- GHCR pull 1.0.7 bị từ chối/không thấy: kiểm tra tag, digest, nền tảng và quyền truy cập trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Bị từ chối không chứng minh image chưa tồn tại; đã xuất bản cũng không có nghĩa là có thể pull ẩn danh. Chỉ dùng quyền truy cập được phép và không chia sẻ token.
+- GHCR pull 1.0.8 bị từ chối/không thấy: kiểm tra tag, digest, nền tảng và quyền truy cập trong [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md). Bị từ chối không chứng minh image chưa tồn tại; đã xuất bản cũng không có nghĩa là có thể pull ẩn danh. Chỉ dùng quyền truy cập được phép và không chia sẻ token.
 - Ghi chép lịch sử của 1.0.2 — GHCR pull bị từ chối/không thấy: 1.0.2 đã xuất bản và readback xác thực/smoke qua, nhưng gói vẫn **private** ở lần đọc cuối; grant ẩn danh HTTP 401. Chủ chọn Public chưa xác nhận hoàn tất. Dùng quyền đọc private hoặc đợi Public/readback ẩn danh; không hiểu nhầm từ chối quyền bị che thành chưa xuất bản. Lỗi preflight/context cũ giữ trong [vận hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/OPERATIONS.md#publication-recovery-without-moving-the-tag). Không chia sẻ token.
 - Node cũ: >=22.19.0; migration cần snapshot SQLite native Node/Bun hỗ trợ, không raw-copy không an toàn.
 - Cổng bận: API/dashboard cùng 20128. Xác định chủ và dừng nhẹ nhàng, không `pkill`/`kill -9` diện rộng.

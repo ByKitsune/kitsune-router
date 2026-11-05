@@ -1,0 +1,110 @@
+{
+  "capturedAtUtc": "2026-11-05T17:59:22.454514+00:00",
+  "runId": 42076884964,
+  "sourceSha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "tag": "v1.0.7",
+  "conclusion": "success",
+  "reference": "ghcr.io/bykitsune/kitsune-router@sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+  "digest": "sha256:f355a82c6a4978f78df82e981af7a511b5bfe4ad01d9314e86172b8c589d450d",
+  "imageId": "sha256:8d075cb27a2cd97b9d81febe380f241ddfe6a9a6b6f27d24054455fb76f04467",
+  "latestPromotion": {
+    "promote": true
+  },
+  "sourceVerification": {
+    "sha": "b7f77d0796af2afab1d849828732159ab7cbe897",
+    "ref": "refs/tags/v1.0.7",
+    "reportSha256": "bf0e680912458b902f12c4645d9b75441d70234de0082c49729d60802e55c48b"
+  },
+  "vitest": {
+    "success": true,
+    "numPassedTests": 11013,
+    "numPendingTests": 99,
+    "numFailedTests": 0,
+    "numFailedTestSuites": 0,
+    "files": 865
+  },
+  "attachedEvidence": "The exact-source authenticated helper successfully checked immutable version/config/source labels and nonempty SLSA/SPDX; raw predicates were not separately printed by that helper. Opaque build record retained for independent source-material parsing.",
+  "runtime": {
+    "status": "passed",
+    "containerNetwork": "none",
+    "providerCalls": false,
+    "cases": [
+      {
+        "label": "default-data",
+        "version": "1.0.7",
+        "node": "v22.23.4",
+        "models": 1082,
+        "appUid": 1000,
+        "databaseMode": "0600",
+        "secretMode": "0600",
+        "restart": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "originalKeyBytes": "unchanged and active",
+          "secretBytes": "unchanged",
+          "keyCleanup": "passed"
+        },
+        "warnings": 0,
+        "errors": 0,
+        "stderrLines": 0,
+        "exitCode": 0,
+        "containerRemoved": true,
+        "volumeRemoved": true
+      },
+      {
+        "label": "custom-data",
+        "version": "1.0.7",
+        "node": "v22.23.4",
+        "models": 1082,
+        "appUid": 1000,
+        "databaseMode": "0600",
+        "secretMode": "0600",
+        "restart": {
+          "version": "1.0.7",
+          "node": "v22.23.4",
+          "database": "ready",
+          "providerAccounts": 0,
+          "existingSession": "passed",
+          "originalKeyBytes": "unchanged and active",
+          "secretBytes": "unchanged",
+          "keyCleanup": "passed"
+        },
+        "warnings": 0,
+        "errors": 0,
+        "stderrLines": 0,
+        "exitCode": 0,
+        "containerRemoved": true,
+        "volumeRemoved": true
+      }
+    ]
+  },
+  "diagnostics": {
+    "checkAnnotations": 0,
+    "vitestStderrSections": 0,
+    "nextFreshCacheAdvisories": 1,
+    "gitDefaultBranchHint": true,
+    "quotedDiagnosticTestTitles": 1,
+    "literalZeroWarningOutputClaimed": false
+  },
+  "buildRecord": {
+    "path": "/workspace/.cloud-setup/kitsune-router/publication-106-20261105/release107-actions/docker/build-record.dockerbuild",
+    "sha256": "c256c28260db68d2821fce362368474c6ec8e63b118b18863c1c4fb3dcd97810",
+    "downloadFormat": "Raw .dockerbuild payload, not a ZIP wrapper; retained opaque without execution."
+  },
+  "evidenceSha256": {
+    "job.log": "70ee2e6320b044259d48785c11a7a3908f9b5d0b38801f4364374cc759be6e40",
+    "annotations.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "artifacts-final.json": "2541d89772488d98026a65120f063bbf10728eb41b375eeea8c5ba917d0a1e17",
+    "verification-artifact.zip": "c5b6d65440d0ca4e1978f573425e177af623171df07e0262051703c5698b1084",
+    "verification/source.json": "0dff35619c44a9445f79859056dad5c10037687600e8f7c39b691e6255cddb26",
+    "verification/vitest.json": "bf0e680912458b902f12c4645d9b75441d70234de0082c49729d60802e55c48b",
+    "verification/container-runtime/proof.json": "33e4b8579e92de7963cbd4b994a769e24ca39d57f05b238e71f87ba7e70e954d",
+    "verification/container-runtime/default-data.log": "88ffd77f1750161601c0ad6791e85e6a7569f69dbb7f152d2f6f6dd2d3119b13",
+    "verification/container-runtime/custom-data.log": "1bcb57496f858a30f7f196d98b234fa2cc2ea1d6ed4d28c87f5e8881dfe42ed0",
+    "build-record.dockerbuild": "c256c28260db68d2821fce362368474c6ec8e63b118b18863c1c4fb3dcd97810"
+  },
+  "limits": "Authenticated Actions evidence for the published digest; anonymous registry accessibility and independent raw attestation verification have separate receipts. No registry write or workflow rerun by this watcher."
+}

@@ -1,0 +1,102 @@
+{
+  "recordedAt": "2026-11-05T18:11:28.750138+00:00",
+  "package": "@bykitsune/router",
+  "version": "1.0.7",
+  "source": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "releaseRunId": 42076877793,
+  "originalArtifactId": 13438099521,
+  "npmPublished": true,
+  "githubReleasePublished": true,
+  "githubReleaseId": 435549387,
+  "githubReleasePublishedAt": "2026-11-05T18:08:21Z",
+  "originalAndPublicTarballSha256": "b5ae6a345f60012f878885923912c16ea532ea4b0b2e6fe1ed3d7e10614d8cc5",
+  "originalAndPublicIntegrity": "sha512-blB96nceob/moFUY+16GehMPKG5uZ9btvgP69QQMO1WkXeqs56x3OabXu1IUwsje7I52gtH48Cl2Nj8m66y7bw==",
+  "registryGitHead": null,
+  "sourceBinding": "Cryptographically verified SLSA provenance binds original tarball SHA512, exact source b7, release.yml tagv1.0.7 and original run42076877793; registry gitHead absent.",
+  "canonicalNpmAuditSignatures": {
+    "exitCode": 0,
+    "verifiedRegistrySignatures": 9,
+    "verifiedAttestations": 4,
+    "stderrBytes": 0
+  },
+  "globalInstall": {
+    "exitCode": 0,
+    "version": "1.0.7",
+    "lifecycleScriptsEnabled": true,
+    "realProviderStateUsed": false
+  },
+  "runtimeDefect": {
+    "confirmed": true,
+    "kind": "Managed no-save SQLite and tray installs mutually prune each other",
+    "sqliteThenTray": {
+      "initial": {
+        "better-sqlite3": false,
+        "systray2": true
+      },
+      "sqlite": {
+        "betterSqlite": true,
+        "sqlJs": true
+      },
+      "afterSqlite": {
+        "better-sqlite3": true,
+        "systray2": false
+      },
+      "tray": {
+        "systray": true
+      },
+      "afterTray": {
+        "better-sqlite3": false,
+        "systray2": true
+      }
+    },
+    "actualOrdinaryLauncher": {
+      "version": "1.0.7",
+      "source": "b7f77d0796af2afab1d849828732159ab7cbe897",
+      "launcher": "actual published installed cli.js",
+      "carrier": "sha256:060d5c170a2a9af6dbdd4c3162c7ad2ebd6ea354fe2c4532111c142c887a4894",
+      "network": "none",
+      "providerCalls": false,
+      "installedNativeInitiallyPresent": false,
+      "runs": [],
+      "pidNamespace": "private",
+      "networkInspected": "none",
+      "initialProbeExitCode": 1,
+      "status": "failed",
+      "error": "Initial runtime probe failed; inspect redacted runtime logs",
+      "redactedLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnosticLines": [],
+      "ownContainerRemoved": true,
+      "installedNativeFinallyPresent": false,
+      "healthProbeTimeoutSeconds": 30,
+      "launcherTerminalOutcome": "not observed",
+      "defaultDatabaseDriver": "not observed",
+      "sqlJsOptIn": false,
+      "staticPreServerSelfHealTimeoutMs": 180000,
+      "probeFailureMeaning": "Health did not become ready within bounded probe; launcher terminal startup failure was not observed.",
+      "observedSelfHealNetworkFailures": [
+        "12 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with ENETUNREACH",
+        "17 http fetch GET https://registry.npmjs.org/better-sqlite3 attempt 1 failed with ENETUNREACH",
+        "18 http fetch GET https://registry.npmjs.org/npm attempt 2 failed with ENETUNREACH",
+        "19 http fetch GET https://registry.npmjs.org/better-sqlite3 attempt 2 failed with ENETUNREACH"
+      ]
+    }
+  },
+  "laterChecksStopped": true,
+  "helpVersionAndUpgradeVerification": "Not run after runtime defect led root to stop further 1.0.7 checks; no claim of published-version upgrade success.",
+  "registryWritesByThisAgent": 0,
+  "publicationRetriesByThisAgent": 0,
+  "sourceWritesByThisAgent": 0,
+  "evidence": {
+    "original-integrity.json": "bb1172f2bd39a4490e7dcf9f69e9801d8de6adecd484864f041533abcc316d99",
+    "registry-download-receipt.json": "7ba905252991ebf17edd89f0b165bd29dadc9bbe1fbe571645358561d6eee54e",
+    "registry-metadata.json": "3e449d9ae540dfd56faf684032b15e33e764f1940cb8ea12065e19c4a790e4c1",
+    "registry-attestations.json": "9455fb139065c4fd02f4b5623babfc861801c44027fd73b426c781e84a9a8381",
+    "audit-signatures-receipt.json": "dbe42a80950cea10774177c6c1a8abfd8fd519efa740026cd53162466b6e992a",
+    "provenance-verification.json": "995a9dfad68bbd47c6d73d228f9bc9d39b600c152ba4b58dec67e3ba47f582f3",
+    "signature-install-receipt.json": "da17eae937967f36481478ec6fc2f1f7dc0453ee7a10c6fdb89024b2ae89c234",
+    "global-install-receipt.json": "1e79c7af428898f1730cfdcb28ce237ef3ace924cdf0ac60296a4bcd18036558",
+    "managed-runtime-hook-observation.json": "f5faf739aa1143eedf58a2336d6d69df05c4c45d5856675cbf2b0b2c7a5ca4f4",
+    "published-runtime-proof.json": "f6ba9b6a8e09c25a30b3dbea92d65fceeb47a23ef3de02eef5f81ee22ba9ac11",
+    "github-release-final-comparison.json": "b2f5bf131e2700ced7cbf271036ec45598ece08548abe447528a380fd6d9332c"
+  }
+}

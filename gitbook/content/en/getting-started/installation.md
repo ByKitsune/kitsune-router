@@ -1,6 +1,14 @@
 # Installation
 
-**Current source version and stable target: 1.0.7.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability. The launcher requires **Node.js >=22.19.0**.
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
+**Current source version and stable target: 1.0.8.** Check the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for the actual GitHub Release, npm and GHCR results separately. Use each artifact only after its publication and registry readback are confirmed; a source tag or successful CI alone does not establish availability. The launcher requires **Node.js >=22.19.0**.
 
 **Historical 1.0.2 distribution readback:**
 
@@ -8,12 +16,12 @@
 
 Both old tags remain immutable. v1.0.1 at `74583402` passed SSH/CI, but its GHCR gate failed before login/push and npm publish failed (cause not yet known; public readback HTTP 404 on 2026-10-27). No canonical GHCR 1.0.1 image was published and no GitHub Release was created. v1.0.0 at `390a6567` did not publish npm/GHCR after its migration-test failure. See [release history](/en/changelog/); source tags are not registry artifacts.
 
-## Launcher 1.0.7 — after publication and readback
+## Launcher 1.0.8 — after publication and readback
 
 ```bash
-npx @bykitsune/router@1.0.7
+npx @bykitsune/router@1.0.8
 # Or:
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 

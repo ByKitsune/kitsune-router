@@ -1,5 +1,25 @@
 # Nhật ký thay đổi
 
+## Kitsune Router 1.0.8 — chuẩn bị sửa trình cài đặt
+
+Trình cài đặt lưu đồng thời các pin phiên bản chính xác của SQLite và khay hệ
+thống dưới dạng phụ thuộc tùy chọn bằng một lần ghi nguyên tử, trước các nhánh
+xử lý nhanh. Nó kiểm tra phiên bản đã cài và tìm đường dẫn N-API mà không yêu cầu
+công cụ biên dịch.
+Kiểm tra tập trung gồm 23 trường hợp, trong đó có 12 hồi quy mới bao phủ việc
+giữ và nâng cấp phụ thuộc bằng npm thật cùng việc bảo toàn manifest không hợp lệ.
+Các trường hợp dùng npm sử dụng registry HTTP cục bộ và tarball thử nghiệm nhỏ;
+các trường hợp manifest không hợp lệ không chạy npm. Binary native giả chỉ được
+kiểm tra byte nhận dạng, không được nạp. Đây không phải kiểm tra runtime đã xuất bản.
+
+Đọc lại kết quả xuất bản có 24 lần thử với ngân sách 571 giây cho các lần thử
+lại chỉ đọc, không lặp thao tác ghi xuất bản; kiểm tra tập trung gồm 54 trường
+hợp. Đồ thị phụ thuộc giữ nguyên, bao gồm Undici 8.12.4.
+
+**1.0.8 chưa xuất bản.** CI cho SHA chính xác và phép thử cài đặt bình thường của
+bản ứng viên còn chờ; chưa kiểm tra CLI 1.0.8 đã xuất bản hay provider thật.
+[Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu kết quả thực tế của từng kênh.
+
 ## Kitsune Router 1.0.7 — chuẩn bị phát hành ngày 2026-11-05
 
 Các quy trình phát hành cài Chromium khớp với Playwright đã khóa và yêu cầu
@@ -8,6 +28,8 @@ native chỉ áp dụng trong bộ kiểm thử; di chuyển dữ liệu product
 Đồ thị phụ thuộc giữ nguyên, bao gồm Undici 8.12.4.
 
 Xem [bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) để biết kết quả thực tế của từng kênh. Bước chuẩn bị này không xác nhận đã xuất bản trên GitHub Release, npm hay GHCR.
+
+**Kết quả bổ sung của 1.0.7:** GitHub Release, npm và Docker đã được xuất bản từ mã nguồn bất biến `b7f77d07`. Trình cài đặt có lỗi các lần cài SQLite và khay hệ thống tuần tự bằng `--no-save` xóa phụ thuộc của nhau. Phép thử CLI cô lập, không dùng mạng ngoài, ghi nhận bốn lần thử lại npm `ENETUNREACH` và chưa đạt health trong 30 giây khi tự sửa chữa đồng bộ không in thông báo. Chưa quan sát kết quả cuối hay driver mặc định, và không bật SQL.js. Kết quả này không chứng minh cơ sở dữ liệu hoàn toàn không hoạt động. [Bản ghi phát hành](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) lưu bằng chứng của từng kênh và lỗi đã biết.
 
 ## Kitsune Router 1.0.6 — cập nhật mã nguồn ngày 2026-11-05
 

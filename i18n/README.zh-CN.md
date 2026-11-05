@@ -14,7 +14,11 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 发布与安装
 
-**当前源码版本与稳定版目标为 1.0.7。** 请分别在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中确认 GitHub Release、npm 与 GHCR 的实际结果。下方命令仅适用于 npm 1.0.7 发布并读回验证成功之后；容器可用性需单独确认相应渠道的结果。
+**当前源码版本与稳定版目标为 1.0.8。** 请分别在[发布记录](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)中确认 GitHub Release、npm 与 GHCR 的实际结果。下方命令仅适用于 npm 1.0.8 发布并读回验证成功之后；容器可用性需单独确认相应渠道的结果。
+
+**1.0.8 尚未发布。** 创建标签或发布前，必须通过精确源码的 CI 和采用正常安装方式的候选版本 smoke 验证。
+
+**1.0.7 历史：** npm、GHCR 和 GitHub Release 已从 `b7f77d07` 发布，但 SQLite/tray 连续使用 `--no-save` 安装会互相移除依赖。观测的离线启动在 runtime 修复期间未能于 30 秒内到达 health；这不证明数据库已发生确定性故障。标签和已发布产物保持不变，详情见上方记录。
 
 **1.0.2 分发历史（当时的读回结果）：**
 
@@ -25,9 +29,9 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 要求 **Node.js >=22.19.0**。以下仅在发布后使用：
 
 ```bash
-npm install -g @bykitsune/router@1.0.7
+npm install -g @bykitsune/router@1.0.8
 kitsune-router
-# 或：npx @bykitsune/router@1.0.7
+# 或：npx @bykitsune/router@1.0.8
 ```
 
 源码运行（使用已确认的规范仓库或现有工作副本，在根目录操作）：

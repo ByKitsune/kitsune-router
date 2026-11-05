@@ -1,12 +1,20 @@
 # CLAUDE.md
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
 Kitsune Router (`kitsune-router-app`) — a local AI routing gateway + Next.js dashboard. It exposes compatible endpoints under `/v1/*` and routes traffic across upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh and quota/usage tracking. Legacy cloud-sync fields remain, but the sync implementation was removed.
 
-Two artifact types live in this repository. Current 1.0.7 availability for GitHub Release, npm and GHCR is recorded separately in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md); source versions and tags alone do not establish publication:
+Two artifact types live in this repository. Current 1.0.8 availability for GitHub Release, npm and GHCR is recorded separately in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md); source versions and tags alone do not establish publication:
 - The **dashboard + gateway** (root `package.json`, `kitsune-router-app`) — the Next.js server that does the actual routing.
 - The **CLI launcher** (`cli/`, intended npm package `@bykitsune/router`, binary `kitsune-router`) — a separate package that installs/starts the server and manages the tray. It has its own manifest and build; the release guard requires all four package versions and lockfiles to match the release tag.
 
@@ -14,13 +22,13 @@ The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the
 
 ### Identity and migration contract
 
-- **Current source version: 1.0.7 (2026-11-05).** All four package/lock pairs are synchronized. See `docs/CHANGELOG_v1.0.7.md`, `releases/RELEASE_NOTES_v1.0.7.md` and `docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md` for source scope and publication gates. Source verification is separate from npm/GHCR publication and production deployment; the immutable 1.0.2 artifact history below remains historical.
+- **Current source version: 1.0.8 (2026-11-05).** All four package/lock pairs are synchronized. See `docs/CHANGELOG_v1.0.8.md`, `releases/RELEASE_NOTES_v1.0.8.md` and `docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md` for source scope and publication gates. Source verification is separate from npm/GHCR publication and production deployment; the immutable 1.0.2 artifact history below remains historical.
 - **Kitsune Router — Your models. Your routes.** Maintained/sponsored by [ByKitsune](https://bykitsune.com); provider-neutral and local-first, with no mandatory ByKitsune account or preferred provider order.
 - Target repository: `https://github.com/ByKitsune/kitsune-router`; npm `@bykitsune/router`; executable `kitsune-router`; canonical image `ghcr.io/bykitsune/kitsune-router`. **Client provider keys are `kitsunerouter`**, not the hyphenated executable or a bare JavaScript identifier with a hyphen.
 
-**Historical 1.0.6 source:** Tag `v1.0.6` remains immutable at `f9d4c50c`. Its publication attempts stopped before artifact publication; preparing 1.0.7 does not change that source or establish any channel’s availability. The publication receipt above records the actual outcomes.
+**Historical 1.0.6 source:** Tag `v1.0.6` remains immutable at `f9d4c50c`. Its publication attempts stopped before artifact publication; preparing 1.0.8 does not change that source or establish any channel’s availability. The publication receipt above records the actual outcomes.
 
-**Historical distribution observations:** The 1.0.2 and older results below describe their recorded readbacks, not current credentials or 1.0.7 registry availability. Keep those tags and artifact identities unchanged.
+**Historical distribution observations:** The 1.0.2 and older results below describe their recorded readbacks, not current credentials or 1.0.8 registry availability. Keep those tags and artifact identities unchanged.
 
 - **1.0.2 source verified; GHCR container published privately; npm blocked.** Tag `v1.0.2` stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b`; PR #2 merged at `23375bf121e926f2d2b1330d3c2b8c124a639b40`. Exact runtime: 9,041 passed, 100 skipped, zero failures; strict lint, 18 docs tests/static export, app build and pack passed. Local tarball and original CI artifact `12718343077` are distinct bytes and independently passed install/help/version/runtime/upgrade smoke, original state/keys retained, secrets 0600 and graceful exit 0. See `docs/CHANGELOG_v1.0.2.md` for full identities/evidence.
 - npm `40469972263` remains **E403**-denied (2FA or granular token with bypass 2fa required), public readback HTTP 404. The user will replace `NPM_TOKEN` directly in GitHub's UI but has not confirmed completion; never request/echo credentials, collect OTPs or change 2FA policy. Recovery `40485038668` used tooling `802c61bf` against runtime `65c8b97d`, passed exact runtime gates (9,041/100 skip/zero fail), published GHCR and verified labels/SLSA v1/SPDX/`latest`. Authenticated index digest is `sha256:7abd76eee998d516020cbe015e6989394085dbfc7c330559e945a2c21494d45b`; published image `af6416b6` independently passed layer/rootfs verification and six real SSH start/restart scenarios, version 1.0.2 and stable mode-0600 keys. This is not local image `92aeda74` or a tooling-suite count. Package `16308407` is **private** at last read; owner selected Public but completion is unconfirmed, anonymous grants HTTP 401. Visibility requires GitHub's UI (no supported REST write). Earlier failures remain historical. No GitHub Release 1.0.2 (existing Create step not reached), refreshed docs preview or production deployment occurred.

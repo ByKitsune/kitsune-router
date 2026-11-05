@@ -1,0 +1,136 @@
+{
+  "mode": "execute",
+  "archive": "/workspace/.cloud-setup/kitsune-router/publication-106-20261105/patch108-localpack/bykitsune-router-1.0.8.tgz",
+  "sha256": "071822caf41b21a62b2a22af6b503f7bb35a409b0de8daf2d0a96642f5671da0",
+  "source": "b7f77d0796af2afab1d849828732159ab7cbe897",
+  "sourceMeaning": "base commit only; working tree is uncommitted",
+  "artifactBoundary": "working-tree-local-precheck",
+  "version": "1.0.8",
+  "image": "sha256:70e3575514953b11adf257269030673dcb065f31ea11d9d86eb5c65b5a3c475f",
+  "node": "v22.19.0",
+  "workDir": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/local-precheck-floor22.19.0-attempt2",
+  "installNetwork": "default bridge",
+  "runtimeNetwork": "none",
+  "privatePidNamespace": true,
+  "nonrootUid": 1000,
+  "boundary": "Exact supplied packed artifact; never substitutes for a different original publication artifact",
+  "status": "passed",
+  "containers": [
+    {
+      "name": "kitsune-108-install-e171d980b8",
+      "runningBeforeCleanup": false,
+      "exitCodeBeforeCleanup": 0,
+      "network": "bridge",
+      "privatePidNamespace": true
+    },
+    {
+      "name": "kitsune-108-runtime-a39ebf7d63",
+      "runningBeforeCleanup": false,
+      "exitCodeBeforeCleanup": 0,
+      "network": "none",
+      "privatePidNamespace": true
+    }
+  ],
+  "stages": [
+    {
+      "phase": "normal-install",
+      "exitCode": 0
+    },
+    {
+      "phase": "initial",
+      "probeExitCode": 0,
+      "processObservation": {
+        "samples": 87,
+        "npmPids": [],
+        "appUids": [
+          1000
+        ]
+      },
+      "probe": {
+        "phase": "initial",
+        "version": "1.0.8",
+        "node": "v22.19.0",
+        "database": "ready",
+        "providerAccounts": 0,
+        "unauthenticatedSettings": "rejected",
+        "invalidPassword": "rejected",
+        "login": "passed",
+        "dashboard": "passed",
+        "modelCount": 1082,
+        "secretsMode": "0600",
+        "databaseMode": "0600",
+        "actualInstalledNative": "passed"
+      },
+      "dependencyAndNpmCacheSnapshotUnchanged": true,
+      "stopExitCode": 0
+    },
+    {
+      "phase": "restart",
+      "probeExitCode": 0,
+      "processObservation": {
+        "samples": 88,
+        "npmPids": [],
+        "appUids": [
+          1000
+        ]
+      },
+      "probe": {
+        "phase": "restart",
+        "version": "1.0.8",
+        "node": "v22.19.0",
+        "database": "ready",
+        "providerAccounts": 0,
+        "existingSession": "passed",
+        "originalApiKeyBytesAccepted": "passed",
+        "secretsUnchanged": "passed",
+        "modelCount": 1082,
+        "temporaryKeyCleanup": "passed",
+        "actualInstalledNative": "passed"
+      },
+      "dependencyAndNpmCacheSnapshotUnchanged": true,
+      "stopExitCode": 0
+    }
+  ],
+  "providerCalls": false,
+  "sqlJsOptIn": false,
+  "injectedRuntimeModules": false,
+  "healthProbeTimeoutSeconds": 30,
+  "defaultDatabaseDriver": "better-sqlite3",
+  "launcherTerminalOutcome": "two clean stops with exit code 0",
+  "postInstallSnapshot": {
+    "runtimeManifest": "7ce8867ff102100e99c4cadc1f26eeb6d31c6a7129125769f3f5b9033f749735",
+    "runtimeLock": "674049c8be22e870cc64a544ce18eda3127a13a7bccf0ac6c078d78b4a342bca",
+    "packages": {
+      "better-sqlite3": {
+        "version": "13.0.3",
+        "sha256": "286594b744709c1601709e77e4b36ce72543f8d2feaac6349a8d9b1303d8dda9",
+        "files": 68
+      },
+      "systray2": {
+        "version": "2.1.4",
+        "sha256": "3cab1e2d2c0aca5c6c1f4857abc03d06c841f3e7f10d20396305050a8107c02d",
+        "files": 9
+      }
+    },
+    "npmCache": {
+      "sha256": "c1b6c8e006be5d88f47c25f23b8af14430b501e99c51bb3c0ed5bee58eeb114f",
+      "files": 75
+    },
+    "nativeBinarySha256": "d661495d2dd4a026ccda893dd8ea1e2c245c3a681bd28224064953c8a9cc0a72"
+  },
+  "runtimeWarnings": 0,
+  "runtimeErrors": 0,
+  "startupNpmObservedCalls": 0,
+  "observationBoundary": "25ms process sampling plus unchanged managed dependency and complete npm cache content snapshots; no npm shim or child-process interception",
+  "cleanup": [
+    {
+      "name": "kitsune-108-install-e171d980b8",
+      "removed": true
+    },
+    {
+      "name": "kitsune-108-runtime-a39ebf7d63",
+      "removed": true
+    }
+  ],
+  "ownContainersRemoved": true
+}

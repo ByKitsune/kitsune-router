@@ -4,8 +4,10 @@
 
 ## 起動と移行
 
-- パッケージが見つからない：対象は `@bykitsune/router@1.0.7` です。[公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で npm の公開と読戻しを確認し、未確認なら [ソース手順](/ja/getting-started/installation/)を使ってください。古い版の E403 を現在の原因と決めつけず、実際のレジストリー結果で判断します。token をチャットやログに共有しないでください。
-- GHCR pull 拒否/見つからない：対象の `1.0.7` タグ、ダイジェスト、公開・読戻し結果、必要な権限を [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)と [Docker ガイド](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)で確認してください。認証付き取得と匿名取得は別であり、権限による応答を未配布と決めつけないでください。
+**配布履歴と修正準備:** 1.0.7 は不変ソース `b7f77d07` から npm・GHCR・GitHub Release に配布済みですが、逐次 `--no-save` インストールで SQLite/tray が互いに削除される既知の問題があります。1.0.8 は未公開で、正確なソース CI と通常インストール候補の検証待ちです。各チャネルの実結果と既知の問題は [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)を参照してください。
+
+- パッケージが見つからない：対象は `@bykitsune/router@1.0.8` です。[公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)で npm の公開と読戻しを確認し、未確認なら [ソース手順](/ja/getting-started/installation/)を使ってください。古い版の E403 を現在の原因と決めつけず、実際のレジストリー結果で判断します。token をチャットやログに共有しないでください。
+- GHCR pull 拒否/見つからない：対象の `1.0.8` タグ、ダイジェスト、公開・読戻し結果、必要な権限を [公開確認記録](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)と [Docker ガイド](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md)で確認してください。認証付き取得と匿名取得は別であり、権限による応答を未配布と決めつけないでください。
 - 古い Node：>=22.19.0。移行は対応 Node/Bun の native SQLite snapshot が必要で、安全でない raw copy はしません。
 - 使用中ポート：API/画面は 20128。所有者を調べ正常停止し、広範な `pkill`/`kill -9` を避けます。
 - 空の状態：絶対パスと `/app/data` mount を先に確認。明示 `DATA_DIR` は自動移動しません。

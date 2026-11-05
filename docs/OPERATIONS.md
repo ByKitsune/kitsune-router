@@ -1,5 +1,13 @@
 # Operate Kitsune Router
 
+**1.0.8 is an unpublished source target.** Exact-source CI and the normally
+installed candidate smoke must pass before a new tag or publication. **Published
+1.0.7 history:** npm, GHCR and GitHub Release published source `b7f77d07`, but
+sequential SQLite/tray `--no-save` installs prune siblings. Its observed offline
+CLI launch did not reach health in 30 seconds while synchronous self-healing
+retried npm; this is not a proven hard database failure. The [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md)
+keeps actual outcomes and the separate 1.0.8 preparation evidence.
+
 Kitsune Router is a provider-neutral, local-first gateway maintained/sponsored by [ByKitsune](https://bykitsune.com), not a bundled hosted inference subscription. You control accounts, routing and exposure.
 
 ## Protect state
@@ -51,7 +59,7 @@ Request/response debug logs can contain private prompts, credentials or account 
 
 ## Upgrades and verification
 
-**Current stable target: 1.0.7.** Confirm each GitHub Release, npm and GHCR outcome in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) before using a corresponding artifact. Follow the current [installation](INSTALLATION.md) and [Docker](../DOCKER.md) guides; a successful source gate does not establish registry publication or anonymous access.
+**Current stable target: 1.0.8.** Confirm each GitHub Release, npm and GHCR outcome in the [publication receipt](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) before using a corresponding artifact. Follow the current [installation](INSTALLATION.md) and [Docker](../DOCKER.md) guides; a successful source gate does not establish registry publication or anonymous access.
 
 **Historical 1.0.2 distribution readback:**
 
