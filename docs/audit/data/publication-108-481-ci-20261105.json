@@ -1,0 +1,174 @@
+{
+  "capturedAtUtc": "2026-11-05T19:14:47.214066+00:00",
+  "repository": "ByKitsune/kitsune-router",
+  "sourceSha": "481bfafc5bc7235ca58e2dbc0c76f6bcc0da05ae",
+  "version": "1.0.8",
+  "disposition": "source-ci-green-release-blocked-by-actual-scoped-global-install",
+  "runs": [
+    {
+      "id": 42088988137,
+      "event": "workflow_dispatch",
+      "conclusion": "success",
+      "counts": {
+        "numTotalTests": 11137,
+        "numPassedTests": 11038,
+        "numPendingTests": 99,
+        "numFailedTests": 0,
+        "numPassedTestSuites": 2426,
+        "numFailedTestSuites": 0,
+        "files": 866
+      },
+      "sourceReportSha256": "d21899bce1d954ec849ca56fc84e3b7e280bae1cd0d7b72f70af1904f9fdc071",
+      "sourceArtifactZipSha256": "6b9ed0ae9f63080816b34c4c08d038ff15d2304a39d81cf4851af2869b36f153",
+      "browser": {
+        "passed": 32,
+        "retryMarkers": 0
+      },
+      "jobs": [
+        {
+          "name": "dependency-security",
+          "id": 127461706693,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "f09573454867e58dc57af1d7841bfeeb702998b2cabdbe25fafb7bd2d23292d4",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 0,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0
+        },
+        {
+          "name": "candidate-package",
+          "id": 127461706895,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "2aa72c74f1cd9759dd55646a868a34eb1bda27a063246c993b22206e1a69ddef",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 0,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1
+        },
+        {
+          "name": "docs",
+          "id": 127461706899,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "fe4e75a51238d2e0787a64fc1d72b8ffb957f170e2f070d45d658b7d07337c7a",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 0,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1
+        },
+        {
+          "name": "test",
+          "id": 127461707251,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "fd34e88e3fffa03d5ea59d7818a58c1f6ee711cf17910a1d9ae0cd10879df9ff",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 1,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1
+        }
+      ]
+    },
+    {
+      "id": 42088988751,
+      "event": "push",
+      "conclusion": "success",
+      "counts": {
+        "numTotalTests": 11137,
+        "numPassedTests": 11038,
+        "numPendingTests": 99,
+        "numFailedTests": 0,
+        "numPassedTestSuites": 2426,
+        "numFailedTestSuites": 0,
+        "files": 866
+      },
+      "sourceReportSha256": "a0c29a077c455f7d29c9edd3fcd576dc006fd93945edc2425aef8c7a71d881ff",
+      "sourceArtifactZipSha256": "5946548271fdbe943518a6a9331d3bdc271627036953b2959b810662d5d32467",
+      "browser": {
+        "passed": 32,
+        "retryMarkers": 0
+      },
+      "jobs": [
+        {
+          "name": "test",
+          "id": 127461685958,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "24bc48a257fb5f1706e81ac0a459e441f305b7271da300cf6cf26aa38ce161e4",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 1,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1
+        },
+        {
+          "name": "docs",
+          "id": 127461686176,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "28c395cef2e683584933e2c328e533d37f9d636ae8025f79b92c3c4b1158f66a",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 0,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 1
+        },
+        {
+          "name": "dependency-security",
+          "id": 127461686417,
+          "conclusion": "success",
+          "annotations": 0,
+          "logSha256": "4cd45e0f51204c0a3f4847ab2ae6cbda3a0d1d673309a9ac4a50c845044a1ecb",
+          "actualWarningErrorCandidates": 0,
+          "excludedDiagnosticTestTitles": 0,
+          "vitestStderrSections": 0,
+          "nextFreshBuildCacheAdvisories": 0
+        },
+        {
+          "name": "candidate-package",
+          "id": 127461688969,
+          "conclusion": "skipped",
+          "expected": true,
+          "annotations": 0
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "reported": 8,
+    "success": 7,
+    "expectedAutomaticCandidateSkipped": 1,
+    "sha256": "b89bcd6be06a6ef875006c13dc6905d533a656e16d854c036f22ab33e40ea88d"
+  },
+  "externalLegacyStatus": {
+    "reported": false,
+    "totalCount": 0,
+    "apiCombinedState": "pending",
+    "note": "No legacy status was reported; no GitBook success or failure is inferred.",
+    "sha256": "f0deb7790c10d7568a4f22b15dd0f98f5b4edb1160a60587eee2127e044b65df"
+  },
+  "candidate": {
+    "file": "bykitsune-router-1.0.8.tgz",
+    "sha256": "573f5dab7155af58c41731f25225607275241d8ced763c5f6b2bab2cf679652b",
+    "artifactZipSha256": "44ef85ffcf9f1dbb6dd470b4f36cc5413c28b6228a75ec8fe22de707a43c9992",
+    "sourceTree": "b95a3e98151dd6899e4f82cffbcdd9264771c5ff",
+    "runId": "42088988137",
+    "nativeHookSha256": "ef8bdd3b00a80274e64b4e2b27dc90035ad20e4249f071a7911ca2295601a679"
+  },
+  "releaseBlocker": {
+    "observation": "One-time own-CLI npm allow-scripts selector leaks to nested managed runtime installations, causing EALLOWSCRIPTS and missing native/tray. Actual package gate blocks release independently of green source CI.",
+    "independentAggregatePath": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-481bfafc-validation-aggregate.json",
+    "independentAggregateSha256": "08607d3bf1732a2a074022285502a666cb5c6f3cc8782998aae6d5cf92217a7d",
+    "watcherNoteSha256": "7294a0ac7f491a6eae8646c411e8f2436efbe59ab79c1a706233b15e88b89665"
+  },
+  "chromiumPrerequisite": {
+    "manualStartedAtUtc": "2026-11-05T18:56:24Z",
+    "manualCompletedAtUtc": "2026-11-05T19:06:19Z",
+    "durationSeconds": 595,
+    "conclusion": "success",
+    "runningLogs": "Supported job/run log APIs returned404 while running; no no-progress/hang inference was made."
+  },
+  "diagnosticLimits": "Real npm/Node/React diagnostics and Vitest stderr are zero in captured logs. Next fresh-build-cache advisories and a quoted diagnostic in a stdout test title are counted separately, not hidden. No literal zero warning-symbol claim.",
+  "verifiedSummarySha256": "a6844237081eecaeb7ee84d76687b1e0eabdfbb78353eb6805e6e59973920246",
+  "limits": "Read-only exact-source CI/candidate evidence. No tag8/publication occurred or is authorized by this proof. Historical old candidate receipts are not substituted; await fixed source and fresh actual global-install gates."
+}

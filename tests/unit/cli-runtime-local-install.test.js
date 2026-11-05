@@ -21,10 +21,16 @@ function capturedInstall(platform) {
     PATH: "synthetic-path", NPM_CONFIG_GLOBAL: "true", npm_config_global: "true",
     NPM_CONFIG_PREFIX: "synthetic-global-prefix", npm_config_prefix: "synthetic-other-prefix",
     NPM_CONFIG_LOCATION: "global", npm_config_location: "global",
+    npm_config_allow_scripts: "file:/synthetic/verified-own-cli.tgz",
+    NPM_CONFIG_ALLOW_SCRIPTS: "file:/synthetic/verified-own-cli.tgz",
+    "npm_config_allow-scripts": "file:/synthetic/verified-own-cli.tgz",
+    NpM_CoNfIg_AlLoW_sCrIpTs: "file:/synthetic/verified-own-cli.tgz",
     HTTPS_PROXY: "http://synthetic-proxy.invalid:8080", HTTP_PROXY: "http://synthetic-proxy.invalid:8080",
     NO_PROXY: "localhost", NODE_EXTRA_CA_CERTS: "synthetic-ca.pem", npm_config_cafile: "synthetic-npm-ca.pem",
     npm_config_registry: "https://synthetic-registry.invalid", npm_config_userconfig: "synthetic-auth.npmrc",
     npm_config_strict_ssl: "true", NPM_TOKEN: "synthetic-auth-token",
+    npm_config_ignore_scripts: "true", npm_config_strict_allow_scripts: "true",
+    npm_config_allow_scripts_pin: "version", npm_config_allow_scripts_pending: "false",
   });
   const before = { ...inherited };
   const fixtureModule = { exports: {} };
@@ -51,7 +57,7 @@ function capturedInstall(platform) {
 }
 
 describe("runtime npm installs stay in the private local project", () => {
-  it.each(["linux", "win32"])("isolates global lifecycle selectors and preserves transport/auth configuration on %s", platform => {
+  it.each(["linux", "win32"])("isolates global destinations/transaction approvals and preserves persistent policy/transport on %s", platform => {
     const { call, cwd, inherited, result } = capturedInstall(platform);
     expect(call.command).toBe(platform === "win32" ? "npm.cmd" : "npm");
     expect(call.options.cwd).toBe(cwd);
@@ -59,8 +65,9 @@ describe("runtime npm installs stay in the private local project", () => {
     expect(call.options.env.npm_config_global).toBe("false");
     expect(call.options.env.npm_config_prefix).toBe(cwd);
     expect(call.options.env.npm_config_location).toBe("project");
-    for (const key of ["NPM_CONFIG_GLOBAL", "NPM_CONFIG_PREFIX", "NPM_CONFIG_LOCATION"]) expect(call.options.env).not.toHaveProperty(key);
-    for (const key of Object.keys(inherited).filter(key => !/^npm_config_(global|prefix|location)$/i.test(key))) {
+    for (const key of ["NPM_CONFIG_GLOBAL", "NPM_CONFIG_PREFIX", "NPM_CONFIG_LOCATION", "npm_config_allow_scripts", "NPM_CONFIG_ALLOW_SCRIPTS",
+      "npm_config_allow-scripts", "NpM_CoNfIg_AlLoW_sCrIpTs"]) expect(call.options.env).not.toHaveProperty(key);
+    for (const key of Object.keys(inherited).filter(key => !/^npm_config_(global|prefix|location|allow[-_]scripts)$/i.test(key))) {
       expect(call.options.env[key], key).toBe(inherited[key]);
     }
     expect(call.args).toEqual(expect.arrayContaining(["sql.js@1.15.2", "--ignore-scripts", "--no-save", "--global=false", "--location=project"]));

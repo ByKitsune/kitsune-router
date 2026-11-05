@@ -18,10 +18,12 @@ and [actual publication/known-issue receipt](docs/audit/33-1.0.6-publication-and
   reviewed dependency graph, including Undici 8.12.4.
 - Deny the exact managed N-API native build lifecycle under npm 11.17, preserving
   unrelated script decisions and invalid manifest bytes without filtering warnings.
+- Keep a one-time global npm script approval within its original transaction;
+  local runtime installs retain their own policy, parent configuration and transport.
 - Extend bounded registry visibility checks to 24 reads / 571 seconds of total
   read-only backoff, with no repeated publish/tag writes. Preserve original bytes
   on exhaustion and terminal auth/network/malformed response handling.
-- Record 30 focused retention/script-policy tests under npm 11.17, including real
+- Record 34 focused retention/script-policy tests under npm 11.17, including real
   npm retention/upgrade, policy preservation and invalid-manifest checks, plus
   54 publisher tests. Invalid-manifest and policy-only cases intentionally avoid
   package installation. A normal-install/two-start working-tree local

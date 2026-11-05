@@ -10,6 +10,8 @@ for actual channel availability and final-artifact verification.
   installs preserve siblings; supported N-API paths avoid native build tools.
 - Deny only the exact managed native N-API build lifecycle under npm 11.17;
   preserve unrelated script decisions and reject malformed policy maps unchanged.
+- Isolate a one-time global script approval from nested local runtime installs,
+  preserving parent/persistent policy, strict checks, registry auth, proxy and CA.
 - Preserve unrelated/invalid runtime manifests, local-project selection and
   existing registry/proxy/authentication/CA settings; optional failures remain
   visible. The dependency graph is unchanged, including Undici **8.12.4**.
@@ -19,7 +21,7 @@ for actual channel availability and final-artifact verification.
 
 ## Recorded validation and release gates
 
-The retention/script-policy cluster passes **30 focused tests under npm 11.17**,
+The retention/script-policy cluster passes **34 focused tests under npm 11.17**,
 covering real npm retention/upgrade, policy preservation and invalid manifests.
 Policy-only and malformed-manifest cases intentionally avoid package installation;
 real npm cases use local fixture registries. Successful retained cases have zero

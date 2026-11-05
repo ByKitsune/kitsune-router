@@ -1,0 +1,40 @@
+{
+  "checkedAtUtc": "2026-11-05T19:11:22.533317+00:00",
+  "sourceSha": "481bfafc5bc7235ca58e2dbc0c76f6bcc0da05ae",
+  "runId": 42088988137,
+  "candidateSha256": "573f5dab7155af58c41731f25225607275241d8ced763c5f6b2bab2cf679652b",
+  "boundary": "unpublished exact CI candidate; historical validation, no release sign-off",
+  "releaseReadiness": "blocked by reproduced nested-install invocation selector leak",
+  "floor22.19": "normal global installation + two native offline CLI starts passed without warnings",
+  "defaultNode24Npm11.17": "normal global install exit0 and own postinstall ran; 4 expected client-policy warnings preserved; separate runtime-only two-start passed on unchanged install",
+  "reviewedOneTimeScopedNode24": "outer install0 with no allow-scripts warnings and own postinstall0, but both local managed installs failed EALLOWSCRIPTS and native/tray absent",
+  "rootCauseEvidence": "one-time outer npm_config_allow_scripts selector leaks into project-scoped child npm; actual two child npm logs reject it",
+  "proofs": {
+    "archive": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/candidate-481bfafc-integrity.json",
+      "sha256": "062dd35de5f4cf0e500ac1225868f0b2a616a2cf96f0ab1e6d4ad1009d672b6e"
+    },
+    "floor": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-481bfafc-floor22.19.0/verification.json",
+      "sha256": "ae1095899fe81e1c8d7bf67998298459b9b43d6324aa11430383eb78e0b7bfaf"
+    },
+    "default24": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-481bfafc-node24.19.0-npm11.17.0/verification.json",
+      "sha256": "1e6397d07e56bc8a07ee362a46377a55ba6152af9595491a23855d1c542ec54e"
+    },
+    "runtimeOnly24": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-481bfafc-node24.19.0-npm11.17.0/runtime-continuation/verification.json",
+      "sha256": "50f27ca16901ce00d56f38ee06a1eb5798975cc730525b3706bad47b5dfade8f"
+    },
+    "reviewedScoped24": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-481bfafc-node24-reviewed-file-selector/verification.json",
+      "sha256": "f30627daf27f4c9a715af645709b494aae672e338bcd0e75a38ce31bc673405e"
+    },
+    "actualDiagnosis": {
+      "path": "/workspace/.cloud-setup/kitsune-router/release-106-20261105/postpublication/npm/108/final-481bfafc-node24-reviewed-file-selector/actual-scoped-install-diagnosis.json",
+      "sha256": "59b750d020cd4d68ac928afd3d4676d409d1ee6496b26fe9cbeb379e13a4e872"
+    }
+  },
+  "noReviewerSourceOrPublicationWrites": true,
+  "noHarnessPolicyWorkaround": true
+}

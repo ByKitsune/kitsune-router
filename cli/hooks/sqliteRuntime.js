@@ -138,12 +138,15 @@ function runNpmInstall({ cwd, pkgs, extraArgs = [], timeout = 180000 }) {
   const installDir = path.resolve(cwd);
   const env = { ...process.env };
   // A global npm install passes its global mode/prefix to postinstall. cwd
-  // alone does not make the nested install local (#5443). Replace only these
-  // destination selectors; registry auth, proxy and TLS configuration survive.
+  // alone does not make the nested install local (#5443). Replace the child
+  // destination selectors. A one-time global transaction's allow-scripts
+  // selector also cannot authorize this different project (npm rejects it).
+  // Its persistent package/user policy, auth, proxy, TLS and ignore-scripts
+  // settings survive; the managed project's exact native denial stays active.
   // Remove case variants too: Windows env keys are case-insensitive, and Node
   // otherwise may choose the inherited uppercase spelling over our override.
   for (const key of Object.keys(env)) {
-    if (/^npm_config_(global|prefix|location)$/i.test(key)) delete env[key];
+    if (/^npm_config_(global|prefix|location|allow[-_]scripts)$/i.test(key)) delete env[key];
   }
   env.npm_config_global = "false";
   env.npm_config_prefix = installDir;

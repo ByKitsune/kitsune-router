@@ -20,7 +20,12 @@ The exact managed N-API lifecycle is explicitly denied for npm 11.17, which can
 normalize an implicit native rebuild during a later sibling install. Unrelated
 approvals/denials remain intact; invalid policy maps are preserved without writes.
 
-Focused validation passes **30 tests under npm 11.17**, covering real npm
+The child npm boundary also removes the outer transaction's one-time approval
+selector. npm 11.17 rejects that selector in a different project-scoped install.
+Parent settings, persistent policy, strict script checks, auth, proxy, CA and
+`ignore-scripts` remain intact; the managed native denial remains active.
+
+Focused validation passes **34 tests under npm 11.17**, covering real npm
 retention/upgrades, script-policy preservation and invalid manifests. Policy-only
 and malformed-manifest cases intentionally avoid package installation; real npm
 cases use local HTTP registry fixtures. Tiny tarballs and a fake native binary

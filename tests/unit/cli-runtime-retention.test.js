@@ -26,6 +26,8 @@ const vm = require('node:vm');
 const cp = require('node:child_process');
 const options = JSON.parse(process.argv[2]);
 const env = { ...process.env, DATA_DIR: options.data };
+const transactionSelectors = () => Object.fromEntries(Object.entries(env).filter(([key]) => /^npm_config_allow[-_]scripts$/i.test(key)));
+const parentSelectorsBefore = transactionSelectors();
 const calls = [];
 const warnings = [];
 function load(name, sqlite) {
@@ -76,7 +78,8 @@ try {
   const before = calls.length;
   const second = { sqlite: sqlite.ensureSqliteRuntime({ silent: false }), tray: tray.ensureTrayRuntime({ silent: false }) };
   process.stdout.write(JSON.stringify({ first, firstInstalled, second, installed: installed(),
-    secondInstallCalls: calls.length - before, calls, warnings, seed }));
+    secondInstallCalls: calls.length - before, calls, warnings, seed,
+    parentSelectorsBefore, parentSelectorsAfter: transactionSelectors() }));
 } catch (error) {
   process.stdout.write(JSON.stringify({ error: error.message, calls, warnings }));
 }
@@ -160,12 +163,12 @@ async function fixtureRegistry(area, options = {}) {
   return { packages, requests, url: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runHooks(fixture, registry, order, initial = {}) {
+async function runHooks(fixture, registry, order, initial = {}, approvalEnv = {}) {
   const env = { ...process.env, npm_config_userconfig: fixture.userconfig,
     npm_config_cache: path.join(fixture.area, "npm cache"), npm_config_update_notifier: "false",
     npm_config_registry: registry.url, npm_config_fetch_retries: "0",
     npm_config_global: "true", npm_config_prefix: path.join(fixture.area, "unused global prefix"),
-    npm_config_location: "global" };
+    npm_config_location: "global", ...approvalEnv };
   const child = await exec(process.execPath, [fixture.script, JSON.stringify({ ...fixture, root, order, initial })], { env, timeout: 60000 });
   expect(child.stderr).toBe("");
   return JSON.parse(child.stdout);
@@ -215,6 +218,34 @@ describe("managed runtime dependencies survive real npm sibling installs", () =>
     expect(fs.existsSync(path.join(fixture.area, "unused global prefix"))).toBe(false);
     expect(fs.readFileSync(fixture.userconfig, "utf8")).toBe("");
     expect(fs.readdirSync(fixture.runtime).some(name => name.endsWith(".tmp"))).toBe(false);
+  }, 90000);
+
+  it.skipIf(process.platform === "win32").each([
+    "npm_config_allow_scripts", "NPM_CONFIG_ALLOW_SCRIPTS", "npm_config_allow-scripts", "NpM_CoNfIg_AlLoW_sCrIpTs",
+  ])("isolates the inherited own-CLI transaction selector %s from both managed installs", async key => {
+    const allowScripts = { "better-sqlite3@13.0.3": false, "reviewed-addon@1.0.0": true, "blocked-addon": false };
+    const fixture = createArea({ allowScripts });
+    const registry = await fixtureRegistry(fixture.area);
+    const userconfig = "strict-ssl=true\nsave-exact=true\n";
+    fs.writeFileSync(fixture.userconfig, userconfig);
+    const approval = { [key]: `file:${path.join(fixture.area, "verified-own-cli-1.0.8.tgz")}` };
+    const result = await runHooks(fixture, registry, ["sqlite", "tray"], {}, approval);
+    expect(result.error).toBeUndefined();
+    expect(result.parentSelectorsBefore).toEqual(approval);
+    expect(result.parentSelectorsAfter).toEqual(approval);
+    expect(result.firstInstalled).toEqual({ "better-sqlite3": true, systray2: true });
+    expect(result.secondInstallCalls).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(result.calls).toHaveLength(2);
+    for (const call of result.calls) {
+      expect(call.status, call.stderr).toBe(0);
+      expect(call.stderr).toBe("");
+    }
+    expect(result.calls[0].args).toContain("--ignore-scripts");
+    const manifest = JSON.parse(fs.readFileSync(path.join(fixture.runtime, "package.json"), "utf8"));
+    expect(manifest.optionalDependencies).toEqual({ "better-sqlite3": "13.0.3", systray2: "2.1.4" });
+    expect(manifest.allowScripts).toEqual(allowScripts);
+    expect(fs.readFileSync(fixture.userconfig, "utf8")).toBe(userconfig);
   }, 90000);
 
   it.skipIf(process.platform === "win32").each([

@@ -1,0 +1,131 @@
+{
+  "capturedAtUtc": "2026-11-05T19:15:37.447827+00:00",
+  "scope": "Uncommitted child-npm transaction-selector isolation; no version/tag/publication writes",
+  "node": "v24.19.0",
+  "npm": "11.17.0",
+  "diagnosis": "npm11.17 exports a one-time outer global own-CLI allow-scripts selector into lifecycle env; passing that selector into a different project-scoped managed install throws EALLOWSCRIPTS. Independent actual global-install failure is preserved by coordinator.",
+  "changes": {
+    "removedFromChildOnly": [
+      "npm_config_allow_scripts",
+      "case variants",
+      "hyphen allow-scripts spelling recognized by npm config normalization"
+    ],
+    "otherRemovedSelectors": "Existing global/prefix/location isolation retained",
+    "preserved": [
+      "Parent env and transaction selector",
+      "Persistent userconfig path and file",
+      "Exact native13 false project policy",
+      "strict-allow-scripts",
+      "ignore-scripts",
+      "All unrelated npm config",
+      "Registry authentication",
+      "Proxy and CA/TLS configuration"
+    ],
+    "scopeBoundary": "No broad approvals, no warning filtering, no harness-side clearing; only production helper child-env copy is scoped"
+  },
+  "verification": {
+    "focusedFiles": 4,
+    "passed": 34,
+    "failed": 0,
+    "newRealNpmSelectorCases": 4,
+    "selectorVariants": [
+      "npm_config_allow_scripts",
+      "NPM_CONFIG_ALLOW_SCRIPTS",
+      "npm_config_allow-scripts",
+      "NpM_CoNfIg_AlLoW_sCrIpTs"
+    ],
+    "windowsCommandContract": "Passed argv/environment contract; no native Windows runtime claim",
+    "lintWarnings": 0,
+    "lintErrors": 0,
+    "diffCheck": "passed",
+    "actualPublicPackageHookLane": {
+      "first": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "second": {
+        "sqlite": {
+          "betterSqlite": true,
+          "sqlJs": true
+        },
+        "tray": {
+          "systray": true
+        }
+      },
+      "secondInstallCalls": 0,
+      "calls": [
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "better-sqlite3@13.0.3",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-optional",
+            "--save-exact",
+            "--ignore-scripts",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": "",
+          "childApprovalKeys": [],
+          "persistentConfigurationPreserved": true
+        },
+        {
+          "command": "npm",
+          "args": [
+            "install",
+            "systray2@2.1.4",
+            "--no-audit",
+            "--no-fund",
+            "--prefer-online",
+            "--save-optional",
+            "--save-exact",
+            "--global=false",
+            "--location=project"
+          ],
+          "status": 0,
+          "stderr": "",
+          "childApprovalKeys": [],
+          "persistentConfigurationPreserved": true
+        }
+      ],
+      "nativeQuery": 1,
+      "optionalDependencies": {
+        "better-sqlite3": "13.0.3",
+        "systray2": "2.1.4"
+      },
+      "allowScripts": {
+        "better-sqlite3@13.0.3": false
+      },
+      "parentSelectorUnchanged": true,
+      "persistentUserconfigUnchanged": true,
+      "strictAllowScripts": "true"
+    }
+  },
+  "boundaries": {
+    "hostCliStarted": false,
+    "gatewayStarted": false,
+    "providerCalls": false,
+    "globalNpmChanged": false,
+    "realSourceCopyMatches": true
+  },
+  "fileSha256": {
+    "cli/hooks/sqliteRuntime.js": "0390312baabea2eee535804b3899b9ef2387fdbecc2e81007666859dc0714424",
+    "tests/unit/cli-runtime-local-install.test.js": "69dd18b30e0f617c96edee87a47ee4d09b1561d3eaef3ce1803ba784d205e0ba",
+    "tests/unit/cli-runtime-retention.test.js": "c36befa6e754f97d990719e59e66a2461681748200f7d3aa58f93a97f40fa62c"
+  },
+  "evidenceSha256": {
+    "focused.log": "3ba60671c16b6606f58a55531f803e14792ab352e3ec7830aecdf5b9f324fc40",
+    "real-results.json": "1b8a8ce02841eec62535a5be0a60d5b1770e2cd93bb921d162d1127313e93d0e",
+    "real.stdout.log": "440a2598358a07c028db535df3410ed1979f25d03d7b3e59f2fd4179ac2a932b",
+    "real.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -39,6 +39,21 @@ npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 
+### npm 11.17 script review
+
+npm 11.17 reports when a package's lifecycle has not received an explicit review.
+The launcher's `postinstall` prepares private state and the managed SQLite/tray
+packages. After reviewing that hook, record a one-time approval for the exact
+registry release with this global installation command:
+
+```bash
+npm install -g --allow-scripts=@bykitsune/router@1.0.8 @bykitsune/router@1.0.8
+```
+
+The one-time selector belongs to the global installation transaction. The launcher
+keeps its local runtime project's script policy separate. Standard commands above
+remain available for other npm clients; this npm 11.17 option is for global installs.
+
 The launcher can bind to all interfaces by default. For local-only use, run `kitsune-router --host 127.0.0.1`, or `npx @bykitsune/router@1.0.8 --host 127.0.0.1`. Inspect supported options with `kitsune-router --help`.
 
 The package name and binary differ. Update/uninstall the **scoped package**, not a nonexistent bare `kitsune-router` npm package:

@@ -53,6 +53,19 @@ npm install -g @bykitsune/router@1.0.8
 kitsune-router
 ```
 
+With **npm 11.17**, review the package's `postinstall` hook, which prepares private
+state and managed runtime packages. To record a one-time approval for this exact
+registry release, use the global install command:
+
+```sh
+npm install -g --allow-scripts=@bykitsune/router@1.0.8 @bykitsune/router@1.0.8
+```
+
+This option is specific to npm's global installation workflow. Other npm clients
+can use the standard commands above. See the
+[installation guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/INSTALLATION.md)
+for the current client-specific guidance.
+
 Open `http://localhost:20128/dashboard`, connect the providers you choose, and
 generate a gateway key. No ByKitsune account or hosted API purchase is required.
 Provider availability, account permissions, terms, and charges still apply.
