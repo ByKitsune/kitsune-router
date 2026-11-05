@@ -2,7 +2,7 @@ import { getProviderConnections, validateApiKey, updateProviderConnection, getSe
 import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, classifyAvailabilityError, isRequestValidationError, isModelLockActive, getModelLockUntil, getModelLockIdentity, buildModelLockUpdate, needsOperatorReauth } from "open-sse/services/accountFallback.js";
-import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
+import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS, CODEX_ENTITLEMENT_DENIAL_MS, CODEX_ENTITLEMENT_DENIAL_TEXT } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { setBounded, CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
@@ -40,6 +40,37 @@ const NO_AUTH_PROXY_PREFIX = "noauth:";
 
 function noAuthProxyConnectionId(providerId, poolId) {
   return `${NO_AUTH_PROXY_PREFIX}${providerId}:${poolId}`;
+}
+
+// Codex account+model pairs that the account's ChatGPT plan rejected, keyed by
+// connection id and model lock identity, valued by the expiry (epoch ms).
+// Process-local on purpose: this is a routing hint, not account health, and it
+// is never persisted. One store per process even when the bundler duplicates
+// this module across server chunks; restarts and other processes start clean.
+const codexEntitlementDenials = globalThis[Symbol.for("kitsunerouter.codex-entitlement-denials.v1")] ??= new Map();
+
+function codexEntitlementKey(connectionId, model) {
+  return `${connectionId}\u0000${getModelLockIdentity("codex", model)}`;
+}
+
+function isCodexEntitlementDenial(provider, status, errorText) {
+  if (resolveProviderId(provider) !== "codex" || Number(status) !== 400) return false;
+  const message = typeof errorText === "object" ? errorText?.message : errorText;
+  return String(message || "").toLowerCase().includes(CODEX_ENTITLEMENT_DENIAL_TEXT);
+}
+
+function isCodexEntitlementDenied(connectionId, model, now = Date.now()) {
+  const key = codexEntitlementKey(connectionId, model);
+  const until = codexEntitlementDenials.get(key);
+  if (until === undefined) return false;
+  if (until > now) return true;
+  codexEntitlementDenials.delete(key);
+  return false;
+}
+
+/** Test seam: forget every remembered Codex entitlement denial. */
+export function clearCodexEntitlementDenials() {
+  codexEntitlementDenials.clear();
 }
 
 function getQuotaCache(ttlMs) {
@@ -208,6 +239,17 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       }
       return true;
     });
+    // Accounts whose ChatGPT plan rejected this model go last, not away: an
+    // entitled account answers first, and a pool where every account was
+    // denied still asks upstream (which reports the real 400) instead of
+    // inventing a rate-limit outcome.
+    if (providerId === "codex" && model && codexEntitlementDenials.size > 0) {
+      const entitled = availableConnections.filter(c => !isCodexEntitlementDenied(c.id, model));
+      if (entitled.length > 0 && entitled.length < availableConnections.length) {
+        log.debug("AUTH", `${provider} | ${availableConnections.length - entitled.length} account(s) skipped: plan rejected ${model}`);
+        availableConnections.splice(0, availableConnections.length, ...entitled);
+      }
+    }
 
     log.debug("AUTH", `${provider} | available: ${availableConnections.length}/${connections.length}`);
     connections.forEach(c => {
@@ -475,6 +517,9 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   } else {
     ({ shouldFallback, cooldownMs, newBackoffLevel } = checkFallbackError(status, errorText, backoffLevel));
   }
+  if (shouldFallback && model && isCodexEntitlementDenial(provider, status, errorText)) {
+    setBounded(codexEntitlementDenials, codexEntitlementKey(connectionId, model), Date.now() + CODEX_ENTITLEMENT_DENIAL_MS, CACHE_LIMITS.codexEntitlementDenials);
+  }
   if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 
   // Zero-cooldown fallback (model-scoped permanent errors, e.g. unentitled
@@ -523,6 +568,8 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
  */
 export async function clearAccountError(connectionId, currentConnection, model = null) {
   if (!connectionId || connectionId === "noauth" || connectionId.startsWith(NO_AUTH_PROXY_PREFIX)) return;
+  // A served request proves this account is entitled to the model now.
+  if (model && codexEntitlementDenials.size > 0) codexEntitlementDenials.delete(codexEntitlementKey(connectionId, model));
   const conn = currentConnection._connection || currentConnection;
   const now = Date.now();
   const allLockKeys = Object.keys(conn).filter(k => k.startsWith("modelLock_"));

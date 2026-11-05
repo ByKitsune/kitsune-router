@@ -7,6 +7,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Fixed
+
+- Codex: a ChatGPT account whose plan rejects a model ("The '<model>' model is
+  not supported when using Codex with a ChatGPT account.") is no longer asked
+  first for that model on every request. The router remembers the
+  account+model denial for 30 minutes in process memory and sends the request
+  to an entitled account directly; the denied account keeps serving its other
+  models and its health state is never written. A success on that account
+  clears the denial early, and a pool where every account was denied still
+  asks upstream and returns its real 400. Production measured 1.2–1.6 failed
+  attempts (about 0.4 s each) per successful gpt-6-astra, gpt-6.1-terra and
+  gpt-6.1-sol request before this change.
+
 ## [1.0.5] — 2026-10-31
 
 October closing source revision. This consolidates the source changes below;

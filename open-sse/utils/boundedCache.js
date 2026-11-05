@@ -58,4 +58,6 @@ export const CACHE_LIMITS = {
   oauthCooldown: 500,
   // One entry per provider id.
   providerMutexes: 200,
+  // One entry per Codex connection+model pair the ChatGPT plan rejected.
+  codexEntitlementDenials: 500,
 };
