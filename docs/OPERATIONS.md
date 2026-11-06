@@ -17,6 +17,24 @@ Kitsune Router is a provider-neutral, local-first gateway maintained/sponsored b
 - Keep operator secrets stable. `.env.example` documents current `KITSUNE_ROUTER_*` settings; unprefixed `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and `DATA_DIR` retain their meanings.
 - Migration verifies copied state and keeps the source; existing destinations are never overwritten. Read [MIGRATION.md](MIGRATION.md) before resolving an ambiguous/busy/damaged source or attempting rollback. Existing encryption derivation constants and certificate subjects are intentionally retained.
 
+## Source repository and upstream updates
+
+The primary repository is [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router); its default branch is `master`. Use it as `origin` and track `origin/master` for Kitsune changes. The separate `upstream` remote is [decolua/9router](https://github.com/decolua/9router), whose default branch is also `master`. The two histories have diverged; the older `origin/main` branch is not the current Kitsune release branch.
+
+To inspect upstream changes without modifying the checkout or fetching upstream tags:
+
+```bash
+git remote -v
+git fetch origin
+git fetch upstream --no-tags
+git log --oneline origin/master..upstream/master
+git diff --stat origin/master...upstream/master
+```
+
+Review and test selected changes on a separate branch or worktree before integrating them into Kitsune. Do not automatically merge all of `upstream/master` into the active checkout: provider behavior, branding, settings, and security or migration safeguards can differ. Updating a source checkout does not itself update a separately deployed service.
+
+Keep the deployed service's existing absolute `DATA_DIR` and secrets when preparing an upgrade. Never replace or merge an existing active database with a legacy directory just to align names. Back up and verify all state during a planned maintenance window before changing the deployment or moving data; see [MIGRATION.md](MIGRATION.md).
+
 ## Local and remote access
 
 Dashboard and API share port **20128**. Do not assume a second dashboard at 3000. A typical source invocation is:
