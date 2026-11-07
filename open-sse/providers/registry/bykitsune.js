@@ -22,6 +22,9 @@ export default {
   transport: {
     baseUrl: "https://api.bykitsune.com/v1/chat/completions",
     validateUrl: "https://api.bykitsune.com/v1/models",
+    // V2 relays these controls to the selected channel. Keep explicit budgets,
+    // disabled switches and visibility until the final provider is selected.
+    quirks: { preserveReasoningControls: true },
   },
   // The deployment's authenticated catalog is authoritative. Do not advertise
   // seed models, prices or capabilities that may not be available to this key.

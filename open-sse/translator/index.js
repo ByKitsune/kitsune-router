@@ -14,6 +14,7 @@ import { CLAUDE_BLOCK } from "./schema/index.js";
 import { extractResponseError, responseErrorToClient } from "./concerns/responseError.js";
 import { lowerKimiDeferredTools } from "./concerns/deferredTools.js";
 import { ownRequestBody } from "./concerns/requestOwnership.js";
+import { captureGatewayReasoning, restoreGatewayReasoning } from "./concerns/gatewayReasoning.js";
 import { rejectUnsupportedTranslationMedia } from "./concerns/requestMedia.js";
 import { unsupportedResponseMedia } from "./concerns/responseMedia.js";
 import { compressGeminiToolNames } from "./concerns/geminiToolNames.js";
@@ -156,6 +157,8 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   // Capture thinking intent from the original (pre-translation) body, before any
   // format conversion strips/renames the fields. Applied after translation.
   const thinkingIntent = captureThinking(result);
+  const gatewayReasoning = targetFormat === FORMATS.OPENAI && PROVIDERS[provider]?.quirks?.preserveReasoningControls
+    ? captureGatewayReasoning(result) : null;
   const sourceThinkingContext = getThinkingContext(result);
 
   // Compress tool names > 64 chars to prevent provider INVALID_ARGUMENT rejection (#3622)
@@ -238,7 +241,9 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     targetFormat === FORMATS.KIRO &&
     (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.CLAUDE);
   if (sourceThinkingContext) setThinkingContext(result, sourceThinkingContext);
-  if (!kiroThinkingMappedByTranslator) {
+  if (gatewayReasoning) {
+    restoreGatewayReasoning(result, gatewayReasoning, model);
+  } else if (!kiroThinkingMappedByTranslator) {
     applyThinking(targetFormat, model, result, provider, thinkingIntent, capabilities);
   }
   const thinkingContext = getThinkingContext(result);
