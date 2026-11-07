@@ -61,6 +61,7 @@ export function verifySource({ cwd = process.cwd(), env = process.env, command: 
     ["tests/__baseline__/verify-oauth-urls.mjs"],
   ]) execute("node", args);
   execute("npm", ["run", "build"], { env: { ...env, NODE_ENV: "production", NEXT_PHASE: "phase-production-build" } });
+  execute("node", ["cli/cli.js", "--check-install"]);
   assert.equal(createHash("sha256").update(readFileSync(report)).digest("hex"), reportSha256, "Verified report changed during source verification");
   writeFileSync(evidence, JSON.stringify({ sha: env.GITHUB_SHA, ref: env.GITHUB_REF, reportSha256 }) + "\n");
   return directory;

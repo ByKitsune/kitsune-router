@@ -54,6 +54,14 @@ function fixture(name, scenario = "green") {
   ]) {
     writeFileSync(resolve(dir, path), `import { appendFileSync } from 'node:fs'; appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ gate: ${JSON.stringify(failure)} })+'\\n'); if (process.env.SCENARIO === ${JSON.stringify(failure)}) process.exit(1);`);
   }
+  writeFileSync(resolve(dir, "cli/cli.js"), `
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+assert.deepEqual(process.argv.slice(2), ['--check-install']);
+fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ gate: 'runtime', args: process.argv.slice(2) })+'\\n');
+assert(fs.existsSync('fixture-production-build'), 'Runtime verification must follow the production build');
+if (process.env.SCENARIO === 'runtime') process.exit(1);
+`);
   mkdirSync(resolve(dir, "releases"));
   writeFileSync(resolve(dir, "releases/RELEASE_NOTES_v0.9.7.md"), "offline fixture");
   const log = resolve(dir, "calls.jsonl");
@@ -102,6 +110,7 @@ if (args.includes('test:compat') && process.env.SCENARIO === 'compat') process.e
 if (args.includes('check:brand') && process.env.SCENARIO === 'brand') process.exit(1);
 if (args.includes('lint') && process.env.SCENARIO === 'lint') process.exit(1);
 if (args.includes('build') && process.env.SCENARIO === 'build') process.exit(1);
+if (args.includes('build')) fs.writeFileSync('fixture-production-build', 'complete');
 if (args.includes('build') && process.env.SCENARIO === 'changed-report') fs.writeFileSync(path.join('verification',process.env.GITHUB_SHA,'vitest.json'), JSON.stringify({success:false}));
 `);
   chmodSync(npm, 0o755);
@@ -145,7 +154,7 @@ describe("workflow source verification actually gates publication", () => {
     const metadata = JSON.parse(readFileSync(resolve(f.dir, `verification/${f.sha}/source.json`), "utf8"));
     const report = readFileSync(resolve(f.dir, `verification/${f.sha}/vitest.json`));
     expect(metadata).toEqual({ sha: f.sha, ref: "refs/tags/v0.9.7", reportSha256: createHash("sha256").update(report).digest("hex") });
-    expect(f.calls.filter(c => c.gate).map(c => c.gate)).toEqual(["identity", "providers", "aliases", "oauth"]);
+    expect(f.calls.filter(c => c.gate).map(c => c.gate)).toEqual(["identity", "providers", "aliases", "oauth", "runtime"]);
     expect(f.calls.some(c => c.args?.includes("test:compat"))).toBe(true);
     expect(f.calls.some(c => c.args?.includes("check:brand"))).toBe(true);
     const dependencies = f.calls.findIndex(c => c.args?.[0] === "ci");
@@ -158,6 +167,12 @@ describe("workflow source verification actually gates publication", () => {
     expect(browserFirst).toBeGreaterThan(browserInstall);
     expect(f.calls[browserFirst].browserReady).toBe(true);
     expect(sourceTest).toBeGreaterThan(browserFirst);
+    const build = f.calls.findIndex(c => c.args?.includes("build"));
+    const runtime = f.calls.findIndex(c => c.gate === "runtime");
+    const publish = f.calls.findIndex(c => c.args?.includes("fixture-publish"));
+    expect(build).toBeGreaterThan(sourceTest);
+    expect(runtime).toBe(build + 1);
+    expect(publish).toBeGreaterThan(runtime);
     for (const call of f.calls.filter(c => c.home)) {
       expect(call.home).toBe(resolve(f.dir, "runner/kitsune-router-home"));
       expect(call.data).toBe(resolve(f.dir, "runner/kitsune-router-data"));
@@ -178,9 +193,17 @@ describe("workflow source verification actually gates publication", () => {
     expect(f.calls.some(c => c.args?.includes("tests/unit/upstream-usage-dashboard-browser.test.js"))).toBe(scenario === "browser-test");
   });
 
-  it.each(["release", "docker-publish"].flatMap(name => ["collection", "empty", "inconsistent", "test-exit", "compat", "brand", "identity", "providers", "aliases", "oauth", "lint", "build", "changed-report"].map(scenario => [name, scenario])))("%s blocks publication on %s failure", (name, scenario) => {
+  it.each(["release", "docker-publish"].flatMap(name => ["collection", "empty", "inconsistent", "test-exit", "compat", "brand", "identity", "providers", "aliases", "oauth", "lint", "build", "runtime", "changed-report"].map(scenario => [name, scenario])))("%s blocks publication on %s failure", (name, scenario) => {
     const f = fixture(name, scenario);
     expect(f.result.status, f.result.stdout + f.result.stderr).not.toBe(0);
+    expect(f.calls.some(c => c.args?.includes("fixture-publish"))).toBe(false);
+    expect(existsSync(resolve(f.dir, `verification/${f.sha}/source.json`))).toBe(false);
+  });
+
+  it("CI refuses exact-SHA evidence when the production bundle verification fails", () => {
+    const f = fixture("ci", "runtime");
+    expect(f.result.status, f.result.stdout + f.result.stderr).not.toBe(0);
+    expect(f.calls.some(c => c.gate === "runtime")).toBe(true);
     expect(f.calls.some(c => c.args?.includes("fixture-publish"))).toBe(false);
     expect(existsSync(resolve(f.dir, `verification/${f.sha}/source.json`))).toBe(false);
   });

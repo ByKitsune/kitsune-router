@@ -11,7 +11,9 @@ function resolveServerRuntime(cliDirectory) {
     const metadata = JSON.parse(fs.readFileSync(path.join(project, "package.json"), "utf8"));
     if (metadata.name === "kitsune-router-app" && fs.existsSync(path.join(project, "next.config.mjs"))) {
       const standalone = path.join(project, ".next", "standalone");
-      candidates.push(standalone, path.join(standalone, path.basename(project)));
+      // A checkout can retain cli/app from a previous package build. Its fresh
+      // root build is authoritative; never let that old bundle shadow it.
+      candidates.unshift(standalone, path.join(standalone, path.basename(project)));
     }
   } catch {
     // A published CLI has no source project beside it.

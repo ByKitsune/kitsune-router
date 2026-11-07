@@ -46,11 +46,22 @@ describe("source and packaged CLI production runtime resolution", () => {
     expect(resolveServerRuntime(cli)).toEqual({ directory: output, serverPath: path.join(output, "custom-server.js") });
   });
 
-  it("prefers a complete packaged bundle and supports its separate build directory", () => {
+  it("prefers the source build when a checkout retains an older packaged CLI bundle", () => {
     const { root, cli } = fixture();
     const packaged = path.join(cli, "app");
     build(packaged, ".next-cli-build");
-    build(path.join(root, ".next", "standalone"));
+    const source = path.join(root, ".next", "standalone");
+    build(source);
+    expect(resolveServerRuntime(cli)).toEqual({ directory: source, serverPath: path.join(source, "custom-server.js") });
+  });
+
+  it("uses a complete packaged bundle when no completed source build is present", () => {
+    const { root, cli } = fixture();
+    const packaged = path.join(cli, "app");
+    build(packaged, ".next-cli-build");
+    const incomplete = path.join(root, ".next", "standalone");
+    fs.mkdirSync(incomplete, { recursive: true });
+    fs.writeFileSync(path.join(incomplete, "server.js"), "incomplete source build");
     expect(resolveServerRuntime(cli)).toEqual({ directory: packaged, serverPath: path.join(packaged, "custom-server.js") });
   });
 

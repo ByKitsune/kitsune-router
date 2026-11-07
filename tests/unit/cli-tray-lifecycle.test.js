@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { spawn } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import net from "node:net";
@@ -33,9 +33,12 @@ async function runLauncher({ tray, crash, shutdown = false }) {
   const trayReady = path.join(dir, "tray-ready");
   const drainRecord = path.join(dir, "drained.json");
   mkdirSync(path.join(dir, "app"));
+  mkdirSync(path.join(dir, "app", ".next"));
+  writeFileSync(path.join(dir, "app", ".next", "BUILD_ID"), "synthetic-lifecycle-build");
   copyFileSync(launcher, path.join(dir, "cli.cjs"));
   mkdirSync(path.join(dir, "hooks"));
   copyFileSync(new URL("../../cli/hooks/serverShutdown.js", import.meta.url), path.join(dir, "hooks/serverShutdown.js"));
+  copyFileSync(new URL("../../cli/hooks/serverRuntime.js", import.meta.url), path.join(dir, "hooks/serverRuntime.js"));
   writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "lifecycle-fixture", version: "1.0.0" }));
   writeFileSync(path.join(dir, "app", "server.js"), `
     const fs = require('fs');
@@ -144,6 +147,7 @@ async function runLauncher({ tray, crash, shutdown = false }) {
       child.on("error", reject);
       child.on("close", resolve);
     });
+    expect(existsSync(record), output).toBe(true);
     const pids = JSON.parse(readFileSync(record, "utf8"));
     const trayPid = JSON.parse(readFileSync(trayRecord, "utf8"));
     const trayAlive = isAlive(trayPid);
