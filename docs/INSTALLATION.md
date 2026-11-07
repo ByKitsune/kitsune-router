@@ -107,6 +107,8 @@ requires a completed existing production bundle; it does not enable development
 mode. A failed clone/build remains on disk for diagnosis. Review its error and
 retry after fixing it; preserve operator changes and state.
 
+When the installer selects Bun, source and global commands use a launcher pinned to that Bun executable and the installed CLI entry point. Verification invokes the launcher users will run; source verification also requires `--check-install`. Root Debian/Ubuntu NodeSource setup runs directly, while non-root privileged setup retains `sudo -E`. These installer contracts do not certify live registry lifecycle execution on every Bun/platform combination.
+
 Review `.env` before starting. On a fresh install choose a writable absolute state path, a strong initial password, and fresh private API/identity secrets instead of published example values. On upgrades keep all effective existing values; changing them can invalidate stored credentials and sessions. A commented or too-short existing `JWT_SECRET` must be corrected deliberately, not assumed usable because the file exists.
 
 ## First configuration

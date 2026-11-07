@@ -12,6 +12,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 - Preserve visibility-only reasoning controls across Gemini, Claude and Responses without inventing effort or a token budget.
 - Exclude canonical Codex account entitlement denials from the generic circuit breaker so later eligible accounts can answer; other systemic errors still fast-fail.
 - Require the custom server and its startup closure before selecting source standalone builds, retaining packaged CLI fallback behavior.
+- Run Bun-selected source and global CLI launchers with the selected Bun executable, and verify the user-facing launcher directly instead of bypassing its Node shebang.
+- Run NodeSource setup directly under root; preserve `sudo -E` only when sudo is actually needed.
 
 ## [1.0.8] — 2026-11-05
 

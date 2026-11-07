@@ -578,7 +578,11 @@ check_node() {
       if command -v apt-get >/dev/null 2>&1; then
         log_info "Trying apt NodeSource..."
         if [ -n "$sudo_cmd" ] || [ "$(id -u)" -eq 0 ]; then
-          curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | $sudo_cmd -E bash - >/dev/null 2>&1 || true
+          if [ -n "$sudo_cmd" ]; then
+            curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash - >/dev/null 2>&1 || true
+          else
+            curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - >/dev/null 2>&1 || true
+          fi
           $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nodejs >/dev/null 2>&1 || true
           if select_node_runtime "$(command -v node || true)" "$(command -v npm || true)"; then log_success "Node $("$NODE_CMD" --version) via apt"; return 0; fi
         fi
@@ -643,6 +647,23 @@ check_build_tools() {
   if command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1; then log_success "Build tools now available"; else log_warn "Build tools still missing — will use sql.js fallback"; fi
 }
 
+# Replace the directory entry, never redirect through an existing package symlink.
+create_bun_launcher() {
+  local cli_src="$1" cli_link="$2" temporary quoted_bun quoted_cli
+  case "$BUN_CMD" in /*) ;; *) return 1 ;; esac
+  case "$cli_src" in /*) ;; *) return 1 ;; esac
+  [ -f "$cli_src" ] || return 1
+  mkdir -p -- "${cli_link%/*}" || return 1
+  temporary=$(mktemp "${cli_link}.XXXXXX") || return 1
+  quoted_bun=${BUN_CMD//\'/\'\\\'\'}
+  quoted_cli=${cli_src//\'/\'\\\'\'}
+  if ! printf '#!/bin/sh\nexec '\''%s'\'' '\''%s'\'' "$@"\n' "$quoted_bun" "$quoted_cli" > "$temporary" ||
+     ! chmod +x "$temporary" || ! mv -f -- "$temporary" "$cli_link"; then
+    rm -f -- "$temporary"
+    return 1
+  fi
+}
+
 # Install kitsune-router via npm
 install_via_npm() {
   log_step "Installing Kitsune Router CLI via npm"
@@ -651,7 +672,24 @@ install_via_npm() {
     export PATH="${NODE_CMD%/*}:$PATH"
   elif [ "$RUNTIME" = "bun" ]; then
     log_info "Using selected Bun runtime..."
-    if "$BUN_CMD" add -g @bykitsune/router >/dev/null 2>&1; then log_success "Installed via bun"; return 0; else log_warn "bun add -g failed"; return 1; fi
+    if ! "$BUN_CMD" add -g @bykitsune/router >/dev/null 2>&1; then log_warn "bun add -g failed"; return 1; fi
+    local global_bin global_listing global_dir cli_src link_dir
+    global_bin=$("$BUN_CMD" pm -g bin) || return 1
+    # Resolve the installed package, not the bin: it may already be our launcher.
+    global_listing=$("$BUN_CMD" pm -g ls) || return 1
+    global_dir=${global_listing%%$'\n'*}
+    case "$global_dir" in
+      /*' node_modules'*) global_dir=${global_dir% node_modules*} ;;
+      *) log_warn "Could not locate Bun global packages"; return 1 ;;
+    esac
+    cli_src="$global_dir/node_modules/@bykitsune/router/cli.js"
+    create_bun_launcher "$cli_src" "$global_bin/kitsune-router" || return 1
+    link_dir=$(get_link_dir)
+    create_bun_launcher "$cli_src" "$link_dir/kitsune-router" || return 1
+    BUN_CLI_CMD="$link_dir/kitsune-router"
+    export PATH="$link_dir:$PATH"
+    log_success "Installed via bun"
+    return 0
   else
     log_warn "npm/bun not available"; return 1
   fi
@@ -833,14 +871,15 @@ install_via_source() {
   local cli_link="$link_dir/kitsune-router"
   # Pin source verification independently of the selected runtime's PATH.
   SOURCE_CLI_CMD="$cli_link"
-  if [ -f "$cli_src" ]; then
-    ln -sf "$cli_src" "$cli_link"
-    chmod +x "$cli_src" 2>/dev/null || true
-    log_success "Linked $cli_link → $cli_src"
+  if [ ! -f "$cli_src" ]; then cli_src="$INSTALL_DIR/cli.js"; fi
+  [ -f "$cli_src" ] || { log_error "Source CLI missing"; return 1; }
+  if [ "$RUNTIME" = bun ]; then
+    create_bun_launcher "$cli_src" "$cli_link" || return 1
   else
-    # Fallback: root cli.js?
-    if [ -f "$INSTALL_DIR/cli.js" ]; then ln -sf "$INSTALL_DIR/cli.js" "$cli_link" && log_success "Linked $cli_link"; fi
+    ln -sf "$cli_src" "$cli_link" || return 1
+    chmod +x "$cli_src" 2>/dev/null || true
   fi
+  log_success "Linked $cli_link → $cli_src"
 
   # Ensure link dir in PATH for current session
   export PATH="$link_dir:$PATH"
@@ -861,12 +900,9 @@ ensure_path() {
 
 kitsune_router_version() {
   local cli_cmd="$SOURCE_CLI_CMD"
+  if [ -z "$cli_cmd" ]; then cli_cmd="${BUN_CLI_CMD:-}"; fi
   if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v kitsune-router) || return 1; fi
-  if [ "$RUNTIME" = "bun" ]; then
-    "$BUN_CMD" "$cli_cmd" --version 2>/dev/null || "$BUN_CMD" "$cli_cmd" -v 2>/dev/null
-  else
-    "$cli_cmd" --version 2>/dev/null || "$cli_cmd" -v 2>/dev/null
-  fi
+  "$cli_cmd" --version 2>/dev/null || "$cli_cmd" -v 2>/dev/null
 }
 
 verify_install() {
@@ -879,6 +915,7 @@ verify_install() {
   if [ "$RUNTIME" = "node" ]; then export PATH="${NODE_CMD%/*}:$PATH"; fi
 
   local cli_cmd="$SOURCE_CLI_CMD"
+  if [ -z "$cli_cmd" ]; then cli_cmd="${BUN_CLI_CMD:-}"; fi
   if [ -z "$cli_cmd" ]; then cli_cmd=$(command -v kitsune-router || true); fi
   if [ -n "$cli_cmd" ]; then
     local ver
@@ -886,11 +923,7 @@ verify_install() {
     # --version exits before loading the gateway. A source checkout with a
     # missing/failed build must never be reported as a working installation.
     if [ -n "$SOURCE_CLI_CMD" ]; then
-      if [ "$RUNTIME" = "bun" ]; then
-        "$BUN_CMD" "$cli_cmd" --check-install || return 1
-      else
-        "$cli_cmd" --check-install || return 1
-      fi
+      "$cli_cmd" --check-install || return 1
     fi
     log_success "Kitsune Router found: $ver ($cli_cmd)"
     return 0
@@ -903,8 +936,14 @@ verify_install() {
   fi
   if [ -x "$INSTALL_DIR/cli/cli.js" ]; then
     log_warn "CLI found at $INSTALL_DIR/cli/cli.js but not linked"
-    ln -sf "$INSTALL_DIR/cli/cli.js" "$link_dir/kitsune-router" 2>/dev/null || true
-    if command -v kitsune-router >/dev/null 2>&1 && kitsune_router_version >/dev/null; then log_success "Linked and found"; return 0; fi
+    if [ "$RUNTIME" = bun ]; then
+      create_bun_launcher "$INSTALL_DIR/cli/cli.js" "$link_dir/kitsune-router" || return 1
+    else
+      ln -sf "$INSTALL_DIR/cli/cli.js" "$link_dir/kitsune-router" || return 1
+    fi
+    SOURCE_CLI_CMD="$link_dir/kitsune-router"
+    verify_install
+    return $?
   fi
   log_error "kitsune-router command not found after install"
   log_info "Try: export PATH=\"\$HOME/.local/bin:\$PATH\" && kitsune-router --help"
