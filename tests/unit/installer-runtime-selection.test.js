@@ -32,6 +32,8 @@ function runInstaller({
   provisionedNode = "v22.23.2",
   provisionedNpm = true,
   cliWorks = true,
+  runtimeReady = true,
+  buildWorks = true,
   cliInLinks = true,
   staleCliDir = "",
   staleCliWorks = true,
@@ -60,6 +62,8 @@ PROVISIONER=${quote(provisioner)}
 PROVISIONED_NODE=${quote(provisionedNode)}
 PROVISIONED_NPM=${quote(provisionedNpm)}
 CLI_WORKS=${quote(cliWorks)}
+RUNTIME_READY=${quote(runtimeReady)}
+BUILD_WORKS=${quote(buildWorks)}
 CLI_IN_LINKS=${quote(cliInLinks)}
 STALE_CLI_DIR=${quote(staleCliDir)}
 STALE_CLI_WORKS=${quote(staleCliWorks)}
@@ -124,6 +128,7 @@ function /mock/home/.kitsune-router/node/bin/node() { printf '%s\\n' "$MANAGED_N
 mock_npm() {
   if [ "$2" = --version ]; then [ "$NPM_WORKS" = true ] || return 1; printf '10.9.4\\n'; return 0; fi
   record "npm:$1 node:$(command -v node || true) \${*:2}"
+  if [ "$2" = run ] && [ "$3" = build ]; then [ "$BUILD_WORKS" = true ]; return; fi
   if [ "$2" = config ] && [ "$NPM_PREFIX_WORKS" = true ]; then PREFIX_CONFIGURED=true; return 0; fi
   if [ "\${PREFIX_CONFIGURED:-false}" = true ] && [ "$NPM_PREFIX_WORKS" = true ]; then return 0; fi
   [ "$NPM_INSTALL_WORKS" = true ] || { [ "\${MOCK_SUDO:-false}" = true ] && [ "$NPM_SUDO_WORKS" = true ]; }
@@ -136,7 +141,11 @@ function /mock/home/.bun/bin/bun() {
     printf '%s\\n' "$BUN_VERSION"; return 0
   fi
   record "bun $*"
-  if [ "$1" = /mock/links/kitsune-router ]; then [ "$CLI_WORKS" = true ] || return 1; printf '${currentVersion}\\n'; return 0; fi
+  if [ "$1" = /mock/links/kitsune-router ]; then
+    [ "$CLI_WORKS" = true ] || return 1
+    if [ "$2" = --check-install ]; then [ "$RUNTIME_READY" = true ]; return; fi
+    printf '${currentVersion}\\n'; return 0
+  fi
   case "$1" in
     /mock/system/bin/kitsune-router|/mock/home/.kitsune-router/node/bin/kitsune-router|/mock/home/.bun/bin/kitsune-router)
       mock_stale_cli "$@"; return ;;
@@ -154,6 +163,7 @@ function /mock/home/.bun/bin/kitsune-router() { mock_stale_cli /mock/home/.bun/b
 function /mock/links/kitsune-router() {
   record "kitsune-router node:$(command -v node || true) $*"
   [ "$CLI_WORKS" = true ] || return 1
+  if [ "$1" = --check-install ]; then [ "$RUNTIME_READY" = true ]; return; fi
   printf '${currentVersion}\\n'
 }
 node() { local executable; executable=$(command -v node) || return 127; "$executable" "$@"; }
@@ -370,6 +380,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.calls).toContain("CALL ln -sf /mock/source/cli/cli.js /mock/links/kitsune-router");
     expect(result.calls.filter((call) => call.startsWith("CALL kitsune-router"))).toEqual([
       `CALL kitsune-router node:${staleCliDir}/node --version`,
+      `CALL kitsune-router node:${staleCliDir}/node --check-install`,
       `CALL kitsune-router node:${staleCliDir}/node --version`,
     ]);
     expect(result.calls.some((call) => call.startsWith("CALL stale-kitsune-router"))).toBe(false);
@@ -509,9 +520,30 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun install --production");
+    expect(result.calls).toContain("CALL bun install");
     expect(result.calls).toContain("CALL bun --bun run build --silent");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
+  });
+
+  it("fails a source installation when the production build fails before linking the CLI", () => {
+    const result = runInstaller({
+      args: ["--skip-deps"], buildWorks: false,
+      action: "install_via_npm() { return 1; }; main",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("Production build failed; source installation is incomplete");
+    expect(result.calls.some(call => call.startsWith("CALL ln "))).toBe(false);
+    expect(result.stdout).not.toContain("successfully installed");
+  });
+
+  it.each([false, true])("requires a complete source runtime even after --version succeeds, noBuild=%s", noBuild => {
+    const result = runInstaller({
+      args: ["--skip-deps", ...(noBuild ? ["--no-build"] : [])], runtimeReady: false,
+      action: "install_via_npm() { return 1; }; main",
+    });
+    expect(result.status).toBe(1);
+    expect(result.calls).toContain("CALL kitsune-router node:/mock/system/bin/node --check-install");
+    expect(result.stdout).not.toContain("successfully installed");
   });
 
   it.each(["brew", "apt-get", "dnf", "pacman"])("does not accept Node from %s without npm", (provisioner) => {

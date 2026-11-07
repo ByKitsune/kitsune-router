@@ -127,8 +127,9 @@ export function captureThinking(body) {
   // Claude effort also controls visible output with thinking disabled. Preserve
   // its off switch across formats; transports with independent controls (Kiro)
   // still use extractThinking to read the separate effort.
-  const cfg = body?.thinking?.type === "disabled" && stringIntent(body.output_config?.effort)
-    ? { mode: "none" } : extractThinking(body);
+  const explicitlyDisabled = body?.thinking === false || body?.thinking?.type === "disabled"
+    || body?.reasoning === false || body?.reasoning?.enabled === false || body?.enable_thinking === false;
+  const cfg = explicitlyDisabled ? { mode: "none" } : extractThinking(body);
   if (!cfg) return cfg;
   const config = nativeThinkingConfig(body);
   const nativeDisplay = typeof body.thinking?.display === "string" ? body.thinking.display : undefined;

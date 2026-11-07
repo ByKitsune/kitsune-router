@@ -69,8 +69,14 @@ if [ -t 0 ]; then IS_INTERACTIVE=true; else IS_INTERACTIVE=false; fi
 # Parse args
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir) INSTALL_DIR="$2"; INSTALL_DIR_EXPLICIT=true; shift 2 ;;
-    --branch) BRANCH="$2"; shift 2 ;;
+    --dir|--branch)
+      if [ "$#" -lt 2 ] || [ -z "$2" ] || [[ "$2" == --* ]]; then
+        printf '%s requires a non-empty value\n' "$1" >&2
+        exit 1
+      fi
+      if [ "$1" = --dir ]; then INSTALL_DIR="$2"; INSTALL_DIR_EXPLICIT=true; else BRANCH="$2"; fi
+      shift 2
+      ;;
     --no-build) SKIP_BUILD=true; shift ;;
     --skip-deps) SKIP_DEPS=true; shift ;;
     -h|--help)
@@ -149,7 +155,7 @@ detect_os() {
       if is_termux; then OS="android"; DISTRO="termux"
       else
         OS="linux"
-        if [ -f /etc/os-release ]; then . /etc/os-release; DISTRO="$ID"; DISTRO_VERSION="${VERSION_ID:-}"; else DISTRO="unknown"; fi
+        if [ -f /etc/os-release ]; then . /etc/os-release; DISTRO="$ID"; else DISTRO="unknown"; fi
       fi
       ;;
     Darwin*) OS="macos"; DISTRO="macos" ;;
@@ -157,7 +163,6 @@ detect_os() {
     *) OS="unknown"; DISTRO="unknown" ;;
   esac
   ARCH="$(uname -m)"
-  case "$ARCH" in x86_64) ARCH_NICE="x64";; aarch64|arm64) ARCH_NICE="arm64";; armv7l) ARCH_NICE="armv7l";; *) ARCH_NICE="$ARCH";; esac
   log_success "Detected: ${OS}/${DISTRO} (${ARCH})"
   if [ "$OS" = "windows" ]; then
     log_warn "Native Windows detected — WSL2 or Docker is strongly recommended."
@@ -795,17 +800,17 @@ install_via_source() {
 
   log_info "Installing dependencies ($pm install)..."
   if [ "$RUNTIME" = "bun" ]; then
-    if ! "$pm" install --production >/dev/null 2>&1 && ! "$pm" install >/dev/null 2>&1; then log_error "bun install failed; no supported Node/npm fallback selected"; return 1; fi
+    if ! "$pm" install; then log_error "bun install failed; no supported Node/npm fallback selected"; return 1; fi
   fi
   if [ "$RUNTIME" = "node" ]; then
     # Use npm ci if lock exists, otherwise install
     if [ -f "package-lock.json" ]; then
-      if ! "$pm" ci --silent >/dev/null 2>&1; then
-        log_warn "npm ci failed, trying npm install..."
-        "$pm" install --silent >/dev/null 2>&1 || { log_error "npm install failed"; return 1; }
+      if ! "$pm" ci --silent; then
+        log_error "npm ci failed; locked dependencies were not replaced. Review the npm error and retry."
+        return 1
       fi
     else
-      "$pm" install --silent >/dev/null 2>&1 || { log_error "npm install failed"; return 1; }
+      "$pm" install --silent || { log_error "npm install failed"; return 1; }
     fi
   fi
 
@@ -813,9 +818,9 @@ install_via_source() {
     log_info "Building Kitsune Router ($pm run build)..."
     local build_args=(run build --silent)
     if [ "$RUNTIME" = "bun" ]; then build_args=(--bun "${build_args[@]}"); fi
-    if ! "$pm" "${build_args[@]}" >/dev/null 2>&1; then
-      log_warn "Build failed, but CLI may still work via dev mode"
-      # Don't fail hard — dev mode can run without build
+    if ! "$pm" "${build_args[@]}"; then
+      log_error "Production build failed; source installation is incomplete. Review the build before retrying."
+      return 1
     else
       log_success "Build completed"
     fi
@@ -878,6 +883,15 @@ verify_install() {
   if [ -n "$cli_cmd" ]; then
     local ver
     if ! ver=$(kitsune_router_version); then log_error "kitsune-router could not run with the selected $RUNTIME runtime"; return 1; fi
+    # --version exits before loading the gateway. A source checkout with a
+    # missing/failed build must never be reported as a working installation.
+    if [ -n "$SOURCE_CLI_CMD" ]; then
+      if [ "$RUNTIME" = "bun" ]; then
+        "$BUN_CMD" "$cli_cmd" --check-install || return 1
+      else
+        "$cli_cmd" --check-install || return 1
+      fi
+    fi
     log_success "Kitsune Router found: $ver ($cli_cmd)"
     return 0
   fi
