@@ -7,6 +7,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve visibility-only reasoning controls across Gemini, Claude and Responses without inventing effort or a token budget.
+- Exclude canonical Codex account entitlement denials from the generic circuit breaker so later eligible accounts can answer; other systemic errors still fast-fail.
+- Require the custom server and its startup closure before selecting source standalone builds, retaining packaged CLI fallback behavior.
+
 ## [1.0.8] — 2026-11-05
 
 Runtime retention and registry-readback follow-up; see the [1.0.8 notes](releases/RELEASE_NOTES_v1.0.8.md)

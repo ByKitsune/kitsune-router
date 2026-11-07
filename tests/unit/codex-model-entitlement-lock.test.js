@@ -10,7 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 // not measurements from this synthetic test. Keep routing, account selection/health, core and
 // the Codex executor real; replace only storage, logging and the HTTP edge.
 const fixture = vi.hoisted(() => ({
-  base: "", connections: [], requests: [], settings: {}, denied: new Map(),
+  base: "", connections: [], requests: [], settings: {}, denied: new Map(), systemic: new Set(),
   getConnections: vi.fn(), getConnection: vi.fn(), updateConnection: vi.fn(),
   getAdapter: vi.fn(() => { throw new Error("Unexpected database access"); }),
 }));
@@ -64,6 +64,11 @@ beforeAll(async () => {
     const body = JSON.parse(Buffer.concat(chunks).toString());
     const account = request.headers["chatgpt-account-id"];
     fixture.requests.push({ account, model: body.model });
+    if (fixture.systemic.has(account)) {
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { message: "model is unavailable", type: "server_error" } }));
+      return;
+    }
     if (fixture.denied.get(account)?.has(body.model)) {
       // The router journal shows the parsed upstream message, so production
       // carries it in the standard OpenAI error envelope.
@@ -100,6 +105,7 @@ beforeEach(() => {
   fixture.settings = { requireApiKey: false, quotaAwareSelection: false, fallbackStrategy: "fill-first" };
   fixture.connections = [connection("plus-account", 1), connection("pro-account", 2)];
   fixture.denied = new Map([["plus-account", new Set([ASTRA])]]);
+  fixture.systemic = new Set();
   fixture.getConnections.mockImplementation(async ({ provider, isActive } = {}) => fixture.connections
     .filter(conn => (!provider || provider === conn.provider) && (!isActive || conn.isActive))
     .map(conn => structuredClone(conn)));
@@ -128,6 +134,22 @@ function healthWrites() {
 }
 
 describe("Codex ChatGPT-account model entitlement denial", () => {
+  it("tries the fourth entitled account after three canonical denials on the first request", async () => {
+    fixture.connections = ["A", "B", "C", "D"].map((id, index) => connection(id, index + 1));
+    fixture.denied = new Map(["A", "B", "C"].map(id => [id, new Set([ASTRA])]));
+    expect((await handleChat(request(ASTRA))).status).toBe(200);
+    expect(fixture.requests.map(value => value.account)).toEqual(["A", "B", "C", "D"]);
+    expect(healthWrites()).toEqual([]);
+  });
+
+  it("still fast-fails three generic systemic 400s before a fourth account", async () => {
+    fixture.connections = ["A", "B", "C", "D"].map((id, index) => connection(id, index + 1));
+    fixture.denied.clear();
+    fixture.systemic = new Set(["A", "B", "C"]);
+    expect((await handleChat(request(ASTRA))).status).toBe(400);
+    expect(fixture.requests.map(value => value.account)).toEqual(["A", "B", "C"]);
+  });
+
   it("asks the denied account once, then sends later requests for that model straight to the entitled account", async () => {
     expect((await handleChat(request(ASTRA))).status).toBe(200);
     expect(fixture.requests.map(r => r.account)).toEqual(["plus-account", "pro-account"]);

@@ -760,9 +760,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
     // Exhausted Antigravity model is blocked only in RAM cache until upstream resetAt.
     // Do not persist a modelLock_* for this path.
-    const shouldFallback = provider === "antigravity" && quotaResetMs
-      ? true
-      : (await markAccountUnavailable(credentials.connectionId, result.status, errorEvidence, provider, model, resetsAtMs, entitlementContext)).shouldFallback;
+    const { shouldFallback, entitlementDenial } = provider === "antigravity" && quotaResetMs
+      ? { shouldFallback: true }
+      : await markAccountUnavailable(credentials.connectionId, result.status, errorEvidence, provider, model, resetsAtMs, entitlementContext);
 
     if (shouldFallback) {
       log.warn("FALLBACK", `⇄ ACC:${redactAccountName(credentials.connectionName, credentials.connectionId)} UNAVAILABLE (${result.status}) → NEXT ACCOUNT`);
@@ -770,7 +770,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       
       // Fast-fail circuit breaker: if multiple accounts fail with the exact same systemic error,
       // stop endless retries and return error immediately to save time and sockets.
-      if (lastStatus === result.status && (Number(result.status) === 400 || Number(result.status) === 402 || Number(result.status) === 403 || Number(result.status) >= 500)) {
+      if (entitlementDenial) {
+        consecutiveSameErrors = 0;
+      } else if (lastStatus === result.status && (Number(result.status) === 400 || Number(result.status) === 402 || Number(result.status) === 403 || Number(result.status) >= 500)) {
         consecutiveSameErrors++;
       } else {
         consecutiveSameErrors = 1;

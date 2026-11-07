@@ -490,7 +490,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
  * @param {string} errorText
  * @param {string|null} provider
  * @param {string|null} model - The specific model that triggered the error
- * @returns {{ shouldFallback: boolean, cooldownMs: number }}
+ * @returns {{ shouldFallback: boolean, cooldownMs: number, entitlementDenial?: boolean }}
  */
 export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null, entitlementContext = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
@@ -526,7 +526,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
           { expiresAt: Date.now() + CODEX_ENTITLEMENT_DENIAL_MS, importRevision: entitlementContext.importRevision }, CACHE_LIMITS.codexEntitlementDenials);
       }
     }
-    return { shouldFallback: true, cooldownMs: 0 };
+    return { shouldFallback: true, cooldownMs: 0, entitlementDenial: true };
   }
 
   // GitHub premium-request exhaustion is account-wide until the next UTC month.

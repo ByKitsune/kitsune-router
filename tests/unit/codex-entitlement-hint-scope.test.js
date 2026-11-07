@@ -55,7 +55,7 @@ describe("Codex entitlement hint evidence and bounded scope", () => {
     ["JSON error envelope", JSON.stringify({ error: { message: denial(MODEL) } })],
     ["detail envelope", { detail: denial(MODEL) }],
   ])("recognizes only matching canonical evidence: %s", async (_name, evidence) => {
-    expect(await remember(MODEL, evidence)).toEqual({ shouldFallback: true, cooldownMs: 0 });
+    expect(await remember(MODEL, evidence)).toEqual({ shouldFallback: true, cooldownMs: 0, entitlementDenial: true });
     expect(cache().size).toBe(1);
     expect((await choose()).connectionId).toBe("b");
     expect(fixture.update).not.toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe("Codex entitlement hint evidence and bounded scope", () => {
   });
 
   it("requires attempt context, and cancellation/import changes after a row read cannot publish or delete hints", async () => {
-    expect(await markAccountUnavailable("a", 400, denial(MODEL), "codex", MODEL)).toEqual({ shouldFallback: true, cooldownMs: 0 });
+    expect(await markAccountUnavailable("a", 400, denial(MODEL), "codex", MODEL)).toEqual({ shouldFallback: true, cooldownMs: 0, entitlementDenial: true });
     expect(cache().size).toBe(0);
     const old = context();
     fixture.generation++;

@@ -64,6 +64,47 @@ describe("API reasoning controls at the target wire boundary", () => {
 });
 
 describe("reasoning visibility is independent from effort", () => {
+  it("maps visibility-only Chat exclusion to Gemini without inventing a budget", () => {
+    const wire = geminiFromChat({ reasoning: { exclude: true } });
+    expect(wire.generationConfig.thinkingConfig).toEqual({ includeThoughts: false });
+    expect(wire.generationConfig.maxOutputTokens).toBe(8192);
+  });
+
+  it.each([
+    [FORMATS.CLAUDE, "claude-sonnet-4.5", "claude", "thinking", { display: "omitted" }],
+    [FORMATS.OPENAI_RESPONSES, "gpt-5.4", "openai", "reasoning", { summary: null }],
+  ])("preserves visibility-only Gemini intent on %s without effort", (target, model, provider, field, expected) => {
+    const wire = translateRequest(FORMATS.GEMINI, target, model, {
+      contents: [{ role: "user", parts: [{ text: "Explain the result." }] }],
+      generationConfig: { maxOutputTokens: 8192, thinkingConfig: { includeThoughts: false } },
+    }, false, null, provider);
+    expect(wire[field]).toEqual(expected);
+    expect(wire).not.toHaveProperty("reasoning_effort");
+    expect(wire.output_config?.effort).toBeUndefined();
+  });
+
+  it("preserves visibility-only Claude display on Gemini without enabling thinking", () => {
+    const wire = translateRequest(FORMATS.CLAUDE, FORMATS.GEMINI, "gemini-2.5-flash", {
+      messages: [{ role: "user", content: "Explain." }], thinking: { display: "omitted" },
+    }, false, null, "gemini");
+    expect(wire.generationConfig.thinkingConfig).toEqual({ includeThoughts: false });
+  });
+
+  it("leaves omitted visibility and effort controls absent", () => {
+    const wire = geminiFromChat({});
+    expect(wire.generationConfig.thinkingConfig).toBeUndefined();
+    expect(wire.generationConfig.maxOutputTokens).toBe(8192);
+  });
+
+  it.each([FORMATS.OPENAI, FORMATS.GEMINI])("does not invent adaptive Kiro thinking for visibility-only %s", source => {
+    const body = source === FORMATS.OPENAI
+      ? { messages: [{ role: "user", content: "Explain." }], reasoning: { exclude: true } }
+      : { contents: [{ role: "user", parts: [{ text: "Explain." }] }], generationConfig: { thinkingConfig: { includeThoughts: false } } };
+    const wire = translateRequest(source, FORMATS.KIRO, "claude-sonnet-4.6", body, false, null, "kiro");
+    expect(JSON.stringify(wire)).not.toContain('"type":"adaptive"');
+    expect(JSON.stringify(wire)).not.toContain("<thinking_mode>");
+  });
+
   it.each([
     ["gemini-2.5-flash", { thinkingBudget: 4096, includeThoughts: false }, { thinkingBudget: 4096, includeThoughts: false }],
     ["gemini-3.8-flash", { thinkingLevel: "high", includeThoughts: false }, { thinkingLevel: "high", includeThoughts: false }],

@@ -244,7 +244,7 @@ export function buildKiroAdditionalModelRequestFields(body, effortPath = "output
     const caps = getCapabilitiesForModel("kiro", model);
     type = caps.thinkingOffType || (caps.thinkingCanDisable !== false ? "disabled" : undefined);
     if (type === "between_tools" && (effort === "xhigh" || effort === "max")) effort = "high";
-  } else if (effort || intent?.mode === "auto" || intent?.display || type === "adaptive") {
+  } else if (effort || intent?.mode === "auto" || (intent?.mode && intent.display) || type === "adaptive") {
     type = "adaptive";
   } else {
     return undefined;

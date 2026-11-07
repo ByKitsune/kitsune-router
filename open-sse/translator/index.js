@@ -208,7 +208,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
       }
 
       // Kiro consumes intent inside its request builder, before a KAS body exists.
-      if (targetFormat === FORMATS.KIRO && sourceFormat !== FORMATS.OPENAI && thinkingIntent) {
+      if (targetFormat === FORMATS.KIRO && sourceFormat !== FORMATS.OPENAI && thinkingIntent?.mode) {
         delete result.reasoning;
         delete result.reasoning_effort;
         delete result.output_config;

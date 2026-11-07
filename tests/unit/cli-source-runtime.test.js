@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { resolveServerRuntime } = require("../../cli/hooks/serverRuntime.js");
@@ -27,12 +28,19 @@ function build(directory, dist = ".next", custom = true) {
   fs.mkdirSync(path.join(directory, dist), { recursive: true });
   fs.writeFileSync(path.join(directory, "server.js"), "generated server");
   fs.writeFileSync(path.join(directory, dist, "BUILD_ID"), "synthetic-production-build");
-  if (custom) fs.writeFileSync(path.join(directory, "custom-server.js"), "custom server");
+  if (custom) {
+    fs.writeFileSync(path.join(directory, "custom-server.js"), "custom server");
+    if (directory.split(path.sep).includes("standalone")) {
+      fs.writeFileSync(path.join(directory, "shutdown-lifecycle.cjs"), "startup closure");
+      fs.mkdirSync(path.join(directory, "cli", "hooks"), { recursive: true });
+      fs.writeFileSync(path.join(directory, "cli", "hooks", "dataDirectory.js"), "startup closure");
+    }
+  }
 }
 
 describe("source and packaged CLI production runtime resolution", () => {
   it.each(["--dir", "--branch"])("rejects missing %s values before network or install work", option => {
-    const result = spawnSync("bash", [new URL("../../install.sh", import.meta.url).pathname, option], {
+    const result = spawnSync("bash", [fileURLToPath(new URL("../../install.sh", import.meta.url)), option], {
       encoding: "utf8", timeout: 5000,
     });
     expect(result.status).toBe(1);
@@ -62,6 +70,17 @@ describe("source and packaged CLI production runtime resolution", () => {
     const incomplete = path.join(root, ".next", "standalone");
     fs.mkdirSync(incomplete, { recursive: true });
     fs.writeFileSync(path.join(incomplete, "server.js"), "incomplete source build");
+    expect(resolveServerRuntime(cli)).toEqual({ directory: packaged, serverPath: path.join(packaged, "custom-server.js") });
+  });
+
+  it.each(["custom-server.js", "shutdown-lifecycle.cjs", "cli/hooks/dataDirectory.js"])("skips source output missing %s even with BUILD_ID", missing => {
+    const { root, cli } = fixture();
+    const source = path.join(root, ".next", "standalone");
+    build(source);
+    fs.rmSync(path.join(source, missing));
+    expect(() => resolveServerRuntime(cli)).toThrow("Production standalone build not found");
+    const packaged = path.join(cli, "app");
+    build(packaged, ".next-cli-build");
     expect(resolveServerRuntime(cli)).toEqual({ directory: packaged, serverPath: path.join(packaged, "custom-server.js") });
   });
 
