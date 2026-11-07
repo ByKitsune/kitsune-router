@@ -45,6 +45,32 @@ The JSON response normally has `choices[]`, each with `message`, `finish_reason`
 
 For images or other media, inspect the model's declared capability and send only supported media types. Preserve repeated image occurrences and their turn order; do not silently discard images or turn untrusted model-provided links into executable actions.
 
+## Output and reasoning controls
+
+Use the discovered model ID for routing, not its human-readable display name.
+Gateway thinking suffixes such as `(high)`, `(4096)` or `(0)` are explicit
+overrides; omit them when the request body should control reasoning. A suffix
+does not expand the model's output ceiling or grant a capability.
+
+- Chat uses `max_completion_tokens` where supported, with `max_tokens` as its
+  legacy alias; Responses uses `max_output_tokens`; Messages uses `max_tokens`.
+  Keep an explicit cap unchanged and respect model/endpoint ceilings. There is
+  no universal 65,536-token minimum and no cap that guarantees visible output.
+- Reasoning effort and display are separate choices. Native Claude can combine
+  `thinking: {"type":"disabled"}` with `output_config.effort`; the effort must
+  not reactivate its disabled thinking. Through cross-format translation an
+  explicit disable also takes precedence over a separate effort choice.
+- Retain numeric thinking budgets, on/off choices and visibility until the
+  final provider is known. Claude manual budgets, Gemini's soft thinking budget
+  and reseller bridges have different validity rules. An impossible explicit
+  combination returns a request error; do not automatically raise the cap,
+  change the budget or resend a paid request to hide it.
+- ByKitsune is a relay: it preserves these controls for its selected channel.
+  An authenticated model listing and offline translation test do not prove a
+  live upstream accepts every combination. See the repository's
+  [reasoning policy](https://github.com/ByKitsune/kitsune-router/blob/master/docs/REASONING-BUDGETS.md)
+  for provider-specific limits and terminal/usage behavior.
+
 ## Streaming
 
 Use the same payload with `stream:true`; for raw inspection add `curl --no-buffer` and `-H "Accept: text/event-stream"` with a bounded timeout. For application code, use an established SSE parser or the client's official SDK:

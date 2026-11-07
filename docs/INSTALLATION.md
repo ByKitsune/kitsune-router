@@ -85,6 +85,28 @@ PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 
 For production source builds, use `npm run build` then `npm run start`. Use an **absolute `DATA_DIR`**: the standalone server changes working directory. Automatic SQLite migration requires a supported Node runtime with `node:sqlite`, or a supported Bun runtime with native SQLite; there is no unsafe raw-file fallback when the snapshot API is unavailable.
 
+The current source CLI can also launch the completed root standalone build:
+
+```bash
+npm ci
+npm run build
+node cli/cli.js --check-install
+node cli/cli.js --host 127.0.0.1 --no-browser --skip-update
+```
+
+`--check-install` checks for the generated production entry and build ID without
+creating state, generating secrets, starting the gateway or calling an upstream.
+It is a source addition after the published 1.0.8 artifact; do not assume an
+older installed CLI supports it. Normal CLI startup keeps its documented private
+secret setup. A version response alone does not establish a usable server build.
+
+The installer still prefers the published npm CLI and uses source only as its
+fallback. Its source path now stops on `npm ci` or build failure instead of
+replacing the lockfile or reporting an unbuilt gateway as installed. `--no-build`
+requires a completed existing production bundle; it does not enable development
+mode. A failed clone/build remains on disk for diagnosis. Review its error and
+retry after fixing it; preserve operator changes and state.
+
 Review `.env` before starting. On a fresh install choose a writable absolute state path, a strong initial password, and fresh private API/identity secrets instead of published example values. On upgrades keep all effective existing values; changing them can invalidate stored credentials and sessions. A commented or too-short existing `JWT_SECRET` must be corrected deliberately, not assumed usable because the file exists.
 
 ## First configuration

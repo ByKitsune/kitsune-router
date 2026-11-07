@@ -46,10 +46,10 @@
     "chalk": "^6.0.1",
     "confbox": "^0.3.2",
     "jose": "^6.2.15",
-    "lucide-react": "^1.69.0",
+    "lucide-react": "^1.70.0",
     "material-symbols": "^0.48.3",
     "monaco-editor": "^0.57.0",
-    "motion": "^14.9.1",
+    "motion": "^14.10.1",
     "next": "^16.4.5",
     "node-machine-id": "^1.1.12",
     "open": "^11.0.4",
@@ -63,7 +63,7 @@
     "sql.js": "^1.15.2",
     "undici": "^8.12.4",
     "uuid": "^14.0.3",
-    "zustand": "^5.0.16"
+    "zustand": "^5.1.0"
   },
   "optionalDependencies": {
     "better-sqlite3": "^13.0.3"
@@ -72,8 +72,8 @@
   "devDependencies": {
     "@eslint-community/eslint-utils": "^4.10.1",
     "@eslint/compat": "^2.1.1",
-    "@playwright/test": "^1.64.1",
-    "@tailwindcss/postcss": "^4.3.4",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/postcss": "^4.3.5",
     "eslint": "^10.14.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -81,9 +81,9 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "espree": "^11.2.0",
     "globals": "^17.14.0",
-    "oxlint": "^1.91.0",
+    "oxlint": "^1.92.0",
     "postcss": "^8.5.32",
-    "tailwindcss": "^4.3.4"
+    "tailwindcss": "^4.3.5"
   },
   "overrides": {
     "brace-expansion@1": "^1.1.21",

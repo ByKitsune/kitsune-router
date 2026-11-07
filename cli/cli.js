@@ -82,6 +82,7 @@ Options:
   -l, --log           Show server logs (default: hidden)
   -t, --tray          Run in system tray mode (background)
   --skip-update      Skip auto-update check
+  --check-install    Verify the production server bundle without starting it
   -h, --help         Show this help message
   -v, --version      Show version
 
@@ -89,6 +90,17 @@ Commands:
   xai video --prompt "..." --output video.mp4
                      Generate a Grok Imagine video via the running gateway
                      (see: ${APP_NAME} xai video --help)`);
+  process.exit(0);
+}
+const { resolveServerRuntime } = require("./hooks/serverRuntime");
+if (!videoCommand && args.includes("--check-install")) {
+  try {
+    const runtime = resolveServerRuntime(__dirname);
+    console.log(`Kitsune Router ${pkg.version}: ${runtime.serverPath}`);
+  } catch (error) {
+    console.error(`[kitsune-router] ${error.message}`);
+    process.exit(1);
+  }
   process.exit(0);
 }
 const { resolveDataDirectory } = require("./hooks/dataDirectory");
@@ -615,19 +627,13 @@ function openBrowser(url) {
   });
 }
 
-// Find standalone server (bundled in bin/app for published package).
-// Prefer custom-server.js (injects real socket IP) when present.
-const standaloneDir = path.join(__dirname, "app");
-const customServerPath = path.join(standaloneDir, "custom-server.js");
-const serverPath = fs.existsSync(customServerPath)
-  ? customServerPath
-  : path.join(standaloneDir, "server.js");
-
-if (!fs.existsSync(serverPath)) {
-  console.error("Error: Standalone build not found.");
-  console.error("Please run 'npm run build:cli' first.");
+let serverRuntime;
+try { serverRuntime = resolveServerRuntime(__dirname); }
+catch (error) {
+  console.error(`[kitsune-router] ${error.message}`);
   process.exit(1);
 }
+const { directory: standaloneDir, serverPath } = serverRuntime;
 
 // Start server immediately; run update check in parallel (not on the critical path).
 const updatePromise = checkForUpdate();

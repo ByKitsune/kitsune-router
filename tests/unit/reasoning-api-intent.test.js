@@ -11,6 +11,17 @@ function geminiFromChat(control) {
 
 describe("API reasoning controls at the target wire boundary", () => {
   it.each([
+    { thinking: { type: "disabled" }, reasoning_effort: "high" },
+    { thinking: false, reasoning_effort: "high" },
+    { reasoning: { enabled: false, effort: "high" } },
+    { reasoning: false, reasoning_effort: "high" },
+    { enable_thinking: false, reasoning_effort: "high" },
+  ])("does not reactivate explicitly disabled reasoning through a separate effort control: %j", control => {
+    const wire = geminiFromChat(control);
+    expect(wire.generationConfig.thinkingConfig?.thinkingBudget).toBe(0);
+    expect(wire.generationConfig.maxOutputTokens).toBe(8192);
+  });
+  it.each([
     ["thinking boolean on", { thinking: true }, -1],
     ["thinking boolean off", { thinking: false }, 0],
     ["thinking string off", { thinking: "off" }, 0],
