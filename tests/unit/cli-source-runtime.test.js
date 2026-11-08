@@ -91,6 +91,27 @@ describe("source and packaged CLI production runtime resolution", () => {
     expect(resolveServerRuntime(cli).serverPath).toBe(path.join(packaged, "server.js"));
   });
 
+  it.each(["server.js", ".next/BUILD_ID", "custom-server.js", "shutdown-lifecycle.cjs", "cli/hooks/dataDirectory.js"])("rejects a directory masquerading as the source runtime file %s", entry => {
+    const { root, cli } = fixture();
+    const source = path.join(root, ".next", "standalone");
+    build(source);
+    const file = path.join(source, entry);
+    fs.rmSync(file);
+    fs.mkdirSync(file);
+    expect(() => resolveServerRuntime(cli)).toThrow("Production standalone build not found");
+    const packaged = path.join(cli, "app");
+    build(packaged, ".next-cli-build");
+    expect(resolveServerRuntime(cli).directory).toBe(packaged);
+  });
+
+  it("ignores a directory at the packaged optional wrapper path", () => {
+    const { cli } = fixture();
+    const packaged = path.join(cli, "app");
+    build(packaged, ".next", false);
+    fs.mkdirSync(path.join(packaged, "custom-server.js"));
+    expect(resolveServerRuntime(cli).serverPath).toBe(path.join(packaged, "server.js"));
+  });
+
   it("rejects a missing or incomplete build rather than a version-only success", () => {
     const { root, cli } = fixture();
     expect(() => resolveServerRuntime(cli)).toThrow("Production standalone build not found");

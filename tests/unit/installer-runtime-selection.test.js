@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const installer = readFileSync(new URL("../../install.sh", import.meta.url), "utf8");
 const currentVersion = JSON.parse(readFileSync(new URL("../../cli/package.json", import.meta.url), "utf8")).version;
 const configuration = installer.slice(installer.indexOf("# Configuration"), installer.indexOf("# Helpers"));
 const functions = [...installer.matchAll(/^\w+\(\) \{[\s\S]*?^\}/gm)].map(([body]) => body).join("\n");
-const bashCandidates = process.platform === "win32" ? ["C:/Program Files/Git/bin/bash.exe", "bash"] : ["bash"];
+const bashCandidates = [
+  ...(process.platform === "win32" ? ["C:/Program Files/Git/bin/bash.exe"] : []),
+  ...(process.env.PATH || "").split(delimiter).filter(Boolean).map(directory => resolve(directory, process.platform === "win32" ? "bash.exe" : "bash")),
+];
 const bashPath = bashCandidates.find(candidate => spawnSync(candidate, ["--noprofile", "--norc", "-c", "exit 0"], { encoding: "utf8" }).status === 0) || "";
 const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
 
@@ -286,6 +289,10 @@ ${action}
 }
 
 describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
+  it("pins an absolute Bash executable before replacing PATH with the hermetic fixture", () => {
+    expect(isAbsolute(bashPath)).toBe(true);
+    expect(runInstaller({ args: ["--help"] }).status).toBe(0);
+  });
   it("installs the scoped CLI using a supported system Node/npm pair", () => {
     const result = runInstaller({ systemNode: "v22.19.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);

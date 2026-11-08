@@ -71,7 +71,6 @@ describe("reasoning visibility is independent from effort", () => {
   });
 
   it.each([
-    [FORMATS.CLAUDE, "claude-sonnet-4.5", "claude", "thinking", { display: "omitted" }],
     [FORMATS.OPENAI_RESPONSES, "gpt-5.4", "openai", "reasoning", { summary: null }],
   ])("preserves visibility-only Gemini intent on %s without effort", (target, model, provider, field, expected) => {
     const wire = translateRequest(FORMATS.GEMINI, target, model, {

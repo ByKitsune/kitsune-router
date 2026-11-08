@@ -109,6 +109,10 @@ retry after fixing it; preserve operator changes and state.
 
 When the installer selects Bun, source and global commands use a launcher pinned to that Bun executable and the installed CLI entry point. Verification invokes the launcher users will run; source verification also requires `--check-install`. Root Debian/Ubuntu NodeSource setup runs directly, while non-root privileged setup retains `sudo -E`. These installer contracts do not certify live registry lifecycle execution on every Bun/platform combination.
 
+Bun launchers are installed with mode `0755`. On repeat global installation the installer temporarily retains only its own marked wrapper so Bun can recreate the package bin; if the package command fails before replacing that bin, the old wrapper is restored. An unrelated regular command is not retired as a managed wrapper. A directory or a symlink to a directory cannot be used as the launcher destination. Keep the reported backup if Bun changes the destination and then fails; inspect that result before retrying.
+
+Source `--check-install` also requires the custom server's startup files (`custom-server.js`, `shutdown-lifecycle.cjs`, and `cli/hooks/dataDirectory.js`) alongside the generated `server.js` and build ID. These entries must be files. Partial source output is skipped in favor of a complete packaged `cli/app`, when present; otherwise the check fails with rebuild/reinstall guidance.
+
 Review `.env` before starting. On a fresh install choose a writable absolute state path, a strong initial password, and fresh private API/identity secrets instead of published example values. On upgrades keep all effective existing values; changing them can invalidate stored credentials and sessions. A commented or too-short existing `JWT_SECRET` must be corrected deliberately, not assumed usable because the file exists.
 
 ## First configuration

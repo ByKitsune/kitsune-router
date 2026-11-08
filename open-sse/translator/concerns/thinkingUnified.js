@@ -133,9 +133,10 @@ export function captureThinking(body) {
   const cfg = explicitlyDisabled ? { mode: "none" } : extractThinking(body);
   const config = nativeThinkingConfig(body);
   const nativeDisplay = typeof body.thinking?.display === "string" ? body.thinking.display : undefined;
+  const requestedDisplay = nativeDisplay || (body.reasoning && typeof body.reasoning === "object" ? openAIThinkingDisplay(body) : undefined);
   const includeThoughts = typeof config?.includeThoughts === "boolean" ? config.includeThoughts
     : typeof body.reasoning?.exclude === "boolean" ? !body.reasoning.exclude
-      : nativeDisplay ? nativeDisplay === "summarized" : undefined;
+      : requestedDisplay ? requestedDisplay === "summarized" : undefined;
   const display = cfg?.mode === "none" ? undefined : nativeDisplay
     || (includeThoughts === undefined ? openAIThinkingDisplay(body) : includeThoughts ? "summarized" : "omitted");
   if (!cfg && includeThoughts === undefined && !display) return null;
@@ -249,8 +250,9 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
 function openAIThinkingDisplay(body) {
   // Responses API: reasoning.summary is the explicit request for reasoning text.
   if (body.reasoning && typeof body.reasoning === "object") {
-    const summary = body.reasoning.summary;
-    return typeof summary === "string" && summary && summary !== "none" ? "summarized" : undefined;
+    const summary = body.reasoning.summary !== undefined ? body.reasoning.summary : body.reasoning.generate_summary;
+    if (summary === null || summary === "none") return "omitted";
+    return typeof summary === "string" && summary ? "summarized" : undefined;
   }
   // Chat Completions has no summary knob. A client setting reasoning_effort is
   // asking for reasoning, and reasoning_content is how it would receive it.
@@ -644,7 +646,9 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
     if ((fmt === "gemini-budget" || fmt === "gemini-level") && includeThoughts !== undefined) {
       setGeminiThinking(body, { includeThoughts });
     } else if ((fmt === "claude-budget" || fmt === "claude-adaptive") && display) {
-      body.thinking = { display };
+      // Every Anthropic thinking union arm requires a type, and manual mode
+      // also requires a budget. Visibility cannot choose either for the caller.
+      unsupportedThinking("thinking.display", "this destination requires an explicit thinking mode or effort alongside visibility; supply one or select a destination with independent visibility controls.");
     } else if (fmt === "openrouter" && includeThoughts !== undefined) {
       body.reasoning = { exclude: !includeThoughts };
     }
@@ -663,7 +667,7 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
     if (includeThoughts === false) {
       responsesReasoning.summary = null;
       delete responsesReasoning.generate_summary;
-    } else if (display === "summarized" && responsesReasoning.summary === undefined) responsesReasoning.summary = "auto";
+    } else if (display === "summarized" && responsesReasoning.summary === undefined && responsesReasoning.generate_summary === undefined) responsesReasoning.summary = "auto";
     if (Object.keys(responsesReasoning).length) body.reasoning = responsesReasoning;
   }
   return body;

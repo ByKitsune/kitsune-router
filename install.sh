@@ -56,6 +56,7 @@ RUNTIME=""
 NODE_CMD=""
 NPM_CMD=""
 BUN_CMD=""
+BUN_CLI_CMD=""
 SOURCE_CLI_CMD=""
 
 if [ -n "${KITSUNE_ROUTER_INSTALL_DIR:-}" ]; then
@@ -652,13 +653,15 @@ create_bun_launcher() {
   local cli_src="$1" cli_link="$2" temporary quoted_bun quoted_cli
   case "$BUN_CMD" in /*) ;; *) return 1 ;; esac
   case "$cli_src" in /*) ;; *) return 1 ;; esac
+  case "$cli_link" in /*) ;; *) return 1 ;; esac
   [ -f "$cli_src" ] || return 1
+  [ ! -d "$cli_link" ] || { log_error "Launcher destination is a directory: $cli_link"; return 1; }
   mkdir -p -- "${cli_link%/*}" || return 1
   temporary=$(mktemp "${cli_link}.XXXXXX") || return 1
   quoted_bun=${BUN_CMD//\'/\'\\\'\'}
   quoted_cli=${cli_src//\'/\'\\\'\'}
-  if ! printf '#!/bin/sh\nexec '\''%s'\'' '\''%s'\'' "$@"\n' "$quoted_bun" "$quoted_cli" > "$temporary" ||
-     ! chmod +x "$temporary" || ! mv -f -- "$temporary" "$cli_link"; then
+  if ! printf '#!/bin/sh\n# Kitsune Router Bun launcher (managed by install.sh)\nexec '\''%s'\'' '\''%s'\'' "$@"\n' "$quoted_bun" "$quoted_cli" > "$temporary" ||
+     ! chmod 755 "$temporary" || ! mv -f -- "$temporary" "$cli_link"; then
     rm -f -- "$temporary"
     return 1
   fi
@@ -672,9 +675,31 @@ install_via_npm() {
     export PATH="${NODE_CMD%/*}:$PATH"
   elif [ "$RUNTIME" = "bun" ]; then
     log_info "Using selected Bun runtime..."
-    if ! "$BUN_CMD" add -g @bykitsune/router >/dev/null 2>&1; then log_warn "bun add -g failed"; return 1; fi
-    local global_bin global_listing global_dir cli_src link_dir
+    local global_bin global_listing global_dir cli_src link_dir previous_launcher="" global_cli
     global_bin=$("$BUN_CMD" pm -g bin) || return 1
+    case "$global_bin" in /*) ;; *) log_error "Bun global bin directory must be absolute"; return 1 ;; esac
+    global_cli="$global_bin/kitsune-router"
+    # Bun refuses to replace regular files (EEXIST). Retire only our own
+    # wrapper before asking Bun to recreate its managed package symlink.
+    if [ -f "$global_cli" ] && [ ! -L "$global_cli" ] &&
+       grep -Fqx '# Kitsune Router Bun launcher (managed by install.sh)' "$global_cli"; then
+      previous_launcher=$(mktemp "${global_cli}.previous.XXXXXX") || return 1
+      if ! mv -f -- "$global_cli" "$previous_launcher"; then
+        rm -f -- "$previous_launcher"
+        return 1
+      fi
+    fi
+    if ! "$BUN_CMD" add -g @bykitsune/router >/dev/null 2>&1; then
+      if [ -n "$previous_launcher" ]; then
+        if [ ! -e "$global_cli" ] && [ ! -L "$global_cli" ]; then
+          mv -f -- "$previous_launcher" "$global_cli" || { log_error "Previous launcher retained at $previous_launcher"; return 1; }
+        else
+          log_warn "Previous launcher retained at $previous_launcher; Bun changed the destination before failing"
+        fi
+      fi
+      log_warn "bun add -g failed"
+      return 1
+    fi
     # Resolve the installed package, not the bin: it may already be our launcher.
     global_listing=$("$BUN_CMD" pm -g ls) || return 1
     global_dir=${global_listing%%$'\n'*}
@@ -686,6 +711,7 @@ install_via_npm() {
     create_bun_launcher "$cli_src" "$global_bin/kitsune-router" || return 1
     link_dir=$(get_link_dir)
     create_bun_launcher "$cli_src" "$link_dir/kitsune-router" || return 1
+    if [ -n "$previous_launcher" ]; then rm -f -- "$previous_launcher" || return 1; fi
     BUN_CLI_CMD="$link_dir/kitsune-router"
     export PATH="$link_dir:$PATH"
     log_success "Installed via bun"
