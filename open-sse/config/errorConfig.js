@@ -103,6 +103,7 @@ export const CODEX_ENTITLEMENT_DENIAL_TEXT = "not supported when using codex wit
  *   - accountFault: false prevents request-only failures from locking credentials
  *   - comboFallback: true allows a different model to serve that request
  *   - backoff: true = use exponential backoff (rate limit)
+ *   - accountModelRestriction: true cannot override explicit quota/billing evidence
  */
 export const ERROR_RULES = [
   // --- Terminal billing rules (checked first, order = priority) (#4147) ---
@@ -173,8 +174,8 @@ export const ERROR_RULES = [
   // ChatGPT account model restriction on Codex (9router #4369). Cooldown 0
   // keeps the credential healthy; auth.js separately remembers the
   // account+model denial for CODEX_ENTITLEMENT_DENIAL_MS.
-  { text: CODEX_ENTITLEMENT_DENIAL_TEXT, cooldownMs: 0 },
-  { text: "chatgpt account",            cooldownMs: 0 },
+  { text: CODEX_ENTITLEMENT_DENIAL_TEXT, cooldownMs: 0, accountModelRestriction: true },
+  { text: "chatgpt account",            cooldownMs: 0, accountModelRestriction: true },
   { text: "response.failed",            cooldownMs: 0 },
   // AiHubMix free-tier abuse gate (#3602): "Sorry, to prevent abuse of free resources..."
   { text: "prevent abuse",            cooldownMs: COOLDOWN.extended },

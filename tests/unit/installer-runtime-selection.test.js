@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const installer = readFileSync(new URL("../../install.sh", import.meta.url), "utf8");
 const currentVersion = JSON.parse(readFileSync(new URL("../../cli/package.json", import.meta.url), "utf8")).version;
 const configuration = installer.slice(installer.indexOf("# Configuration"), installer.indexOf("# Helpers"));
 const functions = [...installer.matchAll(/^\w+\(\) \{[\s\S]*?^\}/gm)].map(([body]) => body).join("\n");
-const bash = spawnSync("bash", ["--noprofile", "--norc", "-c", "command -v bash"], { encoding: "utf8" });
-const bashPath = bash.status === 0 ? bash.stdout.trim() : "";
+const bashCandidates = [
+  ...(process.platform === "win32" ? ["C:/Program Files/Git/bin/bash.exe"] : []),
+  ...(process.env.PATH || "").split(delimiter).filter(Boolean).map(directory => resolve(directory, process.platform === "win32" ? "bash.exe" : "bash")),
+];
+const bashPath = bashCandidates.find(candidate => spawnSync(candidate, ["--noprofile", "--norc", "-c", "exit 0"], { encoding: "utf8" }).status === 0) || "";
 const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
 
 // Evaluate real parsing and function bodies only, never source/execute install.sh.
@@ -28,6 +33,7 @@ function runInstaller({
   managedInstallNode = "",
   sudo = false,
   sudoPasswordless = false,
+  uid = 1000,
   provisioner = "",
   provisionedNode = "v22.23.2",
   provisionedNpm = true,
@@ -41,6 +47,8 @@ function runInstaller({
   args = [],
   action = "main",
 } = {}) {
+  const sandbox = mkdtempSync(join(tmpdir(), "router-setup-"));
+  const setupMarker = join(sandbox, "ready").replaceAll("\\", "/");
   const script = `
 set -e
 exec 3>&1
@@ -72,6 +80,10 @@ MOCK_SOURCE_DIRECTORY=""
 MOCK_SOURCE_READY=false
 ${configuration}
 ${functions}
+create_bun_launcher() {
+  record "launcher $1 $2"
+  BUN_LAUNCHER_TARGET="$1"; CLI_IN_LINKS=true
+}
 record() { printf 'CALL %s\\n' "$*" >&3; }
 command_not_found_handle() { record "FORBIDDEN unmocked $*"; return 99; }
 log_info() { printf 'INFO %s\\n' "$1"; }
@@ -109,6 +121,7 @@ command() {
   printf '/mock/tools/%s\\n' "$name"
 }
 [() {
+  if builtin [ "$1" = '!' ]; then shift; ! [ "$@"; return; fi
   case "$1" in
     -x|-f|-d|-e|-L|-r|-w)
       case "$1:$2" in
@@ -117,6 +130,8 @@ command() {
         -x:/mock/links/kitsune-router) builtin [ "$CLI_IN_LINKS" = true ]; return ;;
         -d:/mock/home/.kitsune-router/app|-d:/mock/source) builtin [ "$2" = "$MOCK_SOURCE_DIRECTORY" ]; return ;;
         -f:/mock/home/.kitsune-router/app/cli/cli.js|-f:/mock/source/cli/cli.js) builtin [ "$MOCK_SOURCE_READY" = true ]; return ;;
+        -f:/mock/global/node_modules/@bykitsune/router/cli.js) return 0 ;;
+        -x:/mock/home/.kitsune-router/app/cli/cli.js) builtin [ "$MOCK_SOURCE_READY" = true ]; return ;;
         *) return 1 ;;
       esac ;;
     *) builtin [ "$@" ;;
@@ -136,6 +151,8 @@ mock_npm() {
 function /mock/system/bin/npm() { mock_npm system "$@"; }
 function /mock/home/.kitsune-router/node/bin/npm() { mock_npm managed "$@"; }
 function /mock/home/.bun/bin/bun() {
+  if [ "$1 $2 $3" = "pm -g bin" ]; then printf '/mock/global/bin\\n'; return; fi
+  if [ "$1 $2 $3" = "pm -g ls" ]; then printf '/mock/global node_modules (1 installed)\\n'; return; fi
   if [ "$1" = --version ]; then
     [ "$BUN_WORKS" = true ] || return 1
     printf '%s\\n' "$BUN_VERSION"; return 0
@@ -162,6 +179,9 @@ function /mock/home/.kitsune-router/node/bin/kitsune-router() { mock_stale_cli /
 function /mock/home/.bun/bin/kitsune-router() { mock_stale_cli /mock/home/.bun/bin/kitsune-router "$@"; }
 function /mock/links/kitsune-router() {
   record "kitsune-router node:$(command -v node || true) $*"
+  if [ -n "\${BUN_LAUNCHER_TARGET:-}" ]; then
+    record "launcher-bun $BUN_LAUNCHER_TARGET $*"
+  elif [ "$RUNTIME" = bun ]; then return 127; fi
   [ "$CLI_WORKS" = true ] || return 1
   if [ "$1" = --check-install ]; then [ "$RUNTIME_READY" = true ]; return; fi
   printf '${currentVersion}\\n'
@@ -173,7 +193,7 @@ kitsune-router() { local executable; executable=$(command -v kitsune-router) || 
 sudo() {
   record "sudo $*"
   if [ "$1" = -n ]; then [ "$SUDO_PASSWORDLESS" = true ] || return 1; shift; fi
-  [ "$1" != -E ] || return 1
+  if [ "$1" = -E ]; then shift; "$@"; return; fi
   local PATH="/mock/old/bin:/mock/links" MOCK_SUDO=true
   "$@"
 }
@@ -187,10 +207,10 @@ provision_node() {
   SYSTEM_NODE="$PROVISIONED_NODE"; SYSTEM_NPM="$PROVISIONED_NPM"
 }
 brew() { provision_node brew "$@"; }
-apt-get() { provision_node apt-get "$@"; }
+apt-get() { builtin [ -f ${quote(setupMarker)} ] || return 1; provision_node apt-get "$@"; }
 dnf() { provision_node dnf "$@"; }
 pacman() { provision_node pacman "$@"; }
-curl() { record "curl $*"; return 1; }
+curl() { record "curl $*"; if [[ "$*" == *deb.nodesource.com* ]]; then printf 'inert setup\\n'; else return 1; fi; }
 git() {
   record "git $*"
   case "$1" in
@@ -204,8 +224,8 @@ git() {
     *) record "FORBIDDEN unexpected git operation $*"; return 99 ;;
   esac
 }
-bash() { record "bash $*"; return 1; }
-id() { printf '1000\\n'; }
+bash() { record "bash $*"; if [ "$1" = - ]; then local payload; read -r payload; [ "$payload" = 'inert setup' ] || return 1; printf ready > ${quote(setupMarker)}; else return 1; fi; }
+id() { printf '%s\\n' ${quote(uid)}; }
 mkdir() {
   record "mkdir $*"
   local directory
@@ -246,8 +266,8 @@ install_managed_node() {
 }
 ${action}
 `;
-  const result = spawnSync(bashPath, ["--noprofile", "--norc", "-c", script, "mock-installer", ...args], {
-    encoding: "utf8",
+  const result = spawnSync(bashPath, ["--noprofile", "--norc", "-s", "--", ...args], {
+    input: script, encoding: "utf8",
     timeout: 5000,
     env: {
       HOME: "/mock/home",
@@ -261,6 +281,7 @@ ${action}
       KITSUNE_ROUTER_INSTALL_DIR: installDirEnv,
     },
   });
+  rmSync(sandbox, { recursive: true, force: true });
   expect(result.error).toBeUndefined();
   expect(result.stderr).toBe("");
   expect(result.stdout).not.toContain("FORBIDDEN");
@@ -268,6 +289,10 @@ ${action}
 }
 
 describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
+  it("pins an absolute Bash executable before replacing PATH with the hermetic fixture", () => {
+    expect(isAbsolute(bashPath)).toBe(true);
+    expect(runInstaller({ args: ["--help"] }).status).toBe(0);
+  });
   it("installs the scoped CLI using a supported system Node/npm pair", () => {
     const result = runInstaller({ systemNode: "v22.19.0", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
@@ -434,11 +459,12 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.stdout).toContain("Installed via sudo");
   });
 
-  it("uses the selected Bun to verify the CLI instead of its unsupported Node shebang", () => {
-    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0", args: ["--skip-deps"] });
+  it("verifies the Bun global user launcher directly against its installed package", () => {
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", staleCliDir: "/mock/home/.bun/bin", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun /mock/links/kitsune-router --version");
-    expect(result.calls.some((call) => call.startsWith("CALL kitsune-router"))).toBe(false);
+    expect(result.calls).toContain("CALL launcher /mock/global/node_modules/@bykitsune/router/cli.js /mock/links/kitsune-router");
+    expect(result.calls).toContain("CALL launcher-bun /mock/global/node_modules/@bykitsune/router/cli.js --version");
+    expect(result.calls.some(call => call.includes("stale-kitsune-router"))).toBe(false);
   });
 
   it("fails verification when the installed CLI cannot execute under the selected runtime", () => {
@@ -523,6 +549,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.calls).toContain("CALL bun install");
     expect(result.calls).toContain("CALL bun --bun run build --silent");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
+    expect(result.calls).toContain("CALL launcher-bun /mock/home/.kitsune-router/app/cli/cli.js --check-install");
   });
 
   it("fails a source installation when the production build fails before linking the CLI", () => {
@@ -568,6 +595,61 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("Unknown option: --not-an-option");
     expect(result.calls).toEqual([]);
+  });
+});
+
+describe.skipIf(!bashPath)("installer launcher regressions", () => {
+  it("reinstalls Bun global launchers using the package rather than the previous shell wrapper", () => {
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", args: ["--skip-deps"], action: "resolve_install_layout; check_node; install_via_npm; verify_install; install_via_npm; verify_install" });
+    expect(result.status).toBe(0);
+    expect(result.calls.filter(call => call === "CALL launcher /mock/global/node_modules/@bykitsune/router/cli.js /mock/global/bin/kitsune-router")).toHaveLength(2);
+    expect(result.calls.filter(call => call === "CALL launcher-bun /mock/global/node_modules/@bykitsune/router/cli.js --version")).toHaveLength(2);
+    expect(result.calls.some(call => call.startsWith("CALL bun -e"))).toBe(false);
+  });
+
+  it("recovers a missing Bun source launcher and checks the source runtime directly", () => {
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", cliInLinks: false,
+      action: 'resolve_install_layout; RUNTIME=bun; BUN_CMD=/mock/home/.bun/bin/bun; MOCK_SOURCE_READY=true; verify_install' });
+    expect(result.status).toBe(0);
+    expect(result.calls).toContain("CALL launcher-bun /mock/home/.kitsune-router/app/cli/cli.js --version");
+    expect(result.calls).toContain("CALL launcher-bun /mock/home/.kitsune-router/app/cli/cli.js --check-install");
+  });
+
+  it.each([0, 1000])("executes NodeSource setup with correct privilege for uid %s", uid => {
+    const result = runInstaller({ uid, sudo: uid !== 0, systemNode: "v18.0.0", provisioner: "apt-get" });
+    expect(result.status).toBe(0);
+    expect(result.calls).toContain("CALL bash -");
+    expect(result.calls.includes("CALL sudo -E bash -")).toBe(uid !== 0);
+    expect(result.calls).not.toContain("CALL managed-node-install");
+  });
+
+  it("does not provision apt without root or sudo", () => {
+    const result = runInstaller({ systemNode: "v18.0.0", provisioner: "apt-get", managedInstallNode: "v22.23.2" });
+    expect(result.status).toBe(0);
+    expect(result.calls.some(call => call.includes("nodesource") || call.includes("provision apt"))).toBe(false);
+  });
+
+  it("runs an executable Bun launcher with quoted paths, intact arguments and exit status without overwriting a symlink target", () => {
+    const directory = mkdtempSync(join(tmpdir(), "router launcher's ")).replaceAll("\\", "/");
+    const shellDirectory = directory.replace(/^([A-Za-z]):/, (_, drive) => `/${drive.toLowerCase()}`);
+    const runtime = `${shellDirectory}/selected bun's`;
+    const target = `${shellDirectory}/cli's.js`;
+    const launcher = `${shellDirectory}/kitsune-router`;
+    writeFileSync(`${directory}/selected bun's`, '#!/bin/sh\nfor arg do printf "<%s>\\n" "$arg"; done\nexit 23\n');
+    writeFileSync(`${directory}/cli's.js`, "original JS bytes\n");
+    try {
+      const result = spawnSync(bashPath, ["--noprofile", "--norc", "-s"], { input: `set -e\n${configuration}\n${functions}\nBUN_CMD=${quote(runtime)}\nchmod +x "$BUN_CMD"\nln -s ${quote(target)} ${quote(launcher)}\ncreate_bun_launcher ${quote(target)} ${quote(launcher)}\nPATH=/nonexistent ${quote(launcher)} --port 20128 'argument with spaces' "" "apostrophe's"`, encoding: "utf8", timeout: 5000 });
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(23);
+      expect(result.stdout).toBe(`<${target}>\n<--port>\n<20128>\n<argument with spaces>\n<>\n<apostrophe's>\n`);
+      expect(readFileSync(`${directory}/cli's.js`, "utf8")).toBe("original JS bytes\n");
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  });
+
+  it.each([false, true])("rejects failed Bun direct verification, source=%s", source => {
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", cliWorks: false, args: ["--skip-deps"], action: source ? "install_via_npm() { return 1; }; main" : "main" });
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toMatch(/successfully installed|Get Started/);
   });
 });
 

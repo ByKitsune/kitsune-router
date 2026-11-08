@@ -124,20 +124,22 @@ export function extractThinking(body) {
 // text itself: Claude returns it only with thinking.display "summarized", a field
 // OpenAI has no equivalent for, so the intent cannot survive translation on its own.
 export function captureThinking(body) {
+  if (!body || typeof body !== "object") return null;
   // Claude effort also controls visible output with thinking disabled. Preserve
   // its off switch across formats; transports with independent controls (Kiro)
   // still use extractThinking to read the separate effort.
   const explicitlyDisabled = body?.thinking === false || body?.thinking?.type === "disabled"
     || body?.reasoning === false || body?.reasoning?.enabled === false || body?.enable_thinking === false;
   const cfg = explicitlyDisabled ? { mode: "none" } : extractThinking(body);
-  if (!cfg) return cfg;
   const config = nativeThinkingConfig(body);
   const nativeDisplay = typeof body.thinking?.display === "string" ? body.thinking.display : undefined;
+  const requestedDisplay = nativeDisplay || (body.reasoning && typeof body.reasoning === "object" ? openAIThinkingDisplay(body) : undefined);
   const includeThoughts = typeof config?.includeThoughts === "boolean" ? config.includeThoughts
     : typeof body.reasoning?.exclude === "boolean" ? !body.reasoning.exclude
-      : nativeDisplay ? nativeDisplay === "summarized" : undefined;
-  const display = cfg.mode === "none" ? undefined : nativeDisplay
+      : requestedDisplay ? requestedDisplay === "summarized" : undefined;
+  const display = cfg?.mode === "none" ? undefined : nativeDisplay
     || (includeThoughts === undefined ? openAIThinkingDisplay(body) : includeThoughts ? "summarized" : "omitted");
+  if (!cfg && includeThoughts === undefined && !display) return null;
   const responsesReasoning = body.reasoning && typeof body.reasoning === "object" && !Array.isArray(body.reasoning)
     ? { ...body.reasoning } : undefined;
   const claudeOutputConfig = body.output_config && typeof body.output_config === "object"
@@ -152,7 +154,7 @@ export function captureThinking(body) {
     ...(responsesReasoning ? { responsesReasoning } : {}),
     ...(claudeOutputConfig ? { claudeOutputConfig } : {}),
     ...(context?.providerDefault ? { providerDefault: true } : {}),
-    explicitBudget: context?.explicitBudget ?? (cfg.mode === "budget" && !context?.providerDefault),
+    explicitBudget: context?.explicitBudget ?? (cfg?.mode === "budget" && !context?.providerDefault),
     ...(outputParam ? { outputParam } : {}),
     ...(context?.requestedModel ? { requestedModel: context.requestedModel } : {}),
   };
@@ -248,8 +250,9 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
 function openAIThinkingDisplay(body) {
   // Responses API: reasoning.summary is the explicit request for reasoning text.
   if (body.reasoning && typeof body.reasoning === "object") {
-    const summary = body.reasoning.summary;
-    return typeof summary === "string" && summary && summary !== "none" ? "summarized" : undefined;
+    const summary = body.reasoning.summary !== undefined ? body.reasoning.summary : body.reasoning.generate_summary;
+    if (summary === null || summary === "none") return "omitted";
+    return typeof summary === "string" && summary ? "summarized" : undefined;
   }
   // Chat Completions has no summary knob. A client setting reasoning_effort is
   // asking for reasoning, and reasoning_content is how it would receive it.
@@ -636,7 +639,20 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
       ...captured?.responsesReasoning,
     } : null;
   stripAll(body);
-  applyFormat(fmt, body, cfg, thinkingCaps, supportedLevels, display, provider, includeThoughts);
+  if (cfg.mode) {
+    applyFormat(fmt, body, cfg, thinkingCaps, supportedLevels, display, provider, includeThoughts);
+  } else {
+    // Visibility alone must not select a thinking mode, budget or effort.
+    if ((fmt === "gemini-budget" || fmt === "gemini-level") && includeThoughts !== undefined) {
+      setGeminiThinking(body, { includeThoughts });
+    } else if ((fmt === "claude-budget" || fmt === "claude-adaptive") && display) {
+      // Every Anthropic thinking union arm requires a type, and manual mode
+      // also requires a budget. Visibility cannot choose either for the caller.
+      unsupportedThinking("thinking.display", "this destination requires an explicit thinking mode or effort alongside visibility; supply one or select a destination with independent visibility controls.");
+    } else if (fmt === "openrouter" && includeThoughts !== undefined) {
+      body.reasoning = { exclude: !includeThoughts };
+    }
+  }
   if (targetFormat === "claude" && claudeOutputConfig) {
     body.output_config = { ...claudeOutputConfig, ...body.output_config };
   }
@@ -651,7 +667,7 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
     if (includeThoughts === false) {
       responsesReasoning.summary = null;
       delete responsesReasoning.generate_summary;
-    } else if (display === "summarized" && responsesReasoning.summary === undefined) responsesReasoning.summary = "auto";
+    } else if (display === "summarized" && responsesReasoning.summary === undefined && responsesReasoning.generate_summary === undefined) responsesReasoning.summary = "auto";
     if (Object.keys(responsesReasoning).length) body.reasoning = responsesReasoning;
   }
   return body;

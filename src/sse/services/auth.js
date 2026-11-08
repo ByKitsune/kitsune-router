@@ -42,6 +42,12 @@ const quotaSnapshotCacheByTtl = new Map();
 const noAuthProxyPlans = new WeakMap();
 const NO_AUTH_PROXY_PREFIX = "noauth:";
 
+// Canonical entitlement failures can inspect every initial Codex account, even
+// past the generic three-account breaker. New account IDs must not extend an
+// in-flight request indefinitely. Re-read current rows so deactivation, locks,
+// refreshed credentials and import fences still take effect on every attempt.
+const codexRequestPools = new WeakMap();
+
 function noAuthProxyConnectionId(providerId, poolId) {
   return `${NO_AUTH_PROXY_PREFIX}${providerId}:${poolId}`;
 }
@@ -50,7 +56,8 @@ function noAuthProxyConnectionId(providerId, poolId) {
 // so neither token material nor unbounded caller model strings remain in keys.
 const codexEntitlementDenials = globalThis[Symbol.for("kitsunerouter.codex-entitlement-denials.v2")] ??= new Map();
 function isCodexEntitlementDenial(provider, status, errorText, model) {
-  if (resolveProviderId(provider) !== "codex" || Number(status) !== 400) return false;
+  if (resolveProviderId(provider) !== "codex" || Number(status) !== 400
+    || classifyAvailabilityError(status, errorText).kind) return false;
   let source = errorText;
   if (typeof source === "string" && source.length <= 8192 && /^\s*\{/.test(source)) {
     try { source = JSON.parse(source); } catch { /* plain diagnostic */ }
@@ -230,7 +237,15 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     }
 
     const codexScope = providerId === "codex" ? Object.freeze({ database: codexDatabaseScope, generation: getDbImportGeneration() }) : null;
-    const connections = structuredClone(await getProviderConnections({ provider: providerId, isActive: true }));
+    let connections = structuredClone(await getProviderConnections({ provider: providerId, isActive: true }));
+    if (codexScope) {
+      let initialIds = codexRequestPools.get(excludeSet);
+      if (!initialIds) {
+        initialIds = new Set(connections.map(connection => connection.id));
+        codexRequestPools.set(excludeSet, initialIds);
+      }
+      connections = connections.filter(connection => initialIds.has(connection.id));
+    }
     log.debug("AUTH", `${provider} | total connections: ${connections.length}, excludeIds: ${excludeSet.size > 0 ? [...excludeSet].join(",") : "none"}, model: ${model || "any"}`);
 
     if (connections.length === 0) {
@@ -490,7 +505,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
  * @param {string} errorText
  * @param {string|null} provider
  * @param {string|null} model - The specific model that triggered the error
- * @returns {{ shouldFallback: boolean, cooldownMs: number }}
+ * @returns {{ shouldFallback: boolean, cooldownMs: number, entitlementDenial?: boolean }}
  */
 export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null, entitlementContext = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
@@ -526,7 +541,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
           { expiresAt: Date.now() + CODEX_ENTITLEMENT_DENIAL_MS, importRevision: entitlementContext.importRevision }, CACHE_LIMITS.codexEntitlementDenials);
       }
     }
-    return { shouldFallback: true, cooldownMs: 0 };
+    return { shouldFallback: true, cooldownMs: 0, entitlementDenial: true };
   }
 
   // GitHub premium-request exhaustion is account-wide until the next UTC month.

@@ -234,14 +234,18 @@ export function checkFallbackError(status, errorText, backoffLevel = 0, response
     const cooldownMs = Math.min(resetsAtMs - Date.now(), MAX_RATE_LIMIT_COOLDOWN_MS);
     if (cooldownMs > 0) return { shouldFallback: true, cooldownMs, resetsAtMs };
   }
+  // Explicit quota/billing evidence cannot become a zero-cooldown model
+  // restriction merely because its message also mentions a ChatGPT account.
+  const applicableRules = availability.kind === "quota" || availability.kind === "billing"
+    ? ERROR_RULES.filter(rule => !rule.accountModelRestriction) : ERROR_RULES;
   // Typed quota/plan codes must agree with their message equivalents, including
   // providers that report quota on HTTP 400/403/404 instead of 429.
-  if (availability.kind === "quota" && !ERROR_RULES.some(rule => rule.text && lowerError.includes(rule.text))) {
+  if (availability.kind === "quota" && !applicableRules.some(rule => rule.text && lowerError.includes(rule.text))) {
     const newLevel = Math.min(backoffLevel + 1, BACKOFF_CONFIG.maxLevel);
     return { shouldFallback: true, cooldownMs: getQuotaCooldown(newLevel), newBackoffLevel: newLevel };
   }
 
-  for (const rule of ERROR_RULES) {
+  for (const rule of applicableRules) {
     // Text-based rule: match substring in error message
     if (rule.backoff && status < 500 && !availability.kind) continue;
     if (rule.text === "capacity" && status < 500 && !availability.kind) continue;
@@ -272,6 +276,13 @@ export function checkFallbackError(status, errorText, backoffLevel = 0, response
       }
       return { shouldFallback: true, cooldownMs: rule.cooldownMs };
     }
+  }
+
+  // Direct callers can still pass typed billing on HTTP 400 before core has
+  // normalized it to 503. Retain account fallback and a positive cooldown when
+  // no more specific rule matched, just like the normalized public path.
+  if (availability.kind === "billing") {
+    return { shouldFallback: true, cooldownMs: TRANSIENT_COOLDOWN_MS };
   }
 
   // Request-scoped client errors that matched no rule above: a 4xx caused by the

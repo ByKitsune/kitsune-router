@@ -55,7 +55,7 @@ describe("Codex entitlement hint evidence and bounded scope", () => {
     ["JSON error envelope", JSON.stringify({ error: { message: denial(MODEL) } })],
     ["detail envelope", { detail: denial(MODEL) }],
   ])("recognizes only matching canonical evidence: %s", async (_name, evidence) => {
-    expect(await remember(MODEL, evidence)).toEqual({ shouldFallback: true, cooldownMs: 0 });
+    expect(await remember(MODEL, evidence)).toEqual({ shouldFallback: true, cooldownMs: 0, entitlementDenial: true });
     expect(cache().size).toBe(1);
     expect((await choose()).connectionId).toBe("b");
     expect(fixture.update).not.toHaveBeenCalled();
@@ -68,14 +68,30 @@ describe("Codex entitlement hint evidence and bounded scope", () => {
     ["extra trailing diagnostic", `${denial(MODEL)} Unsupported parameter.`, {}],
     ["mismatched status wrapper", `[503]: ${denial(MODEL)}`, {}],
     ["validation code", { message: denial(MODEL), code: "unsupported_parameter" }, {}],
+    ["quota code", { message: denial(MODEL), code: "rate_limit_exceeded" }, {}],
+    ["quota type", { message: denial(MODEL), type: "quota_error" }, {}],
+    ["billing code", { message: denial(MODEL), code: "insufficient_credits" }, {}],
+    ["billing type", { message: denial(MODEL), type: "billing_error" }, {}],
     ["unauthorized", denial(MODEL), { status: 401 }],
     ["forbidden", denial(MODEL), { status: 403 }],
     ["service unavailable", denial(MODEL), { status: 503 }],
     ["other provider", denial(MODEL), { provider: "openai" }],
   ])("does not learn a hint from %s", async (_name, evidence, options) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    await remember(MODEL, evidence, options);
+    expect(await remember(MODEL, evidence, options)).not.toHaveProperty("entitlementDenial");
     expect(cache().size).toBe(0);
+  });
+
+  it.each(["rate_limit_exceeded", "insufficient_credits"])("keeps direct structured %s failures unavailable without an entitlement hint", async code => {
+    const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
+    const decision = await remember(MODEL, { message: denial(MODEL), code });
+    expect(decision.shouldFallback).toBe(true);
+    expect(decision.cooldownMs).toBeGreaterThan(0);
+    expect(decision).not.toHaveProperty("entitlementDenial");
+    expect(cache().size).toBe(0);
+    expect(fixture.update).toHaveBeenCalledOnce();
+    expect(fixture.update.mock.calls[0][1].errorCode).toBe(400);
+    expect(diagnostic).toHaveBeenCalledWith(`❌ codex [400]: ${`${denial(MODEL)} (${code})`.slice(0, 100)}`);
   });
 
   it("shares the actual wire model across parenthesized efforts but keeps review quota distinct", async () => {
@@ -130,7 +146,7 @@ describe("Codex entitlement hint evidence and bounded scope", () => {
   });
 
   it("requires attempt context, and cancellation/import changes after a row read cannot publish or delete hints", async () => {
-    expect(await markAccountUnavailable("a", 400, denial(MODEL), "codex", MODEL)).toEqual({ shouldFallback: true, cooldownMs: 0 });
+    expect(await markAccountUnavailable("a", 400, denial(MODEL), "codex", MODEL)).toEqual({ shouldFallback: true, cooldownMs: 0, entitlementDenial: true });
     expect(cache().size).toBe(0);
     const old = context();
     fixture.generation++;

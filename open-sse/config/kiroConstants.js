@@ -172,7 +172,7 @@ REMEMBER: When in doubt, write LESS per operation. Multiple small operations > o
  */
 export function resolveKiroThinkingBudget(body, headers, model) {
   // Native reduced-thinking mode is independent of output_config.effort.
-  if (body?.thinking?.type === "disabled" || body?.thinking?.type === "between_tools") return null;
+  if (captureThinking(body)?.mode === "none" || body?.thinking?.type === "between_tools") return null;
   const cfg = extractThinking(body);
   if (cfg) {
     if (cfg.mode === "none") return null;
@@ -223,7 +223,7 @@ export function extractKiroEffortLevel(body, model) {
 }
 
 function extractKiroGptEffortLevel(body) {
-  const cfg = extractThinking(body);
+  const cfg = captureThinking(body);
   if (cfg?.mode === "none") return "none";
   if (cfg?.mode === "level" && ["low", "medium", "high", "xhigh", "max"].includes(cfg.level)) {
     return cfg.level;
@@ -244,7 +244,7 @@ export function buildKiroAdditionalModelRequestFields(body, effortPath = "output
     const caps = getCapabilitiesForModel("kiro", model);
     type = caps.thinkingOffType || (caps.thinkingCanDisable !== false ? "disabled" : undefined);
     if (type === "between_tools" && (effort === "xhigh" || effort === "max")) effort = "high";
-  } else if (effort || intent?.mode === "auto" || intent?.display || type === "adaptive") {
+  } else if (effort || intent?.mode === "auto" || (intent?.mode && intent.display) || type === "adaptive") {
     type = "adaptive";
   } else {
     return undefined;

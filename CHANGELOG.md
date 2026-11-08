@@ -7,6 +7,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve standalone reasoning visibility across Gemini, OpenRouter and Responses without inventing effort or a token budget. Claude requires an explicit thinking mode/effort alongside visibility; reject unsupported display-only requests before dispatch instead of sending an invalid thinking object.
+- Exclude canonical Codex account entitlement denials from the generic circuit breaker so later eligible accounts can answer; other systemic errors still fast-fail.
+- Bound each Codex request to its initial account pool while rechecking current activation and locks, and preserve quota/billing cooldowns when typed availability evidence accompanies account-restriction text.
+- Keep Kiro explicit disable above separate reasoning effort in both native fields and prompt prefixes, and prevent generic top-level thinking fields from leaking into its request envelope.
+- Require the custom server and its startup closure before selecting source standalone builds, retaining packaged CLI fallback behavior.
+- Run Bun-selected source and global CLI launchers with the selected Bun executable, and verify the user-facing launcher directly instead of bypassing its Node shebang.
+- Run NodeSource setup directly under root; preserve `sudo -E` only when sudo is actually needed.
+- Make Bun launcher replacement repeatable without `EEXIST`, restore the previous managed wrapper when package installation fails before replacing its bin, install wrappers with mode `0755`, and reject directory destinations.
+- Resolve the installer tests' Bash executable before replacing their subprocess PATH, so the full CI suite executes the installer assertions.
+- Reject directories masquerading as required standalone runtime files rather than reporting a complete installation.
+
+See the [PR #9 review and operator handoff](docs/audit/2026-11-08-pr9-review.md) for reasoning limits, installer recovery, and verification scope.
+
 ## [1.0.8] — 2026-11-05
 
 Runtime retention and registry-readback follow-up; see the [1.0.8 notes](releases/RELEASE_NOTES_v1.0.8.md)
