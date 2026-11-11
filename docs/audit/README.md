@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 11 Claude signature and upstream review](34-claude-signature-and-upstream-review-2026-11-11.md)
+records the full Markdown read inventory, current official opaque-signature
+contract, signed-history/deferred-tool repairs and selected 9Router adaptations.
+
 The [November 5 stable publication follow-up](33-1.0.6-publication-and-registry-verification-2026-11-05.md)
 records the fresh Undici patch, authenticated registry reconciliation and actual
 container runtime gate used before stable distribution.

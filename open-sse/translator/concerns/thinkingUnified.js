@@ -401,6 +401,35 @@ function stripAll(body) {
   if (body.request?.generationConfig) delete body.request.generationConfig.thinkingConfig;
 }
 
+// Native Messages extensions belong to the caller. Normalize the shared mode,
+// budget and visibility fields without interpreting or dropping opaque keys.
+// Read only the current native body; captured cross-format intent must not carry
+// these provider-specific fields into another protocol.
+function nativeClaudeThinkingExtensions(targetFormat, body, provider) {
+  if (targetFormat !== "claude" || (provider && provider !== "claude" && provider !== "anthropic")) return null;
+  const thinking = body.thinking;
+  if (!thinking || typeof thinking !== "object" || Array.isArray(thinking)) return null;
+  const { type, budget_tokens, display, ...extensions } = thinking;
+  if (!Object.keys(extensions).length) return null;
+  return extensions;
+}
+
+export function validateClaudeThinkingBinding(thinking) {
+  if (!thinking || typeof thinking !== "object" || Array.isArray(thinking)) return;
+  if (Object.hasOwn(thinking, "block_binding") && (thinking.type === "disabled" || thinking.type === "between_tools")) {
+    unsupportedThinking("thinking.block_binding", "cannot preserve the requested binding policy with disabled or between_tools thinking; use a supported thinking mode or remove the binding field explicitly.");
+  }
+}
+
+function restoreNativeClaudeThinkingExtensions(body, extensions) {
+  if (!extensions) return;
+  // Permanently adaptive models can normally omit the whole thinking object,
+  // but a caller's binding/extension fields still need their native union arm.
+  const thinking = { ...extensions, ...(body.thinking || { type: "adaptive" }) };
+  validateClaudeThinkingBinding(thinking);
+  body.thinking = thinking;
+}
+
 // Apply unified thinking config to body in the resolved provider-native format.
 function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider, includeThoughts) {
   const none = cfg.mode === "none";
@@ -565,6 +594,9 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels, display, provider, i
 export function applyThinking(targetFormat, model, body, provider = null, intent = undefined, capabilities = null) {
   if (!body || typeof body !== "object") return body;
 
+  const nativeExtensions = nativeClaudeThinkingExtensions(targetFormat, body, provider);
+  if (nativeExtensions) validateClaudeThinkingBinding(body.thinking);
+
   const { cleanModel, override } = parseSuffix(model);
   const captured = intent || captureThinking(body);
   const cfg = override || captured;
@@ -586,6 +618,7 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
 
   // Model cannot reason → strip any stray thinking fields.
   if (!caps.reasoning) {
+    if (nativeExtensions) unsupportedThinking("thinking", "this destination cannot preserve the caller's native thinking extensions because the selected model does not support thinking.");
     const outputConfig = targetFormat === "claude" ? body.output_config || captured?.claudeOutputConfig : null;
     stripAll(body);
     if (outputConfig && typeof outputConfig === "object" && !Array.isArray(outputConfig)) {
@@ -617,13 +650,14 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
     const outputConfig = body.output_config;
     stripAll(body);
     body.thinking = { type: caps.thinkingOffType };
+    restoreNativeClaudeThinkingExtensions(body, nativeExtensions);
     if (outputConfig) body.output_config = outputConfig;
     return body;
   }
   // 4.6 still accepts explicit manual mode even though adaptive is preferred.
   // Preserve its numeric budget for final preparation, which knows beta headers.
   // Do not force this legacy mode onto 4.7+ or unknown reseller specifications.
-  if (!override && targetFormat === "claude" && provider === "claude" && body.thinking?.type === "enabled" &&
+  if (!override && targetFormat === "claude" && (provider === "claude" || provider === "anthropic") && body.thinking?.type === "enabled" &&
       /^claude-(?:sonnet|opus)-4[.-]6(?:-\d{8})?$/.test(cleanModel)) return body;
   const supportedLevels = getThinkingLevels(provider, cleanModel);
   // Anthropic's `display` (summarized | omitted) decides whether thinking text
@@ -653,6 +687,7 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
       body.reasoning = { exclude: !includeThoughts };
     }
   }
+  restoreNativeClaudeThinkingExtensions(body, nativeExtensions);
   if (targetFormat === "claude" && claudeOutputConfig) {
     body.output_config = { ...claudeOutputConfig, ...body.output_config };
   }

@@ -52,11 +52,11 @@ Bukti:
 - **Akun tidak di-lock.** Error 400 tanpa rule khusus diklasifikasikan fail-fast:
   `shouldFallback: false, cooldownMs: 0` (`open-sse/services/accountFallback.js`).
   Pool akun tidak dibakar untuk error se-level IP.
-- **`project` stabil per koneksi.** Jika provisioning `loadCodeAssist` gagal (wajar saat
-  IP kena gate), executor memakai SATU id fallback per koneksi, bukan random tiap
-  request (`resolveAntigravityProjectId` di `open-sse/executors/antigravity.js`).
-  Selama provisioning sukses, id project asli yang dipakai (di-resolve + persist di
-  `src/sse/handlers/chat.js` sebelum dispatch).
+- **`project` harus berasal dari provisioning akun.** Executor memerlukan binding
+  project asli sebelum dispatch; kegagalan `loadCodeAssist` tidak diganti dengan
+  id buatan. Fallback project yang pernah ada sudah dihapus dalam
+  [audit request-safety November 4](audit/30-provider-request-safety-and-catalog-refresh-2026-11-04.md).
+  Binding asli di-resolve dan disimpan oleh `src/sse/handlers/chat.js`.
 - **Hint actionable** ditempel di pesan error (`withLocationGateHint` di
   `open-sse/utils/error.js`) supaya klien (Hermes/dll) menampilkan langkah perbaikan,
   bukan sekadar "malformed".

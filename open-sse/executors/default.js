@@ -244,13 +244,19 @@ export class DefaultExecutor extends BaseExecutor {
       const endpoint = url || this.buildUrl(model, stream, 0, credentials);
       isOfficialAnthropic = new URL(endpoint).hostname === "api.anthropic.com";
     } catch { /* No valid endpoint: do not forward client identity. */ }
-    if (this.provider === "claude" && isOfficialAnthropic) {
+    if ((this.provider === "claude" || this.provider === "anthropic") && isOfficialAnthropic) {
       const blocked = rejectedBetaFlags(credentials);
-      const configured = model ? selectAnthropicBeta(model, body, blocked) : headers["Anthropic-Beta"] || headers["anthropic-beta"] || "";
+      // Native API keys retain their API feature defaults, without acquiring the
+      // OAuth/Claude Code product profile used by selectAnthropicBeta(). Caller
+      // capability betas still travel with the body fields that require them.
+      const configured = this.provider === "claude" && model ? selectAnthropicBeta(model, body, blocked)
+        : headers["Anthropic-Beta"] || headers["anthropic-beta"] || "";
       const incoming = this.readClientHeader(credentials, "anthropic-beta");
-      const flags = new Set(configured.split(",").map(flag => flag.trim()).filter(Boolean));
-      for (const flag of typeof incoming === "string" ? incoming.split(",") : []) {
+      const incomingValue = Array.isArray(incoming) ? incoming.join(",") : incoming;
+      const flags = new Set(configured.split(",").map(flag => flag.trim()).filter(flag => flag && !blocked?.has(flag)));
+      for (const flag of typeof incomingValue === "string" ? incomingValue.split(",") : []) {
         const value = flag.trim();
+        if (this.provider === "anthropic" && (value.startsWith("claude-code-") || value.startsWith("oauth-"))) continue;
         if (/^[a-z0-9][a-z0-9-]*-(?:\d{8}|\d{4}-\d{2}-\d{2})$/.test(value)
           && !blocked?.has(value)
           && !(body?.thinking?.display === "summarized" && value === "redact-thinking-2026-02-12")) flags.add(value);
@@ -259,7 +265,7 @@ export class DefaultExecutor extends BaseExecutor {
       headers["Anthropic-Beta"] = [...flags].join(",");
 
       // Session identity is request-local, never stored on pooled credentials.
-      if (credentials.accessToken && !credentials.apiKey) {
+      if (this.provider === "claude" && credentials.accessToken && !credentials.apiKey) {
         let sessionId = normalizeSessionId(this.readClientHeader(credentials, "x-claude-code-session-id"));
         if (!sessionId) {
           try { sessionId = normalizeSessionId(JSON.parse(body?.metadata?.user_id || "null")?.session_id); }
@@ -332,6 +338,8 @@ export class DefaultExecutor extends BaseExecutor {
   // different subscriptions don't share each other's entitlements.
   async execute(options) {
     const result = await super.execute(options);
+    // Native API-key callers own explicit capability betas and their matching
+    // body fields. Return rejections unchanged so the client can adapt the pair.
     if (this.provider !== "claude" || result.response.status !== HTTP_STATUS.BAD_REQUEST) return result;
 
     let bodyText;

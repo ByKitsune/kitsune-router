@@ -1,9 +1,11 @@
 import { CLAUDE_TOOL_SUFFIX } from "../config/appConstants.js";
 import { compressSingleToolName } from "./toolCompressor.js";
+import { CLAUDE_BLOCK } from "../translator/schema/blocks.js";
+import { getClaudeToolReferenceNames, renameClaudeToolReferences } from "./claudeToolReferences.js";
 
 /**
  * Apply request-local client tool aliases before sending to Claude:
- * - Rename client tools with the CLAUDE_TOOL_SUFFIX ("_ide") in tools[] and messages[]
+ * - Rename client tools and deferred references with the CLAUDE_TOOL_SUFFIX ("_ide")
  * - Skip tools that carry a `type` (server-side built-ins) — sent as-is
  * Returns { body, toolNameMap } where toolNameMap maps suffixed → original
  * @param {object} body - Claude API request body
@@ -22,7 +24,10 @@ export function cloakClaudeTools(body) {
   for (const message of body.messages || []) {
     if (!Array.isArray(message.content)) continue;
     for (const block of message.content) {
-      if (block.type === "tool_use" && !declaredClientNames.has(block.name)) usedNames.add(block.name);
+      if (block.type === CLAUDE_BLOCK.TOOL_USE && !declaredClientNames.has(block.name)) usedNames.add(block.name);
+      for (const name of getClaudeToolReferenceNames(block)) {
+        if (!declaredClientNames.has(name)) usedNames.add(name);
+      }
     }
   }
   const clientDeclarations = [];
@@ -54,9 +59,10 @@ export function cloakClaudeTools(body) {
   // Historical and server-owned tools outside this request's map stay exact.
   const renamedMessages = body.messages?.map(msg => {
     if (!Array.isArray(msg.content)) return msg;
-    const renamedContent = msg.content.map(block =>
-      block.type === "tool_use" && clientAliases.has(block.name) ? { ...block, name: clientAliases.get(block.name) } : block
-    );
+    const renamedContent = msg.content.map(block => {
+      if (block.type === CLAUDE_BLOCK.TOOL_USE && clientAliases.has(block.name)) return { ...block, name: clientAliases.get(block.name) };
+      return renameClaudeToolReferences(block, clientAliases);
+    });
     return { ...msg, content: renamedContent };
   });
 
@@ -79,14 +85,15 @@ export function cloakClaudeTools(body) {
   };
 }
 
-// Decloak tool_use names in non-streaming Claude response body (INPUT side)
+// Restore callable tool names and deferred references in native JSON responses.
 export function decloakToolNames(body, toolNameMap) {
   if (!toolNameMap?.size || !Array.isArray(body?.content)) return body;
   let changed = false;
   const content = body.content.map(block => {
-    if (block?.type !== "tool_use" || !toolNameMap.has(block.name)) return block;
-    changed = true;
-    return { ...block, name: toolNameMap.get(block.name) };
+    const renamed = block?.type === CLAUDE_BLOCK.TOOL_USE && toolNameMap.has(block.name)
+      ? { ...block, name: toolNameMap.get(block.name) } : renameClaudeToolReferences(block, toolNameMap);
+    if (renamed !== block) changed = true;
+    return renamed;
   });
   return changed ? { ...body, content } : body;
 }
@@ -97,9 +104,9 @@ export function decloakToolNames(body, toolNameMap) {
  * Streaming counterpart of decloakToolNames(). Required for claude→claude
  * proxying: translateResponse() returns same-format chunks untouched, so
  * without this the client receives the cloaked ("_ide"-suffixed) tool name
- * and rejects the call as an unknown tool. In a Claude SSE stream a tool
- * name appears exactly once per call — on the content_block_start event of
- * a tool_use block; argument deltas carry no name.
+ * and rejects the call as an unknown tool. Callable tool names and server-search
+ * references arrive in content_block_start events; argument deltas carry no
+ * protocol tool names.
  *
  * Only names present in the request-local map are changed. A literal suffix is
  * not evidence of cloaking; unrecognized native tool names remain exact.
@@ -112,8 +119,7 @@ export function decloakStreamChunk(chunk, toolNameMap) {
   if (!chunk || typeof chunk !== "object") return chunk;
   if (chunk.type !== "content_block_start") return chunk;
   const block = chunk.content_block;
-  if (block?.type !== "tool_use" || typeof block.name !== "string") return chunk;
-  const original = toolNameMap?.get(block.name);
-  if (!original) return chunk;
-  return { ...chunk, content_block: { ...block, name: original } };
+  const renamed = block?.type === CLAUDE_BLOCK.TOOL_USE && toolNameMap?.has(block.name)
+    ? { ...block, name: toolNameMap.get(block.name) } : renameClaudeToolReferences(block, toolNameMap);
+  return renamed === block ? chunk : { ...chunk, content_block: renamed };
 }

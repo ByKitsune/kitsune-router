@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { FORMATS } from "../translator/formats.js";
-import { RESPONSES_ITEM } from "../translator/schema/index.js";
+import { CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
+import { getClaudeToolReferenceNames, renameClaudeToolReferences } from "./claudeToolReferences.js";
 
 /**
  * Maximum function/tool name length supported across providers (Gemini, Vertex, OpenAI).
@@ -10,7 +11,7 @@ export const MAX_TOOL_NAME_LENGTH = 64;
 
 /**
  * Compress tool name to <= 64 characters using first 55 characters + "_" + 8-char MD5 hash.
- * Guaranteed deterministic and non-colliding for tools sharing the same prefix.
+ * Deterministic candidate; request-level allocation avoids existing wire names.
  */
 export function compressSingleToolName(name) {
   if (!name || typeof name !== "string" || name.length <= MAX_TOOL_NAME_LENGTH) {
@@ -41,13 +42,38 @@ export function compressToolNames(sourceFormat, body) {
     if (isClaude || !t.function) return { ...t, name };
     return { ...t, function: { ...t.function, name } };
   };
+  // The common case needs no history scan when every declaration already fits.
+  if (!tools.some(tool => {
+    const name = getToolName(tool);
+    return typeof name === "string" && name.length > MAX_TOOL_NAME_LENGTH;
+  })) return { body, toolNameMap: null };
+
+  // A generated short name must not capture a declared tool or an unchanged
+  // historical identity, including references returned by deferred tool search.
+  const usedNames = new Set(tools.map(getToolName));
+  for (const message of body.messages || []) {
+    if (Array.isArray(message.content)) for (const block of message.content) {
+      if (block?.type === CLAUDE_BLOCK.TOOL_USE) usedNames.add(block.name);
+      for (const name of getClaudeToolReferenceNames(block)) usedNames.add(name);
+    }
+    if (Array.isArray(message.tool_calls)) for (const call of message.tool_calls) usedNames.add(call.function?.name);
+    if (message.role === "tool") usedNames.add(message.name);
+  }
 
   const newTools = tools.map((tool) => {
     const originalName = getToolName(tool);
     if (!originalName || typeof originalName !== "string" || originalName.length <= MAX_TOOL_NAME_LENGTH) {
       return tool;
     }
-    const shortName = compressSingleToolName(originalName);
+    let shortName = originalToShort.get(originalName);
+    if (!shortName) {
+      let attempt = 0;
+      do {
+        shortName = compressSingleToolName(`${originalName}${attempt ? `_${attempt}` : ""}`);
+        attempt++;
+      } while (usedNames.has(shortName));
+      usedNames.add(shortName);
+    }
     shortToOriginal.set(shortName, originalName);
     originalToShort.set(originalName, shortName);
     return setToolName(tool, shortName);
@@ -68,10 +94,12 @@ export function compressToolNames(sourceFormat, body) {
         const newContent = msg.content.map((block) => {
           if (block && typeof block === "object") {
             // tool_use
-            if (block.type === "tool_use" && originalToShort.has(block.name)) {
+            if (block.type === CLAUDE_BLOCK.TOOL_USE && originalToShort.has(block.name)) {
               contentChanged = true;
               return { ...block, name: originalToShort.get(block.name) };
             }
+            const renamed = renameClaudeToolReferences(block, originalToShort);
+            if (renamed !== block) { contentChanged = true; return renamed; }
           }
           return block;
         });
