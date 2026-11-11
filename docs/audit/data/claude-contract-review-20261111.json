@@ -1,0 +1,2170 @@
+{
+  "captured_at": "2026-11-11T19:07:49.766547+00:00",
+  "official_repository": {
+    "url": "https://github.com/anthropics/claude-code",
+    "sha": "e379c8eca0af5b02a49bf8e784aeefdd1308de6f",
+    "tracked_files": 1488,
+    "extensions": {
+      ".json": 20,
+      ".md": 22,
+      "<none>": 11,
+      ".sh": 6,
+      ".yml": 20,
+      ".yaml": 1,
+      ".py": 2,
+      ".ps1": 2,
+      ".gif": 1,
+      ".example": 4,
+      ".tf": 8,
+      ".mobileconfig": 1,
+      ".plist": 1,
+      ".admx": 1,
+      ".adml": 1,
+      ".xml": 1,
+      ".ts": 1365,
+      ".tsx": 21
+    }
+  },
+  "documents": [
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/thinking.md",
+      "file": "thinking.md",
+      "sha256": "914152720ced4e22f9a695dd356057d1238b4ac15cc63b9dc6887a39297ff2aa",
+      "bytes": 89830,
+      "lines": 1331,
+      "captured_at": "2026-11-11T19:06:25.873300+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md",
+      "file": "extended-thinking.md",
+      "sha256": "3c7d00134b5c61cd1462c2952e5f7ec4b2724a8f5a420a7a905fa3bceed2efb8",
+      "bytes": 23962,
+      "lines": 438,
+      "captured_at": "2026-11-11T19:06:12.289658+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking.md",
+      "file": "preserved-thinking.md",
+      "sha256": "42c7fe2cb24764274b93c202992d2bd4d614cd3e8989efd70a83cf823cd7a64e",
+      "bytes": 138848,
+      "lines": 1678,
+      "captured_at": "2026-11-11T19:06:46.393141+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/streaming.md",
+      "file": "streaming.md",
+      "sha256": "bb9929385e0c18cf2a7281351ba3f29a3542d1b6f356f504c8d685409a514514",
+      "bytes": 55198,
+      "lines": 1581,
+      "captured_at": "2026-11-11T19:06:16.765613+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/messages/create.md",
+      "file": "messages-create.md",
+      "sha256": "4ea7ff6fa5b3c34fb9fa9bc873304272884c8c1fe069a1669bb9868472a6cdbd",
+      "bytes": 143778,
+      "lines": 4568,
+      "captured_at": "2026-11-11T19:06:26.465517+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/messages.md",
+      "file": "messages.md",
+      "sha256": "23efc2028002af616dda9a879a92d4e8cc0e96ea1aee9059529ee097b1df1928",
+      "bytes": 1305799,
+      "lines": 45074,
+      "captured_at": "2026-11-11T19:06:47.013134+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/messages",
+      "file": "messages.html",
+      "sha256": "629b06ee8412c31a172d4371454b4d0b08c58b7be11365096edb85370ed79b35",
+      "bytes": 8542480,
+      "lines": 132,
+      "captured_at": "2026-11-11T19:06:19.021591+00:00"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway.md",
+      "file": "llm-gateway.md",
+      "sha256": "0e859ef81b786b71bfa8c31cdadae66cf5ae9d006e1519058b05ff127f81426f",
+      "bytes": 7734,
+      "lines": 58,
+      "captured_at": "2026-11-11T19:06:16.392272+00:00"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway-connect.md",
+      "file": "llm-gateway-connect.md",
+      "sha256": "db042ee2e20a79089a604bf428403da0429a5894f62ccdc355241d91c8ffe9a0",
+      "bytes": 46218,
+      "lines": 537,
+      "captured_at": "2026-11-11T19:06:46.669805+00:00"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway-protocol.md",
+      "file": "llm-gateway-protocol.md",
+      "sha256": "85373bf3f6b6a9a0c8b38a5abd3820e27bd89ef6e755146957eea9f7a2a1807e",
+      "bytes": 53084,
+      "lines": 383,
+      "captured_at": "2026-11-11T19:06:46.528938+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages.md",
+      "file": "mid-conversation-system-messages.md",
+      "sha256": "c0ab688bd9606d769ee6a1917116f5484f5911420b12cfac4b7598beeba968b8",
+      "bytes": 117757,
+      "lines": 2432,
+      "captured_at": "2026-11-11T19:07:59.548357+00:00"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/beta-headers.md",
+      "file": "beta-headers.md",
+      "sha256": "a5eaed2894dee4da4dc9f80f7e58383e53545b42eea69f9aa780c7048280245d",
+      "bytes": 9991,
+      "lines": 237,
+      "captured_at": "2026-11-11T19:07:59.792411+00:00"
+    }
+  ],
+  "kitsune_base": "7f33c4db098e4e84d07314465293fdcd80ac44d6",
+  "upstream": {
+    "url": "https://github.com/decolua/9router",
+    "ref": "upstream/master",
+    "sha": "54a88d0498ffea4e52576950235562ea420dc761"
+  },
+  "markdown_review": {
+    "file_count": 239,
+    "scope": "All repository Markdown/MDX files before this audit, excluding .git and installed node_modules; includes two ignored historical plans. Team full-text reading, not a claim of auditing every executable source file.",
+    "files": [
+      {
+        "path": ".agents/product-marketing.md",
+        "reader": "root",
+        "bytes": 3229,
+        "lines": 43,
+        "sha256": "a98fca2d94dfd6c6b249eab0de158bdcb476b3a85a3b8cfa923eda7b6fe57f25",
+        "tracked_at_base": true
+      },
+      {
+        "path": "CHANGELOG.md",
+        "reader": "docs_history team",
+        "bytes": 254653,
+        "lines": 2038,
+        "sha256": "a62fb24ff16a97baa57f4e02d181889754bcf0ed0abaf7a9b8bec287fca343b6",
+        "tracked_at_base": true
+      },
+      {
+        "path": "CLAUDE.md",
+        "reader": "docs_history team",
+        "bytes": 23315,
+        "lines": 149,
+        "sha256": "9a97ecbd2ea9749fe16a73416ec002d2eb445347ef4402c1ffc31a0dacf77b06",
+        "tracked_at_base": true
+      },
+      {
+        "path": "DOCKER.md",
+        "reader": "docs_history team",
+        "bytes": 13782,
+        "lines": 176,
+        "sha256": "6ac5bae8393412b4f36155f7d4e63f7726e3b87d2ae4ec62791c8b1f6b650ce2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "DOCKER_README.md",
+        "reader": "docs_history team",
+        "bytes": 7345,
+        "lines": 55,
+        "sha256": "9a7ad130e69d1a29eecfeea9b8d50240b8c93022eb5aa7bd656c47dc0ea8bdd0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "README.md",
+        "reader": "docs_history team",
+        "bytes": 12247,
+        "lines": 172,
+        "sha256": "28330c4e1043419bb0d73267a762a62768e43d64263f4f405529a38021c258e7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "README.zh-CN.md",
+        "reader": "docs_integration team",
+        "bytes": 10122,
+        "lines": 101,
+        "sha256": "59969a934ff5b692d11bb38557b56685fb401fb639a7bbd2cf348f4215fb44ba",
+        "tracked_at_base": true
+      },
+      {
+        "path": "SECURITY.md",
+        "reader": "docs_history team",
+        "bytes": 1823,
+        "lines": 34,
+        "sha256": "f32aec09f770ef8cf9c0ce313ca3d59cda414db06260a8c3b40a2d0ac86d5118",
+        "tracked_at_base": true
+      },
+      {
+        "path": "cli/README.md",
+        "reader": "docs_history team",
+        "bytes": 6262,
+        "lines": 123,
+        "sha256": "ef9e051c2baf893f263809e6c2331a700bbfd42590a1d5d5ddf6a8c411f778df",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/ARCHITECTURE.md",
+        "reader": "docs_history team",
+        "bytes": 67694,
+        "lines": 795,
+        "sha256": "fd3cec58f71cc54729bfa3e4b2b4148097cf944698387c44d75a352a1f43c8ef",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/BRAND.md",
+        "reader": "docs_history team",
+        "bytes": 5693,
+        "lines": 92,
+        "sha256": "d7aa59c84d1ba03900cd594e5d9388c924e80cd3e6e1369f6c4d7b36c70ad2d7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.10.md",
+        "reader": "docs_history team",
+        "bytes": 10289,
+        "lines": 201,
+        "sha256": "04a75d01a92d8b00920e9be75a70bd3dad3e48bd417a80e8330100a82de7a56e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.11.md",
+        "reader": "docs_history team",
+        "bytes": 10637,
+        "lines": 89,
+        "sha256": "410546a601df287ab875a0fae91a2c672be059c4fa41698ad360ca690d0e671f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.12.md",
+        "reader": "docs_history team",
+        "bytes": 4880,
+        "lines": 79,
+        "sha256": "c46ab292f86ac9049b48a480b202dcd65a96d69d45a50bd93b74900cda144c10",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.13.md",
+        "reader": "docs_history team",
+        "bytes": 3848,
+        "lines": 64,
+        "sha256": "7f0484de722289501c6fd41b37d67ea7b1f2a864ece597305dec825376d96566",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.5.md",
+        "reader": "docs_history team",
+        "bytes": 6880,
+        "lines": 109,
+        "sha256": "13ae9260897595be9365c6551e1f6add3e3d5297524a7ebe865d05293af5bb1c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.6.md",
+        "reader": "docs_history team",
+        "bytes": 2851,
+        "lines": 58,
+        "sha256": "848df21a7c3cc96798a78269f896e81fe4a2db26d9f164211b7c1338b34dd05d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.7.md",
+        "reader": "docs_history team",
+        "bytes": 11194,
+        "lines": 83,
+        "sha256": "1255099323adfd594f174b0eb3572ea331ca8bc9b5b83228c9b7d6b7dd73efbb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.8.md",
+        "reader": "docs_history team",
+        "bytes": 8985,
+        "lines": 137,
+        "sha256": "b842eefe25dcd54c435d11accff8b8068989ee37d72cba690e93e88d6412cf35",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v0.9.9.md",
+        "reader": "docs_history team",
+        "bytes": 24060,
+        "lines": 408,
+        "sha256": "99228901800ee97c4de8b0e3970bcfe1524cef7a6644b3f339a48be8c134565f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.0.md",
+        "reader": "docs_history team",
+        "bytes": 6076,
+        "lines": 46,
+        "sha256": "52c7a6b398b74f8b60496d2fe64f5f5673cf65a4f60425310e97d23f8717563f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.1.md",
+        "reader": "docs_history team",
+        "bytes": 6753,
+        "lines": 60,
+        "sha256": "3e8d3ff626e20641670b4e07ce8d1ea568c51a1c9fb7f3be5d0cd558bf22ff92",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.2.md",
+        "reader": "docs_history team",
+        "bytes": 12632,
+        "lines": 95,
+        "sha256": "d0fffd3cbadb4ed637c1bdf5d46fe6a51ea4d2ff1bf7dc92ba7a6bb070b8f2f0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.5.md",
+        "reader": "docs_history team",
+        "bytes": 5298,
+        "lines": 87,
+        "sha256": "e80a6772f85a9c25a5732f87dfefde13718ecc103583e7e438a9175e9b60ea72",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.6.md",
+        "reader": "docs_history team",
+        "bytes": 9040,
+        "lines": 148,
+        "sha256": "b121fbfcebf3ed8bd1b418ddc1996af615c89f1a74db3b949e3e22d6035ee42e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.7.md",
+        "reader": "docs_history team",
+        "bytes": 3793,
+        "lines": 61,
+        "sha256": "5eca8836c5e2d029181ccc868c3c9a28ee0d24549b63aae4895387ce096c155b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CHANGELOG_v1.0.8.md",
+        "reader": "docs_history team",
+        "bytes": 7211,
+        "lines": 115,
+        "sha256": "24bbbf89d4be24461a5d7b093f2488755c28f6e6feb666b1524b9fb736a2d43c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/CLIENT-MODEL-RECONCILIATION.md",
+        "reader": "docs_history team",
+        "bytes": 18846,
+        "lines": 177,
+        "sha256": "c21228fa24b8ab211352270c3fc736e5a8ca236b5353e574561c1c3d83ca73e7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/INSTALLATION.md",
+        "reader": "docs_history team",
+        "bytes": 10855,
+        "lines": 142,
+        "sha256": "5ba3973d344da151a5eadc6cb4f153b3985bee1868da57b10cd795ab8b80454c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/INTEGRATIONS.md",
+        "reader": "docs_history team",
+        "bytes": 6020,
+        "lines": 136,
+        "sha256": "6eccbcb7d2d7a6aec1339e920efc8ca1c879a2168af7ac9b593d53235b16746e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/MIGRATION.md",
+        "reader": "docs_history team",
+        "bytes": 7949,
+        "lines": 125,
+        "sha256": "2354bef43c7850e57b090417fddeb714c2e8f33e04dd894840b29eca9a285591",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/OPERATIONS.md",
+        "reader": "docs_history team",
+        "bytes": 12447,
+        "lines": 101,
+        "sha256": "562f4fcbbaf3a14443b786159f4e150d397b5d4622d548b5ad3d567e97badf17",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/PROCESSING-SPEED.md",
+        "reader": "docs_history team",
+        "bytes": 9555,
+        "lines": 183,
+        "sha256": "3882083bebfa47cf0d4e0bef7ef082cce655215e05c62cde612fb6986035034f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/REASONING-BUDGETS.md",
+        "reader": "docs_history team",
+        "bytes": 8697,
+        "lines": 77,
+        "sha256": "7d81224d892e2483770383bdd65a10843afffa51d4acedd156a83f2e8f03d419",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/REBRANDING.md",
+        "reader": "docs_history team",
+        "bytes": 23194,
+        "lines": 344,
+        "sha256": "e82f3e713aff885b82a619ceef6c0c26039985ee0da0c4682b4e8e5dec2ad251",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/UI-DESIGN.md",
+        "reader": "docs_history team",
+        "bytes": 7659,
+        "lines": 146,
+        "sha256": "f2cc5707c24e123b9cc241f736102ce42d5bd2d95f6ff94368fa36af1b9cb25f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/WEB-SEARCH.md",
+        "reader": "docs_history team",
+        "bytes": 4883,
+        "lines": 68,
+        "sha256": "6ef87ffad417cacb83b0aeddc819e5d28f14af9b6fe754292a226ce93c06b66f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/antigravity-location-error.md",
+        "reader": "docs_history team",
+        "bytes": 4432,
+        "lines": 71,
+        "sha256": "8058e8615664ec1ebdf4f01ebc8d96f5b5c07aa0a91de1775cb7ef722a7545de",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/01-open-sse-engine.md",
+        "reader": "docs_history team",
+        "bytes": 75625,
+        "lines": 955,
+        "sha256": "811a33be71c6fb503a90063dad8916ddd1c5bef4f8e5328b3f0ef10013df082c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/02-persistence-and-data-model.md",
+        "reader": "docs_history team",
+        "bytes": 37363,
+        "lines": 542,
+        "sha256": "4af3a4d0a1852f472ebec961f080e815c0699f512317bbcccae36075c9fead93",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/03-app-surface-and-request-flow.md",
+        "reader": "docs_history team",
+        "bytes": 68834,
+        "lines": 907,
+        "sha256": "e0ca626c404e9145293ad3b153e3f90034d416ed33e5935587e7771923c3503b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/04-security-audit.md",
+        "reader": "docs_history team",
+        "bytes": 25337,
+        "lines": 351,
+        "sha256": "957382dcc93645505419bf06468c63e41dd5e21b57be21d62b190221ef2949f2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/05-cli-tests-and-tooling.md",
+        "reader": "docs_history team",
+        "bytes": 12430,
+        "lines": 204,
+        "sha256": "be657d0b05ea41ee922a167f9d2720bf2cbfc9fc6d5b58b61b8f7045881f4529",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/06-findings-and-recommendations.md",
+        "reader": "docs_history team",
+        "bytes": 10660,
+        "lines": 99,
+        "sha256": "65dca5af5d80fa956eaefffcbb6f49e8d70fd3eeb259cb33bd5b1d475d97c160",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/07-upstream-sync-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 24054,
+        "lines": 191,
+        "sha256": "6c0a1dd7b892fe8d1118e25b0b62a669e42702e9eeb05c898c9add482855fd32",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/08-p07-responses-and-tool-calling.md",
+        "reader": "docs_history team",
+        "bytes": 5719,
+        "lines": 97,
+        "sha256": "1856abc7a8f10a84868627b5b15cfaeda95b278462cef001e367b476c8306af5",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/09-p09-model-coverage.md",
+        "reader": "docs_history team",
+        "bytes": 7601,
+        "lines": 110,
+        "sha256": "495435dc1cdb4771f772c972325aba4add51ed6e350ffed17e7712cb931d1d9f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/10-alerting-recommendations.md",
+        "reader": "docs_history team",
+        "bytes": 5202,
+        "lines": 87,
+        "sha256": "8c0fbc5b6996a8315223aedae9b1675ee8b0436d804248f566b60403d54f7a1d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/11-audit-response-consolidated.md",
+        "reader": "docs_history team",
+        "bytes": 23960,
+        "lines": 464,
+        "sha256": "a628cf6928fdd5a0b86416e87838c0ecbac83650b8ebab874c6163e78a80e5e8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/12-model-lifecycle-audit.md",
+        "reader": "docs_history team",
+        "bytes": 19181,
+        "lines": 239,
+        "sha256": "3a74ebc0ea6b4918ebc691bcd69b094dbb52096467ecd8ba83dbc964af177aea",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/13-security-wave-2026-10-18.md",
+        "reader": "docs_history team",
+        "bytes": 5223,
+        "lines": 80,
+        "sha256": "cc244ebe18cb2bf3eef79f20f6724b3af982d283a9036cde4fa19949cda5cf84",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/14-vision-catalog-follow-up-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 13787,
+        "lines": 236,
+        "sha256": "9de7feaed5087bf087bc1ec55dd95d7fc575136f4fed1c735c55f67015406ded",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/15-thinking-speed-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 6663,
+        "lines": 112,
+        "sha256": "607db06a0746c505c7eaae6a139c5e3720f1dcd5b55f5862fbe70a5dbd33a1c4",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/16-antigravity-upstream-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 11282,
+        "lines": 186,
+        "sha256": "9bf8fa78fdc39f40dba483fa8adb6738181255aba5c145a6a7974f6472ca5aa8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/17-october-reconciliation-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 14081,
+        "lines": 209,
+        "sha256": "cba93ccb69be84a2b86dcfb9697f8167747dcb4fd1d1901529768e25e7db6c75",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/18-client-model-pricing-refresh-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 16021,
+        "lines": 262,
+        "sha256": "39b97c8840a64fd4cdf5b15ec7aa824fbd8d4316951c21d06813f39489768938",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/19-public-contract-audit-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 25043,
+        "lines": 300,
+        "sha256": "7f8e840ad7e12b7ae2ae8b18c84784380b85fa73ad3bbffb1a2224a55dcde4c2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/20-fetch-transport-recovery-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 5139,
+        "lines": 94,
+        "sha256": "b927af933ab5bb54f1e3edde0538e855146ea17ca3c29421955a56abb60c3a74",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/2026-11-06-runtime-routing.md",
+        "reader": "docs_history team",
+        "bytes": 1840,
+        "lines": 15,
+        "sha256": "887b1afa47ae73e43cfd204bbbce4bc4471d9674a07ae7f400f84c57c8cb5ba2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/2026-11-07-source-installer-and-reasoning.md",
+        "reader": "docs_history team",
+        "bytes": 3078,
+        "lines": 52,
+        "sha256": "303a370873afb5116c584f5ae93c978a4d410e56f407ce8664f22d04dc048fd8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/2026-11-08-pr9-review.md",
+        "reader": "docs_history team",
+        "bytes": 4252,
+        "lines": 75,
+        "sha256": "a262491e5e17c69028f54dfc0b0830d836dff63be64f2d1fdf843c61dbd07499",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/21-upstream-9router-2026-10-29.md",
+        "reader": "docs_history team",
+        "bytes": 11554,
+        "lines": 151,
+        "sha256": "edc9985a355cf8429b64d0abf7bccc77d96dd4fc57ec166a8157bbf791a66a63",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/22-pricing-capability-localization-2026-10.md",
+        "reader": "docs_history team",
+        "bytes": 30372,
+        "lines": 390,
+        "sha256": "f450c2bd30c117e2fc22c37c9d86a9fc5d2acb2ea2a9b8cdb608984073feba0d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/23-upstream-stability-and-translator-latency-2026-10-31.md",
+        "reader": "docs_history team",
+        "bytes": 12399,
+        "lines": 208,
+        "sha256": "9476bb76e371299a8b6569d1386b51e5182d3bb021e22423c621b4ebffc80909",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/24-recorded-pricing-accuracy-and-dashboard-motion-2026-10-31.md",
+        "reader": "docs_history team",
+        "bytes": 9165,
+        "lines": 151,
+        "sha256": "f79556bc4f5e57bce6ae3d7e5a591ace1771dc6b37ba4524e451c383a238420e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/25-client-compatibility-and-catalog-sync-2026-10-31.md",
+        "reader": "docs_history team",
+        "bytes": 12760,
+        "lines": 213,
+        "sha256": "996c8540b0f4743f7fd0b6b4674888910d38495da9b6b0ee6a9fff4645855e52",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/26-security-stability-and-1.0.5-closing-2026-10-31.md",
+        "reader": "docs_history team",
+        "bytes": 12209,
+        "lines": 199,
+        "sha256": "468b8e4b81e8dedd354a60bdd23e14760b9f70ec08220dceda535ef922733d8f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/27-dependency-upgrade-and-ci-repair-2026-10-31.md",
+        "reader": "docs_history team",
+        "bytes": 13076,
+        "lines": 216,
+        "sha256": "c5dff31b7f44cdc39ecc69fde189fd79613e4134656bc9e468a83ca3d4da65b7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/28-cli-sqljs-fallback-2026-11-01.md",
+        "reader": "docs_history team",
+        "bytes": 2032,
+        "lines": 37,
+        "sha256": "9c25fd1a2da8cf7bfb71055f59b4fa8cf91963449bad54d3de2ec032c292c71c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/29-upstream-account-request-consistency-2026-11-03.md",
+        "reader": "docs_history team",
+        "bytes": 7971,
+        "lines": 92,
+        "sha256": "fcd8271e8d444557ac8f97f5b8eb541fe4086bd4037a76f8baef30e1634d7929",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/30-provider-request-safety-and-catalog-refresh-2026-11-04.md",
+        "reader": "docs_history team",
+        "bytes": 9799,
+        "lines": 149,
+        "sha256": "e5ab11b6ac324cc28417de1cf4c9b1c1831dfefa015e568be4b5808b6b85ddef",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/31-translator-performance-and-upstream-followup-2026-11-04.md",
+        "reader": "docs_history team",
+        "bytes": 10598,
+        "lines": 174,
+        "sha256": "f4e44073432302be8a3d78513d5fbd980b0eab62bd0306db95f80581630774e9",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/32-pr6-codex-entitlement-and-106-readiness-2026-11-05.md",
+        "reader": "docs_history team",
+        "bytes": 13627,
+        "lines": 194,
+        "sha256": "c2a1e37d229f5486fd4c84c0d0ee94f5880d98f0f0fb403350c8c2d14b59e042",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md",
+        "reader": "docs_history team",
+        "bytes": 31900,
+        "lines": 482,
+        "sha256": "a5434206a269ff8387c6e88247d0929fa6a2ca8283237e19605362bb94b0bbff",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/README.md",
+        "reader": "docs_history team",
+        "bytes": 10515,
+        "lines": 171,
+        "sha256": "ee5ce728ac9558464b458fdb7953c3d27492356fd6b613f0863560e808bfc98d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/data/google-protocol-review-20261104.md",
+        "reader": "docs_history team",
+        "bytes": 12128,
+        "lines": 72,
+        "sha256": "57b2262c4b79be59685772b7ead0368d562f3d9f551e9ca6e7ce36ac2cdc9234",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/audit/data/kiro-official-auth-review-20261104.md",
+        "reader": "docs_history team",
+        "bytes": 7996,
+        "lines": 77,
+        "sha256": "6617aa3f3ee97992177433adab9dfa0fd329d918184f5bcbf652c06f4fddaa66",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/superpowers/plans/2026-08-02-gpt-5-6-codex-reasoning-overrides.md",
+        "reader": "docs_history team",
+        "bytes": 12558,
+        "lines": 330,
+        "sha256": "f7eda4e3f54041d8c7a1abfa23e7c9fdb75086b0a837234900a63b0d161dfbeb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "docs/superpowers/specs/2026-08-02-gpt-5-6-codex-reasoning-overrides-design.md",
+        "reader": "docs_history team",
+        "bytes": 5316,
+        "lines": 124,
+        "sha256": "7cc98cc8b1eafd3fb7f31d9d4237669f02bffcc35e017dbfb580e09092ead368",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/changelog.md",
+        "reader": "docs_integration team",
+        "bytes": 39642,
+        "lines": 366,
+        "sha256": "4eefbad65b90cb886165ad70d4f72a3f91d5ca2427da0cb1ee2613e3d832f580",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/deployment/cloud.md",
+        "reader": "docs_integration team",
+        "bytes": 4106,
+        "lines": 45,
+        "sha256": "6b1f52102361a12da8611c7fa0617b09f5a93ad61ed1ebb8db7a27fb583bbfd3",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/deployment/localhost.md",
+        "reader": "docs_integration team",
+        "bytes": 2940,
+        "lines": 36,
+        "sha256": "b173a0a6677490a56118c7fb443dfb43368a8803c7e585acb52002dd3423cba0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/faq.md",
+        "reader": "docs_integration team",
+        "bytes": 4334,
+        "lines": 44,
+        "sha256": "edeb2e07a83f1600b87af69c160beceb44a1cebfea6f60311606eb2d0f35adda",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/features/combos.md",
+        "reader": "docs_integration team",
+        "bytes": 1752,
+        "lines": 26,
+        "sha256": "716426df9e510716189e441e986cbb7c3b3262fc3c2611e28072ec25bba4555b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/features/quota-tracking.md",
+        "reader": "docs_integration team",
+        "bytes": 5000,
+        "lines": 39,
+        "sha256": "e3b120b46899f6f2dca4554d952c372817aa1c09b2127dc92ba28fb07c6ef6ed",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/features/smart-routing.md",
+        "reader": "docs_integration team",
+        "bytes": 1792,
+        "lines": 25,
+        "sha256": "c48d98e2de8fbacbb56a502c69f3cc9326265de44e6e61c26ce938465ce747ba",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/getting-started/installation.md",
+        "reader": "docs_integration team",
+        "bytes": 5210,
+        "lines": 59,
+        "sha256": "ff639fb61d1852b54257497646e4b96db51ea828a94cd25262a44c81086fd20d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/getting-started/quick-start.md",
+        "reader": "docs_integration team",
+        "bytes": 3237,
+        "lines": 42,
+        "sha256": "313ee2df120ffce0c6d4b3d5fe04d42a479d0188bac411b794e03f0f53a09ba6",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/index.md",
+        "reader": "docs_integration team",
+        "bytes": 5548,
+        "lines": 54,
+        "sha256": "6308f8e53d792966d2e1d3bbd9ff0ffcd62483d66ee18e70a00c1a8ccef2498e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/claude-code.md",
+        "reader": "docs_integration team",
+        "bytes": 1715,
+        "lines": 23,
+        "sha256": "ce22c01e64bbf2a1e302300c7a75e42ca8a080485138a7967d1cd69f1add883d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/cline.md",
+        "reader": "docs_integration team",
+        "bytes": 1459,
+        "lines": 23,
+        "sha256": "d1be636d3618de0fcec501d31857e573811a8b371439cb104495c35e8611c13b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/codex.md",
+        "reader": "docs_integration team",
+        "bytes": 1867,
+        "lines": 33,
+        "sha256": "45d4a9ec3669b20c67a0c274b19b14261f3305751bec1c7a3b9f794267a8eb50",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/continue.md",
+        "reader": "docs_integration team",
+        "bytes": 1520,
+        "lines": 21,
+        "sha256": "fb30eb18590b4f6b488e9c464e059b2ca34f12acbef73fc88bc2747d5424075f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/cursor.md",
+        "reader": "docs_integration team",
+        "bytes": 1528,
+        "lines": 23,
+        "sha256": "9eb3e3e45b41fd629fa1cf4bf23ef5467fe7d1af7da99da0879f9335fbbd3242",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/other-tools.md",
+        "reader": "docs_integration team",
+        "bytes": 2077,
+        "lines": 47,
+        "sha256": "8c3ddd32ace478738cadeac5378d56910c3fef9fdba6eef2c3e6024908193b66",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/integration/roo.md",
+        "reader": "docs_integration team",
+        "bytes": 1451,
+        "lines": 21,
+        "sha256": "ad7ba065cb284cee663964fc7e7bb7e78e9ec82fb1aa2097aafa84b22e761cf4",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/providers/cheap.md",
+        "reader": "docs_integration team",
+        "bytes": 2095,
+        "lines": 24,
+        "sha256": "f4643bb6a49bf6245bc4e922fbd171436d511bd62ffc43c08ab9c5c44554d915",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/providers/free.md",
+        "reader": "docs_integration team",
+        "bytes": 1634,
+        "lines": 18,
+        "sha256": "02ed41c7d8e6911972199a3a4baab2a78d1804e50370a038a4d112bb61edecf2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/providers/subscription.md",
+        "reader": "docs_integration team",
+        "bytes": 1758,
+        "lines": 18,
+        "sha256": "c8c3a188fa25554882b7b46078c9a7eb1b88de9266afb962f32d0fbb2d92531c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/en/troubleshooting.md",
+        "reader": "docs_integration team",
+        "bytes": 5567,
+        "lines": 43,
+        "sha256": "8ae16b81af647da663e7e915c92ab0b32f37895bd3cc22e0d88292708693562c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/changelog.md",
+        "reader": "docs_integration team",
+        "bytes": 41289,
+        "lines": 365,
+        "sha256": "1cce0fe84324137479c87716537376d720c14c2f10618b3129a64c0c85c0acfe",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/deployment/cloud.md",
+        "reader": "docs_integration team",
+        "bytes": 3773,
+        "lines": 37,
+        "sha256": "d380793f6f7445a8cc5c26954e792894b05f76aacab67f6fc6d5ca83ad4f794a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/deployment/localhost.md",
+        "reader": "docs_integration team",
+        "bytes": 2860,
+        "lines": 22,
+        "sha256": "9bf89990f70c8d0666365926f4bdc1da13ea51892dd77447a20dbd49801884d0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/faq.md",
+        "reader": "docs_integration team",
+        "bytes": 3650,
+        "lines": 33,
+        "sha256": "dfc1088d19a6a2057963c239914a7f666bc4a9b8569f013a6a34d4d91e36aa40",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/features/combos.md",
+        "reader": "docs_integration team",
+        "bytes": 1203,
+        "lines": 22,
+        "sha256": "93025c125fbd9032efcad73444f8c2ed16db0dca91733cc7a855012c781507cb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/features/quota-tracking.md",
+        "reader": "docs_integration team",
+        "bytes": 3684,
+        "lines": 29,
+        "sha256": "3d5265ce7e77ce789ba174c2dfc44b45bd65d37f4869c6764b0dcd65d57b1c67",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/features/smart-routing.md",
+        "reader": "docs_integration team",
+        "bytes": 1279,
+        "lines": 20,
+        "sha256": "242a43aae7a622a08f9ff06af721b62e425ce40f73b241fec51e5d0d8f52ea54",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/getting-started/installation.md",
+        "reader": "docs_integration team",
+        "bytes": 4128,
+        "lines": 46,
+        "sha256": "9224ca46e3ed4aa351ec74b881a74e520c680b122a296ec816ea3d1402761d6c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/getting-started/quick-start.md",
+        "reader": "docs_integration team",
+        "bytes": 3130,
+        "lines": 30,
+        "sha256": "33e42135895440944a8800e728db7da03f4b522aa67fc02a2eb2d816e5b237b2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/index.md",
+        "reader": "docs_integration team",
+        "bytes": 4693,
+        "lines": 35,
+        "sha256": "8ab22a10459dcfffd1550af152959c975effde019eed70867a7823cf0234d782",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/claude-code.md",
+        "reader": "docs_integration team",
+        "bytes": 1176,
+        "lines": 19,
+        "sha256": "3b39ebe4745b03664579ef0fda000a54eb939b1b9b2ac338c5c7082a8bbaca17",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/cline.md",
+        "reader": "docs_integration team",
+        "bytes": 873,
+        "lines": 13,
+        "sha256": "06ed62223c4481b01bc0a458d575ad6e4abed94f7e4fca51383bd3863575653d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/codex.md",
+        "reader": "docs_integration team",
+        "bytes": 1316,
+        "lines": 22,
+        "sha256": "8ef7c80761b9cd0a3136ebd51623dc3e0f501fc93a653384ea2727e6230aecdb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/continue.md",
+        "reader": "docs_integration team",
+        "bytes": 960,
+        "lines": 15,
+        "sha256": "30de3477c9b51baf2446008109802214bbc11c6a24caeba42239d61870797fd7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/cursor.md",
+        "reader": "docs_integration team",
+        "bytes": 861,
+        "lines": 15,
+        "sha256": "90ef3217b325760b0c581b29f845371d4fd5136c25d4e14cafab184b5251a26c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/other-tools.md",
+        "reader": "docs_integration team",
+        "bytes": 1236,
+        "lines": 26,
+        "sha256": "1509d83cc690ad8adb3194832a13e79a5ed88550ecfb2d886f9702a254cc0680",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/integration/roo.md",
+        "reader": "docs_integration team",
+        "bytes": 940,
+        "lines": 15,
+        "sha256": "1a60bcaa9be5f97c405cd5bbc924023b0c44392939a87c8451c868cc343877ae",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/providers/cheap.md",
+        "reader": "docs_integration team",
+        "bytes": 1751,
+        "lines": 22,
+        "sha256": "d03116ba20633e08e09d40d0b4ae3a1d31bebf9f12fa0db68f150c747bed4fec",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/providers/free.md",
+        "reader": "docs_integration team",
+        "bytes": 1218,
+        "lines": 14,
+        "sha256": "63c0780a62cce4cd347caa05f51eea27e3f00a920bf15984856403e29539a8f6",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/providers/subscription.md",
+        "reader": "docs_integration team",
+        "bytes": 1340,
+        "lines": 16,
+        "sha256": "e47b79ef85505ae61ca933768144bd5d5b37134c50867884284bda649cb2d520",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/es/troubleshooting.md",
+        "reader": "docs_integration team",
+        "bytes": 4565,
+        "lines": 31,
+        "sha256": "a5816dc7119ccee7d146c4c21334bf25bf1ab67e1f862b84cee3d57b98d43885",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/changelog.md",
+        "reader": "docs_integration team",
+        "bytes": 47179,
+        "lines": 356,
+        "sha256": "e850a5573591fa69d58e4804aca401e6dc1b687a17e6ee32990b14dc9357ad17",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/deployment/cloud.md",
+        "reader": "docs_integration team",
+        "bytes": 3843,
+        "lines": 39,
+        "sha256": "05bc8bb34f69180bf9d821fa43f9633b81da29fdbbd728db34ebcd2c566db23d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/deployment/localhost.md",
+        "reader": "docs_integration team",
+        "bytes": 2831,
+        "lines": 24,
+        "sha256": "7ba810d468d70f97cc210cdadee67064f5887ff18f187ce8ec9d34a0422bff67",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/faq.md",
+        "reader": "docs_integration team",
+        "bytes": 3641,
+        "lines": 33,
+        "sha256": "630f9105c4b7e5eebf1fc618988f1a496cfa346da1d26afd2d88a76e12ffbd4f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/features/combos.md",
+        "reader": "docs_integration team",
+        "bytes": 1465,
+        "lines": 22,
+        "sha256": "92f2aba479bcda63480b4bd0c02af32d352373a083c2be6af8088697bc99172d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/features/quota-tracking.md",
+        "reader": "docs_integration team",
+        "bytes": 4102,
+        "lines": 29,
+        "sha256": "ac9b48eb9a6072c63c02fc2f5bbba536889498401f3393e5cd420501e3727206",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/features/smart-routing.md",
+        "reader": "docs_integration team",
+        "bytes": 1581,
+        "lines": 20,
+        "sha256": "999c0910941604aaed8410d2b73a36df20b9e217229da4105516aa4c22d447bd",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/getting-started/installation.md",
+        "reader": "docs_integration team",
+        "bytes": 4311,
+        "lines": 46,
+        "sha256": "05fb8ca4a2515ec361af0d7aaaaad0785cbee8dd66021f1c2a84b6a0fe9fc996",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/getting-started/quick-start.md",
+        "reader": "docs_integration team",
+        "bytes": 3358,
+        "lines": 32,
+        "sha256": "855f3882896c956b551719ea6ffc662fbe9b39c8b47d350caad67bb04ae32862",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/index.md",
+        "reader": "docs_integration team",
+        "bytes": 4913,
+        "lines": 33,
+        "sha256": "eab36796bc4666e9ba3211023d286454d71f2d3bc12833428986e20fcc6ca9dc",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/claude-code.md",
+        "reader": "docs_integration team",
+        "bytes": 1397,
+        "lines": 19,
+        "sha256": "4a413bb58d19fe199fb992d8f976df6da073e6cfa62f35c5164d2a08fe9e8c12",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/cline.md",
+        "reader": "docs_integration team",
+        "bytes": 963,
+        "lines": 13,
+        "sha256": "3c4ca264eb02d7f6c6d23e7863a233233e94fa71a564fec1f7ebc2dc47469bb8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/codex.md",
+        "reader": "docs_integration team",
+        "bytes": 1477,
+        "lines": 22,
+        "sha256": "540491f737b6554a6bc3b18a143e19fe616d4915cfbdfc4a4359a4e11b8042a8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/continue.md",
+        "reader": "docs_integration team",
+        "bytes": 1077,
+        "lines": 15,
+        "sha256": "f8521f5354d7e9834b95e5239df63bda27efe04077586b1c395a7a7a110b0ea0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/cursor.md",
+        "reader": "docs_integration team",
+        "bytes": 978,
+        "lines": 15,
+        "sha256": "8d662a54132147c3f8b5fc726a942929ad7c99e0e777a969b4ad23c04500f50a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/other-tools.md",
+        "reader": "docs_integration team",
+        "bytes": 1408,
+        "lines": 26,
+        "sha256": "46ee04852d1ca0efd4480a5ec9c142ac0d43cd559d51aaa64613f33bf4a32d64",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/integration/roo.md",
+        "reader": "docs_integration team",
+        "bytes": 1051,
+        "lines": 15,
+        "sha256": "0fe9143462fee8f69cf028577c31244e0cb5f7efdda784441b553a3d8f3b134f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/providers/cheap.md",
+        "reader": "docs_integration team",
+        "bytes": 2080,
+        "lines": 22,
+        "sha256": "aa6808c933a2c7dc4c1467bb38e650c9a41e1068c1f398218815288396c49f97",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/providers/free.md",
+        "reader": "docs_integration team",
+        "bytes": 1353,
+        "lines": 12,
+        "sha256": "b8019ec01f84401cd93ba5b80d984fab3b193056ac757254b8db1b3c25e7356b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/providers/subscription.md",
+        "reader": "docs_integration team",
+        "bytes": 1548,
+        "lines": 14,
+        "sha256": "daa16c6f22b7b44640f87e0d3d822428b8d35d467672a9af5205912bb12bd207",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/ja/troubleshooting.md",
+        "reader": "docs_integration team",
+        "bytes": 5268,
+        "lines": 34,
+        "sha256": "77f414466b6f9a909475bae20338cfe45ca75489e54cd96f11b94b05dd9d666f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/changelog.md",
+        "reader": "docs_integration team",
+        "bytes": 45223,
+        "lines": 358,
+        "sha256": "9717934df25129318d64a93d9fe36186b94693a2084af3b9ac554c9ef0bcf4ef",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/deployment/cloud.md",
+        "reader": "docs_integration team",
+        "bytes": 4016,
+        "lines": 37,
+        "sha256": "8fd367b290c8e7cc6aa164e0f3311f5dff5a90bb67b345c423fcf0c5c26132b8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/deployment/localhost.md",
+        "reader": "docs_integration team",
+        "bytes": 3115,
+        "lines": 22,
+        "sha256": "0dc1e1c8f9fad6b4ae748f96f2b49b723d2f6cf51143ea826618aa90b04d04fe",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/faq.md",
+        "reader": "docs_integration team",
+        "bytes": 4015,
+        "lines": 33,
+        "sha256": "66db11bfa98b3086d5aecd6e9aee8dcf120b2f55b07f9e4d6101158eba03b2a8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/features/combos.md",
+        "reader": "docs_integration team",
+        "bytes": 1300,
+        "lines": 22,
+        "sha256": "91286b417debc0af5391d7bf073d3ca1056fa4e11bcb2ae554a94e34121c2c46",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/features/quota-tracking.md",
+        "reader": "docs_integration team",
+        "bytes": 3986,
+        "lines": 29,
+        "sha256": "3a2c7bbf57d89331c5a68cdbb7eec3d9bfcea73a13d07e961959567789901757",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/features/smart-routing.md",
+        "reader": "docs_integration team",
+        "bytes": 1498,
+        "lines": 20,
+        "sha256": "d73033561d84494300de83f96d7d1930c6caf77eacec850fa30f7ff27f721b11",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/getting-started/installation.md",
+        "reader": "docs_integration team",
+        "bytes": 4393,
+        "lines": 46,
+        "sha256": "d910d1b30b7fa32077c274d6cdd098c5a83466c0391ba27a466bff5566024d48",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/getting-started/quick-start.md",
+        "reader": "docs_integration team",
+        "bytes": 3327,
+        "lines": 30,
+        "sha256": "60afbab99cdc758a526706955637333843f73f47cd3908c6fab6185474dee485",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/index.md",
+        "reader": "docs_integration team",
+        "bytes": 5090,
+        "lines": 35,
+        "sha256": "6068618795e85903a5754b2782bfe2543f8c4d662813f693c171eaddbbd6d377",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/claude-code.md",
+        "reader": "docs_integration team",
+        "bytes": 1213,
+        "lines": 19,
+        "sha256": "b1f647f2500846ca0351bbf239ad61c2a4df2147aec4b1146042807e9604a091",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/cline.md",
+        "reader": "docs_integration team",
+        "bytes": 879,
+        "lines": 13,
+        "sha256": "f8c70170020c9f7f03705e92b25ed5b39f45b0d1cbc4cf53b56b6101c1444232",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/codex.md",
+        "reader": "docs_integration team",
+        "bytes": 1341,
+        "lines": 22,
+        "sha256": "eedcf7e12bd25b737c32fd4c17aa7765e6eacb42236a7b40da5e8520ba4225f2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/continue.md",
+        "reader": "docs_integration team",
+        "bytes": 943,
+        "lines": 15,
+        "sha256": "b643ff3cc5c97fd041e5398bce7eede2e73da8e7a905b8dbe5f7788cf89b46f3",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/cursor.md",
+        "reader": "docs_integration team",
+        "bytes": 869,
+        "lines": 15,
+        "sha256": "2911bb9c2942f09b2797c5dade71c4811904ada05e6c58d4bc370f1811f014e2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/other-tools.md",
+        "reader": "docs_integration team",
+        "bytes": 1277,
+        "lines": 26,
+        "sha256": "4bc48c6454447b71b31c5daa26b6aaf08772db8dc6b01bbda93e48bcd9d46746",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/integration/roo.md",
+        "reader": "docs_integration team",
+        "bytes": 965,
+        "lines": 15,
+        "sha256": "fddbdc017ef5d53118635b435847d0323add2d144a7d76b83b2e46e2b7c9d03c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/providers/cheap.md",
+        "reader": "docs_integration team",
+        "bytes": 1866,
+        "lines": 22,
+        "sha256": "a007e82631ae9ed477c3a4845b6d47fdc65130aa318a222886b1bc42d5f50374",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/providers/free.md",
+        "reader": "docs_integration team",
+        "bytes": 1290,
+        "lines": 12,
+        "sha256": "c86262fe4761a9ddf90f434590d40429ad0decb7167d84b0416bc233c669d01d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/providers/subscription.md",
+        "reader": "docs_integration team",
+        "bytes": 1351,
+        "lines": 14,
+        "sha256": "33b56261358e957a467400bb7002b6a6f040f0635231d1546f00beb74700f2ab",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/vi/troubleshooting.md",
+        "reader": "docs_integration team",
+        "bytes": 4922,
+        "lines": 31,
+        "sha256": "d9f4ad6278ad41ad4203448cf91a21e714dbcad3341af1f1a1a1cd28ffd71b79",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/changelog.md",
+        "reader": "docs_integration team",
+        "bytes": 36231,
+        "lines": 340,
+        "sha256": "44622a618afdd64caf6d6e87907a3685fa1d2cc129ebd818b84aeab8f80620cd",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/deployment/cloud.md",
+        "reader": "docs_integration team",
+        "bytes": 3348,
+        "lines": 39,
+        "sha256": "c0e217299eeaae90151fe4237c096a6140b694c02671e9a20d896cf4c018eba1",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/deployment/localhost.md",
+        "reader": "docs_integration team",
+        "bytes": 2433,
+        "lines": 24,
+        "sha256": "c2eee726791e91efcace94e942f0313f5c8ab10b70cf806f30ad3c9968b4a0fc",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/faq.md",
+        "reader": "docs_integration team",
+        "bytes": 3136,
+        "lines": 33,
+        "sha256": "40bf3f97492941c5b838b2677eedbc168520f55d72dcb0fa222c570817cee548",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/features/combos.md",
+        "reader": "docs_integration team",
+        "bytes": 1181,
+        "lines": 22,
+        "sha256": "2d11318c46c1dee07ba518667febefe79ccf91fb92c42313b9d06429833ea74d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/features/quota-tracking.md",
+        "reader": "docs_integration team",
+        "bytes": 3109,
+        "lines": 29,
+        "sha256": "f599c9bb65563c16f41711cd775152435282cdd91c903e248f00d188f9d54619",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/features/smart-routing.md",
+        "reader": "docs_integration team",
+        "bytes": 1162,
+        "lines": 20,
+        "sha256": "ac0e8da4492c21a3a22c83a046c131e6311468df088330c183b7dcd18571a53e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/getting-started/installation.md",
+        "reader": "docs_integration team",
+        "bytes": 3564,
+        "lines": 46,
+        "sha256": "c49abcd4a3c42cc675d7386931c194e42f6b2121cf927380341a355953e137a0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/getting-started/quick-start.md",
+        "reader": "docs_integration team",
+        "bytes": 2712,
+        "lines": 32,
+        "sha256": "7362d5d6172b545c20f0a8a28a41ec566df76aabdf4d1e2675fbe211cc8759ed",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/index.md",
+        "reader": "docs_integration team",
+        "bytes": 4066,
+        "lines": 33,
+        "sha256": "61d648e0c39248101679bbef078bf69838da8a721d7bde7310b705f555454785",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/claude-code.md",
+        "reader": "docs_integration team",
+        "bytes": 1219,
+        "lines": 19,
+        "sha256": "029af81ab9502298236d1c84433684416d204c006d2dd6894008b31ad27148eb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/cline.md",
+        "reader": "docs_integration team",
+        "bytes": 963,
+        "lines": 17,
+        "sha256": "e963cae324bcfbacfcea126db20e03a40ea6d7a24d7dfbdb8ca7785914ba9052",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/codex.md",
+        "reader": "docs_integration team",
+        "bytes": 1306,
+        "lines": 24,
+        "sha256": "177d0e80304ae3a6213b666ce420c20776283e2113940d5ae52131956bb2dce7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/continue.md",
+        "reader": "docs_integration team",
+        "bytes": 1041,
+        "lines": 15,
+        "sha256": "606804e9137058f78fae8fb3b0578e42989499a0b76e496f02a81ba9b190acba",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/cursor.md",
+        "reader": "docs_integration team",
+        "bytes": 896,
+        "lines": 17,
+        "sha256": "cf1cf3fdda3a6fbf8e18030cbaebf8c3c87374969649b5d90c66575df0467edd",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/other-tools.md",
+        "reader": "docs_integration team",
+        "bytes": 1343,
+        "lines": 26,
+        "sha256": "ae4f1f39e3089e7b636b02919c2a92b027edd47c924c6c644c5d6cb52f5a85bb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/integration/roo.md",
+        "reader": "docs_integration team",
+        "bytes": 988,
+        "lines": 15,
+        "sha256": "4a915031fd0f4f4af4088f1cadd77d32fbdcb0954fbbc03cdf38b983aea260f8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/providers/cheap.md",
+        "reader": "docs_integration team",
+        "bytes": 1761,
+        "lines": 24,
+        "sha256": "7c906b1f8d8cab42b3b108cddb610dba5ec84c96bbc74b28b379310c617a1eae",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/providers/free.md",
+        "reader": "docs_integration team",
+        "bytes": 1117,
+        "lines": 14,
+        "sha256": "22efdcf97b00141ff019cb3f206469f569d0f17ce0f68323de9ac62c727b9532",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/providers/subscription.md",
+        "reader": "docs_integration team",
+        "bytes": 1329,
+        "lines": 16,
+        "sha256": "ead444dcfffb4f3a9b43c8ef5d98e9d34cb3f4496190a8a824c5a5aedca9ca8f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "gitbook/content/zh-CN/troubleshooting.md",
+        "reader": "docs_integration team",
+        "bytes": 4487,
+        "lines": 34,
+        "sha256": "b07455d7078b0bb42f00a2d8aae7ce6a8bc52c52c64886a1f6d9e70820996a9a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.es.md",
+        "reader": "docs_integration team",
+        "bytes": 7844,
+        "lines": 86,
+        "sha256": "593ac94d03ee658e7aec9444c80c85c73e4ba8f9e8f9e07ddb91c198ab33e7fb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.fa_IR.md",
+        "reader": "docs_integration team",
+        "bytes": 10493,
+        "lines": 86,
+        "sha256": "1c83be3e415b85e324230bd83be83c4c965ed86e8b3ef3c68a1dd3eaf3f95e2f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.fr.md",
+        "reader": "docs_integration team",
+        "bytes": 8394,
+        "lines": 86,
+        "sha256": "54f48b24de98e8476d710fe8ff2e0fb6b774a66125e42f98d01734d18383b61c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.id-ID.md",
+        "reader": "docs_integration team",
+        "bytes": 7520,
+        "lines": 86,
+        "sha256": "e4727c3760b0d8aa2b204825db237a2d2a60cfd9c33dbab88a066afb52aa804d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.ja-JP.md",
+        "reader": "docs_integration team",
+        "bytes": 9344,
+        "lines": 86,
+        "sha256": "6a01c2d2c3094995e455b138da4c99bad00a82144ba2cff782f5452c275db4da",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.pt-BR.md",
+        "reader": "docs_integration team",
+        "bytes": 7809,
+        "lines": 86,
+        "sha256": "87e58e4aa3f777566b0fb9b8c92c7c2aabc96593ab90f6465ea0b362f4663b14",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.ru.md",
+        "reader": "docs_integration team",
+        "bytes": 11437,
+        "lines": 86,
+        "sha256": "c33ea6fd113c0e85c1e5d112544ff23924bd9edba4f8433622108ab73113fead",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.th.md",
+        "reader": "docs_integration team",
+        "bytes": 13397,
+        "lines": 86,
+        "sha256": "e606421511fe65b7d5c8a03f6297b35ea5f11115e33a98b2c577af7ec2bdc183",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.vi.md",
+        "reader": "docs_integration team",
+        "bytes": 8338,
+        "lines": 86,
+        "sha256": "dad9c59626bf9b07f839e9e18465880c807c234f1b7a5921bf0a135a62e51574",
+        "tracked_at_base": true
+      },
+      {
+        "path": "i18n/README.zh-CN.md",
+        "reader": "docs_integration team",
+        "bytes": 7084,
+        "lines": 84,
+        "sha256": "d80c53e20b9e7bfb831968fd908ad0b86da1b583815f28bfd40e033dae938300",
+        "tracked_at_base": true
+      },
+      {
+        "path": "images/README.md",
+        "reader": "docs_integration team",
+        "bytes": 831,
+        "lines": 15,
+        "sha256": "0caeb5a9c4af2ccc372c983e0d6d6520e283a99907423b59cb2ce87a06237a25",
+        "tracked_at_base": true
+      },
+      {
+        "path": "open-sse/AGENTS.md",
+        "reader": "root",
+        "bytes": 10615,
+        "lines": 59,
+        "sha256": "75e6a7d9c19f0add9725196236ebc2190330b577881dbc4b05fc7250abed6148",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.5.62.md",
+        "reader": "docs_history team",
+        "bytes": 2371,
+        "lines": 30,
+        "sha256": "5a31567a85ed95f95dd12ea811a6ccad2bd7ed0b04f58a7647204fe289802a38",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.5.63.md",
+        "reader": "docs_history team",
+        "bytes": 2918,
+        "lines": 37,
+        "sha256": "ee13c438f47f774ca71b7de82dac9e7bc3ce65c88d5c19f9b1c286e3cd322098",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.6.0.md",
+        "reader": "docs_history team",
+        "bytes": 3612,
+        "lines": 39,
+        "sha256": "981adbfb6683923a398169a712694cfae75610961e0c0fd227286de7c2b801e2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.6.1.md",
+        "reader": "docs_history team",
+        "bytes": 1897,
+        "lines": 22,
+        "sha256": "80b22e95c004dd472e2d6f60418fc1c667e0465a5a94a525c7e45f18f444d27a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.7.0.md",
+        "reader": "docs_history team",
+        "bytes": 5349,
+        "lines": 39,
+        "sha256": "6fb263e5220b9e585c0e013fedfbb4f8bc9849f18e11a3526b575d7feb0bd672",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.7.1.md",
+        "reader": "docs_history team",
+        "bytes": 2062,
+        "lines": 18,
+        "sha256": "4e35f81e6368e627e746975e502aae9265f0216b89033c43a607d6f6c58c7703",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.7.2.md",
+        "reader": "docs_history team",
+        "bytes": 5410,
+        "lines": 48,
+        "sha256": "12ab020db4e372227d388356aaff10c68dbdfa1f044b064e9454abe5133dad07",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.7.3.md",
+        "reader": "docs_history team",
+        "bytes": 1468,
+        "lines": 17,
+        "sha256": "bb90b980a1775932c94b12db0ac72726e12afdc8185878b1e2f0feb3a7efc95b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.7.4.md",
+        "reader": "docs_history team",
+        "bytes": 4052,
+        "lines": 35,
+        "sha256": "4c8847c72a1fd0645130dc14e61264e52aef335ef33f1adaae34d177f1bce2d0",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.8.0.md",
+        "reader": "docs_history team",
+        "bytes": 3261,
+        "lines": 29,
+        "sha256": "3fc347d8f3a8303ecd4e453acfce899283c833c19b79a20039a6e887eb595879",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.8.5.md",
+        "reader": "docs_history team",
+        "bytes": 6090,
+        "lines": 78,
+        "sha256": "6c2f7fc2cb2004a4cc3cbffd37acb9c658407559507d514bf6fbb782b9c0380a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.8.6.md",
+        "reader": "docs_history team",
+        "bytes": 4251,
+        "lines": 65,
+        "sha256": "0fc62df7e8ab6d3cfcf38613e48b9bcd5273e3fd0c6298553bcce36498e647e2",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.8.7.md",
+        "reader": "docs_history team",
+        "bytes": 5352,
+        "lines": 56,
+        "sha256": "79a1483ebd95cd365d94401eff23568d04b1c7a4d8702c3543ec4cb314cc4ec3",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.8.8.md",
+        "reader": "docs_history team",
+        "bytes": 4748,
+        "lines": 85,
+        "sha256": "91084ab1b133f419e934c7783e993a00da3133ebd0e33fcc6b07c477146870bb",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.0.md",
+        "reader": "docs_history team",
+        "bytes": 7774,
+        "lines": 84,
+        "sha256": "bb203cfeb6937254009ca56eebff8c83bebe2214f1aa5a456a32b1a9888857f8",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.10.md",
+        "reader": "docs_history team",
+        "bytes": 5599,
+        "lines": 81,
+        "sha256": "f2a46c4278351782a441c41e253f595af677c92766b5c75a84716712b2cbdbec",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.11.md",
+        "reader": "docs_history team",
+        "bytes": 7388,
+        "lines": 84,
+        "sha256": "f7dfa3110645585884fef61362044e7a4e863bb833485d6ca1a01d1504267710",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.12.md",
+        "reader": "docs_history team",
+        "bytes": 4179,
+        "lines": 69,
+        "sha256": "5c2fcb63df0d8e025d0aafd3b0a4a881d5927848ce896481d56ccb8bdc44e30d",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.13.md",
+        "reader": "docs_history team",
+        "bytes": 4162,
+        "lines": 69,
+        "sha256": "2bd76e7af840fc7a7857f496207a0da0406f4a63a285aeb40bd4253a6c79c14f",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.5.md",
+        "reader": "docs_history team",
+        "bytes": 6913,
+        "lines": 76,
+        "sha256": "41e473b01825dd9056f8eaaa92e9a9c9a8fece7f2c2e6797bdb55a740442e871",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.6.md",
+        "reader": "docs_history team",
+        "bytes": 3036,
+        "lines": 29,
+        "sha256": "b2b6662ea57249cd94519d2a44231b61aedfdc79bfd80030ed31aa5f0401dc92",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.7.md",
+        "reader": "docs_history team",
+        "bytes": 7187,
+        "lines": 56,
+        "sha256": "5fb7a0ee209f5c54d2cc088d5e333f3ab930e400f5943a51276879e286c906ae",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.8.md",
+        "reader": "docs_history team",
+        "bytes": 6160,
+        "lines": 73,
+        "sha256": "6763f94e349826d429d68ec2486e3b22df4ab5b185f4e30b1fcea94af8be0615",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v0.9.9.md",
+        "reader": "docs_history team",
+        "bytes": 10044,
+        "lines": 149,
+        "sha256": "c5ce7381245f0ef07f1674e206313aa069223140c5a9c76c7b09f9184998ba4a",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.0.md",
+        "reader": "docs_history team",
+        "bytes": 7301,
+        "lines": 68,
+        "sha256": "e77a2e9edea1a477de187d089a46a478eb5ef412ac0a06da7efe8946df036c43",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.1.md",
+        "reader": "docs_history team",
+        "bytes": 7552,
+        "lines": 69,
+        "sha256": "78d8db3535f5a4d88e0956df7a33f0d44665dab430214386199e0fcaedc9a3b3",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.2.md",
+        "reader": "docs_history team",
+        "bytes": 13687,
+        "lines": 104,
+        "sha256": "3a7e887723f33bc2c66d8a0322bb6e0637f62da99efd265867fa28f8d0329e52",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.5.md",
+        "reader": "docs_history team",
+        "bytes": 2760,
+        "lines": 48,
+        "sha256": "1054596d5d17134b7e5abcdac64cf20320395d5ac8218b89553c91b3327408be",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.6.md",
+        "reader": "docs_history team",
+        "bytes": 5011,
+        "lines": 82,
+        "sha256": "48644e5c14963b7ceb636fd82a746d8d5ee12f0b3414413abb32ba9714dfbd00",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.7.md",
+        "reader": "docs_history team",
+        "bytes": 4802,
+        "lines": 81,
+        "sha256": "867bd6a93f5608b2f65b6800e82829e11c6d8a104b5cfdecdbbdf0f0dbf7b4d7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "releases/RELEASE_NOTES_v1.0.8.md",
+        "reader": "docs_history team",
+        "bytes": 6915,
+        "lines": 96,
+        "sha256": "511028ead4040d13af678cc51a899437339ca9b55557c04f9abff5fc98d3c6ca",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/README.md",
+        "reader": "docs_integration team",
+        "bytes": 4902,
+        "lines": 57,
+        "sha256": "e7bd134c5c435799ba9fb0233fd64347ccf1bf7d6acefaf0e6d53f1f62629546",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 7523,
+        "lines": 96,
+        "sha256": "88b727679125afdc9f95717a4f04e34ef2c6aeb4c47d98aafd0a1fc2e90d265b",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-chat/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 7470,
+        "lines": 101,
+        "sha256": "444b0c5882247447a0e6ff573cbb7118770c86fc7acec74052f4e6eba5772e09",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-embeddings/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 4425,
+        "lines": 70,
+        "sha256": "53357d7922ae87b58a1e3f50c12896ca3e1dafbca7e9712fea07a0431e2b6aef",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-image/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 6628,
+        "lines": 80,
+        "sha256": "1f9f27032e8b900ec03954da95266c311d6e23d93230f04782ec9b4a654d8444",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-stt/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 7284,
+        "lines": 110,
+        "sha256": "31d15b60eed2a2aa3053adbf8b2cfebaf83aae01063272f56e559ea6d1793cd7",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-tts/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 7219,
+        "lines": 91,
+        "sha256": "e420e01fc50470ffb35372b96715352ecd2cb47c73d5d913578649e71223f33c",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-video/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 9403,
+        "lines": 124,
+        "sha256": "91b2d5567f4fb474f9a46f383dc157eaf7194cf8bd29862ac03ce93b9603c788",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-web-fetch/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 5237,
+        "lines": 76,
+        "sha256": "4b86a6e4f6e2e99f5bf631c590158c42b6c086d9d1fcf2e8d5312c2b8ed21f09",
+        "tracked_at_base": true
+      },
+      {
+        "path": "skills/kitsune-router-web-search/SKILL.md",
+        "reader": "docs_integration team",
+        "bytes": 5086,
+        "lines": 74,
+        "sha256": "1fee1e43de873048004ded71ace3e2e83c50d9bbd8d206b55cdb2c2a32e13b6e",
+        "tracked_at_base": true
+      },
+      {
+        "path": "tests/README.md",
+        "reader": "docs_history team",
+        "bytes": 16335,
+        "lines": 224,
+        "sha256": "d85c740d9a62ca2b9fcc9e2153b3f68a328a7b63c70bc2a665a4535efe6b1bec",
+        "tracked_at_base": true
+      },
+      {
+        "path": "tests/translator/AGENTS.md",
+        "reader": "root",
+        "bytes": 6666,
+        "lines": 98,
+        "sha256": "6cb2087849e7d4c20deb2dd4c32b35e8c0bb606512b0fbcbe99a003e2760ed1a",
+        "tracked_at_base": true
+      }
+    ]
+  },
+  "review_scope": {
+    "official_repository": "Public repository inventory, README, license, contribution security instructions, relevant changelog entries, public example/protocol references. Core Claude Code inference/auth implementation is not published here. No claim to have read unavailable private client source.",
+    "docs": "Relevant protocol sections, schema definitions and examples across captured primary sources. Captured aggregate Messages reference/HTML retained as supporting evidence, not claimed fully read across all 45,074 reference lines."
+  },
+  "verification": {
+    "source_files": [
+      {
+        "path": "open-sse/config/claudeMessages.js",
+        "sha256": "bbe797476fea3a77b6e83694161b7bce1e2a15cc06025e2ffd37c24d978d77fb"
+      },
+      {
+        "path": "open-sse/executors/default.js",
+        "sha256": "06c8fcf18f60e596eae0933ec19c3d1eed010696cfcc9521b785501837e1751d"
+      },
+      {
+        "path": "open-sse/handlers/chatCore.js",
+        "sha256": "031666a7369de5f4012b45e9929a8d77e9d37e5367affc0009866cbc3ff647dc"
+      },
+      {
+        "path": "open-sse/translator/concerns/thinkingUnified.js",
+        "sha256": "9ef4fd995e55041de7dbc704aa81489c2620c9def4d213ed4ee1b9b845bc091d"
+      },
+      {
+        "path": "open-sse/translator/formats/claude.js",
+        "sha256": "30c970e7b4adf104f3bb577deca5c316aafc2dbf95c3d16962b0e5c894004a80"
+      },
+      {
+        "path": "open-sse/translator/schema/blocks.js",
+        "sha256": "ad0041b7ab1c605639e7bc51fd5669f1ef44d4c8e12c277c89e634d9e3a7e401"
+      },
+      {
+        "path": "open-sse/utils/claudeCloaking.js",
+        "sha256": "396ffb8703cc2dc93771d1113555af945c2d6586550efa76dc2ef1db950d0442"
+      },
+      {
+        "path": "open-sse/utils/claudeSignature.js",
+        "sha256": "54456ddc52b3a34f67f887f38f8c330b5543516669b710f1f3ab08cad0fba091"
+      },
+      {
+        "path": "open-sse/utils/claudeToolReferences.js",
+        "sha256": "fc7b922ea03c52844ae980a85fec8a4b0fb2ecd0506247e4e4bab2356893a0f7"
+      },
+      {
+        "path": "open-sse/utils/toolCompressor.js",
+        "sha256": "e3c30cc394099d88f1d4f134546bdd1f87bbd72705812f7371348dc91d596efc"
+      },
+      {
+        "path": "open-sse/utils/toolDeduper.js",
+        "sha256": "04f1af3ef34e81f168e7f04dd8fc931a86efdb6220337926977ee1a4465186d5"
+      },
+      {
+        "path": "tests/unit/anthropic-native-beta-passthrough.test.js",
+        "sha256": "b67fd345eb24e47ff858bb29a5ac8715ac2ee415554b60547060ab71db4f77cf"
+      },
+      {
+        "path": "tests/unit/claude-mid-conversation-system.test.js",
+        "sha256": "15fa2fd78a72de0ddf59cc1bd64c1055c6e2b40972f836ac9e05b10e3cd40e4b"
+      },
+      {
+        "path": "tests/unit/claude-native-vendor-thinking.test.js",
+        "sha256": "55b362f4c155ed2bf16970bc95b80fec2e4d292bff65e40e847d7091cb393fa2"
+      },
+      {
+        "path": "tests/unit/claude-request-ownership-safety.test.js",
+        "sha256": "8a80e9f14f9ad1c44f74c12a969c2f2dc985606ad518dc670b7646b0b32d7120"
+      },
+      {
+        "path": "tests/unit/claude-signature-opaque.test.js",
+        "sha256": "85a6970187a328e619f93022a9fa6320cd3d6f8399bf7535e124142e3fef1a0e"
+      },
+      {
+        "path": "tests/unit/claude-signature-stream-replay.test.js",
+        "sha256": "d2e3d02294a1c957de431f6fdf9b33c70134e207f47795cf6a2bc8bb51ccf13e"
+      },
+      {
+        "path": "tests/unit/claude-signature-structure.test.js",
+        "sha256": "75966a396f25b1ff49e0f6bfb9123fcf7d43e7eb6f5ac5b21d0a91447ef60d54"
+      },
+      {
+        "path": "tests/unit/claude-thinking-binding.test.js",
+        "sha256": "660356ed05bcd34545e7ac1450e0e69b8a7b4245fad4cce4daa37c8d009f44b4"
+      },
+      {
+        "path": "tests/unit/claude-tool-references.test.js",
+        "sha256": "79564e8e4bd5e05ecf4d099bc433046005db63c20658aa901f5a6c5b88e218ba"
+      },
+      {
+        "path": "tests/unit/claude-tool-turn-replay.test.js",
+        "sha256": "99b3a9e41521217e9e6a609115e5efd4e04ad40554d10ab2c80cab5335180747"
+      },
+      {
+        "path": "tests/unit/reconciliation-transport-anthropic.test.js",
+        "sha256": "0dbeb0465ad9de2ba93a274fbce65ec80e973fcbafbfff29efa212b15182d2df"
+      },
+      {
+        "path": "tests/unit/tool-deduper-replay.test.js",
+        "sha256": "053fa9227fd614034ebc8050121505e0bc67c50ef8b043a1ecf3908f679d8c1b"
+      }
+    ],
+    "node": "v24.22.1",
+    "npm": "11.9.0",
+    "browser": "Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)",
+    "live_provider_inference": false,
+    "vitest": {
+      "success": true,
+      "numTotalTests": 11360,
+      "numPassedTests": 11261,
+      "numFailedTests": 0,
+      "numPendingTests": 99,
+      "numFailedTestSuites": 0
+    },
+    "vitest_files": 880,
+    "composed_lint": "passed --max-warnings=0",
+    "http2_compat": {
+      "passed": 1,
+      "failed": 0
+    },
+    "source_unchanged_during_final_checks": true,
+    "vitest_report_sha256": "d89df0033777c5a112a1e03e8b53d3a7dd359b463a9bf9f3e27c509db880ded4"
+  }
+}

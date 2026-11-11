@@ -37,7 +37,7 @@ describe("Claude signed thinking ownership", () => {
   });
 
   it.each(preparations)("rejects malformed thinking within an active tool loop without partially removing it through %s", (_name, prepare) => {
-    const body = history([{ type: "thinking", thinking: "valid", signature }, { type: "thinking", thinking: "broken", signature: "Eg==!" }]);
+    const body = history([{ type: "thinking", thinking: "valid", signature }, { type: "thinking", thinking: "broken", signature: {} }]);
     const original = structuredClone(body);
     expect(() => prepare(body)).toThrow(expect.objectContaining({ code: "invalid_thought_signature", param: "messages.0.content.1.signature" }));
     expect(body).toEqual(original);
@@ -58,14 +58,14 @@ describe("Claude signed thinking ownership", () => {
   });
 
   it.each(preparations)("does not drop malformed earlier thinking from an ongoing multi-round turn through %s", (_name, prepare) => {
-    const body = history([{ type: "thinking", thinking: "broken", signature: "invalid" }]);
+    const body = history([{ type: "thinking", thinking: "broken", signature: "" }]);
     body.messages.push({ role: "assistant", content: [{ ...tool, id: "toolu_second" }] },
       { role: "user", content: [{ ...result, tool_use_id: "toolu_second" }] });
     expect(() => prepare(body)).toThrow(expect.objectContaining({ code: "invalid_thought_signature", param: "messages.0.content.0.signature" }));
   });
 
   it("validates native bare-object tool results before normalizing the content shape", () => {
-    const body = history([{ type: "thinking", thinking: "broken", signature: "invalid" }]);
+    const body = history([{ type: "thinking", thinking: "broken", signature: "" }]);
     body.messages[1].content = result;
     expect(() => normalizeClaudePassthrough(body, model, null, "claude")).toThrow(expect.objectContaining({ code: "invalid_thought_signature" }));
   });

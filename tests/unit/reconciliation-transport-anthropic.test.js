@@ -24,12 +24,12 @@ describe.each([true, false])("native Anthropic API-key product (stream=%s)", str
 });
 
 describe("Anthropic product identity boundaries", () => {
-  it("keeps Zen's existing policy of not merging explicit client betas into the native API-key product", () => {
+  it("forwards explicit native API capability betas without adding Claude Code product identity", () => {
     const headers = new Headers(new DefaultExecutor("anthropic").buildHeaders({
       apiKey: "fixture-api-key",
       rawHeaders: new Headers({ "anthropic-beta": `${clientBeta},${codeIdentity}`, authorization: "Bearer client-fixture" }),
     }, false, undefined, "claude-sonnet-4-6"));
-    expect(headers.get("anthropic-beta").split(",")).not.toContain(clientBeta);
+    expect(headers.get("anthropic-beta").split(",")).toContain(clientBeta);
     expect(headers.get("anthropic-beta").split(",")).not.toContain(codeIdentity);
     expect(headers.get("x-api-key")).toBe("fixture-api-key");
     expect(headers.has("authorization")).toBe(false);

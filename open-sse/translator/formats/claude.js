@@ -6,11 +6,20 @@ import { PROVIDERS } from "../../providers/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { isDeepSeekModel } from "../../providers/models/helpers.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
+import { CLAUDE_SYSTEM_MESSAGE_BETAS } from "../../config/claudeMessages.js";
 import { applyAssistantPrefillPolicy } from "../concerns/assistantPrefillPolicy.js";
 import { getThinkingContext, setThinkingContext, reconcileClaudeThinkingBudget, supportsClaudeManualInterleaving } from "../concerns/thinking.js";
+import { validateClaudeThinkingBinding } from "../concerns/thinkingUnified.js";
 
 const CACHE_CONTROL_5M = { type: "ephemeral" };
 const CACHE_CONTROL_1H = { type: "ephemeral", ttl: "1h" };
+
+function preservesClaudeSystemMessages(rawHeaders, provider) {
+  if (provider && provider !== "claude" && provider !== "anthropic") return false;
+  const value = typeof rawHeaders?.get === "function" ? rawHeaders.get("anthropic-beta")
+    : Object.entries(rawHeaders || {}).find(([key]) => key.toLowerCase() === "anthropic-beta")?.[1];
+  return String(value || "").split(",").some(token => CLAUDE_SYSTEM_MESSAGE_BETAS.has(token.trim()));
+}
 
 /**
  * Deferred-tool detection — WHY this exists:
@@ -128,40 +137,11 @@ function capCacheControlBlocks(body) {
   for (const b of rest.slice(0, Math.max(0, rest.length - keep))) delete b.cache_control;
 }
 
-// Fix tool_use/tool_result ordering for Claude API
-// 1. Assistant message with tool_use: remove text AFTER tool_use (Claude doesn't allow)
-// 2. Merge consecutive same-role messages
-export function fixToolUseOrdering(messages) {
+// Merge consecutive same-role messages and put user tool results first.
+// Assistant blocks must retain their original order and content, including text
+// after a tool call: rewriting signed history can invalidate preserved thinking.
+export function fixToolUseOrdering(messages, { preserveSystemMessages = false } = {}) {
   if (messages.length <= 1) return messages;
-
-  // Pass 1: Fix assistant messages with tool_use - remove text after tool_use
-  for (const msg of messages) {
-    if (msg.role === ROLE.ASSISTANT && Array.isArray(msg.content)) {
-      const hasToolUse = msg.content.some(b => b.type === CLAUDE_BLOCK.TOOL_USE);
-      if (hasToolUse) {
-        // Keep only: thinking blocks + tool_use blocks (remove text blocks after tool_use)
-        const newContent = [];
-        let foundToolUse = false;
-
-        for (const block of msg.content) {
-          if (block.type === CLAUDE_BLOCK.TOOL_USE) {
-            foundToolUse = true;
-            newContent.push(block);
-          } else if (block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING) {
-            newContent.push(block);
-          } else if (!foundToolUse) {
-            // Keep text blocks BEFORE tool_use
-            newContent.push(block);
-          }
-          // Skip text blocks AFTER tool_use
-        }
-
-        msg.content = newContent;
-      }
-    }
-  }
-
-  // Pass 2: Merge consecutive same-role messages
   const merged = [];
   let toolResults;
   let otherContent;
@@ -179,7 +159,7 @@ export function fixToolUseOrdering(messages) {
   for (const msg of messages) {
     const last = merged[merged.length - 1];
 
-    if (last && last.role === msg.role) {
+    if (last && last.role === msg.role && !(preserveSystemMessages && msg.role === ROLE.SYSTEM)) {
       // Merge content arrays
       const msgContent = Array.isArray(msg.content) ? msg.content : [{ type: CLAUDE_BLOCK.TEXT, text: msg.content }];
       if (!toolResults) {
@@ -230,7 +210,11 @@ function validateClaudeThinkingContinuity(body) {
     : message?.content && typeof message.content === "object" ? [message.content] : [];
   const hasResults = message => message?.role === ROLE.USER &&
     blocks(message).some(block => block?.type === CLAUDE_BLOCK.TOOL_RESULT);
-  const last = messages.at(-1);
+  // Native system updates may follow the user message returning tool results.
+  // They don't end the assistant's ongoing tool turn or waive its signatures.
+  let lastIndex = messages.length - 1;
+  while (messages[lastIndex]?.role === ROLE.SYSTEM) lastIndex--;
+  const last = messages[lastIndex];
   if (!hasResults(last)) return;
   const assistantIndex = messages.findLastIndex(message => message?.role === ROLE.ASSISTANT);
   if (!blocks(messages[assistantIndex]).some(block => block?.type === CLAUDE_BLOCK.TOOL_USE)) return;
@@ -264,9 +248,10 @@ function validateClaudeThinkingContinuity(body) {
 // Apply model wire restrictions on both translated and native passthrough
 // bodies. Replacements are copy-on-write: account retries reuse nested fields.
 function applyClaudeModelRestrictions(body, model, provider = null) {
+  if (!provider || provider === "claude" || provider === "anthropic") validateClaudeThinkingBinding(body.thinking);
   const caps = getCapabilitiesForModel(provider, model);
   if (caps.thinkingOffType && body.thinking?.type === "disabled") {
-    body.thinking = { type: caps.thinkingOffType };
+    body.thinking = { ...body.thinking, type: caps.thinkingOffType };
   }
   // between_tools accepts effort only up to high. An already-native request
   // needs the same clamp as a request rewritten from disabled.
@@ -286,9 +271,11 @@ function applyClaudeModelRestrictions(body, model, provider = null) {
 // Newer Cowork/Claude Code clients emit beta-only shapes that OAuth endpoints reject:
 // 1. thinking.type "adaptive" → unsupported on legacy/unverified Haiku routes
 // 2. output_config.effort → unsupported on those same Haiku routes
-// 3. role "system" messages (mid-conversation-system beta) → only top-level system is allowed
+// 3. Legacy routes fold role "system" messages; explicit native feature opt-ins
+//    retain their positions and fields for preserved-thinking continuity.
 export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, provider = null) {
   if (!body || typeof body !== "object") return body;
+  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider);
   const adaptiveUnsupported = isAdaptiveThinkingUnsupported(model || body.model, provider);
 
   // 1. Downgrade adaptive thinking for models that don't support it
@@ -322,7 +309,7 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
   // Hoisting them into body.system would insert volatile content (token counters,
   // reminders) ahead of the whole conversation and invalidate the prefix cache on
   // every request. Folding in place keeps the cached prefix stable.
-  if (Array.isArray(body.messages)) {
+  if (!preserveSystemMessages && Array.isArray(body.messages)) {
     const messages = [];
     for (const msg of body.messages) {
       if (msg.role !== ROLE.SYSTEM) {
@@ -352,8 +339,10 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
     body.messages = messages;
   }
 
-  // Drop foreign ordinary thinking signatures, but replay native encrypted data unchanged.
-  if (Array.isArray(body.messages)) {
+  // Only the native Claude route owns the Anthropic thinking contract. Vendors
+  // sharing the Messages wire format can use unrelated opaque signatures or
+  // unsigned reasoning (DeepSeek); preserve their original blocks unchanged.
+  if ((!provider || provider === "claude") && Array.isArray(body.messages)) {
     for (const msg of body.messages) {
       if (msg.role !== ROLE.ASSISTANT || !Array.isArray(msg.content)) continue;
       const kept = [];
@@ -409,6 +398,7 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
     // "text content blocks must be non-empty"); a message whose blocks were all
     // stripped above must be dropped, not padded with an empty placeholder.
     body.messages = body.messages.filter(msg => {
+      if (preserveSystemMessages && msg.role === ROLE.SYSTEM) return true;
       if (typeof msg.content === "string") return msg.content.trim().length > 0;
       if (!Array.isArray(msg.content)) return true;
       msg.content = msg.content.filter(block =>
@@ -419,7 +409,7 @@ export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, 
   }
 
   applyAssistantPrefillPolicy(body, rawHeaders);
-  applyClaudeModelRestrictions(body, model || body.model);
+  applyClaudeModelRestrictions(body, model || body.model, provider);
   return body;
 }
 
@@ -439,6 +429,8 @@ export function ensureTrailingUserTurn(messages, originalLastRole) {
 // Put a 5m breakpoint on the last cache-eligible block of a message.
 // thinking/redacted_thinking blocks do not accept cache_control.
 function markLastCacheableBlock(msg) {
+  // A turn-scoped system message cannot carry a breakpoint, even while active.
+  if (msg?.role === ROLE.SYSTEM && msg.clear_at === "next_user_message") return false;
   if (!Array.isArray(msg?.content)) return false;
   for (let i = msg.content.length - 1; i >= 0; i--) {
     const block = msg.content[i];
@@ -589,6 +581,7 @@ export function hoistToolResultImages(body) {
 // - Fix tool_use/tool_result ordering
 export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null) {
   if (provider === "claude") validateClaudeThinkingContinuity(body);
+  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider);
   const modelCaps = applyClaudeModelRestrictions(body, body.model, provider);
   // quirk: MiniMax's Claude-compatible endpoint rejects Anthropic's output_config (400 invalid params)
   if (PROVIDERS[provider]?.quirks?.dropOutputConfig) {
@@ -638,14 +631,14 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
 
       // Keep final assistant even if empty, otherwise check valid content
       const isFinalAssistant = i === len - 1 && msg.role === "assistant";
-      if (isFinalAssistant || hasValidContent(msg)) {
+      if (isFinalAssistant || (preserveSystemMessages && msg.role === ROLE.SYSTEM) || hasValidContent(msg)) {
         filtered.push(msg);
       }
     }
 
     // Pass 1.5: Fix tool_use/tool_result ordering
     // Each tool_use must have tool_result in the NEXT message (not same message with other content)
-    filtered = fixToolUseOrdering(filtered);
+    filtered = fixToolUseOrdering(filtered, { preserveSystemMessages });
     filtered = ensureTrailingUserTurn(filtered, originalLastRole);
 
     body.messages = filtered;
