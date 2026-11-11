@@ -1,32 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { ChartNoAxesCombined, Database, KeyRound, Menu } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { cn } from "@/shared/utils/cn";
+import { flattenNavigationItems, getNavigationGroups, isNavigationRoute } from "./dashboardNavigation";
+import NavigationIcon from "./NavigationIcon";
 import NavigationPending from "./NavigationPending";
+import "./mobile-navigation.css";
 
-const shortcuts = [
-  { href: "/dashboard/endpoint", label: "Gateway", icon: KeyRound },
-  { href: "/dashboard/providers", label: "Providers", icon: Database },
-  { href: "/dashboard/usage", label: "Usage", icon: ChartNoAxesCombined },
-];
+const allDestinations = flattenNavigationItems(getNavigationGroups());
+const shortcuts = ["endpoint", "providers", "chat", "usage"].map(id => allDestinations.find(item => item.id === id));
 
-export function isNavigationRoute(pathname, href) {
-  return (href === "/dashboard/endpoint" && pathname === "/dashboard")
-    || pathname === href || pathname.startsWith(`${href}/`);
-}
+export { isNavigationRoute } from "./dashboardNavigation";
 
 /** A dock in the layout flow: its safe-area padding never covers page content. */
 export default function MobileNavigation({ pathname, menuOpen, menuControls, onOpenMenu }) {
   const moreActive = !shortcuts.some(({ href }) => isNavigationRoute(pathname, href));
   return (
-    <nav aria-label="Mobile quick navigation" className="dashboard-mobile-navigation relative z-20 shrink-0 border-t border-border-subtle bg-surface px-3 pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <div className="mx-auto grid w-full max-w-lg grid-cols-4 gap-1">
-        {shortcuts.map(({ href, label, icon: Icon }) => {
+    <nav aria-label="Mobile quick navigation" className="dashboard-mobile-navigation dashboard-mobile-dock">
+      <div className="dashboard-mobile-dock-items">
+        {shortcuts.map(({ id, href, label, icon }) => {
           const active = isNavigationRoute(pathname, href);
-          return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cn("dashboard-mobile-destination group relative flex min-h-[60px] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium transition-colors duration-150", active ? "is-active text-primary" : "text-text-muted hover:bg-surface-2 hover:text-text-main")}><Icon size={19} strokeWidth={active ? 2 : 1.7} aria-hidden="true" /><span className="max-w-full truncate">{label}</span><NavigationPending /></Link>;
+          return (
+            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cn("dashboard-mobile-destination", active && !menuOpen && "is-active")}>
+              <span className="dashboard-mobile-destination-icon" aria-hidden="true">
+                <NavigationIcon name={icon} size={20} strokeWidth={active ? 2 : 1.7} />
+                <NavigationPending />
+              </span>
+              <span className="dashboard-mobile-destination-label">{id === "endpoint" ? "Gateway" : label}</span>
+            </Link>
+          );
         })}
-        <button type="button" onClick={onOpenMenu} aria-label="More navigation" aria-haspopup="dialog" aria-controls={menuControls} aria-expanded={menuOpen} className={cn("dashboard-mobile-destination relative flex min-h-[60px] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium transition-colors duration-150", menuOpen || moreActive ? "is-active text-primary" : "text-text-muted hover:bg-surface-2 hover:text-text-main")}><Menu size={19} strokeWidth={1.7} aria-hidden="true" /><span>More</span></button>
+        <button type="button" onClick={onOpenMenu} aria-label="More navigation" aria-haspopup="dialog" aria-controls={menuControls} aria-expanded={menuOpen} className={cn("dashboard-mobile-destination", (menuOpen || moreActive) && "is-active")}>
+          <span className="dashboard-mobile-destination-icon" aria-hidden="true"><LayoutGrid size={20} strokeWidth={menuOpen || moreActive ? 2 : 1.7} /></span>
+          <span className="dashboard-mobile-destination-label">More</span>
+        </button>
       </div>
     </nav>
   );

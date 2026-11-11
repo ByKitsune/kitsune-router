@@ -8,6 +8,8 @@ import Sidebar from "../Sidebar";
 import Header from "../Header";
 import PasswordOnboardingModal from "../PasswordOnboardingModal";
 import MobileNavigation from "../navigation/MobileNavigation";
+import NavigationSearch from "../navigation/NavigationSearch";
+import useSidebarPreference from "../navigation/sidebarPreference";
 import DashboardPageTransition from "./DashboardPageTransition";
 import "./dashboard-shell.css";
 
@@ -20,13 +22,60 @@ function getToastStyle(type) {
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pageSearchOpen, setPageSearchOpen] = useState(false);
+  const [enableTranslator, setEnableTranslator] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarPreference();
   const reduceMotion = useReducedMotion();
   const drawer = useRef(null);
   const drawerId = useId();
   const pathname = usePathname();
+  const previousPathname = useRef(pathname);
   const notifications = useNotificationStore((state) => state.notifications);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
   const isChat = pathname === "/dashboard/basic-chat";
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/settings", { signal: controller.signal })
+      .then(response => response.ok ? response.json() : null)
+      .then(settings => { if (settings) setEnableTranslator(settings.enableTranslator === true); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const openPageSearch = event => {
+      if (event.isComposing || event.repeat || event.altKey || !(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+      // Do not open a second modal over credentials, confirmations or language
+      // selection. The navigation drawer may hand off to the page finder.
+      const modal = document.activeElement?.closest("dialog[open]")
+        || Array.from(document.querySelectorAll("dialog[open]")).at(-1);
+      if (modal?.dataset.navigationSearchDialog === "true") {
+        event.preventDefault();
+        modal.querySelector("input")?.focus();
+        return;
+      }
+      if (modal && modal !== drawer.current) return;
+      event.preventDefault();
+      setSidebarOpen(false);
+      setPageSearchOpen(true);
+    };
+    window.addEventListener("keydown", openPageSearch);
+    return () => window.removeEventListener("keydown", openPageSearch);
+  }, []);
+
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      previousPathname.current = pathname;
+      setSidebarOpen(false);
+      setPageSearchOpen(false);
+    }
+  }, [pathname]);
+
+  const openPageSearch = () => {
+    setSidebarOpen(false);
+    setPageSearchOpen(true);
+  };
 
   useEffect(() => {
     const dialog = drawer.current;
@@ -70,29 +119,41 @@ export default function DashboardLayout({ children }) {
         </AnimatePresence>
       </div>
 
-      <div className="dashboard-sidebar-rail hidden h-full shrink-0 border-r border-border-subtle lg:block"><Sidebar /></div>
+      <div className="dashboard-sidebar-rail hidden h-full shrink-0 border-r border-border-subtle lg:block" data-collapsed={sidebarCollapsed}>
+        <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)} onOpenSearch={openPageSearch} enableTranslator={enableTranslator} />
+      </div>
       <dialog
         ref={drawer}
         id={drawerId}
         aria-label="Dashboard navigation"
-        className="dashboard-navigation-drawer m-0 h-dvh max-h-none w-[min(300px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden overscroll-contain border-0 border-r border-border-subtle bg-sidebar p-0 text-text-main shadow-elevated backdrop:bg-black/35 backdrop:overflow-hidden backdrop:overscroll-contain"
+        className="dashboard-navigation-drawer m-0 h-dvh max-h-none overflow-hidden overscroll-contain border-0 border-r border-border-subtle bg-sidebar p-0 text-text-main shadow-elevated backdrop:bg-black/35 backdrop:overflow-hidden backdrop:overscroll-contain"
         onClose={() => setSidebarOpen(false)}
+        onKeyDown={event => {
+          if (event.key !== "Tab" || event.target.closest("dialog") !== event.currentTarget) return;
+          const controls = Array.from(event.currentTarget.querySelectorAll("a[href], button, input, select, textarea, [tabindex]"))
+            .filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && !element.closest("[hidden], [inert]") && element.getClientRects().length && getComputedStyle(element).visibility !== "hidden");
+          const first = controls[0];
+          const last = controls.at(-1);
+          if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first?.focus(); }
+        }}
         onClick={(event) => {
           if (event.target !== event.currentTarget) return;
           const rect = event.currentTarget.getBoundingClientRect();
           if (event.clientX > rect.right || event.clientY > rect.bottom || event.clientX < rect.left || event.clientY < rect.top) setSidebarOpen(false);
         }}
       >
-        {sidebarOpen && <motion.div initial={{ x: reduceMotion ? 0 : -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }} className="h-full"><Sidebar onClose={() => setSidebarOpen(false)} /></motion.div>}
+        {sidebarOpen && <motion.div initial={{ x: reduceMotion ? 0 : -16, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }} className="h-full"><Sidebar onClose={() => setSidebarOpen(false)} onOpenSearch={openPageSearch} enableTranslator={enableTranslator} /></motion.div>}
       </dialog>
 
       <div className="dashboard-stage relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <Header onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} />
+          <Header onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} onOpenSearch={openPageSearch} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
           <main id="dashboard-content" tabIndex={-1} className={`dashboard-main min-h-0 min-w-0 flex-1 overscroll-contain custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-8"}`}>
             <DashboardPageTransition pathname={pathname} isChat={isChat}>{children}</DashboardPageTransition>
           </main>
           <MobileNavigation pathname={pathname} menuOpen={sidebarOpen} menuControls={drawerId} onOpenMenu={() => setSidebarOpen(true)} />
       </div>
+      <NavigationSearch isOpen={pageSearchOpen} onClose={() => setPageSearchOpen(false)} enableTranslator={enableTranslator} />
       <PasswordOnboardingModal />
     </div>
     </MotionConfig>

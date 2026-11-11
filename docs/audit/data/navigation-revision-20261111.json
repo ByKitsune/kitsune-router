@@ -1,0 +1,447 @@
+{
+  "date": "2026-11-11",
+  "base_commit": "c658e436061783a9567dd451f696ee270198cf9b",
+  "branch": "feat/dashboard-experience-redesign",
+  "source_version": "1.0.8",
+  "scope": "Complete navigation follow-up: shared page catalog, sidebar, contextual header, mobile dock and page finder",
+  "production_build_id": "LFIbTfMxtsl1CkVNZ9ynB",
+  "verified_app_source_files": [
+    {
+      "path": "public/i18n/literals/en.json",
+      "sha256": "d84a8cb804202c21e7d2d0f5edfaa502a6161cbd3a17a2235b3b36fb8d8b0bcc"
+    },
+    {
+      "path": "public/i18n/literals/id.json",
+      "sha256": "f29d5548af8a9467eec5e9f0d5708f4d7f0145f7e2210c527ce50438f6a21708"
+    },
+    {
+      "path": "src/shared/components/Header.js",
+      "sha256": "b3f934e6e9eae9cea37cfe74c02704fb8d13c1446f12c983b07c201d1c16dbcb"
+    },
+    {
+      "path": "src/shared/components/PasswordOnboardingModal.js",
+      "sha256": "a0292c909bee3dae91f641f66895c0cc209b8c3122c62cd777b8f552c41a7a76"
+    },
+    {
+      "path": "src/shared/components/Sidebar.js",
+      "sha256": "c028e80c95f09ad1a5ace9061860366de881623e396ae2cff6a840a1721a9db3"
+    },
+    {
+      "path": "src/shared/components/layouts/DashboardLayout.js",
+      "sha256": "06a964c398d83378900cb98110716d206d07f5e888ace0818ae31065a6d8eeee"
+    },
+    {
+      "path": "src/shared/components/layouts/dashboard-shell.css",
+      "sha256": "7ec3e63bdab73eaf1e1a5a52892990014ea51d7d505af094d4ff3f0294e318ca"
+    },
+    {
+      "path": "src/shared/components/navigation/MobileNavigation.js",
+      "sha256": "5e3a5c4ab48fadf40de955afcc702d1c461465c634c81a544affaea85d0ac299"
+    },
+    {
+      "path": "src/shared/components/navigation/NavigationIcon.js",
+      "sha256": "ac289a6ace05fd2cb746df9645b9a7efccad30638212e0ed543f67238231b680"
+    },
+    {
+      "path": "src/shared/components/navigation/NavigationSearch.js",
+      "sha256": "0a093e4399ab8e1afb486666044eb2da2928d976c22fa3ddac231ad5391ba88e"
+    },
+    {
+      "path": "src/shared/components/navigation/dashboardNavigation.js",
+      "sha256": "31912d86c2e4f181fd07739f10ee12d6a37b3e623d4acc797c89587fe12387e9"
+    },
+    {
+      "path": "src/shared/components/navigation/header-navigation.css",
+      "sha256": "2cbfb589dbbc460d7a68bfb49b3afdffd2eb69d52566f321851363a355e30583"
+    },
+    {
+      "path": "src/shared/components/navigation/mobile-navigation.css",
+      "sha256": "fc1584c6e64587d1c90378c55b971e79eb9533f484e102c566fff605dae1280f"
+    },
+    {
+      "path": "src/shared/components/navigation/navigation-search.css",
+      "sha256": "1763f4f19a0cc3555967f7938feb7d71b18690829b4c76814a43d1087c359d9e"
+    },
+    {
+      "path": "src/shared/components/navigation/sidebar.css",
+      "sha256": "304e1d952d034c6662840e4e2fc1bb2815909e2d00c15ad6967a17b0fee34d38"
+    },
+    {
+      "path": "src/shared/components/navigation/sidebarPreference.js",
+      "sha256": "886ac43a7180440c8f20159018cd61e7fbaba1e0a63d654cf5175f20ddba7a16"
+    }
+  ],
+  "vitest": {
+    "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- --reporter=json --outputFile=/workspace/scratch/nav-revision-complete-tests.json",
+    "exit_code": 0,
+    "success": true,
+    "tests_total": 11365,
+    "tests_passed": 11266,
+    "tests_failed": 0,
+    "tests_pending": 99,
+    "tests_todo": 0,
+    "files": 881,
+    "failed_test_suites": 0,
+    "gate": "node tests/__baseline__/verify-no-regression.mjs /workspace/scratch/nav-revision-complete-tests.json",
+    "gate_exit_code": 0,
+    "report": {
+      "local_artifact": "/workspace/scratch/nav-revision-complete-tests.json",
+      "bytes": 4633891,
+      "sha256": "2a57f67c264388996a09094a379cf84301991f6f58d76a7020c3652c4aaac66f"
+    },
+    "note": "One complete run, without concurrent build/browser QA; separate reports are not merged. Live-provider opt-ins remain skipped."
+  },
+  "gates": [
+    {
+      "name": "strict_lint",
+      "command": "npm run lint -- --max-warnings=0",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-lint-final.log",
+        "bytes": 75,
+        "sha256": "0b9a1970289c9c97ea24c48d2232574fa2303108199a9f2b16dcd09b8c1968b2"
+      }
+    },
+    {
+      "name": "production_build",
+      "command": "npm run build",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-build-final.log",
+        "bytes": 9062,
+        "sha256": "5523903da301796e95325b34ff60a70272a39fb1af147ee09e325df4105cd7a1"
+      }
+    },
+    {
+      "name": "production_browser",
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:ui",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-browser-final.log",
+        "bytes": 6639,
+        "sha256": "47a96fad3b72b914b6071bb4d4f0538e39250e9558547e9396df8a1f279501d9"
+      }
+    },
+    {
+      "name": "i18n",
+      "command": "npm run check:i18n",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-i18n-final.log",
+        "bytes": 4936,
+        "sha256": "2f0ac511ce770939e8bccdd237885c4e8b6d2cfbae3194ea036d171bfd49f0f4"
+      }
+    },
+    {
+      "name": "brand",
+      "command": "npm run check:brand",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-brand.log",
+        "bytes": 169,
+        "sha256": "3ac17b025f981897e4a0c429019813e9b0b3e65484bd5a697c1c26ff3a142015"
+      }
+    },
+    {
+      "name": "http2_compat",
+      "command": "npm run test:compat",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/nav-revision-compat.log",
+        "bytes": 247,
+        "sha256": "69b180d0ed35a305d2274839f8ddec5fa84b497125fb86cc7491d2234494f1dd"
+      }
+    }
+  ],
+  "production_browser": {
+    "passed": 45,
+    "failed": 0,
+    "retries": 0,
+    "new_coverage": [
+      "five-target mobile dock",
+      "complete mobile menu and route closure",
+      "compact persistence and current-item reveal",
+      "page finder keyboard navigation and IME",
+      "singular result label",
+      "empty search and feature visibility",
+      "mobile focus handoff",
+      "existing modal shortcut guard",
+      "onboarding with blocked session storage"
+    ]
+  },
+  "independent_qa": {
+    "summary": {
+      "checks": 13,
+      "passed": 13,
+      "failed": [],
+      "responsiveChecks": 50,
+      "layoutFailures": [],
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "httpErrors": 0,
+      "nonAbortRequestFailures": 0,
+      "screenshots": 20
+    },
+    "workflow_checks": [
+      {
+        "name": "responsive-shell-and-header",
+        "passed": true,
+        "detail": {
+          "routes": 8,
+          "viewportChecks": 48
+        }
+      },
+      {
+        "name": "desktop-complete-navigation-and-compact-persistence",
+        "passed": true,
+        "detail": {
+          "expanded": 264,
+          "compact": 80,
+          "persistedReload": true
+        }
+      },
+      {
+        "name": "mobile-five-destinations-and-current-route",
+        "passed": true,
+        "detail": {
+          "directLinks": 4,
+          "menuButtons": 1
+        }
+      },
+      {
+        "name": "compact-media-dialog-position-focus-and-resize",
+        "passed": true,
+        "detail": {
+          "left": 80,
+          "right": 340,
+          "top": 375,
+          "bottom": 722,
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      {
+        "name": "mobile-drawer-full-menu-focus-escape-and-backdrop",
+        "passed": true,
+        "detail": {
+          "fullMenu": true,
+          "escapeFocus": true,
+          "backdropFocus": true,
+          "routeClose": true,
+          "resizeClose": true
+        }
+      },
+      {
+        "name": "current-destination-revealed-in-scrollable-navigation",
+        "passed": true,
+        "detail": [
+          {
+            "width": 390,
+            "height": 844,
+            "route": "/dashboard/pxpipe",
+            "compact": false,
+            "item": {
+              "top": 610,
+              "bottom": 654
+            },
+            "list": {
+              "top": 134,
+              "bottom": 662
+            },
+            "revealed": true
+          },
+          {
+            "width": 1440,
+            "height": 768,
+            "route": "/dashboard/console-log",
+            "compact": true,
+            "item": {
+              "top": 487,
+              "bottom": 531
+            },
+            "list": {
+              "top": 134,
+              "bottom": 541.5
+            },
+            "revealed": true
+          }
+        ]
+      },
+      {
+        "name": "mobile-short-landscape-drawer-scroll-and-tab-cycle",
+        "passed": true,
+        "detail": {
+          "width": 360,
+          "height": 390,
+          "scrollWidth": 359,
+          "clientWidth": 359
+        }
+      },
+      {
+        "name": "global-page-finder-hotkey-search-keyboard-and-zero-state",
+        "passed": true,
+        "detail": {
+          "hotkey": true,
+          "keyboardNavigation": true,
+          "zeroResults": true,
+          "escapeFocus": true
+        }
+      },
+      {
+        "name": "mobile-page-finder-handoff-and-focus-return",
+        "passed": true,
+        "detail": {
+          "tag": "BUTTON",
+          "label": "Find a page",
+          "inClosedDialog": false,
+          "visible": true
+        }
+      },
+      {
+        "name": "translator-navigation-respects-feature-gate",
+        "passed": true,
+        "detail": {
+          "hiddenWhenDisabled": true,
+          "visibleWhenEnabled": true
+        }
+      },
+      {
+        "name": "indonesian-navigation-and-dark-reduced-motion",
+        "passed": true,
+        "detail": {
+          "locale": "id",
+          "theme": "dark",
+          "reducedMotion": "reduce"
+        }
+      },
+      {
+        "name": "all-storage-blocked",
+        "passed": true,
+        "detail": {
+          "sessionToggleWorks": true
+        }
+      },
+      {
+        "name": "sidebar-write-blocked",
+        "passed": true,
+        "detail": {
+          "sessionToggleWorks": true
+        }
+      }
+    ],
+    "active_destination_observations": [
+      {
+        "width": 390,
+        "height": 844,
+        "route": "/dashboard/pxpipe",
+        "compact": false,
+        "item": {
+          "top": 610,
+          "bottom": 654
+        },
+        "list": {
+          "top": 134,
+          "bottom": 662
+        },
+        "revealed": true
+      },
+      {
+        "width": 1440,
+        "height": 768,
+        "route": "/dashboard/console-log",
+        "compact": true,
+        "item": {
+          "top": 487,
+          "bottom": 531
+        },
+        "list": {
+          "top": 134,
+          "bottom": 541.5
+        },
+        "revealed": true
+      }
+    ],
+    "report": {
+      "local_artifact": "/workspace/scratch/nav-revision-verified/report.json",
+      "bytes": 32249,
+      "sha256": "ff7b3a4f7ef5d58980acfac86109bcb6a004e197a14b19e5e1d841dce60ec735"
+    },
+    "summary_report": {
+      "local_artifact": "/workspace/scratch/nav-revision-verified/summary.json",
+      "bytes": 213,
+      "sha256": "4e959d8751781430bc1f287b6da948b6d7d01cecc163c759006024e9ba429db7"
+    },
+    "instrumented_original_report": {
+      "local_artifact": "/workspace/scratch/nav-revision-hydration-investigation/report.json",
+      "bytes": 32249,
+      "sha256": "ff7b3a4f7ef5d58980acfac86109bcb6a004e197a14b19e5e1d841dce60ec735"
+    },
+    "earlier_observation": {
+      "build_id": "LFIbTfMxtsl1CkVNZ9ynB",
+      "react_418_text_hydration_events": 1,
+      "workflow_failures": 0,
+      "layout_failures": 0,
+      "retained_report": {
+        "local_artifact": "/workspace/scratch/nav-revision-observed-hydration/report.json",
+        "bytes": 39448,
+        "sha256": "aed3c5190cf3540ae18aaa82b410a4b375f1441c4b934461b268f0f1065b5ee7"
+      },
+      "followup_locale_reloads": {
+        "iterations": 12,
+        "errors": []
+      },
+      "followup_receipt": {
+        "local_artifact": "/workspace/scratch/nav-revision-locale-repro.json",
+        "bytes": 38,
+        "sha256": "301f5273db465c563256ad5f2e0e12ea2d9d14e38d0fc5d60d432a647233f253"
+      },
+      "disposition": "Original collector omitted stage/URL, so the cause was not isolated. Instrumented complete repeat and 12 additional locale reloads did not reproduce the event. No suppression or speculative application change; no claim that the original cause was fixed."
+    },
+    "preview_artifacts": [
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/endpoint-1440.png",
+        "bytes": 106947,
+        "sha256": "0d6405d5943b252b9ea43aa1438e3517cab886dbc4df47e6d1c24fb4e5f6928c"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/sidebar-compact-desktop.png",
+        "bytes": 85477,
+        "sha256": "6e0b3c4a7b0219d7e4f05e8ec4641b4f3b43fc20c9bea94e811561aa0f67ce67"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/mobile-all-pages-menu.png",
+        "bytes": 29223,
+        "sha256": "864d83e0eb1eacafc3e357db235a87aafa47024418c93ffe1839a49a17e4bce9"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/mobile-five-destination-dock.png",
+        "bytes": 44841,
+        "sha256": "cbb953bbab0533f965b18ef4139676780f4541f0139d8e3b575ccd2bf13b533c"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/page-finder-desktop.png",
+        "bytes": 143916,
+        "sha256": "b14cced33b05963bcfd49fea0d50492621a78d393e2b19232d4fe320f1ddf730"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/page-finder-mobile.png",
+        "bytes": 44360,
+        "sha256": "79ff8493975d9d83929b6a125a468065ec38b055045426859ce0fcaea1b28143"
+      },
+      {
+        "local_artifact": "/workspace/scratch/nav-revision-verified/indonesian-dark-mobile.png",
+        "bytes": 55565,
+        "sha256": "25dce0d29cd21867c8814726396de0cfd377e678dcb160bb67e872b20a81d2df"
+      }
+    ]
+  },
+  "boundaries": [
+    "Isolated loopback production servers, temporary private state and synthetic credentials; no real provider accounts or inference exercised.",
+    "Responsive evidence covers eight representative routes, six viewport configurations and two extra geometry checks; not every possible account or assistive device.",
+    "Default-password onboarding state is a local response fixture, not a change to server authentication or real operator credentials.",
+    "Only a boolean sidebar UI preference is persisted; blocked local/session storage and quota-write failure remain usable.",
+    "Translator visibility is a presentation flag, not an access-control mechanism.",
+    "English source registration, Indonesian completeness and template gates pass; other locales retain pre-existing partial coverage.",
+    "No remote publication, production deployment, release or CI outcome is asserted by local verification."
+  ]
+}

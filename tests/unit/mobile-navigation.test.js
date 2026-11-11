@@ -22,7 +22,8 @@ function loadComponent(url) {
     module: componentModule, exports: componentModule.exports,
     require(id) {
       if (id === "next/link") return { __esModule: true, default: ({ children, ...props }) => createElement("a", props, children), useLinkStatus: () => ({ pending }) };
-      if (id === "./NavigationPending") return loadComponent(new URL("../../src/shared/components/navigation/NavigationPending.js", import.meta.url));
+      if (id.endsWith(".css")) return {};
+      if (id.startsWith("./")) return loadComponent(new URL(`${id}${id.endsWith(".js") ? "" : ".js"}`, url));
       if (id === "@/shared/utils/cn") return { cn: (...classes) => classes.filter(Boolean).join(" ") };
       return require(id);
     },
@@ -47,10 +48,11 @@ describe("mobile quick navigation", () => {
     expect((html.match(/aria-current="page"/g) || []).length).toBe(1);
   });
 
-  it("exposes all three direct destinations and an accessible drawer trigger", () => {
+  it("exposes four direct destinations and an accessible full-menu trigger", () => {
     const html = render("/dashboard/profile", true);
     expect(html).toContain('aria-label="Mobile quick navigation"');
-    for (const route of ["endpoint", "providers", "usage"]) expect(html).toContain(`href="/dashboard/${route}"`);
+    for (const route of ["endpoint", "providers", "basic-chat", "usage"]) expect(html).toContain(`href="/dashboard/${route}"`);
+    expect((html.match(/<a /g) || [])).toHaveLength(4);
     expect(html).toContain('aria-label="More navigation"');
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('aria-controls="mobile-drawer"');
@@ -63,17 +65,24 @@ describe("mobile quick navigation", () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).toMatch(/href="\/dashboard\/usage"[^>]*aria-current="page"|aria-current="page"[^>]*href="\/dashboard\/usage"/);
   });
+
+  it("gives Chat its own current-page destination without activating prefix lookalikes", () => {
+    const html = render("/dashboard/basic-chat");
+    expect(html).toMatch(/href="\/dashboard\/basic-chat"[^>]*aria-current="page"/);
+    expect((html.match(/aria-current="page"/g) || [])).toHaveLength(1);
+    expect(render("/dashboard/basic-chat-history")).not.toContain('aria-current="page"');
+  });
 });
 
 
 describe("router-owned pending feedback", () => {
   it("reserves a feedback slot on every route link and reflects pending without changing destinations", () => {
     const settled = render("/dashboard/providers");
-    expect((settled.match(/data-navigation-pending="false"/g) || [])).toHaveLength(3);
+    expect((settled.match(/data-navigation-pending="false"/g) || [])).toHaveLength(4);
     try {
       pending = true;
       const inFlight = render("/dashboard/providers");
-      expect((inFlight.match(/data-navigation-pending="true"/g) || [])).toHaveLength(3);
+      expect((inFlight.match(/data-navigation-pending="true"/g) || [])).toHaveLength(4);
       expect(inFlight.match(/href="[^"]+"/g)).toEqual(settled.match(/href="[^"]+"/g));
     } finally { pending = false; }
   });

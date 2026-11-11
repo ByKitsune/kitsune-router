@@ -147,7 +147,7 @@ publication, live-provider availability or production deployment.
 
 ## Dashboard composition (November 11 refactor)
 
-The desktop frame is a 244px task rail beside a single content canvas, with a 64px
+The desktop frame is a 264px task rail (80px in compact mode) beside a single content canvas, with a 64px
 header and a 1440px maximum reading width. Mobile search may add a second header
 row; pending navigation feedback stays at the actual header's bottom edge.
 Shared cards use 14px corners, 16px mobile/20px desktop padding and quiet borders.
@@ -186,3 +186,23 @@ Pricing now lives in the dashboard route group at the unchanged public URL
 the rest of the application. The existing pathname authentication guard remains
 in force. This layout refactor does not change provider credential policies,
 request routing, billing arithmetic or the meaning of unknown/zero usage.
+
+## Shared navigation directory (November 11 follow-up)
+
+Use `navigation/dashboardNavigation.js` for destination labels, groups, route
+matching and page context across the sidebar, header, page finder and mobile
+dock. Secondary pages remain discoverable; keep the Translator visibility flag
+and existing supported media categories. The compact rail must preserve named
+links and a keyboard-accessible media menu. Current destinations should be
+revealed within the menu scrollport without changing content focus.
+
+Mobile uses five stable destinations: Gateway, Providers, Chat, Usage and More.
+Keep the dock in layout flow with safe-area padding and at least 44px targets.
+The full menu has independent scrolling and persistent preferences/documentation.
+Test short landscape screens as well as narrow portrait widths.
+
+Find a page is available from the header/sidebar and Ctrl/Cmd+K. Its searchable
+results are actual links, preserve modified clicks, use translated labels, and
+respect IME composition. Preserve focus across Escape, drawer handoff and route
+commits; avoid opening navigation over a credential or confirmation dialog.
+The page finder and each page's controlled search serve distinct scopes.

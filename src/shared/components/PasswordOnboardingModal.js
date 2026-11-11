@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Button from "./Button";
 
+const DISMISSAL_KEY = "kitsunerouter_pwd_onboarding_dismissed";
+function rememberDismissal() {
+  try { sessionStorage.setItem(DISMISSAL_KEY, "true"); }
+  catch { /* Optional browser persistence must not block the security controls. */ }
+}
+
 export default function PasswordOnboardingModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,7 +25,9 @@ export default function PasswordOnboardingModal() {
     let cancelled = false;
     (async () => {
       // Check if user already dismissed the prompt in this browser session
-      const dismissed = sessionStorage.getItem("kitsunerouter_pwd_onboarding_dismissed");
+      let dismissed = false;
+      try { dismissed = sessionStorage.getItem(DISMISSAL_KEY); }
+      catch { /* Still check the server when browser storage is unavailable. */ }
       if (dismissed) {
         if (!cancelled) setLoading(false);
         return;
@@ -43,12 +51,12 @@ export default function PasswordOnboardingModal() {
   }, []);
 
   const handleDismiss = () => {
-    sessionStorage.setItem("kitsunerouter_pwd_onboarding_dismissed", "true");
+    rememberDismissal();
     setIsOpen(false);
   };
 
   const handleGoToSettings = () => {
-    sessionStorage.setItem("kitsunerouter_pwd_onboarding_dismissed", "true");
+    rememberDismissal();
     setIsOpen(false);
     router.push("/dashboard/profile#password");
   };
@@ -79,7 +87,7 @@ export default function PasswordOnboardingModal() {
               onClick={handleGoToSettings}
               className="w-full h-11 text-sm font-semibold shadow-[var(--shadow-warm)] flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">lock_reset</span>
               Update Password Now
             </Button>
             <Button

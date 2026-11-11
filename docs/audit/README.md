@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 11 navigation revision](36-dashboard-navigation-revision-2026-11-11.md)
+records the shared page directory, expanded/compact sidebar, mobile navigation,
+contextual header and keyboard-accessible page finder.
+
 The [November 11 dashboard experience redesign](35-dashboard-experience-redesign-2026-11-11.md)
 records the full dashboard layout refactor, shared navigation/loading/dialog
 behavior and production browser coverage across desktop and narrow screens.

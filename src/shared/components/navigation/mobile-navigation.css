@@ -1,0 +1,87 @@
+/* Five stable destinations share the same routing model as the full menu.
+   The dock occupies layout space, including device safe areas. */
+.dashboard-mobile-navigation.dashboard-mobile-dock {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 5px max(6px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+}
+.dashboard-mobile-dock-items {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  gap: 2px;
+}
+.dashboard-mobile-dock .dashboard-mobile-destination {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 62px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 12px;
+  padding: 3px 1px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.dashboard-mobile-dock .dashboard-mobile-destination-icon {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+.dashboard-mobile-dock .dashboard-mobile-destination-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-mobile-dock .dashboard-mobile-destination:hover {
+  color: var(--color-text-main);
+  background: var(--color-surface-2);
+}
+.dashboard-mobile-dock .dashboard-mobile-destination.is-active {
+  color: var(--color-primary);
+  font-weight: 650;
+}
+.dashboard-mobile-dock .is-active .dashboard-mobile-destination-icon {
+  background: color-mix(in srgb, var(--color-primary) 11%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+.dashboard-mobile-dock .dashboard-mobile-destination:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.dashboard-mobile-dock .dashboard-mobile-destination .dashboard-nav-pending {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .dashboard-mobile-dock .dashboard-mobile-destination { font-size: 11px; }
+  .dashboard-mobile-dock-items { gap: 8px; }
+}
+@media (min-width: 1024px) {
+  .dashboard-mobile-navigation.dashboard-mobile-dock { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-mobile-dock .dashboard-mobile-destination,
+  .dashboard-mobile-dock .dashboard-mobile-destination-icon { transition: none; }
+}
