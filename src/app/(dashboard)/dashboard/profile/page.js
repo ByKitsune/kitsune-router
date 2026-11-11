@@ -1,5 +1,7 @@
 "use client";
 
+import "./operations.css";
+
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { Card, Button, Toggle, Input } from "@/shared/components";
 import Modal, { ConfirmModal } from "@/shared/components/Modal";
@@ -772,20 +774,21 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
-      <div className="mb-7 flex min-w-0 flex-col gap-3">
+    <div className="operations-page">
+      <div className="operations-heading">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Workspace settings</p>
         <h2 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">Make it your workspace</h2>
         <p className="max-w-2xl text-sm leading-6 text-text-muted">Manage access, routing preferences, and the local installation in one place.</p>
       </div>
-      <nav aria-label="Settings sections" className="mb-6 flex max-w-full gap-2 overflow-x-auto pb-2">
-        {[["installation", "Installation"], ["security", "Security"], ["single-sign-on", "Single sign-on"], ["routing", "Routing"], ["network", "Network"], ["observability", "Observability"]].map(([id, label]) => (
-          <a key={id} href={`#settings-${id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-border-subtle bg-surface px-4 text-xs font-medium text-text-muted transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary">{label}</a>
+      <div className="operations-settings">
+      <nav aria-label="Settings sections" className="operations-section-nav">
+        {[["installation", "Installation", "computer"], ["language", "Language", "language"], ["security", "Security", "shield"], ["single-sign-on", "Single sign-on", "passkey"], ["routing", "Routing", "route"], ["network", "Network", "hub"], ["observability", "Observability", "monitoring"]].map(([id, label, icon]) => (
+          <a key={id} href={`#settings-${id}`}><span aria-hidden="true" className="material-symbols-outlined">{icon}</span>{label}</a>
         ))}
       </nav>
-      <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-12">
+      <div className="operations-settings-content">
         {/* Local Mode Info */}
-        <Card id="settings-installation" className="min-w-0 scroll-mt-6 xl:col-span-8">
+        <Card id="settings-installation" className="min-w-0 scroll-mt-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="size-10 sm:size-12 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
@@ -860,7 +863,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Language */}
-        <Card id="settings-language" className="min-w-0 scroll-mt-6 xl:col-span-4">
+        <Card id="settings-language" className="min-w-0 scroll-mt-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="size-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[20px]">language</span>
@@ -878,7 +881,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Security */}
-        <Card id="settings-security" className="min-w-0 scroll-mt-6 xl:col-span-6">
+        <Card id="settings-security" className="min-w-0 scroll-mt-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
               <span className="material-symbols-outlined text-[20px]">shield</span>
@@ -960,7 +963,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Single Sign-On (SSO) */}
-        <Card id="settings-single-sign-on" className="min-w-0 scroll-mt-6 xl:col-span-6">
+        <Card id="settings-single-sign-on" className="min-w-0 scroll-mt-6">
           <button
             type="button"
             onClick={() => setOidcExpanded((v) => !v)}
@@ -1454,7 +1457,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Routing Preferences */}
-        <Card id="settings-routing" className="min-w-0 scroll-mt-6 xl:col-span-6">
+        <Card id="settings-routing" className="min-w-0 scroll-mt-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
               <span className="material-symbols-outlined text-[20px]">route</span>
@@ -1559,7 +1562,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Network */}
-        <Card id="settings-network" className="min-w-0 scroll-mt-6 xl:col-span-6">
+        <Card id="settings-network" className="min-w-0 scroll-mt-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
               <span className="material-symbols-outlined text-[20px]">wifi</span>
@@ -1631,7 +1634,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Observability Settings */}
-        <Card id="settings-observability" className="min-w-0 scroll-mt-6 xl:col-span-6">
+        <Card id="settings-observability" className="min-w-0 scroll-mt-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
               <span className="material-symbols-outlined text-[20px]">monitoring</span>
@@ -1647,7 +1650,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Account actions */}
-        <div className="flex min-w-0 flex-col gap-3 rounded-[22px] border border-border-subtle bg-surface p-5 sm:flex-row xl:col-span-12">
+        <div className="grid min-w-0 grid-cols-1 gap-3 border-t border-border-subtle pt-5 sm:grid-cols-2">
           <Button
             variant="outline"
             fullWidth
@@ -1668,10 +1671,11 @@ export default function ProfilePage() {
         </div>
 
         {/* App Info */}
-        <div className="py-3 text-center text-xs leading-6 text-text-muted xl:col-span-12">
+        <div className="py-3 text-center text-xs leading-6 text-text-muted">
           <p>{APP_CONFIG.name} v{APP_CONFIG.version}</p>
           <p className="mt-1">Local Mode - All data stored on your machine</p>
         </div>
+      </div>
       </div>
 
       <LanguageSwitcher

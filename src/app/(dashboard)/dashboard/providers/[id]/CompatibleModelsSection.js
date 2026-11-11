@@ -18,7 +18,7 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
     : undefined;
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} hover:bg-sidebar/50`}>
+    <div className={`flex min-w-0 flex-wrap items-start gap-3 rounded-lg border p-3 ${borderColor} hover:bg-bg-alt`}>
       <span
         className="material-symbols-outlined text-base text-text-muted"
         style={iconColor ? { color: iconColor } : undefined}
@@ -26,16 +26,16 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
         {testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy"}
       </span>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="text-sm font-medium truncate">{modelId}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <p className="break-all text-sm font-medium">{modelId}</p>
           <CapacityBadges caps={caps} colorOverride="text-text-muted/70" size={12} />
         </div>
-        <div className="flex items-center gap-1 mt-1">
-          <code className="text-xs text-text-muted font-mono bg-sidebar px-1.5 py-0.5 rounded">{fullModel}</code>
+        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+          <code className="max-w-full break-all rounded bg-bg-alt px-1.5 py-0.5 font-mono text-xs leading-5 text-text-muted">{fullModel}</code>
           <div className="relative group/btn">
             <button
               onClick={() => onCopy(fullModel, `model-${modelId}`)}
-              className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary"
+              aria-label={`Copy ${fullModel}`} className="flex size-9 items-center justify-center rounded text-text-muted hover:bg-bg-alt hover:text-primary"
             >
               <span className="material-symbols-outlined text-sm">
                 {copied === `model-${modelId}` ? "check" : "content_copy"}
@@ -49,7 +49,7 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
             <div className="relative group/btn">
               <button
                 onClick={onEditCaps}
-                className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary transition-colors"
+                className="flex size-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-alt hover:text-primary"
                 title="Configure capabilities"
               >
                 <span className="material-symbols-outlined text-sm">tune</span>
@@ -63,8 +63,9 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
             <div className="relative group/btn">
               <button
                 onClick={onTest}
+                aria-label={`Test ${fullModel}`}
                 disabled={isTesting}
-                className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary transition-colors"
+                className="flex size-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-alt hover:text-primary"
               >
                 <span className="material-symbols-outlined text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined}>
                   {isTesting ? "progress_activity" : "science"}
@@ -79,7 +80,7 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
       </div>
       <button
         onClick={onDeleteAlias}
-        className="p-1 hover:bg-red-50 rounded text-red-500"
+        className="flex size-10 shrink-0 items-center justify-center rounded text-red-500 hover:bg-red-500/10"
         title="Remove model"
       >
         <span className="material-symbols-outlined text-sm">delete</span>
@@ -197,7 +198,7 @@ export default function CompatibleModelsSection({
       </p>
 
       <div className="flex items-end gap-2 flex-wrap">
-        <div className="flex-1 min-w-[240px]">
+        <div className="min-w-0 w-full flex-1 sm:min-w-[240px]">
           <label htmlFor="new-compatible-model-input" className="text-xs text-text-muted mb-1 block">Model ID</label>
           <input
             id="new-compatible-model-input"

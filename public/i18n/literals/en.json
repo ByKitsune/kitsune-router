@@ -1893,5 +1893,13 @@
   "Some recorded usage counters are invalid or inconsistent.": "Some recorded usage counters are invalid or inconsistent.",
   "Content redacted": "Content redacted",
   "Model allocation unavailable": "Model allocation unavailable",
-  "/ Total": "/ Total"
+  "/ Total": "/ Total",
+  "Attach images": "Attach images",
+  "Loading": "Loading",
+  "No results": "No results",
+  "Provider library": "Provider library",
+  "Proxy pool summary": "Proxy pool summary",
+  "Search": "Search",
+  "Total": "Total",
+  "Web Search / Fetch": "Web Search / Fetch"
 }

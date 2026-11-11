@@ -2,9 +2,7 @@
   --topology-line: color-mix(in srgb, var(--color-primary) 34%, var(--color-text-subtle));
   --topology-ambient: color-mix(in srgb, var(--color-primary) 8%, transparent);
   isolation: isolate;
-  background:
-    radial-gradient(ellipse at 50% 52%, var(--topology-ambient), transparent 58%),
-    color-mix(in srgb, var(--color-surface-2) 42%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-surface-2) 30%, var(--color-surface));
 }
 .usage-topology::before {
   position: absolute;
@@ -26,7 +24,7 @@
 .topology-provider {
   position: relative;
   border-color: color-mix(in srgb, var(--provider-accent) 22%, var(--color-border));
-  box-shadow: var(--shadow-soft), 0 0 0 3px color-mix(in srgb, var(--provider-accent) 3%, transparent);
+  box-shadow: var(--shadow-soft);
   animation: topology-node-float 7s ease-in-out infinite;
   animation-delay: var(--topology-phase);
   transition: border-color 400ms ease, box-shadow 400ms ease, background-color 400ms ease;
@@ -55,7 +53,7 @@
 .topology-provider[data-state="recent"] .topology-provider-status { background: var(--color-warning); }
 .topology-hub {
   border-color: color-mix(in srgb, var(--color-primary) 70%, var(--color-border));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 12%, var(--color-surface)), var(--color-surface));
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 5%, transparent), 0 0 40px color-mix(in srgb, var(--color-primary) 10%, transparent), var(--shadow-soft);
 }
 .topology-hub[data-state="active"] {

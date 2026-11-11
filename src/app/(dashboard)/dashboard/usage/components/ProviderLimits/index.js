@@ -751,15 +751,15 @@ export default function ProviderLimits() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
-        <div className="flex flex-wrap items-center gap-1.5">
+    <div className="quota-accounts space-y-5">
+      {/* Filters precede actions and wrap within the available viewport. */}
+      <div className="quota-toolbar workspace-toolbar flex min-w-0 flex-col gap-3">
+        <div className="quota-toolbar-controls flex min-w-0 flex-wrap items-center gap-2">
           <div className="relative">
             <button
               type="button"
               onClick={() => setProviderMenuOpen((prev) => !prev)}
-              className="flex h-8 items-center justify-between gap-1 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
+              className="flex min-h-10 items-center justify-between gap-1 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
               aria-haspopup="menu"
               aria-expanded={providerMenuOpen}
               title="Filter quota providers"
@@ -778,7 +778,7 @@ export default function ProviderLimits() {
                     fallbackText={providerFilter.slice(0, 2).toUpperCase()}
                   />
                 )}
-                <span className="truncate capitalize hidden lg:inline">
+                <span className="max-w-40 truncate capitalize">
                   {selectedProviderLabel}
                 </span>
               </span>
@@ -863,7 +863,7 @@ export default function ProviderLimits() {
               }
               setAccountFilter(nextValue);
             }}
-            className="h-8 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary outline-none transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
+            className="min-h-10 max-w-full rounded-lg border border-border-subtle bg-surface px-3 text-xs text-text-main outline-none transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary/30"
             aria-label="Filter accounts by status"
           >
             {ACCOUNT_FILTER_OPTIONS.map((option) => (
@@ -877,7 +877,7 @@ export default function ProviderLimits() {
             <select
               value={quotaSortMode}
               onChange={(event) => setQuotaSortMode(event.target.value)}
-              className="h-8 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary outline-none transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
+              className="min-h-10 max-w-full rounded-lg border border-border-subtle bg-surface px-3 text-xs text-text-main outline-none transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary/30"
               aria-label="Sort Codex quotas by remaining"
             >
               {QUOTA_SORT_OPTIONS.map((option) => (
@@ -892,13 +892,13 @@ export default function ProviderLimits() {
             type="button"
             onClick={() => setExpiringFirst((prev) => !prev)}
             aria-pressed={expiringFirst}
-            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs transition-colors ${expiringFirst ? "border-amber-500/40 bg-amber-500/10 text-amber-500" : "border-black/10 text-text-primary hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"}`}
+            className={`flex min-h-10 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs transition-colors ${expiringFirst ? "border-amber-500/40 bg-amber-500/10 text-amber-500" : "border-black/10 text-text-primary hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"}`}
             title="Sort accounts by earliest quota reset time"
           >
             <span className="material-symbols-outlined text-[14px]">
               hourglass_top
             </span>
-            <span className="hidden sm:inline">Expiring first</span>
+            <span className="inline">Expiring first</span>
           </button>
 
           {/* Bulk: disable depleted */}
@@ -906,11 +906,11 @@ export default function ProviderLimits() {
             type="button"
             onClick={handleDisableDepleted}
             disabled={bulkToggling}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-red-500/30 px-2 text-xs text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+            className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-red-500/30 px-2 text-xs text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
             title="Disable connections with depleted quota on the current page"
           >
             <span className="material-symbols-outlined text-[14px]">block</span>
-            <span className="hidden sm:inline">Turn off Empty</span>
+            <span className="inline">Turn off Empty</span>
           </button>
 
           {/* Bulk: enable available */}
@@ -918,19 +918,19 @@ export default function ProviderLimits() {
             type="button"
             onClick={handleEnableAvailable}
             disabled={bulkToggling}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-emerald-500/30 px-2 text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
+            className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-emerald-500/30 px-2 text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
             title="Enable connections that still have quota on the current page"
           >
             <span className="material-symbols-outlined text-[14px]">
               check_circle
             </span>
-            <span className="hidden sm:inline">Turn on Available</span>
+            <span className="inline">Turn on Available</span>
           </button>
 
           {/* Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh((prev) => !prev)}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+            className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
             title={autoRefresh ? "Disable auto-refresh" : "Enable auto-refresh"}
           >
             <span
@@ -940,7 +940,7 @@ export default function ProviderLimits() {
             >
               {autoRefresh ? "toggle_on" : "toggle_off"}
             </span>
-            <span className="hidden text-text-primary sm:inline">
+            <span className="text-text-primary">
               Auto-refresh
             </span>
             {autoRefresh && (
@@ -956,7 +956,7 @@ export default function ProviderLimits() {
             type="button"
             onClick={() => refreshAll(true)}
             disabled={refreshingAll}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs text-text-primary transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 disabled:opacity-50"
+            className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs text-text-primary transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 disabled:opacity-50"
             title="Refresh all"
           >
             <span
@@ -976,7 +976,7 @@ export default function ProviderLimits() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="quota-account-grid grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-2">
         {sortedConnections.map((conn) => {
           const quota = quotaData[conn.id];
           const isLoading = loading[conn.id];
@@ -996,10 +996,10 @@ export default function ProviderLimits() {
             <Card
               key={conn.id}
               padding="none"
-              className={`min-w-0 ${isInactive ? "opacity-60" : ""}`}
+              className={`quota-account-card min-w-0 overflow-hidden ${isInactive ? "opacity-60" : ""}`}
             >
-              <div className="px-3 py-2 border-b border-black/10 dark:border-white/10">
-                <div className="flex items-center justify-between gap-2">
+              <div className="border-b border-border-subtle px-4 py-4">
+                <div className="quota-account-heading flex min-w-0 flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-8 h-8 shrink-0 rounded-md flex items-center justify-center overflow-hidden">
                       <ProviderIcon
@@ -1069,7 +1069,7 @@ export default function ProviderLimits() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="quota-account-actions flex max-w-full shrink-0 flex-wrap items-center gap-1">
                     {isCodex && (
                       <>
                         <Tooltip
@@ -1106,7 +1106,7 @@ export default function ProviderLimits() {
                             onClick={() => handleViewCodexResetCredits(conn)}
                             disabled={isLoading || rowBusy}
                             aria-label="View Codex reset credit expiry"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-text-muted transition-colors hover:bg-black/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5"
+                            className="flex size-9 items-center justify-center rounded-lg border border-black/10 text-text-muted transition-colors hover:bg-black/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5"
                           >
                             <span className="material-symbols-outlined text-[17px]">schedule</span>
                           </button>
@@ -1131,7 +1131,7 @@ export default function ProviderLimits() {
                         onClick={() => refreshProvider(conn.id, conn.provider)}
                         disabled={isLoading || rowBusy}
                         aria-label="Refresh quota"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                        className="flex size-9 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
                       >
                         <span
                           className={`material-symbols-outlined text-[18px] text-text-muted ${isLoading ? "animate-spin" : ""}`}
@@ -1149,7 +1149,7 @@ export default function ProviderLimits() {
                         }}
                         disabled={rowBusy}
                         aria-label="Edit connection"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
+                        className="flex size-9 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
                       >
                         <span className="material-symbols-outlined text-[18px]">
                           edit
@@ -1162,7 +1162,7 @@ export default function ProviderLimits() {
                         onClick={() => handleDeleteConnection(conn.id)}
                         disabled={rowBusy}
                         aria-label="Delete connection"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-red-500/10 text-red-500 transition-colors disabled:opacity-50"
+                        className="flex size-9 items-center justify-center rounded-lg hover:bg-red-500/10 text-red-500 transition-colors disabled:opacity-50"
                       >
                         <span
                           className={`material-symbols-outlined text-[18px] ${deletingId === conn.id ? "animate-pulse" : ""}`}
@@ -1192,7 +1192,7 @@ export default function ProviderLimits() {
                 </div>
               </div>
 
-              <div className="px-2 py-1.5">
+              <div className="min-w-0 px-3 py-3">
                 {isLoading ? (
                   <div className="text-center py-5 text-text-muted">
                     <span className="material-symbols-outlined text-[28px] animate-spin">
@@ -1253,7 +1253,7 @@ export default function ProviderLimits() {
         })}
       </div>
 
-      <div className="rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
+      <div className="quota-pagination rounded-xl border border-border-subtle bg-surface px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-text-muted">{connectionsPageSummary}</span>
             <div className="flex flex-wrap items-center gap-2">
@@ -1269,7 +1269,7 @@ export default function ProviderLimits() {
                     setCustomPageSizeInput(String(nextPageSize));
                   }
                 }}
-                className="h-8 rounded-lg border border-black/10 bg-black/[0.02] px-2 text-xs text-text-primary outline-none transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/10"
+                className="min-h-10 max-w-full rounded-lg border border-border-subtle bg-surface px-3 text-xs text-text-main outline-none transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary/30"
                 aria-label="Accounts per page"
               >
                 {ACCOUNT_PAGE_SIZE_OPTIONS.map((option) => (
@@ -1334,7 +1334,7 @@ export default function ProviderLimits() {
                 disabled={
                   pagination.page <= 1 || connectionsLoading || refreshingAll
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
+                className="flex size-9 items-center justify-center rounded-lg border border-black/10 text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
                 aria-label="Previous accounts page"
               >
                 <span className="material-symbols-outlined text-[16px]">
@@ -1353,7 +1353,7 @@ export default function ProviderLimits() {
                   connectionsLoading ||
                   refreshingAll
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
+                className="flex size-9 items-center justify-center rounded-lg border border-black/10 text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
                 aria-label="Next accounts page"
               >
                 <span className="material-symbols-outlined text-[16px]">
@@ -1408,7 +1408,7 @@ export default function ProviderLimits() {
               <button
                 type="button"
                 onClick={() => setResetCreditsState(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/5"
+                className="flex size-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/5"
                 aria-label="Close reset credit expiry modal"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>

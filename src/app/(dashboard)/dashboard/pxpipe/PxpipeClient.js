@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -105,13 +107,13 @@ export default function PxpipeClient() {
           : "Stopped";
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
+    <div className="operations-page">
+      <div className="operations-heading operations-heading-row">
+        <h2 className="page-title flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">image</span>
           PXPIPE Dashboard
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Link href="/dashboard/token-saver" className="text-xs text-primary underline hover:opacity-80">
             Token Saver settings
           </Link>
@@ -121,7 +123,7 @@ export default function PxpipeClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
         <SummaryCard
           label="Status"
           value={statusLabel}
@@ -135,10 +137,11 @@ export default function PxpipeClient() {
         <SummaryCard label="Bypassed" value={w ? w.bypassed.toLocaleString() : "—"} />
       </div>
 
-      <Card className="p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+      <div className="grid min-w-0 gap-5 2xl:grid-cols-2">
+      <Card className="min-w-0">
+        <div className="operations-toolbar mb-5">
           <h3 className="font-medium">Token savings (estimated)</h3>
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1">
+          <div className="flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1">
             {WINDOW_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -180,8 +183,8 @@ export default function PxpipeClient() {
         </p>
       </Card>
 
-      <Card className="p-4">
-        <h3 className="font-medium mb-3">Tokens saved — last 30 days</h3>
+      <Card className="min-w-0">
+        <h3 className="font-medium mb-5">Tokens saved — last 30 days</h3>
         {stats?.timeline?.some((d) => d.tokensSavedEst > 0) ? (
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={stats.timeline} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -205,9 +208,10 @@ export default function PxpipeClient() {
         )}
       </Card>
 
-      <Card className="p-4">
-        <h3 className="font-medium mb-3">History</h3>
-        <div className="overflow-x-auto">
+      </div>
+      <Card className="min-w-0">
+        <h3 className="font-medium mb-5">History</h3>
+        <div className="operations-table">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-text-muted border-b border-border">
@@ -271,7 +275,7 @@ export default function PxpipeClient() {
         </div>
       </Card>
 
-      <Card className="p-4" id="logs">
+      <Card className="min-w-0" id="logs">
         <h3 className="font-medium mb-3">PXPIPE Logs</h3>
         {logs?.installLog ? (
           <pre className="rounded bg-black/5 dark:bg-white/5 p-3 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">

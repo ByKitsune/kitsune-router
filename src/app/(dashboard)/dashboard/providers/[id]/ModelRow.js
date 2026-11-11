@@ -16,86 +16,37 @@ export default function ModelRow({ model, fullModel, alias, copied, onCopy, test
     : undefined;
 
   return (
-    <div className={`group min-w-0 max-w-full rounded-lg border px-3 py-2 ${borderColor} hover:bg-sidebar/50`}>
-      <div className="flex min-w-0 items-start gap-2 sm:items-center">
-        <span
-          className="material-symbols-outlined shrink-0 text-base"
-          style={iconColor ? { color: iconColor } : undefined}
-        >
+    <div className={`provider-model-row group min-w-0 rounded-lg border ${borderColor}`}>
+      <div className="flex min-w-0 items-start gap-2.5">
+        <span aria-hidden="true" className="material-symbols-outlined shrink-0 text-[19px] text-text-muted" style={iconColor ? { color: iconColor } : undefined}>
           {testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy"}
         </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <code className="max-w-[72vw] truncate rounded bg-sidebar px-1.5 py-0.5 font-mono text-xs text-text-muted sm:max-w-[360px]">{displayModel}</code>
-          <span className="flex min-w-0 items-center text-[9px] gap-1 pl-1">
-            {model.name && <span className="truncate text-[9px] italic text-text-muted/70">{model.name}</span>}
+        <div className="min-w-0 flex-1">
+          <code className="block break-all font-mono text-xs leading-5 text-text-main">{displayModel}</code>
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+            {model.name && <span className="break-words text-[11px] text-text-muted">{model.name}</span>}
             <CapacityBadges caps={caps} colorOverride="text-text-muted/70" size={12} />
-          </span>
-        </div>
-        {onEditCaps && (
-          <div className="relative shrink-0 group/btn">
-            <button
-              onClick={onEditCaps}
-              className="rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              title="Configure capabilities"
-            >
-              <span className="material-symbols-outlined text-sm">tune</span>
-            </button>
-            <span className="pointer-events-none absolute mt-1 top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
-              Capabilities
-            </span>
           </div>
-        )}
-        {onTest && (
-          <div className="relative shrink-0 group/btn">
-            <button
-              onClick={onTest}
-              aria-label={`Test ${displayModel}`}
-              title={testDisabledReason || "Test model with the selected settings"}
-              disabled={isTesting || !!testDisabledReason}
-              className={`rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary disabled:cursor-not-allowed ${isTesting || testDisabledReason ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"}`}
-            >
-              <span className="material-symbols-outlined text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined}>
-                {isTesting ? "progress_activity" : "science"}
-              </span>
-            </button>
-            <span className="pointer-events-none absolute mt-1 top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
-              {isTesting ? "Testing..." : "Test"}
-            </span>
-          </div>
-        )}
-        <div className="relative shrink-0 group/btn">
-          <button
-            onClick={() => onCopy(displayModel, `model-${model.id}`)}
-            aria-label={`Copy ${displayModel}`}
-            className="rounded p-0.5 text-text-muted hover:bg-sidebar hover:text-primary"
-          >
-            <span className="material-symbols-outlined text-sm">
-              {copied === `model-${model.id}` ? "check" : "content_copy"}
-            </span>
-          </button>
-          <span className="pointer-events-none absolute mt-1 top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
-            {copied === `model-${model.id}` ? "Copied!" : "Copy"}
-          </span>
         </div>
-        {isCustom ? (
-          <button
-            onClick={onDeleteAlias}
-            className="ml-auto rounded p-0.5 text-text-muted opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
-            title="Remove custom model"
-          >
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        ) : onDisable ? (
-          <button
-            onClick={onDisable}
-            className="ml-auto rounded p-0.5 text-text-muted opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
-            title="Disable this model"
-          >
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        ) : null}
       </div>
-      {serviceTierWarning && <p className="mt-1 max-w-sm text-[10px] leading-relaxed text-amber-700 dark:text-amber-400">{serviceTierWarning}</p>}
+      <div className="provider-model-actions">
+        {onEditCaps && <button type="button" onClick={onEditCaps} title="Configure capabilities" aria-label="Configure capabilities">
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">tune</span>
+          <span className="sr-only">Capabilities</span>
+        </button>}
+        {onTest && <button type="button" onClick={onTest} aria-label={`Test ${displayModel}`} title={testDisabledReason || "Test model with the selected settings"} disabled={isTesting || !!testDisabledReason}>
+          <span aria-hidden="true" className={`material-symbols-outlined text-[16px] ${isTesting ? "animate-spin" : ""}`}>{isTesting ? "progress_activity" : "science"}</span>
+          {isTesting ? "Testing..." : "Test"}
+        </button>}
+        <button type="button" onClick={() => onCopy(displayModel, `model-${model.id}`)} aria-label={`Copy ${displayModel}`}>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{copied === `model-${model.id}` ? "check" : "content_copy"}</span>
+          {copied === `model-${model.id}` ? "Copied!" : "Copy"}
+        </button>
+        {(isCustom || onDisable) && <button type="button" onClick={isCustom ? onDeleteAlias : onDisable} className="hover:!bg-red-500/10 hover:!text-red-500" title={isCustom ? "Remove custom model" : "Disable this model"} aria-label={isCustom ? "Remove custom model" : "Disable this model"}>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">close</span>
+        </button>}
+      </div>
+      {serviceTierWarning && <p className="mt-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">{serviceTierWarning}</p>}
     </div>
   );
 }

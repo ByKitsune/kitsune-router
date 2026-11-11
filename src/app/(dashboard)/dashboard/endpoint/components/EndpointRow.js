@@ -5,7 +5,7 @@ import { Input } from "@/shared/components";
 /** Reusable endpoint row component */
 export default function EndpointRow({ label, url, copyId, copied, onCopy, badge, actions }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-border-subtle bg-bg-alt/60 p-2.5">
+    <div className="flex min-w-0 items-center gap-2">
       <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 min-w-[56px] sm:min-w-[72px] text-center ${
           (badge === "CF" || badge === "TS") ? "bg-primary/10 text-primary" : "bg-surface-2 text-text-muted"
         }`}>{label}</span>

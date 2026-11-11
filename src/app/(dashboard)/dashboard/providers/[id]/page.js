@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProviderLoadingState } from "../components/ProviderWorkspace";
 import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, ZedAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { Card, Button, Badge, Input, Modal, OAuthModal, KiroOAuthWrapper, CursorAuthModal, ZedAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind, filterAdvertisedModels } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
@@ -1387,9 +1388,10 @@ export default function ProviderDetailPage() {
             value={modelSearch}
             onChange={(e) => setModelSearch(e.target.value)}
             placeholder={translate("Search models...")}
-            className="w-64 py-2 px-3 text-sm text-text-main bg-surface-2 rounded-[10px] border border-transparent placeholder-text-muted/70 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40"
+            aria-label="Search models..."
+            className="min-h-11 w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-main placeholder:text-text-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-64"
           />
-          <div className="flex items-center gap-1">
+          <div className="flex max-w-full flex-wrap items-center gap-1">
             {[
               { key: "all", label: `All (${allModels.length})` },
               { key: "enabled", label: `Enabled (${displayModels.length})` },
@@ -1398,10 +1400,11 @@ export default function ProviderDetailPage() {
               <button
                 key={opt.key}
                 onClick={() => setModelFilter(opt.key)}
+                aria-pressed={modelFilter === opt.key}
                 className={
                   modelFilter === opt.key
-                    ? "px-2.5 py-1.5 rounded-lg text-xs bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30"
-                    : "px-2.5 py-1.5 rounded-lg text-xs text-text-muted border border-black/10 dark:border-white/10 hover:text-primary hover:border-primary/40"
+                    ? "min-h-10 px-2.5 py-1.5 rounded-lg text-xs bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30"
+                    : "min-h-10 px-2.5 py-1.5 rounded-lg text-xs text-text-muted border border-black/10 dark:border-white/10 hover:text-primary hover:border-primary/40"
                 }
               >
                 {opt.label}
@@ -1420,7 +1423,7 @@ export default function ProviderDetailPage() {
             {liveFetching ? translate("Fetching...") : translate("Fetch Models")}
           </button>
         </div>
-        <div className="flex flex-wrap gap-3 max-h-[480px] overflow-y-auto pr-1">
+        <div className="provider-model-grid">
         {/* Custom models first */}
         {customModelRows.map((model) => (
           <ModelRow
@@ -1561,14 +1564,7 @@ export default function ProviderDetailPage() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-8">
-        <CardSkeleton />
-        <CardSkeleton />
-      </div>
-    );
-}
+  if (loading) return <ProviderLoadingState detail />;
 
   if (!providerInfo) {
     return (
@@ -1593,12 +1589,12 @@ export default function ProviderDetailPage() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:gap-8 sm:px-0">
+    <div className="provider-workspace provider-detail-workspace">
       {/* Header */}
-      <div className="min-w-0">
+      <header className="provider-detail-heading">
         <Link
           href="/dashboard/providers"
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
+          className="provider-back-link"
         >
           <span className="material-symbols-outlined text-lg">arrow_back</span>
           Back to Providers
@@ -1631,7 +1627,7 @@ export default function ProviderDetailPage() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{providerInfo.name}</h1>
+              <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">{providerInfo.name}</h1>
               {(providerInfo.notice?.apiKeyUrl || providerInfo.notice?.signupUrl || providerInfo.website) && (
                 <a
                   href={providerInfo.notice?.apiKeyUrl || providerInfo.notice?.signupUrl || providerInfo.website}
@@ -1649,7 +1645,12 @@ export default function ProviderDetailPage() {
             </p>
           </div>
         </div>
-      </div>
+      </header>
+
+      <nav className="provider-section-nav" aria-label="Provider library">
+        <a href="#provider-connections"><span aria-hidden="true" className="material-symbols-outlined text-[16px]">link</span>Connections<span className="tabular-nums">{connections.length}</span></a>
+        <a href="#provider-models"><span aria-hidden="true" className="material-symbols-outlined text-[16px]">deployed_code</span>Available Models</a>
+      </nav>
 
       {providerInfo.deprecated && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
@@ -1737,13 +1738,14 @@ export default function ProviderDetailPage() {
       )}
 
       {/* Connections */}
+      <section id="provider-connections" className="provider-detail-section">
       {isFreeNoAuth ? (
         <NoAuthProxyCard providerId={providerId} />
       ) : (
         <Card>
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="provider-detail-toolbar mb-5">
             <h2 className="text-lg font-semibold">Connections</h2>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               {connections.length > 0 && proxyPools.length > 0 && (
                 <Button
                   size="sm"
@@ -1972,9 +1974,11 @@ export default function ProviderDetailPage() {
         </Card>
       )}
 
+      </section>
+
       {/* Models */}
-      <Card>
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <Card id="provider-models" className="provider-detail-section">
+        <div className="provider-detail-toolbar mb-5">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">
               {"Available Models"}
@@ -2039,7 +2043,7 @@ export default function ProviderDetailPage() {
           })()}
         </div>
         {hasServiceTiers && (
-          <div className="mb-3 space-y-1 text-xs leading-relaxed text-text-muted">
+          <div className="mb-4 space-y-1 rounded-lg bg-bg-alt p-3 text-xs leading-relaxed text-text-muted">
             <p id="processing-speed-help">
               Speed is separate from thinking. Auto inherits upstream defaults; Standard explicitly opts out of faster tiers.
               {" "}Fast/Ultrafast may use more quota or cost more. Model, endpoint and account permissions apply; the server rejects incompatible requests rather than downgrading them.

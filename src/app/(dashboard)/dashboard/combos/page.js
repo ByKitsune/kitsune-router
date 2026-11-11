@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useState, useEffect, useCallback } from "react";
 import WorkspaceIntro from "../components/WorkspaceIntro";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -226,7 +228,7 @@ export default function CombosPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="operations-page">
       <WorkspaceIntro
         eyebrow="Routing studio"
         icon="conversion_path"
@@ -239,20 +241,10 @@ export default function CombosPage() {
           { label: "Routing strategies", value: STRATEGY_OPTIONS.length, icon: "route" },
         ]}
       />
-      <section aria-label="Routing strategies" className="grid min-w-0 gap-3 md:grid-cols-3">
-        {[
-          { icon: "route", name: "Fallback", description: "Try your models in order. Continue to the next model when a request fails." },
-          { icon: "sync", name: "Round Robin", description: "Rotate requests across the models in a combo to distribute the load." },
-          { icon: "merge", name: "Fusion", description: "Run the full panel and a judge. Each request bills all panel models plus the judge (N+1 calls)." },
-        ].map((strategy) => (
-          <div key={strategy.name} className="min-w-0 rounded-[20px] border border-border-subtle bg-surface p-5">
-            <span aria-hidden="true" className="material-symbols-outlined mb-3 text-[22px] text-primary">{strategy.icon}</span>
-            <h3 className="text-sm font-semibold">{strategy.name}</h3>
-            <p className="mt-1.5 text-xs leading-5 text-text-muted">{strategy.description}</p>
-          </div>
-        ))}
-      </section>
 
+
+      <div className="operations-workflow">
+      <div className="min-w-0 space-y-5">
       {/* Combos List */}
       {combos.length === 0 ? (
         <Card>
@@ -293,6 +285,30 @@ export default function CombosPage() {
         activeProviders={activeProviders}
         getCaps={getCaps}
       />
+
+      </div>
+      <aside className="operations-aside">
+      <details className="operations-reference">
+        <summary><span aria-hidden="true" className="material-symbols-outlined text-[18px] text-primary">route</span>Routing strategies</summary>
+        <div>
+        {[
+          { icon: "route", name: "Fallback", description: "Try your models in order. Continue to the next model when a request fails." },
+          { icon: "sync", name: "Round Robin", description: "Rotate requests across the models in a combo to distribute the load." },
+          { icon: "merge", name: "Fusion", description: "Run the full panel and a judge. Each request bills all panel models plus the judge (N+1 calls)." },
+        ].map((strategy) => (
+          <section key={strategy.name} className="operations-reference-item">
+            <span aria-hidden="true" className="material-symbols-outlined">{strategy.icon}</span>
+            <div className="min-w-0">
+            <h3 className="text-sm font-semibold">{strategy.name}</h3>
+            <p className="mt-1.5 text-xs leading-5 text-text-muted">{strategy.description}</p>
+            </div>
+          </section>
+        ))}
+        </div>
+      </details>
+
+      </aside>
+      </div>
 
       {/* Create Modal - Use key to force remount and reset state */}
       {showCreateModal && (
@@ -342,7 +358,7 @@ function ComboCard({ combo, getCaps, comboByName = {}, activeProviders = [], cop
   const isFusion = current === "fusion";
 
   return (
-    <Card padding="sm" className="group min-w-0 !p-5 sm:!p-6">
+    <Card padding="sm" className="group min-w-0 !p-4 sm:!p-5">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
           <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -355,8 +371,8 @@ function ComboCard({ combo, getCaps, comboByName = {}, activeProviders = [], cop
                 <span className="text-xs text-text-muted italic">No models</span>
               ) : (
                 combo.models.slice(0, 3).map((model, index) => (
-                  <code key={index} className="inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5">
-                    <span>{model}</span>
+                  <code key={index} className="inline-flex min-w-0 max-w-full items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-text-muted">
+                    <span className="min-w-0 break-all">{model}</span>
                     <CapacityBadges caps={
                       comboByName[model]
                         ? aggregateComboCapabilities(comboByName[model], comboByName, getCaps)
@@ -437,6 +453,12 @@ function ComboCard({ combo, getCaps, comboByName = {}, activeProviders = [], cop
           </div>
         </div>
       </div>
+
+      {isFusion && (
+        <p className="mt-4 border-t border-border-subtle pt-3 text-xs leading-5 text-text-muted">
+          Run the full panel and a judge. Each request bills all panel models plus the judge (N+1 calls).
+        </p>
+      )}
 
       {/* Judge model picker (single-select; combo members make natural judges too) */}
       {showJudgeSelect && (
@@ -567,7 +589,7 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
           No models in pool (will fallback to {DEFAULT_FALLBACK_MODEL})
         </div>
       ) : (
-        <div className="mt-3 overflow-hidden rounded-lg border border-border/50">
+        <div className="mt-3 max-w-full overflow-x-auto rounded-lg border border-border/50">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-border/40 bg-black/[0.02] text-text-muted dark:bg-white/[0.02]">

@@ -11,8 +11,8 @@ export default function UsagePricingCoverage({ stats }) {
   if (!(stats.totalRequests > 0) || !incomplete) return null;
 
   return (
-    <aside aria-label="Recorded price coverage" className="flex flex-col gap-3 rounded-2xl border border-warning/20 bg-warning/5 p-4 sm:flex-row sm:items-start sm:gap-4">
-      <span aria-hidden="true" className="material-symbols-outlined hidden rounded-xl bg-warning/10 p-2 text-[18px] text-warning sm:block">price_check</span>
+    <aside aria-label="Recorded price coverage" className="usage-coverage flex flex-col gap-3 rounded-xl border border-warning/20 bg-warning/5 p-4 sm:flex-row sm:items-start sm:gap-3">
+      <span aria-hidden="true" className="material-symbols-outlined hidden py-0.5 text-[18px] text-warning sm:block">price_check</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h3 className="text-sm font-semibold text-text-main">Some requests have no recorded price</h3>
@@ -24,7 +24,7 @@ export default function UsagePricingCoverage({ stats }) {
           <p className="mt-2 max-w-3xl">Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.</p>
         </details>
       </div>
-      <Link href="/dashboard/settings/pricing" className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-border-subtle bg-surface px-3 text-xs font-semibold text-text-main transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+      <Link href="/dashboard/settings/pricing" className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 self-start rounded-lg border border-border-subtle bg-surface px-3 text-xs font-semibold text-text-main transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
         Review pricing<span aria-hidden="true" className="material-symbols-outlined text-[16px]">arrow_forward</span>
       </Link>
     </aside>

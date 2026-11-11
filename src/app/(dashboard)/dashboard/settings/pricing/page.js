@@ -1,5 +1,7 @@
 "use client";
 
+import "../../profile/operations.css";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { translate } from "@/i18n/runtime";
 import Card from "@/shared/components/Card";
@@ -57,11 +59,11 @@ export default function PricingSettingsPage() {
   const incomplete = diagnostics?.summary ? diagnostics.summary.partial + diagnostics.summary.unknown : rows.length - fullyPriced;
 
   return (
-    <div className="dashboard-page mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+    <div className="operations-page">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="operations-heading operations-heading-row">
         <div>
-          <h1 className="text-3xl font-bold">Pricing Settings</h1>
+          <h1 className="page-title">Pricing Settings</h1>
           <p className="text-text-muted mt-1">
             Review effective token estimates, missing rates and saved overrides
           </p>
@@ -77,39 +79,74 @@ export default function PricingSettingsPage() {
 
       {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger/5 p-4 text-sm"><p>{loadError}</p><button type="button" onClick={handlePricingUpdated} className="min-h-11 rounded-xl border border-border px-4 py-2 font-semibold">Retry</button></div>}
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="text-text-muted text-sm uppercase font-semibold">
+      <div className="operations-stat-strip">
+        <div role="group" aria-label="Models with input and output rates">
+          <div className="operations-stat-label">
             Models with input and output rates
           </div>
-          <div className="text-2xl font-bold mt-1">
+          <div className="operations-stat-value">
             {loading || loadError ? "…" : fullyPriced}
           </div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-text-muted text-sm uppercase font-semibold">
+        </div>
+        <div role="group" aria-label="Providers">
+          <div className="operations-stat-label">
             Providers
           </div>
-          <div className="text-2xl font-bold mt-1">
+          <div className="operations-stat-value">
             {loading || loadError ? "…" : providers.length}
           </div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-text-muted text-sm uppercase font-semibold">
+        </div>
+        <div role="group" aria-label="Unknown or partial rates">
+          <div className="operations-stat-label">
             Unknown or partial rates
           </div>
-          <div className="text-2xl font-bold mt-1 text-text-main">
+          <div className="operations-stat-value">
             {loading || loadError ? "…" : incomplete}
           </div>
-        </Card>
+        </div>
       </div>
 
       <p className="text-xs leading-5 text-text-muted">Model rows describe pricing configuration, not available accounts or provider entitlement. A known input and output rate does not guarantee every cache, reasoning, media or processing-speed charge is covered.</p>
 
-      {/* Info Section */}
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">How Pricing Works</h2>
-        <div className="space-y-3 text-sm text-text-muted">
+      {/* Current Pricing Preview */}
+      <Card className="min-w-0">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Current Pricing Overview</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+            disabled={loading || Boolean(loadError)}
+          >
+            View Full Details
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-4 text-text-muted">Loading pricing data...</div>
+        ) : loadError ? <p className="text-sm text-text-muted">Current pricing is unavailable.</p> : currentPricing ? (
+          <div className="divide-y divide-border-subtle">
+            {Object.keys(currentPricing).slice(0, 5).map(provider => (
+              <div key={provider} className="flex min-w-0 flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                <span className="font-semibold">{provider.toUpperCase()}:</span>{" "}
+                <span className="text-text-muted">
+                  {translate("{count} model rows", { count: Object.keys(currentPricing[provider]).length })}
+                </span>
+              </div>
+            ))}
+            {Object.keys(currentPricing).length > 5 && (
+              <div className="text-sm text-text-muted">
+                {translate("{count} more providers", { count: Object.keys(currentPricing).length - 5 })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-text-muted">No pricing data available</div>
+        )}
+      </Card>
+
+      <details className="operations-reference">
+        <summary>How Pricing Works</summary>
+        <div className="space-y-3 text-sm leading-6 text-text-muted">
           <p>
             <strong>Cost Estimates:</strong> Local estimates separate uncached input, cached input, cache creation, output and reasoning tokens without double-counting their subsets. Applicable long-context tiers are applied before calculation; these estimates are not an upstream invoice.
           </p>
@@ -133,43 +170,8 @@ export default function PricingSettingsPage() {
             Delivered speed tariffs are independent from Standard; an unconfirmed tier is not priced by the requested speed. Known subtotals remain visibly incomplete when some requests are unpriced.
           </p>
         </div>
-      </Card>
+      </details>
 
-      {/* Current Pricing Preview */}
-      <Card className="p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">Current Pricing Overview</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
-            disabled={loading || Boolean(loadError)}
-          >
-            View Full Details
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-4 text-text-muted">Loading pricing data...</div>
-        ) : loadError ? <p className="text-sm text-text-muted">Current pricing is unavailable.</p> : currentPricing ? (
-          <div className="space-y-3">
-            {Object.keys(currentPricing).slice(0, 5).map(provider => (
-              <div key={provider} className="text-sm">
-                <span className="font-semibold">{provider.toUpperCase()}:</span>{" "}
-                <span className="text-text-muted">
-                  {translate("{count} model rows", { count: Object.keys(currentPricing[provider]).length })}
-                </span>
-              </div>
-            ))}
-            {Object.keys(currentPricing).length > 5 && (
-              <div className="text-sm text-text-muted">
-                {translate("{count} more providers", { count: Object.keys(currentPricing).length - 5 })}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-text-muted">No pricing data available</div>
-        )}
-      </Card>
 
       {/* Pricing Modal */}
       <PricingModal

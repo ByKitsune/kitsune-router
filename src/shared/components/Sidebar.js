@@ -6,10 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { ArrowUpRight, AudioLines, Blocks, ChartNoAxesCombined, ChevronDown, Code2, Database, Gauge, Globe2, ImageIcon, KeyRound, Layers3, Network, Settings2, SlidersHorizontal, Terminal, Video, Waypoints, X } from "lucide-react";
+import { ArrowUpRight, AudioLines, Blocks, ChartNoAxesCombined, ChevronDown, Code2, Database, Gauge, Globe2, ImageIcon, KeyRound, Layers3, Network, Settings2, SlidersHorizontal, Terminal, Video, X } from "lucide-react";
 import { cn } from "@/shared/utils/cn";
 import { APP_CONFIG, BRAND, UPDATER_CONFIG } from "@/shared/constants/config";
 import { MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
+import NavigationPending from "./navigation/NavigationPending";
 
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
 const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
@@ -19,12 +20,10 @@ const COMBINED_WEB_ITEM = { id: "web", label: "Web fetch & search", icon: "trave
 const navItems = [
   { href: "/dashboard/endpoint", label: "Endpoint & key", icon: "vpn_key" },
   { href: "/dashboard/providers", label: "Providers", icon: "deployed_code" },
-  // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
   { href: "/dashboard/combos", label: "Combos & adapters", icon: "layers" },
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
   { href: "/dashboard/quota", label: "Quota tracker", icon: "donut_small" },
   { href: "/dashboard/token-saver", label: "Token saver", icon: "tune" },
-  // { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
   { href: "/dashboard/cli-tools", label: "CLI tools", icon: "code" },
 ];
 
@@ -52,7 +51,9 @@ export default function Sidebar({ onClose }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const navigationId = useId();
-  const [mediaOpen, setMediaOpen] = useState(() => pathname.startsWith("/dashboard/media-providers"));
+  const [mediaDisclosure, setMediaDisclosure] = useState(null);
+  const mediaOpen = mediaDisclosure?.pathname === pathname
+    ? mediaDisclosure.open : pathname.startsWith("/dashboard/media-providers");
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -95,9 +96,9 @@ export default function Sidebar({ onClose }) {
 
   const isActive = (href) => {
     if (href === "/dashboard/endpoint") {
-      return pathname === "/dashboard" || pathname.startsWith("/dashboard/endpoint");
+      return pathname === "/dashboard" || pathname === href || pathname.startsWith(`${href}/`);
     }
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   // Open manual update panel (no countdown yet — user must click Copy to trigger shutdown)
@@ -154,11 +155,11 @@ export default function Sidebar({ onClose }) {
     const active = isActive(item.href);
     const Icon = NAV_ICONS[item.icon] || Blocks;
     return (
-      <Link key={item.href} href={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={cn("group relative isolate flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors duration-200", isNested && "min-h-10 text-xs", active ? "font-semibold text-primary" : "font-medium text-text-muted hover:bg-surface-2 hover:text-text-main")}>
-        {active && <motion.span aria-hidden="true" layoutId="navigation-active" className="absolute inset-0 -z-10 rounded-xl border border-primary/10 bg-primary/10" transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 35 }} />}
-        <Icon size={isNested ? 16 : 18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+      <Link key={item.href} href={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={cn("dashboard-nav-link", isNested && "dashboard-nav-link-nested", active && "is-active")}>
+        {active && <motion.span aria-hidden="true" layoutId="navigation-active" className="dashboard-nav-active-surface" transition={{ duration: reduceMotion ? 0 : 0.16, ease: "easeOut" }} />}
+        <Icon size={isNested ? 16 : 18} strokeWidth={active ? 2 : 1.7} aria-hidden="true" className="shrink-0" />
         <span className="min-w-0 flex-1">{item.label}</span>
-        {active && <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />}
+        <NavigationPending />
       </Link>
     );
   };
@@ -169,26 +170,20 @@ export default function Sidebar({ onClose }) {
 
   return (
     <>
-      <aside className={cn("flex h-full min-h-0 max-w-[calc(100vw-24px)] flex-col bg-sidebar text-text-main", onClose ? "w-full" : "w-[264px]")}>
-        <div className="shrink-0 px-5 pb-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
-          <div className="flex items-center justify-between gap-2">
-            <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3 rounded-xl">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border-subtle bg-surface shadow-soft">
-                <Image src="/icons/logo.svg" alt="" width={30} height={30} className="size-[30px] object-contain" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[15px] font-bold tracking-[-0.035em]">{APP_CONFIG.name}</span>
-                <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">ByKitsune workspace</span>
-              </div>
-            </Link>
-            {onClose && <button type="button" onClick={onClose} aria-label="Close navigation" className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border-subtle bg-surface/80 text-text-muted shadow-soft transition-[background-color,transform] hover:bg-surface-2 hover:text-text-main active:scale-95 motion-reduce:transform-none"><X size={19} aria-hidden="true" /></button>}
-          </div>
-          <div className={cn("mt-5 items-center gap-2.5 rounded-2xl border border-border-subtle bg-surface/70 px-3 py-3 shadow-soft", onClose ? "hidden min-[480px]:flex" : "flex")}>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Waypoints size={16} aria-hidden="true" /></div>
-            <div className="min-w-0"><p className="text-xs font-semibold">Your routing workspace</p><p className="mt-0.5 text-[11px] text-text-muted">Your models. Your routes.</p></div>
-          </div>
+      <aside className={cn("dashboard-sidebar flex h-full min-h-0 flex-col bg-sidebar text-text-main", onClose ? "w-full" : "w-[244px]")}>
+        <div className="dashboard-sidebar-brand shrink-0">
+          <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-2.5 rounded-lg">
+            <Image src="/icons/logo.svg" alt="" width={34} height={34} className="size-[34px] shrink-0 object-contain" />
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-bold tracking-[-0.035em]">{APP_CONFIG.name}</span>
+              <span className="mt-0.5 block text-[10px] font-medium text-text-muted">Your models. Your routes.</span>
+            </span>
+          </Link>
+          {onClose && <button type="button" onClick={onClose} aria-label="Close navigation" className="flex size-11 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"><X size={19} aria-hidden="true" /></button>}
+        </div>
+        <div className="px-4">
           {updateInfo && (
-            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
               <p className="text-xs font-semibold leading-5">Update available: v{updateInfo.latestVersion}</p>
               <div className="mt-1 flex items-center gap-3">
                 <button type="button" onClick={() => setShowUpdateModal(true)} className="min-h-10 text-xs font-bold text-primary underline underline-offset-4">Update options</button>
@@ -200,46 +195,49 @@ export default function Sidebar({ onClose }) {
         </div>
 
         <LayoutGroup id={navigationId}>
-          <nav aria-label="Dashboard navigation" className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 pb-5 custom-scrollbar">
-            <div className="space-y-1">
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Gateway</p>
+          <nav aria-label="Dashboard navigation" className="flex min-h-0 flex-1 flex-col">
+          <div className="dashboard-sidebar-nav min-h-0 flex-1 overflow-y-auto overscroll-contain custom-scrollbar">
+            <div className="dashboard-nav-group">
+              <p className="dashboard-nav-group-label">Gateway</p>
               {navItems.slice(0, 3).map(renderNavLink)}
             </div>
-            <div className="space-y-1">
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Observe & optimize</p>
-              {navItems.slice(3, 6).map(renderNavLink)}
-            </div>
-            <div className="space-y-1">
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Workspace</p>
+            <div className="dashboard-nav-group">
+              <p className="dashboard-nav-group-label">Workspace</p>
               {navItems.slice(6).map(renderNavLink)}
-              <button type="button" aria-expanded={mediaOpen} aria-controls={mediaId} onClick={() => setMediaOpen(v => !v)} className={cn("group relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition-colors", pathname.startsWith("/dashboard/media-providers") ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-surface-2 hover:text-text-main")}>
-                <ImageIcon size={18} strokeWidth={1.8} aria-hidden="true" />
+              <button type="button" aria-expanded={mediaOpen} aria-controls={mediaId} onClick={() => setMediaDisclosure({ pathname, open: !mediaOpen })} className={cn("dashboard-nav-link w-full text-left", pathname.startsWith("/dashboard/media-providers") && "is-active")}>
+                <ImageIcon size={18} strokeWidth={1.7} aria-hidden="true" />
                 <span className="min-w-0 flex-1">Media providers</span>
-                <ChevronDown size={15} aria-hidden="true" className={cn("transition-transform duration-300", mediaOpen && "rotate-180")} />
+                <ChevronDown size={15} aria-hidden="true" className={cn("shrink-0 transition-transform duration-150 motion-reduce:transition-none", mediaOpen && "rotate-180")} />
               </button>
-              <div id={mediaId} hidden={!mediaOpen} className="ml-5 space-y-1 border-l border-border-subtle pl-2">
+              <div id={mediaId} hidden={!mediaOpen} className="dashboard-media-navigation">
                 {MEDIA_PROVIDER_KINDS.filter(k => VISIBLE_MEDIA_KINDS.includes(k.id)).map(kind => renderNavLink({ href: `/dashboard/media-providers/${kind.id}`, label: kind.label, icon: kind.icon }, true))}
                 {renderNavLink(COMBINED_WEB_ITEM, true)}
               </div>
-              {systemItems.map(renderNavLink)}
+              {systemItems.filter(item => item.href === "/dashboard/skills").map(renderNavLink)}
             </div>
-            <div className="space-y-1">
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Developer</p>
+            <div className="dashboard-nav-group">
+              <p className="dashboard-nav-group-label">Observe &amp; optimize</p>
+              {navItems.slice(3, 6).map(renderNavLink)}
+            </div>
+            <div className="dashboard-nav-group">
+              <p className="dashboard-nav-group-label">Developer</p>
+              {systemItems.filter(item => item.href === "/dashboard/proxy-pools").map(renderNavLink)}
               {debugItems.filter(item => item.href !== "/dashboard/translator" || enableTranslator).map(renderNavLink)}
-              {renderNavLink({ href: "/dashboard/profile", label: "Settings", icon: "settings" })}
             </div>
+          </div>
+          <div className="dashboard-sidebar-footer shrink-0">
+            {renderNavLink({ href: "/dashboard/profile", label: "Settings", icon: "settings" })}
+            <a href={BRAND.docsUrl} className="dashboard-nav-link group"><Blocks size={18} strokeWidth={1.7} aria-hidden="true" /><span className="min-w-0 flex-1">Documentation</span><ArrowUpRight size={15} aria-hidden="true" className="shrink-0 text-text-subtle" /></a>
+            <div className="mt-3 flex items-center justify-between gap-2 px-3 text-[10px] text-text-subtle"><a href={BRAND.sponsorUrl} className="rounded underline-offset-4 hover:text-primary hover:underline">By {BRAND.organization}</a><span className="font-mono">v{APP_CONFIG.version}</span></div>
+          </div>
           </nav>
         </LayoutGroup>
-        <div className="shrink-0 border-t border-border-subtle px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
-          <a href={BRAND.docsUrl} className="group flex min-h-10 items-center justify-between gap-2 rounded-xl text-xs font-semibold text-text-muted transition-colors hover:text-primary"><span>Documentation</span><ArrowUpRight size={16} aria-hidden="true" className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-text-subtle"><a href={BRAND.sponsorUrl} className="rounded underline-offset-4 hover:text-primary hover:underline">By {BRAND.organization}</a><span className="rounded-md border border-border-subtle px-1.5 py-0.5 font-mono">v{APP_CONFIG.version}</span></div>
-        </div>
       </aside>
 
       <dialog
         ref={updateDialog}
         aria-labelledby={updateTitleId}
-        className="m-auto rounded-3xl border border-border-subtle shadow-elevated max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] max-w-lg overflow-y-auto overscroll-contain bg-surface p-6 text-text-main backdrop:bg-black/50 backdrop:overflow-hidden backdrop:overscroll-contain sm:p-8"
+        className="dashboard-update-dialog m-auto rounded-2xl border border-border-subtle shadow-elevated max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] max-w-lg overflow-y-auto overscroll-contain bg-surface p-6 text-text-main backdrop:bg-black/50 backdrop:overflow-hidden backdrop:overscroll-contain sm:p-8"
         onCancel={(event) => { if (shutdownCountdown > 0) event.preventDefault(); }}
         onClose={() => { setShowUpdateModal(false); setIsUpdating(false); }}
       >

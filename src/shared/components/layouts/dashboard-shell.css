@@ -1,0 +1,123 @@
+/* The shell stays still while route content changes. These rules are limited to
+   navigation chrome; page surfaces and controls use the shared design tokens. */
+.dashboard-sidebar-brand {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: max(20px, env(safe-area-inset-top)) 20px 20px;
+}
+.dashboard-sidebar-nav { padding: 2px 12px 20px; }
+.dashboard-nav-group + .dashboard-nav-group { margin-top: 22px; }
+.dashboard-nav-group-label {
+  margin: 0 0 7px;
+  padding: 0 12px;
+  color: var(--color-text-subtle);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .075em;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+.dashboard-nav-link {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.dashboard-nav-link + .dashboard-nav-link { margin-top: 2px; }
+.dashboard-nav-link:hover {
+  color: var(--color-text-main);
+  background-color: var(--color-surface-2);
+}
+.dashboard-nav-link.is-active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.dashboard-nav-active-surface {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+.dashboard-nav-link[aria-current="page"]::before {
+  position: absolute;
+  top: 13px;
+  bottom: 13px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--color-primary);
+  content: "";
+}
+.dashboard-nav-link-nested { min-height: 38px; font-size: 11px; padding-block: 8px; }
+.dashboard-media-navigation {
+  margin: 4px 0 6px 21px;
+  border-left: 1px solid var(--color-border-subtle);
+  padding-left: 8px;
+}
+.dashboard-nav-pending {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0;
+}
+.dashboard-nav-pending[data-navigation-pending="true"] {
+  animation: dashboard-nav-pending-reveal 100ms 120ms ease forwards, dashboard-nav-pending-spin 800ms linear infinite;
+}
+@keyframes dashboard-nav-pending-reveal { to { opacity: .65; } }
+@keyframes dashboard-nav-pending-spin { to { transform: rotate(360deg); } }
+.dashboard-sidebar-footer {
+  border-top: 1px solid var(--color-border-subtle);
+  padding: 12px 12px max(18px, env(safe-area-inset-bottom));
+}
+.dashboard-header {
+  min-height: 64px;
+  padding: max(10px, env(safe-area-inset-top)) 24px 10px;
+}
+.dashboard-header-search { padding-bottom: 2px; }
+.dashboard-mobile-destination.is-active::before {
+  position: absolute;
+  top: -1px;
+  left: 28%;
+  right: 28%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--color-primary);
+  content: "";
+}
+.dashboard-mobile-destination .dashboard-nav-pending {
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 23px);
+  width: 9px;
+  height: 9px;
+}
+.dashboard-update-dialog button { border-radius: 8px; }
+@media (max-width: 1023px) {
+  .dashboard-header { min-height: 64px; gap: 8px; padding: max(10px, env(safe-area-inset-top)) 16px 10px; }
+  .dashboard-header-search { margin-top: 2px; }
+  .dashboard-nav-link { min-height: 44px; }
+  .dashboard-sidebar-brand { min-height: 80px; }
+}
+@media (min-width: 1024px) {
+  .dashboard-header-search { padding-bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-nav-link { transition: none; }
+  .dashboard-nav-pending[data-navigation-pending="true"] { animation: none; opacity: .65; }
+}

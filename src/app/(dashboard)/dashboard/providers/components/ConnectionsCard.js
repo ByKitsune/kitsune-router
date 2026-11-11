@@ -100,13 +100,13 @@ function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMov
   };
 
   return (
-    <div className={`group flex flex-col gap-3 p-2 rounded-lg sm:flex-row sm:items-center sm:justify-between hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${connection.isActive === false ? "opacity-60" : ""}`}>
+    <div className={`group flex flex-col gap-3 rounded-lg border border-transparent px-3 py-3 sm:flex-row sm:items-center sm:justify-between hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${connection.isActive === false ? "opacity-60" : ""}`}>
       <div className="flex w-full min-w-0 flex-1 items-start gap-3 sm:items-center">
         <div className="flex flex-col">
-          <button onClick={onMoveUp} disabled={isFirst} className={`p-0.5 rounded ${isFirst ? "text-text-muted/30 cursor-not-allowed" : "hover:bg-sidebar text-text-muted hover:text-primary"}`}>
+          <button onClick={onMoveUp} disabled={isFirst} aria-label="Move up" className={`flex h-7 w-8 items-center justify-center rounded ${isFirst ? "text-text-muted/30 cursor-not-allowed" : "hover:bg-sidebar text-text-muted hover:text-primary"}`}>
             <span className="material-symbols-outlined text-sm">keyboard_arrow_up</span>
           </button>
-          <button onClick={onMoveDown} disabled={isLast} className={`p-0.5 rounded ${isLast ? "text-text-muted/30 cursor-not-allowed" : "hover:bg-sidebar text-text-muted hover:text-primary"}`}>
+          <button onClick={onMoveDown} disabled={isLast} aria-label="Move down" className={`flex h-7 w-8 items-center justify-center rounded ${isLast ? "text-text-muted/30 cursor-not-allowed" : "hover:bg-sidebar text-text-muted hover:text-primary"}`}>
             <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
           </button>
         </div>
@@ -155,11 +155,11 @@ function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMov
               )}
             </div>
           )}
-          <button onClick={onEdit} className="flex flex-col items-center px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-primary">
+          <button onClick={onEdit} className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg px-2 py-1 hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-primary">
             <span className="material-symbols-outlined text-[18px]">edit</span>
             <span className="text-[10px] leading-tight">Edit</span>
           </button>
-          <button onClick={onDelete} className="flex flex-col items-center px-2 py-1 rounded hover:bg-red-500/10 text-red-500">
+          <button onClick={onDelete} className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg px-2 py-1 hover:bg-red-500/10 text-red-500">
             <span className="material-symbols-outlined text-[18px]">delete</span>
             <span className="text-[10px] leading-tight">Delete</span>
           </button>
@@ -417,8 +417,8 @@ export default function ConnectionsCard({ providerId, isOAuth }) {
 
   return (
     <>
-      <Card>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <Card className="provider-detail-section">
+        <div className="provider-detail-toolbar mb-5">
           <h2 className="text-lg font-semibold">Connections</h2>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-text-muted font-medium">Round Robin</span>
@@ -445,13 +445,14 @@ export default function ConnectionsCard({ providerId, isOAuth }) {
         </div>
 
         {connections.length === 0 ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="provider-empty-state">
+            <span aria-hidden="true" className="material-symbols-outlined text-[28px] text-text-muted/60">link</span>
             <p className="text-sm text-text-muted">No connections yet</p>
             <Button size="sm" icon="add" onClick={() => setShowAddModal(true)}>Add Connection</Button>
           </div>
         ) : (
           <>
-            <div className="flex flex-col divide-y divide-black/[0.03] dark:divide-white/[0.03] max-h-[500px] overflow-y-auto pr-1">
+            <div className="flex min-w-0 flex-col divide-y divide-border-subtle">
               {connections.map((conn, idx) => (
                 <ConnectionRow
                   key={conn.id}

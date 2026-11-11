@@ -46,32 +46,34 @@ export default function OverviewCards({ stats }) {
     { label: "Output tokens", value: stats.totalCompletionTokens, icon: "south_west", note: "Generated responses", color: "text-success", compact: true },
   ];
   return (
-    <div className="usage-metrics grid min-w-0 grid-cols-1 gap-3 min-[440px]:grid-cols-2 xl:grid-cols-5 sm:gap-4">
+    <Card className="usage-metrics overflow-hidden" padding="none">
+      <div className="usage-metric-grid grid min-w-0 grid-cols-2 xl:grid-cols-5">
       {metrics.map((metric) => (
-        <Card key={metric.label} padding="none" className="usage-metric flex min-w-0 flex-col gap-4 p-5 sm:p-6">
+        <div key={metric.label} className="usage-metric flex min-w-0 flex-col gap-3 p-4 sm:p-5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-text-muted">{metric.label}</span>
-            <span aria-hidden="true" className={`material-symbols-outlined rounded-xl bg-surface-2 p-2 text-[18px] ${metric.color}`}>{metric.icon}</span>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[18px] ${metric.color}`}>{metric.icon}</span>
           </div>
           <Tooltip text={`${fmt(metric.value)} ${metric.label.toLowerCase()}`}>
-            <span className="block truncate text-[clamp(1.6rem,2.3vw,2.25rem)] font-semibold leading-tight tracking-[-0.055em] text-text-main">
+            <span className="block truncate text-[clamp(1.55rem,2.1vw,2rem)] font-semibold leading-tight tracking-[-0.055em] text-text-main">
               <MetricValue value={metric.value} compact={metric.compact} />
             </span>
           </Tooltip>
           <span className="mt-auto text-xs text-text-subtle">{metric.note}</span>
-        </Card>
+        </div>
       ))}
-      <Card padding="none" className="usage-metric usage-cost-card flex min-w-0 flex-col gap-4 p-5 sm:p-6 min-[440px]:col-span-2 xl:col-span-1">
+      <div className="usage-metric usage-cost-card col-span-2 flex min-w-0 flex-col gap-3 p-4 sm:p-5 xl:col-span-1">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium text-text-muted">Estimated cost</span>
-          <span aria-hidden="true" className="material-symbols-outlined rounded-xl bg-primary/10 p-2 text-[18px] text-primary">payments</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-primary">payments</span>
         </div>
         <div className="break-words text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary tabular-nums">
           {stats.totalCost !== null && "~"}<UsageCost value={stats.totalCost} coverage={stats.costCoverage?.totalCost} />
         </div>
         <span className="mt-auto text-xs leading-5 text-text-subtle">Estimated, not actual billing</span>
-      </Card>
-    </div>
+      </div>
+      </div>
+    </Card>
   );
 }
 

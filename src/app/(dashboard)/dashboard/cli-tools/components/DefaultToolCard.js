@@ -249,7 +249,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
   };
 
   return (
-    <Card padding="xs" className="overflow-hidden overflow-x-hidden">
+    <Card padding="xs" className="integration-config-card overflow-hidden overflow-x-hidden">
       <div className="flex items-center justify-between hover:cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-lg flex items-center justify-center shrink-0">
@@ -260,7 +260,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
             <p className="text-xs text-text-muted truncate">{tool.description}</p>
           </div>
         </div>
-        <span className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
+        <span className={`material-symbols-outlined text-text-muted text-[20px] integration-collapse-indicator transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
       </div>
 
       {isExpanded && (

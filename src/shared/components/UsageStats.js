@@ -13,13 +13,17 @@ function isLLMProvider(id) {
 }
 import Badge from "./Badge";
 import Card from "./Card";
+import { Skeleton } from "./Loading";
 import Tooltip from "./Tooltip";
 import OverviewCards from "@/app/(dashboard)/dashboard/usage/components/OverviewCards";
 import UsagePricingCoverage from "./UsagePricingCoverage";
 import UsageTable, { fmt, fmtCompact, fmtTime } from "@/app/(dashboard)/dashboard/usage/components/UsageTable";
 import dynamic from "next/dynamic";
 // Lazy-load: keeps @xyflow/react out of the shared bundle until topology renders
-const ProviderTopology = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/ProviderTopology"), { ssr: false });
+const ProviderTopology = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/ProviderTopology"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[320px] w-full rounded-none" />,
+});
 import UsageChart from "@/app/(dashboard)/dashboard/usage/components/UsageChart";
 
 function timeAgo(timestamp) {
@@ -45,12 +49,11 @@ function TimeAgo({ timestamp }) {
 function RecentRequests({ requests = [], connected = false }) {
   return (
     <Card className="flex min-w-0 flex-col overflow-hidden" padding="none">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle p-5 sm:p-6">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle px-4 py-4 sm:px-5">
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Activity feed</p>
-          <h2 className="text-lg font-semibold tracking-tight">Recent requests</h2>
+          <h2 className="text-sm font-semibold">Recent requests</h2>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-2 px-2.5 py-1 text-[10px] font-medium text-text-muted"><span className={`size-1.5 rounded-full ${connected ? "bg-success" : "bg-text-subtle"}`} aria-hidden="true" />{connected ? "Live" : "Recent"}</span>
+        <span className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[10px] font-medium text-text-muted"><span className={`size-1.5 rounded-full ${connected ? "bg-success" : "bg-text-subtle"}`} aria-hidden="true" />{connected ? "Live" : "Recent"}</span>
       </div>
       {!requests.length ? (
         <div className="flex min-h-60 flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center">
@@ -59,12 +62,12 @@ function RecentRequests({ requests = [], connected = false }) {
           <p className="max-w-xs text-xs leading-5 text-text-subtle">Your latest gateway requests will appear here automatically.</p>
         </div>
       ) : (
-        <div className="max-h-[340px] min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6">
+        <div className="max-h-[340px] min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5">
           {requests.map((r) => {
             const ok = !r.status || r.status === "ok" || r.status === "success";
             return (
-              <div key={r.id || r.requestId || `${r.timestamp}-${r.model}-${r.provider}`} className="usage-request-row flex min-w-0 items-start gap-3 border-b border-border-subtle py-4 last:border-0">
-                <span aria-label={ok ? "Successful request" : "Request error"} className={`mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl ${ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}><span aria-hidden="true" className="material-symbols-outlined text-[16px]">{ok ? "check" : "priority_high"}</span></span>
+              <div key={r.id || r.requestId || `${r.timestamp}-${r.model}-${r.provider}`} className="usage-request-row flex min-w-0 items-start gap-3 border-b border-border-subtle py-3.5 last:border-0">
+                <span aria-label={ok ? "Successful request" : "Request error"} className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}><span aria-hidden="true" className="material-symbols-outlined text-[16px]">{ok ? "check" : "priority_high"}</span></span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-text-main" title={r.model}>{r.model}</p>
                   <p className="mt-1 truncate text-[11px] text-text-subtle">{r.provider || "Gateway"} · <TimeAgo timestamp={r.timestamp} /></p>
@@ -613,15 +616,15 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   }, [stats, tableView, sortBy, sortOrder]);
 
   const spinner = (
-    <div className="flex items-center justify-center py-12 text-text-muted">
-      <span className="material-symbols-outlined text-[32px] animate-spin">progress_activity</span>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5" role="status" aria-label="Loading...">
+      {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="h-28 w-full last:col-span-2 xl:last:col-span-1" />)}
     </div>
   );
   const currentStatsError = statsError?.period === period ? statsError : null;
   const liveStats = stats || live;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 sm:gap-8">
+    <div className="usage-analysis flex min-w-0 flex-col gap-5 sm:gap-6">
       {/* Period selector (hidden when controlled by parent) */}
       {!hidePeriodSelector && (
         <div className="flex w-full items-center gap-2 sm:w-auto sm:self-end">
@@ -667,7 +670,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       {stats ? <OverviewCards stats={stats} /> : fetching ? spinner : null}
 
       {/* Keep period-specific charts separate from independently streamed activity. */}
-      <div className="grid min-w-0 grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(260px,1fr)]">
+      <div className="usage-chart-activity grid min-w-0 grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,2.2fr)_minmax(280px,1fr)]">
         <UsageChart
           period={period}
           periodLabel={periodLabel(period)}
@@ -679,52 +682,38 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         />
         <RecentRequests requests={liveStats?.recentRequests || []} connected={streamConnected} />
       </div>
-      {liveStats ? (
-        <Card padding="none" className="min-w-0 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
-            <div>
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Routing map</p>
-              <h2 className="text-lg font-semibold tracking-tight">Your connected workspace</h2>
-            </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-text-muted">{providers.length} {providers.length === 1 ? "provider" : "providers"}</span>
-          </div>
-          <div className="p-2 sm:p-3">
-            <ProviderTopology providers={providers} activeRequests={liveStats.activeRequests || []} lastProvider={liveStats.recentRequests?.[0]?.provider || ""} errorProvider={liveStats.errorProvider || ""} />
-          </div>
-        </Card>
-      ) : fetching ? spinner : null}
+
 
       {/* Table with dropdown selector */}
       {stats && <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Explore the details</p>
-            <h2 className="text-lg font-semibold tracking-tight">Consumption breakdown</h2>
+            <h2 className="text-base font-semibold tracking-tight">Consumption breakdown</h2>
           </div>
           <div className="flex flex-col gap-2 min-[440px]:flex-row">
           <select
             aria-label="Group usage by"
             value={tableView}
             onChange={(e) => setTableView(e.target.value)}
-            className="min-h-11 w-full min-w-0 rounded-xl border border-border-subtle bg-surface px-3 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 min-[440px]:w-auto"
+            className="min-h-10 w-full min-w-0 rounded-lg border border-border-subtle bg-surface px-3 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 min-[440px]:w-auto"
             style={{ colorScheme: 'auto' }}
           >
             {TABLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <div className="grid grid-cols-2 items-center gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1">
+          <div className="grid grid-cols-2 items-center gap-1 rounded-lg border border-border-subtle bg-surface-2 p-1">
             <button
               onClick={() => setViewMode("costs")}
               aria-pressed={viewMode === "costs"}
-              className={`min-h-9 rounded-lg px-4 text-xs font-semibold transition-colors ${viewMode === "costs" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
+              className={`min-h-8 rounded-md px-4 text-xs font-semibold transition-colors ${viewMode === "costs" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
             >
               Costs
             </button>
             <button
               onClick={() => setViewMode("tokens")}
               aria-pressed={viewMode === "tokens"}
-              className={`min-h-9 rounded-lg px-4 text-xs font-semibold transition-colors ${viewMode === "tokens" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
+              className={`min-h-8 rounded-md px-4 text-xs font-semibold transition-colors ${viewMode === "tokens" ? "bg-surface text-text-main shadow-sm" : "text-text-muted hover:text-text-main"}`}
             >
               Tokens
             </button>
@@ -750,6 +739,21 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           />
         )}
       </div>}
+
+      {/* Routing context follows the measurable traffic and breakdown. */}
+      {liveStats ? (
+        <Card padding="none" className="usage-routing-panel min-w-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-4 py-4 sm:px-5">
+            <div>
+              <h2 className="text-sm font-semibold">Your connected workspace</h2>
+            </div>
+            <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-text-muted">{providers.length} {providers.length === 1 ? "provider" : "providers"}</span>
+          </div>
+          <div className="p-0">
+            <ProviderTopology providers={providers} activeRequests={liveStats.activeRequests || []} lastProvider={liveStats.recentRequests?.[0]?.provider || ""} errorProvider={liveStats.errorProvider || ""} />
+          </div>
+        </Card>
+      ) : fetching ? spinner : null}
     </div>
   );
 }

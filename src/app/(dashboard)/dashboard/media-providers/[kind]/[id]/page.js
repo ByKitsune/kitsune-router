@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Card, Badge, Button, AddCustomEmbeddingModal, NoAuthProxyCard, ProviderInfoCard } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
+import { ProviderLoadingState } from "../../../providers/components/ProviderWorkspace";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, isCustomEmbeddingProvider } from "@/shared/constants/providers";
 import ConnectionsCard from "@/app/(dashboard)/dashboard/providers/components/ConnectionsCard";
 import ModelsCard from "@/app/(dashboard)/dashboard/providers/components/ModelsCard";
@@ -62,19 +63,19 @@ export default function MediaProviderDetailPage() {
   if (!isCustom && !builtInProvider) return notFound();
   if (isCustom && !customLoading && !customNode) return notFound();
   if (isCustom && customLoading) {
-    return <div className="text-text-muted text-sm py-12 text-center">Loading...</div>;
+    return <ProviderLoadingState detail />;
   }
 
   const kinds = isCustom ? ["embedding"] : (provider.serviceKinds ?? ["llm"]);
   if (!isCustom && !kinds.includes(kind)) return notFound();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="provider-workspace">
       {/* Back */}
-      <div>
+      <header className="provider-detail-heading">
         <Link
           href={`/dashboard/media-providers/${kind}`}
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
+          className="provider-back-link"
         >
           <span className="material-symbols-outlined text-lg">arrow_back</span>
           {kindConfig.label}
@@ -92,9 +93,9 @@ export default function MediaProviderDetailPage() {
               fallbackColor={provider.color}
             />
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-3xl font-semibold tracking-tight">{provider.name}</h1>
+              <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">{provider.name}</h1>
               {!isCustom && provider.notice?.apiKeyUrl && (
                 <a
                   href={provider.notice.apiKeyUrl}
@@ -127,7 +128,13 @@ export default function MediaProviderDetailPage() {
             </div>
           )}
         </div>
-      </div>
+      </header>
+
+      <nav className="provider-section-nav" aria-label="Provider library">
+        <a href="#provider-connections">Connections</a>
+        {kind !== "tts" && kind !== "webSearch" && kind !== "webFetch" && <a href="#provider-models">Models</a>}
+        <a href="#provider-reference">Test Example</a>
+      </nav>
 
       {/* Kind-specific notice (e.g. codex/image requires Plus) */}
       {!isCustom && provider.kindNotice?.[kind] && (
@@ -156,21 +163,27 @@ export default function MediaProviderDetailPage() {
       )}
 
       {/* Connections */}
+      <section id="provider-connections" className="provider-detail-section">
       {!isCustom && provider.noAuth ? (
         <NoAuthProxyCard providerId={id} />
       ) : (
         <ConnectionsCard providerId={id} isOAuth={false} />
       )}
 
+      </section>
+
       {/* Models - hidden for tts/webSearch/webFetch (provider IS the model); custom uses prefix as alias */}
       {kind !== "tts" && kind !== "webSearch" && kind !== "webFetch" && (
+        <section id="provider-models" className="provider-detail-section">
         <ModelsCard
           providerId={id}
           kindFilter={kind}
           providerAliasOverride={isCustom ? customNode?.prefix : undefined}
         />
+        </section>
       )}
 
+      <div id="provider-reference" className="provider-reference-grid provider-detail-section">
       {/* Provider Info — config-driven, supports searchConfig, fetchConfig, ttsConfig, embeddingConfig, searchViaChat */}
       {!isCustom && (provider.searchConfig || provider.fetchConfig || provider.ttsConfig || provider.sttConfig || provider.embeddingConfig || provider.searchViaChat) && (
         <ProviderInfoCard
@@ -193,6 +206,8 @@ export default function MediaProviderDetailPage() {
       {kind === "tts" && <TtsExampleCard providerId={id} />}
       {kind === "stt" && !isCustom && <SttExampleCard providerId={id} />}
       {!isCustom && KIND_EXAMPLE_CONFIG[kind] && <GenericExampleCard providerId={id} kind={kind} />}
+
+      </div>
 
       {isCustom && (
         <AddCustomEmbeddingModal

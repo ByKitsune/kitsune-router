@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useState } from "react";
 import { Card, Button } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
@@ -230,9 +232,9 @@ export default function TranslatorPage() {
   };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5">
+    <div className="operations-page">
       {/* Header */}
-      <div className="mb-7 flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="operations-heading operations-heading-row">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Developer workspace</p>
           <h1 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">Follow every transformation</h1>
@@ -255,15 +257,15 @@ export default function TranslatorPage() {
         const content = contents[step.id] || "";
 
         return (
-          <Card key={step.id} padding="none" className="min-w-0 overflow-hidden">
+          <Card key={step.id} padding="none" className="operations-stage min-w-0 overflow-hidden">
             <div className="space-y-4 p-4 sm:p-6">
               {/* Step header */}
               <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <button onClick={() => toggle(step.id)} className="group flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
+                <button type="button" onClick={() => toggle(step.id)} aria-expanded={isExpanded} aria-controls={`translator-stage-${step.id}`} className="group flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-3 text-left">
                   <span className="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">
                     {isExpanded ? "expand_more" : "chevron_right"}
                   </span>
-                  <span className="text-xs font-mono text-text-muted/60 w-4">{step.id}</span>
+                  <span className="operations-stage-number">{step.id}</span>
                   <h3 className="text-sm font-semibold text-text-main">{step.label}</h3>
                   <span className="hidden min-w-0 truncate font-mono text-xs text-text-muted/60 md:inline">{step.file}</span>
                   {content && <span className="text-xs text-green-500">({content.length} chars)</span>}
@@ -278,8 +280,8 @@ export default function TranslatorPage() {
 
               {/* Expanded content */}
               {isExpanded && (
-                <>
-                  <div className="border border-border rounded-lg overflow-hidden">
+                <div id={`translator-stage-${step.id}`} className="space-y-4">
+                  <div className="min-w-0 overflow-hidden rounded-lg border border-border-subtle">
                     <Editor
                       height="400px"
                       defaultLanguage={step.lang === "text" ? "plaintext" : "json"}
@@ -298,7 +300,7 @@ export default function TranslatorPage() {
                     <Button size="sm" variant="outline" icon="content_copy" onClick={() => handleCopy(step.id)}>Copy</Button>
                     {action}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </Card>

@@ -133,7 +133,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
 
   return (
     <>
-      <Card padding="sm" className="border-primary/20 bg-primary/5">
+      <Card padding="sm" className="integration-config-card integration-server-panel">
         <div className="flex flex-col gap-3">
           {/* Header */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -1,82 +1,53 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { cn } from "@/shared/utils/cn";
 
-export default function Drawer({
-  isOpen,
-  onClose,
-  title,
-  children,
-  width = "md",
-  className
-}) {
-  const widths = {
-    sm: "w-[400px]",
-    md: "w-[500px]",
-    lg: "w-[600px]",
-    xl: "w-[800px]",
-    full: "w-full",
-  };
-
+/** Native top-layer drawer: contained scroll, focus trap, Escape and focus return. */
+export default function Drawer({ isOpen, onClose, title, children, width = "md", className }) {
+  const dialog = useRef(null);
+  const titleId = useId();
+  const widths = { sm: "w-[400px]", md: "w-[500px]", lg: "w-[600px]", xl: "w-[800px]", full: "w-full" };
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
+    const element = dialog.current;
+    if (isOpen && element && !element.open) element.showModal();
+    if (!isOpen && element?.open) element.close();
   }, [isOpen]);
 
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape" && isOpen) onClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px] fade-in cursor-pointer"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Drawer panel */}
-      <div className={cn(
-        "absolute right-0 top-0 h-full bg-surface flex flex-col",
-        "shadow-[var(--shadow-elev)]",
-        "slide-in-right",
-        "border-l border-border-subtle",
-        widths[width] || widths.md,
-        className
-      )}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border-subtle flex-shrink-0">
-          <div className="flex items-center gap-3">
-            {title && (
-              <h2 className="text-lg font-semibold text-text-main">{title}</h2>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[10px] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+    <dialog
+      ref={dialog}
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={title ? undefined : "Dialog"}
+      onClose={onClose}
+      onKeyDown={event => {
+        // Keep Tab on the panel's controls rather than letting a one-control
+        // dialog cycle through browser chrome. A nested dialog owns its keys.
+        if (event.key !== "Tab" || event.target.closest("dialog") !== event.currentTarget) return;
+        const controls = Array.from(event.currentTarget.querySelectorAll("a[href], button, input, select, textarea, summary, [tabindex]"))
+          .filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && !element.closest("[inert], [hidden]") && element.getClientRects().length && getComputedStyle(element).visibility !== "hidden");
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (!first) { event.preventDefault(); event.currentTarget.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first.focus(); }
+      }}
+      onClick={event => {
+        if (event.target !== event.currentTarget) return;
+        const box = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onClose();
+      }}
+      className={cn("fixed inset-0 m-0 ml-auto h-dvh max-h-none max-w-full overflow-hidden border-0 border-l border-border-subtle bg-surface p-0 text-text-main shadow-elevated backdrop:bg-black/40 backdrop:backdrop-blur-sm", widths[width] || widths.md, className)}
+    >
+      {isOpen && <div className="slide-in-right flex h-full min-w-0 flex-col">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border-subtle px-5 py-4 sm:px-6">
+          {title && <h2 id={titleId} className="min-w-0 break-words text-base font-semibold tracking-tight">{title}</h2>}
+          <button type="button" onClick={onClose} aria-label="Close" className="ml-auto flex size-11 shrink-0 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main">
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          {children}
-        </div>
-      </div>
-    </div>
+        <div className="custom-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">{children}</div>
+      </div>}
+    </dialog>
   );
 }

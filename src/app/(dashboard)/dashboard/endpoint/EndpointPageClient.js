@@ -18,6 +18,7 @@ import StatusAlert from "./components/StatusAlert";
 import Tooltip from "./components/Tooltip";
 import SecurityWarning from "./components/SecurityWarning";
 import WorkspaceIntro from "../components/WorkspaceIntro";
+import "../cli-tools/integration-workspace.css";
 export default function APIPageClient({ machineId }) {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -748,9 +749,9 @@ export default function APIPageClient({ machineId }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-8">
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className="integration-workspace flex min-w-0 flex-col gap-6" aria-busy="true">
+        <div className="page-heading"><div><h1 className="page-title">Endpoint</h1><p className="page-description">Connect your tools through a single endpoint. Manage local access, remote tunnels, and the keys that keep your routes private.</p></div></div>
+        <div className="integration-endpoint-layout" role="status" aria-label="Loading"><CardSkeleton /><CardSkeleton /></div>
       </div>
     );
   }
@@ -758,11 +759,11 @@ export default function APIPageClient({ machineId }) {
   const currentEndpoint = baseUrl;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="integration-workspace flex min-w-0 flex-col gap-6">
       <WorkspaceIntro
         eyebrow="Gateway access"
         icon="hub"
-        title="Your gateway, ready to connect."
+        title="Endpoint"
         description="Connect your tools through a single endpoint. Manage local access, remote tunnels, and the keys that keep your routes private."
         metrics={[
           { label: "API keys", value: keys.length, icon: "vpn_key" },
@@ -771,16 +772,16 @@ export default function APIPageClient({ machineId }) {
         ]}
         links={[{ href: "#gateway-endpoints", label: "Endpoints & tunnels" }, { href: "#require-api-key", label: "Keys & access" }]}
       />
-      <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div className="integration-endpoint-layout">
       {/* Endpoint Card */}
-      <Card id="gateway-endpoints" className="min-w-0 scroll-mt-6">
+      <Card id="gateway-endpoints" className="integration-endpoint-panel min-w-0 scroll-mt-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">api</span>
           API Endpoint
         </h2>
 
         {/* Endpoint rows */}
-        <div className="flex flex-col gap-2">
+        <div className="integration-endpoint-rows flex min-w-0 flex-col">
           {/* Local */}
           <EndpointRow
             label="Local"
@@ -1020,7 +1021,7 @@ export default function APIPageClient({ machineId }) {
       </Card>
 
       {/* API Keys */}
-      <Card id="require-api-key" className="min-w-0 scroll-mt-6">
+      <Card id="require-api-key" className="integration-keys-panel min-w-0 scroll-mt-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">vpn_key</span>
@@ -1052,7 +1053,7 @@ export default function APIPageClient({ machineId }) {
         )}
 
         {keys.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
               <span className="material-symbols-outlined text-[32px]">vpn_key</span>
             </div>
@@ -1063,11 +1064,12 @@ export default function APIPageClient({ machineId }) {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="integration-key-list flex flex-col" role="list" aria-label="API Keys" tabIndex={0}>
             {keys.map((key) => (
               <div
                 key={key.id}
-                className={`group flex min-w-0 flex-col gap-3 py-3 border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0 sm:flex-row sm:items-center sm:justify-between ${key.isActive === false ? "opacity-60" : ""}`}
+                role="listitem"
+                className={`integration-key-row group flex min-w-0 flex-col gap-3 py-3 border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0 sm:flex-row sm:items-center sm:justify-between ${key.isActive === false ? "opacity-60" : ""}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium wrap-anywhere">{key.name}</p>
@@ -1126,7 +1128,7 @@ export default function APIPageClient({ machineId }) {
                   <button
                     aria-label={`Delete API key ${key.name}`}
                     onClick={() => handleDeleteKey(key.id)}
-                    className="min-h-11 min-w-11 p-2 hover:bg-red-500/10 rounded text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="min-h-11 min-w-11 rounded p-2 text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-500 focus-visible:text-red-500"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
                   </button>

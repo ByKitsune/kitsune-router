@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useState, useEffect, useRef } from "react";
 import { Card, Button } from "@/shared/components";
 import { CONSOLE_LOG_CONFIG } from "@/shared/constants/config";
@@ -69,8 +71,8 @@ export default function ConsoleLogClient() {
   }, [logs]);
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
-      <div className="mb-7 flex min-w-0 flex-col gap-3">
+    <div className="operations-page">
+      <div className="operations-heading">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Developer workspace</p>
         <h2 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">A clear view of the runtime</h2>
         <p className="max-w-2xl text-sm leading-6 text-text-muted">Inspect local server activity as it happens. Clear the buffer when you need a fresh view.</p>
@@ -84,7 +86,7 @@ export default function ConsoleLogClient() {
         </div>
         <div
           ref={logRef}
-          className="h-[max(320px,calc(100dvh-360px))] max-w-full overflow-auto bg-[#15191e] p-4 font-mono text-xs leading-6 text-slate-200 sm:p-6"
+          className="operations-console max-w-full overflow-auto bg-[#15191e] p-4 font-mono text-xs leading-6 text-slate-200 sm:p-6"
         >
           {logs.length === 0 ? (
             <span className="text-text-muted">No console logs yet.</span>

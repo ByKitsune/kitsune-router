@@ -401,10 +401,10 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
   return (
     <div
       ref={containerRef}
-      className="usage-topology relative h-[340px] w-full min-w-0 overflow-hidden rounded-[18px] sm:h-[420px] lg:h-[460px]"
+      className={`usage-topology relative w-full min-w-0 overflow-hidden ${providers.length ? "h-[320px] sm:h-[380px] lg:h-[420px]" : "h-40"}`}
       data-motion={motionRunning ? "running" : "paused"}
       data-layout={compact ? "fan" : "radial"}
-      style={compact ? { height: Math.max(360, Math.ceil(providers.length / 2) * 66 + 142) } : undefined}
+      style={compact && providers.length > 0 ? { height: Math.max(360, Math.ceil(providers.length / 2) * 66 + 142) } : undefined}
       aria-label="Routing map"
       role="region"
     >

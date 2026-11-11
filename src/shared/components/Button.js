@@ -12,9 +12,9 @@ const variants = {
 };
 
 const sizes = {
-  sm: "min-h-11 px-3.5 text-xs rounded-xl sm:min-h-8",
-  md: "min-h-11 px-4 text-sm rounded-xl sm:min-h-10",
-  lg: "min-h-12 px-5 text-sm rounded-2xl sm:px-6",
+  sm: "min-h-11 px-3.5 text-xs rounded-[10px] sm:min-h-8",
+  md: "min-h-11 px-4 text-sm rounded-[10px] sm:min-h-10",
+  lg: "min-h-12 px-5 text-sm rounded-xl sm:px-6",
 };
 
 export default function Button({
@@ -33,9 +33,9 @@ export default function Button({
     <button
       className={cn(
         "inline-flex max-w-full shrink-0 items-center justify-center gap-2 font-semibold leading-5 tracking-[-0.01em] cursor-pointer",
-        "transition-[background-color,border-color,box-shadow,transform,color] duration-200 ease-out motion-reduce:transition-none",
+        "transition-[background-color,border-color,box-shadow,transform,color] duration-150 ease-out motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-        "active:scale-[0.97] motion-reduce:active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
+        "active:translate-y-px motion-reduce:active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0",
         variants[variant],
         sizes[size],
         fullWidth && "w-full",

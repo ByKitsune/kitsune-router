@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, Button, Input, Toggle, ModelSelectModal } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
+import { ProviderPageHeader, ProviderLoadingState } from "../../../providers/components/ProviderWorkspace";
 import { AI_PROVIDERS, MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
 
 // Parse "providerId/model" or just "providerId" → { providerId, model }
@@ -229,7 +230,7 @@ export default function ComboDetailPage() {
     setTesting(false);
   }, [testResult, combo, apiKey]);
 
-  if (loading) return <div className="text-text-muted text-sm">Loading...</div>;
+  if (loading) return <ProviderLoadingState detail />;
   if (!combo) return notFound();
 
   const kindLabel = KIND_LABELS[combo.kind] || MEDIA_PROVIDER_KINDS.find((k) => k.id === combo.kind)?.label || "Combo";
@@ -241,26 +242,11 @@ export default function ComboDetailPage() {
   const backHref = getListingHref(combo.kind);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href={backHref} className="text-text-muted hover:text-primary">
-            <span className="material-symbols-outlined">arrow_back</span>
-          </Link>
-          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary">layers</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-text-muted">{kindLabel} Combo</p>
-            <code className="text-lg font-semibold font-mono">{combo.name}</code>
-          </div>
-        </div>
-        <Button variant="outline" icon="delete" onClick={handleDelete} className="text-red-500 border-red-200 hover:bg-red-50">
-          Delete
-        </Button>
-      </div>
-
+    <div className="provider-workspace">
+      <ProviderPageHeader title={<code className="break-all text-[.9em]">{combo.name}</code>} eyebrow={`${kindLabel} Combo`} icon="layers" back={{ href: backHref, label: kindLabel }}
+        metrics={[{ label: "Providers", value: providers.length }]}
+        actions={<Button variant="danger" icon="delete" onClick={handleDelete}>Delete</Button>} />
+      <div className="provider-combo-editor">
       {/* Settings Card */}
       <Card>
         <h2 className="text-lg font-semibold mb-3">Settings</h2>
@@ -269,7 +255,7 @@ export default function ComboDetailPage() {
             <Input label="Combo Name" value={name} onChange={(e) => { setName(e.target.value); validateName(e.target.value); }} onBlur={handleSaveName} error={nameError} />
             <p className="text-[10px] text-text-muted mt-0.5">Only letters, numbers, -, _ and .</p>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Round Robin</p>
               <p className="text-xs text-text-muted">Rotate providers across requests instead of strict fallback order.</p>
@@ -289,7 +275,7 @@ export default function ComboDetailPage() {
           <Button size="sm" icon="add" onClick={() => setShowPicker(true)}>Add Provider</Button>
         </div>
         {providers.length === 0 ? (
-          <div className="text-center py-6 border border-dashed border-border rounded-lg text-text-muted text-sm">
+          <div className="provider-empty-state">
             No providers yet.
           </div>
         ) : (
@@ -298,7 +284,7 @@ export default function ComboDetailPage() {
               const { providerId, model } = parseModelEntry(entry);
               const p = AI_PROVIDERS[providerId];
               return (
-                <div key={`${entry}-${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.02]">
+                <div key={`${entry}-${idx}`} className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border-subtle bg-bg-alt/50 p-3 sm:gap-3">
                   <span className="text-xs text-text-muted w-5 text-center">{idx + 1}</span>
                   <ProviderIcon
                     src={`/providers/${providerId}.png`}
@@ -313,13 +299,13 @@ export default function ComboDetailPage() {
                     {model && <code className="text-[10px] text-text-muted font-mono truncate block">{model}</code>}
                   </div>
                   <div className="flex items-center gap-0.5">
-                    <button onClick={() => handleMove(idx, -1)} disabled={idx === 0} className={`p-1 rounded ${idx === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary hover:bg-black/5"}`} title="Move up">
+                    <button onClick={() => handleMove(idx, -1)} disabled={idx === 0} className={`flex size-9 items-center justify-center rounded ${idx === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary hover:bg-black/5"}`} title="Move up">
                       <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
                     </button>
-                    <button onClick={() => handleMove(idx, 1)} disabled={idx === providers.length - 1} className={`p-1 rounded ${idx === providers.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary hover:bg-black/5"}`} title="Move down">
+                    <button onClick={() => handleMove(idx, 1)} disabled={idx === providers.length - 1} className={`flex size-9 items-center justify-center rounded ${idx === providers.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary hover:bg-black/5"}`} title="Move down">
                       <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
                     </button>
-                    <button onClick={() => handleRemoveProvider(idx)} className="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-500/10" title="Remove">
+                    <button onClick={() => handleRemoveProvider(idx)} className="flex size-9 items-center justify-center rounded text-text-muted hover:text-red-500 hover:bg-red-500/10" title="Remove">
                       <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
                   </div>
@@ -329,6 +315,8 @@ export default function ComboDetailPage() {
           </div>
         )}
       </Card>
+
+      </div>
 
       {/* Test Example Card */}
       {combo.kind && examplePath && (

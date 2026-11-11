@@ -38,6 +38,7 @@ function compile(filename) {
   }).code;
   const fixtureModule = { exports: {} };
   vm.runInNewContext(code, { module: fixtureModule, exports: fixtureModule.exports, require(id) {
+    if (id.endsWith(".css")) return {};
     if (id === "react") return { ...React, useState(value) {
       const original = React.useState(value);
       if (value?.fallbackStrategy === "fill-first") return [initialSettings, () => {}];

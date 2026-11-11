@@ -1,0 +1,858 @@
+{
+  "date": "2026-11-11",
+  "scope": "Complete dashboard composition, navigation, regional loading, responsive layouts and dialog focus behavior",
+  "base_commit": "b9da5096dc30d9121c602d87cc98dc3ce899931e",
+  "branch": "feat/dashboard-experience-redesign",
+  "source_version": "1.0.8",
+  "production_build_id": "OQRwwqsl5KhKcS0AJ-8Fa",
+  "route_entrypoints": [
+    {
+      "route": "/dashboard/basic-chat",
+      "source": "src/app/(dashboard)/dashboard/basic-chat/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/cli-tools/[toolId]",
+      "source": "src/app/(dashboard)/dashboard/cli-tools/[toolId]/page.js",
+      "dynamic": true
+    },
+    {
+      "route": "/dashboard/cli-tools",
+      "source": "src/app/(dashboard)/dashboard/cli-tools/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/combos",
+      "source": "src/app/(dashboard)/dashboard/combos/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/console-log",
+      "source": "src/app/(dashboard)/dashboard/console-log/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/endpoint",
+      "source": "src/app/(dashboard)/dashboard/endpoint/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/media-providers/[kind]/[id]",
+      "source": "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js",
+      "dynamic": true
+    },
+    {
+      "route": "/dashboard/media-providers/[kind]",
+      "source": "src/app/(dashboard)/dashboard/media-providers/[kind]/page.js",
+      "dynamic": true
+    },
+    {
+      "route": "/dashboard/media-providers/combo/[id]",
+      "source": "src/app/(dashboard)/dashboard/media-providers/combo/[id]/page.js",
+      "dynamic": true
+    },
+    {
+      "route": "/dashboard/media-providers/web",
+      "source": "src/app/(dashboard)/dashboard/media-providers/web/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/mitm",
+      "source": "src/app/(dashboard)/dashboard/mitm/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard",
+      "source": "src/app/(dashboard)/dashboard/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/profile",
+      "source": "src/app/(dashboard)/dashboard/profile/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/providers/[id]",
+      "source": "src/app/(dashboard)/dashboard/providers/[id]/page.js",
+      "dynamic": true
+    },
+    {
+      "route": "/dashboard/providers/new",
+      "source": "src/app/(dashboard)/dashboard/providers/new/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/providers",
+      "source": "src/app/(dashboard)/dashboard/providers/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/proxy-pools",
+      "source": "src/app/(dashboard)/dashboard/proxy-pools/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/pxpipe",
+      "source": "src/app/(dashboard)/dashboard/pxpipe/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/quota",
+      "source": "src/app/(dashboard)/dashboard/quota/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/settings/pricing",
+      "source": "src/app/(dashboard)/dashboard/settings/pricing/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/skills",
+      "source": "src/app/(dashboard)/dashboard/skills/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/token-saver",
+      "source": "src/app/(dashboard)/dashboard/token-saver/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/translator",
+      "source": "src/app/(dashboard)/dashboard/translator/page.js",
+      "dynamic": false
+    },
+    {
+      "route": "/dashboard/usage",
+      "source": "src/app/(dashboard)/dashboard/usage/page.js",
+      "dynamic": false
+    }
+  ],
+  "verified_app_source_files": [
+    {
+      "path": "public/i18n/literals/en.json",
+      "sha256": "cc203482aed7e3d67fbfe6b1fb13bcbd6c4b0e8c8ba9ca7d7c7bb44f710987ba"
+    },
+    {
+      "path": "public/i18n/literals/id.json",
+      "sha256": "5d421bba35b396857ef0044f0eb49601bda71ed4b62e9903876b98734999a3dc"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/basic-chat/BasicChatPageClient.js",
+      "sha256": "b255d1cc27733ff6b9b3b4ea542c11a886d24fcd690a83f097f975f04ed4de45"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/CLIToolsPageClient.js",
+      "sha256": "b9f0a9758299c3536b5805881de74fc5f30e35f170cd8212e9bc66e3dccd305d"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/[toolId]/ToolDetailClient.js",
+      "sha256": "18d5c4a58c83e1c13db8dbed0f459423ec8b4116b2733596fb05c60851feeaf9"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/[toolId]/loading.js",
+      "sha256": "24e1d51932fe7201fa8bf6121b6ef10948df4eb9c35ce456a8f8bdfe2a0c4f00"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/AntigravityToolCard.js",
+      "sha256": "150f7ef6241b7ebbd6a2a50985ba59e7d4378a0f337318eff8eb1da1dc4bb32f"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/ClaudeToolCard.js",
+      "sha256": "14c73256a598e650970f3c115d09a2aee43c991d54708e4a2e96a99a1a47d1e3"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/ClineToolCard.js",
+      "sha256": "f9366cc8342b9d22303ac8503e4b30b3aef5c0118e897236c20ae18f1585fa98"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/CodexToolCard.js",
+      "sha256": "6d1c3c1382db9b5a95fcf7b4bc4317401323bd15f3f7fb125e2b05c0cd87748a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/CopilotToolCard.js",
+      "sha256": "1f5fed5eddc11d3299aa51bc741e959f6f64ab72a5048f161dc622b2da4f2779"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/CoworkToolCard.js",
+      "sha256": "eca7b8ff50532b08d44b6d16978c01c223f53811b4a085b1ed0f732ce13b3420"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/DeepSeekTuiToolCard.js",
+      "sha256": "36456e28744afa070956545b4836a59c9dc93fb11ce183cb766b8843355e5747"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/DefaultToolCard.js",
+      "sha256": "aae02eb9ca4f7951a3bafce0933ffd5ac745b1dc8570effb13a3131f8159881a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/DroidToolCard.js",
+      "sha256": "64efd73d0fafbf12b769caad323d97acc1e73521d370891391237cdeeec68b6a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/GrokBuildToolCard.js",
+      "sha256": "1a9a1f39d5121b3cc71c732c62d4851e6f31f22bf031cd8b55a4cd554e160d04"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/HermesToolCard.js",
+      "sha256": "7e9261e80f0b7513e50c460c4eec1c86b1e13c0b595fee3def0a7e77fb569a4a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/JcodeToolCard.js",
+      "sha256": "5a3c1b07f4567caecd65511a054cb09a2707672f496a8bb9ee94a840eb8c8b49"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/KiloToolCard.js",
+      "sha256": "6d5a85762630aef64d42bbf537097bf8ef92818ae3d7d158e6a6b92074f472c5"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/MitmLinkCard.js",
+      "sha256": "9529a92c5b70ea10d464747dee53b4f76d2c7d73f89f733f54a1ded7a792df81"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/MitmServerCard.js",
+      "sha256": "7160ba026996b43816c4e9e38d2d0bfda5bd3b7ee0219260e8e2ba374d94bce4"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/MitmToolCard.js",
+      "sha256": "473caf2a8b7941aae159742d98b430472f70ad6bbd43ff61fecdf8921df8434c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/OpenClawToolCard.js",
+      "sha256": "8c857d77735717b01b1c73d44709f0ad1433cbd889e3d8b808202358dc02b7fb"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/OpenCodeToolCard.js",
+      "sha256": "85a03fe3296b412574cbfefa3c79d9da8b7e9acce9fa3fe8b4d183e7198ac19e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/components/ToolSummaryCard.js",
+      "sha256": "b93ade2e3e89606d31597e4ed45613a5807ab6408a746dc8040f80d5278a208f"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/integration-workspace.css",
+      "sha256": "4f8e3162901412070325c6eb821453ba30ca5973bdbd4c8522977c59631f962b"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/combos/page.js",
+      "sha256": "a9bdd7c9279c1ac4724102b3853f74739e7bb597538a4f296ff8b5b8904c16dd"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/components/WorkspaceIntro.js",
+      "sha256": "98204091ee7a6d6e46ce38984bb1f3e1d68c6aaa0008d0410d0a34beef49f2c9"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/console-log/ConsoleLogClient.js",
+      "sha256": "2d6d04e7d95ef3958f9ac1249210333ff3ca372b1bbdcb8788f9d06d455930bf"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js",
+      "sha256": "e9c03aea0b0e46063ecdd4294b450f09142ca41d9cfe634d948bf8b6216da8a2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/endpoint/components/EndpointRow.js",
+      "sha256": "56095b5b24231d0b7632505f0e173e26ff6efce62189f98d6ab176ba8fe1e401"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/error.js",
+      "sha256": "e9a387c8bd1575197354743b2a1d0b87cbfbc62469ba1cf55224e9c3519a4eb4"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/loading.js",
+      "sha256": "aad83126d63d9db4f7bef6b2816a42254110ee834ea3dd4829dbe3b88563b4aa"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/loading.js",
+      "sha256": "24e1d51932fe7201fa8bf6121b6ef10948df4eb9c35ce456a8f8bdfe2a0c4f00"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js",
+      "sha256": "4e91ab8cd5259ca57e560558c20617d563c4a862d1304a2949ac7e0053c725c2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/page.js",
+      "sha256": "66ed75a0b38220985afe53b8264bd7e0a51f92748154506cc7cd9b9b6fa393f3"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/combo/[id]/loading.js",
+      "sha256": "24e1d51932fe7201fa8bf6121b6ef10948df4eb9c35ce456a8f8bdfe2a0c4f00"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/combo/[id]/page.js",
+      "sha256": "b10edfa846f825fa87508c0efd4c483da2d3a8e3dbac08c8fdf7f6d9d0fe22a9"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/web/page.js",
+      "sha256": "3d68fcda05a915a239f40fb9b7c447faf5ab8aaf3799addc7ad7ff377ec5d432"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/mitm/MitmPageClient.js",
+      "sha256": "826d66ea344671f4657c93356d016e7b79f214ed8521a053a05d08463d3a4e9a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/profile/operations.css",
+      "sha256": "ec04a5645127d3603769fb672f5126eb1c97d0f41c90ed4943aed8f424e400ba"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/profile/page.js",
+      "sha256": "842451dd2c806848603ced890c01aeada203c19e7cb1236a336b5d336dcb247c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/CompatibleModelsSection.js",
+      "sha256": "6a99d140bfed40518b9a697ab6a00d852c9f2f0d307c572a504a96b22c2de9e9"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/ConnectionRow.js",
+      "sha256": "090b67e15ee51009b98b81ef9c63f92b98a706de0093fe4f015d26b9fee42f8e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/ModelRow.js",
+      "sha256": "df84e31639d90d14e63318af561420bf9ec43e23971a3eb6bd06abc4fe587baf"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/loading.js",
+      "sha256": "24e1d51932fe7201fa8bf6121b6ef10948df4eb9c35ce456a8f8bdfe2a0c4f00"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/page.js",
+      "sha256": "935860298931017576af72c1dbc4787b7869440cf11d2719e3ccebf26eb10a12"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/components/ConnectionsCard.js",
+      "sha256": "484c59ef6196f9e2ba4af42322658338aea4f9042a1c86e934c51e95628f762b"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/components/ModelsCard.js",
+      "sha256": "352af18ca875ecad20725f33560c95556e461c768e00c1ab4c9cd5bbc2f473c1"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/components/OfficialProvider.js",
+      "sha256": "cf2c7e08e37e0f4e4fe07341e4858a3f5bd08f4a7bf7ba2d83dc3ce81a149a1b"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/components/ProviderWorkspace.js",
+      "sha256": "51b50b228b600c5486f56ad8dcfc8605d1cb7be0b4893bcacc6ed78eb28e43bb"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/new/page.js",
+      "sha256": "346c86ce691225cf29a8f90cea7307cac82ec974e481002ff2aa9a482dfd8f63"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/page.js",
+      "sha256": "dc5350f78b721ef6218677aa81eb337f99d400e6ce8a37130a8b7c5ea86f09ce"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/provider-workspace.css",
+      "sha256": "c65dfb3596183846cee1b98e8200a113f952dd523c22e1ede2a8e059a1a07a52"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/proxy-pools/page.js",
+      "sha256": "0de5c159a342f31dfd453482a17ea1d802b156c3ff9cfee9f3d5fd6eccebacaa"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/pxpipe/PxpipeClient.js",
+      "sha256": "b333baa35b82fc26f4ae7d702ab436abe60dba2fa85a6936801fd24948ee6827"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/quota/page.js",
+      "sha256": "c5347d40a0d11de078029aaecc32ccbd956bd27f53f26efb1737dd86fde2ae4c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/settings/pricing/page.js",
+      "sha256": "cb215c42c4a6f16b6da783e038e1d4bf98d50f45cf146c872ecada50cb0c28b0"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/skills/page.js",
+      "sha256": "3dde0d26835d8db7af213106c001a4a50b76c74edf92f13626c34c5a5639e3f3"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/token-saver/TokenSaverClient.js",
+      "sha256": "f9d66e6fe8c01f431602dcf426d8badea3d0de2fd0b20dcc0975971559fb0d8f"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/translator/page.js",
+      "sha256": "55325fd81b83b5e72853f7a5f7972aca4ae0cbbe74ab43b53375ed32eca0ee35"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/OverviewCards.js",
+      "sha256": "20dacf12f8b795a1b03efc44ded42c1a9ae9c03240062c96974a34b8e8a00fec"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/ProviderLimits/index.js",
+      "sha256": "9912d44d5be0c061807e14f663aa36b80d2d5883dd0cb14f2edceda6b2249042"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/ProviderTopology.js",
+      "sha256": "2b8372e11aa30ef93a0da4bc67029b5125c456b312fd66de59f8cfb1c8b54c8e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js",
+      "sha256": "3bea4e3c21361a3b5eecebe022e0350adebab579bfabe15deaca6f4420f7b501"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/UsageChart.js",
+      "sha256": "bd7cf1ec1a935c6d01d127ddb547dfa333d20bcee3aed2df47b321dc6350d091"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/UsageTable.js",
+      "sha256": "f741f27d49e6e0cf6caf569a675c3fdefc974d521d1bcc83bcfcc4ee3cb6ceca"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/components/topology.css",
+      "sha256": "7c71affd9c8d6efb73ff1099d4ed20065a919aa3bec7aa8268311c9d8549bd0a"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/page.js",
+      "sha256": "ab11bc55548ba34e4447897dabbffb53748397815e27ad36860634e0a51519cd"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/usage.css",
+      "sha256": "70274efc4a77b333fecdbf63d0a750efb865c1c82f60519f3cf62ddc69e3b4c0"
+    },
+    {
+      "path": "src/app/globals.css",
+      "sha256": "0eab21c634fb140100e2bed6d3b143e1b6fb3051c85481fb644ef8e3cd0539e7"
+    },
+    {
+      "path": "src/shared/components/Button.js",
+      "sha256": "732ebf08fa46b892798cf0762ebc0f821ace114d76cb01abacdb4c812217fc91"
+    },
+    {
+      "path": "src/shared/components/Card.js",
+      "sha256": "e178c1da5d8f2fda15ccff72773bddf5efa58a569db1170ca4936cac5937b1b0"
+    },
+    {
+      "path": "src/shared/components/Drawer.js",
+      "sha256": "ec0ec1676e5b792e1998366c0a84fdeb4c19962ac9cc61418dff5234f7d25b85"
+    },
+    {
+      "path": "src/shared/components/Header.js",
+      "sha256": "0c8cf2fc0d242da9549ea20c7bd729180d6f94cee1907d8b879b20b140a33b20"
+    },
+    {
+      "path": "src/shared/components/Input.js",
+      "sha256": "3ce01658d3dbbbc16c28472ef005e04851b1ae3d7ad4d2ac332b2b13fdaf24f0"
+    },
+    {
+      "path": "src/shared/components/Loading.js",
+      "sha256": "fd09abf21926fb06785455e05949dd7e92d792d7229501c752ae9ecf6613ca7f"
+    },
+    {
+      "path": "src/shared/components/Modal.js",
+      "sha256": "3ab46b373da7bf48ed71eb4b6487e05fc25f76222555049a6c68de647ea2fbba"
+    },
+    {
+      "path": "src/shared/components/SegmentedControl.js",
+      "sha256": "8d1d0214195bfa5558a07e00eb445b720a8c0c4d4bf25819f366ea3abba94a02"
+    },
+    {
+      "path": "src/shared/components/Select.js",
+      "sha256": "15ede189503ef76fb609e0493114c5014fbcec8910be39953ca777171dfc232b"
+    },
+    {
+      "path": "src/shared/components/Sidebar.js",
+      "sha256": "ee036c09d6ee92eef8a01787fc8eb7d5c91204ac3231b05814a1ce7abebbef29"
+    },
+    {
+      "path": "src/shared/components/UsagePricingCoverage.js",
+      "sha256": "88cca9d8d4f00059da36811765fd5f72882f5361fb433fff1adf5f4c99ba9b13"
+    },
+    {
+      "path": "src/shared/components/UsageStats.js",
+      "sha256": "246b806126927c219a20f3a344b751286c003353c194c9d8a0bc2e3bc7b57de2"
+    },
+    {
+      "path": "src/shared/components/index.js",
+      "sha256": "be2f1e8c03ee70138559d81adf444cb767f42273fb4c1a91bdbbc4d40bbe92c5"
+    },
+    {
+      "path": "src/shared/components/layouts/DashboardLayout.js",
+      "sha256": "cc6d342dfa2bdf5ef468f51b374808fd3ea7b47e2f2c3d2ed01e2d82c4c6a986"
+    },
+    {
+      "path": "src/shared/components/layouts/DashboardPageTransition.js",
+      "sha256": "5cc71cdd54ac70b1faa2f0a3cb3f85068589cf019fff6e9b156b7ebc14055fb0"
+    },
+    {
+      "path": "src/shared/components/layouts/dashboard-shell.css",
+      "sha256": "e848bff9da283af1eaa7c15e26d046f1abff151db933d97de21f26431eee367a"
+    },
+    {
+      "path": "src/shared/components/layouts/dashboard-transitions.css",
+      "sha256": "245dab87e942def37c70cd8ce483a186c7697f298d0ae6cb895d9e2fef1ecc08"
+    },
+    {
+      "path": "src/shared/components/navigation/MobileNavigation.js",
+      "sha256": "1422aa142d197a3d2faafed2d0df27da3df9da18b278ff0c08413891629f721c"
+    },
+    {
+      "path": "src/shared/components/navigation/NavigationPending.js",
+      "sha256": "bed564725afdcf02a985ecd99835c75ca703fd3f4f80557823f75dc1b18969ce"
+    }
+  ],
+  "vitest": {
+    "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- --reporter=json --outputFile=/workspace/scratch/ui-redesign-complete-tests.json",
+    "exit_code": 0,
+    "success": true,
+    "tests_total": 11361,
+    "tests_passed": 11262,
+    "tests_failed": 0,
+    "tests_pending": 99,
+    "tests_todo": 0,
+    "files": 880,
+    "failed_test_suites": 0,
+    "full_run_report": {
+      "local_artifact": "/workspace/scratch/ui-redesign-complete-tests.json",
+      "bytes": 4632010,
+      "sha256": "35ae09cca4f1e064939d6aee927a3b475db10f32f195184bcae1f843b796c251"
+    },
+    "gate": "node tests/__baseline__/verify-no-regression.mjs /workspace/scratch/ui-redesign-complete-tests.json",
+    "gate_exit_code": 0,
+    "note": "One complete final run; reports from separate runs are not merged. Live-provider opt-ins remain skipped."
+  },
+  "other_gates": [
+    {
+      "name": "strict_lint",
+      "command": "npm run lint -- --max-warnings=0",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified-lint.log",
+        "bytes": 75,
+        "sha256": "0b9a1970289c9c97ea24c48d2232574fa2303108199a9f2b16dcd09b8c1968b2"
+      }
+    },
+    {
+      "name": "production_build",
+      "command": "npm run build",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified-build.log",
+        "bytes": 8977,
+        "sha256": "aeb1b8db9337277fa7d8e015defa9c6749c89bedddea0c55b1410283d024ed9f"
+      }
+    },
+    {
+      "name": "production_browser",
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:ui",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified-browser.log",
+        "bytes": 5401,
+        "sha256": "f0b7ed4b584e62a0fd897f26d5c9c91fc306c7691a4fc8ce48cb0db50506090c"
+      }
+    },
+    {
+      "name": "i18n",
+      "command": "npm run check:i18n",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-final-i18n.log",
+        "bytes": 4936,
+        "sha256": "5576bf9035ad3f7d61f492fbadaa6673e24672d46816b2b7f83531313a8ab909"
+      }
+    },
+    {
+      "name": "brand",
+      "command": "npm run check:brand",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-brand.log",
+        "bytes": 169,
+        "sha256": "3ac17b025f981897e4a0c429019813e9b0b3e65484bd5a697c1c26ff3a142015"
+      }
+    },
+    {
+      "name": "http2_compat",
+      "command": "npm run test:compat",
+      "exit_code": 0,
+      "evidence": {
+        "local_artifact": "/workspace/scratch/ui-redesign-final-compat.log",
+        "bytes": 247,
+        "sha256": "d250801e4e7f8e0266fa7ffe91ecbbae6080c54c67e42aac741245b76a274755"
+      }
+    }
+  ],
+  "production_browser_tests": {
+    "passed": 36,
+    "failed": 0,
+    "retries": 0,
+    "local_provider_fixtures": true
+  },
+  "visual_qa": {
+    "summary": {
+      "iteration": "verified latest production build including explicit Drawer Tab cycle",
+      "build_id": "OQRwwqsl5KhKcS0AJ-8Fa",
+      "routes": 24,
+      "http_200_routes": 24,
+      "settled_routes": 24,
+      "viewports": 96,
+      "page_errors": 0,
+      "http_errors": 0,
+      "console_errors": 0,
+      "request_failures_by_reason": {
+        "net::ERR_ABORTED": 140
+      },
+      "overflow_cases": [],
+      "dock_overlap_cases": 0,
+      "chat_fixture_checks": 4,
+      "chat_fixture_passed": true,
+      "anchor_checks": 4,
+      "anchor_checks_passed": true,
+      "screenshot_count": 60,
+      "provider_mobile_fold": {
+        "viewport": [
+          390,
+          844
+        ],
+        "firstCatalogCard": {
+          "top": 685,
+          "bottom": 800,
+          "visibleAboveDock": true
+        },
+        "officialBannerHeight": 66,
+        "overflow": {
+          "document": false,
+          "main": false
+        },
+        "offenders": [],
+        "mainWidth": 390,
+        "mainScrollHeight": 7164,
+        "mainHeight": 666,
+        "mobileDockOverlap": false,
+        "headings": [
+          "Providers",
+          "ByKitsune",
+          "OAuth Providers",
+          "Free Tier Providers",
+          "API Key Providers"
+        ],
+        "text": "deployed_code\nPROVIDER LIBRARY\n\nProviders\n\nConnect the providers you choose. Keep accounts, compatible endpoints, and connection controls together in one place.\n\nadd\nAdd OpenAI Compatible\nadd\nAdd Anthropic Compatible\nSaved connections\n0\nCustom endpoi"
+      },
+      "real_provider_calls": false,
+      "source_edits_by_qa": false
+    },
+    "viewports": [
+      [
+        320,
+        740
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        1440,
+        1000
+      ]
+    ],
+    "checked_routes": [
+      {
+        "name": "dashboard",
+        "route": "/dashboard",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "providers",
+        "route": "/dashboard/providers",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "provider-detail",
+        "route": "/dashboard/providers/anthropic",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "provider-new",
+        "route": "/dashboard/providers/new",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "cli-tools",
+        "route": "/dashboard/cli-tools",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "tool-detail",
+        "route": "/dashboard/cli-tools/claude",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "endpoint",
+        "route": "/dashboard/endpoint",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "usage",
+        "route": "/dashboard/usage",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "profile",
+        "route": "/dashboard/profile",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "chat",
+        "route": "/dashboard/basic-chat",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "combos",
+        "route": "/dashboard/combos",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "media-embedding",
+        "route": "/dashboard/media-providers/embedding",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "media-detail",
+        "route": "/dashboard/media-providers/embedding/openai",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "media-combo",
+        "route": "/dashboard/media-providers/combo/3b2312d3-9c66-4852-9e0d-391f245ce86e",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "media-web",
+        "route": "/dashboard/media-providers/web",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "mitm",
+        "route": "/dashboard/mitm",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "proxy-pools",
+        "route": "/dashboard/proxy-pools",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "pxpipe",
+        "route": "/dashboard/pxpipe",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "quota",
+        "route": "/dashboard/quota",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "skills",
+        "route": "/dashboard/skills",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "token-saver",
+        "route": "/dashboard/token-saver",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "translator",
+        "route": "/dashboard/translator",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "console-log",
+        "route": "/dashboard/console-log",
+        "status": 200,
+        "settled": true
+      },
+      {
+        "name": "pricing",
+        "route": "/dashboard/settings/pricing",
+        "status": 200,
+        "settled": true
+      }
+    ],
+    "evidence": [
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/report.json",
+        "bytes": 131885,
+        "sha256": "e3b3499fdf5738a889ab3a7f3f6067b4711c17939401d94c695af04bd38f4545"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/summary.json",
+        "bytes": 1429,
+        "sha256": "ce19553ab23fe66c4f7d993cbcece490c7bcc2d1bc60c0ade95c2cba92b876fd"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/anchor-report.json",
+        "bytes": 1270,
+        "sha256": "b905220d1173dedc758af93ddf4fce57e38a11a085c20b53b2e6022dbe351907"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/chat-history-fixture-report.json",
+        "bytes": 1076,
+        "sha256": "8086fc6ff23058a2cbe4f1eb99977e9fe941a4d3267eb6ee05b14b495ca3e3eb"
+      }
+    ],
+    "preview_artifacts": [
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/dashboard-desktop.png",
+        "bytes": 100107,
+        "sha256": "72d6dbbec9523747dca12a4448b55ae8b2ff1d05e15576ba02d5cd5fa1c865ea"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/providers-mobile.png",
+        "bytes": 51899,
+        "sha256": "967e455b812ab570afee3fe249079b8f81f4edc1f901f31f14f285ac43f95725"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-verified/usage-desktop.png",
+        "bytes": 112271,
+        "sha256": "7c1d632b6ce66e34fe3639539798f3a7b7b504e0f34ca21030b4e3a05dbef003"
+      }
+    ],
+    "before_artifacts": [
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-before-final/endpoint-desktop.png",
+        "bytes": 141615,
+        "sha256": "74b8fb7e1f2739bb8526da490b7f7f7c9eb57d5eb4ed199e4a415b0e66f5a680"
+      },
+      {
+        "local_artifact": "/workspace/scratch/ui-redesign-before-final/endpoint-mobile.png",
+        "bytes": 50420,
+        "sha256": "a1a1478b95373b34325cdc9815aa9576cd244d0ccae013ed0c2377acc36fd0dc"
+      }
+    ],
+    "request_abort_explanation": "140 net::ERR_ABORTED events from cancelled prefetch/SSE requests; no non-abort request failure, console error, JavaScript/hydration error or HTTP error."
+  },
+  "evidence_boundaries": [
+    "Loopback-only production servers, isolated disposable state and synthetic credentials; no real provider account or inference exercised.",
+    "Dynamic routes use representative valid local entries, not every provider configuration.",
+    "No package, container, deployment or remote branch publication is asserted by this receipt.",
+    "English source registration, Indonesian completeness and template gates pass; other locales retain explicit pre-existing partial coverage.",
+    "Landing page and inference engine are outside this dashboard layout refactor.",
+    "Source hashes bind the built app; machine-generated reports and screenshots remain local artifacts rather than committed secrets/state."
+  ]
+}

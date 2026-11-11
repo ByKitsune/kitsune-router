@@ -144,6 +144,10 @@ function fixture({ provider = "openai", settings = {}, customModels = [], catalo
         if (id === "next/navigation") return { useParams: () => ({ id: currentProvider }), useRouter: () => ({ push() {} }) };
         if (id === "next/link") return { __esModule: true, default: "a" };
         if (id === "next/image") return { __esModule: true, default: "img" };
+        // Render the actual shared provider composition; styles have no behavior
+        // in this deterministic hook/network fixture.
+        if (id === "../components/ProviderWorkspace") return load("../components/ProviderWorkspace");
+        if (id.endsWith(".css")) return {};
         if (id === "@/shared/components") return ui;
         if (id === "@/shared/hooks/useCopyToClipboard") return { useCopyToClipboard: () => ({ copied: null, copy: (value) => copies.push(value) }) };
         if (id === "@/shared/hooks/useModelCaps") return { useModelCaps: () => ({ getCaps: () => null }) };

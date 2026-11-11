@@ -70,12 +70,33 @@ test("detail drawer keeps the same count provenance and identifies redacted cont
   await expect(drawer).not.toContainText("[No content]");
   await page.keyboard.press("Escape");
   await expect(drawer).not.toBeVisible();
+  await expect(zero.getByRole("button", { name: "Detail", exact: true })).toBeFocused();
 
   const estimated = page.getByRole("row").filter({ has: page.getByText("accuracy-estimated", { exact: true }) });
   await estimated.getByRole("button", { name: "Detail", exact: true }).click();
   await expect(drawer.getByText("Estimated tokens", { exact: true })).toBeVisible();
   await expect(drawer).toContainText(/Input Tokens:\s*55/);
   await expect(drawer).toContainText(/Latency:\s*TTFT — \/ Total —/);
+});
+
+test("request detail dialog contains keyboard focus and fits the phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard/usage?tab=details");
+  const trigger = page.getByRole("row").filter({ has: page.getByText("accuracy-zero", { exact: true }) }).getByRole("button", { name: "Detail", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Request Details", exact: true });
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate(element => {
+    const box = element.getBoundingClientRect();
+    return box.left >= 0 && box.right <= innerWidth && box.height <= innerHeight;
+  })).toBe(true);
+  for (let index = 0; index < 6; index++) {
+    await page.keyboard.press("Tab");
+    expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toBeFocused();
 });
 
 test("saved structured responses render as escaped JSON while empty and zero remain distinct", async ({ page }) => {

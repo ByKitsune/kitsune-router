@@ -11,12 +11,29 @@ import HeaderLanguage from "@/shared/components/HeaderLanguage";
 import ThemeToggle from "@/shared/components/ThemeToggle";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS } from "@/shared/constants/config";
+import { CLI_TOOLS } from "@/shared/constants/cliTools";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getProviderIconSrc } from "@/shared/utils/providerIcon";
 import { translate } from "@/i18n/runtime";
 
 const getPageInfo = (pathname) => {
   if (!pathname) return { title: "", description: "", breadcrumbs: [] };
+
+  const toolDetail = pathname.match(/^\/dashboard\/cli-tools\/([^/]+)$/);
+  if (toolDetail && CLI_TOOLS[toolDetail[1]]) {
+    const tool = CLI_TOOLS[toolDetail[1]];
+    return { title: tool.name, description: "Configure CLI tools", breadcrumbs: [
+      { label: "CLI Tools", href: "/dashboard/cli-tools" },
+      { label: tool.name, image: tool.image },
+    ] };
+  }
+
+  // Media combos have their own workspace; "combo" is not a provider kind.
+  if (pathname.startsWith("/dashboard/media-providers/combo/")) {
+    return { title: "Combos", description: "Model combos with fallback", breadcrumbs: [
+      { label: "Combos & adapters", href: "/dashboard/combos" }, { label: "Media providers" },
+    ] };
+  }
 
   // Media provider detail: /dashboard/media-providers/[kind]/[id]
   const mediaDetailMatch = pathname.match(/\/media-providers\/([^/]+)\/([^/]+)$/);
@@ -169,6 +186,12 @@ const getPageInfo = (pathname) => {
       icon: "terminal",
       breadcrumbs: [],
     };
+  if (pathname.includes("/settings/pricing"))
+    return { title: "Pricing", description: "", breadcrumbs: [{ label: "Settings", href: "/dashboard/profile" }, { label: "Pricing" }] };
+  if (pathname.includes("/basic-chat"))
+    return { title: "Chat", description: "", breadcrumbs: [] };
+  if (pathname.includes("/pxpipe"))
+    return { title: "PXPIPE", description: "", breadcrumbs: [] };
   if (pathname === "/dashboard")
     return {
       title: "Endpoint",
@@ -229,27 +252,25 @@ export default function Header({ onMenuClick, showMenuButton = true, menuControl
   };
 
   return (
-    <header className="relative z-20 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-3 border-b border-border-subtle bg-surface/85 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_6px_24px_-24px_rgba(0,0,0,0.3)] backdrop-blur-2xl sm:px-6 lg:px-8 lg:py-5">
-      {showMenuButton && <button type="button" onClick={onMenuClick} aria-label="Open navigation" aria-controls={menuControls} aria-expanded={menuExpanded} className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border-subtle bg-surface/80 text-text-main shadow-soft transition-[background-color,transform] hover:bg-surface-2 active:scale-95 motion-reduce:transform-none lg:hidden"><Menu size={19} aria-hidden="true" /></button>}
+    <header className="dashboard-header relative z-20 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-3 border-b border-border-subtle bg-surface text-text-main">
+      <div className="dashboard-navigation-progress" aria-hidden="true" />
+      {showMenuButton && <button type="button" onClick={onMenuClick} aria-label="Open navigation" aria-controls={menuControls} aria-expanded={menuExpanded} className="dashboard-menu-trigger flex size-11 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main lg:hidden"><Menu size={19} aria-hidden="true" /></button>}
 
-      <div className="min-w-0 flex-1">
-        <p className="mb-1 hidden items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-subtle sm:flex"><span>Workspace</span><ChevronRight size={11} aria-hidden="true" /><span className="truncate">{translate(title || "Dashboard")}</span></p>
-        {breadcrumbs.length > 0 ? (
-          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={`${crumb.label}-${crumb.href || "current"}`} className={`${index < breadcrumbs.length - 1 ? "hidden md:flex" : "flex"} min-w-0 items-center gap-2`}>
-                {index > 0 && <ChevronRight aria-hidden="true" size={15} className="hidden shrink-0 text-text-subtle md:block" />}
-                {crumb.href ? <Link href={crumb.href} className="truncate rounded text-sm font-medium text-text-muted transition-colors hover:text-primary">{translate(crumb.label)}</Link> : <div className="flex min-w-0 items-center gap-2">{crumb.image && <ProviderIcon src={crumb.image} alt="" size={24} className="size-6 shrink-0 rounded-md object-contain" fallbackText={crumb.label.slice(0, 2).toUpperCase()} />}<h1 className="truncate text-lg font-semibold tracking-[-0.035em] text-text-main sm:text-xl lg:text-[23px]">{translate(crumb.label)}</h1></div>}
-              </div>
-            ))}
-          </nav>
-        ) : <h1 className="truncate text-lg font-semibold tracking-[-0.035em] text-text-main sm:text-xl lg:text-[23px]">{translate(title || "Dashboard")}</h1>}
-        {description && <p className="mt-1 hidden truncate text-xs text-text-muted xl:block">{translate(description)}</p>}
-      </div>
+      <nav aria-label="Breadcrumb" className="dashboard-breadcrumb flex min-w-0 flex-1 items-center gap-2">
+        <Link href="/dashboard/endpoint" className="hidden shrink-0 rounded text-xs font-medium text-text-subtle transition-colors hover:text-primary sm:block">Workspace</Link>
+        <ChevronRight size={13} aria-hidden="true" className="hidden shrink-0 text-text-subtle sm:block" />
+        {breadcrumbs.length > 0 ? breadcrumbs.map((crumb, index) => (
+          <div key={`${crumb.label}-${crumb.href || "current"}`} className={`${index < breadcrumbs.length - 1 ? "hidden md:flex" : "flex"} min-w-0 items-center gap-2`}>
+            {index > 0 && <ChevronRight aria-hidden="true" size={13} className="hidden shrink-0 text-text-subtle md:block" />}
+            {crumb.href ? <Link href={crumb.href} className="truncate rounded text-xs font-medium text-text-muted transition-colors hover:text-primary">{translate(crumb.label)}</Link> : <div className="flex min-w-0 items-center gap-2">{crumb.image && <ProviderIcon src={crumb.image} alt="" size={20} className="size-5 shrink-0 rounded object-contain" fallbackText={crumb.label.slice(0, 2).toUpperCase()} />}<h1 className="truncate text-sm font-semibold tracking-[-0.02em]">{translate(crumb.label)}</h1></div>}
+          </div>
+        )) : <h1 className="truncate text-sm font-semibold tracking-[-0.02em]">{translate(title || "Dashboard")}</h1>}
+        {description && <span className="sr-only">{translate(description)}</span>}
+      </nav>
 
-      <div className="ml-auto flex shrink-0 lg:order-last items-center gap-1 rounded-2xl border border-border-subtle bg-surface/75 p-1 shadow-soft sm:gap-1.5">
-        {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && <div className="hidden max-w-[180px] items-center gap-2 border-r border-border-subtle px-2.5 text-xs text-text-muted xl:flex" title={displayName}><UserRound size={15} className="shrink-0 text-primary" aria-hidden="true" /><span className="truncate">{displayName}</span><span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-1 text-[9px] font-semibold uppercase text-primary">{loginMethod}</span></div>}
-        <div className="hidden sm:block"><ThemeToggle className="!rounded-xl" /></div>
+      <div className="dashboard-header-actions ml-auto flex shrink-0 items-center gap-0.5 lg:order-last">
+        {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && <div className="mr-2 hidden max-w-[180px] items-center gap-2 border-r border-border-subtle pr-3 text-xs text-text-muted xl:flex" title={displayName}><UserRound size={15} className="shrink-0 text-text-muted" aria-hidden="true" /><span className="truncate">{displayName}</span><span className="shrink-0 rounded bg-surface-2 px-1.5 py-1 text-[9px] font-semibold uppercase">{loginMethod}</span></div>}
+        <div className="hidden sm:block"><ThemeToggle className="!rounded-lg" /></div>
         <HeaderLanguage />
         <HeaderMenu onLogout={handleLogout} />
       </div>
@@ -267,7 +288,7 @@ function HeaderSearch() {
   if (!visible) return null;
 
   return (
-    <div className="relative order-last w-full min-w-0 lg:order-none lg:ml-2 lg:w-[180px] xl:w-[220px]">
+    <div className="dashboard-header-search relative order-last w-full min-w-0 lg:order-none lg:ml-auto lg:w-[220px] xl:w-[280px]">
       <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
       <input
         aria-label={placeholder || "Search this page"}
@@ -275,7 +296,7 @@ function HeaderSearch() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-border-subtle bg-bg-alt/60 pl-9 pr-10 text-sm text-text-main transition-colors placeholder:text-text-subtle hover:border-border focus:border-primary/50 focus:outline-none"
+        className="h-10 w-full rounded-lg border border-border-subtle bg-bg-alt/50 pl-9 pr-10 text-[13px] text-text-main transition-[border-color,box-shadow] duration-150 placeholder:text-text-subtle hover:border-border focus:border-primary/50 focus:outline-none focus:shadow-focus"
       />
       {query && (
         <button

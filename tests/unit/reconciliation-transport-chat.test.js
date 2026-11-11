@@ -90,11 +90,14 @@ describe("chat reactive refresh transport", () => {
         res.statusCode = 401;
         res.setHeader("Content-Type", "application/json");
         res.end('{"error":{"message":"expired"}}');
-        setTimeout(() => caller.abort(new Error("caller left during refresh")), 40);
+      } else {
+        // Cancel once the refresh actually reaches the relay. A fixed delay
+        // races CPU-heavy builds and can cancel before refresh has even begun.
+        caller.abort(new Error("caller left during refresh"));
       }
     });
     const pending = handleChatCore(options(relay, { clientSignal: caller.signal }));
-    const result = await Promise.race([pending, new Promise(resolve => setTimeout(() => resolve({ status: "kept refreshing" }), 400))]);
+    const result = await pending;
     expect(result.status).toBe(499);
     expect(attempts).toBe(2);
   });

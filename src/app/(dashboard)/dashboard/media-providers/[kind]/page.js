@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card, Badge, Button, Toggle, AddCustomEmbeddingModal } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
+import { ProviderPageHeader, ProviderLoadingState } from "../../providers/components/ProviderWorkspace";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, getProvidersByKind } from "@/shared/constants/providers";
 
 // Kinds that support combos on their media page. Every kind with a page must
@@ -31,11 +32,6 @@ function MediaProviderCard({ provider, kind, connections, isCustom, onToggle }) 
   const total = providerConns.length;
   const allDisabled = total > 0 && providerConns.every((c) => c.isActive === false);
 
-  const handleToggleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onToggle) onToggle(provider.id, allDisabled);
-  };
 
   const renderStatus = () => {
     if (isNoAuth) return <Badge variant="success" size="sm">Ready</Badge>;
@@ -51,15 +47,14 @@ function MediaProviderCard({ provider, kind, connections, isCustom, onToggle }) 
   };
 
   return (
-    <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="group">
-      <Card
-        padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
-      >
+    <div className="provider-library-card group border border-border-subtle bg-surface">
+      <div className="provider-card-row">
+      <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="provider-card-link">
+      <div className={`min-w-0 w-full ${allDisabled ? "opacity-70" : ""}`}>
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="size-8 rounded-lg flex items-center justify-center shrink-0"
+              className="provider-card-logo"
               style={{ backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color ?? "#888") + "15"}` }}
             >
               <ProviderIcon
@@ -72,29 +67,21 @@ function MediaProviderCard({ provider, kind, connections, isCustom, onToggle }) 
               />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm">{provider.name}</h3>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <h3 className="provider-card-name">{provider.name}</h3>
+              <div className="provider-card-status">
                 {isCustom && <Badge variant="default" size="sm">Custom</Badge>}
                 {renderStatus()}
               </div>
             </div>
           </div>
-          {total > 0 && (
-            <div
-              className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-              onClick={handleToggleClick}
-            >
-              <Toggle
-                size="sm"
-                checked={!allDisabled}
-                onChange={() => {}}
-                title={allDisabled ? "Enable provider" : "Disable provider"}
-              />
-            </div>
-          )}
         </div>
-      </Card>
-    </Link>
+      </div>
+      </Link>
+      {total > 0 && <div className="provider-card-toggle">
+        <Toggle size="sm" checked={!allDisabled} onChange={() => onToggle?.(provider.id, allDisabled)} aria-label={`${allDisabled ? "Enable provider" : "Disable provider"}: ${provider.name}`} />
+      </div>}
+      </div>
+    </div>
   );
 }
 
@@ -143,6 +130,7 @@ export default function MediaProviderKindPage() {
   const { kind } = useParams();
   const router = useRouter();
   const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [customNodes, setCustomNodes] = useState([]);
   const [combos, setCombos] = useState([]);
   const [showAddCustomEmbedding, setShowAddCustomEmbedding] = useState(false);
@@ -163,7 +151,8 @@ export default function MediaProviderKindPage() {
     fetch("/api/providers", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setConnections(d.connections || []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
     if (isEmbedding) {
       fetch("/api/provider-nodes", { cache: "no-store" })
         .then((r) => r.json())
@@ -229,9 +218,14 @@ export default function MediaProviderKindPage() {
     }
   };
 
+  if (loading) return <ProviderLoadingState />;
+
   return (
-    <div className="flex flex-col gap-6">
-      {(isEmbedding || supportsCombo) && (
+    <div className="provider-workspace">
+      <ProviderPageHeader title={kindConfig.label} eyebrow="Providers" icon={kindConfig.icon || "deployed_code"}
+        metrics={[{ label: "Providers", value: allProviders.length }, { label: "Combos", value: kindCombos.length }]}
+        actions={(isEmbedding || supportsCombo) && (
+
         <div className="flex items-center justify-end gap-2">
           {supportsCombo && (
             <Button size="sm" icon="add" onClick={handleCreateCombo}>Create Combo</Button>
@@ -242,18 +236,18 @@ export default function MediaProviderKindPage() {
             </Button>
           )}
         </div>
-      )}
+      )} />
 
       {supportsCombo && kindCombos.length > 0 && (
         <ComboList combos={kindCombos} />
       )}
 
       {allProviders.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-border rounded-xl text-text-muted text-sm">
+        <div className="provider-empty-state">
           No providers support <strong>{kindConfig.label}</strong> yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="provider-card-grid">
           {providers.map((provider) => (
             <MediaProviderCard
               key={provider.id}

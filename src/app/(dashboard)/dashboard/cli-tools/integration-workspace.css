@@ -1,0 +1,219 @@
+/* Scoped to integration screens: a directory, focused configuration, and access controls. */
+.integration-library-layout,
+.integration-library-grid,
+.integration-mitm-grid,
+.integration-endpoint-layout,
+.integration-mitm-layout {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  gap: 24px;
+}
+.integration-library-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 16px;
+}
+.integration-library-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.integration-library-toolbar > div { flex-basis: 200px; }
+.integration-status-filter {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+.integration-status-filter:hover,
+.integration-status-filter.is-selected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+}
+.integration-status-filter:disabled { cursor: wait; opacity: .6; }
+.integration-filter-count {
+  border-radius: 5px;
+  background: var(--color-surface-2);
+  padding: 1px 5px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.integration-results-count {
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.integration-tool-link { outline-offset: 4px; }
+.integration-tool-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+.integration-tool-tile {
+  display: flex;
+  min-height: 178px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.integration-tool-link:hover .integration-tool-tile,
+.integration-tool-link:hover .integration-mitm-tile {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+.integration-tool-icon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 11px;
+  background: var(--color-surface-2);
+}
+.integration-tool-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.integration-tool-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.integration-library-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.integration-library-aside .section-heading { margin: 0; }
+.integration-mitm-grid { gap: 12px; }
+.integration-mitm-tile { padding: 16px; }
+.integration-empty-state {
+  display: flex;
+  min-height: 240px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+.integration-detail { max-width: 1120px; }
+.integration-back-link { min-height: 36px; }
+.integration-detail-config > [role="status"] {
+  display: grid;
+  gap: 20px;
+}
+.integration-config-card {
+  container-type: inline-size;
+  padding: 20px;
+}
+.integration-config-card pre {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  line-height: 1.7;
+}
+.integration-config-card :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+  min-height: 42px;
+  border-radius: 9px;
+  font-size: 14px;
+}
+.integration-config-card [class*="sm:grid-cols-[8rem_"],
+.integration-config-card [class*="sm:grid-cols-[9rem_"] {
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-block: 12px;
+}
+.integration-config-card [class*="sm:grid-cols-[8rem_"] > span:first-child,
+.integration-config-card [class*="sm:grid-cols-[9rem_"] > span:first-child {
+  text-align: start;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.integration-config-card [class*="sm:grid-cols-[8rem_"] > .material-symbols-outlined,
+.integration-config-card [class*="sm:grid-cols-[9rem_"] > .material-symbols-outlined { display: none; }
+.integration-detail-config .integration-config-card > div:first-child { cursor: default; }
+.integration-detail-config .integration-collapse-indicator { display: none; }
+.integration-endpoint-rows { gap: 12px; }
+.integration-endpoint-rows > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: var(--color-surface-2);
+}
+.integration-key-list {
+  max-height: min(68vh, 680px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+.integration-key-row { padding-block: 16px; }
+.integration-server-panel { background: var(--color-surface); }
+.integration-mitm-warning {
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.integration-mitm-configurations {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+.integration-mitm-configurations .integration-config-card > [role="button"] {
+  border-radius: 8px;
+  outline-offset: 5px;
+}
+@media (min-width: 640px) {
+  .integration-config-card [class*="sm:grid-cols-[8rem_"],
+  .integration-config-card [class*="sm:grid-cols-[9rem_"] {
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto auto;
+  }
+  .integration-mitm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px) {
+  .integration-endpoint-layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .integration-mitm-layout { grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); }
+}
+@media (min-width: 1536px) {
+  .integration-library-layout { grid-template-columns: minmax(0, 1fr) 290px; gap: 28px; }
+  .integration-library-aside { position: sticky; top: 0; }
+  .integration-mitm-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 580px) {
+  .integration-config-card [class*="sm:grid-cols-[8rem_"],
+  .integration-config-card [class*="sm:grid-cols-[9rem_"] { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+@media (max-width: 639px) {
+  .integration-tool-tile { min-height: 160px; padding: 16px; }
+  .integration-config-card { padding: 16px; }
+  .integration-config-card :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) { font-size: 16px; }
+  .integration-endpoint-rows > div { flex-wrap: wrap; }
+  .integration-endpoint-rows > div > span:first-child { flex-basis: 100%; text-align: start; }
+  .integration-endpoint-rows > div > div.flex-1 { flex-basis: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .integration-tool-tile,
+  .integration-status-filter { transition: none; }
+}

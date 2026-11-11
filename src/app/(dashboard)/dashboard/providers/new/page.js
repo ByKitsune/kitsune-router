@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProviderPageHeader } from "../components/ProviderWorkspace";
 import { Card, Button, Input, Select, Toggle } from "@/shared/components";
 import { AI_PROVIDERS, AUTH_METHODS } from "@/shared/constants/config";
 
@@ -73,21 +74,8 @@ export default function NewProviderPage() {
   const selectedProvider = AI_PROVIDERS[formData.provider];
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/dashboard/providers"
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
-        >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
-          Back to Providers
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Add New Provider</h1>
-        <p className="text-text-muted mt-2">
-          Configure a new AI provider to use with your applications.
-        </p>
-      </div>
+    <div className="provider-workspace mx-auto w-full max-w-3xl">
+      <ProviderPageHeader title="Add New Provider" description="Configure a new AI provider to use with your applications." back={{ href: "/dashboard/providers", label: "Back to Providers" }} />
 
       {/* Form */}
       <Card>
@@ -130,13 +118,14 @@ export default function NewProviderPage() {
             <label className="text-sm font-medium">
               Authentication Method <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {authMethodOptions.map((method) => (
                 <button
                   key={method.value}
                   type="button"
                   onClick={() => handleChange("authMethod", method.value)}
-                  className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
+                  aria-pressed={formData.authMethod === method.value}
+                  className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border transition-colors ${
                     formData.authMethod === method.value
                       ? "border-primary bg-primary/5 text-primary"
                       : "border-border hover:border-primary/50"

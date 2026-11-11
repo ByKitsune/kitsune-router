@@ -49,10 +49,10 @@ export default function Input({
           aria-invalid={error ? true : invalid}
           aria-describedby={[describedBy, descriptionId].filter(Boolean).join(" ") || undefined}
           className={cn(
-            "min-h-11 w-full min-w-0 rounded-xl bg-surface px-3.5 py-2.5 text-sm text-text-main shadow-sm",
+            "min-h-11 w-full min-w-0 rounded-[10px] bg-surface px-3.5 py-2.5 text-sm text-text-main",
             "border border-border placeholder:text-text-subtle hover:border-text-subtle/50",
             "focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40",
-            "transition-[background-color,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50",
+            "transition-[background-color,border-color,box-shadow] duration-150 ease-out motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50",
             // iOS zoom fix
             "text-[16px] sm:text-sm",
             icon && "pl-10",

@@ -178,7 +178,7 @@ export default function KiloToolCard({ tool, isExpanded, onToggle, baseUrl, apiK
   };
 
   return (
-    <Card padding="xs" className="overflow-hidden">
+    <Card padding="xs" className="integration-config-card overflow-hidden">
       <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
@@ -193,7 +193,7 @@ export default function KiloToolCard({ tool, isExpanded, onToggle, baseUrl, apiK
             <p className="text-xs text-text-muted truncate">{tool.description}</p>
           </div>
         </div>
-        <span className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
+        <span className={`material-symbols-outlined text-text-muted text-[20px] integration-collapse-indicator transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
       </div>
 
       {isExpanded && (

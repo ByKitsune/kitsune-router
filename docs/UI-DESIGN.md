@@ -144,3 +144,45 @@ read, then authenticate and visit the changed pages. Check:
 Record the exact source revision and test outcomes for the current run. A local
 build, browser check or Git push does not establish CI success, registry
 publication, live-provider availability or production deployment.
+
+## Dashboard composition (November 11 refactor)
+
+The desktop frame is a 244px task rail beside a single content canvas, with a 64px
+header and a 1440px maximum reading width. Mobile search may add a second header
+row; pending navigation feedback stays at the actual header's bottom edge.
+Shared cards use 14px corners, 16px mobile/20px desktop padding and quiet borders.
+Reserve strong elevation for dialogs/drawers. Avoid nesting ornamental cards
+around another page header, filter bar or metric card.
+
+Use the shared `page-heading`, `page-title`, `page-description`, `page-actions`,
+`workspace-toolbar`, `section-heading` and `metric-strip` composition classes.
+Give main work (accounts, routes, configuration, charts/tables) priority over
+promotional introductions and long explanations. Provider categories and
+integration search/filter controls reduce the visible catalog; setup and
+configuration actions remain available. Mobile provider introductions and the
+official provider banner stay compact so real catalog entries reach the first
+screen. Settings use an in-page section index and readable vertical sections,
+not masonry. Analytics flows from metrics to chart/activity, breakdown, then
+routing context. Preserve internal scrolling for genuine wide data/code.
+
+`dashboard/loading.js` provides a shell-contained structural fallback inherited
+by all child routes; provider, tool and media detail routes have dedicated
+fallbacks. Do not blank or overlay the navigation while content loads. Shared
+`PageLoading` stays inside its content region. Native dialog drawers provide
+focus trapping, Escape, backdrop dismissal and invoker focus restoration. The
+route error boundary shows a public retry state without exposing raw errors.
+
+Route snapshots arrive in 220ms and depart in 120ms. Keep one live page tree;
+never hold an outgoing form or subscription open to wait for an exit animation.
+The non-native fallback animates only arrival. Router-owned `useLinkStatus`
+provides delayed inline and header feedback on pending sidebar/mobile links;
+there are no invented progress percentages or click-capture navigation timers.
+Path changes manage the content scroll/focus; query/filter updates do not reset
+focused fields. Preserve hash destinations and history scroll where available.
+Reduced-motion users get immediate content and static pending/skeleton states.
+
+Pricing now lives in the dashboard route group at the unchanged public URL
+`/dashboard/settings/pricing`, so its shell and navigation are consistent with
+the rest of the application. The existing pathname authentication guard remains
+in force. This layout refactor does not change provider credential policies,
+request routing, billing arithmetic or the meaning of unknown/zero usage.

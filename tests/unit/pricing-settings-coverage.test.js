@@ -7,7 +7,7 @@ import { translate } from "../../src/i18n/runtime.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
-const filename = fileURLToPath(new URL("../../src/app/dashboard/settings/pricing/page.js", import.meta.url));
+const filename = fileURLToPath(new URL("../../src/app/(dashboard)/dashboard/settings/pricing/page.js", import.meta.url));
 const code = babel.transformSync(readFileSync(filename, "utf8"), {
   filename, babelrc: false, configFile: false,
   presets: [[require("next/dist/compiled/babel/preset-react"), { runtime: "automatic" }]],
@@ -43,6 +43,7 @@ function fixture(reply) {
     module: fixtureModule, exports: fixtureModule.exports, fetch, AbortController, queueMicrotask,
     console: { error: vi.fn() },
     require(id) {
+      if (id.endsWith(".css")) return {};
       if (id === "react") return hooks;
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "@/i18n/runtime") return { translate };
@@ -76,9 +77,9 @@ describe("pricing settings show measured coverage rather than assumed readiness"
   it("counts genuine zero rates as known and separates partial and missing quotes", async () => {
     const page = fixture(url => Promise.resolve(response(url.includes("diagnostics") ? null : rows)));
     const tree = await page.mount();
-    const cards = nodes(tree).filter(node => node.type === page.Card);
-    const priced = cards.find(card => text(card).includes("Models with input and output rates"));
-    const unpriced = cards.find(card => text(card).includes("Unknown or partial rates"));
+    const groups = nodes(tree).filter(node => node.props.role === "group");
+    const priced = groups.find(group => group.props["aria-label"] === "Models with input and output rates");
+    const unpriced = groups.find(group => group.props["aria-label"] === "Unknown or partial rates");
     expect(nodes(priced).some(node => node.type === "div" && text(node) === "1")).toBe(true);
     expect(nodes(unpriced).some(node => node.type === "div" && text(node) === "2")).toBe(true);
     expect(text(tree)).not.toContain("Active");

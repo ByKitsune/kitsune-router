@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 11 dashboard experience redesign](35-dashboard-experience-redesign-2026-11-11.md)
+records the full dashboard layout refactor, shared navigation/loading/dialog
+behavior and production browser coverage across desktop and narrow screens.
+
 The [November 11 Claude signature and upstream review](34-claude-signature-and-upstream-review-2026-11-11.md)
 records the full Markdown read inventory, current official opaque-signature
 contract, signed-history/deferred-tool repairs and selected 9Router adaptations.

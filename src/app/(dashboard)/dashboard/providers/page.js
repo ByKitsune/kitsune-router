@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import WorkspaceIntro from "../components/WorkspaceIntro";
+import { ProviderPageHeader, ProviderLoadingState } from "./components/ProviderWorkspace";
 import PropTypes from "prop-types";
 import {
   Card,
-  CardSkeleton,
   Badge,
   Button,
   Toggle,
@@ -109,6 +108,7 @@ export default function ProvidersPage() {
   const [testingMode, setTestingMode] = useState(null);
   const [testResults, setTestResults] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [category, setCategory] = useState("all");
   const notify = useNotificationStore();
   const searchQuery = useHeaderSearchStore((s) => s.query);
   const registerSearch = useHeaderSearchStore((s) => s.register);
@@ -371,56 +371,49 @@ export default function ProvidersPage() {
       : apikeyEntries.slice(0, APIKEY_INITIAL_VISIBLE);
   const hiddenApikeyCount = apikeyEntries.length - APIKEY_INITIAL_VISIBLE;
 
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-8">
-        <CardSkeleton />
-        <CardSkeleton />
-      </div>
-    );
-  }
+  if (loading) return <ProviderLoadingState />;
 
-  const hasAnyResult =
-    oauthEntries.length > 0 ||
-    freeEntries.length > 0 ||
-    freeTierEntries.length > 0 ||
-    apikeyEntries.length > 0 ||
-    compatibleProviders.length > 0 ||
-    anthropicCompatibleProviders.length > 0;
+  const categories = [
+    { id: "all", label: "All", count: oauthEntries.length + freeEntries.length + freeTierEntries.length + apikeyEntries.length + compatibleProviders.length + anthropicCompatibleProviders.length },
+    { id: "oauth", label: "OAuth", count: oauthEntries.length },
+    { id: "free", label: "Free Tier Providers", count: freeEntries.length + freeTierEntries.length },
+    { id: "apikey", label: "API Key Providers", count: apikeyEntries.length },
+    { id: "custom", label: "Custom endpoints", count: compatibleProviders.length + anthropicCompatibleProviders.length },
+  ];
+  const hasAnyResult = categories.find(item => item.id === category)?.count > 0;
+  const showCategory = id => category === "all" || category === id;
 
   return (
-    <div className="flex min-w-0 flex-col gap-8">
-      <WorkspaceIntro
+    <div className="provider-workspace provider-library-workspace">
+      <ProviderPageHeader
         eyebrow="Provider library"
         icon="deployed_code"
-        title="Your models start here."
+        title="Providers"
         description="Connect the providers you choose. Keep accounts, compatible endpoints, and connection controls together in one place."
         metrics={[
-          { label: "Saved connections", value: connections.length, icon: "link" },
-          { label: "Custom endpoints", value: providerNodes.length, icon: "api" },
-          { label: "API key providers", value: Object.keys(APIKEY_PROVIDERS).length, icon: "vpn_key" },
+          { label: "Saved connections", value: connections.length },
+          { label: "Custom endpoints", value: providerNodes.length },
+          { label: "API key providers", value: Object.keys(APIKEY_PROVIDERS).length },
         ]}
-        links={[{ href: "#official-provider", label: "ByKitsune" }, { href: "#custom-providers", label: "Custom endpoints" }, { href: "#oauth-providers", label: "OAuth" }, { href: "#api-key-providers", label: "API keys" }]}
+        actions={<>
+          <Button size="sm" icon="add" onClick={() => setShowAddCompatibleModal(true)}>Add OpenAI Compatible</Button>
+          <Button size="sm" variant="secondary" icon="add" onClick={() => setShowAddAnthropicCompatibleModal(true)}>Add Anthropic Compatible</Button>
+        </>}
       />
       <OfficialProvider />
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-3">
-        <p className="text-xs leading-5 text-text-muted">Browse providers or narrow the library by connection status.</p>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="min-h-11 max-w-full rounded-xl border border-border bg-bg-alt px-3 text-sm text-text-main transition-colors hover:border-primary/40"
-          aria-label="Filter providers by connection status"
-        >
-          {STATUS_FILTER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+      <div className="provider-toolbar">
+        <div className="provider-categories" role="group" aria-label="Provider library">
+          {categories.map(item => <button key={item.id} type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>
+            {item.label}<span>{item.count}</span>
+          </button>)}
+        </div>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filter providers by connection status">
+          {STATUS_FILTER_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </div>
 
-      {!hasAnyResult && (
-        <div className="text-center py-8 border border-dashed border-border rounded-xl">
+      {!hasAnyResult && category !== "custom" && (
+        <div className="provider-empty-state">
           <span className="material-symbols-outlined text-[32px] text-text-muted mb-2">
             search_off
           </span>
@@ -431,30 +424,10 @@ export default function ProvidersPage() {
       )}
 
       {/* Custom Providers (OpenAI/Anthropic Compatible) — dynamic */}
-      <section id="custom-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-5 rounded-[24px] border border-border-subtle bg-bg-alt/60 p-4 sm:p-6">
-        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            Custom endpoints{" "}
-          </h2>
-          <div className="grid grid-cols-1 gap-2 min-[480px]:flex min-[480px]:flex-wrap min-[480px]:w-auto">
-            <Button
-              size="sm"
-              icon="add"
-              onClick={() => setShowAddAnthropicCompatibleModal(true)}
-              className="w-full sm:w-auto"
-            >
-              Add Anthropic Compatible
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon="add"
-              onClick={() => setShowAddCompatibleModal(true)}
-              className="w-full sm:w-auto"
-            >
-              Add OpenAI Compatible
-            </Button>
-          </div>
+      {showCategory("custom") && (category === "custom" || compatibleProviders.length + anthropicCompatibleProviders.length > 0) && <section id="custom-providers" className="provider-catalog-section">
+        <div className="provider-section-header">
+          <h2>Custom endpoints</h2>
+          <span className="text-xs tabular-nums text-text-muted">{compatibleProviders.length + anthropicCompatibleProviders.length}</span>
         </div>
         {compatibleProviders.length === 0 &&
         anthropicCompatibleProviders.length === 0 ? (
@@ -463,7 +436,7 @@ export default function ProvidersPage() {
             <span>No custom providers — use buttons above to add OpenAI/Anthropic compatible endpoints</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="provider-card-grid">
             {[...compatibleProviders, ...anthropicCompatibleProviders].map(
               (info) => (
                 <ApiKeyProviderCard
@@ -480,12 +453,12 @@ export default function ProvidersPage() {
             )}
           </div>
         )}
-      </section>
+      </section>}
 
       {/* OAuth Providers */}
-      {oauthEntries.length > 0 && (
-      <section id="oauth-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-4">
-        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      {showCategory("oauth") && oauthEntries.length > 0 && (
+      <section id="oauth-providers" className="provider-catalog-section">
+        <div className="provider-section-header">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             OAuth Providers
           </h2>
@@ -511,7 +484,7 @@ export default function ProvidersPage() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="provider-card-grid">
           {oauthEntries.map(([key, info]) => {
             const authTypes = dualAuthTypes(info, key);
             return (
@@ -530,9 +503,9 @@ export default function ProvidersPage() {
       )}
 
       {/* Free Tier Providers */}
-      {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
-      <div className="flex flex-col gap-4">
-        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      {showCategory("free") && (freeEntries.length > 0 || freeTierEntries.length > 0) && (
+      <section id="free-providers" className="provider-catalog-section">
+        <div className="provider-section-header">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             Free Tier Providers
           </h2>
@@ -555,7 +528,7 @@ export default function ProvidersPage() {
             {testingMode === "free" ? "Testing..." : "Test All"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="provider-card-grid">
           {freeEntries.map(([key, info]) => {
             // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
             // card total matches the provider detail page.
@@ -587,13 +560,13 @@ export default function ProvidersPage() {
             );
           })}
         </div>
-      </div>
+      </section>
       )}
 
       {/* API Key Providers — fixed list */}
-      {apikeyEntries.length > 0 && (
-      <section id="api-key-providers" className="flex min-w-0 scroll-mt-6 flex-col gap-4">
-        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      {showCategory("apikey") && apikeyEntries.length > 0 && (
+      <section id="api-key-providers" className="provider-catalog-section">
+        <div className="provider-section-header">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
             API Key Providers{" "}
           </h2>
@@ -616,7 +589,7 @@ export default function ProvidersPage() {
             {testingMode === "apikey" ? "Testing..." : "Test All"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="provider-card-grid">
           {visibleApikeyEntries.map(([key, info]) => (
             <ApiKeyProviderCard
               key={key}
@@ -712,257 +685,62 @@ export default function ProvidersPage() {
 }
 
 function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
-  const { connected, error, errorCode, errorTime, allDisabled } = stats;
-  const isNoAuth = !!provider.noAuth;
-
-  const dotColors = {
-    free: "bg-green-500",
-    oauth: "bg-blue-500",
-    apikey: "bg-amber-500",
-    compatible: "bg-orange-500",
-  };
-  const dotLabels = {
-    free: "Free",
-    oauth: "OAuth",
-    apikey: "API Key",
-    compatible: "Compatible",
-  };
-
-  return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0 rounded-[20px] focus-visible:outline-offset-4">
-      <Card
-        padding="xs"
-        className={`h-full min-h-[104px] !rounded-[20px] !p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft motion-reduce:transform-none cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
-      >
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="size-8 shrink-0 rounded-lg flex items-center justify-center"
-              style={{
-                backgroundColor: `${provider.color?.length > 7 ? provider.color : provider.color + "15"}`,
-              }}
-            >
-              <ProviderIcon
-                src={`/providers/${provider.id}.png`}
-                alt={provider.name}
-                size={30}
-                className="object-contain rounded-lg max-w-[32px] max-h-[32px]"
-                fallbackText={
-                  provider.textIcon || provider.id.slice(0, 2).toUpperCase()
-                }
-                fallbackColor={provider.color}
-              />
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate font-semibold">{provider.name}</h3>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap">
-                {allDisabled ? (
-                  <Badge variant="default" size="sm">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px]">
-                        pause_circle
-                      </span>
-                      Disabled
-                    </span>
-                  </Badge>
-                ) : isNoAuth ? (
-                  <Badge variant="success" size="sm" dot>Ready</Badge>
-                ) : (
-                  <>
-                    {getStatusDisplay(connected, error, errorCode)}
-                    {errorTime && (
-                      <span className="text-text-muted">{errorTime}</span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {stats.total > 0 && (
-              <div
-                className="opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggle(!allDisabled ? false : true);
-                }}
-              >
-                <Toggle
-                  size="sm"
-                  checked={!allDisabled}
-                  onChange={() => {}}
-                  title={allDisabled ? "Enable provider" : "Disable provider"}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    </Link>
-  );
+  return <ProviderLibraryCard providerId={providerId} provider={provider} stats={stats} authType={authType} onToggle={onToggle} ready={!!provider.noAuth} iconSrc={getProviderIconSrc(provider.id)} />;
 }
 
-ProviderCard.propTypes = {
-  providerId: PropTypes.string.isRequired,
-  provider: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    color: PropTypes.string,
-    textIcon: PropTypes.string,
-  }).isRequired,
-  stats: PropTypes.shape({
-    connected: PropTypes.number,
-    error: PropTypes.number,
-    errorCode: PropTypes.string,
-    errorTime: PropTypes.string,
-  }).isRequired,
-  authType: PropTypes.string,
-  onToggle: PropTypes.func,
-};
-
-function ApiKeyProviderCard({
-  providerId,
-  provider,
-  stats,
-  authType,
-  onToggle,
-}) {
-  const { connected, error, errorCode, errorTime, allDisabled } = stats;
+function ApiKeyProviderCard({ providerId, provider, stats, authType, onToggle }) {
   const isCompatible = providerId.startsWith(OPENAI_COMPATIBLE_PREFIX);
-  const isAnthropicCompatible = providerId.startsWith(
-    ANTHROPIC_COMPATIBLE_PREFIX,
-  );
+  const isAnthropicCompatible = providerId.startsWith(ANTHROPIC_COMPATIBLE_PREFIX);
+  const iconSrc = isCompatible && provider.apiType
+    ? provider.apiType === "responses" ? "/providers/oai-r.png" : "/providers/oai-cc.png"
+    : isAnthropicCompatible ? "/providers/anthropic-m.png" : getProviderIconSrc(provider.id);
+  const protocol = isCompatible ? provider.apiType === "responses" ? "Responses" : "Chat" : isAnthropicCompatible ? "Messages" : null;
+  return <ProviderLibraryCard providerId={providerId} provider={provider} stats={stats} authType={authType} onToggle={onToggle} iconSrc={iconSrc} protocol={protocol} />;
+}
 
-  const dotColors = {
-    free: "bg-green-500",
-    oauth: "bg-blue-500",
-    apikey: "bg-amber-500",
-    compatible: "bg-orange-500",
-  };
-  const dotLabels = {
-    free: "Free",
-    oauth: "OAuth",
-    apikey: "API Key",
-    compatible: "Compatible",
-  };
-
-  const getIconPath = () => {
-    if (isCompatible && provider.apiType)
-      return provider.apiType === "responses"
-        ? "/providers/oai-r.png"
-        : "/providers/oai-cc.png";
-    if (isAnthropicCompatible) return "/providers/anthropic-m.png";
-    return getProviderIconSrc(provider.id);
-  };
-
+function ProviderLibraryCard({ providerId, provider, stats, authType, onToggle, iconSrc, ready = false, protocol }) {
+  const { connected, error, errorCode, errorTime, allDisabled } = stats;
+  const authLabels = { free: "Free", oauth: "OAuth", apikey: "API Key", compatible: "Compatible" };
   return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0 rounded-[20px] focus-visible:outline-offset-4">
-      <Card
-        padding="xs"
-        className={`h-full min-h-[104px] !rounded-[20px] !p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft motion-reduce:transform-none cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
-      >
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="size-8 shrink-0 rounded-lg flex items-center justify-center"
-              style={{
-                backgroundColor: `${provider.color?.length > 7 ? provider.color : provider.color + "15"}`,
-              }}
-            >
-              <ProviderIcon
-                src={getIconPath()}
-                alt={provider.name}
-                size={30}
-                className="object-contain rounded-lg max-w-[30px] max-h-[30px]"
-                fallbackText={
-                  provider.textIcon || provider.id.slice(0, 2).toUpperCase()
-                }
-                fallbackColor={provider.color}
-              />
+    <Card padding="none" className={`provider-library-card ${allDisabled ? "opacity-70" : ""}`}>
+      <div className="provider-card-row">
+        <Link href={`/dashboard/providers/${providerId}`} className="provider-card-link group">
+          <div className="provider-card-logo" style={{ backgroundColor: provider.color?.length > 7 ? provider.color : `${provider.color || "#888888"}15` }}>
+            <ProviderIcon src={iconSrc} alt={provider.name} size={32} className="max-h-8 max-w-8 rounded-lg object-contain" fallbackText={provider.textIcon || provider.id.slice(0, 2).toUpperCase()} fallbackColor={provider.color} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="provider-card-name">{provider.name}</h3>
+            <div className="provider-card-status">
+              {provider.official && <Badge variant="primary" size="sm" icon="verified">Official</Badge>}
+              {allDisabled ? <Badge variant="default" size="sm">Disabled</Badge>
+                : ready ? <Badge variant="success" size="sm" dot>Ready</Badge>
+                  : getStatusDisplay(connected, error, errorCode)}
+              {errorTime && !allDisabled && <span className="text-text-muted">{errorTime}</span>}
             </div>
-            <div className="min-w-0">
-              <h3 className="truncate font-semibold">{provider.name}</h3>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap">
-                {provider.official && (
-                  <Badge variant="primary" size="sm" icon="verified">Official</Badge>
-                )}
-                {allDisabled ? (
-                  <Badge variant="default" size="sm">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px]">
-                        pause_circle
-                      </span>
-                      Disabled
-                    </span>
-                  </Badge>
-                ) : (
-                  <>
-                    {getStatusDisplay(connected, error, errorCode)}
-                    {isCompatible && (
-                      <Badge variant="default" size="sm">
-                        {provider.apiType === "responses"
-                          ? "Responses"
-                          : "Chat"}
-                      </Badge>
-                    )}
-                    {isAnthropicCompatible && (
-                      <Badge variant="default" size="sm">
-                        Messages
-                      </Badge>
-                    )}
-                    {errorTime && (
-                      <span className="text-text-muted">{errorTime}</span>
-                    )}
-                  </>
-                )}
-              </div>
+            <div className="provider-card-kind">
+              {protocol || authLabels[authType] || "API Key"}
+              <span aria-hidden="true" className="material-symbols-outlined text-[13px] opacity-50 transition-colors group-hover:text-primary">arrow_forward</span>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {stats.total > 0 && (
-              <div
-                className="opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggle(!allDisabled ? false : true);
-                }}
-              >
-                <Toggle
-                  size="sm"
-                  checked={!allDisabled}
-                  onChange={() => {}}
-                  title={allDisabled ? "Enable provider" : "Disable provider"}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    </Link>
+        </Link>
+        {stats.total > 0 && <div className="provider-card-toggle">
+          <Toggle size="sm" checked={!allDisabled} onChange={active => onToggle(active)} aria-label={`${allDisabled ? "Enable provider" : "Disable provider"}: ${provider.name}`} />
+        </div>}
+      </div>
+    </Card>
   );
 }
 
-ApiKeyProviderCard.propTypes = {
+const providerCardPropTypes = {
   providerId: PropTypes.string.isRequired,
-  provider: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    color: PropTypes.string,
-    textIcon: PropTypes.string,
-    apiType: PropTypes.string,
-    official: PropTypes.bool,
-  }).isRequired,
-  stats: PropTypes.shape({
-    connected: PropTypes.number,
-    error: PropTypes.number,
-    errorCode: PropTypes.string,
-    errorTime: PropTypes.string,
-  }).isRequired,
+  provider: PropTypes.object.isRequired,
+  stats: PropTypes.object.isRequired,
   authType: PropTypes.string,
   onToggle: PropTypes.func,
 };
+ProviderCard.propTypes = providerCardPropTypes;
+ApiKeyProviderCard.propTypes = providerCardPropTypes;
+ProviderLibraryCard.propTypes = { ...providerCardPropTypes, iconSrc: PropTypes.string, ready: PropTypes.bool, protocol: PropTypes.string };
 
 function ProviderTestResultsView({ results }) {
   if (results.error && !results.results) {

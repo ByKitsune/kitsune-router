@@ -2446,5 +2446,9 @@
   "Some recorded usage counters are invalid or inconsistent.": "Sebagian counter penggunaan yang tercatat tidak valid atau tidak konsisten.",
   "Content redacted": "Konten disamarkan",
   "Model allocation unavailable": "Rincian alokasi model tidak tersedia",
-  "/ Total": "/ Total"
+  "/ Total": "/ Total",
+  "Attach images": "Lampirkan gambar",
+  "Provider library": "Pustaka penyedia",
+  "Proxy pool summary": "Ringkasan pool proxy",
+  "Web Search / Fetch": "Pencarian / pengambilan web"
 }

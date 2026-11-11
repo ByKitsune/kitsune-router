@@ -149,13 +149,13 @@ export default function UsageTable({
   const totalColSpan = columns.length + valueColumns.length;
 
   return (
-    <Card padding="none" className="min-w-0 overflow-hidden">
+    <Card padding="none" className="usage-breakdown-panel min-w-0 overflow-hidden">
       {title && <div className="border-b border-border-subtle p-5 sm:px-6">
         <h3 className="font-semibold tracking-tight">{title}</h3>
       </div>}
-      <div className="overflow-x-auto overscroll-x-contain" role="region" aria-label={title || "Usage breakdown table"} tabIndex={0}>
-        <table className="w-full min-w-[760px] text-left text-xs">
-          <thead className="bg-surface-2/60 text-[10px] font-medium uppercase tracking-wider text-text-subtle">
+      <div className="max-h-[560px] overflow-auto overscroll-contain" role="region" aria-label={title || "Usage breakdown table"} tabIndex={0}>
+        <table className="usage-data-table w-full min-w-[760px] text-left text-xs">
+          <thead className="sticky top-0 z-10 bg-surface-2 text-[11px] font-medium text-text-muted">
             <tr>
               {columns.map((col) => (
                 <th
@@ -193,7 +193,7 @@ export default function UsageTable({
                 >
                   <td className="px-6 py-3">
                     <button type="button" aria-expanded={expanded.has(group.groupKey)} onClick={(event) => { event.stopPropagation(); toggleGroup(group.groupKey); }} className="flex min-h-9 max-w-xs items-center gap-2 text-left">
-                      <span aria-hidden="true" className={`material-symbols-outlined shrink-0 text-[18px] text-text-muted transition-transform duration-300 ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
+                      <span aria-hidden="true" className={`material-symbols-outlined shrink-0 text-[18px] text-text-muted transition-transform duration-150 ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
                         chevron_right
                       </span>
                       <span className="min-w-0">

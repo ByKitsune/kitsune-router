@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Card, Button, Input, Modal, Toggle, ConfirmModal } from "@/shared/components";
@@ -487,13 +489,18 @@ export default function TokenSaverClient() {
       : "bg-warning/15 text-warning";
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px] space-y-6">
-      <div className="mb-7 flex min-w-0 flex-col gap-3">
+    <div className="operations-page">
+      <div className="operations-heading">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Request efficiency</p>
         <h2 className="text-2xl font-semibold tracking-[-0.045em] text-text-main sm:text-3xl">Less overhead. More context.</h2>
         <p className="max-w-2xl text-sm leading-6 text-text-muted">Tune compression and tool-output handling to fit the way your clients work.</p>
       </div>
-      <Card id="rtk" className="min-w-0">
+      <nav aria-label="Token Saver" className="operations-section-nav">
+        <a href="#rtk"><span aria-hidden="true" className="material-symbols-outlined">bolt</span>Token Saver</a>
+        <a href="#headroom"><span aria-hidden="true" className="material-symbols-outlined">compress</span>Headroom</a>
+        <a href="#output-style"><span aria-hidden="true" className="material-symbols-outlined">short_text</span>Compress LLM output</a>
+      </nav>
+      <Card id="rtk" className="min-w-0 scroll-mt-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">
@@ -502,7 +509,7 @@ export default function TokenSaverClient() {
             Token Saver
           </h2>
         </div>
-        <div className="flex items-center justify-between pt-2 pb-4 border-b border-border gap-4">
+        <div className="flex min-w-0 items-start justify-between gap-4 pt-2">
           <div className="min-w-0 flex-1">
             <p className="font-medium">
               Compress tool output{" "}
@@ -524,7 +531,9 @@ export default function TokenSaverClient() {
             onChange={() => handleRtkEnabled(!rtkEnabled)}
           />
         </div>
-        <div className="flex items-center justify-between py-4 gap-4 flex-wrap">
+      </Card>
+      <Card id="headroom" className="min-w-0 scroll-mt-6">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="font-medium">
@@ -561,7 +570,7 @@ export default function TokenSaverClient() {
           />
         </div>
         {headroomStatus.installed && (
-          <div className="mb-3 ml-1 pl-3 pb-4 border-l-2 border-border">
+          <div className="mt-5 border-t border-border-subtle pt-5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-text-muted">
                 Compression extras
@@ -658,7 +667,9 @@ export default function TokenSaverClient() {
             </p>
           </div>
         )}
-        <div className="flex items-center justify-between pt-4 border-t border-border gap-4 flex-wrap">
+      </Card>
+      <Card id="output-style" className="min-w-0 scroll-mt-6">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="font-medium">
               Compress LLM output{" "}

@@ -10,20 +10,20 @@
   display: none;
 }
 ::view-transition-group(.dashboard-route) {
-  animation-duration: 360ms;
+  animation-duration: 220ms;
   animation-timing-function: cubic-bezier(.22, 1, .36, 1);
 }
 ::view-transition-old(.dashboard-route) {
-  animation: dashboard-route-depart 180ms ease-out both;
+  animation: dashboard-route-depart 120ms ease-out both;
 }
 ::view-transition-new(.dashboard-route) {
-  animation: dashboard-route-arrive 360ms cubic-bezier(.22, 1, .36, 1) both;
+  animation: dashboard-route-arrive 220ms cubic-bezier(.22, 1, .36, 1) both;
 }
 @keyframes dashboard-route-depart {
-  to { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 0; transform: translateY(-3px); }
 }
 @keyframes dashboard-route-arrive {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -33,4 +33,16 @@
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
+}
+
+/* Router-owned Link pending state, delayed to avoid flashes on cached routes. */
+.dashboard-navigation-progress { position: absolute; inset-inline: 0; bottom: 0; height: 2px; z-index: 55; pointer-events: none; overflow: hidden; opacity: 0; }
+.dashboard-navigation-progress::after { content: ""; position: absolute; inset-block: 0; left: 0; width: 40%; background: var(--color-primary); transform: translateX(-100%); }
+.dashboard-shell:has([data-navigation-pending="true"]) .dashboard-navigation-progress { animation: navigation-feedback 1ms 120ms forwards; }
+.dashboard-shell:has([data-navigation-pending="true"]) .dashboard-navigation-progress::after { animation: navigation-sweep 1.3s 120ms ease-in-out infinite; }
+@keyframes navigation-feedback { to { opacity: 1; } }
+@keyframes navigation-sweep { to { transform: translateX(350%); } }
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell:has([data-navigation-pending="true"]) .dashboard-navigation-progress { animation: none; opacity: 1; }
+  .dashboard-shell:has([data-navigation-pending="true"]) .dashboard-navigation-progress::after { animation: none; transform: none; width: 100%; }
 }

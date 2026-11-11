@@ -9,6 +9,7 @@ import Header from "../Header";
 import PasswordOnboardingModal from "../PasswordOnboardingModal";
 import MobileNavigation from "../navigation/MobileNavigation";
 import DashboardPageTransition from "./DashboardPageTransition";
+import "./dashboard-shell.css";
 
 function getToastStyle(type) {
   if (type === "success") return { border: "border-green-700 dark:border-green-400", icon: "check_circle", color: "text-green-700 dark:text-green-400" };
@@ -43,7 +44,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="dashboard-shell flex h-dvh min-h-0 w-full overflow-hidden bg-bg-alt text-text-main">
+    <div className="dashboard-shell flex h-dvh min-h-0 w-full overflow-hidden bg-bg text-text-main">
       <a href="#dashboard-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[90] focus:bg-surface focus:px-5 focus:py-3 focus:font-semibold">Skip to content</a>
       <div aria-label="Notifications" className="pointer-events-none fixed right-3 top-3 z-[80] flex w-[min(calc(100vw-24px),380px)] flex-col gap-3 sm:right-5 sm:top-5">
         <AnimatePresence initial={false}>
@@ -69,12 +70,12 @@ export default function DashboardLayout({ children }) {
         </AnimatePresence>
       </div>
 
-      <div className="hidden shrink-0 py-3 pl-3 lg:flex"><div className="overflow-hidden rounded-[22px] border border-border-subtle shadow-soft"><Sidebar /></div></div>
+      <div className="dashboard-sidebar-rail hidden h-full shrink-0 border-r border-border-subtle lg:block"><Sidebar /></div>
       <dialog
         ref={drawer}
         id={drawerId}
         aria-label="Dashboard navigation"
-        className="m-0 h-dvh max-h-none w-[min(320px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden overscroll-contain rounded-r-[28px] border-0 border-r border-border-subtle bg-sidebar/95 p-0 text-text-main shadow-[24px_0_80px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop:bg-black/40 backdrop:backdrop-blur-md backdrop:overflow-hidden backdrop:overscroll-contain"
+        className="dashboard-navigation-drawer m-0 h-dvh max-h-none w-[min(300px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden overscroll-contain border-0 border-r border-border-subtle bg-sidebar p-0 text-text-main shadow-elevated backdrop:bg-black/35 backdrop:overflow-hidden backdrop:overscroll-contain"
         onClose={() => setSidebarOpen(false)}
         onClick={(event) => {
           if (event.target !== event.currentTarget) return;
@@ -82,17 +83,15 @@ export default function DashboardLayout({ children }) {
           if (event.clientX > rect.right || event.clientY > rect.bottom || event.clientX < rect.left || event.clientY < rect.top) setSidebarOpen(false);
         }}
       >
-        {sidebarOpen && <motion.div initial={{ x: reduceMotion ? 0 : -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }} className="h-full"><Sidebar onClose={() => setSidebarOpen(false)} /></motion.div>}
+        {sidebarOpen && <motion.div initial={{ x: reduceMotion ? 0 : -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }} className="h-full"><Sidebar onClose={() => setSidebarOpen(false)} /></motion.div>}
       </dialog>
 
-      <div className="relative flex h-full min-w-0 flex-1 flex-col lg:p-3">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg lg:rounded-[24px] lg:border lg:border-border-subtle lg:shadow-soft">
+      <div className="dashboard-stage relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <Header onMenuClick={() => setSidebarOpen(true)} menuControls={drawerId} menuExpanded={sidebarOpen} />
-          <main id="dashboard-content" tabIndex={-1} className={`dashboard-main min-h-0 min-w-0 flex-1 overscroll-contain custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 xl:px-10"}`}>
+          <main id="dashboard-content" tabIndex={-1} className={`dashboard-main min-h-0 min-w-0 flex-1 overscroll-contain custom-scrollbar ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-8"}`}>
             <DashboardPageTransition pathname={pathname} isChat={isChat}>{children}</DashboardPageTransition>
           </main>
           <MobileNavigation pathname={pathname} menuOpen={sidebarOpen} menuControls={drawerId} onOpenMenu={() => setSidebarOpen(true)} />
-        </div>
       </div>
       <PasswordOnboardingModal />
     </div>

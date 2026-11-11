@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge, Button } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
+import { ProviderPageHeader, ProviderLoadingState } from "../../providers/components/ProviderWorkspace";
 import { AI_PROVIDERS, getProvidersByKind } from "@/shared/constants/providers";
 
 function getEffectiveStatus(conn) {
@@ -37,11 +38,11 @@ function ProviderCard({ provider, kind, connections }) {
   };
 
   return (
-    <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="group">
-      <Card padding="xs" className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}>
+    <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="group min-w-0">
+      <Card padding="xs" className={`provider-library-card !p-4 cursor-pointer ${allDisabled ? "opacity-70" : ""}`}>
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="size-8 rounded-lg flex items-center justify-center shrink-0"
+            className="provider-card-logo"
             style={{ backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color ?? "#888") + "15"}` }}
           >
             <ProviderIcon
@@ -53,9 +54,9 @@ function ProviderCard({ provider, kind, connections }) {
               fallbackColor={provider.color}
             />
           </div>
-          <div>
-            <h3 className="font-semibold text-sm">{provider.name}</h3>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">{renderStatus()}</div>
+          <div className="min-w-0">
+            <h3 className="provider-card-name">{provider.name}</h3>
+            <div className="provider-card-status">{renderStatus()}</div>
           </div>
         </div>
       </Card>
@@ -109,9 +110,9 @@ function ComboList({ combos }) {
 
 function Section({ title, icon, kind, providers, connections, combos, onCreateCombo }) {
   return (
-    <div>
+    <section className="provider-catalog-section">
       {/* Header — title left, Create Combo right */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+      <div className="provider-section-header">
         <div className="flex flex-wrap items-center gap-2">
           <span className="material-symbols-outlined text-primary">{icon}</span>
           <h2 className="text-base font-semibold">{title}</h2>
@@ -133,13 +134,13 @@ function Section({ title, icon, kind, providers, connections, combos, onCreateCo
           No providers.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="provider-card-grid">
           {providers.map((p) => (
             <ProviderCard key={p.id} provider={p} kind={kind} connections={connections} />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -147,6 +148,7 @@ export default function WebProvidersPage() {
   const router = useRouter();
   const [connections, setConnections] = useState([]);
   const [combos, setCombos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchAll = async () => {
     try {
@@ -157,6 +159,7 @@ export default function WebProvidersPage() {
       if (connsRes.ok) setConnections((await connsRes.json()).connections || []);
       if (combosRes.ok) setCombos((await combosRes.json()).combos || []);
     } catch { /* noop */ }
+    finally { setLoading(false); }
   };
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -188,8 +191,12 @@ export default function WebProvidersPage() {
     }
   };
 
+  if (loading) return <ProviderLoadingState />;
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="provider-workspace">
+      <ProviderPageHeader title="Web Search / Fetch" eyebrow="Providers" icon="travel_explore"
+        metrics={[{ label: "Providers", value: searchProviders.length + fetchProviders.length }, { label: "Combos", value: searchCombos.length + fetchCombos.length }]} />
       <Section
         title="Web Search" icon="search" kind="webSearch"
         providers={searchProviders} connections={connections} combos={searchCombos}

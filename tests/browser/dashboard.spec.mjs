@@ -183,7 +183,7 @@ test("Indonesian UI updates labels and counters without translating code or mode
   await page.setViewportSize({ width: 390, height: 844 });
   await page.request.post("/api/locale", { data: { locale: "id" } });
   await openUsage(page);
-  await expect(page.getByRole("heading", { name: "Setiap permintaan, dalam perspektif.", exact: true })).toBeVisible();
+  await expect(page.locator(".usage-workspace").getByRole("heading", { name: "Statistik Penggunaan", exact: true })).toBeVisible();
   await expect(page.locator(".usage-metrics")).toContainText("Total permintaan");
   await expect(page.getByRole("button", { name: "Buka navigasi", exact: true })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "id");

@@ -57,12 +57,12 @@ function CollapsibleSection({ title, children, defaultOpen = false, icon = null 
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
-    <div className="border border-black/5 dark:border-white/5 rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-border-subtle">
       <button 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between p-3 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+        className="flex min-h-12 w-full items-center justify-between gap-3 bg-surface-2/40 px-4 py-3 transition-colors hover:bg-surface-2"
       >
         <div className="flex items-center gap-2">
           {icon && <span className="material-symbols-outlined text-[18px] text-text-muted">{icon}</span>}
@@ -77,7 +77,7 @@ function CollapsibleSection({ title, children, defaultOpen = false, icon = null 
       </button>
       
       {isOpen && (
-        <div className="p-4 border-t border-black/5 dark:border-white/5">
+        <div className="min-w-0 overflow-x-auto border-t border-border-subtle p-4">
           {children}
         </div>
       )}
@@ -225,11 +225,10 @@ export default function RequestDetailsTab() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <Card padding="md" className="min-w-0">
-        <div className="mb-5">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-subtle">Find a request</p>
-          <h2 className="text-lg font-semibold tracking-tight">Filter your activity</h2>
+    <div className="usage-request-workspace flex min-w-0 flex-col gap-5">
+      <section className="workspace-toolbar usage-request-filters min-w-0" aria-label="Filter your activity">
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold">Filter your activity</h2>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex min-w-0 flex-col gap-2">
@@ -239,7 +238,7 @@ export default function RequestDetailsTab() {
               value={filters.provider}
               onChange={(e) => setFilters({ ...filters, provider: e.target.value })}
               className={cn(
-                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
+                "h-11 px-3 rounded-lg border border-border-subtle bg-surface",
                 "text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20",
                 "w-full min-w-0 cursor-pointer"
               )}
@@ -262,7 +261,7 @@ export default function RequestDetailsTab() {
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
               className={cn(
-                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
+                "h-11 px-3 rounded-lg border border-border-subtle bg-surface",
                 "w-full min-w-0 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20"
               )}
             />
@@ -276,7 +275,7 @@ export default function RequestDetailsTab() {
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               className={cn(
-                "h-11 px-3 rounded-xl border border-border-subtle bg-surface-2/40",
+                "h-11 px-3 rounded-lg border border-border-subtle bg-surface",
                 "w-full min-w-0 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20"
               )}
             />
@@ -294,26 +293,26 @@ export default function RequestDetailsTab() {
             </Button>
           </div>
         </div>
-      </Card>
+      </section>
 
-      <Card padding="none" className="min-w-0 overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-semibold tracking-tight">Request history</h2>
+      <Card padding="none" className="usage-history-panel min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-4 py-4 sm:px-5">
+          <h2 className="text-sm font-semibold">Request history</h2>
           <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-text-muted">{pagination.totalItems.toLocaleString()} recorded</span>
         </div>
         <div className="overflow-x-auto overscroll-x-contain" role="region" aria-label="Request history table" tabIndex={0}>
-          <table className="w-full min-w-[880px]">
+          <table className="usage-data-table w-full min-w-[880px] text-xs">
             <thead className="bg-surface-2/60">
               <tr className="border-b border-black/5 dark:border-white/5">
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Timestamp</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Model</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Provider</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Input Tokens</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Cached</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Cache Creation</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Output Tokens</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Latency</th>
-                <th className="text-center p-4 text-sm font-semibold text-text-main">Action</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-text-muted">Timestamp</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-text-muted">Model</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-text-muted">Provider</th>
+                <th className="text-right px-4 py-3 text-[11px] font-medium text-text-muted">Input Tokens</th>
+                <th className="text-right px-4 py-3 text-[11px] font-medium text-text-muted">Cached</th>
+                <th className="text-right px-4 py-3 text-[11px] font-medium text-text-muted">Cache Creation</th>
+                <th className="text-right px-4 py-3 text-[11px] font-medium text-text-muted">Output Tokens</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-text-muted">Latency</th>
+                <th className="text-center px-4 py-3 text-[11px] font-medium text-text-muted">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -411,8 +410,8 @@ export default function RequestDetailsTab() {
         width="lg"
       >
         {selectedDetail && (
-          <div className="space-y-6">
-            <div className="grid min-w-0 grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+          <div className="usage-request-detail space-y-6">
+            <div className="usage-detail-summary grid min-w-0 grid-cols-1 gap-0 overflow-hidden rounded-xl border border-border-subtle text-sm sm:grid-cols-2">
               <div>
                 <span className="text-text-muted">ID:</span>{" "}
                 <span className="break-all font-mono text-text-main">{selectedDetail.id}</span>
@@ -427,7 +426,7 @@ export default function RequestDetailsTab() {
                </div>
               <div>
                 <span className="text-text-muted">Model:</span>{" "}
-                <span className="text-text-main font-mono" data-i18n-skip>{selectedDetail.model}</span>
+                <span className="break-all font-mono text-text-main" data-i18n-skip>{selectedDetail.model}</span>
                 <UsageQuality tokens={selectedDetail.tokens} />
               </div>
               <div>

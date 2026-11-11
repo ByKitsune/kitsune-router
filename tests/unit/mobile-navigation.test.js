@@ -10,20 +10,26 @@ import vm from "node:vm";
 const require = createRequire(import.meta.url);
 const filename = new URL("../../src/shared/components/navigation/MobileNavigation.js", import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
-const code = babel.transformSync(readFileSync(filename, "utf8"), {
-  filename: filename.pathname, babelrc: false, configFile: false,
-  presets: [[require("next/dist/compiled/babel/preset-react"), { runtime: "automatic" }]],
-  plugins: [require("next/dist/compiled/babel/plugin-transform-modules-commonjs")],
-}).code;
-const componentModule = { exports: {} };
-vm.runInNewContext(code, {
-  module: componentModule, exports: componentModule.exports,
-  require(id) {
-    if (id === "next/link") return { __esModule: true, default: ({ children, ...props }) => createElement("a", props, children) };
-    if (id === "@/shared/utils/cn") return { cn: (...classes) => classes.filter(Boolean).join(" ") };
-    return require(id);
-  },
-});
+let pending = false;
+function loadComponent(url) {
+  const code = babel.transformSync(readFileSync(url, "utf8"), {
+    filename: url.pathname, babelrc: false, configFile: false,
+    presets: [[require("next/dist/compiled/babel/preset-react"), { runtime: "automatic" }]],
+    plugins: [require("next/dist/compiled/babel/plugin-transform-modules-commonjs")],
+  }).code;
+  const componentModule = { exports: {} };
+  vm.runInNewContext(code, {
+    module: componentModule, exports: componentModule.exports,
+    require(id) {
+      if (id === "next/link") return { __esModule: true, default: ({ children, ...props }) => createElement("a", props, children), useLinkStatus: () => ({ pending }) };
+      if (id === "./NavigationPending") return loadComponent(new URL("../../src/shared/components/navigation/NavigationPending.js", import.meta.url));
+      if (id === "@/shared/utils/cn") return { cn: (...classes) => classes.filter(Boolean).join(" ") };
+      return require(id);
+    },
+  });
+  return componentModule.exports;
+}
+const componentModule = { exports: loadComponent(filename) };
 const { default: MobileNavigation, isNavigationRoute } = componentModule.exports;
 
 function render(pathname, menuOpen = false) {
@@ -56,5 +62,19 @@ describe("mobile quick navigation", () => {
     const html = render("/dashboard/usage");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toMatch(/href="\/dashboard\/usage"[^>]*aria-current="page"|aria-current="page"[^>]*href="\/dashboard\/usage"/);
+  });
+});
+
+
+describe("router-owned pending feedback", () => {
+  it("reserves a feedback slot on every route link and reflects pending without changing destinations", () => {
+    const settled = render("/dashboard/providers");
+    expect((settled.match(/data-navigation-pending="false"/g) || [])).toHaveLength(3);
+    try {
+      pending = true;
+      const inFlight = render("/dashboard/providers");
+      expect((inFlight.match(/data-navigation-pending="true"/g) || [])).toHaveLength(3);
+      expect(inFlight.match(/href="[^"]+"/g)).toEqual(settled.match(/href="[^"]+"/g));
+    } finally { pending = false; }
   });
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import "../profile/operations.css";
+
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Badge, Button, Card, CardSkeleton, Input, Modal, Toggle, ConfirmModal } from "@/shared/components";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -574,7 +576,7 @@ export default function ProxyPoolsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full min-w-0 max-w-[1440px] flex-col gap-6">
+      <div className="operations-page">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -582,8 +584,8 @@ export default function ProxyPoolsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-[1440px] flex-col gap-6">
-      <div className="flex min-w-0 flex-col gap-5 2xl:flex-row 2xl:items-start 2xl:justify-between">
+    <div className="operations-page">
+      <div className="operations-heading operations-heading-row">
         <div className="min-w-0">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Network workspace</p>
           <h1 className="text-2xl font-semibold tracking-[-0.045em] sm:text-3xl">Your routes to the outside</h1>
@@ -647,8 +649,13 @@ export default function ProxyPoolsPage() {
         </div>
       </div>
 
+      <div className="operations-stat-strip" aria-label="Proxy pool summary">
+        <div><p className="operations-stat-label">Total</p><p className="operations-stat-value">{proxyPools.length}</p></div>
+        <div><p className="operations-stat-label">Active</p><p className="operations-stat-value">{activeCount}</p></div>
+        <div><p className="operations-stat-label">Inactive</p><p className="operations-stat-value">{proxyPools.length - activeCount}</p></div>
+      </div>
       <Card>
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="operations-toolbar mb-4 border-b border-border-subtle pb-4">
           {proxyPools.length > 0 && (
             <label className="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer">
               <input
@@ -660,8 +667,7 @@ export default function ProxyPoolsPage() {
               {allSelected ? "Unselect all" : "Select all"}
             </label>
           )}
-          <Badge variant="default">Total: {proxyPools.length}</Badge>
-          <Badge variant="success">Active: {activeCount}</Badge>
+          <div className="flex flex-wrap gap-2"><Badge variant="default">Total: {proxyPools.length}</Badge><Badge variant="success">Active: {activeCount}</Badge></div>
         </div>
 
         {(selectedIds.length > 0 || healthChecking) && (
@@ -710,7 +716,7 @@ export default function ProxyPoolsPage() {
         ) : (
           <div className="flex flex-col divide-y divide-black/[0.04] dark:divide-white/[0.05]">
             {proxyPools.map((pool) => (
-              <div key={pool.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div key={pool.id} className="flex min-w-0 flex-col gap-4 py-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <input
                     type="checkbox"
@@ -737,18 +743,18 @@ export default function ProxyPoolsPage() {
                       {pool.boundConnectionCount || 0} bound
                     </Badge>
                   </div>
-                  <p className="text-xs text-text-muted truncate mt-1">{pool.proxyUrl}</p>
+                  <p className="mt-1 break-all font-mono text-xs leading-5 text-text-muted">{pool.proxyUrl}</p>
                   {pool.noProxy ? (
-                    <p className="text-xs text-text-muted truncate">No proxy: {pool.noProxy}</p>
+                    <p className="break-all text-xs leading-5 text-text-muted">No proxy: {pool.noProxy}</p>
                   ) : null}
-                  <p className="text-[11px] text-text-muted mt-1">
+                  <p className="mt-1 break-words text-[11px] leading-5 text-text-muted">
                     Last tested: {formatDateTime(pool.lastTestedAt)}
                     {pool.lastError ? ` · ${pool.lastError}` : ""}
                   </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-1">
+                <div className="operations-pool-actions justify-end">
                   <Toggle
                     size="sm"
                     checked={pool.isActive === true}

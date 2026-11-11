@@ -38,27 +38,23 @@ function UsageContent() {
     router.push(`/dashboard/usage?${params.toString()}`, { scroll: false });
   };
   return (
-    <div className="usage-workspace flex min-w-0 flex-col gap-6 sm:gap-8">
-      <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
+    <div className="usage-workspace flex min-w-0 flex-col gap-5 sm:gap-6">
+      <div className="page-heading">
         <div className="min-w-0">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-[11px] font-medium text-text-muted">
-            <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-            Gateway insights
-          </div>
-          <h2 className="text-[clamp(1.7rem,3vw,2.5rem)] font-semibold leading-tight tracking-[-0.055em]">Every request, in perspective.</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-text-muted">Understand your traffic, follow your routes, and keep an eye on consumption.</p>
+          <h2 className="page-title">Usage</h2>
+          <p className="page-description">Understand your traffic, follow your routes, and keep an eye on consumption.</p>
         </div>
         {activeTab === "overview" && (
-          <div className="inline-grid w-full grid-cols-5 gap-1 rounded-2xl border border-border-subtle bg-surface p-1.5 min-[440px]:w-auto" aria-label="Usage period">
+          <div className="usage-period-control inline-grid w-full grid-cols-5 gap-1 rounded-xl border border-border-subtle bg-surface p-1 min-[440px]:w-auto" aria-label="Usage period">
             {PERIODS.map((option) => (
-              <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} className={`min-h-10 rounded-xl px-2 text-xs font-semibold transition-colors sm:px-4 ${period === option.value ? "bg-text-main text-bg shadow-sm" : "text-text-muted hover:bg-surface-2 hover:text-text-main"}`}>{option.label}</button>
+              <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} className={`min-h-10 rounded-lg px-2 text-xs font-semibold transition-colors sm:px-4 ${period === option.value ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-surface-2 hover:text-text-main"}`}>{option.label}</button>
             ))}
           </div>
         )}
       </div>
-      <div className="flex gap-1 overflow-x-auto border-b border-border-subtle" aria-label="Usage views">
+      <div className="usage-view-tabs flex min-w-0 gap-2 overflow-x-auto border-b border-border-subtle" aria-label="Usage views">
         {TABS.map((tab) => (
-          <button key={tab.value} type="button" aria-pressed={activeTab === tab.value} onClick={() => handleTabChange(tab.value)} className={`relative flex min-h-12 shrink-0 items-center gap-2 px-3 pb-3 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${activeTab === tab.value ? "text-primary" : "text-text-muted hover:text-text-main"}`}>
+          <button key={tab.value} type="button" aria-pressed={activeTab === tab.value} onClick={() => handleTabChange(tab.value)} className={`relative flex min-h-11 shrink-0 items-center gap-2 px-3 pb-3 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${activeTab === tab.value ? "text-primary" : "text-text-muted hover:text-text-main"}`}>
             <span aria-hidden="true" className="material-symbols-outlined text-[18px]">{tab.icon}</span>
             {tab.label}
             {activeTab === tab.value && <motion.span layoutId="usage-tab-indicator" transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 34 }} className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary" />}

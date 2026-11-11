@@ -133,8 +133,13 @@ export default function MitmToolCard({
 
   return (
     <>
-      <Card padding="xs" className="overflow-hidden">
-        <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
+      <Card padding="xs" className="integration-config-card overflow-hidden">
+        <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle} role="button" tabIndex={0} aria-expanded={isExpanded} aria-label={tool.name} onKeyDown={(event) => {
+          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            onToggle?.();
+          }
+        }}>
           <div className="flex min-w-0 items-center gap-3">
             <div className="size-8 flex items-center justify-center shrink-0">
               <Image
@@ -163,7 +168,7 @@ export default function MitmToolCard({
               <p className="text-xs text-text-muted sm:truncate">Intercept {tool.name} requests via MITM proxy</p>
             </div>
           </div>
-          <span className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+          <span className={`material-symbols-outlined text-text-muted text-[20px] integration-collapse-indicator transition-transform ${isExpanded ? "rotate-180" : ""}`}>
             expand_more
           </span>
         </div>
