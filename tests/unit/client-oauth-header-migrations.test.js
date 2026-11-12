@@ -16,7 +16,7 @@ import { refreshCopilotToken } from "../../open-sse/services/tokenRefresh/provid
 import { getGitHubUsage } from "../../open-sse/services/usage/github.js";
 import githubOAuth from "../../src/lib/oauth/providers/github.js";
 import * as clientVersions from "../../open-sse/config/clientVersions.js";
-import { GITHUB_CONFIG, GEMINI_CONFIG, getOAuthClientMetadata } from "../../src/lib/oauth/constants/oauth.js";
+import { GITHUB_CONFIG, GEMINI_CONFIG, getGeminiOAuthClientMetadata } from "../../src/lib/oauth/constants/oauth.js";
 // These legacy service modules import absent interactive-only dependencies.
 // Evaluate their unmodified class bodies with those I/O seams unavailable.
 function loadService(file, name, globals) {
@@ -25,7 +25,7 @@ function loadService(file, name, globals) {
   return runInNewContext(`${source}\n${name}`, { ...clientVersions, ...globals, fetch: (...args) => globalThis.fetch(...args) });
 }
 const GitHubService = loadService("../../src/lib/oauth/services/github.js", "GitHubService", { GITHUB_CONFIG, OAuthService: class {} });
-const GeminiCLIService = loadService("../../src/lib/oauth/services/gemini.js", "GeminiCLIService", { GEMINI_CONFIG, getOAuthClientMetadata });
+const GeminiCLIService = loadService("../../src/lib/oauth/services/gemini.js", "GeminiCLIService", { GEMINI_CONFIG, getGeminiOAuthClientMetadata });
 import { getProviderConnectionById } from "@/lib/localDb";
 import { testSingleConnection } from "../../src/app/api/providers/[id]/test/testUtils.js";
 import { LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS } from "../../open-sse/config/appConstants.js";
@@ -48,8 +48,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// VS Code 1.144.0 bundles Copilot 0.72.0 and CAPI 0.5.2 at
-// 2d0b7506a36c1d6db9a466440131a8e01eab2289: chat/models 2026-08-01;
+// VS Code 1.146.0 bundles Copilot 0.74.0 and retains CAPI 0.5.2 at
+// 69047191fc427f2f92828279aae1d90d8eeda7ab: chat/models 2026-08-01;
 // CopilotToken and CopilotUserInfo bypass it and keep 2025-04-01.
 describe("Copilot API-version surfaces", () => {
   it.each(["chat", "responses", "messages"])("sends final CAPI version on %s", async route => {
@@ -60,8 +60,8 @@ describe("Copilot API-version surfaces", () => {
     else await executor.execute(options);
     const headers = lastHeaders(proxyAwareFetch);
     expect(headers.get("x-github-api-version")).toBe("2026-08-01");
-    expect(headers.get("editor-version")).toBe("vscode/1.144.0");
-    expect(headers.get("editor-plugin-version")).toBe("copilot-chat/0.72.0");
+    expect(headers.get("editor-version")).toBe("vscode/1.146.0");
+    expect(headers.get("editor-plugin-version")).toBe("copilot-chat/0.74.0");
     expect(PROVIDERS.github.headers["x-github-api-version"]).toBe("2026-08-01");
   });
 
@@ -102,14 +102,14 @@ describe("Copilot API-version surfaces", () => {
   });
 });
 
-// Gemini CLI 0.66.0 resolves core google-auth-library 10.9.0, not the
+// Gemini CLI 0.68.0 resolves core google-auth-library 10.9.0, not the
 // root 9.15.1 or API-key GoogleGenAI branch. Runtime is the executing host.
 describe("Gemini OAuth Code Assist headers", () => {
   it("uses the auth-client fingerprint and full per-model CLI UA on actual generation", async () => {
     await new GeminiCLIExecutor().execute({ model: "fixture-model", body: { contents: [] }, stream: false, credentials: { accessToken: "fixture-google", projectId: "fixture-project" } });
     const headers = lastHeaders(proxyAwareFetch);
     expect(headers.get("x-goog-api-client")).toBe(apiClient);
-    expect(headers.get("user-agent")).toBe(`GeminiCLI/0.66.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) ${authUserAgent}`);
+    expect(headers.get("user-agent")).toBe(`GeminiCLI/0.68.0/fixture-model (${platform()}; ${arch()}; terminal) ${authUserAgent}`);
     expect(headers.get("x-goog-api-client")).not.toContain("google-genai-sdk");
   });
 

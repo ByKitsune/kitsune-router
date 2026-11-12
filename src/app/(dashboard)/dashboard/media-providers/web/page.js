@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -144,7 +146,7 @@ function Section({ title, icon, kind, providers, connections, combos, onCreateCo
   );
 }
 
-export default function WebProvidersPage() {
+function WebProvidersPage() {
   const router = useRouter();
   const [connections, setConnections] = useState([]);
   const [combos, setCombos] = useState([]);
@@ -214,3 +216,5 @@ export default function WebProvidersPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(WebProvidersPage);

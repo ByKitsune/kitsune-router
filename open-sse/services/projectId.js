@@ -5,7 +5,7 @@
  * Missing or denied provisioning must never create a replacement account binding.
  */
 
-import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA } from "../config/appConstants.js";
+import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA, GEMINI_CLI_CLIENT_METADATA } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "./tokenRefresh/dedup.js";
 import { FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
@@ -177,7 +177,7 @@ async function fetchProjectId(accessToken, signal, provider, proxyOptions = null
         method: "POST",
         redirect: "error",
         headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ metadata: LOAD_CODE_ASSIST_METADATA }),
+        body: JSON.stringify({ metadata: provider === "antigravity" ? LOAD_CODE_ASSIST_METADATA : GEMINI_CLI_CLIENT_METADATA }),
         // This deadline includes the JSON/error body, not just response headers.
         signal: AbortSignal.any([signal, AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS)])
     }, proxyOptions);
@@ -224,7 +224,7 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
     externalSignal.throwIfAborted();
     console.log(`[ProjectId] Onboarding user with tier: ${tierID}`);
 
-    const reqBody = { tierId: tierID, metadata: LOAD_CODE_ASSIST_METADATA };
+    const reqBody = { tierId: tierID, metadata: provider === "antigravity" ? LOAD_CODE_ASSIST_METADATA : GEMINI_CLI_CLIENT_METADATA };
     const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
     const MAX_ATTEMPTS = 5;
 

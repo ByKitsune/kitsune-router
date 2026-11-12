@@ -33,8 +33,8 @@ export function generateSessionId(authToken) {
  *
  * Algorithm:
  * 1. Get Unix timestamp in specific format
- * 2. XOR each byte with key (starting 165)
- * 3. Update key: key = (key + byte) & 0xFF
+ * 2. XOR each byte with key, then add the index modulo 256
+ * 3. Update key to the processed byte (initial key 165)
  * 4. URL-safe base64 encode
  * 5. Format: {base64_encoded}{machineId}
  *
@@ -130,7 +130,7 @@ export function buildCursorHeaders(accessToken, machineId = null, ghostMode = tr
     "x-client-key": clientKey,
     "x-cursor-checksum": checksum,
     "x-cursor-client-version": CURSOR_VERSION,
-    // Native 3.24.18 sends client commit only for Anysphere users. Ordinary
+    // Native 3.29.15 sends client commit only for Anysphere users. Ordinary
     // gateway accounts must not fabricate that employee/canary identity.
     "x-cursor-client-type": "ide",
     "x-cursor-client-os": os,

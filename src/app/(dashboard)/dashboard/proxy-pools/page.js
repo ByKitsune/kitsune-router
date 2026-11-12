@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "../profile/operations.css";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -29,7 +31,7 @@ function normalizeFormData(data = {}) {
   };
 }
 
-export default function ProxyPoolsPage() {
+function ProxyPoolsPage() {
   const [proxyPools, setProxyPools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -1078,3 +1080,5 @@ export default function ProxyPoolsPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(ProxyPoolsPage);

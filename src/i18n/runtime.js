@@ -16,6 +16,25 @@ let requestVersion = 0;
 let observer;
 let animationFrame;
 let consumers = 0;
+let hydrationBlocked = false;
+
+function hasPendingHydration() {
+  return document.readyState === "loading"
+    || Boolean(document.querySelector?.("[data-i18n-hydration-pending]"));
+}
+
+/** Resume only after React has hydrated every server-rendered text region. */
+export function translateHydratedRegion(element) {
+  if (typeof document === "undefined") return;
+  const previousLocale = getCurrentLocale();
+  const wasBlocked = hydrationBlocked;
+  hydrationBlocked = hasPendingHydration();
+  if (!hydrationBlocked) {
+    document.documentElement.lang = currentLocale;
+    processElement(wasBlocked ? document.body : element);
+  }
+  if (getCurrentLocale() !== previousLocale) for (const callback of subscribers) callback();
+}
 
 function getLocaleFromCookie() {
   if (typeof document === "undefined") return DEFAULT_LOCALE;
@@ -71,7 +90,7 @@ export function translate(text, parameters) {
   if (typeof text !== "string" || !text.trim()) return text;
   const source = text.trim();
   let translated = source;
-  if (currentLocale !== DEFAULT_LOCALE) {
+  if (getCurrentLocale() !== DEFAULT_LOCALE) {
     if (Object.hasOwn(translationMap, source)) translated = translationMap[source];
     else if (Object.hasOwn(translationMap, source.replace(/\s+/g, " "))) translated = translationMap[source.replace(/\s+/g, " ")];
     else if (!parameters) {
@@ -88,7 +107,7 @@ export function translate(text, parameters) {
   return text.slice(0, text.length - text.trimStart().length) + translated + text.slice(text.trimEnd().length);
 }
 
-export function getCurrentLocale() { return currentLocale; }
+export function getCurrentLocale() { return hydrationBlocked ? DEFAULT_LOCALE : currentLocale; }
 export function onLocaleChange(callback) {
   subscribers.add(callback);
   return () => subscribers.delete(callback);
@@ -143,6 +162,12 @@ function schedule(node) {
 function ensureObserver() {
   if (observer) return;
   observer = new MutationObserver((mutations) => {
+    // A completed region can be removed by an error/route boundary as well as
+    // becoming ready. Recompute once per batch, not for every translated node.
+    if (hydrationBlocked || mutations.some(mutation => mutation.attributeName === "data-i18n-hydration-pending")) {
+      translateHydratedRegion();
+    }
+    if (hydrationBlocked) return;
     for (const mutation of mutations) {
       if (mutation.type === "characterData" || mutation.type === "attributes") schedule(mutation.target);
       else for (const node of mutation.addedNodes) schedule(node);
@@ -150,7 +175,7 @@ function ensureObserver() {
   });
   observer.observe(document.body, {
     childList: true, subtree: true, characterData: true,
-    attributes: true, attributeFilter: TRANSLATABLE_ATTRIBUTES,
+    attributes: true, attributeFilter: [...TRANSLATABLE_ATTRIBUTES, "data-i18n-hydration-pending"],
   });
 }
 
@@ -159,6 +184,7 @@ export async function initRuntimeI18n() {
   if (typeof window === "undefined") return () => {};
   consumers++;
   ensureObserver();
+  document.addEventListener?.("DOMContentLoaded", onDocumentReady);
   try { await reloadTranslations(); }
   catch { /* Keep the visible source language; selection UI can report retries. */ }
   let disposed = false;
@@ -172,6 +198,7 @@ export async function initRuntimeI18n() {
       if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
       animationFrame = undefined;
       pendingNodes.clear();
+      document.removeEventListener?.("DOMContentLoaded", onDocumentReady);
     }
   };
 }
@@ -186,8 +213,13 @@ export async function reloadTranslations() {
   translationMap = dictionary;
   messageTemplates = compileMessageTemplates(dictionary);
   currentLocale = locale;
-  document.documentElement.lang = locale;
-  processElement(document.body);
+  hydrationBlocked = hasPendingHydration();
+  if (!hydrationBlocked) {
+    document.documentElement.lang = locale;
+    processElement(document.body);
+  }
   for (const callback of subscribers) callback();
   return true;
 }
+
+function onDocumentReady() { translateHydratedRegion(document.body); }

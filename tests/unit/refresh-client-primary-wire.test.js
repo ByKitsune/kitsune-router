@@ -31,8 +31,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// Publisher captures: Claude 2026-11-03 npm latest 2.1.317 (delayed stable
-// 2.1.311), Codex rust-v0.166.0; Google expectations retain their own evidence.
+// Publisher captures: Claude 2026-11-12 npm latest 2.1.322 (delayed stable
+// 2.1.311); Codex rust-v0.167.2 was rechecked on 2026-11-12.
+// Google expectations retain their own evidence.
 // Literal expectations are
 // independent of the constants under test. These catch stale wire identities,
 // a separately stale catalog query, and accidental SDK/runtime co-bumps.
@@ -56,7 +57,7 @@ describe("refreshed primary client wire identities", () => {
     const request = outbound();
     const payload = JSON.parse(request.body);
     expect(request.url).toBe("https://api.anthropic.com/v1/messages?beta=true");
-    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.317 (external, sdk-cli)");
+    expect(request.headers.get("user-agent")).toBe("claude-cli/2.1.322 (external, sdk-cli)");
     expect(payload).toEqual(expectedPayload);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-claude-oauth");
     expect(request.headers.get("x-claude-code-session-id")).toBe("caller-session");
@@ -84,8 +85,8 @@ describe("refreshed primary client wire identities", () => {
     });
     const request = outbound();
     expect(request.url).toBe("https://chatgpt.com/backend-api/codex/responses");
-    expect(request.headers.get("user-agent")).toBe("codex_cli_rs/0.166.0");
-    expect(request.headers.get("version")).toBe("0.166.0");
+    expect(request.headers.get("user-agent")).toBe("codex_cli_rs/0.167.2");
+    expect(request.headers.get("version")).toBe("0.167.2");
     expect(request.headers.get("originator")).toBe("codex_cli_rs");
     expect(request.headers.get("chatgpt-account-id")).toBe("caller-workspace");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-codex-oauth");
@@ -104,8 +105,8 @@ describe("refreshed primary client wire identities", () => {
 
   it("uses the same stable Codex release on the image header builder", () => {
     const headers = new Headers(codexImages.buildHeaders({ accessToken: "fixture-image-token", providerSpecificData: { chatgptAccountId: "fixture-image-account" } }));
-    expect(headers.get("user-agent")).toBe("codex_cli_rs/0.166.0");
-    expect(headers.get("version")).toBe("0.166.0");
+    expect(headers.get("user-agent")).toBe("codex_cli_rs/0.167.2");
+    expect(headers.get("version")).toBe("0.167.2");
     expect(headers.get("chatgpt-account-id")).toBe("fixture-image-account");
     expect(headers.get("authorization")).toBe("Bearer fixture-image-token");
   });
@@ -117,7 +118,7 @@ describe("refreshed primary client wire identities", () => {
     expect(response.status).toBe(200);
     expect((await response.json()).models).toContainEqual(expect.objectContaining({ id: "fixture-model" }));
     const request = outbound();
-    expect(request.url).toBe("https://chatgpt.com/backend-api/codex/models?client_version=0.166.0");
+    expect(request.url).toBe("https://chatgpt.com/backend-api/codex/models?client_version=0.167.2");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-codex-oauth");
     expect(request.headers.get("originator")).toBe("codex_cli_rs");
@@ -132,7 +133,7 @@ describe("refreshed primary client wire identities", () => {
     await new GeminiCLIExecutor().execute({ model: "fixture-model", body, stream: false, credentials: { accessToken: "fixture-google-oauth", projectId: "caller-project" } });
     const request = outbound();
     expect(request.url).toBe("https://cloudcode-pa.googleapis.com/v1internal:generateContent");
-    expect(request.headers.get("user-agent")).toBe(`GeminiCLI/0.66.0/fixture-model (${platform()}; ${arch() === "ia32" ? "x86" : arch()}; terminal) google-api-nodejs-client/10.9.0`);
+    expect(request.headers.get("user-agent")).toBe(`GeminiCLI/0.68.0/fixture-model (${platform()}; ${arch()}; terminal) google-api-nodejs-client/10.9.0`);
     expect(request.headers.get("x-goog-api-client")).toBe(`gl-node/${process.version.replace(/^v/, "")}`);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-google-oauth");
     expect(JSON.parse(request.body)).toEqual(expectedPayload);
@@ -175,7 +176,7 @@ describe("unchanged primary client boundaries", () => {
     await new AntigravityExecutor().execute({ model: "gemini-4-argon", body: { model: "gemini-4-argon", requestId, request }, stream: false, credentials: { accessToken: "fixture-antigravity-oauth", projectId: "caller-project" } });
     const captured = outbound();
     expect(captured.url).toBe("https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent");
-    expect(captured.headers.get("user-agent")).toBe("antigravity/cli/1.4.0");
+    expect(captured.headers.get("user-agent")).toBe("antigravity/cli/1.5.6");
     expect(captured.headers.get("authorization")).toBe("Bearer fixture-antigravity-oauth");
     expect(captured.headers.has("x-goog-user-project")).toBe(false);
     expect(captured.headers.has("x-goog-api-client")).toBe(false);

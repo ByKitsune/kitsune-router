@@ -2,20 +2,20 @@
 // App release, bundled SDK, API version and signed wire protocol are separate
 // facts: a newer app does not establish a new SDK, API header or entitlement.
 // Verified updates and retained/blocked pins are documented in:
-// docs/audit/25-client-compatibility-and-catalog-sync-2026-10-31.md
-// docs/audit/data/client-compatibility-refresh-20261031.json
+// docs/audit/37-client-compatibility-completion-2026-11-12.md
+// docs/audit/data/client-refresh-20261112-*.json
 // Publisher release/tag and integrity-checked artifact evidence must back each
 // changed pin. Keep OAuth, model discovery, validation and execution aligned.
 // Host/runtime metadata describes the executing gateway where upstream derives
 // it dynamically; do not invent captured hardware, commits or account flags.
 
-import { platform, arch } from "os";
+import { platform, arch, release } from "os";
 
 // ─── Claude Code (claude-cli) ──────────────────────────────────────────
-// npm latest/next 2.1.317; delayed stable is 2.1.311 (2026-11-03 review).
-// Integrity-verified native source: docs/audit/data/client-wire-refresh-20261103.json.
+// npm latest/next and public release 2.1.322; delayed stable remains 2.1.311.
+// SHA-512-verified native artifact reviewed on 2026-11-12; SDK stays independent.
 // Follow the existing non-prerelease latest policy, not the delayed stable tag.
-export const CLAUDE_CODE_VERSION = "2.1.317";
+export const CLAUDE_CODE_VERSION = "2.1.322";
 export const CLAUDE_CLI_USER_AGENT = `claude-cli/${CLAUDE_CODE_VERSION} (external, sdk-cli)`;
 export const CLAUDE_OAUTH_BETA_FLAG = "oauth-2025-04-20";
 
@@ -30,9 +30,9 @@ export const CLAUDE_OAUTH_BETA_FLAG = "oauth-2025-04-20";
 //   400 Unexpected value(s) `timing-2026-09-09` for the `anthropic-beta` header
 // `timing-2026-09-09` is exactly such a flag — it is the client's internal
 // per-turn timing telemetry beta and carries no routing behavior for a gateway.
-// selectAnthropicBeta() additionally strips any flag the upstream names in that
-// 400 (see parseRejectedAnthropicBetaFlags), so a future entitlement change
-// self-heals instead of breaking the turn.
+// Optional defaults can self-heal when rejected. Explicit caller capabilities
+// and body-dependent flags retain the original rejection instead of retrying
+// a different protocol. No flag here establishes account entitlement.
 export const CLAUDE_BETA_FLAGS_BASE = [
   "claude-code-20250219",
   CLAUDE_OAUTH_BETA_FLAG,
@@ -51,7 +51,7 @@ export const CLAUDE_BETA_FLAGS_HEAVY_AGENT = [
   "effort-2025-11-24",
 ];
 
-// SDK 0.128.0 reverified in the SHA-512 integrity-checked native 2.1.317 bundle.
+// SDK 0.128.0 reverified in the SHA-512 integrity-checked native 2.1.322 bundle.
 // Its Stainless source reports the executing process.version, independently of
 // the app release. Report this gateway's runtime rather than an invented host pin.
 export const CLAUDE_STAINLESS = {
@@ -64,31 +64,31 @@ export const CLAUDE_STAINLESS = {
 };
 
 // ─── OpenAI Codex ──────────────────────────────────────────────────────
-// 0.166.0 (npm latest / rust-v0.166.0 non-prerelease, 2026-10-29). Two surfaces:
+// 0.167.2 (npm latest / rust-v0.167.2 non-prerelease, 2026-11-12 review). Two surfaces:
 //   - codex_cli_rs/<v>  → User-Agent header on /responses, /chat, /v1/chat
 //   - ?client_version=  → query param on /backend-api/codex/models (gating)
-export const CODEX_CLI_VERSION = "0.166.0";
+export const CODEX_CLI_VERSION = "0.167.2";
 export const CODEX_USER_AGENT = `codex_cli_rs/${CODEX_CLI_VERSION}`;
 // Antigravity-style codex_cli_rs gating is identical.
 export const CODEX_MODELS_CLIENT_VERSION = CODEX_CLI_VERSION;
 
 // ─── GitHub Copilot ────────────────────────────────────────────────────
-// Stable VS Code 1.144.0 bundles Copilot Chat 0.72.0 in its tagged
+// Stable VS Code 1.146.0 bundles Copilot Chat 0.74.0 in its tagged
 // extensions/copilot/package.json. Keep the editor and extension paired.
 // Pair that bundled extension with its editor; do not use marketplace latest.
-export const VSCODE_VERSION = "1.144.0";
-export const COPILOT_CHAT_VERSION = "0.72.0";
+export const VSCODE_VERSION = "1.146.0";
+export const COPILOT_CHAT_VERSION = "0.74.0";
 export const COPILOT_USER_AGENT = `GitHubCopilotChat/${COPILOT_CHAT_VERSION}`;
-// Final @vscode/copilot-api 0.5.2 mixin (still bundled with VS Code 1.144.0).
+// @vscode/copilot-api 0.5.2 mixin (independently verified with VS Code 1.146.0).
 // Token and Copilot user-info requests bypass that mixin.
 export const COPILOT_API_VERSION = "2026-08-01";
 export const COPILOT_TOKEN_API_VERSION = "2025-04-01";
 
 // ─── Cursor ────────────────────────────────────────────────────────────
-// Stable 3.24.18 IDE archive verifies the unchanged Jyh checksum algorithm
+// Stable 3.29.15 IDE archive verifies the unchanged Jyh checksum algorithm
 // and Connect 1.6.1. Public requests omit the Anysphere-only client commit.
 // Static bundle inspection is not live credential/protocol validation.
-export const CURSOR_VERSION = "3.24.18";
+export const CURSOR_VERSION = "3.29.15";
 export const CURSOR_CONNECT_ES_VERSION = "1.6.1";
 
 // ─── Antigravity ───────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ export const CURSOR_CONNECT_ES_VERSION = "1.6.1";
 // a CLI User-Agent does not grant a paid subscription or Enterprise license.
 // https://antigravity.google/docs/install.md documents distinct API-key/ADC
 // auth paths; retain the verified OAuth/CloudCode binding, not a guessed port.
-export const ANTIGRAVITY_IDE_VERSION = "2.5.5";
+export const ANTIGRAVITY_IDE_VERSION = "2.6.0";
 export const ANTIGRAVITY_IDE_USER_AGENT = (() => {
   // Match the gateway host's platform; this is not a fixed captured macOS UA.
   const os = platform();
@@ -112,7 +112,7 @@ export const ANTIGRAVITY_IDE_USER_AGENT = (() => {
 })();
 
 // Minimal CLI identity avoids inventing a captured host/build fingerprint.
-export const ANTIGRAVITY_CLI_VERSION = "1.4.0";
+export const ANTIGRAVITY_CLI_VERSION = "1.5.6";
 export const ANTIGRAVITY_CLI_USER_AGENT = `antigravity/cli/${ANTIGRAVITY_CLI_VERSION}`;
 
 // Antigravity MITM override is now opt-in. Default OFF — upstream
@@ -124,24 +124,24 @@ export const ANTIGRAVITY_MITM_VERSION_OVERRIDE_ENABLED =
 export const ANTIGRAVITY_MITM_VERSION = ANTIGRAVITY_IDE_VERSION;
 
 // ─── Gemini CLI ────────────────────────────────────────────────────────
-// v0.66.0 core still bundles genai 1.30.0, but OAuth Code Assist uses the nested
+// v0.68.0 core still bundles genai 1.30.0, but OAuth Code Assist uses the nested
 // google-auth-library 10.9.0 interceptor, NOT the GoogleGenAI API-key branch.
 // Tagged source strips the leading v from the executing Node runtime.
-export const GEMINI_CLI_VERSION = "0.66.0";
+export const GEMINI_CLI_VERSION = "0.68.0";
 export const GEMINI_AUTH_LIBRARY_VERSION = "10.9.0";
 export const GEMINI_AUTH_USER_AGENT = `google-api-nodejs-client/${GEMINI_AUTH_LIBRARY_VERSION}`;
 export const GEMINI_CLI_API_CLIENT = `gl-node/${process.version?.replace(/^v/, "") || "unknown"}`;
 
 // ─── Kiro ──────────────────────────────────────────────────────────────
 // Two distinct upstream lines:
-//   - IDE stable manifest 1.4.13 (2026-10-21) → client fingerprint
-//   - CLI stable manifest 2.33.0 (2026-10-20)
+//   - IDE stable manifest 1.4.154 (2026-11-12 review) → client identity
+//   - CLI stable manifest 3.2.1 (2026-11-12 review)
 //
 // The runtime UA uses kiro-ide/<v> as the dominant client identifier;
 // the aws-sdk-js wrapper is a retained legacy wire pin, NOT a claim that the
-// current IDE bundles SDK 3.0.0. Native runtime/host defaults remain unverified.
-export const KIRO_IDE_VERSION = "1.4.13";
-export const KIRO_CLI_VERSION = "2.33.0";
+// current IDE bundles SDK 3.0.0. Runtime/host defaults describe this gateway.
+export const KIRO_IDE_VERSION = "1.4.154";
+export const KIRO_CLI_VERSION = "3.2.1";
 export const KIRO_AWS_SDK_VERSION = "3.0.0";
 export const KIRO_RUNTIME_SDK_VERSION = "3.0.0";
 export const KIRO_USER_AGENT = `AWS-SDK-JS/${KIRO_AWS_SDK_VERSION} kiro-ide/${KIRO_IDE_VERSION}`;
@@ -154,9 +154,9 @@ export const KIRO_CLI_USER_AGENT = `kiro-cli/${KIRO_CLI_VERSION}`;
 // Build the per-request fingerprint (matches Kiro IDE >1.0.228 where
 // GenerateAssistantResponse moved to POST / + x-amz-target header).
 export const KIRO_FINGERPRINT = ({
-  kiroAgentOs = "windows",
-  kiroAgentOsVersion = "10.0.26200",
-  kiroNodeVersion = "22.21.1",
+  kiroAgentOs = platform(),
+  kiroAgentOsVersion = release(),
+  kiroNodeVersion = process.versions.node || "unknown",
   machineId = "",
 } = {}) => ({
   userAgent:
@@ -170,16 +170,16 @@ export const KIRO_FINGERPRINT = ({
 });
 
 // ─── Trae ──────────────────────────────────────────────────────────────
-// 3.6.4 (publisher stable download manifest; provider remains inactive).
+// 3.6.13 (publisher stable download manifest; provider remains inactive).
 // appVersion is sent in common_params of SOLO session init.
-export const TRAE_APP_VERSION = "3.6.4";
+export const TRAE_APP_VERSION = "3.6.13";
 export const TRAE_USER_AGENT = "Trae/1.0.0 antigravity-cockpit-tools";
 
 // ─── CodeBuddy (Tencent) ───────────────────────────────────────────────
-// CLI 2.179.3 (integrity-checked npm latest, 2026-11-03) verifies the CN CLI surface only.
+// CLI 2.183.0 (integrity-checked npm latest, 2026-11-12) verifies the CN CLI surface only.
 // INTL IDE identity remains unverified: retain its independent legacy wire pin,
 // not a claim about the published IDE release. Keep each region's OAuth paired.
-export const CODEBUDDY_CLI_VERSION = "2.179.3";
+export const CODEBUDDY_CLI_VERSION = "2.183.0";
 export const CODEBUDDY_INTL_WIRE_VERSION = "2.161.1";
 export const CODEBUDDY_CN_TRANSPORT_UA = `CLI/${CODEBUDDY_CLI_VERSION} CodeBuddy/${CODEBUDDY_CLI_VERSION}`;
 export const CODEBUDDY_INTL_TRANSPORT_UA = `IDE/${CODEBUDDY_INTL_WIRE_VERSION} CodeBuddy/${CODEBUDDY_INTL_WIRE_VERSION}`;
@@ -187,34 +187,36 @@ export const CODEBUDDY_CN_OAUTH_UA = CODEBUDDY_CN_TRANSPORT_UA;
 export const CODEBUDDY_INTL_OAUTH_UA = CODEBUDDY_INTL_TRANSPORT_UA;
 
 // ─── Grok CLI / Grok Build ─────────────────────────────────────────────
-// 1.0.62 (official stable channel, 2026-10-16). Preserve the existing wire shape;
+// 1.0.77 (official stable channel, 2026-11-12 review). Preserve the wire shape;
 // update version-dependent OAuth/runtime/catalog/billing identity together.
-export const GROK_CLI_VERSION = "1.0.62";
+export const GROK_CLI_VERSION = "1.0.77";
 export const GROK_CLI_CLIENT_IDENTIFIER = "grok-shell";
 export const GROK_CLI_USER_AGENT =
-  `grok-pager/${GROK_CLI_VERSION} grok-shell/${GROK_CLI_VERSION} (linux; x86_64)`;
+  `grok-pager/${GROK_CLI_VERSION} grok-shell/${GROK_CLI_VERSION} (` +
+  `${({ darwin: "macos", win32: "windows", sunos: "solaris" })[platform()] || platform()}; ` +
+  `${({ x64: "x86_64", ia32: "x86", arm64: "aarch64", ppc64: "powerpc64", loong64: "loongarch64" })[arch()] || arch()})`;
 // xAI discovery-time UA — not pinned to a specific version (xAI does
 // not gate on user-agent for api.x.ai).
 export const XAI_USER_AGENT = "grok-cli/kitsunerouter";
 
 // ─── Kimchi ────────────────────────────────────────────────────────────
-// Public CLI v1.28.0; pinned release workflow supplies the package version used in its UA.
-// Source binding: docs/audit/data/request-identity-refresh-20261104.json.
-export const KIMCHI_GATEWAY_VERSION = "1.28.0";
+// Public CLI v1.34.2; pinned release workflow supplies the version used in its UA.
+// Source binding: docs/audit/data/client-refresh-20261112-other.json.
+export const KIMCHI_GATEWAY_VERSION = "1.34.2";
 export const KIMCHI_USER_AGENT = `kimchi/${KIMCHI_GATEWAY_VERSION}`;
 
 // ─── Command Code ──────────────────────────────────────────────────────
-// Integrity-checked CLI 1.88.2 uses its package release in this header.
+// Integrity-checked CLI 1.88.5 uses its package release in this header.
 // Artifact inspection does not establish live account/stream acceptance.
-export const COMMAND_CODE_VERSION = "1.88.2";
+export const COMMAND_CODE_VERSION = "1.88.5";
 export const COMMAND_CODE_USER_AGENT = "cli";
 export const COMMAND_CODE_CLI_SURFACE = "cli";
 export const COMMAND_CODE_TASTE_LEARNING = "false";
 
 // ─── Zed ───────────────────────────────────────────────────────────────
-// 1.26.2 (publisher stable release, 2026-10-31 review). Header fallback when the client
-// does not provide appVersion via providerSpecificData.
-export const ZED_VERSION = "1.26.2";
+// 1.28.1 (publisher stable release, 2026-11-12 review). Header fallback when the client
+// does not provide a configured appVersion.
+export const ZED_VERSION = "1.28.1";
 export const ZED_USER_AGENT = "kitsunerouter/zed";
 export const ZED_DEFAULT_APP_VERSION = ZED_VERSION;
 
@@ -223,10 +225,10 @@ export const ZED_DEFAULT_APP_VERSION = ZED_VERSION;
 export const IFLOW_USER_AGENT = "iFlow-Cli";
 
 // ─── Windsurf / Devin Desktop (Codeium) ────────────────────────────────
-// Stable Devin desktop 3.10.67 (2026-10-12) independently bundles metadata
-// extensionVersion 1.48.2 via languageServerVersion, not extension package 0.2.0
-// or base VS Code 1.126.0. Identity values do not verify the legacy protobuf layout.
-export const WINDSURF_IDE_VERSION = "3.10.67";
+// Stable Devin desktop 3.12.43 independently bundles metadata extensionVersion
+// 1.48.2 via languageServerVersion, not extension package 0.2.0 or base VS Code
+// 1.141.2. These identity values do not verify the legacy protobuf layout.
+export const WINDSURF_IDE_VERSION = "3.12.43";
 export const WINDSURF_EXTENSION_VERSION = "1.48.2";
 
 // ─── OpenCode (free-tier identity) ─────────────────────────────────────
@@ -238,7 +240,7 @@ export const OPENCODE_VERSION = "1.19.5";
 export const OPENCODE_USER_AGENT = `opencode/${OPENCODE_VERSION}`;
 
 // ─── Qoder CLI ─────────────────────────────────────────────────────────
-// 1.1.81 (@qoder-ai/qodercli npm latest). Its unsigned OpenAPI requests use
+// 1.1.87 (@qoder-ai/qodercli npm latest). Its unsigned OpenAPI requests use
 // qoder/<release>; legacy Cosy-Version remains signature-bound separately.
-export const QODER_CLI_VERSION = "1.1.81";
+export const QODER_CLI_VERSION = "1.1.87";
 export const QODER_CLI_USER_AGENT = `qoder/${QODER_CLI_VERSION}`;

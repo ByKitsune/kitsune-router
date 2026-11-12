@@ -32,7 +32,9 @@ describe("request review fix: actual outbound beta", () => {
     expect(sent()[0].body.metadata).toEqual({ user_id: "review-user" });
   });
   it("rejects an explicit budget on denied-beta retries and future turns rather than shrinking it", async () => {
-    const credentials = { connectionId: "review-rejected-interleaving", apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
+    // The rejected header is an optional gateway default. An explicit client
+    // capability instead retains the upstream rejection (covered below).
+    const credentials = { connectionId: "review-rejected-interleaving", apiKey: "offline-fixture" };
     vi.mocked(proxyAwareFetch).mockResolvedValueOnce(Response.json({ error: { message: `Unexpected value(s) \`${beta}\` for the \`anthropic-beta\` header` } }, { status: 400 }));
     const execute = async () => new DefaultExecutor("claude").execute({ model, body: normalizeClaudePassthrough(native(), model, credentials.rawHeaders), stream: false, credentials });
     await expect(execute()).rejects.toMatchObject({ code: "invalid_thinking_budget", param: "max_tokens" });
@@ -42,7 +44,7 @@ describe("request review fix: actual outbound beta", () => {
   });
 
   it("fits generated effort budgets after a denied-beta retry and on future turns", async () => {
-    const credentials = { connectionId: "review-generated-rejected-interleaving", apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
+    const credentials = { connectionId: "review-generated-rejected-interleaving", apiKey: "offline-fixture" };
     vi.mocked(proxyAwareFetch).mockResolvedValueOnce(Response.json({ error: { message: `Unexpected value(s) \`${beta}\` for the \`anthropic-beta\` header` } }, { status: 400 }));
     const execute = async () => {
       const body = translateRequest("openai", "claude", model, { messages, max_tokens: 4096, reasoning_effort: "high", tools: [{ type: "function", function: { name: "lookup", parameters: { type: "object" } } }] }, false, credentials, "claude");
@@ -56,6 +58,24 @@ describe("request review fix: actual outbound beta", () => {
       expect(request.headers.get("anthropic-beta")).not.toContain(beta);
       expect(request.body.max_tokens).toBe(4096);
       expect(request.body.thinking.budget_tokens).toBe(3072);
+    }
+  });
+  it.each(["explicit budget", "generated effort"])("returns the original rejection for a required interleaving opt-in with %s", async kind => {
+    const credentials = { connectionId: `review-required-interleaving-${kind}`, apiKey: "offline-fixture", rawHeaders: { "anthropic-beta": beta } };
+    const error = { error: { message: `Unexpected value(s) \`${beta}\` for the \`anthropic-beta\` header` } };
+    vi.mocked(proxyAwareFetch).mockImplementation(async () => Response.json(error, { status: 400 }));
+    for (let turn = 0; turn < 2; turn++) {
+      const body = kind === "explicit budget" ? normalizeClaudePassthrough(native(), model, credentials.rawHeaders)
+        : translateRequest("openai", "claude", model, { messages, max_tokens: 4096, reasoning_effort: "high", tools: [{ type: "function", function: { name: "lookup", parameters: { type: "object" } } }] }, false, credentials, "claude");
+      const result = await new DefaultExecutor("claude").execute({ model, body, stream: false, credentials });
+      expect(result.response.status).toBe(400);
+      expect(await result.response.json()).toEqual(error);
+    }
+    expect(sent()).toHaveLength(2);
+    for (const request of sent()) {
+      expect(request.headers.get("anthropic-beta")).toContain(beta);
+      expect(request.body.max_tokens).toBe(4096);
+      expect(request.body.thinking.budget_tokens).toBe(kind === "explicit budget" ? 8192 : 24576);
     }
   });
   it("preserves translated OpenAI high effort only with actual outbound beta", async () => {

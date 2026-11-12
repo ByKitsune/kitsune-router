@@ -38,9 +38,6 @@ import {
   KIRO_FINGERPRINT,
 } from "../config/clientVersions.js";
 
-const KIRO_AGENT_OS = "windows";
-const KIRO_AGENT_OS_VERSION = "10.0.26200";
-const KIRO_NODE_VERSION = "22.21.1";
 // KIRO_VERSION kept as alias for back-compat (Kiro IDE version line; the
 // deprecated 0.10.32 CLI line is no longer referenced).
 const KIRO_VERSION = KIRO_IDE_VERSION;
@@ -115,9 +112,6 @@ function buildKiroFingerprintHeaders(credentials) {
   const machineId = createHash("sha256").update(String(seed)).digest("hex");
 
   const { userAgent, amzUserAgent } = KIRO_FINGERPRINT({
-    kiroAgentOs: KIRO_AGENT_OS,
-    kiroAgentOsVersion: KIRO_AGENT_OS_VERSION,
-    kiroNodeVersion: KIRO_NODE_VERSION,
     machineId,
   });
 

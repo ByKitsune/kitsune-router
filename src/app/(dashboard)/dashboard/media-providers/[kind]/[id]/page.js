@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useParams, notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -16,7 +18,7 @@ import { GenericExampleCard } from "./components/GenericExampleCard";
 import { SttExampleCard } from "./components/SttExampleCard";
 
 // MediaProviderDetailPage
-export default function MediaProviderDetailPage() {
+function MediaProviderDetailPage() {
   const { kind, id } = useParams();
   const router = useRouter();
   const kindConfig = MEDIA_PROVIDER_KINDS.find((k) => k.id === kind);
@@ -223,3 +225,5 @@ export default function MediaProviderDetailPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(MediaProviderDetailPage);

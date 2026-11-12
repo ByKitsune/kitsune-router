@@ -1,5 +1,8 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+import RuntimeI18nBoundary from "@/i18n/RuntimeI18nBoundary";
+
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -137,7 +140,7 @@ function CallbackContent() {
  * OAuth Callback Page
  * Receives callback from OAuth providers and sends data back via multiple methods
  */
-export default function CallbackPage() {
+function CallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-bg">
@@ -149,7 +152,9 @@ export default function CallbackPage() {
         </div>
       </div>
     }>
-      <CallbackContent />
+      <RuntimeI18nBoundary><CallbackContent /></RuntimeI18nBoundary>
     </Suspense>
   );
 }
+
+export default withRuntimeI18nPage(CallbackPage);

@@ -28,38 +28,38 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// Literal wire expectations track reviewed publisher releases in audit25.
-// App/SDK checks include integrity-checked artifacts; blocked Kiro/Trae/INTL
-// pins remain retained contracts, not freshly verified latest releases.
+// Literal wire expectations track the November 12 publisher review in audit37.
+// App/SDK checks include integrity-checked artifacts; unverified SDK and INTL
+// pins retain their independent compatibility contracts.
 // All I/O is fixture-only; SDK/API versions stay independent of app versions.
 describe("verified client release migrations", () => {
   it("emits the latest-channel Claude release and its bundled Stainless version", async () => {
     await new DefaultExecutor("claude").execute({ model: "claude-sonnet-4-6", body: { messages: [{ role: "user", content: "fixture" }], max_tokens: 16 }, stream: false, credentials: { accessToken: "fixture-oauth" } });
     const headers = lastHeaders(proxyAwareFetch);
-    expect(headers.get("user-agent")).toBe("claude-cli/2.1.317 (external, sdk-cli)");
+    expect(headers.get("user-agent")).toBe("claude-cli/2.1.322 (external, sdk-cli)");
     expect(headers.get("x-stainless-package-version")).toBe("0.128.0");
     expect(headers.get("x-stainless-runtime-version")).toBe(process.version);
     expect(headers.get("anthropic-beta")).not.toContain("timing-2026-09-09");
   });
 
-  it("uses Kiro CLI 2.33.0 in the real dashboard social-refresh probe", async () => {
+  it("uses Kiro CLI 3.2.1 in the real dashboard social-refresh probe", async () => {
     getProviderConnectionById.mockResolvedValue({ id: "fixture-kiro", provider: "kiro", accessToken: "old", refreshToken: "fixture-refresh-probe", expiresAt: "2000-01-01T00:00:00Z" });
     fetch.mockResolvedValue(json({ accessToken: "new", expiresIn: 3600 }));
     expect(await testSingleConnection("fixture-kiro")).toMatchObject({ valid: true, refreshed: true });
-    expect(lastHeaders(fetch).get("user-agent")).toBe("kiro-cli/2.33.0");
+    expect(lastHeaders(fetch).get("user-agent")).toBe("kiro-cli/3.2.1");
   });
 
   it("uses the same Kiro CLI identity in executor and token service", async () => {
     proxyAwareFetch.mockImplementation(async () => json({ accessToken: "new", expiresIn: 3600 }));
     await new DefaultExecutor("kiro").refreshKiro("fixture-default-kiro");
-    expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("kiro-cli/2.33.0");
+    expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("kiro-cli/3.2.1");
     await refreshKiroToken("fixture-service-kiro", { profileArn: "fixture-profile" });
-    expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("kiro-cli/2.33.0");
-    expect(versions.KIRO_IDE_VERSION).toBe("1.4.13");
+    expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("kiro-cli/3.2.1");
+    expect(versions.KIRO_IDE_VERSION).toBe("1.4.154");
   });
 
   it.each([
-    ["codebuddy-cn", codebuddyCn, "CLI/2.179.3 CodeBuddy/2.179.3"],
+    ["codebuddy-cn", codebuddyCn, "CLI/2.183.0 CodeBuddy/2.183.0"],
     ["codebuddy-intl", codebuddyIntl, "IDE/2.161.1 CodeBuddy/2.161.1"],
   ])("keeps %s transport and OAuth identity paired without inventing an INTL IDE release", async (provider, oauth, expected) => {
     const headers = new Headers(new DefaultExecutor(provider).buildHeaders(credentials));
@@ -72,11 +72,11 @@ describe("verified client release migrations", () => {
   });
 
   it("emits Kimchi's tagged release user agent", () => {
-    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.28.0");
+    expect(new Headers(new DefaultExecutor("kimchi").buildHeaders(credentials)).get("user-agent")).toBe("kimchi/1.34.2");
   });
 
   it("updates only Trae's inactive source pin", () => {
-    expect(versions.TRAE_APP_VERSION).toBe("3.6.4");
+    expect(versions.TRAE_APP_VERSION).toBe("3.6.13");
     expect(PROVIDERS.trae).toBeUndefined();
     expect(versions.TRAE_USER_AGENT).toBe("Trae/1.0.0 antigravity-cockpit-tools");
   });
@@ -87,7 +87,7 @@ describe("verified client release migrations", () => {
     const headers = lastHeaders(proxyAwareFetch);
     expect(proxyAwareFetch.mock.calls[0][0]).toBe("https://api.commandcode.ai/alpha/generate");
     expect(headers.get("x-cli-environment")).toBe("production");
-    expect(headers.get("x-command-code-version")).toBe("1.88.2");
+    expect(headers.get("x-command-code-version")).toBe("1.88.5");
     expect(headers.get("user-agent")).toBe("cli");
     expect(headers.get("authorization")).toBe("Bearer fixture-key");
     expect(headers.get("x-session-id")).toMatch(/^[0-9a-f-]{36}$/);
@@ -100,7 +100,7 @@ describe("verified client release migrations", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ valid: true, error: null });
     expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
-    expect(lastHeaders(proxyAwareFetch).get("x-command-code-version")).toBe("1.88.2");
+    expect(lastHeaders(proxyAwareFetch).get("x-command-code-version")).toBe("1.88.5");
     expect(lastHeaders(proxyAwareFetch).get("user-agent")).toBe("cli");
     expect(lastHeaders(proxyAwareFetch).get("x-cli-environment")).toBe("production");
     expect(lastHeaders(proxyAwareFetch).get("authorization")).toBe("Bearer fixture-key");
@@ -111,11 +111,11 @@ describe("verified client release migrations", () => {
   });
 
   it("keeps independently verified releases separate from retained SDK pins", () => {
-    expect(versions.VSCODE_VERSION).toBe("1.144.0");
-    expect(versions.COPILOT_CHAT_VERSION).toBe("0.72.0");
-    expect(versions.ANTIGRAVITY_IDE_VERSION).toBe("2.5.5");
-    expect(versions.CURSOR_VERSION).toBe("3.24.18");
-    expect(versions.QODER_CLI_VERSION).toBe("1.1.81");
+    expect(versions.VSCODE_VERSION).toBe("1.146.0");
+    expect(versions.COPILOT_CHAT_VERSION).toBe("0.74.0");
+    expect(versions.ANTIGRAVITY_IDE_VERSION).toBe("2.6.0");
+    expect(versions.CURSOR_VERSION).toBe("3.29.15");
+    expect(versions.QODER_CLI_VERSION).toBe("1.1.87");
     expect(versions.KIRO_AWS_SDK_VERSION).toBe("3.0.0");
   });
 });

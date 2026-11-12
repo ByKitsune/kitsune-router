@@ -1,4 +1,6 @@
 import { platform, arch } from "os";
+import { CLAUDE_FEATURE_BETAS, CLAUDE_TOOL_CHANGE_BLOCKS, CLAUDE_TOOL_SEARCH_TYPE_PREFIX } from "../config/claudeBetaCapabilities.js";
+import { ROLE } from "../translator/schema/roles.js";
 import {
   CLAUDE_CODE_VERSION,
   CLAUDE_CLI_USER_AGENT,
@@ -71,6 +73,39 @@ export function wantsThinkingSummaries(body) {
   return body?.thinking?.display === "summarized";
 }
 
+// Accept only the same date-suffixed feature-token shape used by the outbound
+// allowlist. Unknown future feature tokens remain explicit caller intent.
+export function parseAnthropicBetaFlags(value) {
+  const text = Array.isArray(value) ? value.join(",") : value;
+  return typeof text === "string" ? [...new Set(text.split(",").map(flag => flag.trim())
+    .filter(flag => /^[a-z0-9][a-z0-9-]*-(?:\d{8}|\d{4}-\d{2}-\d{2})$/.test(flag)))] : [];
+}
+
+export function requiredAnthropicBetaFlags(body, explicit = null) {
+  const required = new Set(parseAnthropicBetaFlags(explicit));
+  const feature = CLAUDE_FEATURE_BETAS;
+  if (body?.thinking?.block_binding != null) required.add(feature.thinkingBinding);
+  if (body?.context_management != null) required.add(feature.contextManagement);
+  if (body?.output_format != null || body?.output_config?.format != null) required.add(feature.structuredOutputs);
+  if (body?.output_config?.effort != null) required.add(feature.effort);
+  if (body?.speed === "fast") required.add(feature.fastMode);
+  for (const message of Array.isArray(body?.messages) ? body.messages : []) {
+    if (message?.role !== ROLE.SYSTEM) continue;
+    if (message.clear_at != null) required.add(feature.turnScopedSystem);
+    if (message.output_config != null) required.add(feature.perMessageOutput);
+    if (Array.isArray(message.content) && message.content.some(block => CLAUDE_TOOL_CHANGE_BLOCKS.has(block?.type))) {
+      required.add(feature.inlineTools);
+      required.add(feature.referencedToolChanges);
+    }
+  }
+  if ((Array.isArray(body?.tools) ? body.tools : []).some(tool => tool?.defer_loading === true
+    || (typeof tool?.type === "string" && tool.type.startsWith(CLAUDE_TOOL_SEARCH_TYPE_PREFIX)))) {
+    required.add(feature.toolSearch);
+    required.add(feature.advancedTools);
+  }
+  return required;
+}
+
 // Heavy-agent beta flags are gated to opus/sonnet — cheaper models don't need them.
 // `redact-thinking` asks Anthropic to return signature-only thinking blocks, which
 // is right for clients that never render thinking but blanks the summaries a
@@ -80,17 +115,18 @@ export function wantsThinkingSummaries(body) {
 // 400 ("Unexpected value(s) `X` for the `anthropic-beta` header"). Anthropic
 // gates some betas per organization: the flag string ships in the client binary
 // but is only accepted once the server has handed that account an entitlement.
-// A gateway cannot know that in advance, so it drops them after the first
-// rejection instead of failing every subsequent turn the same way.
+// Only optional defaults may be dropped. Request fields and explicit caller
+// capabilities must keep their matching header or return the original rejection.
 export function selectAnthropicBeta(model = "", body = null, unsupported = null) {
   const blocked = unsupported instanceof Set ? unsupported : null;
+  const required = requiredAnthropicBetaFlags(body);
   const flags = ANTHROPIC_BETA_BASE.filter((flag) => {
-    if (blocked?.has(flag)) return false;
+    if (blocked?.has(flag) && !required.has(flag)) return false;
     return flag !== ANTHROPIC_BETA_REDACT_THINKING || !wantsThinkingSummaries(body);
   });
   if (/(?:^|\/)claude-(opus|sonnet)/.test(model)) {
     for (const flag of ANTHROPIC_BETA_HEAVY_AGENT) {
-      if (!blocked?.has(flag)) flags.push(flag);
+      if (!blocked?.has(flag) || required.has(flag)) flags.push(flag);
     }
   }
   return flags.join(",");

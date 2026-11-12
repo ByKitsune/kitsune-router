@@ -206,3 +206,15 @@ results are actual links, preserve modified clicks, use translated labels, and
 respect IME composition. Preserve focus across Escape, drawer handoff and route
 commits; avoid opening navigation over a credential or confirmation dialog.
 The page finder and each page's controlled search serve distinct scopes.
+
+## Translation hydration boundaries (November 12 follow-up)
+
+Use `withRuntimeI18nPage` around rendered page exports and
+`RuntimeI18nBoundary` inside independently hydrated Suspense regions. Boundaries
+use public React hydration snapshots and `display: contents` so layout and
+server-rendered children retain their roles. The runtime may fetch dictionaries
+early, but activates translation only after parsing and all pending SSR regions
+finish hydrating. Client-only mounts are ready immediately. Preserve this gate
+when adding a page or a new SSR Suspense region; translating pending server text
+can cause React #418 and subtree regeneration. Never hide that race with warning
+suppression, timers or disabled SSR.

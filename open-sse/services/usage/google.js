@@ -2,7 +2,7 @@
  * Google usage handlers (Gemini CLI + Antigravity)
  */
 
-import { CLIENT_METADATA } from "../../config/appConstants.js";
+import { CLIENT_METADATA, GEMINI_CLI_CLIENT_METADATA } from "../../config/appConstants.js";
 import { GEMINI_AUTH_USER_AGENT, GEMINI_CLI_API_CLIENT } from "../../config/clientVersions.js";
 import { ANTIGRAVITY_CLI_USER_AGENT, ANTIGRAVITY_CLI_VERSION } from "../../providers/shared.js";
 import { PROVIDER_MODELS } from "../../providers/index.js";
@@ -113,7 +113,7 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
       {
         method: "POST",
         headers: geminiUsageHeaders(accessToken),
-        body: JSON.stringify({ metadata: CLIENT_METADATA }),
+        body: JSON.stringify({ metadata: GEMINI_CLI_CLIENT_METADATA }),
       },
       10000,
       proxyOptions

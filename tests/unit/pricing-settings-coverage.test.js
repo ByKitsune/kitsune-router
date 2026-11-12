@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { translate } from "../../src/i18n/runtime.js";
+import { compileHydratedPageWrapper, renderHydratedPage } from "../helpers/hydrated-page-harness.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -47,6 +48,7 @@ function fixture(reply) {
       if (id === "react") return hooks;
       if (id === "react/jsx-runtime") return { jsx, jsxs: jsx };
       if (id === "@/i18n/runtime") return { translate };
+      if (id === "@/i18n/withRuntimeI18nPage") return compileHydratedPageWrapper(jsx);
       if (id === "@/shared/components/Card") return { __esModule: true, default: Card };
       if (id === "@/shared/components/PricingModal") return { __esModule: true, default: () => null };
       throw new Error(`Unexpected import: ${id}`);
@@ -54,7 +56,7 @@ function fixture(reply) {
   }, { filename });
   const render = () => {
     cursor = 0;
-    const tree = fixtureModule.exports.default();
+    const tree = renderHydratedPage(fixtureModule.exports.default);
     effects.splice(0).forEach(effect => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); });
     return tree;
   };

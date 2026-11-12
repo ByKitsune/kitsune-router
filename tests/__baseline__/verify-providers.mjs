@@ -35,6 +35,10 @@ function normalizeHostDependent(providers) {
       else if (typeof v === "string" && /^antigravity\/ide\//.test(v)) {
         // UA suffix " <os>/<arch>" is derived from platform()/arch()
         h[k] = v.replace(/ (darwin|windows|linux)\/(arm64|x64)$/, " <platform>");
+      } else if (typeof v === "string" && /^grok-pager\/[0-9.]+ grok-shell\/[0-9.]+ \([^)]*\)$/.test(v)) {
+        // Publisher CLI derives Rust OS/arch tokens from its executing host.
+        // Normalize only that suffix; keep both release numbers compared.
+        h[k] = v.replace(/ \([^)]*\)$/, " <platform>");
       }
     }
   }

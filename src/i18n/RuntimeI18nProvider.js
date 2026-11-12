@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { initRuntimeI18n, reloadTranslations } from "./runtime";
+import RuntimeI18nBoundary from "./RuntimeI18nBoundary";
 
 export function RuntimeI18nProvider({ children }) {
   const pathname = usePathname();
@@ -20,5 +21,5 @@ export function RuntimeI18nProvider({ children }) {
     });
     return () => { cancelAnimationFrame(frame); if (nextFrame !== undefined) cancelAnimationFrame(nextFrame); };
   }, [pathname]);
-  return <>{children}</>;
+  return <RuntimeI18nBoundary>{children}</RuntimeI18nBoundary>;
 }

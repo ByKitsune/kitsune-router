@@ -1,0 +1,378 @@
+{
+  "date": "2026-11-12",
+  "captured_at_utc": "2026-11-12T08:20:23.356724+00:00",
+  "base_commit": "cf3e96de3b34be93b9b875b66c4755efc7a4996c",
+  "scope": "Deferred SSR localization hydration race, guarded route/Suspense regions and preservation of source text / client node ownership",
+  "original_observation": {
+    "audit": "docs/audit/36-dashboard-navigation-revision-2026-11-11.md",
+    "observation": "A prior production run reported one React #418 text hydration error without stage or URL metadata.",
+    "retained_report": {
+      "path": "/workspace/scratch/nav-revision-observed-hydration/report.json",
+      "bytes": 39448,
+      "sha256": "aed3c5190cf3540ae18aaa82b410a4b375f1441c4b934461b268f0f1065b5ee7"
+    },
+    "attribution_limit": "The old event has no node/stage trace. This follow-up reproduces the same error class and establishes a concrete causal path, not the exact historical failing node."
+  },
+  "deterministic_before_reproduction": {
+    "fixture": {
+      "path": "/workspace/scratch/hydration-repro.mjs",
+      "bytes": 4844,
+      "sha256": "f6bf76faf3eeb2642251b251f4c0e9a6a1362d4962eb112c36d7652334ec05be"
+    },
+    "result": {
+      "path": "/workspace/scratch/hydration-repro-result.json",
+      "bytes": 1424,
+      "sha256": "9d4eb2ec3d69f4c402f872e99ae4587bd631c342d9721ee140f82d065fcf0649"
+    },
+    "server_api": "ReactDOMServer.renderToString",
+    "client_api": "ReactDOMClient.hydrateRoot with actual RuntimeI18nProvider",
+    "trigger": "A completed server-rendered Suspense panel delays client hydration while the Indonesian dictionary resolves and translates its still-dehydrated text.",
+    "server_source": "Providers",
+    "mutated_dom": "Penyedia",
+    "recoverable_hydration_errors": 1,
+    "react_component_diff": "Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\nhttps://react.dev/link/hydration-mismatch\n\n  <RuntimeI18nProvider>\n    <main>\n      <Suspense fallback={<p>}>\n        <DelayedPanel>\n          <section id=\"deferred\">\n            <h2>\n+             Providers\n-             Penyedia\n            ...\n",
+    "page_errors": [],
+    "prechange_source_hashes": {
+      "src/i18n/RuntimeI18nProvider.js": "8a126c409ab2a6201b9b5cc00fc61811ffb52a63cbded000d2a87756660ead2f",
+      "src/i18n/runtime.js": "1878ab1bf6fd6cc3a372fa28e675e0237a463740f4da63080980ab9f754be7b9"
+    }
+  },
+  "repair": {
+    "public_hydration_signal": "useSyncExternalStore with false server snapshot and true client snapshot; pure client mounts start ready.",
+    "region_marker": "data-i18n-hydration-pending",
+    "rule": "Retain effective English/source rendering and avoid DOM translation until document parsing and every annotated SSR region have completed hydration. Resume locale notifications and translation after the final pending marker disappears.",
+    "streaming_gate": "DOMContentLoaded plus pending region markers covers late server HTML before parsing ends; no per-text DOM query is added.",
+    "layout_preservation": "display: contents wrappers; existing content, flex/grid participation, page state and route focus remain owned by their original components.",
+    "server_client_interleaving": "withRuntimeI18nPage is a normal shared module callable from Server Components; rendered children cross into the client boundary, not a function prop.",
+    "rendered_page_entrypoints": [
+      "src/app/(dashboard)/dashboard/basic-chat/page.js",
+      "src/app/(dashboard)/dashboard/cli-tools/[toolId]/page.js",
+      "src/app/(dashboard)/dashboard/cli-tools/page.js",
+      "src/app/(dashboard)/dashboard/combos/page.js",
+      "src/app/(dashboard)/dashboard/console-log/page.js",
+      "src/app/(dashboard)/dashboard/endpoint/page.js",
+      "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js",
+      "src/app/(dashboard)/dashboard/media-providers/[kind]/page.js",
+      "src/app/(dashboard)/dashboard/media-providers/combo/[id]/page.js",
+      "src/app/(dashboard)/dashboard/media-providers/web/page.js",
+      "src/app/(dashboard)/dashboard/mitm/page.js",
+      "src/app/(dashboard)/dashboard/page.js",
+      "src/app/(dashboard)/dashboard/profile/page.js",
+      "src/app/(dashboard)/dashboard/providers/[id]/page.js",
+      "src/app/(dashboard)/dashboard/providers/new/page.js",
+      "src/app/(dashboard)/dashboard/providers/page.js",
+      "src/app/(dashboard)/dashboard/proxy-pools/page.js",
+      "src/app/(dashboard)/dashboard/pxpipe/page.js",
+      "src/app/(dashboard)/dashboard/quota/page.js",
+      "src/app/(dashboard)/dashboard/settings/pricing/page.js",
+      "src/app/(dashboard)/dashboard/skills/page.js",
+      "src/app/(dashboard)/dashboard/token-saver/page.js",
+      "src/app/(dashboard)/dashboard/translator/page.js",
+      "src/app/(dashboard)/dashboard/usage/page.js",
+      "src/app/callback/page.js",
+      "src/app/landing/page.js",
+      "src/app/login/page.js"
+    ],
+    "redirect_only_entrypoint": "src/app/page.js returns redirect(/dashboard) and has no rendered page content to guard.",
+    "layout_scope": "src/app/(dashboard)/layout.js",
+    "explicit_nested_suspense_scopes": [
+      "src/app/(dashboard)/dashboard/usage/page.js: UsageContent and UsageStats",
+      "src/app/(dashboard)/dashboard/quota/page.js: ProviderLimits",
+      "src/app/callback/page.js: CallbackContent"
+    ],
+    "existing_no_ssr_dynamic_scopes": [
+      "src/shared/components/UsageStats.js: ProviderTopology retains existing ssr:false",
+      "src/app/(dashboard)/dashboard/translator/page.js: Editor retains existing ssr:false"
+    ],
+    "no_added_warning_suppression": true,
+    "no_added_ssr_disable": true,
+    "no_private_react_hydration_internals": true,
+    "no_timing_deadline_for_hydration": true,
+    "tradeoff": "Source-language SSR text remains visible until annotated hydration is safe. This intentionally avoids modifying React-owned dehydrated HTML."
+  },
+  "verification": {
+    "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- tests/unit/runtime-i18n.test.js tests/unit/runtime-i18n-hydration-browser.test.js tests/unit/provider-speed-ui.test.js tests/unit/profile-observability.test.js tests/unit/pricing-settings-coverage.test.js",
+    "exit_code": 0,
+    "test_files_passed": 5,
+    "tests_passed": 69,
+    "tests_failed": 0,
+    "log": {
+      "path": "/workspace/scratch/hydration-regressions-final.log",
+      "bytes": 771,
+      "sha256": "d2db22989a0d677b32e53da5c3844bdd047d3dfb0b35c8da26d4ddfec4743f73"
+    },
+    "browser_regressions": {
+      "cases": 2,
+      "source_modes": [
+        "plain source labels",
+        "render-time translation helpers with locale subscription"
+      ],
+      "independently_delayed_completed_ssr_boundaries": 2,
+      "checks": [
+        "Dictionary resolves before delayed hydration without mutating source DOM",
+        "First boundary ready while second remains pending retains matching source text",
+        "Locale switches id->en->ja while pending, then ja->id->en after hydration",
+        "Original server panel node identities retained (no recovery replacement)",
+        "No recoverable hydration errors or page exceptions",
+        "Dynamic request counts stay current across locale changes",
+        "Code content remains source identity"
+      ]
+    },
+    "parsing_regression": "Dictionary resolves during document.loading; a first region becomes ready, a late streamed region is inserted, DOMContentLoaded still waits for that last region, and final marker removal translates the exact original nodes.",
+    "existing_behavior_regressions": "Original provider speed / pricing / observability assertions remain intact; VM fixtures execute the real page HOC with a hydrated DOM-boundary seam. The actual boundary is exercised with real SSR and browser hydration.",
+    "targeted_eslint": {
+      "exit_code": 0,
+      "log": {
+        "path": "/workspace/scratch/hydration-eslint-final.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "integration_gate": "Full Next production build, complete suite and production browser verification are owned and recorded by the parent integration task; this receipt does not claim their outcomes.",
+    "composed_scoped_lint": {
+      "exit_code": 0,
+      "command": "npm run lint -- tests/helpers/hydrated-page-harness.js tests/unit/runtime-i18n-hydration-browser.test.js --max-warnings=0",
+      "log": {
+        "path": "/workspace/scratch/hydration-composed-scoped-lint.log",
+        "bytes": 164,
+        "sha256": "3eacd746d0a2d97fd12465236ad1c2dd6c3fa06bd900b3012d19655be84dd556"
+      }
+    },
+    "test_source": [
+      {
+        "path": "tests/unit/runtime-i18n.test.js",
+        "sha256": "72099107bb5d38d42556dfa8ea86ef2868ebf3e704e91267840d53713eebc382"
+      },
+      {
+        "path": "tests/unit/runtime-i18n-hydration-browser.test.js",
+        "sha256": "535bfc482ef5c19aa5dad39a3bdc99360c507e72dfed27f6f946d42246dd6077"
+      },
+      {
+        "path": "tests/helpers/hydrated-page-harness.js",
+        "sha256": "ad88f563a2acc53e19d79bdd11c075e88103b157c6e09a07821145b783f048f8"
+      },
+      {
+        "path": "tests/unit/provider-speed-ui.test.js",
+        "sha256": "6ea1b6ccb5a9d7245038990ed48a53d601892904ee9fe168c1db5cdbcc789fb0"
+      },
+      {
+        "path": "tests/unit/profile-observability.test.js",
+        "sha256": "1ea75ddbe4a77af00fa4377de56c8eb89019be9b0bb049d6c85eb3f6d6bf0da9"
+      },
+      {
+        "path": "tests/unit/pricing-settings-coverage.test.js",
+        "sha256": "305194b95382ff9eeeb9802dd18e93b3c3ef3df28b192cb78f7dba561083d3b0"
+      }
+    ],
+    "production_integration": {
+      "build_id": "bDHMwVig62GsClFMzuF8H",
+      "framework_build": "Parent production Next build passed including server/client page HOC interleaving.",
+      "independent_workflows": {
+        "checks": 13,
+        "passed": 13,
+        "failed": [],
+        "responsiveChecks": 50,
+        "layoutFailures": [],
+        "pageErrors": 0,
+        "consoleErrors": 0,
+        "httpErrors": 0,
+        "nonAbortRequestFailures": 0,
+        "screenshots": 20
+      },
+      "report": {
+        "path": "/workspace/scratch/client-completion-qa/report.json",
+        "bytes": 35922,
+        "sha256": "395620d0cd56f073fb347b4f37ceeb3cc5f9355b868e290931a2d292fce6f081"
+      },
+      "summary_report": {
+        "path": "/workspace/scratch/client-completion-qa/summary.json",
+        "bytes": 213,
+        "sha256": "4e959d8751781430bc1f287b6da948b6d7d01cecc163c759006024e9ba429db7"
+      },
+      "qa_script": {
+        "path": "/workspace/scratch/nav-revision-qa.mjs",
+        "bytes": 20892,
+        "sha256": "7e62ac34706a84d0cdfd0dd747de8aae444c424bb3a7766eb941009bf7fa380b"
+      },
+      "locale_stress": {
+        "summary": {
+          "iterations": 12,
+          "passed": 12,
+          "errors": 0
+        },
+        "routes": [
+          "/dashboard/providers",
+          "/dashboard/quota",
+          "/dashboard/settings/pricing",
+          "/dashboard/usage"
+        ],
+        "locales": [
+          "id",
+          "en"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "viewports": [
+          {
+            "width": 390,
+            "height": 844
+          },
+          {
+            "width": 1440,
+            "height": 1000
+          }
+        ],
+        "script_chunk_delay_ms": [
+          40,
+          100,
+          160
+        ],
+        "report": {
+          "path": "/workspace/scratch/hydration-production-locale-probe.json",
+          "bytes": 3933,
+          "sha256": "919104aaa4fe41b3655a8bba7fe4d6f623cb6a16df568c149fdadafc62c89ea4"
+        },
+        "script": {
+          "path": "/workspace/scratch/hydration-production-locale-probe.mjs",
+          "bytes": 3823,
+          "sha256": "1214548182421ab9191bfd6ed3d0a990e6ee04c79cd5850e7586dcb998b1003d"
+        }
+      },
+      "source_unchanged_after_build": true,
+      "remaining_gate": "Parent integration receipt records complete Vitest and the 45-case production browser suite; no outcome for those gates is inferred here."
+    }
+  },
+  "changed_app_source": [
+    {
+      "path": "src/i18n/RuntimeI18nProvider.js",
+      "sha256": "515e6d7db70696cb8e6bd82262d7b0f6cec7e68bdb2c7010683053e1d804718f"
+    },
+    {
+      "path": "src/i18n/runtime.js",
+      "sha256": "f3d567740862c5e5adec968d52908ccbdf5af94dad87c3b3e245f3f6b8221fe9"
+    },
+    {
+      "path": "src/i18n/RuntimeI18nBoundary.js",
+      "sha256": "f9b97e53c0733d4d2e29b5f094f32150bb8d4a7a6805797fb0c9b8016b4f4e8c"
+    },
+    {
+      "path": "src/i18n/withRuntimeI18nPage.js",
+      "sha256": "653827832000810657b1ae7724a30c245c72e5408a4c78937192ef78d690c4c6"
+    },
+    {
+      "path": "src/app/(dashboard)/layout.js",
+      "sha256": "455d87660d3417b38f3b867ec7215d53aeb05545b015fde75cc535b8da94079d"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/basic-chat/page.js",
+      "sha256": "bbd09121202118107a16545ecc4063e82d8b5c0beaa267af385dd84c5d3f89a5"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/[toolId]/page.js",
+      "sha256": "112c75448507a4f8343f9a7953406d2221fce6d0e233dafaa003bad8e9f9c44e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/page.js",
+      "sha256": "54dcf6f839a4da1f12d6e7f23e61fd2b273bdec5f6307f4b84ae14349dd48cf3"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/combos/page.js",
+      "sha256": "723714912f7bbf2f3224672490ebc4735c0a76786719e810ef949629e263fd03"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/console-log/page.js",
+      "sha256": "f77cd3ddd2c59c170e14df9dd74939ad14e504bae65973304a1ae08b81b5d5f2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/endpoint/page.js",
+      "sha256": "18afc6743e937115f6866383fe3fb2ec9d1a924b482559ee2ae24805aad39b1c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js",
+      "sha256": "0797ab253f429f119fa2adf5e53a67a28d071067fec671eaeb88216a6a019757"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/page.js",
+      "sha256": "af5559a21c33a779da41b7aad71a3d858c1bfcecc755caf89fda5edbc0106e88"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/combo/[id]/page.js",
+      "sha256": "91b5ad6a925c4132430dfb40b9f3b794b86905d24c693916fb480ecb8937e279"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/web/page.js",
+      "sha256": "380d7a77c45e3750ddc47dada5bb2f98112fc22c50d980cf55faba1d9effe08c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/mitm/page.js",
+      "sha256": "3cda1d722aed00e0bf8ed0d8cdca4c1d901d772721962ccb375c7e92dda3e2a7"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/page.js",
+      "sha256": "669a72f9b4cba2967f611ccc911051cbd8e4a988e7f3d1781a18d19fcd88b16f"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/profile/page.js",
+      "sha256": "0c4f7f4fb52813b7c4e6650db1d3b98fccf5e06ff4ecc0362d421a795a3ddba1"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/page.js",
+      "sha256": "ae642e5227cbf2dbb54beb491778b48e65a2a7df3f519d7cc1b963f258ea98f2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/new/page.js",
+      "sha256": "f8c0f61a4e49a2d6c41f13d570b12703b48ca268a24d4bcb412f62eef3499450"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/page.js",
+      "sha256": "4c0849f6e746844dfc82844f43d89dc0186e3dac28c1b2c9a0c5a30f751ec991"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/proxy-pools/page.js",
+      "sha256": "82eefb7042a6c8416881bc51fde0959f52861a9fe819e6199d87f51ef994f6e1"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/pxpipe/page.js",
+      "sha256": "226e5e0d4ff703ff771497067840c11de8f1b7995fd22a18c6ea6034b26f2cee"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/quota/page.js",
+      "sha256": "7f46ab1c8ff8de90de25e8ea99aec81979c42c86de6a247b19c73c6c383cde72"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/settings/pricing/page.js",
+      "sha256": "c83690602bda2bbeb0fe70e127a4f30de5627b4de621575f1502b8bad36a7e1c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/skills/page.js",
+      "sha256": "15aefebecbedc4dc1a7f57912f141ea4b5d2a91d823338c2fb08938bce480109"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/token-saver/page.js",
+      "sha256": "3034f49e98538bc932acd3fa78480c2ad8aac68e1531069e4c58c0328c90525e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/translator/page.js",
+      "sha256": "5474366d13949ba20bec13aa70f50b50953935e7c20e584c46485419599ef8de"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/page.js",
+      "sha256": "7a4040172d777155b4bb1169a4b5c4384b28721d074aef8ff55137d3d0518c31"
+    },
+    {
+      "path": "src/app/callback/page.js",
+      "sha256": "b24fa45f9b4b1c5d4a7b3f69403749fed92f8d58f6bcb4cda370cdbda750b311"
+    },
+    {
+      "path": "src/app/landing/page.js",
+      "sha256": "c682f712774f0cda99d38cc0507cf3a35c0c81a4cf98823d2f51b50ab21cab5d"
+    },
+    {
+      "path": "src/app/login/page.js",
+      "sha256": "9fd781421ea817b145916b13524c7c42fdb023841f89b04e5ad30913a6a5f76a"
+    }
+  ],
+  "security_boundary": "No authentication, account credentials, upstream routing, signatures or provider metadata were changed by this hydration repair. Localization still writes text/allowed accessible attributes and preserves marked code/identity regions."
+}

@@ -56,6 +56,7 @@ function compile(filename) {
     if (id === "@/shared/utils/cn") return { cn };
     if (id === "@/shared/constants/config") return { APP_CONFIG: { name: "Kitsune Router", version: "fixture" } };
     if (id === "@/i18n/runtime") return { onLocaleChange() {}, translate: text => text };
+    if (id === "@/i18n/withRuntimeI18nPage") return compile(new URL("../../src/i18n/withRuntimeI18nPage.js", import.meta.url));
     if (id === "@/shared/constants/locales") return { readDisplayLocale: () => "en" };
     if (id.startsWith("./")) return compile(new URL(id.endsWith(".js") ? id : `${id}.js`, filename));
     return require(id);

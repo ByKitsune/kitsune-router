@@ -1,0 +1,367 @@
+{
+  "review_date": "2026-11-12",
+  "recorded_at": "2026-11-12T08:04:33.868178+00:00",
+  "scope": [
+    "OpenAI Codex CLI and its ChatGPT subscription transport/model discovery",
+    "Stable VS Code paired GitHub Copilot Chat, CAPI SDK and token/user-info API boundaries"
+  ],
+  "previous_pin_source": "open-sse/config/clientVersions.js at cf3e96de; prior client review 2026-11-03",
+  "recommendations": [
+    {
+      "constant": "CODEX_CLI_VERSION",
+      "previous": "0.166.0",
+      "selected": "0.167.2",
+      "evidence": [
+        "codex-release",
+        "codex-tag-ref",
+        "codex-tag-object",
+        "codex-workspace",
+        "codex npm metadata and integrity-checked wrapper package"
+      ]
+    },
+    {
+      "constant": "CODEX_MODELS_CLIENT_VERSION",
+      "selected_expression": "CODEX_CLI_VERSION",
+      "resolved_selected_value": "0.167.2",
+      "disposition": "Retain single source of truth; native models manager strips prerelease suffixes into major.minor.patch."
+    },
+    {
+      "constant": "VSCODE_VERSION",
+      "previous": "1.144.0",
+      "selected": "1.146.0",
+      "evidence": [
+        "vscode-stable update manifest",
+        "vscode-stable-package"
+      ]
+    },
+    {
+      "constant": "COPILOT_CHAT_VERSION",
+      "previous": "0.72.0",
+      "selected": "0.74.0",
+      "evidence": [
+        "vscode-stable-copilot at the selected editor commit"
+      ]
+    },
+    {
+      "constant": "COPILOT_API_VERSION",
+      "previous": "2026-08-01",
+      "selected": "2026-08-01",
+      "disposition": "Retain: integrity-checked SDK0.5.2 _mixinHeaders sets this date on chat/responses/messages/model routes."
+    },
+    {
+      "constant": "COPILOT_TOKEN_API_VERSION",
+      "previous": "2025-04-01",
+      "selected": "2025-04-01",
+      "disposition": "Retain: bundled token manager explicitly selects this date on token, no-auth token and user-info; SDK mixin excludes these request types."
+    },
+    {
+      "fact": "Bundled source-resolved @vscode/copilot-api",
+      "selected": "0.5.2",
+      "disposition": "Independently retained; stable editor pnpm lock resolves0.5.2 with exact SHA512 matching reviewed npm tarball."
+    }
+  ],
+  "source_bindings": {
+    "codex": {
+      "release_tag": "rust-v0.167.2",
+      "published_at": "2026-11-11T22:44:46Z",
+      "prerelease": false,
+      "annotated_tag_object": "08a3b12b3298577534a28b62ed976acf8de66eda",
+      "source_commit": "ce21072c90d32c40af7a55b60b2fb35c84a43a6a",
+      "originator": "codex_cli_rs",
+      "user_agent_policy": "Retain gateway minimal release identity; official CLI derives OS/architecture/terminal suffix dynamically. No captured host/terminal fingerprint is invented.",
+      "model_query": "client_version=0.167.2",
+      "namespace_contract": "FunctionCall and CustomToolCall carry optional namespace alongside flat name; FunctionCallOutput has optional name/namespace. CustomToolCallOutput has optional name with no namespace field in this reviewed variant. These fields are native opaque-history facts, not permission to rewrite application JSON."
+    },
+    "vscode_copilot": {
+      "channel": "stable",
+      "editor": "1.146.0",
+      "editor_commit": "69047191fc427f2f92828279aae1d90d8eeda7ab",
+      "bundled_chat": "0.74.0",
+      "extension_recorded_vscode_commit": "94c8e2adc50e26ef70af85a0de3a9efed757acaa",
+      "copilot_api_sdk": "0.5.2",
+      "main_api": "2026-08-01",
+      "token_and_user_info_api": "2025-04-01",
+      "general_github_oauth_user_api": "2022-11-28 retained independently",
+      "selected_sdk_integrity": "sha512-U+2jyi0/Hpum2ZnED47cVFKgx5+p+thRhOPDKc1+t2PVAzsKlr3aJPKxMeMLOIXGWyLuQcng5BuFvj1vxD1d8w==",
+      "main_branch_not_selected": "VS Code main advertises1.147.0; separate vscode-copilot-chat main returned0.44.0 and is not the selected editor bundled release."
+    }
+  },
+  "github_source_captures": [
+    {
+      "label": "codex-release",
+      "url": "https://api.github.com/repos/openai/codex/releases/latest",
+      "display_url": "https://api.github.com/repos/openai/codex/releases/latest",
+      "modified_date": null,
+      "capture_recorded_at": "2026-11-12T08:03:26.810Z",
+      "raw_response_utf8_bytes": 330083,
+      "file": "codex-release.json",
+      "sha256": "299fe3c6d6671101a6612c87c0e58d0c916858ec1b844dbc9e7edcedd33083e1",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-release.json"
+    },
+    {
+      "label": "codex-tag-ref",
+      "url": "https://api.github.com/repos/openai/codex/git/ref/tags/rust-v0.167.2",
+      "display_url": "https://api.github.com/repos/openai/codex/git/ref/tags/rust-v0.167.2",
+      "modified_date": null,
+      "capture_recorded_at": "2026-11-12T08:03:26.811Z",
+      "raw_response_utf8_bytes": 343,
+      "file": "codex-tag-ref.txt",
+      "sha256": "83f39435bee2556fa03e4ed67ef9ec0fa14b3f0f334e9e1930c5bc947aa1d0ab",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-tag-ref.txt"
+    },
+    {
+      "label": "codex-tag-object",
+      "url": "https://api.github.com/repos/openai/codex/git/tags/08a3b12b3298577534a28b62ed976acf8de66eda",
+      "display_url": "https://api.github.com/repos/openai/codex/git/tags/08a3b12b3298577534a28b62ed976acf8de66eda",
+      "modified_date": null,
+      "capture_recorded_at": "2026-11-12T08:03:26.811Z",
+      "raw_response_utf8_bytes": 655,
+      "file": "codex-tag-object.txt",
+      "sha256": "558f4516a70c63f1c7fe1dabbbe941a4851b7686ef02f2de5bb5da04b6a13d22",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-tag-object.txt"
+    },
+    {
+      "label": "codex-workspace",
+      "url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/Cargo.toml",
+      "display_url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/Cargo.toml",
+      "modified_date": "2026-11-11T20:03:56Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.812Z",
+      "raw_response_utf8_bytes": 22041,
+      "file": "codex-workspace.txt",
+      "sha256": "db6893c3972b47ec35dd1944be2cd36008775d3f2b1eea533a4f71de30b5b173",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-workspace.txt"
+    },
+    {
+      "label": "codex-default-client-final",
+      "url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/login/src/auth/default_client.rs",
+      "display_url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/login/src/auth/default_client.rs",
+      "modified_date": "2026-10-28T00:51:29Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.813Z",
+      "raw_response_utf8_bytes": 18113,
+      "file": "codex-default-client-final.txt",
+      "sha256": "acfc0eba844d9ba02c9830c66a19ab920b51d8f3a516b95ccf5066f94ef53fcd",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-default-client-final.txt"
+    },
+    {
+      "label": "codex-model-lib",
+      "url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/models-manager/src/lib.rs",
+      "display_url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/models-manager/src/lib.rs",
+      "modified_date": "2026-10-28T16:00:30Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.813Z",
+      "raw_response_utf8_bytes": 932,
+      "file": "codex-model-lib.txt",
+      "sha256": "5b1515f312025a5c3ba28e6d01db3daee069a11f5f322469390317cf285ea390",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-model-lib.txt"
+    },
+    {
+      "label": "codex-models-manager",
+      "url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/models-manager/src/manager.rs",
+      "display_url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/models-manager/src/manager.rs",
+      "modified_date": "2026-10-30T15:11:02Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.815Z",
+      "raw_response_utf8_bytes": 39421,
+      "file": "codex-models-manager.txt",
+      "sha256": "bd3f7e6a0cdc1e7b0cd31c890a27a28c439a622ff549d32ab297a3f895801000",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-models-manager.txt"
+    },
+    {
+      "label": "codex-protocol-models",
+      "url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/protocol/src/models.rs",
+      "display_url": "https://github.com/openai/codex/blob/rust-v0.167.2/codex-rs/protocol/src/models.rs",
+      "modified_date": "2026-10-30T20:53:25Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.826Z",
+      "raw_response_utf8_bytes": 169146,
+      "file": "codex-protocol-models.txt",
+      "sha256": "daeb5bd499ed49b364be4c031e3c754f7fb39945531214c0b8fe00896eb3da82",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-protocol-models.txt"
+    },
+    {
+      "label": "vscode-stable-package",
+      "url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/package.json",
+      "display_url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/package.json",
+      "modified_date": "2026-11-07T19:33:03Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.827Z",
+      "raw_response_utf8_bytes": 14231,
+      "file": "vscode-stable-package.txt",
+      "sha256": "6bdc954d802993dfd479b44e9a4df029894936599c4d9815d25d022b05f9db4f",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/vscode-stable-package.txt"
+    },
+    {
+      "label": "vscode-stable-copilot",
+      "url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/extensions/copilot/package.json",
+      "display_url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/extensions/copilot/package.json",
+      "modified_date": "2026-11-06T15:31:36Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.847Z",
+      "raw_response_utf8_bytes": 282102,
+      "file": "vscode-stable-copilot.txt",
+      "sha256": "cce8185763ef02b8e9d002b387168a63546eacec0d48a3989134d4b65a540d0c",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/vscode-stable-copilot.txt"
+    },
+    {
+      "label": "vscode-stable-lock",
+      "url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/pnpm-lock.yaml",
+      "display_url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/pnpm-lock.yaml",
+      "modified_date": "2026-11-07T19:33:03Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.872Z",
+      "raw_response_utf8_bytes": 443645,
+      "file": "vscode-stable-lock.txt",
+      "sha256": "8197e84ab231d77c249867e4c84d0910074249d47a59ed4cabcb1831146eeb89",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/vscode-stable-lock.txt"
+    },
+    {
+      "label": "vscode-stable-token-node",
+      "url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/extensions/copilot/src/platform/authentication/node/copilotTokenManager.ts",
+      "display_url": "https://github.com/microsoft/vscode/blob/69047191fc427f2f92828279aae1d90d8eeda7ab/extensions/copilot/src/platform/authentication/node/copilotTokenManager.ts",
+      "modified_date": "2026-10-06T16:22:17Z",
+      "capture_recorded_at": "2026-11-12T08:03:26.874Z",
+      "raw_response_utf8_bytes": 21345,
+      "file": "vscode-stable-token-node.txt",
+      "sha256": "3e95572db6406b81e6f60594868d45de2fc9d2a5ce6a86576cdc387d7c8e765a",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/vscode-stable-token-node.txt"
+    }
+  ],
+  "http_captures": [
+    {
+      "url": "https://registry.npmjs.org/@openai%2fcodex/latest",
+      "final_url": "https://registry.npmjs.org/@openai%2fcodex/latest",
+      "status": 200,
+      "retrieved_at": "2026-11-12T07:57:08.984615+00:00",
+      "bytes": 3516,
+      "sha256": "d372a601e6546a0e7e1d084a5d736609be831c40cb6aa7bf8793d5b3555e79d0",
+      "etag": null
+    },
+    {
+      "url": "https://update.code.visualstudio.com/api/update/linux-x64/stable/latest",
+      "final_url": "https://update.code.visualstudio.com/api/update/linux-x64/stable/latest",
+      "status": 200,
+      "retrieved_at": "2026-11-12T07:57:08.994157+00:00",
+      "bytes": 481,
+      "sha256": "04b7bf23aeecc23e99a0fa77d152da049abbb70990785bb6afb1172889b5eb0d",
+      "etag": null
+    },
+    {
+      "url": "https://registry.npmjs.org/@vscode%2fcopilot-api/latest",
+      "final_url": "https://registry.npmjs.org/@vscode%2fcopilot-api/latest",
+      "status": 200,
+      "retrieved_at": "2026-11-12T07:57:08.964472+00:00",
+      "bytes": 2814,
+      "sha256": "2e89039373620cdd53210c765a4546c64fa916a1fcda71bc68e51c495cd52412",
+      "etag": null
+    }
+  ],
+  "integrity_checked_artifacts": [
+    {
+      "key": "codex-npm-latest",
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.167.2.tgz",
+      "retrieved_at": "2026-11-12T07:58:33.492700+00:00",
+      "bytes": 4994,
+      "sha256": "ee6f22155fd7514cd22c03f1bc281d854a89cc5d6c72d5b3e3b01043f4206c2f",
+      "sha512_integrity": "sha512-6OFkr2ndzTdFb32OEiUlM9BgpeY8+wnMe8vRhuvt+22TnxVR39KnJ22Ghay98IY9OmEltoNgFN4GALUkxFQCOw==",
+      "integrity_verified": true,
+      "selected_files": [
+        {
+          "archive_path": "package/package.json",
+          "path": "/workspace/scratch/client-refresh-20261112/codex-copilot/codex-npm-latest-package_package.json",
+          "sha256": "de9892437dbb65dcaa5ee1a1c85760e281bb6da1fe4028a43dec42266a1d9644",
+          "bytes": 1082
+        }
+      ]
+    },
+    {
+      "key": "copilot-api-npm-latest",
+      "url": "https://registry.npmjs.org/@vscode/copilot-api/-/copilot-api-0.5.2.tgz",
+      "retrieved_at": "2026-11-12T07:58:33.619712+00:00",
+      "bytes": 21396,
+      "sha256": "7a817c4d468abb7811964af047de00aeee13e70ac97e1f698d3b774d1580d6a4",
+      "sha512_integrity": "sha512-U+2jyi0/Hpum2ZnED47cVFKgx5+p+thRhOPDKc1+t2PVAzsKlr3aJPKxMeMLOIXGWyLuQcng5BuFvj1vxD1d8w==",
+      "integrity_verified": true,
+      "selected_files": [
+        {
+          "archive_path": "package/dist/index.js",
+          "path": "/workspace/scratch/client-refresh-20261112/codex-copilot/copilot-api-npm-latest-package_dist_index.js",
+          "sha256": "4166a9f9c7035a887b3b8b5d93a5f53805f48e3d5011b2fc3340f561053538d9",
+          "bytes": 25748
+        },
+        {
+          "archive_path": "package/package.json",
+          "path": "/workspace/scratch/client-refresh-20261112/codex-copilot/copilot-api-npm-latest-package_package.json",
+          "sha256": "9a8f15c29a3eb49656709d62b3b66580cf03d5c01daae6fe3e152956de6a4228",
+          "bytes": 1667
+        }
+      ]
+    }
+  ],
+  "changelog_dispositions": [
+    {
+      "release": "rust-v0.167.0",
+      "published_at": "2026-11-06T01:40:00Z",
+      "disposition": "Reviewed release notes; local agent command center, terminal UI, provider switching, network approval, context estimation and build changes are not transplanted as gateway wire defaults."
+    },
+    {
+      "release": "rust-v0.167.1",
+      "published_at": "2026-11-10T21:32:01Z",
+      "disposition": "Publisher release supplies a compare link, no standalone release-note claims; no inferred SDK/API co-bump."
+    },
+    {
+      "release": "rust-v0.167.2",
+      "published_at": "2026-11-11T22:44:46Z",
+      "disposition": "GCP incremental-tool default change is Vertex-specific, not a change to ChatGPT subscription transport. Retain gateway supported-format and entitlement boundaries."
+    },
+    {
+      "surface": "VS Code1.146/Copilot0.74",
+      "disposition": "Stable editor bundled extension and lockfile determine the paired app/SDK facts; do not use marketplace or development main as a substitute."
+    }
+  ],
+  "integration_review": {
+    "production_companion_changes_required": false,
+    "reason": "Current Codex execution/image/catalog/validation and Copilot execution/models/token/usage/OAuth paths already consume the centralized constants. Header API dates remain independently verified and unchanged.",
+    "scoped_expectation_updates": [
+      "tests/unit/client-oauth-header-migrations.test.js: Copilot editor/extension literals and source comment",
+      "tests/unit/refresh-client-primary-wire.test.js: Codex execution/image/catalog literal versions",
+      "tests/unit/refresh-client-secondary-wire.test.js: Copilot token-probe literal versions",
+      "tests/unit/client-release-migrations.test.js: VS Code/Copilot release literals"
+    ],
+    "validation": {
+      "command": "npm test -- tests/unit/codex-request-identity-isolation.test.js tests/unit/codex-catalog-account-identity.test.js tests/unit/codex-live-catalog.test.js tests/unit/client-oauth-header-migrations.test.js tests/unit/refresh-client-primary-wire.test.js tests/unit/refresh-client-secondary-wire.test.js -t 'Codex|Copilot'",
+      "exit_code": 0,
+      "passed": 56,
+      "filtered_skips": 28,
+      "files_passed": 6,
+      "log": {
+        "local_artifact": "/workspace/scratch/client-refresh-20261112/codex-copilot/focused-tests.log",
+        "bytes": 7877,
+        "sha256": "86768fcba3c8990826d3ae67b330457b5c3f45936c479974e3ce0c9dd35bbc4c"
+      },
+      "note": "Filtered skips are cases outside this provider subset, not a replacement for the final complete-suite gate."
+    }
+  },
+  "limits": [
+    "This verifies publisher release/source facts and integrity-checked package contents, not live account entitlement or provider acceptance.",
+    "Codex npm wrapper package and tagged Rust source were inspected; platform native binaries were not executed or claimed runtime-tested.",
+    "VS Code stable update manifest, immutable bundled source and source lock were inspected; the full editor binary archive was not executed.",
+    "Header versions do not grant first-party trust, subscription access, paid tiers, or authenticated session ownership.",
+    "No real OAuth exchange, access token, provider account or paid inference was used; behavioral tests use synthetic network fixtures.",
+    "GitHub capture hashes bind exact UTF-8 tool response bodies. capture_recorded_at is the evidence recording time; modified_date is publisher modification metadata, not a download timestamp."
+  ],
+  "responses_review_followup": {
+    "source_capture": {
+      "url": "https://raw.githubusercontent.com/openai/openai-node/b579bcb3e586d22269ffe6fe504653a0e05acbe8/src/resources/responses/responses.ts",
+      "source_commit": "b579bcb3e586d22269ffe6fe504653a0e05acbe8",
+      "captured_at": "2026-11-12T08:20:32.480Z",
+      "modified_date": "2026-11-06T08:45:25Z",
+      "utf8_bytes": 364696,
+      "matches_initial_main_fetch": true,
+      "excerpt_start_line": 11686,
+      "excerpt": "export interface ToolChoiceAllowed {\n  /**\n   * Constrains the tools available to the model to a pre-defined set.\n   *\n   * `auto` allows the model to pick from among the allowed tools and generate a\n   * message.\n   *\n   * `required` requires the model to call one or more of the allowed tools.\n   */\n  mode: 'auto' | 'required';\n\n  /**\n   * A list of tool definitions that the model should be allowed to call.\n   *\n   * For the Responses API, the list of tool definitions might look like:\n   *\n   * ```json\n   * [\n   *   { \"type\": \"function\", \"name\": \"get_weather\" },\n   *   { \"type\": \"mcp\", \"server_label\": \"deepwiki\" },\n   *   { \"type\": \"image_generation\" }\n   * ]\n   * ```\n   */\n  tools: Array<{ [key: string]: unknown }>;\n\n  /**\n   * Allowed tool configuration type. Always `allowed_tools`.\n   */\n  type: 'allowed_tools';\n}\n",
+      "sha256": "3c6e0cf0690cf7201fced9110982400e771de6722949a9078c4073f3f51e3db2",
+      "local_capture": "/workspace/scratch/client-refresh-20261112/codex-copilot/responses-sdk-pinned-review.ts"
+    },
+    "contract": "ToolChoiceAllowed is a typed choice with type allowed_tools, mode auto|required and a list whose documented function entries use flat name. Namespace-owned calls and optional output names have the separate Codex protocol source binding above.",
+    "review_findings": [
+      "Reserve namespace-local declaration names during global alias allocation; optional-namespace outputs must retain call_id ownership.",
+      "Treat FORMATS.CODEX as the Responses-compatible input shape, consistently with existing translator source/target guards.",
+      "Rewrite and reserve only typed function/custom names in allowed_tools choices; preserve MCP labels, built-in choices, namespace ownership and application JSON."
+    ],
+    "implementation_owner": "Root; review was read-only apart from this source receipt. Root owns independent failing regressions and implementation validation."
+  }
+}

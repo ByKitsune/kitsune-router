@@ -1,3 +1,4 @@
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
 import Navigation from "./components/Navigation";
 import HeroSection from "./components/HeroSection";
 import HowItWorks from "./components/HowItWorks";
@@ -8,7 +9,7 @@ import Footer from "./components/Footer";
 import LandingMotion from "./components/LandingMotion";
 import styles from "./landing.module.css";
 
-export default function LandingPage() {
+function LandingPage() {
   return (
     <div className={styles.page}>
       <a className={styles.skipLink} href="#main-content">Skip to content</a>
@@ -26,3 +27,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(LandingPage);

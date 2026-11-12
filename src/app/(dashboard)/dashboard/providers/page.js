@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useState, useEffect } from "react";
 import { ProviderPageHeader, ProviderLoadingState } from "./components/ProviderWorkspace";
 import PropTypes from "prop-types";
@@ -97,7 +99,7 @@ function getConnectionErrorTag(connection) {
 
 const APIKEY_INITIAL_VISIBLE = 20;
 
-export default function ProvidersPage() {
+function ProvidersPage() {
   const [connections, setConnections] = useState([]);
   const [providerNodes, setProviderNodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -838,3 +840,5 @@ ProviderTestResultsView.propTypes = {
     error: PropTypes.string,
   }).isRequired,
 };
+
+export default withRuntimeI18nPage(ProvidersPage);

@@ -1,4 +1,5 @@
-import { GEMINI_CONFIG, getOAuthClientMetadata } from "../constants/oauth.js";
+import { GEMINI_CONFIG, getGeminiOAuthClientMetadata } from "../constants/oauth.js";
+import { GEMINI_AUTH_USER_AGENT, GEMINI_CLI_API_CLIENT } from "open-sse/config/clientVersions.js";
 
 const geminiCli = {
   config: GEMINI_CONFIG,
@@ -55,9 +56,11 @@ const geminiCli = {
           headers: {
             Authorization: `Bearer ${tokens.access_token}`,
             "Content-Type": "application/json",
+            "User-Agent": GEMINI_AUTH_USER_AGENT,
+            "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
           },
           body: JSON.stringify({
-            metadata: getOAuthClientMetadata(),
+            metadata: getGeminiOAuthClientMetadata(),
             mode: 1,
           }),
         }

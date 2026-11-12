@@ -1,0 +1,312 @@
+{
+  "review_date": "2026-11-12",
+  "scope": "Official Claude Code release, integrity-verified native wire inspection and required-beta/request-body pairing; no native execution or live provider credentials.",
+  "selected_version": "2.1.322",
+  "prior_pin": "2.1.317",
+  "dist_tags": {
+    "stable": "2.1.311",
+    "latest": "2.1.322",
+    "next": "2.1.322"
+  },
+  "recommended_pins": {
+    "CLAUDE_CODE_VERSION": "2.1.322",
+    "CLAUDE_STAINLESS.packageVersion": "0.128.0",
+    "ANTHROPIC_API_VERSION": "2023-06-01",
+    "CLAUDE_OAUTH_BETA_FLAG": "oauth-2025-04-20"
+  },
+  "npm": {
+    "metadata_url": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code",
+    "captured_at": "2026-11-12T07:56:14.319677+00:00",
+    "metadata": {
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/npm-metadata.json",
+      "bytes": 1595907,
+      "sha256": "a9bd7593744f9f977eca5e3671e3da562c245d989c20a763906c88acff69a37d"
+    },
+    "launcher": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.322.tgz",
+      "integrity": "sha512-oP7oW4vM5DREWfL1jn4JSGlmLcrJ5QmppgADrVNJBUPiC1mQ5YvRrke0on+YZ/3QhKIaCJtdr6jPvehcAQIHLQ==",
+      "integrity_verified": true,
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/launcher.tgz",
+      "bytes": 31606,
+      "sha256": "39f9d22aa2938cf276494d46b0c2bb593b4ef923323d02bf3cc5805b9d9a71c9"
+    },
+    "native": {
+      "metadata_url": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code-linux-x64/2.1.322",
+      "metadata": {
+        "local_file": "/workspace/scratch/client-refresh-20261112/claude/native-metadata.json",
+        "bytes": 2531,
+        "sha256": "1816ca1a8a2004231acba496dea02c8ba03be0a07d32020801e901c80c8395de"
+      },
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.322.tgz",
+      "integrity": "sha512-0DoaNAXLWCYYIGachWBCkTUsS8dOOgvk4R2fFKdrLejO9XlRTwaWUMD9ONdDmv0csdpwxj4qLUN6zWMaG2Sz6g==",
+      "integrity_verified": true,
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/native.tgz",
+      "bytes": 159262440,
+      "sha256": "3cc175d82980c20ab66057d345bd2d913244f8cf1791d10722a1225214b57219",
+      "extracted_binary": {
+        "local_file": "/workspace/scratch/client-refresh-20261112/claude/claude-native",
+        "bytes": 341914128,
+        "sha256": "bfb3703ad5380242328459bc62ada4bde8ae7ba57c6e1eeadb9c00e08874c478"
+      },
+      "executed": false
+    }
+  },
+  "github_release": {
+    "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.322",
+    "api_url": "https://api.github.com/repos/anthropics/claude-code/releases/439863658",
+    "published_at": "2026-11-10T02:29:43Z",
+    "prerelease": false,
+    "draft": false,
+    "tag": "v2.1.322",
+    "tag_commit": "6e1e44f6433bfa17d198e932bff53373aa229eea",
+    "capture": {
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/github-release.json",
+      "bytes": 23210,
+      "sha256": "afb33bbdde5b44653f8880e94927434182c9f72e60ce2cfdc90714f32aeea4af"
+    },
+    "tag_ref_capture": {
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/github-tag-ref.json",
+      "bytes": 391,
+      "sha256": "6c09be2c43a61a6f117392151762aace86c97722cd7cee62674a9d04015c0357"
+    },
+    "notes": "## What's changed\n\n- Added fast mode on Vertex in the global, us and eu regions, falling back to standard speed if Vertex refuses it\n"
+  },
+  "native_contract": {
+    "sdk_version": "0.128.0",
+    "api_version": "2023-06-01",
+    "node_runtime": "Executing process.version, independent of CLI/SDK release; retain actual gateway host metadata.",
+    "user_agent": "claude-cli/<release> (external, <entrypoint>...)",
+    "gateway_entrypoint": "sdk-cli",
+    "oauth_authorize_url": "https://claude.com/cai/oauth/authorize",
+    "oauth_token_url": "https://platform.claude.com/v1/oauth/token",
+    "beta_decision": "Existing pinned flags remain present in the release; presence in the native feature registry is not proof of account entitlement. Do not add newly observed feature flags automatically.",
+    "excerpts": [
+      {
+        "contract": "var FI=\"0.128.0\"",
+        "byte_offset": 288394605,
+        "excerpt": ".js\";import{CSt}from\"/$bunfs/root/chunk-amzhe4wb.js\";import{rt}from\"/$bunfs/root/chunk-2sg162hc.js\";var FI=\"0.128.0\";var BXi=()=>typeof window<\"u\"&&typeof window.document<\"u\"&&typeof navigator<\"u\";function te(){if(typeof Deno<\"u\"&&Deno.build!=null)return\"deno\";if(typeof EdgeRuntime<\"u\")return\"edge\";if(Object.prototype.toString.call(typeof globalThis.process<\"u\"?globalThis.process:0)===\"[object process]\")return\"node\";return\"unknown\"}var ne=()=>{let e=te();if(e===\"deno\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":H(Deno.build.os),\"X-Stainless-Arch\":b(Deno.build.arch),\"X-Stainless-Runtime\":\"deno\",\"X-Stainless-Runtime-Version\":typeof Deno.version===\"string\"?Deno.version:Deno.version?.deno??\"unknown\"};if(typeof EdgeRuntime<\"u\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":\"Unknown\",\"X-Stainless-Arch\":`other:${EdgeRuntime}`,\"X-Stainless-Runtime\":\"edge\",\"X-Stainless-Runtime-Version\":globalThis.process?.version??\"unknown\"};if(e===\"node\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":H(globalThis.process.platform??\"unknown\"),\"X-Stainless-Arch\":b(globalThis.process.arch??\"unknown\"),\"X-Stainless-Runtime\":\"node\",\"X-Stainless-Runtime-Version\":globalThis.process.version??\"unknown\"};let n=r",
+        "excerpt_sha256": "1d27bfd0b7e88d564bd0d313fe7e72dca9c2713f58e181a369a8a17d5a42fccf"
+      },
+      {
+        "contract": "if(e===\"node\")return{\"X-Stainless-Lang\"",
+        "byte_offset": 288395506,
+        "excerpt": ",\"X-Stainless-Runtime\":\"edge\",\"X-Stainless-Runtime-Version\":globalThis.process?.version??\"unknown\"};if(e===\"node\")return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":H(globalThis.process.platform??\"unknown\"),\"X-Stainless-Arch\":b(globalThis.process.arch??\"unknown\"),\"X-Stainless-Runtime\":\"node\",\"X-Stainless-Runtime-Version\":globalThis.process.version??\"unknown\"};let n=re();if(n)return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":\"Unknown\",\"X-Stainless-Arch\":\"unknown\",\"X-Stainless-Runtime\":`browser:${n.browser}`,\"X-Stainless-Runtime-Version\":n.version};return{\"X-Stainless-Lang\":\"js\",\"X-Stainless-Package-Version\":FI,\"X-Stainless-OS\":\"Unknown\",\"X-Stainless-Arch\":\"unknown\",\"X-Stainless-Runtime\":\"unknown\",\"X-Stainless-Runtime-Version\":\"unknown\"}};function re(){if(typeof navigator>\"u\"||!navigator)return null;let e=[{key:\"edge\",pattern:/Edge(?:\\W+(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?/},{key:\"ie\",pattern:/MSIE(?:\\W+(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?/},{key:\"ie\",pattern:/Trident(?:.*rv\\:(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?/},{key:\"chrome\",pattern:/Chrome(?:\\W+(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?/},{key:\"firefox\",pattern:/Firefox(?:\\W+(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?/},{key:\"safari\",pattern:/(?:Version\\W+(\\d+)\\.(\\d+)(?:\\.(\\d+))?)?(?:\\W+Mobile\\S*)?\\W+Safari/}];for(let{key:n,patte",
+        "excerpt_sha256": "2ab8d54f532f573bd8bf4a0056780f4a3d34305234ceb973fb091a8dde4bb45d"
+      },
+      {
+        "contract": "SDK default Anthropic API version",
+        "byte_offset": 288688349,
+        "excerpt": "th.trunc(n.timeout/1000))}:{},...NMr(),...this._options.dangerouslyAllowBrowser?{\"anthropic-dangerous-direct-browser-access\":\"true\"}:void 0,\"anthropic-version\":\"2023-06-01\"},await this.authHeaders(n),this._options.defaultHeaders,s,n.headers]);return this.validateHeaders(y),y.values}_makeAbort(n){return()=>n.abort()}buildBody({options:{body:n,headers:r}}){if(!n)return{bodyHeader",
+        "excerpt_sha256": "407848ba337f617897722e78bec8c650ace10780a413aac073a2c799b9f46873"
+      },
+      {
+        "contract": "CLAUDE_AI_AUTHORIZE_URL:\"https://claude.com/cai/oauth/authorize\"",
+        "byte_offset": 283184579,
+        "excerpt": "t){return L([...czt(),...pHo(t)])}var o={BASE_API_URL:\"https://api.anthropic.com\",CONSOLE_AUTHORIZE_URL:\"https://platform.claude.com/oauth/authorize\",CLAUDE_AI_AUTHORIZE_URL:\"https://claude.com/cai/oauth/authorize\",CLAUDE_AI_ORIGIN:\"https://claude.ai\",TOKEN_URL:\"https://platform.claude.com/v1/oauth/token\",API_KEY_URL:\"https://api.anthropic.com/api/oauth/claude_cli/create_api_key\",ROLES_URL:\"https://api.anthropic.com/api/oauth/claude_cli/roles\",CONSOLE_SUCCESS_URL:\"https://platform.claude.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code\",CLAUDEAI_SUCCESS_URL:\"https://platform.c",
+        "excerpt_sha256": "1484778394ce4e12d8b024b1ba96983eb6e462c96a06470fa839db169d430c35"
+      },
+      {
+        "contract": "TOKEN_URL:\"https://platform.claude.com/v1/oauth/token\"",
+        "byte_offset": 283184681,
+        "excerpt": "L:\"https://platform.claude.com/oauth/authorize\",CLAUDE_AI_AUTHORIZE_URL:\"https://claude.com/cai/oauth/authorize\",CLAUDE_AI_ORIGIN:\"https://claude.ai\",TOKEN_URL:\"https://platform.claude.com/v1/oauth/token\",API_KEY_URL:\"https://api.anthropic.com/api/oauth/claude_cli/create_api_key\",ROLES_URL:\"https://api.anthropic.com/api/oauth/claude_cli/roles\",CONSOLE_SUCCESS_URL:\"https://platform.claude.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code\",CLAUDEAI_SUCCESS_URL:\"https://platform.claude.com/oauth/code/success?app=claude-code\",MANUAL_REDIRECT_URL:\"https://platform.claude.com/oauth/c",
+        "excerpt_sha256": "2ee154b65c7bcebddd34a6c4b5c7ecb62ecac4218006bfe5514dec71d22129e4"
+      },
+      {
+        "contract": "inline_tools",
+        "byte_offset": 285450205,
+        "excerpt": ",\"timing-2026-09-09\"),rw=P(\"mid_conv_tool_change\",\"mid-conversation-tool-changes-2026-07-01\"),bS=P(\"inline_tools\",\"inline-tools-2026-09-15\"),Uz=P(\"server_side_fallback\",\"server-side-fallback-2026-06-01\"),ex=P(\"program_use_case_ids\",\"program-use-case-ids-2026-09-17\"),gk=P(\"server_side_fallback_category\",\"server-side-fallback-2026-07-01\"),uV=P(\"fallback_credit\",\"fallback-credit-2026-06-01\"),lNr=P(\"mid_conv_cache_promotion_latch\",\"x-cc-internal-mid-conv-cache-promotion\"),yFs=P(\"mid_conv_cache_promotion_ok_latch\",\"x-cc-internal-mid-conv-cache-promotion-ok\"),Ddn=null,_Fs=P(\"auto_mode_classifier\",\"auto-mode-classifier-2026-07-16\"),Axe=P(\"claude_code_side_query\",\"claude-code-side-query-2026-09-29\"),DE=P(\"dangerous_tool_use\",\"dangerous-tool-use-2026-09-03\"),Id=null,vwe=P(\"thinking_display_updates\",\"thinking-display-updates-2026-08-18\"),bFs=Od(\"thinking_display\"),fV=P(\"thinking_binding_controls\",\"thinking-binding-controls-2026-08-01\"),vL=P(\"message_threads\",\"message-threads-2026-08-12\"),wY=P(\"mid_conversation_system_clear_at\",\"mid-conversation-system-clear-at-2026-08-21\"),SFs=Object.freeze([Pdn,Qtt,qzn,Kv,Ewe,i7,aPo,Idn,iSt,kwe,aNr,iFe,Ztt,wL,Odn,M1t,Yzn,ent,Uj,Fz,tnt,D1t,lPo,Xzn,$z,hFs,Mdn,EL,kL,cV,L3,rw,bS,Uz,ex,gk,uV,Ddn,_Fs,Axe,DE,Id,vwe,vL,wY,fV].filter((e)=>e!==null)),dPo=new Set([Q",
+        "excerpt_sha256": "7665fcc28a9af001e699406e29b31870ae4ae4e76cbb8562d6fc27bacc763b1c"
+      },
+      {
+        "contract": "claude-cli/${",
+        "byte_offset": 286596257,
+        "excerpt": "st(n)?n:void 0,caCerts:uEt(ule(s)),timeoutMs:r,helperClock:void 0,attempt:y,statusOnlyAs:`claude-cli/${{ISSUES_EXPLAINER:\"report the issue at https://github.com/anthropics/claude-code/issues\",PACKAGE_URL:\"@anthropic-ai/claude-code\",README_URL:\"https://code.claude.com/docs/en/overview\",VERSION:\"2.1.322\",FEEDBACK_CHANNEL:\"https://github.com/anthropics/claude-code/issues\",BUILD_TIME:\"2026-11-10T00:15:08Z\",GIT_SHA:\"660928a5946898d0c8d3488f20dd9b0b2da4ec09\",HOOKS_WORKER_URL:\"/$bunfs/root/src/plugins/functionHooks/hooks-worker/hooks-worker.js\",DD_SOURCEMAP_GROUP:\"default\"}.VERSION} (external, ${fjr})`}).catch((w)=>({unanswered:y.timedOut?Qi:yu(w)}));if(\"unanswered\"in S)return S;if(YAo(S.",
+        "excerpt_sha256": "3a90add2fe264a570029a91972a0e9fe65bfe62f1278420534ad1f89864931b2"
+      }
+    ]
+  },
+  "official_documents": [
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages.md",
+      "resolved_url": "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages.md",
+      "status": 200,
+      "captured_at": "2026-11-12T07:58:07.850542+00:00",
+      "bytes": 117757,
+      "sha256": "c0ab688bd9606d769ee6a1917116f5484f5911420b12cfac4b7598beeba968b8",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/mid-conversation-system-messages.md"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking.md",
+      "resolved_url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking.md",
+      "status": 200,
+      "captured_at": "2026-11-12T07:58:08.126744+00:00",
+      "bytes": 138848,
+      "sha256": "42c7fe2cb24764274b93c202992d2bd4d614cd3e8989efd70a83cf823cd7a64e",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/preserved-thinking.md"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md",
+      "resolved_url": "https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md",
+      "status": 200,
+      "captured_at": "2026-11-12T07:58:08.407267+00:00",
+      "bytes": 23962,
+      "sha256": "3c7d00134b5c61cd1462c2952e5f7ec4b2724a8f5a420a7a905fa3bceed2efb8",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/extended-thinking.md"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool.md",
+      "resolved_url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool.md",
+      "status": 200,
+      "captured_at": "2026-11-12T07:58:08.657278+00:00",
+      "bytes": 42912,
+      "sha256": "65e4cb11d403205e2590d5c2b5323106c668a543d43ef51d9b1dd81660fd2ff5",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/advanced-tool-use.md"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/api/versioning.md",
+      "resolved_url": "https://platform.claude.com/docs/en/api/versioning.md",
+      "status": 200,
+      "captured_at": "2026-11-12T07:58:08.844322+00:00",
+      "bytes": 4744,
+      "sha256": "ac2daea9934f9d1519d7a53bab26a283d2651331f3b33c90157ac89a049306d8",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/api-versioning.md"
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/effort-per-message.md",
+      "status": 200,
+      "captured_at": "2026-11-12T08:04:50.562664+00:00",
+      "local_file": "/workspace/scratch/client-refresh-20261112/claude/effort-per-message.md",
+      "bytes": 22557,
+      "sha256": "a278b614c11cf4dad8822cfbaaa8d935776a4a6f3e372bb4a3cc8e01b9d98b4b"
+    }
+  ],
+  "stable_mid_conversation_system_support": {
+    "source_url": "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages.md",
+    "source_sha256": "c0ab688bd9606d769ee6a1917116f5484f5911420b12cfac4b7598beeba968b8",
+    "frontmatter_models": [
+      "claude-fable-5-2",
+      "claude-mythos-5-2",
+      "claude-fable-5-1",
+      "claude-mythos-5-1",
+      "claude-fable-5",
+      "claude-mythos-5",
+      "claude-mythos-preview",
+      "claude-opus-5-5",
+      "claude-opus-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+      "claude-opus-4-8"
+    ],
+    "recommended_exact_stable_model_ids": [
+      "claude-fable-5-2",
+      "claude-mythos-5-2",
+      "claude-fable-5-1",
+      "claude-mythos-5-1",
+      "claude-fable-5",
+      "claude-mythos-5",
+      "claude-opus-5-5",
+      "claude-opus-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+      "claude-opus-4-8"
+    ],
+    "scope": "Canonical native Anthropic Claude/API-key transports only; no inferred reseller support.",
+    "explicitly_unsupported": "claude-sonnet-5",
+    "preview_ambiguity": "Frontmatter also lists claude-mythos-preview, while the narrative availability note omits it; exclude it from the new stable exact allowlist unless separate primary evidence resolves that discrepancy.",
+    "helper_policy": "Preserve unflagged role:system history for exact named supported models. Explicit recognized beta opt-ins remain usable independently. Do not infer broad model-family/provider compatibility. Preserve beta-dependent fields and propagate original upstream validation errors.",
+    "still_beta": {
+      "per_message_output_config": "mid-conversation-output-config-2026-07-01",
+      "system_clear_at": "mid-conversation-system-clear-at-2026-08-21",
+      "inline_tool_changes": "inline-tools-2026-09-15",
+      "legacy_reference_tool_changes": "mid-conversation-tool-changes-2026-07-01",
+      "mcp_inline_additions_additional_beta": "mcp-client-2026-09-15",
+      "thinking_block_binding": "thinking-binding-controls-2026-08-01"
+    }
+  },
+  "api_version_migration": {
+    "newest_documented": "2026-10-21",
+    "selected_wire_contract": "2023-06-01",
+    "reason": "Native2.1.322 still uses2023-06-01. The newer API date removes temperature/top_p/top_k, rejects assistant document blocks and user citations; a global date change is a breaking migration rather than an app release bump.",
+    "new_version_literal_seen_in_native": false
+  },
+  "beta_pairing_repair": {
+    "new_regressions_initial": {
+      "cases": 8,
+      "failed_before": 7,
+      "passed_before": 1,
+      "log": {
+        "local_file": "/workspace/scratch/client-refresh-20261112/claude/beta-before.log",
+        "bytes": 16780,
+        "sha256": "a47f70292cac974e9801d3b097ffbeca1f042dc7a3117033aef51b7ce4be9a20"
+      }
+    },
+    "final_new_cases": 9,
+    "behavior": [
+      "Explicit caller capability flags cannot be dropped by a connection denylist or a rejected-beta retry.",
+      "Request-body-dependent configured flags cannot be removed while their fields remain.",
+      "Unrelated optional defaults still self-heal and remain connection-scoped.",
+      "Required-feature rejections return the original response without retry or denylist poisoning.",
+      "Only exact HTTPS api.anthropic.com failures may update first-party beta-rejection state; lookalike endpoints do not.",
+      "Native API-key route retains its original rejection behavior."
+    ],
+    "existing_test_updated": "claude-request-header-contract formerly asserted the documented bug (erasing an explicit incoming flag); it now asserts original400/oneattempt and preserved later opt-in. Optional per-account cache isolation is separately asserted.",
+    "changed_files": [
+      "open-sse/config/claudeBetaCapabilities.js",
+      "open-sse/providers/shared.js",
+      "open-sse/executors/default.js",
+      "tests/unit/claude-required-beta-pairing.test.js",
+      "tests/unit/claude-request-header-contract.test.js"
+    ]
+  },
+  "limits": [
+    "SHA512 integrity was verified against official npm metadata; this is not an independent SLSA/npm signature verification.",
+    "No native executable or install script was run; no live Anthropic credential, entitlement or cryptographic signature acceptance was tested.",
+    "SDK/API/beta and host metadata remain separate; app version alone does not establish them.",
+    "No invented billing metadata, account/device identity, signature material or account entitlement was added."
+  ],
+  "validation": {
+    "focused_beta_suites": {
+      "command": "npm test -- tests/unit/claude-required-beta-pairing.test.js tests/unit/anthropic-beta-flag-rejection.test.js tests/unit/anthropic-native-beta-passthrough.test.js",
+      "files": 3,
+      "passed": 25,
+      "failed": 0,
+      "exit_code": 0,
+      "log": {
+        "local_file": "/workspace/scratch/client-refresh-20261112/claude/beta-final.log",
+        "bytes": 14356,
+        "sha256": "a488a4f88e75993eb9db5f516f7b4dafbd183e6da3c83d3f30cc79981ed2ebe4"
+      }
+    },
+    "targeted_eslint": {
+      "exit_code": 0,
+      "log": {
+        "local_file": "/workspace/scratch/client-refresh-20261112/claude/lint.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "source_hashes": [
+      {
+        "path": "open-sse/config/claudeBetaCapabilities.js",
+        "sha256": "5ae0ec4af1c5ffc268639612cea717e55e36ccbf2cb46391aae0b34579d82433"
+      },
+      {
+        "path": "open-sse/providers/shared.js",
+        "sha256": "5412e9572dc67529424d9c86e3a90885228f3a83be9ec97c3d4209933f7cfee8"
+      },
+      {
+        "path": "open-sse/executors/default.js",
+        "sha256": "5d8f477a5c118f29b47c8963c5f174f848a7426a49e03078c3ad093d8f7db8b3"
+      },
+      {
+        "path": "tests/unit/claude-required-beta-pairing.test.js",
+        "sha256": "c31a61ea3fd4fbc0d4225c539b986f616993eb33d029feb9098a326e15c15eb0"
+      },
+      {
+        "path": "tests/unit/claude-request-header-contract.test.js",
+        "sha256": "15e85fb70b9e024c7ddfca623c842ac35d4da8b4bd2b00b470b1450002f4e022"
+      }
+    ],
+    "note": "Root integration owns central pins and full exact-source gates; this group receipt does not substitute for them."
+  }
+}

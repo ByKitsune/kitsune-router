@@ -94,6 +94,12 @@ reloads also reported none. No hydration warning suppression or speculative
 runtime change was introduced. This records a non-reproduced observation rather
 than claiming its cause was fixed; the final receipt preserves both runs.
 
+**November 12 follow-up:** the cause is now reproduced with a delayed real React
+hydration region and repaired using explicit hydration boundaries. The original
+November 11 observations above remain unchanged. See
+[audit37](37-client-compatibility-completion-2026-11-12.md#hydration-follow-up) and
+[the causal receipt](data/hydration-followup-20261112.json).
+
 ## Security and evidence boundaries
 
 Authentication, logout cache invalidation, credential handling, API validation,

@@ -5,6 +5,7 @@ import { platform, arch } from "os";
 import { ANTIGRAVITY_OAUTH_CLIENT, GOOGLE_OAUTH_CLIENT } from "open-sse/providers/shared.js";
 import { PROVIDER_OAUTH, PROVIDERS as REGISTRY_PROVIDERS } from "open-sse/providers/index.js";
 import { TRAE_APP_VERSION, TRAE_USER_AGENT } from "open-sse/config/clientVersions.js";
+import { GEMINI_CLI_CLIENT_METADATA } from "open-sse/config/googleClientMetadata.js";
 
 /**
  * Get the platform enum value based on the current OS.
@@ -28,6 +29,11 @@ export const CODEX_CONFIG = { ...PROVIDER_OAUTH["codex"] };
 // Gemini (Google) OAuth Configuration (Standard OAuth2)
 // clientId/clientSecret from GOOGLE_OAUTH_CLIENT (shared.js) — not stored in registry
 export const GEMINI_CONFIG = { ...GOOGLE_OAUTH_CLIENT, ...PROVIDER_OAUTH["gemini-cli"] };
+
+// Code Assist's terminal metadata does not identify as the Antigravity IDE.
+export function getGeminiOAuthClientMetadata() {
+  return { ...GEMINI_CLI_CLIENT_METADATA };
+}
 
 // Qoder OAuth Configuration (Device Token Flow with PKCE).
 // Device tokens are long-lived (~30 days for access, ~360 for refresh).

@@ -66,7 +66,10 @@ describe("native system replay boundaries", () => {
   it("keeps the legacy native fold without a recognized explicit opt-in", () => {
     for (const value of [undefined, `${beta}-extra`, `prefix-${beta}`]) {
       const body = makeBody();
-      const sent = normalizeClaudePassthrough(body, model, { "anthropic-beta": value }, "claude");
+      // Sonnet 4.6 remains outside the documented stable model set. Opus 5.5
+      // now retains ordinary system entries without a beta on canonical routes.
+      body.model = "claude-sonnet-4-6";
+      const sent = normalizeClaudePassthrough(body, body.model, { "anthropic-beta": value }, "claude");
       expect(sent.messages.map(message => message.role)).toEqual(["user"]);
       expect(sent.messages[0].content.map(block => block.text)).toEqual(["Solve the task.", "Use the new constraint."]);
     }

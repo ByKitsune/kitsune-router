@@ -60,6 +60,13 @@ export const RESPONSES_ITEM = {
   REASONING_TEXT: "reasoning_text",
 };
 
+export const RESPONSES_TOOL = {
+  FUNCTION: "function",
+  CUSTOM: "custom",
+  NAMESPACE: "namespace",
+  ALLOWED_TOOLS: "allowed_tools",
+};
+
 // Valid OpenAI block types (used by filterToOpenAIFormat).
 export const VALID_OPENAI_CONTENT_TYPES = [
   OPENAI_BLOCK.TEXT, OPENAI_BLOCK.IMAGE_URL, OPENAI_BLOCK.IMAGE, OPENAI_BLOCK.INPUT_AUDIO, OPENAI_BLOCK.AUDIO_URL, OPENAI_BLOCK.VIDEO_URL, OPENAI_BLOCK.INPUT_VIDEO, OPENAI_BLOCK.FILE,

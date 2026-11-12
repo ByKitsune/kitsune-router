@@ -1,9 +1,11 @@
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+import RuntimeI18nBoundary from "@/i18n/RuntimeI18nBoundary";
 import { Suspense } from "react";
 import { CardSkeleton } from "@/shared/components/Loading";
 import ProviderLimits from "../usage/components/ProviderLimits";
 import "../usage/usage.css";
 
-export default function QuotaPage() {
+function QuotaPage() {
   return (
     <div className="quota-workspace w-full min-w-0 space-y-6">
       <div className="page-heading">
@@ -13,8 +15,10 @@ export default function QuotaPage() {
         </div>
       </div>
       <Suspense fallback={<CardSkeleton />}>
-        <ProviderLimits />
+        <RuntimeI18nBoundary><ProviderLimits /></RuntimeI18nBoundary>
       </Suspense>
     </div>
   );
 }
+
+export default withRuntimeI18nPage(QuotaPage);

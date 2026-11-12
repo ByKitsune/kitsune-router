@@ -207,6 +207,13 @@ and tool-turn replay.
 
 ## Remaining audit work and evidence limits
 
+**November 12 follow-up:** the OAuth capability/header pairing, documented
+stable canonical system-message policy and Responses long-name replay follow-ups
+listed below are now implemented and verified in
+[audit37](37-client-compatibility-completion-2026-11-12.md). The original November
+11 scope and results remain historical; cryptographic/account ownership,
+live-provider acceptance and whole-tracker evidence limits still apply.
+
 - Existing Claude OAuth rejected-beta self-healing can remove a mandatory
   feature beta while retaining its dependent fields. This patch preserves that
   established retry policy; a follow-up should distinguish optional defaults

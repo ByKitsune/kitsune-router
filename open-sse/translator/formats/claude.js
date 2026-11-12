@@ -6,7 +6,7 @@ import { PROVIDERS } from "../../providers/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { isDeepSeekModel } from "../../providers/models/helpers.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
-import { CLAUDE_SYSTEM_MESSAGE_BETAS } from "../../config/claudeMessages.js";
+import { CLAUDE_SYSTEM_MESSAGE_BETAS, CLAUDE_STABLE_SYSTEM_MESSAGE_MODELS } from "../../config/claudeMessages.js";
 import { applyAssistantPrefillPolicy } from "../concerns/assistantPrefillPolicy.js";
 import { getThinkingContext, setThinkingContext, reconcileClaudeThinkingBudget, supportsClaudeManualInterleaving } from "../concerns/thinking.js";
 import { validateClaudeThinkingBinding } from "../concerns/thinkingUnified.js";
@@ -14,8 +14,9 @@ import { validateClaudeThinkingBinding } from "../concerns/thinkingUnified.js";
 const CACHE_CONTROL_5M = { type: "ephemeral" };
 const CACHE_CONTROL_1H = { type: "ephemeral", ttl: "1h" };
 
-function preservesClaudeSystemMessages(rawHeaders, provider) {
+function preservesClaudeSystemMessages(rawHeaders, provider, model) {
   if (provider && provider !== "claude" && provider !== "anthropic") return false;
+  if ((provider === "claude" || provider === "anthropic") && CLAUDE_STABLE_SYSTEM_MESSAGE_MODELS.has(model)) return true;
   const value = typeof rawHeaders?.get === "function" ? rawHeaders.get("anthropic-beta")
     : Object.entries(rawHeaders || {}).find(([key]) => key.toLowerCase() === "anthropic-beta")?.[1];
   return String(value || "").split(",").some(token => CLAUDE_SYSTEM_MESSAGE_BETAS.has(token.trim()));
@@ -271,11 +272,11 @@ function applyClaudeModelRestrictions(body, model, provider = null) {
 // Newer Cowork/Claude Code clients emit beta-only shapes that OAuth endpoints reject:
 // 1. thinking.type "adaptive" → unsupported on legacy/unverified Haiku routes
 // 2. output_config.effort → unsupported on those same Haiku routes
-// 3. Legacy routes fold role "system" messages; explicit native feature opt-ins
-//    retain their positions and fields for preserved-thinking continuity.
+// 3. Legacy routes fold role "system" messages; documented stable canonical
+//    models and explicit native opt-ins retain history and prefix continuity.
 export function normalizeClaudePassthrough(body, model = "", rawHeaders = null, provider = null) {
   if (!body || typeof body !== "object") return body;
-  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider);
+  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider, model || body.model);
   const adaptiveUnsupported = isAdaptiveThinkingUnsupported(model || body.model, provider);
 
   // 1. Downgrade adaptive thinking for models that don't support it
@@ -581,7 +582,7 @@ export function hoistToolResultImages(body) {
 // - Fix tool_use/tool_result ordering
 export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null) {
   if (provider === "claude") validateClaudeThinkingContinuity(body);
-  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider);
+  const preserveSystemMessages = preservesClaudeSystemMessages(rawHeaders, provider, body.model);
   const modelCaps = applyClaudeModelRestrictions(body, body.model, provider);
   // quirk: MiniMax's Claude-compatible endpoint rejects Anthropic's output_config (400 invalid params)
   if (PROVIDERS[provider]?.quirks?.dropOutputConfig) {

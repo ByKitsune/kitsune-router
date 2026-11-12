@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,7 +9,7 @@ import { ArrowUpRight, ShieldCheck, Workflow, ChartNoAxesCombined } from "lucide
 import ThemeToggle from "@/shared/components/ThemeToggle";
 import { BRAND } from "../../../branding/identity.mjs";
 
-export default function LoginPage() {
+function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [resetHint, setResetHint] = useState("");
@@ -338,3 +340,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(LoginPage);

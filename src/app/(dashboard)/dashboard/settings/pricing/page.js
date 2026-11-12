@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "../../profile/operations.css";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -7,7 +9,7 @@ import { translate } from "@/i18n/runtime";
 import Card from "@/shared/components/Card";
 import PricingModal from "@/shared/components/PricingModal";
 
-export default function PricingSettingsPage() {
+function PricingSettingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [currentPricing, setCurrentPricing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -182,3 +184,5 @@ export default function PricingSettingsPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(PricingSettingsPage);

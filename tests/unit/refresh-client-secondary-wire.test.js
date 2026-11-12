@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { arch, platform, release } from "node:os";
 
 vi.mock("../../open-sse/utils/proxyFetch.js", () => ({ proxyAwareFetch: vi.fn() }));
 
@@ -26,6 +27,9 @@ const json = (body) => new Response(JSON.stringify(body), { headers: { "Content-
 const captured = () => proxyAwareFetch.mock.calls.map(([url, init]) => ({ url, ...init, headers: new Headers(init.headers) }));
 const lastRequest = () => captured().at(-1);
 const stringField = (message, field) => Buffer.from(message.get(field)[0].value).toString("utf8");
+const grokHost = ({ darwin: "macos", win32: "windows", sunos: "solaris" })[platform()] || platform();
+const grokArch = ({ x64: "x86_64", ia32: "x86", arm64: "aarch64", ppc64: "powerpc64", loong64: "loongarch64" })[arch()] || arch();
+const expectedGrokUA = `grok-pager/1.0.77 grok-shell/1.0.77 (${grokHost}; ${grokArch})`;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,7 +44,8 @@ afterEach(() => {
 });
 
 // Literal publisher expectations: secondary-clients/{REPORT.md,survey.json}
-// captures 2026-10-21, with VS Code/Copilot and Zed rechecked 2026-10-31.
+// captures 2026-10-21; VS Code/Copilot was rechecked on 2026-11-12.
+// Other providers retain their separately reviewed source dates.
 // Keep real consumers below the network boundary so these
 // catch stale headers, accidental desktop/SDK coupling and employee-only claims.
 describe("secondary release identities at their outbound boundaries", () => {
@@ -50,9 +55,9 @@ describe("secondary release identities at their outbound boundaries", () => {
     await refreshCopilotToken("fixture-service-token");
     expect(captured()).toHaveLength(2);
     for (const request of captured()) {
-      expect(request.headers.get("user-agent")).toBe("GitHubCopilotChat/0.72.0");
-      expect(request.headers.get("editor-version")).toBe("vscode/1.144.0");
-      expect(request.headers.get("editor-plugin-version")).toBe("copilot-chat/0.72.0");
+      expect(request.headers.get("user-agent")).toBe("GitHubCopilotChat/0.74.0");
+      expect(request.headers.get("editor-version")).toBe("vscode/1.146.0");
+      expect(request.headers.get("editor-plugin-version")).toBe("copilot-chat/0.74.0");
       expect(request.headers.get("x-github-api-version")).toBe("2025-04-01");
     }
   });
@@ -60,7 +65,7 @@ describe("secondary release identities at their outbound boundaries", () => {
   it("builds Cursor's stable public identity with the verified Connect SDK and unchanged checksum cipher", () => {
     vi.spyOn(Date, "now").mockReturnValue(0);
     const headers = new Headers(new CursorExecutor().buildHeaders({ accessToken: "fixture-token", providerSpecificData: { machineId: "caller-machine", ghostMode: false } }));
-    expect(headers.get("x-cursor-client-version")).toBe("3.24.18");
+    expect(headers.get("x-cursor-client-version")).toBe("3.29.15");
     expect(headers.get("user-agent")).toBe("connect-es/1.6.1");
     expect(headers.get("authorization")).toBe("Bearer fixture-token");
     expect(headers.get("x-cursor-checksum")).toBe("paaoq6-0caller-machine");
@@ -83,49 +88,49 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect(result).toEqual({ models: [{ id: "m", name: "m" }] });
     const request = lastRequest();
     expect(new URL(request.url).pathname).toBe("/agent.v1.AgentService/GetUsableModels");
-    expect(request.headers.get("x-cursor-client-version")).toBe("3.24.18");
+    expect(request.headers.get("x-cursor-client-version")).toBe("3.29.15");
     expect(request.headers.get("user-agent")).toBe("connect-es/1.6.1");
     expect(request.headers.has("x-cursor-client-commit")).toBe(false);
     expect(request.headers.get("authorization")).toBe("Bearer fixture-cursor-token");
   });
 
-  it("updates Kiro's catalog IDE identity without guessing a new SDK, Node or host fingerprint", async () => {
+  it("updates Kiro's catalog IDE identity with the actual gateway host/runtime and independent retained SDK", async () => {
     proxyAwareFetch.mockResolvedValue(json({ models: [{ modelId: "fixture-model", modelName: "Fixture" }] }));
     const result = await resolveKiroModels({ accessToken: "fixture-kiro-token", providerSpecificData: { clientId: "caller-client-id" } }, { forceRefresh: true });
     expect(result.models).toContainEqual(expect.objectContaining({ id: "fixture-model" }));
     const request = lastRequest();
-    expect(request.headers.get("user-agent")).toBe("aws-sdk-js/3.0.0 ua/2.1 os/windows#10.0.26200 lang/js md/nodejs#22.21.1 api/codewhispererruntime#3.0.0 m/N,E KiroIDE-1.4.13-c9030f14ac6eaa0395ffcf3800da77134fca403280eb3b6c5f28569b5ba4e939");
-    expect(request.headers.get("x-amz-user-agent")).toBe("aws-sdk-js/3.0.0 KiroIDE-1.4.13-c9030f14ac6eaa0395ffcf3800da77134fca403280eb3b6c5f28569b5ba4e939");
+    expect(request.headers.get("user-agent")).toBe(`aws-sdk-js/3.0.0 ua/2.1 os/${platform()}#${release()} lang/js md/nodejs#${process.versions.node} api/codewhispererruntime#3.0.0 m/N,E KiroIDE-1.4.154-c9030f14ac6eaa0395ffcf3800da77134fca403280eb3b6c5f28569b5ba4e939`);
+    expect(request.headers.get("x-amz-user-agent")).toBe("aws-sdk-js/3.0.0 KiroIDE-1.4.154-c9030f14ac6eaa0395ffcf3800da77134fca403280eb3b6c5f28569b5ba4e939");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-kiro-token");
     const runtime = new Headers(new DefaultExecutor("kiro").buildHeaders({ accessToken: "fixture-kiro-token" }));
-    expect(runtime.get("user-agent")).toBe("AWS-SDK-JS/3.0.0 kiro-ide/1.4.13");
-    expect(runtime.get("x-amz-user-agent")).toBe("aws-sdk-js/3.0.0 KiroIDE-1.4.13");
+    expect(runtime.get("user-agent")).toBe("AWS-SDK-JS/3.0.0 kiro-ide/1.4.154");
+    expect(runtime.get("x-amz-user-agent")).toBe("aws-sdk-js/3.0.0 KiroIDE-1.4.154");
   });
 
   it("pairs Grok's stable runtime and catalog release while preserving its native output cap", async () => {
     await new GrokCliExecutor().execute({ model: "grok-build", body: { input: [{ role: "user", content: "fixture" }], max_output_tokens: 37 }, stream: true, credentials: { accessToken: "fixture-grok-token", providerSpecificData: { deviceId: "caller-device" } } });
     const runtime = lastRequest();
-    expect(runtime.headers.get("user-agent")).toBe("grok-pager/1.0.62 grok-shell/1.0.62 (linux; x86_64)");
-    expect(runtime.headers.get("x-grok-client-version")).toBe("1.0.62");
+    expect(runtime.headers.get("user-agent")).toBe(expectedGrokUA);
+    expect(runtime.headers.get("x-grok-client-version")).toBe("1.0.77");
     expect(runtime.headers.get("x-grok-client-identifier")).toBe("grok-shell");
     expect(JSON.parse(runtime.body).max_output_tokens).toBe(37);
     proxyAwareFetch.mockResolvedValue(json({ models: [{ id: "fixture-model" }] }));
     expect((await resolveGrokCliModels({ accessToken: "fixture-grok-token" })).models).toContainEqual(expect.objectContaining({ id: "fixture-model" }));
-    expect(lastRequest().headers.get("user-agent")).toBe("grok-pager/1.0.62 grok-shell/1.0.62 (linux; x86_64)");
-    expect(lastRequest().headers.get("x-grok-client-version")).toBe("1.0.62");
+    expect(lastRequest().headers.get("user-agent")).toBe(expectedGrokUA);
+    expect(lastRequest().headers.get("x-grok-client-version")).toBe("1.0.77");
   });
 
   it("uses Grok's stable release for the OAuth profile and billing probes without asserting paid access", async () => {
     fetch.mockResolvedValue(json({ userId: "fixture-user" }));
     await grokOAuth.postExchange({ access_token: "fixture-grok-token" });
     const oauthHeaders = new Headers(fetch.mock.calls[0][1].headers);
-    expect(oauthHeaders.get("user-agent")).toBe("grok-pager/1.0.62 grok-shell/1.0.62 (linux; x86_64)");
-    expect(oauthHeaders.get("x-grok-client-version")).toBe("1.0.62");
+    expect(oauthHeaders.get("user-agent")).toBe(expectedGrokUA);
+    expect(oauthHeaders.get("x-grok-client-version")).toBe("1.0.77");
     proxyAwareFetch.mockImplementation(async (url) => url.includes("/billing") ? json({ config: { creditUsagePercent: 25 } }) : json({ userId: "fixture-user" }));
     await getGrokCliUsage("fixture-grok-token");
     const billing = captured().find(request => new URL(request.url).pathname === "/v1/billing");
-    expect(billing.headers.get("user-agent")).toBe("grok-pager/1.0.62 grok-shell/1.0.62 (linux; x86_64)");
-    expect(billing.headers.get("x-grok-client-version")).toBe("1.0.62");
+    expect(billing.headers.get("user-agent")).toBe(expectedGrokUA);
+    expect(billing.headers.get("x-grok-client-version")).toBe("1.0.77");
     expect(billing.headers.get("authorization")).toBe("Bearer fixture-grok-token");
   });
 
@@ -141,15 +146,15 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect([...metadata.keys()]).toEqual([1, 2, 3, 4, 5, 6]);
     expect(stringField(metadata, 1)).toBe("fixture-windsurf-token");
     expect(stringField(metadata, 2)).toBe("windsurf");
-    expect(stringField(metadata, 3)).toBe("3.10.67");
+    expect(stringField(metadata, 3)).toBe("3.12.43");
     expect(stringField(metadata, 5)).toMatch(/^[0-9a-f-]{36}$/);
     expect(stringField(metadata, 6)).toBe("en-US");
-    expect(request.headers.get("user-agent")).toBe("windsurf/3.10.67");
+    expect(request.headers.get("user-agent")).toBe("windsurf/3.12.43");
     expect(request.headers.get("authorization")).toBe("Bearer fixture-windsurf-token");
     expect(PROVIDERS.windsurf).toBeUndefined();
   });
 
-  it.each([[undefined, "1.26.2"], ["caller-app-version", "caller-app-version"]])("sends Zed's release fallback without overwriting configured appVersion %s", async (override, expected) => {
+  it.each([[undefined, "1.28.1"], ["caller-app-version", "caller-app-version"]])("sends Zed's release fallback without overwriting configured appVersion %s", async (override, expected) => {
     proxyAwareFetch.mockImplementation(async (url) => {
       if (url.endsWith("/client/llm_tokens")) return json({ token: "fixture-llm-token" });
       if (url.endsWith("/models")) return json({ models: [{ id: "fixture-grok", provider: "XAi" }] });
@@ -184,15 +189,15 @@ describe("secondary release identities at their outbound boundaries", () => {
     expect(result.providerSpecificData.userId).toBe("fixture-user");
     const requests = captured();
     expect(requests).toHaveLength(2);
-    expect(requests[0].headers.get("user-agent")).toBe("qoder/1.1.81");
+    expect(requests[0].headers.get("user-agent")).toBe("qoder/1.1.87");
     expect(requests[0].headers.get("cosy-version")).toBe("1.0.0");
     expect(requests[0].headers.get("cosy-clienttype")).toBe("5");
     expect(JSON.parse(requests[0].body)).toEqual({ personal_token: "pt-secondary-refresh-fixture" });
-    expect(requests[1].headers.get("user-agent")).toBe("qoder/1.1.81");
+    expect(requests[1].headers.get("user-agent")).toBe("qoder/1.1.87");
     expect(requests[1].headers.get("authorization")).toBe("Bearer jt-fixture-job");
   });
 
-  it.each([[{}, "3.6.4"], [{ appVersion: "caller-version" }, "caller-version"]])("updates only Trae's inactive source fallback, respecting appVersion %j", async (specific, expected) => {
+  it.each([[{}, "3.6.13"], [{ appVersion: "caller-version" }, "caller-version"]])("updates only Trae's inactive source fallback, respecting appVersion %j", async (specific, expected) => {
     proxyAwareFetch.mockResolvedValue(json({ code: 0, data: { chat_session_id: "fixture-session", message_id: "fixture-message" } }));
     const executor = new TraeExecutor();
     executor.config = {}; // Exercise inactive serializer, not provider activation.

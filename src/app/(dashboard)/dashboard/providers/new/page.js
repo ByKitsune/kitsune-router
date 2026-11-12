@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -17,7 +19,7 @@ const authMethodOptions = Object.values(AUTH_METHODS).map((m) => ({
   label: m.name,
 }));
 
-export default function NewProviderPage() {
+function NewProviderPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -206,3 +208,5 @@ export default function NewProviderPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(NewProviderPage);

@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useParams, notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -126,7 +128,7 @@ function ComboList({ combos }) {
   );
 }
 
-export default function MediaProviderKindPage() {
+function MediaProviderKindPage() {
   const { kind } = useParams();
   const router = useRouter();
   const [connections, setConnections] = useState([]);
@@ -283,3 +285,5 @@ export default function MediaProviderKindPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(MediaProviderKindPage);

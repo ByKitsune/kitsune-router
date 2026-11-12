@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useParams, notFound, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -59,7 +61,7 @@ function getListingHref(kind) {
   return `/dashboard/media-providers/${kind}`;
 }
 
-export default function ComboDetailPage() {
+function ComboDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const [combo, setCombo] = useState(null);
@@ -399,3 +401,5 @@ export default function ComboDetailPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(ComboDetailPage);

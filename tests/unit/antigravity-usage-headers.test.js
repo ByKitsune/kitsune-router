@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const proxyAwareFetch = vi.fn(async (url, options) => {
   const headers = options.headers;
   const body = JSON.parse(options.body);
-  const accepted = headers["User-Agent"] === "antigravity/cli/1.4.0"
+  const accepted = headers["User-Agent"] === "antigravity/cli/1.5.6"
     && headers["X-Client-Name"] === "antigravity"
-    && headers["X-Client-Version"] === "1.4.0"
+    && headers["X-Client-Version"] === "1.5.6"
     && !headers["x-request-source"]
-    && (!url.endsWith(":loadCodeAssist") || body.metadata?.clientVersion === "1.4.0");
+    && (!url.endsWith(":loadCodeAssist") || body.metadata?.clientVersion === "1.5.6");
   if (!accepted) return new Response("Client identity rejected", { status: 404 });
   const result = url.endsWith(":loadCodeAssist")
     ? { cloudaicompanionProject: "project-1", currentTier: { name: "Pro" } }

@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "../profile/operations.css";
 
 import { Card, Badge } from "@/shared/components";
@@ -70,7 +72,7 @@ function SkillRow({ skill }) {
   );
 }
 
-export default function SkillsPage() {
+function SkillsPage() {
   return (
     <div className="operations-page">
       <div className="operations-heading">
@@ -130,3 +132,5 @@ export default function SkillsPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(SkillsPage);

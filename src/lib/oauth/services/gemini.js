@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { GEMINI_AUTH_USER_AGENT, GEMINI_CLI_API_CLIENT } from "open-sse/config/clientVersions.js";
 import open from "open";
-import { GEMINI_CONFIG, getOAuthClientMetadata } from "../constants/oauth.js";
+import { GEMINI_CONFIG, getGeminiOAuthClientMetadata } from "../constants/oauth.js";
 import { getServerCredentials } from "../config/index.js";
 import { startLocalServer, waitForCallbackParams } from "../utils/server.js";
 import { spinner as createSpinner } from "../utils/ui.js";
@@ -72,10 +72,9 @@ export class GeminiCLIService {
           "Content-Type": "application/json",
           "User-Agent": GEMINI_AUTH_USER_AGENT,
           "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
-          "Client-Metadata": JSON.stringify(getOAuthClientMetadata())
         },
         body: JSON.stringify({
-          metadata: getOAuthClientMetadata(),
+          metadata: getGeminiOAuthClientMetadata(),
           mode: 1
         })
       }

@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "./operations.css";
 
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
@@ -14,7 +16,7 @@ import { readDisplayLocale } from "@/shared/constants/locales";
 import LocaleBadge from "@/shared/components/LocaleBadge";
 import ObservabilityControl from "./ObservabilityControl";
 
-export default function ProfilePage() {
+function ProfilePage() {
   const { theme, setTheme, isDark } = useTheme();
   const locale = useSyncExternalStore(onLocaleChange, readDisplayLocale, () => "en");
   const [langOpen, setLangOpen] = useState(false);
@@ -1726,3 +1728,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(ProfilePage);

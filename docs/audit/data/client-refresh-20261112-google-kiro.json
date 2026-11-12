@@ -1,0 +1,420 @@
+{
+  "reviewDate": "2026-11-12",
+  "capturedAtUtc": "2026-11-12T08:06:52.096639+00:00",
+  "scope": [
+    "Gemini CLI and independent auth/GenAI SDKs",
+    "Antigravity IDE",
+    "Antigravity CLI",
+    "Kiro IDE",
+    "Kiro CLI and retained legacy SDK/runtime wire profile"
+  ],
+  "pinRecommendations": {
+    "GEMINI_CLI_VERSION": {
+      "before": "0.66.0",
+      "verified": "0.68.0"
+    },
+    "ANTIGRAVITY_IDE_VERSION": {
+      "before": "2.5.5",
+      "verified": "2.6.0"
+    },
+    "ANTIGRAVITY_CLI_VERSION": {
+      "before": "1.4.0",
+      "verified": "1.5.6"
+    },
+    "KIRO_IDE_VERSION": {
+      "before": "1.4.13",
+      "verified": "1.4.154"
+    },
+    "KIRO_CLI_VERSION": {
+      "before": "2.33.0",
+      "verified": "3.2.1"
+    }
+  },
+  "captures": [
+    {
+      "name": "gemini-npm",
+      "url": "https://registry.npmjs.org/@google/gemini-cli/latest",
+      "finalUrl": "https://registry.npmjs.org/@google/gemini-cli/latest",
+      "capturedAt": "2026-11-12T07:57:15.442926+00:00",
+      "status": 200,
+      "bytes": 2093,
+      "sha256": "cd54bcc4545027ec3fb031d60c198518ca38fae4fbde297ae41836dfc1812d20"
+    },
+    {
+      "name": "gemini-core-npm",
+      "url": "https://registry.npmjs.org/@google/gemini-cli-core/latest",
+      "finalUrl": "https://registry.npmjs.org/@google/gemini-cli-core/latest",
+      "capturedAt": "2026-11-12T07:57:15.443456+00:00",
+      "status": 200,
+      "bytes": 4547,
+      "sha256": "ddd13f368c82b66f873b2396a8e0eba94bdb0b6e1a6b3b80d98491eb66729965"
+    },
+    {
+      "name": "kiro-ide",
+      "url": "https://prod.download.desktop.kiro.dev/stable/metadata-win32-x64-user-stable.json",
+      "finalUrl": "https://prod.download.desktop.kiro.dev/stable/metadata-win32-x64-user-stable.json",
+      "capturedAt": "2026-11-12T07:57:15.443966+00:00",
+      "status": 200,
+      "bytes": 321,
+      "sha256": "7eba58d29113f610f88cd847337894521a2e62b29b8f6a03b5624ef193299a42"
+    },
+    {
+      "name": "kiro-cli",
+      "url": "https://prod.download.cli.kiro.dev/stable/latest/manifest.json",
+      "finalUrl": "https://prod.download.cli.kiro.dev/stable/latest/manifest.json",
+      "capturedAt": "2026-11-12T07:57:15.444389+00:00",
+      "status": 200,
+      "bytes": 7738,
+      "sha256": "69bef851d2897c1a69462938d4b2db41110c8c205d2c92f825baff2b62d89c2f"
+    },
+    {
+      "name": "antigravity-changelog",
+      "url": "https://antigravity.google/docs/changelog",
+      "finalUrl": "https://antigravity.google/docs/changelog",
+      "capturedAt": "2026-11-12T07:57:15.444803+00:00",
+      "status": 200,
+      "bytes": 1281458,
+      "sha256": "3c0443bc53cb14d6c2ef545015373074471cb93bcad3fb1304c461374ba02910"
+    },
+    {
+      "name": "antigravity-install",
+      "url": "https://antigravity.google/docs/install.md",
+      "finalUrl": "https://antigravity.google/docs/install.md",
+      "capturedAt": "2026-11-12T07:57:15.445195+00:00",
+      "status": 200,
+      "bytes": 13736,
+      "sha256": "922b8fc8e77f83cb6042411c5a6c7d9035be6fe11207b1798d6642805806f684"
+    },
+    {
+      "name": "antigravity-models",
+      "url": "https://antigravity.google/docs/models.md",
+      "finalUrl": "https://antigravity.google/docs/models.md",
+      "capturedAt": "2026-11-12T07:57:15.445552+00:00",
+      "status": 200,
+      "bytes": 3115,
+      "sha256": "010b9cf336623a15dea1cc18e4763ff0850cb8aa3f7242601e20fbae9657675b"
+    },
+    {
+      "name": "antigravity-download",
+      "url": "https://antigravity.google/download",
+      "finalUrl": "https://antigravity.google/download",
+      "capturedAt": "2026-11-12T07:57:15.446582+00:00",
+      "status": 200,
+      "bytes": 176608,
+      "sha256": "5d9b3784e13e802a37caeaaae97810a3cd7cd172c76b1cb69a4eeee83982c83e"
+    },
+    {
+      "name": "antigravity-ide-feed",
+      "url": "https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/releases",
+      "finalUrl": "https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/releases",
+      "capturedAt": "2026-11-12T07:57:42.729578+00:00",
+      "status": 200,
+      "bytes": 433,
+      "sha256": "d9353ea15ce45cc893ca63d8cd15a22b864a5f0cec1fc314a85224091c519bc1"
+    },
+    {
+      "name": "antigravity-app-feed",
+      "url": "https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/releases",
+      "finalUrl": "https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/releases",
+      "capturedAt": "2026-11-12T07:57:42.730308+00:00",
+      "status": 200,
+      "bytes": 2517,
+      "sha256": "019b6cee56b0af4c17b686ecee0ed72875007fa2b18bb77e622ea3335dfe7297"
+    },
+    {
+      "name": "antigravity-cli-installer",
+      "url": "https://antigravity.google/cli/install.sh",
+      "finalUrl": "https://antigravity.google/cli/install.sh",
+      "capturedAt": "2026-11-12T07:57:42.731034+00:00",
+      "status": 200,
+      "bytes": 7643,
+      "sha256": "62966c07365423bd4dc209355060744058fb30d60f5323e2d360e39de64e5042"
+    },
+    {
+      "name": "kiro-ide-linux",
+      "url": "https://prod.download.desktop.kiro.dev/stable/metadata-linux-x64-stable.json",
+      "finalUrl": "https://prod.download.desktop.kiro.dev/stable/metadata-linux-x64-stable.json",
+      "capturedAt": "2026-11-12T07:57:42.731440+00:00",
+      "status": 200,
+      "bytes": 820,
+      "sha256": "7732ef032e5d155b3dd72f000780a05d86ea6fbeee1b5556da8272db22f2a1d1"
+    },
+    {
+      "name": "kiro-docs",
+      "url": "https://kiro.dev/docs/cli/",
+      "finalUrl": "https://kiro.dev/docs/cli/",
+      "capturedAt": "2026-11-12T07:57:42.731792+00:00",
+      "status": 200,
+      "bytes": 253746,
+      "sha256": "d0c39d9934ae65469fa58348411e44653eed54bfd060ff05bdb4a44f4b5eaa70"
+    },
+    {
+      "name": "antigravity-cli-manifest",
+      "url": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "finalUrl": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "capturedAt": "2026-11-12T07:58:27.244631+00:00",
+      "status": 200,
+      "bytes": 301,
+      "sha256": "5fd32e6404f77e18c4c4e9e86e6f4336d674e3bd64f22d9852862be038b66fa4"
+    }
+  ],
+  "artifacts": {
+    "antigravity-cli": {
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.6-6212266538958848/linux-x64/cli_linux_x64.tar.gz",
+      "capturedAt": "2026-11-12T07:59:09.426519+00:00",
+      "bytes": 104223118,
+      "sha256": "408f902da6fce5a45ef777c246c182f6ef263eb155cc26548b910cdbc792dfd9",
+      "publisherSha512": "0c67824908caf9cc3156699802b8097f2fd02c4608ae9293c9aa7f17e1bcd342c4b9c2e158388253a37804ef6bd9c6b1d25cfaca3c07bbb7587378fc91839bb4",
+      "publisherSha512Verified": true
+    },
+    "antigravity-ide": {
+      "name": "antigravity-ide-artifact",
+      "url": "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/2.6.0-5526304964083712/linux-x64/Antigravity%20IDE.tar.gz",
+      "finalUrl": "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/2.6.0-5526304964083712/linux-x64/Antigravity%20IDE.tar.gz",
+      "capturedAt": "2026-11-12T07:58:27.246100+00:00",
+      "status": 200,
+      "bytes": 195292315,
+      "sha256": "b060a7c7679103b2b619752f8ee7a3088dd241a7d207d4311974b56ea6f94356"
+    },
+    "kiro-cli": {
+      "name": "kiro-cli-artifact",
+      "url": "https://prod.download.cli.kiro.dev/stable/3.2.1/kirocli-x86_64-linux.zip",
+      "finalUrl": "https://prod.download.cli.kiro.dev/stable/3.2.1/kirocli-x86_64-linux.zip",
+      "capturedAt": "2026-11-12T07:58:27.245179+00:00",
+      "status": 200,
+      "bytes": 139054258,
+      "sha256": "8338ea19e7065333e25e6f722c8d96c942d426bbc5335b01158ea72b6c4b978a",
+      "publisherSha256Verified": true
+    },
+    "kiro-ide": {
+      "name": "kiro-ide-artifact",
+      "url": "https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.4.154/tar/kiro-ide-1.4.154-stable-linux-x64.tar.gz",
+      "finalUrl": "https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.4.154/tar/kiro-ide-1.4.154-stable-linux-x64.tar.gz",
+      "capturedAt": "2026-11-12T07:58:27.245669+00:00",
+      "status": 200,
+      "bytes": 283301927,
+      "sha256": "bb3216504b4f482a67e0623b9f8e72280853ac54d419f002b1d7ad4039313c69"
+    },
+    "gemini-cli": {
+      "url": "https://registry.npmjs.org/@google/gemini-cli/-/gemini-cli-0.68.0.tgz",
+      "capturedAt": "2026-11-12T07:57:43.102072+00:00",
+      "bytes": 20975501,
+      "sha256": "325099ddcb56937c27d119e7297bfa8a5e29b529bae3c92fdf3b71a36d5fa006",
+      "integrity": "sha512-eq7AWY+YCijNGKVwyiRjN+GuOdXU/djuOZhX18p+HDmNyUqFdqH7C5V6vDJLl1uffhRPhGijePV+YvY8lymrbQ==",
+      "integrityVerified": true,
+      "version": "0.68.0"
+    },
+    "gemini-core": {
+      "url": "https://registry.npmjs.org/@google/gemini-cli-core/-/gemini-cli-core-0.68.0.tgz",
+      "capturedAt": "2026-11-12T07:57:45.213682+00:00",
+      "bytes": 11191284,
+      "sha256": "e5c9e297c721acdf89df21012ac88603a846cdb71bcc714950fe251d0d3ac025",
+      "integrity": "sha512-hmmzfgU/L/pkhB5/joYezs7k7w+2FoQXZPLRYEk5gpHuY1cxmg4NlNv1aT3b4PDWoQlIbn7tir2z/32nLujtuw==",
+      "integrityVerified": true,
+      "version": "0.68.0"
+    }
+  },
+  "gemini": {
+    "release": {
+      "tag": "v0.68.0",
+      "commit": "5a5c7180ff3f0a02511f54b54db7f228d4982a30",
+      "publishedAt": "2026-11-10T21:17:07Z",
+      "prerelease": false,
+      "capture": {
+        "localCapture": "/workspace/scratch/google-kiro-gemini-release.json",
+        "bytes": 11787,
+        "sha256": "05c2262b7b7eadac624f600b7f3d2d6357945339e3f1dfa8891102f827217865",
+        "url": "https://api.github.com/repos/google-gemini/gemini-cli/releases/latest"
+      },
+      "tagCapture": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/github-source-0.body",
+        "bytes": 354,
+        "sha256": "cd790f0bec67612bad5fe2e3d8845446982793539fc7b49eca80bc99f333c115",
+        "url": "https://api.github.com/repos/google-gemini/gemini-cli/git/ref/tags/v0.68.0"
+      }
+    },
+    "corePackage": {
+      "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/gemini-core-npm-extracted/package/package.json",
+      "bytes": 3829,
+      "sha256": "f1f7be62e4fa476eaaf9339c83807997f7bfcf14a2841b26c2b7bfcd2ce8b5ad"
+    },
+    "independentSdkFacts": {
+      "googleAuthLibrary": "10.9.0",
+      "googleGenAi": "1.30.0",
+      "changed": false,
+      "source": "Integrity-verified published @google/gemini-cli-core 0.68.0 package.json; API-key GenAI and OAuth Code Assist paths remain distinct."
+    },
+    "wireFacts": {
+      "oauthMetadata": {
+        "ideType": "IDE_UNSPECIFIED",
+        "platform": "PLATFORM_UNSPECIFIED",
+        "pluginType": "GEMINI"
+      },
+      "codeAssistApiVersion": "v1internal",
+      "runtimeApiClient": "gl-node/<actual executing Node version>",
+      "userAgent": "GeminiCLI/<verified release>/<resolved model> (<actual process.platform>; <actual process.arch>; terminal), with the retained google-auth-library interceptor token",
+      "metadataHeader": "No invented Client-Metadata header; metadata is the documented Code Assist body field."
+    },
+    "sources": [
+      {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/gemini-core-npm-extracted/package/dist/src/code_assist/setup.js",
+        "bytes": 10202,
+        "sha256": "40b5a5655fc9eb48f92b51983c024a6aef665c635e03de61c63ca6a1eadd405e"
+      },
+      {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/gemini-core-npm-extracted/package/dist/src/core/contentGenerator.js",
+        "bytes": 13056,
+        "sha256": "c2186041461251b03adbe0f37dc1a00252e72a81430105da11de806bb86e6565"
+      },
+      {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/gemini-core-npm-extracted/package/dist/src/code_assist/server.js",
+        "bytes": 14950,
+        "sha256": "3b1aa5b718059101e66c8224ee8feaf79c94e5d3b22ffb325e816823c14442ff"
+      },
+      {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/github-source-1.body",
+        "bytes": 10673,
+        "sha256": "7458ad844a4b907365ac36e9c8027e520376491a4f23a97fb010db8cc94ae64d",
+        "url": "https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.68.0/packages/core/src/code_assist/setup.ts"
+      },
+      {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/github-source-2.body",
+        "bytes": 13953,
+        "sha256": "6d2cfe5a460e2eebad4d106dd2b16207be7bf551b87516884e26552bee646e2e",
+        "url": "https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.68.0/packages/core/src/core/contentGenerator.ts"
+      }
+    ],
+    "companionRepair": "Gemini project lookup, onboarding, quota lookup and both OAuth implementations used Antigravity numeric IDE metadata. Added one terminal metadata profile and provider-scoped selection, preserving Antigravity independently. Raw architecture now remains actual arch rather than mapping ia32 to an invented x86 token.",
+    "changelogDispositions": [
+      {
+        "item": "CodeAssistServer flushes final SSE event at EOF",
+        "decision": "Gateway SSE parsing already has independent terminal/fragment handling; no CLI parser copy or unmeasured speed claim."
+      },
+      {
+        "item": "CLI terminal UI, extension installation, filesystem and model chooser fixes",
+        "decision": "Client-local behavior outside the gateway wire profile; no blind import."
+      }
+    ]
+  },
+  "antigravity": {
+    "ide": {
+      "version": "2.6.0",
+      "baseEditorVersion": "1.107.0",
+      "productCommit": "9e3a5da5d6731effd57d47d88bbe5df14ac6ccdd",
+      "product": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/antigravity-ide-extracted/Antigravity IDE/resources/app/product.json",
+        "bytes": 42007,
+        "sha256": "92c69d8f72ad561402c8258381255773454ed238cd93744dea14a8c807d84931"
+      },
+      "evidence": "Official stable IDE feed/download URL and archive product.ideVersion agree. Base editor package.version is independent."
+    },
+    "cli": {
+      "version": "1.5.6",
+      "manifest": {
+        "version": "1.5.6",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.6-6212266538958848/linux-x64/cli_linux_x64.tar.gz",
+        "sha512": "0c67824908caf9cc3156699802b8097f2fd02c4608ae9293c9aa7f17e1bcd342c4b9c2e158388253a37804ef6bd9c6b1d25cfaca3c07bbb7587378fc91839bb4"
+      },
+      "manifestDigestVerified": true,
+      "installerExecuted": false,
+      "binaryExecuted": false
+    },
+    "separateAppSurface": {
+      "latestFeedVersion": "2.31.2",
+      "action": "Not substituted for the IDE or CLI identity."
+    },
+    "wireBoundaries": [
+      "Keep the existing reviewed CloudCode OAuth/project binding and minimal compatibility UA shape; static version inspection is not live provider acceptance or a full proprietary current native implementation review.",
+      "Retain numeric Antigravity metadata while separating Gemini terminal metadata.",
+      "Official models documentation ties availability to account/plan; a CLI version or User-Agent does not grant Argon, paid subscription or Enterprise entitlement."
+    ]
+  },
+  "kiro": {
+    "ide": {
+      "version": "1.4.154",
+      "publishedDate": "2026-11-10",
+      "productCommit": "99804468ea9ee7569e61635060aef7a2b729a6af",
+      "agentExtensionVersion": "1.1.873",
+      "product": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/kiro-ide-extracted/Kiro/resources/app/product.json",
+        "bytes": 12481,
+        "sha256": "fae93425f4ce086677e9a38126475443f90d00d6e21d0b0d6b7f6739ea68548f"
+      },
+      "agentBundle": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/kiro-ide-extracted/Kiro/resources/app/extensions/kiro.kiro-agent/dist/extension.js",
+        "bytes": 18082324,
+        "sha256": "7b2aa8b82e40540c0ae5c62c618fa26ae97bde35e9f2a867da200ea6cc57ea25"
+      },
+      "detachedSignature": {
+        "certificate": {
+          "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/kiro-ide-certificate.body",
+          "bytes": 6972,
+          "sha256": "94ea6f41eedf3a7948c39b33db557c944bdb6c53a4603d37bd73558b47cf6b1c"
+        },
+        "signature": {
+          "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/kiro-ide-signature.body",
+          "bytes": 384,
+          "sha256": "3563277ee70322c36987d18e03c5f92918b054e23cf9346d0cad297f9f236843"
+        },
+        "algorithm": "SHA256",
+        "opensslVerification": "Verified OK",
+        "boundaries": "Publisher-supplied signing certificate and signature verify archive integrity; no separate independent certificate trust-chain certification is claimed."
+      }
+    },
+    "cli": {
+      "version": "3.2.1",
+      "manifestSha256Verified": true,
+      "buildInfo": [
+        "BUILD_DATE=2026-11-11T18:18:27.316046+00:00",
+        "BUILD_HASH=36b1b4ed20bf575294953e582c1c63b629fb214d",
+        "BUILD_TARGET_TRIPLE=x86_64-unknown-linux-gnu",
+        "BUILD_VERSION=3.2.1"
+      ],
+      "buildInfoCapture": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/BUILD-INFO.body",
+        "bytes": 161,
+        "sha256": "31385359c46fa9d9dfb37b8b79587da9a9f80ea323785cdd262654c82156626d"
+      },
+      "installerExecuted": false,
+      "binaryExecuted": false
+    },
+    "sdkDisposition": {
+      "KIRO_AWS_SDK_VERSION": "3.0.0",
+      "KIRO_RUNTIME_SDK_VERSION": "3.0.0",
+      "status": "Retained independent legacy wire pins, not a claim that IDE1.4.154 or CLI3.2.1 bundles a current SDK with this exact version.",
+      "reason": "Current IDE artifact contains private/generated clients and multiple independent SDK package versions. No authoritative matching CodeWhisperer runtime version can be inferred from a newer app or an unrelated SSO SDK."
+    },
+    "hostRuntimeRepair": "The inspected AWS SDK middleware reads host platform(), release() and executing process runtime. Central KIRO_FINGERPRINT now uses the actual gateway runtime by default; catalog code no longer overrides it with captured Windows10.0.26200/Node22.21.1. Explicit helper inputs and existing account-seeded machine identifier behavior remain distinct.",
+    "noLiveClaims": "No real Kiro account, upstream entitlement or new EventStream/protobuf compatibility is asserted by this static refresh."
+  },
+  "validation": {
+    "reproductionBefore": {
+      "command": "npm test -- tests/unit/google-client-metadata-20261112.test.js",
+      "failed": 5,
+      "passed": 2,
+      "log": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/regressions-before.log",
+        "bytes": 6493,
+        "sha256": "20a3794ec6bce5906358956e289885bbbc562dcf6ef6ebe90cf6e09b457e5fc4"
+      }
+    },
+    "focusedAfter": {
+      "command": "npm test -- tests/unit/google-client-metadata-20261112.test.js tests/unit/gemini-usage-client-identity.test.js tests/unit/client-oauth-header-migrations.test.js tests/unit/antigravity-proxy-projectid.test.js tests/unit/antigravity-usage-headers.test.js tests/unit/kiro-live-catalog-facts.test.js tests/unit/kiro-oauth-login-safety.test.js tests/unit/antigravity-oauth-login-safety.test.js",
+      "passed": 155,
+      "files": 8,
+      "failed": 0,
+      "log": {
+        "localCapture": "/workspace/scratch/client-refresh-20261112/google-kiro/focused-final.log",
+        "bytes": 3113,
+        "sha256": "e137a7fafd11fa6f7ab2a887bb57d08288ad8ff809028201c5ca9b56a993e6b2"
+      }
+    },
+    "note": "The parent records final complete-suite and composed lint gates after all provider groups have stabilized. This focused count is not additive to that final total."
+  },
+  "evidenceBoundaries": [
+    "No downloaded installer, CLI or IDE was executed; only publisher manifests, checksums, detached signature and static archives were inspected.",
+    "No production state, provider secrets or live accounts were used. Behavioral wire tests use synthetic credentials and mocked transport.",
+    "Authentication, SSRF/proxy policy, account provisioning, cancellation and raw signed data ownership are preserved.",
+    "Antigravity App/IDE/CLI, Gemini API-key/CodeAssist OAuth and Kiro app/CLI/SDK facts remain independently scoped."
+  ]
+}

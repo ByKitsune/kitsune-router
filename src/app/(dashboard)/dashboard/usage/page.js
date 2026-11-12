@@ -1,5 +1,8 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+import RuntimeI18nBoundary from "@/i18n/RuntimeI18nBoundary";
+
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
@@ -20,8 +23,8 @@ const TABS = [
   { value: "logs", label: "Live logs", icon: "terminal" },
 ];
 
-export default function UsagePage() {
-  return <Suspense fallback={<CardSkeleton />}><UsageContent /></Suspense>;
+function UsagePage() {
+  return <Suspense fallback={<CardSkeleton />}><RuntimeI18nBoundary><UsageContent /></RuntimeI18nBoundary></Suspense>;
 }
 
 function UsageContent() {
@@ -62,10 +65,12 @@ function UsageContent() {
         ))}
       </div>
       <div key={activeTab} className="workspace-enter min-w-0">
-        {activeTab === "overview" && <Suspense fallback={<CardSkeleton />}><UsageStats period={period} setPeriod={setPeriod} hidePeriodSelector /></Suspense>}
+        {activeTab === "overview" && <Suspense fallback={<CardSkeleton />}><RuntimeI18nBoundary><UsageStats period={period} setPeriod={setPeriod} hidePeriodSelector /></RuntimeI18nBoundary></Suspense>}
         {activeTab === "logs" && <RequestLogger />}
         {activeTab === "details" && <RequestDetailsTab />}
       </div>
     </div>
   );
 }
+
+export default withRuntimeI18nPage(UsagePage);

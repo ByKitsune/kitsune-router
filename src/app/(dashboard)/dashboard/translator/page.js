@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "../profile/operations.css";
 
 import { useState } from "react";
@@ -48,7 +50,7 @@ const EDITOR_OPTIONS = {
   automaticLayout: true,
 };
 
-export default function TranslatorPage() {
+function TranslatorPage() {
   const [contents, setContents] = useState({});
   const [expanded, setExpanded] = useState({ 1: true });
   const [loading, setLoading] = useState({});
@@ -323,3 +325,5 @@ function MetaBadge({ label, value, color }) {
     </span>
   );
 }
+
+export default withRuntimeI18nPage(TranslatorPage);

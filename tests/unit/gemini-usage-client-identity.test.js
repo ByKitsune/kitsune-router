@@ -5,7 +5,7 @@ vi.mock("../../open-sse/utils/proxyFetch.js", () => ({ proxyAwareFetch: vi.fn() 
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";
 import { getGeminiUsage } from "../../open-sse/services/usage/google.js";
 import { GEMINI_AUTH_USER_AGENT, GEMINI_CLI_API_CLIENT } from "../../open-sse/config/clientVersions.js";
-import { CLIENT_METADATA } from "../../open-sse/config/appConstants.js";
+import { GEMINI_CLI_CLIENT_METADATA } from "../../open-sse/config/appConstants.js";
 
 const response = body => new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
 
@@ -36,7 +36,7 @@ describe("Gemini CLI usage client identity", () => {
       expect(policy).toBe(proxy);
       expect(options.signal).toBeInstanceOf(AbortSignal);
       expect(JSON.parse(options.body)).toEqual(url.endsWith(":loadCodeAssist")
-        ? { metadata: CLIENT_METADATA } : { project: "account-project" });
+        ? { metadata: GEMINI_CLI_CLIENT_METADATA } : { project: "account-project" });
     }
   });
 

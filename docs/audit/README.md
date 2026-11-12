@@ -1,5 +1,9 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 12 client compatibility completion](37-client-compatibility-completion-2026-11-12.md)
+records the official release/SDK review, companion metadata and replay repairs,
+and the deterministic diagnosis and repair of the earlier hydration observation.
+
 The [November 11 navigation revision](36-dashboard-navigation-revision-2026-11-11.md)
 records the shared page directory, expanded/compact sidebar, mobile navigation,
 contextual header and keyboard-accessible page finder.

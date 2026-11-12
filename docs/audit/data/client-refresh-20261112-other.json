@@ -1,0 +1,695 @@
+{
+  "review_date": "2026-11-12",
+  "captured_at_utc": "2026-11-12T08:05:14.954618+00:00",
+  "base_commit": "cf3e96de3b34be93b9b875b66c4755efc7a4996c",
+  "scope": [
+    "codebuddy-cn",
+    "codebuddy-intl",
+    "grok-cli",
+    "kimchi",
+    "commandcode",
+    "opencode",
+    "opencode-go companion review",
+    "qoder",
+    "iflow"
+  ],
+  "bounds": [
+    "All package artifacts were inspected statically; no provider CLI, installer or native binary was executed.",
+    "No upstream accounts, credentials, OAuth exchange, paid generation, model access or cryptographic acceptance was exercised.",
+    "App release, bundled SDK, API header, signed wire protocol, executing host and account entitlement are independent facts.",
+    "GitHub source/release metadata used the connected GitHub tool. Non-GitHub npm and binary publisher downloads used inherited TLS/proxy configuration; no verification bypass.",
+    "Root owns the central version file and final integrated tests/baseline. This shard changes only its evidence receipt; it recommends verified releases and records retained boundaries."
+  ],
+  "decisions": [
+    {
+      "provider": "codebuddy-cn",
+      "status": "verified_release_update",
+      "constant": "CODEBUDDY_CLI_VERSION",
+      "previous": "2.179.3",
+      "selected": "2.183.0",
+      "evidence": {
+        "metadata_url": "https://registry.npmjs.org/@tencent-ai%2fcodebuddy-code/latest",
+        "retrieved_at_utc": "2026-11-12T07:57:33.380877+00:00",
+        "metadata_sha256": "713a66c15fa97ebfa3427507fe12d917729e31f087710e18c90f28bac95c8ffb",
+        "metadata_bytes": 3317,
+        "package": "@tencent-ai/codebuddy-code",
+        "version": "2.183.0",
+        "artifact_url": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/-/codebuddy-code-2.183.0.tgz",
+        "artifact_bytes": 67753145,
+        "artifact_sha256": "0308fe51c8d3c0957319b4a7c014dc8ee75ce88b7c9f250989feb66563d15ae3",
+        "npm_integrity": "sha512-N/bsbp2xsTXKavYQxxvorRD9QTQNkdsXElcXBNEVXLKPPBaIzNI+DRBw1zVpotKFapCq2XHWsn563+gZRLgIDQ==",
+        "integrity_verified": true,
+        "executed": false,
+        "selected_files": [
+          {
+            "path": "package/dist/codebuddy.js",
+            "bytes": 34937478,
+            "sha256": "24f46a3fb614310fd3f62dd1d40b2b29e3b71a8aa32ceccc51e83277c25edca0"
+          },
+          {
+            "path": "package/package.json",
+            "bytes": 2970,
+            "sha256": "4560f819f72b63665cd55dfebe4ff6709d6ff08e6651be27f0199e11bf76d227"
+          },
+          {
+            "path": "package/product.json",
+            "bytes": 361302,
+            "sha256": "912c70e81df910f752a7cfbdfa6c95fcbc381c7831dcca302783786800a8f277"
+          },
+          {
+            "path": "package/CHANGELOG.md",
+            "bytes": 849980,
+            "sha256": "1ff1d8ffbb9cec9b39adbce194176eaa548a7bf31107e3a8412b6955b891a782"
+          }
+        ]
+      },
+      "wire_contract": "DefaultClientInfo reads PackageUtils.getCurrentPackageJson(); platform and product versions default to package.version; defaults remain CLI and CodeBuddy. buildUserAgent combines platform/version and applicationName-or-productName/version. Thus transport and OAuth CN UA remain CLI/2.183.0 CodeBuddy/2.183.0.",
+      "excerpts": [
+        {
+          "contract": "CN package-derived transport identity",
+          "needle": "let dT=sQ.PackageUtils.getCurrentPackageJson()",
+          "character_offset": 9654752,
+          "excerpt": "ect\"==typeof Reflect&&\"function\"==typeof Reflect.metadata)return Reflect.metadata(eA,el)};let dT=sQ.PackageUtils.getCurrentPackageJson(),dD=class{constructor(){this.clientInfo$=new dS.t(void 0),this.sessionId=(0,oW.generateUUUID)()}initialize(){globalThis.__CODEBUDDY_STARTUP_PROFILER__?.labelCurrentSpan(\"lifecycle_initialize\",\"CliClientInfoProvider.initialize\"),this.initClientInfo(),this.productManager.configuration.subscribe(()=>{this.initClientInfo()})}async get(){return this._ClientInfo||await this.machineIdReady,this._ClientIn",
+          "excerpt_sha256": "ae95f3f947a1488004038fba0bf7a80a6db1423277955874259824b6ee92370c"
+        },
+        {
+          "contract": "CN package-derived transport identity",
+          "needle": "platformVersion:el?.productVersion||dT.version",
+          "character_offset": 9655676,
+          "excerpt": "turn}this._ClientInfo={machineId:ec,sessionId:this.sessionId,platform:el?.platform||dB.Vo,platformVersion:el?.productVersion||dT.version,pluginName:dT.name,pluginVersion:el?.productVersion||dT.version,productName:el?.productName||dB.KR,applicationName:el?.applicationName||\"\",productVersion:el?.productVersion||dT.version,ideType:el?.platform||dB.Vo,downloadChannel:el?.downloadChannel,...eA},this.clientInfo$.next(this._ClientInfo)}getProcessEnvInfo(){let eA={};if(dI.EnvUtils.isNodeRuntime()&&process.env)for(let el of Object.keys(Aw.",
+          "excerpt_sha256": "d778890fb30020df7445e35cd309cb1ad6d12307d47c3135d8c47d9eb6c19f82"
+        },
+        {
+          "contract": "CN package-derived transport identity",
+          "needle": "async buildUserAgent(eA=\"\")",
+          "character_offset": 23429486,
+          "excerpt": "pe??this.productManager?.configuration?.getValue()?.deploymentType;return!!eA&&em.has(eA)}async buildUserAgent(eA=\"\"){let el=eA?[eA]:[],ec=await this.clientInfoProvider.get()||{},eu=ec.applicationName||ec.productName;return eu&&el.unshift(`${eu}/${ec.productVersion||\"unknown\"}`),ec.platform&&el.unshift(`${ec.platform}/${ec.platformVersion||\"unknown\"}`),ec.userAgentExtension&&el.push(ec.userAgentExtension),el.join(\" \")}};el.UserAgentHttpInterceptor=ey,eu([(0,ep.Autowired)(ef.ClientInfoProvider),ed(\"design:type\",O",
+          "excerpt_sha256": "24f853d6fbcd524c6afc5bd015269d2e8703f57ec16cce4d697a7af7f91d70aa"
+        },
+        {
+          "contract": "CN package-derived transport identity",
+          "needle": "\"version\":\"2.183.0\"",
+          "character_offset": 10771603,
+          "excerpt": "(eA,el,ec){\"use strict\";ec.d(el,{T:()=>ed});var eu=JSON.parse('{\"name\":\"@genie/agent-cli\",\"version\":\"2.183.0\",\"description\":\"Use CodeBuddy, Tencent\\'s AI assistant, right from your terminal. CodeBuddy can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.\",\"main\":\"lib/node/index.js\",\"typings\":\"lib/node/index.d.ts\",\"exports\":{\".\":{\"types\":\"./lib/node/index.d.ts\",\"default\":\"./lib/node/index.js\"},\"./testing\":{\"@genie/monorepo\":\"./src/testing.ts\",\"types\":\"./type",
+          "excerpt_sha256": "cffff26fc4ae88d7974931e9ba5723bd3f1cf3bbd028bd77c590e4ac96a7c745"
+        }
+      ],
+      "changelog_review": {
+        "versions": [
+          "2.180.0",
+          "2.181.0",
+          "2.182.0",
+          "2.183.0"
+        ],
+        "themes": [
+          "permission/REPL/agent isolation and local agent lifecycle",
+          "sensitive-data/thinking replay protection",
+          "custom-model platform identity header isolation",
+          "stream/task notifications and media/history handling",
+          "cloud/self-hosted ASCII User-Agent compatibility"
+        ],
+        "disposition": "Local agent permissions, autonomous retry policy, scheduling, UI, telemetry and host lifecycle are not transplanted into the gateway. CN version-derived identity updates; no new SDK/API/account entitlement inferred."
+      },
+      "companions": "Existing central constants propagate to transport, OAuth, validation and discovery. No proven separate SDK/API header bump."
+    },
+    {
+      "provider": "codebuddy-intl",
+      "status": "retained_independent_unverified_wire_pin",
+      "constant": "CODEBUDDY_INTL_WIRE_VERSION",
+      "selected": "2.161.1",
+      "reason": "The CN CLI package release does not establish the independent INTL IDE wire release. The official international home, download and documented install pages returned HTTP503; no guessed CN-to-INTL migration. Existing IDE OAuth platform, headers and independent catalog ownership stay intact.",
+      "attempts": [
+        {
+          "url": "https://www.codebuddy.ai/download",
+          "error": "HTTP Error 503: Service Unavailable"
+        },
+        {
+          "url": "https://www.codebuddy.ai",
+          "retrieved_at": "2026-11-12T08:02:12.993011+00:00",
+          "error": "HTTP Error 503: Service Unavailable"
+        },
+        {
+          "url": "https://www.codebuddy.ai/docs/ide/get-started/install",
+          "retrieved_at": "2026-11-12T08:02:12.993569+00:00",
+          "error": "HTTP Error 503: Service Unavailable"
+        },
+        {
+          "url": "https://www.codebuddy.ai/download",
+          "retrieved_at": "2026-11-12T08:02:12.994109+00:00",
+          "error": "HTTP Error 503: Service Unavailable"
+        }
+      ],
+      "not_claimed_latest": true
+    },
+    {
+      "provider": "grok-cli",
+      "status": "verified_stable_release_update",
+      "constant": "GROK_CLI_VERSION",
+      "previous": "1.0.62",
+      "selected": "1.0.77",
+      "stable_feed": {
+        "url": "https://x.ai/cli/stable",
+        "final_url": "https://x.ai/cli/stable",
+        "time": "2026-11-12T07:59:05.300465+00:00",
+        "bytes": 6,
+        "sha256": "ed0a366b4ef36d40c055672a8b83679e99246fec71a706b4ae4cb7958feace3f",
+        "head": "1.0.77"
+      },
+      "official_fallback_feed": {
+        "url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable",
+        "final_url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable",
+        "time": "2026-11-12T07:59:05.266901+00:00",
+        "bytes": 6,
+        "sha256": "ed0a366b4ef36d40c055672a8b83679e99246fec71a706b4ae4cb7958feace3f",
+        "head": "1.0.77"
+      },
+      "installer": {
+        "url": "https://x.ai/cli/install.sh",
+        "capture_type": "Original HTTPS response body",
+        "local_capture": "/workspace/scratch/client-refresh-20261112/other/grok-install.sh",
+        "bytes": 30506,
+        "sha256": "bdd23859b10bd0c1492ffc3443e8413b73a9b09966d48d4d3fa32121043956fc"
+      },
+      "artifact": {
+        "url": "https://x.ai/cli/grok-1.0.77-linux-x86_64.gz",
+        "retrieved_at": "2026-11-12T08:00:20.634909+00:00",
+        "compressed_bytes": 78994504,
+        "compressed_sha256": "243a669421d0af2c3a56b4283601d8c22815312224feb38a0059396659926250",
+        "uncompressed_bytes": 201655392,
+        "uncompressed_sha256": "b702950aa5827d855e493278ab6215a4e0f5bceb5bba6c6243a9f55cdd143b0a",
+        "executed": false,
+        "version_marker_count": 31,
+        "ua_marker_count": 957,
+        "publisher_sha256_checksum_observed": false,
+        "publisher_gcs_crc32c_verified": true
+      },
+      "publisher_object_integrity": {
+        "url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/grok-1.0.77-linux-x86_64.gz",
+        "retrieved_at": "2026-11-12T08:02:01.761425+00:00",
+        "content_length": "78994504",
+        "x_goog_hash": "crc32c=FRQJWQ==",
+        "etag": "\"d94ba18801abce41df7751808ee620f2\"",
+        "local_md5_base64": "2UuhiAGrzkHfd1GAjuYg8g==",
+        "publisher_object_md5_matches": false,
+        "local_crc32c_base64": "FRQJWQ==",
+        "publisher_crc32c_matches": true,
+        "etag_equals_local_md5_hex": true
+      },
+      "wire_source": {
+        "repository": "https://github.com/xai-org/grok-build",
+        "source_tree": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+        "source_rev": "559751fdcec02d413e4c57c8832ab275e4f44980",
+        "source_freshness": "Public source remains the prior periodically synchronized September snapshot; it does not establish the fresh release number. The official stable channel and versioned binary establish 1.0.77 separately.",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-pager/src/client_identity.rs",
+            "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+            "local_capture": "/workspace/scratch/client-refresh-20261112/other/grok-source-1.txt",
+            "bytes": 1132,
+            "sha256": "80dedbcace91b74b7ab24e16c0b35ee2bb6458aab1dd6487641d40d855c9fbfb"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs",
+            "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+            "local_capture": "/workspace/scratch/client-refresh-20261112/other/grok-source-2.txt",
+            "bytes": 3721,
+            "sha256": "e5a444fac55c5afb0d31df62370734a29fc22809bea9fe8c99a17600704ef4d9"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+            "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+            "local_capture": "/workspace/scratch/client-refresh-20261112/other/grok-sampler-client.rs",
+            "bytes": 143545,
+            "sha256": "2b27675821a894cadf9966afa5d41654af883fd8f588574aaa525f79d3a086a7"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/remote/client.rs",
+            "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+            "local_capture": "/workspace/scratch/client-refresh-20261112/other/grok-source-3.txt",
+            "bytes": 36753,
+            "sha256": "24f38debe6d935f29ee234271b9645be311c6f046d157a55b070d5086622d81d"
+          }
+        ]
+      },
+      "companion_decision": "Preserve grok-pager origin and grok-shell agent products, same selected version in x-grok-client-version and existing grok-shell client identifier. Derive truthful executing host tokens as upstream PlatformInfo does (darwin->macos,win32->windows,x64->x86_64,arm64->aarch64); do not retain a captured fixed Linux host for other platforms. Existing public OAuth client ID matches installer OIDC scope.",
+      "wire_excerpts": [
+        {
+          "contract": "Native UA host/version assembly",
+          "needle": "struct PlatformInfo",
+          "character_offset": 16518,
+          "excerpt": "=================================================\n\n#[derive(Clone, Debug, Eq, PartialEq)]\nstruct PlatformInfo {\n    os: String,\n    arch: String,\n}\n\nimpl PlatformInfo {\n    fn current() -> Self {\n        let os = match std::env::consts::OS {\n            \"macos\" => \"macos\",\n            \"windows\" => \"windows\",\n            other => other,\n        }\n        .to_string();\n\n        let arch = match std::env::consts::ARCH {\n            \"arm64\" => \"aarch64\",\n            \"x86_64\" => \"x86_64\",\n            other => other,\n        }\n        .to_string();\n\n        Self { os, arch }\n    }\n}\n\nfn agent_version() -> String {\n    xai_grok_version::VERSION.to_string()\n}\n\n/// Render a User-Agent string for the given origin client.\n/// Mirrors the shell's `user_agent_string_for` but uses sampler-local constants.\n/// The session typically owns the canonical User-Agent rendering for process-wide HTTP clients.\npub fn user_agent_string_for(origin: &OriginClientInfo) -> String {\n    let agent_version = agent_version();\n    let platform = PlatformInfo::current();\n\n    if origin.product == AGENT_PRODUCT && origin.version.as_deref() == Some(agent_version.as_str())\n    {\n        return format!(\n            \"{}/{} ({}; {})\",\n            AGENT_PRODUCT, agent_version, platform.os, platform.arch\n        );\n    }\n\n    match origin.version.as_deref() {\n        Some(origin_version) => format!(\n            \"{}/{} {}/{} ({}; {})\",\n            origin.product,\n            ori",
+          "excerpt_sha256": "21f80d5a838e9bc6af71d4110f131a8321c25db14fcbf1278900e2e64dc78c2e"
+        },
+        {
+          "contract": "Native UA host/version assembly",
+          "needle": "pub fn user_agent_string_for",
+          "character_offset": 17328,
+          "excerpt": " session typically owns the canonical User-Agent rendering for process-wide HTTP clients.\npub fn user_agent_string_for(origin: &OriginClientInfo) -> String {\n    let agent_version = agent_version();\n    let platform = PlatformInfo::current();\n\n    if origin.product == AGENT_PRODUCT && origin.version.as_deref() == Some(agent_version.as_str())\n    {\n        return format!(\n            \"{}/{} ({}; {})\",\n            AGENT_PRODUCT, agent_version, platform.os, platform.arch\n        );\n    }\n\n    match origin.version.as_deref() {\n        Some(origin_version) => format!(\n            \"{}/{} {}/{} ({}; {})\",\n            origin.product,\n            origin_version,\n            AGENT_PRODUCT,\n            agent_version,\n            platform.os,\n            platform.arch\n        ),\n        None => format!(\n            \"{} {}/{} ({}; {})\",\n            origin.product, AGENT_PRODUCT, agent_version, platform.os, platform.arch\n        ),\n    }\n}\n\n/// A request builder coupled to the credential state it was built with, so a 401 arm cannot classify from anything but the build-time capture.\n/// The wire default (`SentCredential::Unknown`, which charges the retry budget) stays the fail-closed one.\n/// Only an explicit `sent_bearer: None` (a send the builder provably stamped no credential onto) reaches the uncharged lane via [`auth_rejected`].\nstruct SentRequest {\n    builder: reqwest::RequestBuilder,\n    /// Tail fragment of the credential in the built headers (`None`",
+          "excerpt_sha256": "6ccbf195a880651a1e6db6a0d07a11f6b455c639698c4a15baafe8ef8ec06ad0"
+        }
+      ],
+      "binary_observations": {
+        "elf_magic": "7f454c46",
+        "release_version_marker": "1.0.77 (50ca579fa996)",
+        "client_version_literal": "x-grok-client-version1.0.77"
+      },
+      "limits": [
+        "No publisher SHA256 checksum was found in installer; local SHA256 is recorded and official GCS object CRC32C matches the full compressed download. ETag also equals the observed MD5.",
+        "Official changelog URL returned HTTP403; public source is older than this release, so no claim that every native runtime/body field was reverified against current proprietary source.",
+        "No account billing/model entitlement, login or inference verified."
+      ]
+    },
+    {
+      "provider": "kimchi",
+      "status": "verified_release_update",
+      "constant": "KIMCHI_GATEWAY_VERSION",
+      "previous": "1.28.0",
+      "selected": "1.34.2",
+      "release": {
+        "url": "https://github.com/getkimchi/kimchi/releases/tag/v1.34.2",
+        "metadata_url": "https://api.github.com/repos/getkimchi/kimchi/releases/latest",
+        "published_at": "2026-11-11T10:57:19Z",
+        "tag": "v1.34.2",
+        "annotated_tag": "8e94925fc2b0ca8398b08bacd408cfa6a076d8bc",
+        "commit": "6b582e2d3b5083ae27526d6c4492f183e85f094e",
+        "metadata_capture": {
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/github-0.json",
+          "bytes": 15380,
+          "sha256": "11e8ac81759623d00d1423da4e49ba28d48292654e3fda41edf5569d8f0124df"
+        }
+      },
+      "artifact": {
+        "url": "https://github.com/getkimchi/kimchi/releases/download/v1.34.2/kimchi_linux_amd64.tar.gz",
+        "publisher_digest": "sha256:fd7d1bff543472b85286f8d4dabcc6c2a2733899933ea2068f3c3a03fd6aac22",
+        "retrieved_at": "2026-11-12T08:02:01.762756+00:00",
+        "executed": false,
+        "bytes": 56833539,
+        "sha256": "fd7d1bff543472b85286f8d4dabcc6c2a2733899933ea2068f3c3a03fd6aac22",
+        "publisher_digest_verified": true,
+        "members": [
+          {
+            "name": "bin/kimchi",
+            "bytes": 132068832
+          },
+          {
+            "name": "share/kimchi/oauth/success.html",
+            "bytes": 10662
+          },
+          {
+            "name": "share/kimchi/oauth/error.html",
+            "bytes": 10664
+          },
+          {
+            "name": "share/kimchi/bin/proxy-helper",
+            "bytes": 6680760
+          },
+          {
+            "name": "share/kimchi/skills/create-skill/SKILL.md",
+            "bytes": 4829
+          },
+          {
+            "name": "share/kimchi/skills/create-skill/scripts/validate-skill.mjs",
+            "bytes": 117066
+          },
+          {
+            "name": "share/kimchi/skills/dap-debugging/SKILL.md",
+            "bytes": 9824
+          },
+          {
+            "name": "share/kimchi/skills/dap-debugging/references/go.md",
+            "bytes": 2148
+          },
+          {
+            "name": "share/kimchi/skills/dap-debugging/references/native.md",
+            "bytes": 2111
+          },
+          {
+            "name": "share/kimchi/skills/dap-debugging/references/python.md",
+            "bytes": 1534
+          },
+          {
+            "name": "share/kimchi/skills/dap-debugging/references/typescript.md",
+            "bytes": 2157
+          },
+          {
+            "name": "share/kimchi/skills/pdf/SKILL.md",
+            "bytes": 10936
+          },
+          {
+            "name": "share/kimchi/skills/pdf/scripts/pdf.mjs",
+            "bytes": 5100492
+          },
+          {
+            "name": "share/kimchi/skills/pdf/scripts/lodraw_edit.py",
+            "bytes": 4543
+          },
+          {
+            "name": "share/kimchi/skills/pdf/scripts/pdfium.wasm",
+            "bytes": 5298237
+          },
+          {
+            "name": "share/kimchi/skills/improve/SKILL.md",
+            "bytes": 1963
+          },
+          {
+            "name": "share/kimchi/skills/docx/SKILL.md",
+            "bytes": 6871
+          },
+          {
+            "name": "share/kimchi/skills/docx/scripts/docx.mjs",
+            "bytes": 1305438
+          },
+          {
+            "name": "share/kimchi/skills/xlsx/SKILL.md",
+            "bytes": 7847
+          },
+          {
+            "name": "share/kimchi/skills/xlsx/scripts/xlsx.mjs",
+            "bytes": 460357
+          },
+          {
+            "name": "share/kimchi/skills/kimchi-tmux/SKILL.md",
+            "bytes": 3330
+          },
+          {
+            "name": "share/kimchi/skills/kimchi-tmux/scripts/harness-live.mjs",
+            "bytes": 7819
+          },
+          {
+            "name": "share/kimchi/skills/pptx/deck-design.md",
+            "bytes": 3704
+          },
+          {
+            "name": "share/kimchi/skills/pptx/SKILL.md",
+            "bytes": 9642
+          },
+          {
+            "name": "share/kimchi/skills/pptx/deck-markdown.md",
+            "bytes": 7377
+          },
+          {
+            "name": "share/kimchi/skills/pptx/scripts/pptx.mjs",
+            "bytes": 933495
+          },
+          {
+            "name": "share/kimchi/bridge/bin/kimchi-bridge",
+            "bytes": 282
+          },
+          {
+            "name": "share/kimchi/bridge/markets/claude",
+            "bytes": 27
+          },
+          {
+            "name": "share/kimchi/bridge/markets/codex",
+            "bytes": 27
+          },
+          {
+            "name": "share/kimchi/bridge/.agents/plugins/marketplace.json",
+            "bytes": 232
+          }
+        ],
+        "package_files": [
+          {
+            "path": "share/kimchi/package.json",
+            "sha256": "90a0337427db79d895a9d009f582cf979f36b772e927dd3a15a43e7eacbc9686",
+            "version": "1.34.2"
+          }
+        ]
+      },
+      "binding": "cli.ts:851 supplies kimchi/${getVersion()}; utils.ts reads runtime package.json, release workflow derives RELEASE_VERSION from the tag, set-version strips v and writes package.version, copy-resources includes that file. Integrity-verified Linux release archive actually contains share/kimchi/package.json version1.34.2.",
+      "sources": [
+        {
+          "url": "https://raw.githubusercontent.com/getkimchi/kimchi/6b582e2d3b5083ae27526d6c4492f183e85f094e/src/cli.ts",
+          "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/kimchi-cli.ts",
+          "bytes": 54323,
+          "sha256": "1dcbe55e4552eea869a70976363be42758b8ab5c8165aae7a9914e67931d3ea2"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/getkimchi/kimchi/6b582e2d3b5083ae27526d6c4492f183e85f094e/src/utils.ts",
+          "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/kimchi-utils.ts",
+          "bytes": 5920,
+          "sha256": "f849afe70035617090497a52bc7b38d42331cbd2c34005d4ba88aa091cb19a5c"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/getkimchi/kimchi/6b582e2d3b5083ae27526d6c4492f183e85f094e/.github/workflows/release.yml",
+          "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/kimchi-release.yml",
+          "bytes": 12862,
+          "sha256": "628801ad0cd74babf6079b3db61c1c50909a4303c0b9b96a9a3b900b83adb9dc"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/getkimchi/kimchi/6b582e2d3b5083ae27526d6c4492f183e85f094e/scripts/set-version.js",
+          "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/kimchi-set-version.js",
+          "bytes": 985,
+          "sha256": "66829312639322588f400989f9b52d0c3752b560eb6f213dafab2ae3e26a2a13"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/getkimchi/kimchi/6b582e2d3b5083ae27526d6c4492f183e85f094e/scripts/copy-resources.js",
+          "capture_type": "GitHub connector UTF-8 text; terminal newline normalized",
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/kimchi-copy-resources.js",
+          "bytes": 14191,
+          "sha256": "54bb71409bb3c39b8c12ca7a196b02761225e73d8dcd7b3b21a940005cde3b5f"
+        }
+      ],
+      "changelog_disposition": "Latest note adds org-scoped SSO credential export for Studio. Retain gateway endpoint/explicit-organization and credential-scoped catalog cache; no automatic SSO credential export or inferred audience/entitlement. No separately verified SDK/API bump."
+    },
+    {
+      "provider": "commandcode",
+      "status": "verified_release_update",
+      "constant": "COMMAND_CODE_VERSION",
+      "previous": "1.88.2",
+      "selected": "1.88.5",
+      "evidence": {
+        "metadata_url": "https://registry.npmjs.org/command-code/latest",
+        "retrieved_at_utc": "2026-11-12T07:57:33.407209+00:00",
+        "metadata_sha256": "750a4c9d8b410b7d787d429f644ce9116be58a71c46c834465e25639de70e0a7",
+        "metadata_bytes": 5511,
+        "package": "command-code",
+        "version": "1.88.5",
+        "artifact_url": "https://registry.npmjs.org/command-code/-/command-code-1.88.5.tgz",
+        "artifact_bytes": 4160389,
+        "artifact_sha256": "37688302d5a1aa6f9b10d07a479a4bf02d97e199f9874cd1d26d09e5d230db4e",
+        "npm_integrity": "sha512-399jzQF1j4g2qAuE45vy5BWaPzS/rqMZJIui2MHe0oIUaY1vu8mz45SE0gNIXIZ0BuqhfdlZ6zpnE43fhnlBYQ==",
+        "integrity_verified": true,
+        "executed": false,
+        "selected_files": [
+          {
+            "path": "package/package.json",
+            "bytes": 5173,
+            "sha256": "ea4524baf944d73766eecf5330586bdd42489a5f31147d2ce9e8a866a8654eff"
+          },
+          {
+            "path": "package/CHANGELOG.md",
+            "bytes": 91407,
+            "sha256": "18aa1911300dbe617e95dc8a1a8fcc49ed2e69eb37764ae4ab4285ca1c40c88a"
+          },
+          {
+            "path": "package/dist/cli.mjs",
+            "bytes": 3452177,
+            "sha256": "c75b34df6487de034c4419b8919432309c966505c20b76a361dea9db80cda2fc"
+          }
+        ]
+      },
+      "wire_contract": "buildCommandAuthHeaders uses package-derived cliVersion in x-command-code-version, User-Agent cli, independently normalized production environment, cli surface and session/project/taste inputs. Existing gateway session ownership, actual project slug and explicit taste-learning false remain.",
+      "excerpts": [
+        {
+          "contract": "Command Code native header contract",
+          "needle": "function normalizeCliEnvironment",
+          "character_offset": 780940,
+          "excerpt": "nction appendRenewalPendingMessage({message:e,renewalPending:n}){return n?`${e}\\n${vk}`:e}function normalizeCliEnvironment(e){return\"prod\"===e?\"production\":e}function setCliSurface(e){Ck=e}function getCliSurface(){return Ck}function buildCommandAuthHeaders(e){const n={\"Content-Type\":\"application/json\",\"User-Agent\":kk,[wk.CLI_VERSION]:e.cliVersion,[wk.CLI_ENVIRONMENT]:e.cliEnvironment,...e.cliSurface?{[wk.CLI_SURFACE]:e.cliSurface}:{},[wk.PROJECT_SLUG]:e.projectSlug,[wk.TASTE_LEARNING]:e.tasteLearningEnabled.toString(),[wk.SESSION_ID]:e.sessionId,...e.apiKey?{Authorization:`Bearer ${e.apiKey}`}:{},...e.ossPrimaryPro",
+          "excerpt_sha256": "671400c1c6a591ebe918ea96fb53e7b8eb21031ee801313ee0cd426f9ecf72ca"
+        },
+        {
+          "contract": "Command Code native header contract",
+          "needle": "function buildCommandAuthHeaders",
+          "character_offset": 781074,
+          "excerpt": "rod\"===e?\"production\":e}function setCliSurface(e){Ck=e}function getCliSurface(){return Ck}function buildCommandAuthHeaders(e){const n={\"Content-Type\":\"application/json\",\"User-Agent\":kk,[wk.CLI_VERSION]:e.cliVersion,[wk.CLI_ENVIRONMENT]:e.cliEnvironment,...e.cliSurface?{[wk.CLI_SURFACE]:e.cliSurface}:{},[wk.PROJECT_SLUG]:e.projectSlug,[wk.TASTE_LEARNING]:e.tasteLearningEnabled.toString(),[wk.SESSION_ID]:e.sessionId,...e.apiKey?{Authorization:`Bearer ${e.apiKey}`}:{},...e.ossPrimaryProvider?{[wk.OSS_PRIMARY_PROVIDER]:e.ossPrimaryProvider}:{},...e.cmdZdr?{[wk.CMD_ZDR]:\"1\"}:{}};return e.oauthToken&&(n[wk.OAUTH_TOKEN]=`",
+          "excerpt_sha256": "6b8edf84683c293902b063808b4342476a87348ca8cf91fde90fa7a7e1b2c827"
+        },
+        {
+          "contract": "Command Code native header contract",
+          "needle": "CLI_VERSION:\"x-command-code-version\"",
+          "character_offset": 2044807,
+          "excerpt": "UG:\"x-project-slug\",TASTE_LEARNING:\"x-taste-learning\",CLI_ENVIRONMENT:\"x-cli-environment\",CLI_VERSION:\"x-command-code-version\",CLI_SURFACE:\"x-cli-surface\",OSS_PRIMARY_PROVIDER:\"x-oss-primary-provider\",SESSION_ID:\"x-session-id\",CMD_ZDR:\"x-cmd-zdr\"},kk=\"cli\",__name(normalizeCliEnvironment,\"normalizeCliEnvironment\"),__name(setCliSurface,\"setCliSurface\"),__name(getCliSurface,\"getCliSurface\"),__name(buildCommandAuthHeaders,\"buildCommandAuthHeaders\"),bk=\"TransportError\",__name(transportError,\"transportError\"),__name(parseEmbeddedErrorJSON,\"parseEmbeddedErrorJSON\"),__name(isTransportError,\"isTransportError\"),__name(isRetryabl",
+          "excerpt_sha256": "1b4df3d6ae63da64d1405ab533ead57a81a8bd1a923e442d17663e735ff21a1f"
+        }
+      ],
+      "changelog_review": {
+        "versions": [
+          "1.88.3",
+          "1.88.4",
+          "1.88.5"
+        ],
+        "themes": [
+          "dependency updates",
+          "DeepSeek V4.1 Flash default and free Laguna S2.1 retirement",
+          "fresh login on wrong/deleted/expired API key"
+        ],
+        "disposition": "Only version-derived header updates. Do not change saved gateway default model or invent free access; current registry already has DeepSeek V4.1 Flash and does not advertise Laguna S2.1. Native local login prompt behavior is not a gateway token-refresh policy."
+      }
+    },
+    {
+      "provider": "opencode",
+      "status": "freshly_verified_unchanged",
+      "constant": "OPENCODE_VERSION",
+      "selected": "1.19.5",
+      "evidence": {
+        "metadata_url": "https://registry.npmjs.org/opencode-ai/latest",
+        "retrieved_at_utc": "2026-11-12T07:57:33.342960+00:00",
+        "metadata_sha256": "8238b09a1b89cd12b3cead60e0bb29bc0c247541486de085e7d4bc9fb47f73e7",
+        "metadata_bytes": 2021,
+        "package": "opencode-ai",
+        "version": "1.19.5",
+        "artifact_url": "https://registry.npmjs.org/opencode-ai/-/opencode-ai-1.19.5.tgz",
+        "artifact_bytes": 3041,
+        "artifact_sha256": "1f97e49381f8a42a629482eff8be98aa96d62e2e94410a8ec98e738f9c787680",
+        "npm_integrity": "sha512-tEqMvQahfhdDj8vceYpXtoIrvjPXm5XRfetWnPN5YISueU7adNx9JcUA3zZ+2GKuDVgDpGdQe1ZLtCZDjqodvA==",
+        "integrity_verified": true,
+        "executed": false,
+        "selected_files": [
+          {
+            "path": "package/package.json",
+            "bytes": 812,
+            "sha256": "b611692992fefe03641adf42bd26d1d3affc2ed7848122d6347879aa7890afc7"
+          },
+          {
+            "path": "package/postinstall.mjs",
+            "bytes": 5496,
+            "sha256": "5a7c990fe552e76b16422cdba3f4b0550590c7a487f7932c773362f74317c87b"
+          }
+        ]
+      },
+      "github_release": {
+        "url": "https://github.com/anomalyco/opencode/releases/tag/v1.19.5",
+        "published_at": "2026-10-28T06:17:49Z",
+        "prerelease": false,
+        "tag_commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+        "capture": {
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/github-1.json",
+          "bytes": 62395,
+          "sha256": "cddd54e62e8fe81df5d7dce9cbee30c086a0921a28324131f3ba8ae86812d325"
+        }
+      },
+      "wire_decision": "npm latest and GitHub latest agree with the already-selected stable version. Retain versioned opencode/<release> identity and existing Free/Go endpoint-specific identity/session/auth contracts. No new version or native bundled Bun/TLS fingerprint inferred.",
+      "changelog_disposition": "Existing 1.19.5 failed TUI worker reply fix is local client behavior, not a new gateway transport policy."
+    },
+    {
+      "provider": "qoder",
+      "status": "verified_unsigned_release_update_with_retained_signed_profile",
+      "constant": "QODER_CLI_VERSION",
+      "previous": "1.1.81",
+      "selected": "1.1.87",
+      "evidence": {
+        "metadata_url": "https://registry.npmjs.org/@qoder-ai%2fqodercli/latest",
+        "retrieved_at_utc": "2026-11-12T07:57:33.395227+00:00",
+        "metadata_sha256": "b1c2956757ac287e76e7b24229c73c3080d7b3670be787e517fbbb33ce471844",
+        "metadata_bytes": 1975,
+        "package": "@qoder-ai/qodercli",
+        "version": "1.1.87",
+        "artifact_url": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.87.tgz",
+        "artifact_bytes": 31636143,
+        "artifact_sha256": "640759180006a7f308b1b329d8067e9bb612abc52e7e5d31d7a5cf9cd98a841d",
+        "npm_integrity": "sha512-pWLdJmeOIZ3Bh/yo2FVeB0TkqKVSC9u1J3Y3pCDUhd6Zg3HjkeD9geKSFqtiu6aqi8uEVj667MOE/OMz5zTwAQ==",
+        "integrity_verified": true,
+        "executed": false,
+        "selected_files": [
+          {
+            "path": "package/bundle/qodercli.js",
+            "bytes": 35178447,
+            "sha256": "7fc1640ce51ecafaa86775d5f271fde86d08c739504461629bee23f34f69a1c3"
+          },
+          {
+            "path": "package/package.json",
+            "bytes": 1177,
+            "sha256": "8cab6dd4bbdbbab3820185a2621a3173ea5b084d409705ae5cd13864505876f1"
+          }
+        ]
+      },
+      "wire_contract": "Unsigned OpenAPI requests use qoder/${await Nr()}; Nr calls oL, which resolves the embedded TJ1.1.87. This applies to device/userinfo/PAT exchange and token refresh metadata without guessing a separate IDE release.",
+      "excerpts": [
+        {
+          "contract": "Qoder release-derived unsigned UA",
+          "needle": "TJ=\"1.1.87\"",
+          "character_offset": 30281,
+          "excerpt": "me,cB=BOr.userConfigDirName,$Vt=Symbol.for(\"qoder.configHomeDirOverride\")}),TJ,_nA=C(()=>{TJ=\"1.1.87\"});function aq(){return pba(im(bJA))}function SOr(A){return aq()?A:0}function pba(A){let e=A?.trim().toLowerCase();return\"1\"===e||\"true\"===e||\"yes\"===e}var PLe=C(()=>{Jn()});import*as Gk from\"node:fs\";import*as vJ from\"node:path\";import*as xOr from\"node:util\";function JQe(A=new Date){let e=A.getTimezoneOffset(),t=new Date(A.getTime()-6e4*e).toISOString().slice(0,-1);if(0===e)return`${t}Z`;let i=e<",
+          "excerpt_sha256": "f43c259f13fa9afb11b6227c6e7b93aec3c4f392c984f28dca71ac3613f77445"
+        },
+        {
+          "contract": "Qoder release-derived unsigned UA",
+          "needle": "function Nr()",
+          "character_offset": 996801,
+          "excerpt": "\"node:url\";import vza from\"node:path\";function oL(){return TJ&&\"UNKNOWN\"!==TJ?TJ:\"1.1.87\"}function Nr(){return dsA||(dsA=(async()=>oL()||(await _Ce(Fza))?.version||\"unknown\")())}function ZKr(){dsA=void 0}var bza,Fza,dsA,I0=C(()=>{_nA(),U4A(),bza=Tza(import.meta.url),Fza=vza.dirname(bza)});import{AsyncLocalStorage as N4A}from\"node:async_hooks\";function $Ce(){return mB.getStore()}function wg(){return b_.getStore()}function fl(){return ex.getStore()}function Fl(){return h8.getStore()}function Sa(A){re",
+          "excerpt_sha256": "877e46aa6c9acfd96c605f14c79e561676d053e1ac8fc8e3d093a7dc56d6d2c2"
+        },
+        {
+          "contract": "Qoder release-derived unsigned UA",
+          "needle": "\"User-Agent\":`qoder/${await Nr()}`",
+          "character_offset": 18478979,
+          "excerpt": "cess_token}async openApiJsonRequest(A){let e,t=_f(\"openapi\"),i={Accept:\"application/json\",\"User-Agent\":`qoder/${await Nr()}`};A.token&&(i.Authorization=`Bearer ${A.token}`),void 0!==A.body&&(i[\"Content-Type\"]=\"application/json\",e=JSON.stringify(A.body));let n=await Mh({operation:A.operation,endpointType:\"openapi\",method:A.method,...A.requestClass?{requestClass:A.requestClass}:{},...void 0!==A.requestTimeoutMs?{requestTimeoutMs:A.requestTimeoutMs}:{},path:A.path,url:`${t}${A.path}`,init:{method:A.method,headers:i,body:e",
+          "excerpt_sha256": "17b4217f8f6cd02b8621d8ede7a22f36beff88cb296613b3addf74af746cc4fd"
+        }
+      ],
+      "retained_signed_profile": {
+        "file": "open-sse/shared/qoder/constants.js",
+        "QODER_IDE_VERSION": "1.0.0",
+        "QODER_MACHINE_OS": "x86_64_windows",
+        "classification": "Retained legacy signature-bound compatibility profile, not the current CLI release or a freshly verified executing-host claim.",
+        "native_observation": "Modern1.1.87 Cosy-Version resolvesTJ and MachineOS derives executing process, but its current signer/native machine-identity path is independent of the gateway legacy COSY implementation. Do not update only headers/version while assuming coordinated signature acceptance.",
+        "live_acceptance_verified": false
+      },
+      "changelog_disposition": "Package contains no changelog; source wire bindings and package integrity establish the selected release, not a complete native behavior review."
+    },
+    {
+      "provider": "iflow",
+      "status": "shutdown_retained_static_identity",
+      "constant": "IFLOW_USER_AGENT",
+      "selected": "iFlow-Cli",
+      "package_observation": {
+        "name": "iflow",
+        "url": "https://registry.npmjs.org/@iflow-ai%2fiflow-cli/latest",
+        "fetched_at": "2026-11-12T07:57:33.458654+00:00",
+        "sha256": "97624d6bc01cd452189ecac5a2b507520a549eda6a39ca32919b9d61d51e1dc5",
+        "bytes": 5421,
+        "package": "@iflow-ai/iflow-cli",
+        "version": "0.5.19",
+        "dist": {
+          "shasum": "d406e81748593c37ef464ff99cc5b495d77a76ce",
+          "tarball": "https://registry.npmjs.org/@iflow-ai/iflow-cli/-/iflow-cli-0.5.19.tgz",
+          "fileCount": 22,
+          "integrity": "sha512-cOQNLXJAjqcKq6XQpx47EUV8ocY5sdLXiy7MfJm+b1miRlMJmrQvueT75w1h9UqzrlFPio2VluTxbLRBoR/QBA==",
+          "signatures": [
+            {
+              "sig": "MEYCIQDzjOvUeSBnxWoqlc3s550+qsmsYOwFbM7llxRvkiLRzgIhAMMTgvzD16dD24imnbhiRlNShCbLCmNH3AThZwSfHR4y",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 45823447
+        },
+        "repository": {
+          "url": "git+https://github.com/iflow-ai/iflow-cli.git",
+          "type": "git"
+        }
+      },
+      "official_notice": {
+        "url": "https://raw.githubusercontent.com/iflow-ai/iflow-cli/main/README.md",
+        "text": "iFlow CLI will be shutting down on April 17, 2026 (UTC+8).",
+        "capture": {
+          "local_capture": "/workspace/scratch/client-refresh-20261112/other/github-3.md",
+          "bytes": 9382,
+          "sha256": "d632e652f6958f83d07cc7522c05127b63de4b41135a370c6803ee115d2ddb40"
+        }
+      },
+      "decision": "Published package latest remains0.5.19, but the gateway identity is static rather than a semver value. Do not reactivate the retired provider or treat a still-published package as live service recovery."
+    }
+  ],
+  "validation": {
+    "artifact_integrity": "npm SHA512 verified for CodeBuddyCN, CommandCode, Qoder and OpenCode; Kimchi GitHub asset SHA256 verified; Grok full compressed object CRC32C matches official GCS header.",
+    "source_inspection": "Version/header/UA/host assembly inspected in version-bound package/source captures.",
+    "central_pin_readback": "Selected constants match root-integrated clientVersions.js at receipt creation.",
+    "new_code_in_this_shard": false,
+    "integrated_tests": "Root owns final wire-consumer regressions and intentional baseline updates. No live provider calls claimed."
+  }
+}

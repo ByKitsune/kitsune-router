@@ -23,6 +23,7 @@ function fixture({ locale = "id", dictionaries = {} } = {}) {
     appendChild(node) { this.childNodes.push(node); node.parentElement = this; return node; }
     getAttribute(name) { return this.attributes[name] ?? null; }
     setAttribute(name, value) { this.attributes[name] = value; }
+    removeAttribute(name) { delete this.attributes[name]; }
     querySelectorAll() { return this.childNodes.flatMap((child) => child.nodeType === 1 ? [child, ...child.querySelectorAll()] : []); }
     closest() {
       let element = this;
@@ -43,8 +44,13 @@ function fixture({ locale = "id", dictionaries = {} } = {}) {
   const observers = [];
   const requests = [];
   let frameId = 0;
+  const events = new Map();
   const document = {
     body: new Element("body"), documentElement: new Element("html"), cookie: `locale=${locale}`,
+    readyState: "complete",
+    querySelector() { return this.body.querySelectorAll().find(element => Object.hasOwn(element.attributes, "data-i18n-hydration-pending")) || null; },
+    addEventListener(name, callback) { if (!events.has(name)) events.set(name, new Set()); events.get(name).add(callback); },
+    removeEventListener(name, callback) { events.get(name)?.delete(callback); },
     createTreeWalker(element) {
       const text = [];
       function collect(node) { for (const child of node.childNodes || []) { if (child.nodeType === 3) text.push(child); else collect(child); } }
@@ -78,6 +84,7 @@ function fixture({ locale = "id", dictionaries = {} } = {}) {
     runtime: fixtureModule.exports, document, fetch, requests, observers,
     element: (tag, attributes) => new Element(tag, attributes), text: (value) => new Text(value),
     mutate(records) { observers[0].callback(records); },
+    dispatch(name) { for (const callback of events.get(name) || []) callback(); },
     flush() { for (let turn = 0; turn < 5 && frames.size; turn++) { const work = [...frames.values()]; frames.clear(); work.forEach((callback) => callback()); } expect(frames.size).toBe(0); },
   };
 }
@@ -85,6 +92,36 @@ function fixture({ locale = "id", dictionaries = {} } = {}) {
 const id = { "Not specified": "Belum ditentukan", "Estimated cost": "Perkiraan biaya", "Search models": "Cari model", "{count} requests": "{count} permintaan", "Source {index}": "Sumber {index}", "{cost} local estimate": "{cost} perkiraan lokal", "Choose language, current: {language}": "Pilih bahasa, saat ini: {language}" };
 
 describe("runtime UI localization", () => {
+  it("waits for parsing and late streamed hydration regions before translating existing server nodes", async () => {
+    const f = fixture({ dictionaries: { id } });
+    f.document.readyState = "loading";
+    const first = f.document.body.appendChild(f.element("section", { "data-i18n-hydration-pending": "" }));
+    const firstText = first.appendChild(f.text("Not specified"));
+    const stop = await f.runtime.initRuntimeI18n();
+    expect(f.fetch).toHaveBeenCalledTimes(1);
+    expect(f.runtime.getCurrentLocale()).toBe("en");
+    expect(firstText.nodeValue).toBe("Not specified");
+    first.removeAttribute("data-i18n-hydration-pending");
+    f.mutate([{ type: "attributes", target: first, attributeName: "data-i18n-hydration-pending" }]);
+    const late = f.document.body.appendChild(f.element("section", { "data-i18n-hydration-pending": "" }));
+    const lateText = late.appendChild(f.text("Estimated cost"));
+    f.mutate([{ type: "childList", addedNodes: [late] }]);
+    f.document.readyState = "interactive";
+    f.dispatch("DOMContentLoaded");
+    expect(f.runtime.getCurrentLocale()).toBe("en");
+    expect(firstText.nodeValue).toBe("Not specified");
+    expect(lateText.nodeValue).toBe("Estimated cost");
+    late.removeAttribute("data-i18n-hydration-pending");
+    f.mutate([{ type: "attributes", target: late, attributeName: "data-i18n-hydration-pending" }]);
+    expect(f.runtime.getCurrentLocale()).toBe("id");
+    expect(firstText.nodeValue).toBe("Belum ditentukan");
+    expect(lateText.nodeValue).toBe("Perkiraan biaya");
+    expect(f.document.body.childNodes).toEqual([first, late]);
+    expect(first.childNodes).toEqual([firstText]);
+    expect(late.childNodes).toEqual([lateText]);
+    stop();
+  });
+
   it("translates the official provider card and its website label without changing brand identities", async () => {
     const dictionary = JSON.parse(readFileSync(new URL("../../public/i18n/literals/id.json", import.meta.url), "utf8"));
     const f = fixture({ dictionaries: { id: dictionary } });

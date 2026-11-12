@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import "../profile/operations.css";
 
 import { useState, useEffect, useCallback } from "react";
@@ -48,7 +50,7 @@ function normalizeCapEntry(entry) {
   return { ...EMPTY_CAP_ENTRY };
 }
 
-export default function CombosPage() {
+function CombosPage() {
   const [combos, setCombos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -987,3 +989,5 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders, kindF
     </>
   );
 }
+
+export default withRuntimeI18nPage(CombosPage);

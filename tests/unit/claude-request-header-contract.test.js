@@ -89,15 +89,18 @@ describe("Claude outbound request header contract", () => {
     expect(sent.headers.has("x-api-key")).toBe(false);
   });
 
-  it("keeps rejected inbound beta flags out of retries and later turns for only that account", async () => {
+  it("returns an explicit beta rejection without erasing the caller opt-in on later turns", async () => {
     const executor = new DefaultExecutor("claude");
     const auth = credentials({ rawHeaders: { "anthropic-beta": CLIENT_BETA } });
-    proxyAwareFetch.mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: `Unexpected value(s) \`${CLIENT_BETA}\` for the \`anthropic-beta\` header` } }), { status: 400 }));
-    await outbound(executor, requestBody("summarized"), auth);
+    const payload = { error: { message: `Unexpected value(s) \`${CLIENT_BETA}\` for the \`anthropic-beta\` header` } };
+    proxyAwareFetch.mockResolvedValueOnce(Response.json(payload, { status: 400 }));
+    const result = await executor.execute({ model, body: requestBody("summarized"), stream: true, credentials: auth });
+    expect(result.response.status).toBe(400);
+    expect(await result.response.json()).toEqual(payload);
+    expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
     expect(new Headers(proxyAwareFetch.mock.calls[0][1].headers).get("anthropic-beta").split(",")).toContain(CLIENT_BETA);
-    expect(new Headers(proxyAwareFetch.mock.calls[1][1].headers).get("anthropic-beta").split(",")).not.toContain(CLIENT_BETA);
     const next = await outbound(executor, requestBody("summarized"), { ...auth });
-    expect(next.headers.get("anthropic-beta").split(",")).not.toContain(CLIENT_BETA);
+    expect(next.headers.get("anthropic-beta").split(",")).toContain(CLIENT_BETA);
     const other = await outbound(executor, requestBody("summarized"), credentials({ rawHeaders: { "anthropic-beta": CLIENT_BETA } }));
     expect(other.headers.get("anthropic-beta").split(",")).toContain(CLIENT_BETA);
   });

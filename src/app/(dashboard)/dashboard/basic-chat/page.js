@@ -1,5 +1,8 @@
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
 import BasicChatPageClient from "./BasicChatPageClient";
 
-export default function BasicChatPage() {
+function BasicChatPage() {
   return <BasicChatPageClient />;
 }
+
+export default withRuntimeI18nPage(BasicChatPage);

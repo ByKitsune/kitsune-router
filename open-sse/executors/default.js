@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS, PROVIDER_OAUTH } from "../config/providers.js";
-import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE, selectAnthropicBeta, parseRejectedAnthropicBetaFlags } from "../providers/shared.js";
+import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE, selectAnthropicBeta, parseRejectedAnthropicBetaFlags, parseAnthropicBetaFlags, requiredAnthropicBetaFlags } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { OAUTH_ENDPOINTS, buildKimiHeaders } from "../config/appConstants.js";
 import { buildClineHeaders } from "../shared/clineAuth.js";
@@ -252,14 +252,11 @@ export class DefaultExecutor extends BaseExecutor {
       const configured = this.provider === "claude" && model ? selectAnthropicBeta(model, body, blocked)
         : headers["Anthropic-Beta"] || headers["anthropic-beta"] || "";
       const incoming = this.readClientHeader(credentials, "anthropic-beta");
-      const incomingValue = Array.isArray(incoming) ? incoming.join(",") : incoming;
-      const flags = new Set(configured.split(",").map(flag => flag.trim()).filter(flag => flag && !blocked?.has(flag)));
-      for (const flag of typeof incomingValue === "string" ? incomingValue.split(",") : []) {
-        const value = flag.trim();
+      const required = requiredAnthropicBetaFlags(body, incoming);
+      const flags = new Set(configured.split(",").map(flag => flag.trim()).filter(flag => flag && (!blocked?.has(flag) || required.has(flag))));
+      for (const value of parseAnthropicBetaFlags(incoming)) {
         if (this.provider === "anthropic" && (value.startsWith("claude-code-") || value.startsWith("oauth-"))) continue;
-        if (/^[a-z0-9][a-z0-9-]*-(?:\d{8}|\d{4}-\d{2}-\d{2})$/.test(value)
-          && !blocked?.has(value)
-          && !(body?.thinking?.display === "summarized" && value === "redact-thinking-2026-02-12")) flags.add(value);
+        if (!(body?.thinking?.display === "summarized" && value === "redact-thinking-2026-02-12")) flags.add(value);
       }
       delete headers["anthropic-beta"];
       headers["Anthropic-Beta"] = [...flags].join(",");
@@ -326,10 +323,10 @@ export class DefaultExecutor extends BaseExecutor {
 
   // Anthropic gates some `anthropic-beta` flags per organization. A gateway
   // cannot know an account's entitlements in advance, so the first 400 naming
-  // the offending flags is absorbed here: they are recorded for that connection
-  // and the same turn is retried once without them. Later turns skip them at
-  // buildHeaders() time, so the cost is paid once per connection, not per
-  // request. Any non-beta 400 falls straight through unchanged.
+  // optional default flags is absorbed here: they are recorded for that
+  // connection and the same turn is retried once without them. Explicit caller
+  // capabilities and beta-dependent request fields retain the original 400.
+  // Later turns skip only optional defaults at buildHeaders() time.
   //
   // The denylist is kept in a process-local map rather than on the credential:
   // getProviderCredentials() rebuilds providerSpecificData on every request, so
@@ -341,6 +338,9 @@ export class DefaultExecutor extends BaseExecutor {
     // Native API-key callers own explicit capability betas and their matching
     // body fields. Return rejections unchanged so the client can adapt the pair.
     if (this.provider !== "claude" || result.response.status !== HTTP_STATUS.BAD_REQUEST) return result;
+    try {
+      if (new URL(result.url).origin !== "https://api.anthropic.com") return result;
+    } catch { return result; }
 
     let bodyText;
     try {
@@ -350,6 +350,10 @@ export class DefaultExecutor extends BaseExecutor {
     }
     const rejected = parseRejectedAnthropicBetaFlags(bodyText);
     if (rejected.length === 0) return result;
+
+    const required = requiredAnthropicBetaFlags(result.transformedBody,
+      this.readClientHeader(options.credentials, "anthropic-beta"));
+    if (rejected.some(flag => required.has(flag))) return result;
 
     rememberRejectedBeta(options.credentials, rejected);
     options.log?.debug?.("RETRY", `claude rejected beta flag(s) ${rejected.join(", ")} — retrying without them`);

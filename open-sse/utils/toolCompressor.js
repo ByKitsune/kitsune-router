@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { FORMATS } from "../translator/formats.js";
-import { CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/index.js";
+import { CLAUDE_BLOCK, OPENAI_BLOCK, RESPONSES_ITEM, RESPONSES_TOOL } from "../translator/schema/index.js";
 import { getClaudeToolReferenceNames, renameClaudeToolReferences } from "./claudeToolReferences.js";
 
 /**
@@ -8,6 +8,25 @@ import { getClaudeToolReferenceNames, renameClaudeToolReferences } from "./claud
  * Names longer than 64 characters are rejected with INVALID_ARGUMENT (#3622).
  */
 export const MAX_TOOL_NAME_LENGTH = 64;
+
+const RESPONSE_NAMED_ITEMS = new Set([
+  RESPONSES_ITEM.FUNCTION_CALL, RESPONSES_ITEM.CUSTOM_TOOL_CALL,
+  RESPONSES_ITEM.FUNCTION_CALL_OUTPUT, RESPONSES_ITEM.CUSTOM_TOOL_CALL_OUTPUT,
+]);
+const RESPONSE_CALL_ITEMS = new Set([RESPONSES_ITEM.FUNCTION_CALL, RESPONSES_ITEM.CUSTOM_TOOL_CALL]);
+const RESPONSE_OUTPUT_ITEMS = new Set([RESPONSES_ITEM.FUNCTION_CALL_OUTPUT, RESPONSES_ITEM.CUSTOM_TOOL_CALL_OUTPUT]);
+
+function namespacedCallIds(items) {
+  const ids = new Set();
+  for (const item of Array.isArray(items) ? items : []) {
+    if (RESPONSE_CALL_ITEMS.has(item?.type) && item.namespace != null && typeof item.call_id === "string" && item.call_id) ids.add(item.call_id);
+  }
+  return ids;
+}
+
+function belongsToNamespace(item, callIds) {
+  return item?.namespace != null || (RESPONSE_OUTPUT_ITEMS.has(item?.type) && callIds.has(item.call_id));
+}
 
 /**
  * Compress tool name to <= 64 characters using first 55 characters + "_" + 8-char MD5 hash.
@@ -28,29 +47,50 @@ export function compressSingleToolName(name) {
 export function compressToolNames(sourceFormat, body) {
   if (!body || typeof body !== "object") return { body, toolNameMap: null };
 
-  const tools = body.tools;
-  if (!Array.isArray(tools) || tools.length === 0) return { body, toolNameMap: null };
-
   const isClaude = sourceFormat === FORMATS.CLAUDE;
-  const isOpenAI = sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES;
+  const isResponses = sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX
+    || (sourceFormat === FORMATS.OPENAI && Object.hasOwn(body, "input"));
+  const tools = Array.isArray(body.tools) ? body.tools : [];
+  const input = isResponses && Array.isArray(body.input) ? body.input : [];
+  const declarations = [...tools];
+  for (const item of input) {
+    if (item?.type === RESPONSES_ITEM.ADDITIONAL_TOOLS && Array.isArray(item.tools)) declarations.push(...item.tools);
+  }
+  if (!declarations.length) return { body, toolNameMap: null };
 
   const shortToOriginal = new Map();
   const originalToShort = new Map();
 
-  const getToolName = (t) => (isClaude ? t.name : t.function?.name || t.name);
+  const getToolName = (t) => {
+    if (!t || typeof t !== "object") return undefined;
+    // Namespace wrappers and their local identities belong to a different
+    // scope; a global alias must never capture or rename them.
+    if (isResponses && (t.namespace != null || ![RESPONSES_TOOL.FUNCTION, RESPONSES_TOOL.CUSTOM].includes(t.type))) return undefined;
+    return isClaude ? t.name : t.function?.name || t.name;
+  };
   const setToolName = (t, name) => {
     if (isClaude || !t.function) return { ...t, name };
     return { ...t, function: { ...t.function, name } };
   };
   // The common case needs no history scan when every declaration already fits.
-  if (!tools.some(tool => {
+  if (!declarations.some(tool => {
     const name = getToolName(tool);
     return typeof name === "string" && name.length > MAX_TOOL_NAME_LENGTH;
   })) return { body, toolNameMap: null };
 
   // A generated short name must not capture a declared tool or an unchanged
   // historical identity, including references returned by deferred tool search.
-  const usedNames = new Set(tools.map(getToolName));
+  const usedNames = new Set(declarations.map(getToolName));
+  // A namespace-local tool may legitimately have the same spelling as a global
+  // tool. Reserve those names without flattening or rewriting their scope.
+  const nested = declarations.filter(tool => tool?.type === RESPONSES_TOOL.NAMESPACE);
+  while (nested.length) {
+    const namespace = nested.pop();
+    for (const tool of Array.isArray(namespace.tools) ? namespace.tools : []) {
+      if (typeof tool?.name === "string") usedNames.add(tool.name);
+      if (tool?.type === RESPONSES_TOOL.NAMESPACE) nested.push(tool);
+    }
+  }
   for (const message of body.messages || []) {
     if (Array.isArray(message.content)) for (const block of message.content) {
       if (block?.type === CLAUDE_BLOCK.TOOL_USE) usedNames.add(block.name);
@@ -60,10 +100,23 @@ export function compressToolNames(sourceFormat, body) {
     if (message.role === "tool") usedNames.add(message.name);
   }
 
-  const newTools = tools.map((tool) => {
+  for (const item of input) {
+    if (RESPONSE_NAMED_ITEMS.has(item?.type)) usedNames.add(item.name);
+  }
+  const choices = isResponses && body.tool_choice?.type === RESPONSES_TOOL.ALLOWED_TOOLS && Array.isArray(body.tool_choice.tools)
+    ? body.tool_choice.tools : [body.tool_choice];
+  for (const choice of choices) {
+    const forcedName = isResponses ? getToolName(choice) : isClaude ? choice?.name : choice?.function?.name;
+    if (typeof forcedName === "string") usedNames.add(forcedName);
+  }
+  const scopedCalls = namespacedCallIds(input);
+
+  // Allocate across both initial and incremental declarations before rewriting
+  // any history, even when a declaration follows the call it describes.
+  for (const tool of declarations) {
     const originalName = getToolName(tool);
     if (!originalName || typeof originalName !== "string" || originalName.length <= MAX_TOOL_NAME_LENGTH) {
-      return tool;
+      continue;
     }
     let shortName = originalToShort.get(originalName);
     if (!shortName) {
@@ -76,8 +129,12 @@ export function compressToolNames(sourceFormat, body) {
     }
     shortToOriginal.set(shortName, originalName);
     originalToShort.set(originalName, shortName);
-    return setToolName(tool, shortName);
-  });
+  }
+  const renameTool = tool => {
+    const alias = originalToShort.get(getToolName(tool));
+    return alias ? setToolName(tool, alias) : tool;
+  };
+  const newTools = tools.map(renameTool);
 
   if (shortToOriginal.size === 0) {
     return { body, toolNameMap: null };
@@ -128,12 +185,33 @@ export function compressToolNames(sourceFormat, body) {
     });
   }
 
+  let newInput = body.input;
+  if (isResponses && Array.isArray(body.input)) {
+    newInput = body.input.map(item => {
+      if (item?.type === RESPONSES_ITEM.ADDITIONAL_TOOLS && Array.isArray(item.tools)) {
+        const renamed = item.tools.map(renameTool);
+        return renamed.some((tool, index) => tool !== item.tools[index]) ? { ...item, tools: renamed } : item;
+      }
+      if (RESPONSE_NAMED_ITEMS.has(item?.type) && !belongsToNamespace(item, scopedCalls) && originalToShort.has(item.name)) {
+        return { ...item, name: originalToShort.get(item.name) };
+      }
+      return item;
+    });
+  }
+
   // Update tool_choice
   let newToolChoice = body.tool_choice;
   if (body.tool_choice && typeof body.tool_choice === "object") {
     if (isClaude && body.tool_choice.type === "tool" && originalToShort.has(body.tool_choice.name)) {
       newToolChoice = { ...body.tool_choice, name: originalToShort.get(body.tool_choice.name) };
-    } else if (body.tool_choice.type === "function" && originalToShort.has(body.tool_choice.function?.name)) {
+    } else if (isResponses && body.tool_choice.type === RESPONSES_TOOL.ALLOWED_TOOLS && Array.isArray(body.tool_choice.tools)) {
+      const renamed = body.tool_choice.tools.map(renameTool);
+      if (renamed.some((tool, index) => tool !== body.tool_choice.tools[index])) newToolChoice = { ...body.tool_choice, tools: renamed };
+    } else if (isResponses && body.tool_choice.namespace == null
+      && [RESPONSES_TOOL.FUNCTION, RESPONSES_TOOL.CUSTOM].includes(body.tool_choice.type)
+      && originalToShort.has(body.tool_choice.name)) {
+      newToolChoice = { ...body.tool_choice, name: originalToShort.get(body.tool_choice.name) };
+    } else if (body.tool_choice.type === OPENAI_BLOCK.FUNCTION && originalToShort.has(body.tool_choice.function?.name)) {
       newToolChoice = {
         ...body.tool_choice,
         function: { ...body.tool_choice.function, name: originalToShort.get(body.tool_choice.function.name) },
@@ -143,8 +221,9 @@ export function compressToolNames(sourceFormat, body) {
 
   const newBody = {
     ...body,
-    tools: newTools,
+    ...(Array.isArray(body.tools) ? { tools: newTools } : {}),
     ...(newMessages ? { messages: newMessages } : {}),
+    ...(isResponses && Array.isArray(body.input) ? { input: newInput } : {}),
     ...(newToolChoice ? { tool_choice: newToolChoice } : {}),
   };
 
@@ -164,8 +243,9 @@ export function decloakOpenAIChunk(chunk, toolNameMap) {
       const data = decloakOpenAIChunk(chunk.data, toolNameMap);
       return data === chunk.data ? chunk : { ...chunk, data };
     }
+    const scopedCalls = namespacedCallIds(chunk.output);
     const restoreItem = (item) => {
-      if ((item?.type !== RESPONSES_ITEM.FUNCTION_CALL && item?.type !== RESPONSES_ITEM.CUSTOM_TOOL_CALL) || !toolNameMap.has(item.name)) return item;
+      if (!RESPONSE_NAMED_ITEMS.has(item?.type) || belongsToNamespace(item, scopedCalls) || !toolNameMap.has(item.name)) return item;
       return { ...item, name: toolNameMap.get(item.name) };
     };
     let result = chunk;

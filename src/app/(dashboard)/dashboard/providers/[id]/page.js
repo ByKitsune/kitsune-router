@@ -1,5 +1,7 @@
 "use client";
 
+import withRuntimeI18nPage from "@/i18n/withRuntimeI18nPage";
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -37,7 +39,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export default function ProviderDetailPage() {
+function ProviderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const providerId = params.id;
@@ -2208,3 +2210,5 @@ export default function ProviderDetailPage() {
     </div>
   );
 }
+
+export default withRuntimeI18nPage(ProviderDetailPage);

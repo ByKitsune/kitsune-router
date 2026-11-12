@@ -8,6 +8,7 @@ import * as modelConstants from "../../src/shared/constants/models.js";
 import * as providerIcon from "../../src/shared/utils/providerIcon.js";
 import * as providerCustomModels from "../../src/shared/utils/providerCustomModels.js";
 import * as thinkingLevels from "../../open-sse/providers/thinkingLevels.js";
+import { compileHydratedPageWrapper, renderHydratedPage } from "../helpers/hydrated-page-harness.js";
 
 const require = createRequire(import.meta.url);
 const babel = require("next/dist/compiled/babel/core");
@@ -157,6 +158,7 @@ function fixture({ provider = "openai", settings = {}, customModels = [], catalo
         if (id === "@/shared/utils/providerCustomModels") return providerCustomModels;
         if (id === "@/shared/utils/providerModelsFetcher") return { fetchSuggestedModels: async () => [] };
         if (id === "@/i18n/runtime") return { translate: (value) => value };
+        if (id === "@/i18n/withRuntimeI18nPage") return compileHydratedPageWrapper(jsx);
         if (id === "open-sse/providers/thinkingLevels.js") return thinkingLevels;
         if (id.startsWith("@/")) return require(`../../src/${id.slice(2)}`);
         if (id.startsWith("open-sse/")) return require(`../../${id}`);
@@ -172,7 +174,7 @@ function fixture({ provider = "openai", settings = {}, customModels = [], catalo
   const render = () => {
     dirty = false;
     cursor = 0;
-    tree = Page();
+    tree = renderHydratedPage(Page);
     effects.splice(0).forEach((effect) => effect());
     return tree;
   };

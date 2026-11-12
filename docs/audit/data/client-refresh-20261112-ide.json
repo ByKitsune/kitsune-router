@@ -1,0 +1,439 @@
+{
+  "reviewDate": "2026-11-12",
+  "capturedAtUtc": "2026-11-12T08:09:45.801768+00:00",
+  "scope": [
+    "Cursor",
+    "Windsurf / Devin Desktop",
+    "Trae",
+    "Zed"
+  ],
+  "baseCommit": "cf3e96de",
+  "method": "Official stable publisher metadata and static artifact/source inspection only. No installer or downloaded client was executed, and no real provider credential or inference was used.",
+  "recommendedConstants": {
+    "CURSOR_VERSION": "3.29.15",
+    "CURSOR_CONNECT_ES_VERSION": "1.6.1",
+    "WINDSURF_IDE_VERSION": "3.12.43",
+    "WINDSURF_EXTENSION_VERSION": "1.48.2",
+    "TRAE_APP_VERSION": "3.6.13",
+    "ZED_VERSION": "1.28.1"
+  },
+  "products": {
+    "cursor": {
+      "before": "3.24.18",
+      "verifiedStable": "3.29.15",
+      "manifestUrl": "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
+      "artifactUrl": "https://downloads.cursor.com/production/86776fcb52ca505783155631089b65d646f9b03f/linux/x64/deb/amd64/deb/cursor_3.29.15_amd64.deb",
+      "artifact": {
+        "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-3.29.15.deb",
+        "bytes": 227031988,
+        "sha256": "bc2d010514ce079bc55acff0332757e311e18b0da48dc24dc364bc8f695c11e5"
+      },
+      "integrity": {
+        "publisherKeyFingerprint": "380FF4BCDC34A4BD92A3565342A1772E62E492D6",
+        "signatureValid": true,
+        "signedReleaseEqualsFetchedAfterOpenPgpTrailingWhitespaceCanonicalization": true,
+        "packagesSha256": "57bc107cea7e8abe5e724dc69f97fb5071bc7520e758a63168541fa283ebb137",
+        "packagesSize": 5212,
+        "packageVersion": "3.29.15-1794174137",
+        "artifactSha256": "bc2d010514ce079bc55acff0332757e311e18b0da48dc24dc364bc8f695c11e5",
+        "artifactBytes": 227031988,
+        "chain": "Official TLS publisher key -> valid InRelease signature -> matching Packages SHA256 -> matching downloaded deb SHA256",
+        "trustBoundary": "Official publisher-domain key retrieval, not a preconfigured independent Web-of-Trust identity certification."
+      },
+      "nativeMetadata": {
+        "appVersion": "3.29.15",
+        "baseVscodeVersion": "1.128.0",
+        "bundledNodeVersion": "24.22.1",
+        "releaseCommit": "86776fcb52ca505783155631089b65d646f9b03f",
+        "packagedCommit": "86776fcb52ca505783155631089b65d646f9b030",
+        "connectVersion": "1.6.1",
+        "connectNodeVersion": "1.6.1"
+      },
+      "wireFindings": [
+        "Native VT1 checksum retains seed 165, XOR plus index, and processed-byte feedback; the existing gateway cipher is unchanged.",
+        "The header helper accepts app version independently of Connect 1.6.1. Runtime SDK pin therefore remains 1.6.1.",
+        "The native caller supplies clientCommit only for isAnysphereUser(). Public gateway accounts continue to omit employee/canary commit identity.",
+        "The network consumers retain required provisioned machine identity and existing token/privacy semantics. Bundled Node 24.22.1 is not a mandate to hardcode a gateway host runtime."
+      ],
+      "captures": [
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-.__usr__share__cursor__resources__app__product.json",
+          "bytes": 53639,
+          "sha256": "cc414e8f3aeb722c87640ec165604939b4d95841157e92ff2d475aa85d84f16a"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-.__usr__share__cursor__resources__app__package.json",
+          "bytes": 456,
+          "sha256": "5778aa0f30f31a19b0fdf5ef29530034f8d61c58c2d3785df88b35827fce4293"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-.__usr__share__cursor__resources__app__node_modules__@connectrpc__connect__package.json",
+          "bytes": 2483,
+          "sha256": "4515f0f5c858141e2a04340c4d2054c1e30d82c1b407c7060dc27ef4424d8aca"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-.__usr__share__cursor__resources__app__node_modules__@connectrpc__connect-node__package.json",
+          "bytes": 1725,
+          "sha256": "9fcd8e7e6c8fb9129faf0c414e28efa014cd490958dc9510c9c7a45a09bbd884"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-.__usr__share__cursor__resources__app__out__vs__workbench__workbench.desktop.main.js",
+          "bytes": 38857125,
+          "sha256": "4d946eb3ceaac507fb22ad694e2c1b03b0d6a82cdabfa825b174aff9ac5f2857"
+        }
+      ],
+      "unchanged": [
+        "checksum algorithm",
+        "Connect protocol version 1",
+        "account-owned machine identity requirements",
+        "proxy and credential boundaries"
+      ],
+      "sourceCommentRepair": "Corrected the existing cipher description: feedback is the processed byte, not an accumulated key+byte. No algorithm change."
+    },
+    "windsurf": {
+      "before": "3.10.67",
+      "verifiedStable": "3.12.43",
+      "manifestUrl": "https://windsurf-stable.codeium.com/api/update/linux-x64/stable/latest",
+      "changelogUrl": "https://docs.devin.ai/desktop/changelog.md",
+      "artifactUrl": "https://windsurf-stable.codeiumdata.com/linux-x64/stable/517d03d73926d6d71330b47ec14ceb6e56469159/Devin-linux-x64-3.12.43.tar.gz",
+      "artifact": {
+        "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/windsurf-3.12.43.tar.gz",
+        "bytes": 411180319,
+        "sha256": "f76706d3500da34b06ba21e652dd063b394354ee4d0a5076dc5d89b07a32734c"
+      },
+      "integrity": {
+        "publisherSha256": "f76706d3500da34b06ba21e652dd063b394354ee4d0a5076dc5d89b07a32734c",
+        "matches": true
+      },
+      "nativeMetadata": {
+        "windsurfVersion": "3.12.43",
+        "codeiumVersion": "1.48.2",
+        "languageServerVersion": "1.48.2",
+        "extensionPackageVersion": "0.2.0",
+        "baseVscodeVersion": "1.141.2",
+        "commit": "517d03d73926d6d71330b47ec14ceb6e56469159"
+      },
+      "wireFindings": [
+        "Keep metadata extension version 1.48.2 separate from desktop release 3.12.43, extension package 0.2.0 and base VS Code 1.141.2.",
+        "Native extension MetadataProvider obtains extensionVersion from the windsurfLanguageServer API; the bundled extension host maps that API version to its independent language-server literal 1.48.2.",
+        "The existing disabled provider serializer and its legacy protobuf field layout were not claimed equivalent to the current native descriptor or activated.",
+        "Publisher release notes concern native Devin Local tools, compaction, sessions and editor behavior; these do not establish new gateway models or account entitlements."
+      ],
+      "captures": [
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/Devin__resources__app__product.json",
+          "bytes": 49513,
+          "sha256": "e2a92d8481085e37d817c7e6ae1c408bc6d69d5741480849bbdc5bdc7821de28"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/Devin__resources__app__package.json",
+          "bytes": 18456,
+          "sha256": "68f5d4610e9854548f0e4876af8a843d8bbe02c845fad6771c177303c1e772cf"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/Devin__resources__app__extensions__windsurf__package.json",
+          "bytes": 24336,
+          "sha256": "8215d6aa9a6695f508c66bbc70b30dccd8011b3e836f03429168e620e5406519"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/windsurf-extension.js",
+          "bytes": 6556548,
+          "sha256": "577faf25dc54ef227ca385c998b318dfc377c4e173a4bd947f440631c758cae2"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/windsurf-Devin__resources__app__out__vs__workbench__api__node__extensionHostProcess.js",
+          "bytes": 2663300,
+          "sha256": "9ef5012de005abacc6ccae5f767f7271df358c27c3d35341c8776258e52cdbab"
+        }
+      ],
+      "providerActivation": "unchanged inactive"
+    },
+    "trae": {
+      "before": "3.6.4",
+      "verifiedStable": "3.6.13",
+      "manifestUrl": "https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+      "artifactUrl": "https://lf-cdn.trae.ai/obj/trae-ai-sg/pkg/app/releases/stable/2.3.99397/linux/TRAE-linux-x64.tar.gz",
+      "artifact": {
+        "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/trae-3.6.13.tar.gz",
+        "bytes": 656486727,
+        "sha256": "7bf2ec138fe9705b8beeb34c010bec55d98baaae28c74270dac278a4f166b05f"
+      },
+      "integrity": {
+        "publisherCdnContentMd5": "5ze5Fb6gL2E8QqSAGR8Rgw==",
+        "matches": true,
+        "limit": "MD5 is a CDN transfer-consistency check, not a collision-resistant publisher signature. SHA256 was computed over the complete TLS-fetched artifact and is recorded above."
+      },
+      "nativeMetadata": {
+        "appVersion": "3.6.13",
+        "tronBuildVersion": "2.3.99397",
+        "baseVscodeVersion": "1.107.1",
+        "commit": "9da5f4f95119514cfc3ace561780174ce3193f23"
+      },
+      "manifestVersionsByPlatform": {
+        "win32": [
+          "3.6.13"
+        ],
+        "darwin": [
+          "3.6.13"
+        ],
+        "linux": [
+          "3.6.13"
+        ]
+      },
+      "wireFindings": [
+        "Use native appVersion 3.6.13 for the existing fallback common_params.app_version. Build 2.3.99397 and base VS Code 1.107.1 are separate facts.",
+        "Existing explicit providerSpecificData.appVersion is preserved by the serializer.",
+        "The manifest and package do not establish the remote SOLO web API header profile, a new SDK/protobuf version or live entitlement. Existing inactive transport/legacy UA remains unchanged and unverified."
+      ],
+      "captures": [
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/trae-.__resources__app__product.json",
+          "bytes": 77657,
+          "sha256": "129faa609c41940fc1bee811cb76a79f527ba9b27c4ea74d5360f710595a0783"
+        },
+        {
+          "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/trae-.__resources__app__package.json",
+          "bytes": 13045,
+          "sha256": "e564c0b364803519ab7e97cbd1689a3799bd476d51ccf7a850d10cc28c150b63"
+        }
+      ],
+      "providerActivation": "unchanged inactive"
+    },
+    "zed": {
+      "before": "1.26.2",
+      "verifiedStable": "1.28.1",
+      "releaseUrl": "https://github.com/zed-industries/zed/releases/tag/v1.28.1",
+      "releasePublishedAt": "2026-11-11T19:08:27Z",
+      "sourceCommit": "e8bc16acee5ae1937600d571d441c4b5d7b0d288",
+      "artifactUrl": "https://github.com/zed-industries/zed/releases/download/v1.28.1/zed-linux-x86_64.tar.gz",
+      "artifact": {
+        "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/zed-linux-x86_64-1.28.1.tar.gz",
+        "bytes": 91236005,
+        "sha256": "9c3fc4cbe533e72c8d0e864a62be2b88d69cc44b9f52cd25d4c21d054dda3742"
+      },
+      "integrity": {
+        "publisherSha256": "sha256:9c3fc4cbe533e72c8d0e864a62be2b88d69cc44b9f52cd25d4c21d054dda3742",
+        "matches": true
+      },
+      "sourceFiles": [
+        {
+          "url": "https://raw.githubusercontent.com/zed-industries/zed/e8bc16acee5ae1937600d571d441c4b5d7b0d288/crates/zed/Cargo.toml",
+          "capture": {
+            "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/zed-crates__zed__Cargo.toml",
+            "bytes": 9927,
+            "sha256": "17b8da1612d96c7529c70ef4cc018de00f712d24307d768a2ba29df70e31e255"
+          }
+        },
+        {
+          "url": "https://raw.githubusercontent.com/zed-industries/zed/e8bc16acee5ae1937600d571d441c4b5d7b0d288/crates/cloud_llm_client/src/cloud_llm_client.rs",
+          "capture": {
+            "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/zed-crates__cloud_llm_client__src__cloud_llm_client.rs",
+            "bytes": 13667,
+            "sha256": "054918299f6a4b50662527ef978c4da397f86ed4128ae0d5ae8a3c4321a24755"
+          }
+        },
+        {
+          "url": "https://raw.githubusercontent.com/zed-industries/zed/e8bc16acee5ae1937600d571d441c4b5d7b0d288/crates/language_models/src/provider/cloud.rs",
+          "capture": {
+            "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/zed-crates__language_models__src__provider__cloud.rs",
+            "bytes": 41806,
+            "sha256": "5ed6f86f062fee2791750010bca65867e421f3e770d40abdf484021f5e6f53eb"
+          }
+        },
+        {
+          "url": "https://raw.githubusercontent.com/zed-industries/zed/e8bc16acee5ae1937600d571d441c4b5d7b0d288/crates/language_models_cloud/src/language_models_cloud.rs",
+          "capture": {
+            "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/zed-crates__language_models_cloud__src__language_models_cloud.rs",
+            "bytes": 105433,
+            "sha256": "7b006454d607121140cb6dabb10b26fbf0cb13841711546e1a51b00fb498eaab"
+          }
+        }
+      ],
+      "wireFindings": [
+        "Tagged Cargo package identifies version 1.28.1; cloud_llm_client names x-zed-version and language_models_cloud sends its independent app_version argument through that header.",
+        "Current completion/version/status framing and model-list contract remain consistent with tagged source. Existing gateway User-Agent kitsunerouter/zed remains explicit.",
+        "The established operator override is executor config.appVersion, verified at the actual outbound boundary; providerSpecificData.appVersion was only a misleading central comment, not an implemented prior input contract.",
+        "Native editor ACP, automatic compaction, prompt-cache and organization-access fixes are not copied as hosted gateway features or entitlement claims. No new cloud model IDs inferred from changelog."
+      ],
+      "unchanged": [
+        "native RSA/system identity and LLM token exchange",
+        "explicit gateway User-Agent",
+        "configured appVersion override",
+        "authenticated dynamic model discovery"
+      ]
+    }
+  },
+  "publisherMetadataCaptures": [
+    {
+      "name": "cursor-update",
+      "url": "https://api2.cursor.sh/updates/api/update/linux-x64/cursor/0.0.0",
+      "capturedAtUtc": "2026-11-12T07:57:28.818672+00:00",
+      "status": 404,
+      "finalUrl": "https://api2.cursor.sh/updates/api/update/linux-x64/cursor/0.0.0",
+      "bytes": 113,
+      "sha256": "1e08e4ebee463671f542a181ab89786f8d98f920f5869230806300c9fe6791d2",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-update.body",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "name": "cursor-changelog",
+      "url": "https://cursor.com/changelog",
+      "capturedAtUtc": "2026-11-12T07:57:28.819424+00:00",
+      "status": 200,
+      "finalUrl": "https://cursor.com/changelog",
+      "bytes": 183099,
+      "sha256": "e06927de2e403f868782fef0083bab448851453e449efa8d7906e61dba63ab17",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-changelog.body"
+    },
+    {
+      "name": "windsurf-update",
+      "url": "https://windsurf-stable.codeium.com/api/update/linux-x64/stable/latest",
+      "capturedAtUtc": "2026-11-12T07:57:28.819962+00:00",
+      "status": 200,
+      "finalUrl": "https://windsurf-stable.codeium.com/api/update/linux-x64/stable/latest",
+      "bytes": 533,
+      "sha256": "f51a1dc6ad3f76dee47fa1fa6ad7f205e3cf0b7b5b73ad0c9d0e1972c27093e0",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/windsurf-update.body"
+    },
+    {
+      "name": "windsurf-changelog",
+      "url": "https://docs.devin.ai/desktop/changelog.md",
+      "capturedAtUtc": "2026-11-12T07:57:28.820851+00:00",
+      "status": 200,
+      "finalUrl": "https://docs.devin.ai/desktop/changelog.md",
+      "bytes": 93295,
+      "sha256": "227a7aa389879b0fd127ee9e8022ffbd9e04da4e820be2c4e4550542f57b32c9",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/windsurf-changelog.body"
+    },
+    {
+      "name": "trae-update",
+      "url": "https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+      "capturedAtUtc": "2026-11-12T07:57:28.821441+00:00",
+      "status": 200,
+      "finalUrl": "https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+      "bytes": 25245,
+      "sha256": "abe61bcbbc50ef8ccb2310b89accc382ce742d295f4f8ef070a441b12446b0de",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/trae-update.body"
+    },
+    {
+      "name": "trae-changelog",
+      "url": "https://www.trae.ai/changelog",
+      "capturedAtUtc": "2026-11-12T07:57:28.822696+00:00",
+      "status": 200,
+      "finalUrl": "https://www.trae.ai/changelog",
+      "bytes": 16752,
+      "sha256": "014fc6909eaa84a5e7bc9e9185b6d0358664a209bc5a93a99f91ca388976ec25",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/trae-changelog.body"
+    },
+    {
+      "name": "cursor-download",
+      "url": "https://cursor.com/download",
+      "capturedAtUtc": "2026-11-12T07:58:19.038460+00:00",
+      "status": 200,
+      "finalUrl": "https://cursor.com/download",
+      "bytes": 473162,
+      "sha256": "c444c83013816b5ec78540560a7af02d9bbdfee6e8edb5463c09bc1a3de7e7a1",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-download.body"
+    },
+    {
+      "name": "cursor-download-api",
+      "url": "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
+      "capturedAtUtc": "2026-11-12T07:58:19.039409+00:00",
+      "status": 200,
+      "finalUrl": "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
+      "bytes": 631,
+      "sha256": "c51a7478f0d4492798b8507d8aaff6899429428ab72e58644c2ae37ce2ef29a4",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-download-api.body"
+    },
+    {
+      "name": "cursor-release-api",
+      "url": "https://cursor.com/api/releases/stable",
+      "capturedAtUtc": "2026-11-12T07:58:19.040017+00:00",
+      "status": 200,
+      "finalUrl": "https://cursor.com/api/releases/stable",
+      "bytes": 185903,
+      "sha256": "3e31d932631111f4b80f2d2484e3f6367e5a3115b1d0094e8a6e2eeb7b2ed242",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-release-api.body"
+    },
+    {
+      "name": "cursor-updates-new",
+      "url": "https://api2.cursor.sh/updates/api/update/linux-x64/stable/latest",
+      "capturedAtUtc": "2026-11-12T07:58:19.040557+00:00",
+      "status": 404,
+      "finalUrl": "https://api2.cursor.sh/updates/api/update/linux-x64/stable/latest",
+      "bytes": 114,
+      "sha256": "fc9e6a02c82d07c5cde10e8c229fe9a3c62960058ebb8378d6f32d57509d2bc9",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-updates-new.body",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "name": "cursor-apt-packages",
+      "url": "https://downloads.cursor.com/aptrepo/dists/stable/main/binary-amd64/Packages",
+      "capturedAtUtc": "2026-11-12T07:59:49.616686+00:00",
+      "status": 200,
+      "finalUrl": "https://downloads.cursor.com/aptrepo/dists/stable/main/binary-amd64/Packages",
+      "bytes": 5212,
+      "sha256": "57bc107cea7e8abe5e724dc69f97fb5071bc7520e758a63168541fa283ebb137",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-apt-packages.body"
+    },
+    {
+      "name": "cursor-apt-release",
+      "url": "https://downloads.cursor.com/aptrepo/dists/stable/Release",
+      "capturedAtUtc": "2026-11-12T07:59:49.617466+00:00",
+      "status": 200,
+      "finalUrl": "https://downloads.cursor.com/aptrepo/dists/stable/Release",
+      "bytes": 1790,
+      "sha256": "0bf08ac771a5978c11b7d7c230027360c2e859ac1a76893509dcfa106472b230",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-apt-release.body"
+    },
+    {
+      "name": "cursor-gpg-pubkey",
+      "url": "https://downloads.cursor.com/keys/anysphere.asc",
+      "capturedAtUtc": "2026-11-12T07:59:49.617976+00:00",
+      "status": 200,
+      "finalUrl": "https://downloads.cursor.com/keys/anysphere.asc",
+      "bytes": 1656,
+      "sha256": "9d2adcc95efdf65e6e76f964968734551ab70181634781f9d5952b271895ec03",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-gpg-pubkey.body"
+    },
+    {
+      "name": "cursor-apt-inrelease",
+      "url": "https://downloads.cursor.com/aptrepo/dists/stable/InRelease",
+      "capturedAtUtc": "2026-11-12T08:00:57.990479+00:00",
+      "status": 200,
+      "finalUrl": "https://downloads.cursor.com/aptrepo/dists/stable/InRelease",
+      "bytes": 2672,
+      "sha256": "93a33b897b9afa5af9f978a7ad1708af22d2a42ea023179164f6e067fb43fc77",
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/cursor-apt-inrelease.body"
+    }
+  ],
+  "verification": {
+    "command": "npm test -- tests/unit/windsurf-executor.test.js tests/unit/client-release-migrations.test.js tests/unit/refresh-client-secondary-wire.test.js --testNamePattern 'Cursor|Windsurf|Zed|Trae|windsurf|grpcWebFrame|buildGetChatMessageRequest|decodeCompletionChunk'",
+    "exitCode": 0,
+    "passed": 27,
+    "filteredOut": 16,
+    "files": 3,
+    "report": {
+      "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/focused-ide-tests.log",
+      "bytes": 823,
+      "sha256": "eb70af26a257b310874d655f6e35773565d4de5876e372f8e5a4dd0e21402964"
+    },
+    "scopedEslint": {
+      "exitCode": 0,
+      "command": "node node_modules/eslint/bin/eslint.js open-sse/utils/cursorChecksum.js tests/unit/windsurf-executor.test.js",
+      "log": {
+        "localArtifact": "/workspace/scratch/client-refresh-20261112/ide/scoped-eslint.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "meaning": "Real mocked outbound consumers verify version propagation, preserved SDK/extension independence, caller configuration and inactive-provider status. Filtered cases are not claimed passed; full repository gate is recorded separately by the root review."
+  },
+  "boundaries": [
+    "Artifact/source inspection does not establish live provider authentication, account entitlement, protocol acceptance or an invisible gateway.",
+    "No updater/installer/client binary was executed, and no live provider account was used.",
+    "No version bump activates the intentionally inactive Windsurf or Trae provider.",
+    "Where modern wire/SDK metadata is not independently established it is explicitly retained, not inferred from desktop/base-editor version numbers.",
+    "Downloaded publisher metadata and client app artifacts are distinct from Kitsune Router application/release versioning."
+  ]
+}

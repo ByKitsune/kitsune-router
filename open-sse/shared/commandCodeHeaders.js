@@ -1,4 +1,4 @@
-/** Command Code CLI 1.88.0 identity (upstream b1effa03). */
+/** Command Code request identity; reviewed release is centralized in clientVersions. */
 import { randomUUID } from "crypto";
 import { PROVIDERS } from "../config/providers.js";
 import { COMMAND_CODE_CLI_SURFACE, COMMAND_CODE_TASTE_LEARNING } from "../config/clientVersions.js";

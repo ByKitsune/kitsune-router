@@ -1,0 +1,884 @@
+{
+  "date": "2026-11-12",
+  "base_commit": "cf3e96de3b34be93b9b875b66c4755efc7a4996c",
+  "branch": "fix/client-compatibility-completion",
+  "source_application_version": "1.0.8",
+  "scope": "Complete client release/companion review; OAuth beta pairing, stable system messages, Responses replay and proven UI hydration repair",
+  "production_build_id": "RdXaWkmGYhEh6LQn-3XWh",
+  "verification_runtime": {
+    "node": "v24.22.1",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "verified_built_source_files": [
+    {
+      "path": "open-sse/config/appConstants.js",
+      "sha256": "3060cad5eb64e932c1fd806078e255959ffd3f0e71d91e30ac07ede71fdfd1f8"
+    },
+    {
+      "path": "open-sse/config/claudeBetaCapabilities.js",
+      "sha256": "5ae0ec4af1c5ffc268639612cea717e55e36ccbf2cb46391aae0b34579d82433"
+    },
+    {
+      "path": "open-sse/config/claudeMessages.js",
+      "sha256": "96dd293bb3740658ad4ad982c9e38d92aaa3bd8da72bebcfa98fedfa07c45818"
+    },
+    {
+      "path": "open-sse/config/clientVersions.js",
+      "sha256": "9360edd90e18985eab542bf3cd14bdc1444c8b00a8e6a7ebce207a3c4b6705b1"
+    },
+    {
+      "path": "open-sse/config/googleClientMetadata.js",
+      "sha256": "f71e99819b6fea2442094ab7a8a9445c4e6ba4d87fb1c43cb1afd44efb29f60c"
+    },
+    {
+      "path": "open-sse/executors/default.js",
+      "sha256": "5d8f477a5c118f29b47c8963c5f174f848a7426a49e03078c3ad093d8f7db8b3"
+    },
+    {
+      "path": "open-sse/providers/shared.js",
+      "sha256": "5412e9572dc67529424d9c86e3a90885228f3a83be9ec97c3d4209933f7cfee8"
+    },
+    {
+      "path": "open-sse/services/kiroModels.js",
+      "sha256": "7044374294cb8a07bcc55cdde9b45840d9538cf7273bfe6d5b440ff1f8333be6"
+    },
+    {
+      "path": "open-sse/services/projectId.js",
+      "sha256": "8e00c571150b644c8cdf88a65e2075681fcdf84807bd45ba79c8f14a795cc658"
+    },
+    {
+      "path": "open-sse/services/usage/google.js",
+      "sha256": "9f19f031a6c22185484c688fa8dd30a877a68c7a8ab64884e8dc2a8a0ed90500"
+    },
+    {
+      "path": "open-sse/shared/commandCodeHeaders.js",
+      "sha256": "7205b9918b8e51d1a79284fc456472b509f32ef5466e282e6a60904ee6c7013a"
+    },
+    {
+      "path": "open-sse/translator/formats/claude.js",
+      "sha256": "091684d79a4827e5e2723bab66cd0219e92de96f484dcba1fc9207d4356e12a7"
+    },
+    {
+      "path": "open-sse/translator/schema/blocks.js",
+      "sha256": "f1634d6c5f96ebb5bf66c53b275870ce3c725d9773acc689e3d4aef635102ada"
+    },
+    {
+      "path": "open-sse/translator/schema/index.js",
+      "sha256": "fd7fbb483fa915cec72cbbe85c1b84639915bb3e52bc45cffb5e32ccff3f9e60"
+    },
+    {
+      "path": "open-sse/utils/cursorChecksum.js",
+      "sha256": "716eb8465d38a8e0f680314433b533e66aeb9ed9cf826f0c1f3a8da9e185229b"
+    },
+    {
+      "path": "open-sse/utils/toolCompressor.js",
+      "sha256": "d49c6758d7df50a7042f32e406689252b38c5a05430e4aca3cb8ed8caa7d56b8"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/basic-chat/page.js",
+      "sha256": "bbd09121202118107a16545ecc4063e82d8b5c0beaa267af385dd84c5d3f89a5"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/[toolId]/page.js",
+      "sha256": "112c75448507a4f8343f9a7953406d2221fce6d0e233dafaa003bad8e9f9c44e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/cli-tools/page.js",
+      "sha256": "54dcf6f839a4da1f12d6e7f23e61fd2b273bdec5f6307f4b84ae14349dd48cf3"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/combos/page.js",
+      "sha256": "723714912f7bbf2f3224672490ebc4735c0a76786719e810ef949629e263fd03"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/console-log/page.js",
+      "sha256": "f77cd3ddd2c59c170e14df9dd74939ad14e504bae65973304a1ae08b81b5d5f2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/endpoint/page.js",
+      "sha256": "18afc6743e937115f6866383fe3fb2ec9d1a924b482559ee2ae24805aad39b1c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js",
+      "sha256": "0797ab253f429f119fa2adf5e53a67a28d071067fec671eaeb88216a6a019757"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/[kind]/page.js",
+      "sha256": "af5559a21c33a779da41b7aad71a3d858c1bfcecc755caf89fda5edbc0106e88"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/combo/[id]/page.js",
+      "sha256": "91b5ad6a925c4132430dfb40b9f3b794b86905d24c693916fb480ecb8937e279"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/media-providers/web/page.js",
+      "sha256": "380d7a77c45e3750ddc47dada5bb2f98112fc22c50d980cf55faba1d9effe08c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/mitm/page.js",
+      "sha256": "3cda1d722aed00e0bf8ed0d8cdca4c1d901d772721962ccb375c7e92dda3e2a7"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/page.js",
+      "sha256": "669a72f9b4cba2967f611ccc911051cbd8e4a988e7f3d1781a18d19fcd88b16f"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/profile/page.js",
+      "sha256": "0c4f7f4fb52813b7c4e6650db1d3b98fccf5e06ff4ecc0362d421a795a3ddba1"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/[id]/page.js",
+      "sha256": "ae642e5227cbf2dbb54beb491778b48e65a2a7df3f519d7cc1b963f258ea98f2"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/new/page.js",
+      "sha256": "f8c0f61a4e49a2d6c41f13d570b12703b48ca268a24d4bcb412f62eef3499450"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/providers/page.js",
+      "sha256": "4c0849f6e746844dfc82844f43d89dc0186e3dac28c1b2c9a0c5a30f751ec991"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/proxy-pools/page.js",
+      "sha256": "82eefb7042a6c8416881bc51fde0959f52861a9fe819e6199d87f51ef994f6e1"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/pxpipe/page.js",
+      "sha256": "226e5e0d4ff703ff771497067840c11de8f1b7995fd22a18c6ea6034b26f2cee"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/quota/page.js",
+      "sha256": "7f46ab1c8ff8de90de25e8ea99aec81979c42c86de6a247b19c73c6c383cde72"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/settings/pricing/page.js",
+      "sha256": "c83690602bda2bbeb0fe70e127a4f30de5627b4de621575f1502b8bad36a7e1c"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/skills/page.js",
+      "sha256": "15aefebecbedc4dc1a7f57912f141ea4b5d2a91d823338c2fb08938bce480109"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/token-saver/page.js",
+      "sha256": "3034f49e98538bc932acd3fa78480c2ad8aac68e1531069e4c58c0328c90525e"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/translator/page.js",
+      "sha256": "5474366d13949ba20bec13aa70f50b50953935e7c20e584c46485419599ef8de"
+    },
+    {
+      "path": "src/app/(dashboard)/dashboard/usage/page.js",
+      "sha256": "7a4040172d777155b4bb1169a4b5c4384b28721d074aef8ff55137d3d0518c31"
+    },
+    {
+      "path": "src/app/(dashboard)/layout.js",
+      "sha256": "455d87660d3417b38f3b867ec7215d53aeb05545b015fde75cc535b8da94079d"
+    },
+    {
+      "path": "src/app/callback/page.js",
+      "sha256": "b24fa45f9b4b1c5d4a7b3f69403749fed92f8d58f6bcb4cda370cdbda750b311"
+    },
+    {
+      "path": "src/app/landing/page.js",
+      "sha256": "c682f712774f0cda99d38cc0507cf3a35c0c81a4cf98823d2f51b50ab21cab5d"
+    },
+    {
+      "path": "src/app/login/page.js",
+      "sha256": "9fd781421ea817b145916b13524c7c42fdb023841f89b04e5ad30913a6a5f76a"
+    },
+    {
+      "path": "src/i18n/RuntimeI18nBoundary.js",
+      "sha256": "f9b97e53c0733d4d2e29b5f094f32150bb8d4a7a6805797fb0c9b8016b4f4e8c"
+    },
+    {
+      "path": "src/i18n/RuntimeI18nProvider.js",
+      "sha256": "515e6d7db70696cb8e6bd82262d7b0f6cec7e68bdb2c7010683053e1d804718f"
+    },
+    {
+      "path": "src/i18n/runtime.js",
+      "sha256": "f3d567740862c5e5adec968d52908ccbdf5af94dad87c3b3e245f3f6b8221fe9"
+    },
+    {
+      "path": "src/i18n/withRuntimeI18nPage.js",
+      "sha256": "653827832000810657b1ae7724a30c245c72e5408a4c78937192ef78d690c4c6"
+    },
+    {
+      "path": "src/lib/oauth/constants/oauth.js",
+      "sha256": "2e9e3ed445758cea22570206ec301185076ec49d65f558cdbf77cf00096dc3ed"
+    },
+    {
+      "path": "src/lib/oauth/providers/gemini-cli.js",
+      "sha256": "14c695bc8b088fcb5e7045f275b4676af0d439c96ab7f430d381b2121f671253"
+    },
+    {
+      "path": "src/lib/oauth/services/gemini.js",
+      "sha256": "7735b90d2eba31da652d8f344b9194481e13f347d8ac802a8398ba568af6848b"
+    }
+  ],
+  "verified_test_input_files": [
+    {
+      "path": "tests/__baseline__/providers-baseline.json",
+      "sha256": "015e2017779456fe4214bce1520995bae7d624beea44f547b34f8b4b3ca4def5"
+    },
+    {
+      "path": "tests/__baseline__/verify-providers.mjs",
+      "sha256": "768cbf81689a5f74af84dbdaa3e732f4acd04cd5ea2336652d44fe7d3511828d"
+    },
+    {
+      "path": "tests/helpers/hydrated-page-harness.js",
+      "sha256": "ad88f563a2acc53e19d79bdd11c075e88103b157c6e09a07821145b783f048f8"
+    },
+    {
+      "path": "tests/unit/antigravity-usage-headers.test.js",
+      "sha256": "6509e54b24a1ae180a14341ca1f3f6f68f5c8607c51094ae6172f791df84c4a4"
+    },
+    {
+      "path": "tests/unit/claude-client-current-contract.test.js",
+      "sha256": "de7111640ce0516ae6d932c62f604cdbb4772ca3b26c42d92f1ad86ca91a7d1c"
+    },
+    {
+      "path": "tests/unit/claude-mid-conversation-system.test.js",
+      "sha256": "707854c95e0573a9cc4900e37937e6b4bb5147aac031daf49aa0ef9c730c093f"
+    },
+    {
+      "path": "tests/unit/claude-request-header-contract.test.js",
+      "sha256": "15e85fb70b9e024c7ddfca623c842ac35d4da8b4bd2b00b470b1450002f4e022"
+    },
+    {
+      "path": "tests/unit/claude-required-beta-pairing.test.js",
+      "sha256": "c31a61ea3fd4fbc0d4225c539b986f616993eb33d029feb9098a326e15c15eb0"
+    },
+    {
+      "path": "tests/unit/claude-stable-system-messages.test.js",
+      "sha256": "24cd18efb6b0c4a51c32d9670acbaa19c38bd96e7328f4e6ce53ae024f48eb5a"
+    },
+    {
+      "path": "tests/unit/client-oauth-header-migrations.test.js",
+      "sha256": "1642c8d2b2a8fe77dac111aaa7b3d6c82a85077f9698e74520acc164fd7cd2db"
+    },
+    {
+      "path": "tests/unit/client-release-migrations.test.js",
+      "sha256": "45fadd8adad99e7015e0d0974d1492b86353c229d68310a65d947ae6671fa50d"
+    },
+    {
+      "path": "tests/unit/client-runtime-identity.test.js",
+      "sha256": "10bcc3a528a179315c07d18bdc3f3363d1eb385523f4092b60446dbb391a446b"
+    },
+    {
+      "path": "tests/unit/gemini-usage-client-identity.test.js",
+      "sha256": "9448d603ff5687eca2cb15d26d52680929a74c5d5007d8a745078e55a543257f"
+    },
+    {
+      "path": "tests/unit/google-client-metadata-20261112.test.js",
+      "sha256": "cfe3df60fa5ac4387d8a46c386070131e2d658becc84f36a9956472ad8138453"
+    },
+    {
+      "path": "tests/unit/pricing-settings-coverage.test.js",
+      "sha256": "305194b95382ff9eeeb9802dd18e93b3c3ef3df28b192cb78f7dba561083d3b0"
+    },
+    {
+      "path": "tests/unit/profile-observability.test.js",
+      "sha256": "1ea75ddbe4a77af00fa4377de56c8eb89019be9b0bb049d6c85eb3f6d6bf0da9"
+    },
+    {
+      "path": "tests/unit/provider-speed-ui.test.js",
+      "sha256": "6ea1b6ccb5a9d7245038990ed48a53d601892904ee9fe168c1db5cdbcc789fb0"
+    },
+    {
+      "path": "tests/unit/refresh-client-primary-wire.test.js",
+      "sha256": "a85d86845c54518eb5effb7ced604ce7b7cf679b1bfc56e9b12b9857eb61e8aa"
+    },
+    {
+      "path": "tests/unit/refresh-client-secondary-wire.test.js",
+      "sha256": "c95c4f1ad32dfcedffbb021b118c34e66a8ff1ff07d156fe3c58dce1d7cd25fd"
+    },
+    {
+      "path": "tests/unit/request-review-fix-outbound-beta.test.js",
+      "sha256": "48670a0dcd1ae35aaa65561bae2205bb3b4f618e2e3595f812834ef8df2eacd3"
+    },
+    {
+      "path": "tests/unit/responses-tool-name-compression.test.js",
+      "sha256": "d93a8e18f6928197f5f8cd1594d96c18fbc9ca14cfb7abc5e349bbadc604aacd"
+    },
+    {
+      "path": "tests/unit/runtime-i18n-hydration-browser.test.js",
+      "sha256": "535bfc482ef5c19aa5dad39a3bdc99360c507e72dfed27f6f946d42246dd6077"
+    },
+    {
+      "path": "tests/unit/runtime-i18n.test.js",
+      "sha256": "72099107bb5d38d42556dfa8ea86ef2868ebf3e704e91267840d53713eebc382"
+    },
+    {
+      "path": "tests/unit/upstream-commandcode-headers-session.test.js",
+      "sha256": "a2077ad100de17b84aa87b18243a12bd6c29d1797743e33e08f000c5ef284164"
+    },
+    {
+      "path": "tests/unit/windsurf-executor.test.js",
+      "sha256": "12aec7dc9042b5ffbd041591ff62977071c84d6c2a0c8f7304693bff57b6335f"
+    }
+  ],
+  "changed_client_release_pins": [
+    {
+      "constant": "CLAUDE_CODE_VERSION",
+      "before": "2.1.317",
+      "after": "2.1.322"
+    },
+    {
+      "constant": "CODEX_CLI_VERSION",
+      "before": "0.166.0",
+      "after": "0.167.2"
+    },
+    {
+      "constant": "VSCODE_VERSION",
+      "before": "1.144.0",
+      "after": "1.146.0"
+    },
+    {
+      "constant": "COPILOT_CHAT_VERSION",
+      "before": "0.72.0",
+      "after": "0.74.0"
+    },
+    {
+      "constant": "CURSOR_VERSION",
+      "before": "3.24.18",
+      "after": "3.29.15"
+    },
+    {
+      "constant": "ANTIGRAVITY_IDE_VERSION",
+      "before": "2.5.5",
+      "after": "2.6.0"
+    },
+    {
+      "constant": "ANTIGRAVITY_CLI_VERSION",
+      "before": "1.4.0",
+      "after": "1.5.6"
+    },
+    {
+      "constant": "GEMINI_CLI_VERSION",
+      "before": "0.66.0",
+      "after": "0.68.0"
+    },
+    {
+      "constant": "KIRO_IDE_VERSION",
+      "before": "1.4.13",
+      "after": "1.4.154"
+    },
+    {
+      "constant": "KIRO_CLI_VERSION",
+      "before": "2.33.0",
+      "after": "3.2.1"
+    },
+    {
+      "constant": "TRAE_APP_VERSION",
+      "before": "3.6.4",
+      "after": "3.6.13"
+    },
+    {
+      "constant": "CODEBUDDY_CLI_VERSION",
+      "before": "2.179.3",
+      "after": "2.183.0"
+    },
+    {
+      "constant": "GROK_CLI_VERSION",
+      "before": "1.0.62",
+      "after": "1.0.77"
+    },
+    {
+      "constant": "KIMCHI_GATEWAY_VERSION",
+      "before": "1.28.0",
+      "after": "1.34.2"
+    },
+    {
+      "constant": "COMMAND_CODE_VERSION",
+      "before": "1.88.2",
+      "after": "1.88.5"
+    },
+    {
+      "constant": "ZED_VERSION",
+      "before": "1.26.2",
+      "after": "1.28.1"
+    },
+    {
+      "constant": "WINDSURF_IDE_VERSION",
+      "before": "3.10.67",
+      "after": "3.12.43"
+    },
+    {
+      "constant": "QODER_CLI_VERSION",
+      "before": "1.1.81",
+      "after": "1.1.87"
+    }
+  ],
+  "publisher_evidence": [
+    {
+      "path": "/workspace/kitsune-router/docs/audit/data/client-refresh-20261112-claude.json",
+      "bytes": 21355,
+      "sha256": "ef815d7fb6969c670ffe4e44b6aa01975c785cb5d7f84b02c203f7b93401d798"
+    },
+    {
+      "path": "/workspace/kitsune-router/docs/audit/data/client-refresh-20261112-codex-copilot.json",
+      "bytes": 20690,
+      "sha256": "3df2dfe63f8d643227e2ee7f397dfde1821799fc923be95eee01a81e4ae996ad"
+    },
+    {
+      "path": "/workspace/kitsune-router/docs/audit/data/client-refresh-20261112-ide.json",
+      "bytes": 22727,
+      "sha256": "a9c1493aa69431c2b9c468b1a66282e7c7e6ecbea4bbbe448f6fc1cb67dff305"
+    },
+    {
+      "path": "/workspace/kitsune-router/docs/audit/data/client-refresh-20261112-google-kiro.json",
+      "bytes": 20320,
+      "sha256": "b43037c1e80f5b11a4fe8afa27db345c2d7f54fa164119b8c0f6d1ae91fc408e"
+    },
+    {
+      "path": "/workspace/kitsune-router/docs/audit/data/client-refresh-20261112-other.json",
+      "bytes": 41537,
+      "sha256": "b06c7dde09c4ebfdf3fba59023d2eaa8d4473f1c7924b813ee8564674fad4753"
+    }
+  ],
+  "hydration_causal_evidence": {
+    "path": "/workspace/kitsune-router/docs/audit/data/hydration-followup-20261112.json",
+    "bytes": 18038,
+    "sha256": "9e290f230db2da8e5e15c62811ddf41e4100ad557533f5e61271d8412ab544a6"
+  },
+  "upstream_review": {
+    "checked_at": "2026-11-12",
+    "source": "https://api.github.com/repos/decolua/9router/commits?per_page=20",
+    "tip": "54a88d0498ffea4e52576950235562ea420dc761",
+    "commits": [
+      {
+        "sha": "54a88d0498ffea4e52576950235562ea420dc761",
+        "date": "2026-11-11T08:40:11Z",
+        "subject": "# v0.5.119 (2026-11-11)"
+      },
+      {
+        "sha": "12256f725e1e6577a0ff541832dcd7b8038a1643",
+        "date": "2026-11-11T07:25:42Z",
+        "subject": "feat(proxy-pools): filter status and select visible ranges"
+      },
+      {
+        "sha": "4c7804ef29bc12b4437a594042e03106d73a0176",
+        "date": "2026-11-11T07:24:26Z",
+        "subject": "fix(pricing): bill gemini-4 models at their real rate"
+      },
+      {
+        "sha": "9ae6e14783f639b7ff0524fc16889647346ddb84",
+        "date": "2026-11-11T07:20:07Z",
+        "subject": "fix(stream): emit a single [DONE] sentinel in passthrough streams"
+      },
+      {
+        "sha": "60a1b3657b2078f8ec9eac1fde7233242be885eb",
+        "date": "2026-11-11T07:17:35Z",
+        "subject": "feat(commandcode): add google/gemini-4-carbon and claude-fable-5-2 models"
+      },
+      {
+        "sha": "12e7930e587b80b5db35e0177a1f0b8c666aa5e4",
+        "date": "2026-11-11T07:13:34Z",
+        "subject": "fix(claude): retire Fable 5.1 from the model catalogs"
+      },
+      {
+        "sha": "10b0afa438f24962c6c35a17449515007a23725d",
+        "date": "2026-11-11T07:06:28Z",
+        "subject": "feat(claude): add Claude Fable 5.2 and advertise Claude Code 2.1.290"
+      },
+      {
+        "sha": "597ee684ddd481c6dabeb4fd67374a917817234c",
+        "date": "2026-11-11T07:03:48Z",
+        "subject": "fix(qoder): show all catalog models and sync latest display names"
+      },
+      {
+        "sha": "5f925cf9efcb8d82ea3703aa430a82f541366918",
+        "date": "2026-11-11T07:01:18Z",
+        "subject": "feat(clinepass): add quota tracker for usage-limits dashboard"
+      },
+      {
+        "sha": "fe0d1a29d5b0ab19dfc33018f1884f3062b431a6",
+        "date": "2026-11-11T06:54:03Z",
+        "subject": "fix(usage): display Claude output_tokens in request details"
+      },
+      {
+        "sha": "a76c2afc93e34070cf11685968c47a06fcd1fcb0",
+        "date": "2026-11-11T06:51:41Z",
+        "subject": "fix(opencode): carry the selected proxy through the wreq-js transport"
+      },
+      {
+        "sha": "fa73c93894608d804cf2887a974133360cd0b134",
+        "date": "2026-11-11T03:21:14Z",
+        "subject": "fix(providers): resolve CommandCode models from its live catalog"
+      },
+      {
+        "sha": "8aef7480e53d1dc7f83e35db9c2fad6f8fd63f17",
+        "date": "2026-11-11T03:20:22Z",
+        "subject": "feat(providers): add Claude Fable 5.2, Haiku 5.5 and Gemini 4 Carbon"
+      },
+      {
+        "sha": "0760c302eb69362ba488f21a65536aec7d9498b4",
+        "date": "2026-11-11T02:57:14Z",
+        "subject": "fix(muse-web): normalize exported JSON cookie inputs"
+      },
+      {
+        "sha": "85c91c4e466946de4c94274841b8f4b4de031790",
+        "date": "2026-11-11T02:56:23Z",
+        "subject": "fix(codex-image): send GPT Image edits to the native images/edits endpoint"
+      },
+      {
+        "sha": "0cf07ccf0f15f231b92b74e2c4040ef40acbb568",
+        "date": "2026-11-11T02:55:46Z",
+        "subject": "fix(fal): validate new API keys through model catalog"
+      },
+      {
+        "sha": "ec165e1cb41e59dfa7b59aedfa339e2755b68bea",
+        "date": "2026-11-11T02:45:23Z",
+        "subject": "fix(stt): use undici FormData so fetch serializes multipart correctly"
+      },
+      {
+        "sha": "f4f5f18379b01218ca7742b8d0e4edce902b7161",
+        "date": "2026-11-11T02:41:59Z",
+        "subject": "fix(claude): rename tool_reference blocks when cloaking tools"
+      },
+      {
+        "sha": "ce1e0c3ce97316c2789be516f09e81798fd4c134",
+        "date": "2026-11-11T02:41:47Z",
+        "subject": "fix(quota): catch Claude resets missed between auto-ping ticks"
+      },
+      {
+        "sha": "2275bc0d322a8cbfab372cec665653f5d8c9e900",
+        "date": "2026-11-11T02:39:43Z",
+        "subject": "fix(nvidia): harden NIM against parameter rejection and degraded clusters"
+      }
+    ]
+  },
+  "vitest": {
+    "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- --maxWorkers=4 --reporter=json --outputFile=/workspace/scratch/client-completion-tests.json",
+    "exit_code": 0,
+    "success": true,
+    "tests_total": 11423,
+    "tests_passed": 11324,
+    "tests_failed": 0,
+    "tests_pending": 99,
+    "tests_todo": 0,
+    "files": 887,
+    "failed_test_suites": 0,
+    "report": {
+      "path": "/workspace/scratch/client-completion-tests.json",
+      "bytes": 4658780,
+      "sha256": "600aeabefaa605b399e0785e61ccc0158603f60207156426d02b637d08f5b61c"
+    },
+    "strict_report_gate": "node tests/__baseline__/verify-no-regression.mjs /workspace/scratch/client-completion-tests.json",
+    "strict_report_gate_exit_code": 0,
+    "note": "One complete four-worker run after all builds/browser workloads stopped; separate reports are not merged. Live-provider gates remain explicit skips.",
+    "prior_contract_test_migration": {
+      "report": {
+        "path": "/workspace/scratch/client-completion-tests-before-beta-migration.json",
+        "bytes": 4660586,
+        "sha256": "367c92cf36a968c6623d62951f93e20d0373c70a28764f8ba40b0902faa192e0"
+      },
+      "failed_legacy_expectations": 2,
+      "production_source_changed": false,
+      "disposition": "Legacy budget retry cases now omit explicit capability headers to keep exercising optional-default fallback with their original exact budget assertions. Two new cases verify original rejections and unchanged budgets for explicit caller opt-ins on subsequent turns.",
+      "focused_cases_passed": 67,
+      "focused_report": {
+        "path": "/workspace/scratch/client-completion-beta-regression.log",
+        "bytes": 28362,
+        "sha256": "cdb9e7d270727ec06f8e7d816f32a2c15d22ba732ae5c5d37c980c0f4962fab5"
+      },
+      "changed_test_composed_lint": {
+        "path": "/workspace/scratch/client-completion-beta-regression-lint.log",
+        "bytes": 127,
+        "sha256": "7c731a5eb554ae125f2beb8c7e05f22f03a0f8fbbcddfc9da8a446e8214b65f5"
+      }
+    }
+  },
+  "gates": [
+    {
+      "name": "production_build",
+      "command": "npm run build",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-build.log",
+        "bytes": 9119,
+        "sha256": "024c107e83f1ee7d0ae23fcf5a15ac4b464366486c831b857c2f8e480a35f95f"
+      }
+    },
+    {
+      "name": "strict_composed_lint",
+      "command": "npm run lint -- --max-warnings=0",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-lint.log",
+        "bytes": 75,
+        "sha256": "0b9a1970289c9c97ea24c48d2232574fa2303108199a9f2b16dcd09b8c1968b2"
+      }
+    },
+    {
+      "name": "i18n",
+      "command": "npm run check:i18n",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-i18n.log",
+        "bytes": 4936,
+        "sha256": "2f0ac511ce770939e8bccdd237885c4e8b6d2cfbae3194ea036d171bfd49f0f4"
+      }
+    },
+    {
+      "name": "source_identity",
+      "command": "npm run check:brand",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-brand.log",
+        "bytes": 169,
+        "sha256": "3ac17b025f981897e4a0c429019813e9b0b3e65484bd5a697c1c26ff3a142015"
+      }
+    },
+    {
+      "name": "production_browser",
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:ui",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-browser.log",
+        "bytes": 6639,
+        "sha256": "07661b6b332d6d0b71e427c77de070d567a03ec2b65a519acb8b41e41aa249a3"
+      }
+    },
+    {
+      "name": "docs_tests",
+      "command": "npm --prefix gitbook test",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-docs-test.log",
+        "bytes": 2211,
+        "sha256": "59f47f02bb5dd26ea5bb905e9a75f2fac45250dc23e2462341ba175e8ce7a4c8"
+      }
+    },
+    {
+      "name": "docs_static_build",
+      "command": "npm --prefix gitbook run build",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-docs-build.log",
+        "bytes": 1221,
+        "sha256": "3a8fa8d09b85f73fecec1f49426c6fb2f587416830339722329426b22d97ec83"
+      }
+    },
+    {
+      "name": "http2_compatibility",
+      "command": "npm run test:compat",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-compat.log",
+        "bytes": 247,
+        "sha256": "1f7592c3e70b646183b3e0bd9457c4369b065435ff395b2cb78435cbec8bdaa8"
+      }
+    },
+    {
+      "name": "provider_alias_oauth_baselines",
+      "command": "node tests/__baseline__/verify-providers.mjs && node tests/__baseline__/verify-alias.mjs && node tests/__baseline__/verify-oauth-urls.mjs && node scripts/generate-provider-identity.mjs --check",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-baselines.log",
+        "bytes": 141,
+        "sha256": "0404182f87f71e26fa46bebac41144e3a78b8ccf73c4eaa004733bc99e9c97ec"
+      }
+    },
+    {
+      "name": "installed_locked_dependencies",
+      "command": "node scripts/check-installed-dependencies.mjs . tests cli gitbook",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-dependencies.log",
+        "bytes": 338,
+        "sha256": "8c4a90b580c28845387f9d12f8199426311643b0810f58f5572573986c43b759"
+      }
+    },
+    {
+      "name": "cli_source_bundle",
+      "command": "node cli/cli.js --check-install",
+      "exit_code": 0,
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-cli-bundle.log",
+        "bytes": 82,
+        "sha256": "7a11b1f0e035d4d0e9a84dfda6ac5b5b9457b0ac4604b17b11f24d00b017e2b4"
+      }
+    }
+  ],
+  "production_browser": {
+    "passed": 45,
+    "failed": 0,
+    "retries": 0
+  },
+  "docs_tests": {
+    "passed": 18,
+    "failed": 0
+  },
+  "security_dependency_audits": {
+    "app": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-audit-app.json",
+        "bytes": 365,
+        "sha256": "c46aa8af55d8f9a6773c370eec555969dc5247a25f66dc0671922c076f0c8736"
+      }
+    },
+    "cli": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-audit-cli.json",
+        "bytes": 361,
+        "sha256": "d02230cfc67a697fb5ffa6b6d5070fbb20610bf47fc65ea6c5efadc153129070"
+      }
+    },
+    "tests": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-audit-tests.json",
+        "bytes": 361,
+        "sha256": "46f8c38613596e1832520e16bb059c5df50a62a293c7631ac1a98e33d2dfa0e5"
+      }
+    },
+    "docs": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "evidence": {
+        "path": "/workspace/scratch/client-completion-audit-docs.json",
+        "bytes": 364,
+        "sha256": "0a62649ed28f7976dacbba154e7186731d8250b793d76a630c3fb95a21e1a4b9"
+      }
+    }
+  },
+  "independent_final_production_qa": {
+    "summary": {
+      "checks": 13,
+      "passed": 13,
+      "failed": [],
+      "responsiveChecks": 50,
+      "layoutFailures": [],
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "httpErrors": 0,
+      "nonAbortRequestFailures": 0,
+      "screenshots": 20
+    },
+    "report": {
+      "path": "/workspace/scratch/client-completion-qa-final/report.json",
+      "bytes": 40369,
+      "sha256": "6925b54c558da93ee1a04560e606b91f4db2c312cf949ff0e36075f85c9a432c"
+    },
+    "summary_report": {
+      "path": "/workspace/scratch/client-completion-qa-final/summary.json",
+      "bytes": 213,
+      "sha256": "4e959d8751781430bc1f287b6da948b6d7d01cecc163c759006024e9ba429db7"
+    },
+    "screenshots": [
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/endpoint-1440.png",
+        "bytes": 63556,
+        "sha256": "4bd7b3d05014b9c8a9c33905a74d3d69a1d0bb6d159cfc77f214cc1eb0710a56"
+      },
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/sidebar-compact-desktop.png",
+        "bytes": 85880,
+        "sha256": "8e1e6a270f377694ac9d7c31f3d099f38df547e09246a3f1552a71714e3d5844"
+      },
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/mobile-all-pages-menu.png",
+        "bytes": 29105,
+        "sha256": "23708937e094190ce98d16aed3f8dbe75503c23918b7309226315c9e1314ba48"
+      },
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/mobile-five-destination-dock.png",
+        "bytes": 44841,
+        "sha256": "cbb953bbab0533f965b18ef4139676780f4541f0139d8e3b575ccd2bf13b533c"
+      },
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/page-finder-mobile.png",
+        "bytes": 44360,
+        "sha256": "79ff8493975d9d83929b6a125a468065ec38b055045426859ce0fcaea1b28143"
+      },
+      {
+        "path": "/workspace/scratch/client-completion-qa-final/indonesian-dark-mobile.png",
+        "bytes": 55558,
+        "sha256": "b739f59da2f44b2e9a5295b72b4c54582d2cfd5a11d4d27adf7569e814e14cc7"
+      }
+    ]
+  },
+  "focused_before_after_evidence": [
+    {
+      "path": "/workspace/scratch/responses-compression-before.log",
+      "bytes": 11548,
+      "sha256": "281ff334e14610ecc423201052c92ad22c92a8b5978aa0bbec2a998aefbe2562"
+    },
+    {
+      "path": "/workspace/scratch/responses-chat-endpoint-before.log",
+      "bytes": 1899,
+      "sha256": "67cbf0b760863c4a45733527697bd23b4d997b52477d1e8a8dda28a7df0b5eb0"
+    },
+    {
+      "path": "/workspace/scratch/responses-scope-choice-before.log",
+      "bytes": 6194,
+      "sha256": "ee2326666f3fe8ab87300c0af7e6760f92aa575858f1c00a8064843bab09c7cd"
+    },
+    {
+      "path": "/workspace/scratch/responses-compression-after.log",
+      "bytes": 752,
+      "sha256": "5cf25722772fdb449bd7ed584f2dce6faddb9cd8fc013e6e601a4f9e024867b6"
+    },
+    {
+      "path": "/workspace/scratch/claude-stable-system-before.log",
+      "bytes": 4864,
+      "sha256": "054645212ed656c1548f7c881dff29bc28c59e9dfb33f52d11ddda5013099c81"
+    },
+    {
+      "path": "/workspace/scratch/claude-capabilities-completed.log",
+      "bytes": 23730,
+      "sha256": "1ff27dbee4c8f60679d55bb0a23d2dba4d9f6bd0c5d6bd365b504dad9c308cb3"
+    },
+    {
+      "path": "/workspace/scratch/client-refresh-composed-wire.log",
+      "bytes": 14628,
+      "sha256": "430d3979e2100f572f0a78dc2c12cc220deb62aef284a45ebb6b204f43db1729"
+    },
+    {
+      "path": "/workspace/scratch/hydration-regressions-final.log",
+      "bytes": 771,
+      "sha256": "d2db22989a0d677b32e53da5c3844bdd047d3dfb0b35c8da26d4ddfec4743f73"
+    }
+  ],
+  "boundaries": [
+    "Official artifacts were statically inspected and checked against publisher integrity/signature evidence where supplied; none of the downloaded clients/installers were executed.",
+    "Client application versions, SDK versions, API contracts, account entitlement and signed protocol values remain distinct. Retained/unverified wire values and blocked publisher downloads are recorded by shard.",
+    "Test/provider state is synthetic and isolated on loopback servers; no live account credentials, paid inference or cryptographic signature acceptance were exercised.",
+    "Private request ownership, opaque signed content, proxy/SSRF controls, credentials, paid-tier intent and durable usage accounting remain in force.",
+    "Root/tests/CLI/docs locked direct-dependency metadata checks pass. CLI dev dependencies were installed without its installation warm-up; --check-install validates the source production bundle, not a new published installer artifact.",
+    "Hydration evidence includes the original causal failure and source-preserving public-boundary repair. Additional delayed-locale probes are separately bound to their recorded build and unchanged UI source hashes.",
+    "The latest upstream tip is unchanged from audit34. This is not an exhaustive issue-tracker or full catalog audit and does not promise an invisible gateway.",
+    "Local verification and source push do not establish a new package/container release, deployment or CI outcome."
+  ]
+}

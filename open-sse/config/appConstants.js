@@ -3,20 +3,14 @@ import { PROVIDERS, PROVIDER_OAUTH } from "./providers.js";
 import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_CLI_USER_AGENT } from "../providers/shared.js";
 import { createRequire } from "module";
 import { GEMINI_AUTH_USER_AGENT, COPILOT_TOKEN_API_VERSION } from "./clientVersions.js";
+export { GEMINI_CLI_CLIENT_METADATA } from "./googleClientMetadata.js";
 
 // === Gemini CLI === derive từ registry gemini-cli.transport
 export const GEMINI_CLI_VERSION = PROVIDERS["gemini-cli"]?.cliVersion;
 export const GEMINI_CLI_API_CLIENT = PROVIDERS["gemini-cli"]?.apiClient;
 
-// Map Node arch to Gemini CLI arch string (x64/x86/arm64/...)
-function geminiCLIArch() {
-  const a = arch();
-  if (a === "ia32") return "x86";
-  return a;
-}
-
 export function geminiCLIUserAgent(model = "unknown") {
-  return `GeminiCLI/${GEMINI_CLI_VERSION}/${model || "unknown"} (${platform()}; ${geminiCLIArch()}; terminal) ${GEMINI_AUTH_USER_AGENT}`;
+  return `GeminiCLI/${GEMINI_CLI_VERSION}/${model || "unknown"} (${platform()}; ${arch()}; terminal) ${GEMINI_AUTH_USER_AGENT}`;
 }
 
 // === GitHub Copilot ===
@@ -155,7 +149,6 @@ export const LOAD_CODE_ASSIST_HEADERS = {
   "Content-Type": "application/json",
   "User-Agent": GEMINI_AUTH_USER_AGENT,
   "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
-  "Client-Metadata": JSON.stringify({ ideType: IDE_TYPE.ANTIGRAVITY, platform: getPlatformEnum(), pluginType: PLUGIN_TYPE.GEMINI }),
 };
 
 // Native Antigravity calls use the CLI identity without mixing in Gemini CLI's
