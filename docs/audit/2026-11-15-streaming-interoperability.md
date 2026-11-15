@@ -24,9 +24,13 @@ channels; no customer prompts or credentials are included here.
   events contribute only their unseen suffix. Per-item/content-part ownership
   prevents duplicate final text and keeps equal text in distinct items.
   Streaming and persisted response summaries share the same collector.
+  Mixed message/tool terminal snapshots retain native output order.
 - **Codex preheader retry:** visible reasoning deltas, reasoning snapshots and
   opaque reasoning evidence stop pre-output retry. A later failure cannot
   silently discard generated reasoning and replay paid work.
+- **Sentinel tool integrity:** synthesized completion requires assembled tool
+  IDs and names. Orphan arguments and unsupported legacy function fragments
+  cannot be silently reported as an ordinary successful answer.
 
 ## Deliberately not generalized
 

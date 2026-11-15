@@ -622,12 +622,13 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     state.currentToolCallId = null;
   }
 
-  const reasoning = state.finishReasonSent ? "" : captureResponsesReasoning(chunk, state);
+  const terminalEvent = ["response.completed", "response.done", "response.incomplete"].includes(eventType);
+  const reasoning = state.finishReasonSent || terminalEvent ? "" : captureResponsesReasoning(chunk, state);
   const reasoningChunk = reasoning ? buildChunk(
     { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
     reasoningDelta(reasoning)
   ) : null;
-  const textChunks = state.finishReasonSent ? [] : captureResponsesText(chunk, state).map(part => buildChunk(
+  const textChunks = state.finishReasonSent || terminalEvent ? [] : captureResponsesText(chunk, state).map(part => buildChunk(
     { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
     part.type === RESPONSES_ITEM.REFUSAL ? { refusal: part.text } : { content: part.text }
   ));
@@ -653,12 +654,24 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
   }
 
   // Response completed
-  if (["response.completed", "response.done", "response.incomplete"].includes(eventType)) {
-    const pendingTools = [];
-    for (const item of data.response?.output || []) {
+  if (terminalEvent) {
+    if (state.finishReasonSent) return null;
+    const pendingOutput = [];
+    for (const [outputIndex, item] of (data.response?.output || []).entries()) {
       if (item.type === RESPONSES_ITEM.FUNCTION_CALL || item.type === RESPONSES_ITEM.CUSTOM_TOOL_CALL) {
-        const tool = responseTool(state, { item });
-        pendingTools.push(...completeResponseTool(tool, state, item));
+        const tool = responseTool(state, { item, output_index: outputIndex });
+        pendingOutput.push(...completeResponseTool(tool, state, item));
+      } else {
+        const snapshot = { type: "response.output_item.done", item, output_index: outputIndex };
+        const unseenReasoning = captureResponsesReasoning(snapshot, state);
+        if (unseenReasoning) pendingOutput.push(buildChunk(
+          { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
+          reasoningDelta(unseenReasoning)
+        ));
+        for (const part of captureResponsesText(snapshot, state)) pendingOutput.push(buildChunk(
+          { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
+          part.type === RESPONSES_ITEM.REFUSAL ? { refusal: part.text } : { content: part.text }
+        ));
       }
     }
     // Extract usage from response.completed event
@@ -694,9 +707,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
       }
       if (state.serviceTier) finalChunk.service_tier = state.serviceTier;
       
-      const results = [...pendingTools];
-      if (reasoningChunk) results.push(reasoningChunk);
-      results.push(...textChunks);
+      const results = [...pendingOutput];
       results.push(finalChunk);
       return results.length === 1 ? finalChunk : results;
     }

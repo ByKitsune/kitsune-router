@@ -500,14 +500,20 @@ export function createSSEStream(options = {}) {
       if (!inputTerminalSeen && targetFormat === FORMATS.OPENAI && chatInputSeen) {
         let complete = true;
         for (let index = 0; index < requestedChoices; index++) {
-          if (!upstreamFinishedChoices.has(index) && !generatedChatChoices.has(index)) { complete = false; break; }
+          if (upstreamFinishedChoices.has(index)) continue;
+          const evidence = generatedChatChoices.get(index);
+          if (!evidence || evidence.legacyFunction || (!evidence.hasOutput && !evidence.tools.size) ||
+            [...evidence.tools.values()].some(tool => !tool.ids.join("") || !tool.names.join(""))) {
+            complete = false;
+            break;
+          }
         }
         if (complete) {
           for (const [index, evidence] of generatedChatChoices) {
             if (upstreamFinishedChoices.has(index)) continue;
             upstreamFinishedChoices.add(index);
             const terminal = { ...evidence.metadata, choices: [{
-              index, delta: {}, finish_reason: evidence.hasTool ? OPENAI_FINISH.TOOL_CALLS : OPENAI_FINISH.STOP,
+              index, delta: {}, finish_reason: evidence.tools.size ? OPENAI_FINISH.TOOL_CALLS : OPENAI_FINISH.STOP,
             }] };
             for (const restored of restoreTools(terminal)) await translate(restored, controller);
           }
@@ -550,13 +556,25 @@ export function createSSEStream(options = {}) {
     for (const choice of parsed.choices || []) {
       const index = choice.index ?? 0;
       const delta = choice.delta;
-      const hasTool = delta?.tool_calls?.some(call =>
-        [call?.function?.name, call?.function?.arguments, call?.custom?.name, call?.custom?.input]
-          .some(value => typeof value === "string" && value.length > 0));
-      if (hasSemanticContent({ choices: [choice] }) || hasTool || typeof delta?.refusal === "string" && delta.refusal.length > 0) {
-        const previous = generatedChatChoices.get(index);
-        generatedChatChoices.set(index, { hasTool: previous?.hasTool || hasTool,
-          metadata: { id: parsed.id, created: parsed.created, model: parsed.model } });
+      const calls = Array.isArray(delta?.tool_calls) ? delta.tool_calls : [];
+      const hasOutput = hasSemanticContent({ choices: [{ delta: { ...delta, tool_calls: undefined } }] }) ||
+        typeof delta?.refusal === "string" && delta.refusal.length > 0;
+      if (hasOutput || calls.length || delta?.function_call) {
+        const evidence = generatedChatChoices.get(index) || { hasOutput: false, legacyFunction: false, tools: new Map() };
+        evidence.hasOutput ||= hasOutput;
+        // Legacy calls have no compatible cross-format opener here. Keep explicit
+        // upstream finishes, but never synthesize ordinary success for lost calls.
+        evidence.legacyFunction ||= Boolean(delta?.function_call);
+        evidence.metadata = { id: parsed.id, created: parsed.created, model: parsed.model };
+        for (const call of calls) {
+          const key = call?.index ?? 0;
+          const tool = evidence.tools.get(key) || { ids: [], names: [] };
+          if (typeof call?.id === "string") tool.ids.push(call.id);
+          const name = call?.function?.name ?? call?.custom?.name;
+          if (typeof name === "string") tool.names.push(name);
+          evidence.tools.set(key, tool);
+        }
+        generatedChatChoices.set(index, evidence);
       }
       if (choice.finish_reason) upstreamFinishedChoices.add(index);
     }

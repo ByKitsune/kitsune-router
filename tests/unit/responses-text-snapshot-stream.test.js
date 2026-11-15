@@ -74,4 +74,19 @@ describe.each([F.OPENAI, F.CLAUDE])("Responses text snapshots for %s", format =>
     ], format);
     expect(content).toBe("Long answer");
   });
+
+  it("recovers interleaved message and tool snapshots in native output order", async () => {
+    const { output, complete } = await consume([terminal([
+      message("msg_before", [part("Before")]),
+      { id: "fc_one", call_id: "call_one", type: "function_call", name: "lookup", arguments: "{}" },
+      message("msg_after", [part("After")]),
+    ])], format);
+    const order = format === F.OPENAI
+      ? output.flatMap(event => event.choices || []).flatMap(choice => choice.delta?.content
+        ? [choice.delta.content] : choice.delta?.tool_calls?.some(call => call.function?.name) ? ["tool"] : [])
+      : output.flatMap(event => event.type === "content_block_start" && event.content_block?.type === "tool_use"
+        ? ["tool"] : event.delta?.type === "text_delta" ? [event.delta.text] : []);
+    expect(order).toEqual(["Before", "tool", "After"]);
+    expect(complete.mock.calls[0][3]).toMatchObject({ failed: false });
+  });
 });

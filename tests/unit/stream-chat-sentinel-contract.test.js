@@ -92,4 +92,29 @@ describe("Chat sentinel completion evidence", () => {
     expect(events.some(event => event.error?.message === "failed generation")).toBe(true);
     expect(events.flatMap(event => event.choices || []).some(choice => choice.finish_reason === "stop")).toBe(false);
   });
+
+  it.each([F.OPENAI, F.CLAUDE, F.OPENAI_RESPONSES])("rejects orphan tool arguments rather than inventing success for %s", async format => {
+    const { complete } = await consume([
+      chat({ content: "Checking" }),
+      chat({ tool_calls: [{ index: 0, function: { arguments: "{}" } }] }),
+    ], format);
+    expect(complete.mock.calls[0][3]).toMatchObject({ failed: true });
+  });
+
+  it("accepts a complete tool identity assembled across deltas", async () => {
+    const { events, complete } = await consume([
+      chat({ tool_calls: [{ index: 0, id: "call_", function: { name: "look" } }] }),
+      chat({ tool_calls: [{ index: 0, id: "one", function: { name: "up", arguments: "{}" } }] }),
+    ]);
+    expect(complete.mock.calls[0][3]).toMatchObject({ failed: false });
+    expect(events.flatMap(event => event.choices || []).filter(choice => choice.finish_reason).map(choice => choice.finish_reason)).toEqual(["tool_calls"]);
+  });
+
+  it("fails explicitly on legacy function fragments without an upstream finish reason", async () => {
+    const { events, complete } = await consume([
+      chat({ content: "Checking" }), chat({ function_call: { name: "lookup", arguments: "{}" } }),
+    ]);
+    expect(complete.mock.calls[0][3]).toMatchObject({ failed: true });
+    expect(events.flatMap(event => event.choices || []).some(choice => choice.finish_reason === "stop")).toBe(false);
+  });
 });
