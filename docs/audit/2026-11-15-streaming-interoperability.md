@@ -66,3 +66,72 @@ Relevant regression files:
 - `tests/unit/codex-sse-peek.test.js`
 
 Existing uncommitted `gitbook/**` removals were not part of this repair.
+
+## Final-source verification
+
+The final code revision is `3d2b4206524ab390e60b65b21466fefce991c46d`.
+[CI run 43711271934](https://github.com/ByKitsune/kitsune-router/actions/runs/43711271934)
+completed successfully for that exact revision:
+
+- Full unit report: **11,389 passed**, zero failed, **99 skipped** across
+  891 discovered files. Those skips remain explicit; this is not a
+  zero-exclusion certification.
+- Production dashboard browser checks: **45 passed**.
+- Separate synthetic Usage browser regression file: **19 passed**.
+- Strict full-root lint: zero warnings and errors. Dependency-security and
+  documentation jobs passed. Optional package publication was not requested
+  and its job was skipped.
+- Local final streaming regression report: **152 passed** across 11 files,
+  zero failures or skips. Cross-Router captured-stream replays passed.
+
+The downloaded CI report is bound to the exact source revision by the
+`source.json` SHA-256 receipt under
+`/root/bykitsune-build/streaming-20261115/router-ci-artifact/`.
+
+Earlier builds using a symlinked dependency tree were rejected after Next's
+trace warnings and a postbuild self-copy failure. They are not release
+artifacts. Production packaging uses the independent disk-backed candidate
+and `.next-stream-final`, with production Node 24.19.0.
+
+## Production deployment
+
+At **19:06:23 WIB on 15 November 2026**, Router code `3d2b4206` was
+activated from `/opt/kitsune-router/1.0.8-source-3d2b4206524a/app`;
+the new process is PID `360543`. Both this Router and ByKitsuneV2 code
+`1d33819` are live.
+
+The production build completed without warnings. All 2,367 packaged source
+files were checked against the final commit, the 3,325-file release tree
+was hashed, and runtime dependencies resolve locally without relying on
+the previous application release.
+
+A private-loopback rehearsal ran the real production entrypoint on Node
+24.19.0, retained the production `NODE_PATH`, rejected old-release dependency
+resolution, verified protected database projections, and booted old code
+against the state left by the candidate. Both processes shut down cleanly.
+
+Activation blocked new connections to ports 20128/20129, waited for zero
+requests, upstream work, background queue depth and non-control connections,
+then changed only `WorkingDirectory` and the `ExecStart` application path.
+Environment directives, settings, aliases, combos, prices and API keys
+were unchanged. Temporary admission rules were removed. The compatibility
+socket and unrelated scheduled ByKitsune backup were left running.
+
+The verified complete Router snapshot remains at
+`/var/backups/kitsune-router/pre-upstream-streaming-20261115/data.sqlite`
+(SHA-256 `3b2292966a29504cad84f7f08d7c941c58c9e715ca2d9f3194d8d174fa9fc0c4`).
+Release receipts and rollback selection are retained under
+`/root/bykitsune-build/streaming-20261115/`. No live database was restored
+and no historical billing records were rewritten.
+
+After both deployments, six fresh direct upstream probes and three isolated
+gateway probes using the deployed ByKitsune modules returned HTTP 200 with
+successful terminals. The gateway probes retained upstream usage on Router
+Responses, Griphub Messages and BB Chat. The nontrivial Router request
+produced a readable reasoning summary; Griphub returned an empty thinking
+delta plus a nonempty opaque signature, both retained. No readable Griphub
+thinking text was observed. Direct Router and Griphub tool calls were present.
+A request can legitimately return no reasoning text.
+Local/public application readiness, Router health and sampled pinned CDN
+assets also passed. Post-deployment Router logs contained no startup,
+dependency-resolution or unhandled-rejection errors.
