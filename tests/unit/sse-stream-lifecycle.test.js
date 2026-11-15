@@ -19,9 +19,12 @@ async function until(reader, marker) {
 }
 afterEach(() => vi.useRealTimers());
 describe.each(["passthrough", "translate"])("%s terminal lifecycle", mode => {
-  it.each(["data: [DONE]\n\n", ""])("reports truncation as failed before the first DONE: %j", async tail => {
+  it.each([
+    { delta: { role: "assistant" }, tail: "data: [DONE]\n\n" },
+    { delta: { content: "partial" }, tail: "" },
+  ])("rejects metadata-only DONE or generated text without a terminal: %j", async ({ delta, tail }) => {
     const complete = vi.fn();
-    const text = await new Response(source(frame(chat({ content: "partial" })) + tail).pipeThrough(createSSEStream({ mode, onStreamComplete: complete }))).text();
+    const text = await new Response(source(frame(chat(delta)) + tail).pipeThrough(createSSEStream({ mode, onStreamComplete: complete }))).text();
     expect(text).toContain('"finish_reason":"network_error"');
     expect(text.indexOf('"finish_reason":"network_error"')).toBeLessThan(text.indexOf("data: [DONE]"));
     expect(text.match(/data: \[DONE\]/g)).toHaveLength(1); expect(complete).toHaveBeenCalledTimes(1);

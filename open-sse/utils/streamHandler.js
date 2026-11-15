@@ -6,7 +6,7 @@ import { dbg } from "./debugLog.js";
 const keepaliveEncoder = new TextEncoder();
 
 // Pre-encoded ping payloads
-const CLAUDE_PING_BYTES = keepaliveEncoder.encode("event: ping\ndata: {}\n\n");
+const CLAUDE_PING_BYTES = keepaliveEncoder.encode('event: ping\ndata: {"type":"ping"}\n\n');
 const OPENAI_PING_BYTES = keepaliveEncoder.encode(": ping\n\n");
 
 function getKeepaliveBytes(sourceFormat) {
@@ -379,4 +379,3 @@ export function pipeWithDisconnect(
     onCleanup() { clearStall(); },
   });
 }
-

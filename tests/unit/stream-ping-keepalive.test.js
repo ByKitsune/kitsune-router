@@ -1,20 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import { FORMATS } from "open-sse/translator/formats.js";
-import { createDisconnectAwareStream, pipeWithDisconnect, createStreamController } from "open-sse/utils/streamHandler.js";
+import { createDisconnectAwareStream, createStreamController } from "open-sse/utils/streamHandler.js";
+import { createSSEParser } from "open-sse/utils/sse.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 describe("SSE keepalive heartbeat (#3409)", () => {
-  it("emits Claude format event: ping\\ndata: {}\\n\\n during upstream silence", async () => {
+  it("emits a typed Claude ping during upstream silence", async () => {
     let timer1, timer2;
     const transformStream = new TransformStream({
       start(controller) {
         timer1 = setTimeout(() => {
-          controller.enqueue(encoder.encode("event: message_start\ndata: {}\n\n"));
+          controller.enqueue(encoder.encode('event: message_start\ndata: {"type":"message_start","message":{"type":"message","role":"assistant","content":[]}}\n\n'));
         }, 120);
         timer2 = setTimeout(() => {
-          controller.enqueue(encoder.encode("event: message_stop\ndata: {}\n\n"));
+          controller.enqueue(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'));
           controller.terminate();
         }, 240);
       }
@@ -40,7 +41,13 @@ describe("SSE keepalive heartbeat (#3409)", () => {
     clearTimeout(timer1);
     clearTimeout(timer2);
 
-    expect(chunks.some(chunk => chunk.includes("event: ping\ndata: {}\n\n"))).toBe(true);
+    const parser = createSSEParser();
+    const events = [...parser.feed(chunks.join("")), ...parser.end()];
+    expect(events.filter(event => event.event === "ping").length).toBeGreaterThan(0);
+    for (const event of events) {
+      expect(JSON.parse(event.data).type).toBe(event.event);
+    }
+    expect(chunks.some(chunk => chunk.includes('event: ping\ndata: {"type":"ping"}\n\n'))).toBe(true);
     expect(chunks.some(chunk => chunk.includes("event: message_start"))).toBe(true);
     expect(chunks.some(chunk => chunk.includes("event: message_stop"))).toBe(true);
   });

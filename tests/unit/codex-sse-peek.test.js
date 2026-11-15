@@ -120,6 +120,43 @@ describe("Codex preheader SSE inspection", () => {
     },
   );
 
+  it.each([
+    ["summary delta", "response.reasoning_summary_text.delta", { item_id: "rs_1", output_index: 0, delta: "Already reasoned" }],
+    ["reasoning delta", "response.reasoning_text.delta", { item_id: "rs_1", output_index: 0, delta: "Already reasoned" }],
+    ["summary snapshot", "response.reasoning_summary_text.done", { item_id: "rs_1", output_index: 0, text: "Already reasoned" }],
+    ["reasoning snapshot", "response.reasoning_text.done", { item_id: "rs_1", output_index: 0, text: "Already reasoned" }],
+    ["summary part", "response.reasoning_summary_part.done", { item_id: "rs_1", output_index: 0, part: { type: "summary_text", text: "Already reasoned" } }],
+    ["summary item", "response.output_item.done", { output_index: 0, item: { id: "rs_1", type: "reasoning", summary: [{ type: "summary_text", text: "Already reasoned" }] } }],
+    ["encrypted item", "response.output_item.done", { output_index: 0, item: { id: "rs_1", type: "reasoning", summary: [], encrypted_content: "opaque-generated-reasoning" } }],
+    ["encrypted opener", "response.output_item.added", { output_index: 0, item: { id: "rs_1", type: "reasoning", summary: [], encrypted_content: "opaque-generated-reasoning" } }],
+  ])("does not retry after generated %s", async (_name, type, fields) => {
+    const text = frame(type, fields) + frame("response.failed", {
+      response: { status: "failed", usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 },
+        error: { message: "service_unavailable_error" } },
+    });
+    const source = upstream(text);
+    source.close();
+    vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);
+    const executor = new CodexExecutor();
+    executor.config = { ...executor.config, retry: { 503: { attempts: 2, delayMs: 10 } } };
+    const result = await execute(executor);
+    expect(result.response.status).toBe(200);
+    expect(await result.response.text()).toBe(text);
+    expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("still treats an empty reasoning opener as pre-output when a failure follows", async () => {
+    const source = upstream(frame("response.output_item.added", {
+      output_index: 0, item: { id: "rs_1", type: "reasoning", summary: [], encrypted_content: "" },
+    }) + frame("response.failed", { response: { error: { message: "service_unavailable_error" } } }));
+    vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);
+    const result = await execute();
+    expect(result.response.status).toBe(503);
+    expect(source.cancel).toHaveBeenCalledTimes(1);
+    expect(proxyAwareFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("does not consume or wait for a non-SSE successful JSON response", async () => {
     const source = upstream("", "application/json");
     vi.mocked(proxyAwareFetch).mockResolvedValue(source.response);

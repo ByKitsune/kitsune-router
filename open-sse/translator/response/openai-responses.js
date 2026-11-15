@@ -8,6 +8,7 @@ import { buildChunk } from "../concerns/chunk.js";
 import { getOpenAICacheWriteUsage, toOpenAIUsage } from "../concerns/usage.js";
 import { fallbackToolCallId } from "../concerns/toolCall.js";
 import { reasoningDelta, extractReasoningText, extractResponsesReasoningText, captureResponsesReasoning } from "../concerns/reasoning.js";
+import { captureResponsesText } from "../concerns/responsesText.js";
 import { ROLE, OPENAI_BLOCK, RESPONSES_ITEM, OPENAI_FINISH, MODEL_FALLBACK } from "../schema/index.js";
 import { isCompleteToolName } from "../../utils/toolCompressor.js";
 import { extractResponseError, responseErrorToClient } from "../concerns/responseError.js";
@@ -626,26 +627,10 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
     reasoningDelta(reasoning)
   ) : null;
-
-  // Text content delta
-  if (eventType === "response.output_text.delta") {
-    const delta = data.delta || "";
-    if (!delta) return null;
-
-    return buildChunk(
-      { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
-      { content: delta }
-    );
-  }
-  if (eventType === "response.refusal.delta") {
-    return typeof data.delta === "string" && data.delta
-      ? buildChunk({ id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK }, { refusal: data.delta }) : null;
-  }
-
-  // Text content done (ignore, we handle via delta)
-  if (eventType === "response.output_text.done") {
-    return null;
-  }
+  const textChunks = state.finishReasonSent ? [] : captureResponsesText(chunk, state).map(part => buildChunk(
+    { id: state.chatId, created: state.created, model: state.model || MODEL_FALLBACK },
+    part.type === RESPONSES_ITEM.REFUSAL ? { refusal: part.text } : { content: part.text }
+  ));
 
   const toolItem = data.item;
   const isToolItem = toolItem?.type === RESPONSES_ITEM.FUNCTION_CALL || toolItem?.type === RESPONSES_ITEM.CUSTOM_TOOL_CALL;
@@ -711,6 +696,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
       
       const results = [...pendingTools];
       if (reasoningChunk) results.push(reasoningChunk);
+      results.push(...textChunks);
       results.push(finalChunk);
       return results.length === 1 ? finalChunk : results;
     }
@@ -729,7 +715,7 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     return responseErrorToClient(FORMATS.OPENAI, failure, state);
   }
 
-  return reasoningChunk;
+  return textChunks.length ? textChunks : reasoningChunk;
 }
 
 /**

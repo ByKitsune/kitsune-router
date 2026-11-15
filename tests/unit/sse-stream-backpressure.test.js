@@ -119,7 +119,7 @@ describe("demand-aware output", () => {
     const input = new ReadableStream({ start(controller) { upstream = controller; } });
     const reader = pipeWithDisconnect({ body: input }, createSSEStream({ mode: "passthrough", sourceFormat: F.CLAUDE, targetFormat: F.CLAUDE }), createStreamController(), null, 500, 500, 10, F.CLAUDE).getReader();
     upstream.enqueue(encoder.encode("event: content_block_delta\r\n"));
-    expect(decoder.decode((await reader.read()).value)).toBe("event: ping\ndata: {}\n\n");
+    expect(decoder.decode((await reader.read()).value)).toBe('event: ping\ndata: {"type":"ping"}\n\n');
     upstream.enqueue(encoder.encode('data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"answer"}}\r\n\r\n'));
     let complete;
     do { complete = decoder.decode((await reader.read()).value); } while (complete.includes("event: ping"));

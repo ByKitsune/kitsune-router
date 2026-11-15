@@ -6,8 +6,9 @@ import { hasValuableContent, hasSemanticContent, normalizeResponseIdentity, form
 import { isOpenAIResponsesTerminalEvent } from "./responsesStreamHelpers.js";
 import { createSSEParser, parseSSEEvent, streamEventPayload, createEventTransform, SSE_COMPLETION_GRACE_MS } from "./sse.js";
 import { extractReasoningText, captureResponsesReasoning } from "../translator/concerns/reasoning.js";
+import { captureResponsesText } from "../translator/concerns/responsesText.js";
 import { normalizeTypedContent } from "../translator/concerns/typedContent.js";
-import { CLAUDE_BLOCK } from "../translator/schema/index.js";
+import { CLAUDE_BLOCK, OPENAI_FINISH } from "../translator/schema/index.js";
 import { decloakStreamChunk } from "./claudeCloaking.js";
 import { restoreOpenAIToolNameDeltas } from "./toolCompressor.js";
 import { sanitizeClientError } from "./clientErrors.js";
@@ -27,6 +28,29 @@ const responsesFormat = format => format === FORMATS.OPENAI_RESPONSES || format 
 const failedReasons = new Set(["network_error", "error", "server_error", "timeout"]);
 const googleFormats = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX]);
 const hasChatToolValue = value => value !== undefined && value !== null && value !== "";
+
+// Null partial fields mean "not supplied yet" on compatible Chat streams.
+// Do not coerce non-null malformed values or rewrite complete message snapshots.
+function normalizeChatDeltaFields(chunk) {
+  const normalizeFunction = fn => {
+    if (!fn || typeof fn !== "object" || Array.isArray(fn)) return;
+    if (fn.name === null) delete fn.name;
+    if (fn.arguments === null) delete fn.arguments;
+  };
+  for (const choice of Array.isArray(chunk?.choices) ? chunk.choices : []) {
+    if (!choice || typeof choice !== "object" || choice.message) continue;
+    if (choice.delta === null) choice.delta = {};
+    const delta = choice.delta;
+    if (!delta || typeof delta !== "object" || Array.isArray(delta)) continue;
+    if (delta.role === null) delete delta.role;
+    normalizeFunction(delta.function_call);
+    for (const call of Array.isArray(delta.tool_calls) ? delta.tool_calls : []) {
+      if (!call || typeof call !== "object") continue;
+      if (call.function === null) delete call.function;
+      else normalizeFunction(call.function);
+    }
+  }
+}
 
 // Some Chat-compatible upstreams send index-only/null tool placeholders (#5345).
 // They do not start or continue a tool and must not allocate native tool state.
@@ -167,6 +191,7 @@ export function createSSEStream(options = {}) {
   let firstTokenAt = null;
   let lastChunkAt = null;
   let responsesReasoningState;
+  let responsesTextState;
   let inputTerminalSeen = false;
   let chatInputSeen = false;
   let clientTerminalSeen = false;
@@ -185,7 +210,9 @@ export function createSSEStream(options = {}) {
   const deferredClientTerminals = new Map();
   const finishedChoices = new Set();
   const upstreamFinishedChoices = new Set();
-  const allChatChoicesFinished = () => upstreamFinishedChoices.size >= (Number.isSafeInteger(body?.n) && body.n > 0 ? body.n : 1);
+  const generatedChatChoices = new Map();
+  const requestedChoices = Number.isSafeInteger(body?.n) && body.n > 0 ? body.n : 1;
+  const allChatChoicesFinished = () => upstreamFinishedChoices.size >= requestedChoices;
 
   const discardPendingTools = () => { toolNameDeltas.names.clear(); toolNameDeltas.frames = []; };
   const clearCompletionTimer = () => { clearTimeout(completionTimer); completionTimer = null; };
@@ -221,7 +248,7 @@ export function createSSEStream(options = {}) {
     const type = eventName || parsed.type;
     if (type?.startsWith("response.")) {
       append(captureResponsesReasoning({ event: type, data: parsed }, responsesReasoningState ??= {}), true);
-      if (type === "response.output_text.delta") append(parsed.delta);
+      for (const part of captureResponsesText({ event: type, data: parsed }, responsesTextState ??= {})) append(part.text);
     }
   };
   const markFailed = (message, status = 502) => {
@@ -313,7 +340,10 @@ export function createSSEStream(options = {}) {
   const emitClientChunk = async (item, controller, eventName = null, truncated = false, releaseTerminal = false) => {
     if (item == null || (item.done === true && Object.keys(item).length === 1)) return;
     let data = item.data || item;
-    if (sourceFormat === FORMATS.OPENAI) discardEmptyChatToolDeltas(data);
+    if (sourceFormat === FORMATS.OPENAI) {
+      normalizeChatDeltaFields(data);
+      discardEmptyChatToolDeltas(data);
+    }
     if (!hasValuableContent(data, sourceFormat)) return;
     if (chatInputSeen && sourceFormat === FORMATS.OPENAI && !releaseTerminal && !extractResponseError(data) && data.choices?.some(choice => choice.finish_reason)) {
       for (const choice of data.choices) {
@@ -465,12 +495,32 @@ export function createSSEStream(options = {}) {
     try { parsed = streamEventPayload(event, parseSSEEvent(event)); }
     catch { await fail("Invalid upstream stream event", controller); return; }
     if (event.data.trim() === "[DONE]") {
+      // Some compatible Chat providers send only DONE after generated output.
+      // A sentinel proves completion, but metadata/usage alone and bare EOF do not.
+      if (!inputTerminalSeen && targetFormat === FORMATS.OPENAI && chatInputSeen) {
+        let complete = true;
+        for (let index = 0; index < requestedChoices; index++) {
+          if (!upstreamFinishedChoices.has(index) && !generatedChatChoices.has(index)) { complete = false; break; }
+        }
+        if (complete) {
+          for (const [index, evidence] of generatedChatChoices) {
+            if (upstreamFinishedChoices.has(index)) continue;
+            upstreamFinishedChoices.add(index);
+            const terminal = { ...evidence.metadata, choices: [{
+              index, delta: {}, finish_reason: evidence.hasTool ? OPENAI_FINISH.TOOL_CALLS : OPENAI_FINISH.STOP,
+            }] };
+            for (const restored of restoreTools(terminal)) await translate(restored, controller);
+          }
+          inputTerminalSeen = true;
+        }
+      }
       if (!inputTerminalSeen) {
         await flushTranslation(controller, true);
         await fail("Upstream stream closed without a terminal event", controller);
       } else await flushDeferred(controller);
       return;
     }
+    normalizeChatDeltaFields(parsed);
     discardEmptyChatToolDeltas(parsed);
     const eventName = event.event || parsed.type || null;
     const accountingChunk = !parsed.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...parsed, type: event.event } : parsed;
@@ -499,6 +549,15 @@ export function createSSEStream(options = {}) {
     chatInputSeen ||= chatInput;
     for (const choice of parsed.choices || []) {
       const index = choice.index ?? 0;
+      const delta = choice.delta;
+      const hasTool = delta?.tool_calls?.some(call =>
+        [call?.function?.name, call?.function?.arguments, call?.custom?.name, call?.custom?.input]
+          .some(value => typeof value === "string" && value.length > 0));
+      if (hasSemanticContent({ choices: [choice] }) || hasTool || typeof delta?.refusal === "string" && delta.refusal.length > 0) {
+        const previous = generatedChatChoices.get(index);
+        generatedChatChoices.set(index, { hasTool: previous?.hasTool || hasTool,
+          metadata: { id: parsed.id, created: parsed.created, model: parsed.model } });
+      }
       if (choice.finish_reason) upstreamFinishedChoices.add(index);
     }
     const nativeTerminal = chatInput ? allChatChoicesFinished() : isTerminalPayload(parsed, targetFormat, eventName);

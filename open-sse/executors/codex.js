@@ -22,6 +22,7 @@ import { stripCodexUnsupportedPatterns } from "../utils/codexToolSchema.js";
 import { getOpenAIResponsesEventName } from "../utils/responsesStreamHelpers.js";
 import { prepareServiceTierRequest } from "../providers/serviceTiers.js";
 import { cloneRequestBody } from "../utils/requestBody.js";
+import { captureResponsesReasoning } from "../translator/concerns/reasoning.js";
 
 // SSE error patterns inside 200-OK bodies. Some retry same account first; capacity rotates accounts.
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
@@ -35,6 +36,8 @@ const CODEX_SSE_USER_OUTPUT_EVENTS = new Set([
   "response.output_text.delta",
   "response.function_call_arguments.delta",
   "response.custom_tool_call_input.delta",
+  "response.reasoning_summary_text.delta",
+  "response.reasoning_text.delta",
 ]);
 // Request-scoped failures that ride inside a 200-OK SSE body. These describe the
 // REQUEST, not upstream health, so they must surface as 400 (the client can fix
@@ -384,6 +387,7 @@ export class CodexExecutor extends BaseExecutor {
     let message = null;
     let accountFallback = false;
     let clientError = false;
+    const reasoningState = {};
 
     const inspectFrame = () => {
       const payload = dataLines.join("\n");
@@ -396,6 +400,10 @@ export class CodexExecutor extends BaseExecutor {
       const type = getOpenAIResponsesEventName(name, data);
       if (CODEX_SSE_USER_OUTPUT_EVENTS.has(type)
         && typeof data?.delta === "string" && data.delta.length > 0) return true;
+      if (captureResponsesReasoning({ event: type, data }, reasoningState)) return true;
+      const items = data?.item ? [data.item] : data?.response?.output;
+      if (Array.isArray(items) && items.some(item => item?.type === RESPONSES_ITEM.REASONING &&
+        typeof item.encrypted_content === "string" && item.encrypted_content.length > 0)) return true;
 
       const error = data?.error || data?.response?.error;
       if (!error && type !== "error" && type !== "response.failed") return false;
