@@ -63,7 +63,7 @@ describe.each(["\n\n", "\r\r", "\r\n\r\n"])("native byte framing ending %j", end
       if (index < chunks.length - 1) expect(settled).toBe(false);
     }
     expect(Buffer.concat(received)).toEqual(Buffer.concat([Buffer.from(prefix), Buffer.from(ending)]));
-    expect(decoder.decode((await pending).value)).toBe("event: ping\ndata: {}\n\n");
+    expect(decoder.decode((await pending).value)).toBe('event: ping\ndata: {"type":"ping"}\n\n');
     await reader.cancel("framing consumer finished");
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(input.locked).toBe(false);

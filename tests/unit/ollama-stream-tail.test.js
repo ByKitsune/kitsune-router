@@ -92,7 +92,8 @@ describe("SSE providers keep their sentinel handling", () => {
     expect(text).toContain('"content":"hi"');
     // The sentinel is a framing marker, not a chunk — it must not be translated.
     expect(text).not.toContain('"done":true');
-    expect(text).toContain('"finish_reason":"network_error"');
+    expect(text).toContain('"finish_reason":"stop"');
+    expect(text).not.toContain('"finish_reason":"network_error"');
     expect(text.match(/data: \[DONE\]/g)).toHaveLength(1);
   });
 

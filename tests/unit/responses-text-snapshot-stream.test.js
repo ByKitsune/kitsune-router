@@ -75,6 +75,16 @@ describe.each([F.OPENAI, F.CLAUDE])("Responses text snapshots for %s", format =>
     expect(content).toBe("Long answer");
   });
 
+  it("joins an unindexed delta to the only anonymous final message", async () => {
+    const { content } = await consume([
+      { type: "response.output_text.delta", item_id: "msg_unindexed", content_index: 0, delta: "Answer" },
+      terminal([{ type: "reasoning", id: "reasoning_one", summary: [] }, {
+        type: "message", role: "assistant", content: [part("Answer!")]
+      }]),
+    ], format);
+    expect(content).toBe("Answer!");
+  });
+
   it("recovers interleaved message and tool snapshots in native output order", async () => {
     const { output, complete } = await consume([terminal([
       message("msg_before", [part("Before")]),

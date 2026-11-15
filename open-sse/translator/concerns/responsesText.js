@@ -6,14 +6,17 @@ export function captureResponsesText(chunk, state) {
   const data = chunk?.data || chunk;
   const type = chunk?.event || data?.type;
   const items = state.responsesTextItems ??= new Map();
+  const unindexed = state.responsesTextUnindexed ??= new Set();
   const output = [];
   const partsFor = (value) => {
     const id = value.item_id ?? value.item?.id;
     const idKey = id == null ? null : `id:${id}`;
     const indexKey = value.output_index == null ? (idKey ? null : "index:0") : `index:${value.output_index}`;
-    const parts = (idKey && items.get(idKey)) || (indexKey && items.get(indexKey)) || new Map();
+    const parts = (idKey && items.get(idKey)) || (indexKey && items.get(indexKey)) ||
+      (!idKey && indexKey && unindexed.size === 1 ? unindexed.values().next().value : null) || new Map();
     if (idKey) items.set(idKey, parts);
-    if (indexKey) items.set(indexKey, parts);
+    if (indexKey) { items.set(indexKey, parts); unindexed.delete(parts); }
+    else if (idKey) unindexed.add(parts);
     return parts;
   };
   const capture = (parts, kind, index, text, snapshot) => {
