@@ -10,7 +10,7 @@ import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortTo
 import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
 import { getProviderModels, PROVIDER_ID_TO_ALIAS } from "../../config/providerModels.js";
-import { isGpt62Model, OPENAI_REASONING_NONE_OMIT_MODELS } from "../../config/models.js";
+import { isGpt62Model, OPENAI_REASONING_MINIMAL_AS_LOW_MODELS, OPENAI_REASONING_NONE_OMIT_MODELS } from "../../config/models.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
 const FORMAT_TO_NATIVE = {
@@ -211,6 +211,8 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
     const levels = strictOpenAI ? publishedOpenAIEfforts : getThinkingLevels(nativeProvider, cleanModel);
     for (const [param, raw] of efforts) {
       const effort = typeof raw === "string" ? raw.trim().toLowerCase() : null;
+      if (strictOpenAI && effort === "auto") continue;
+      if (strictOpenAI && effort === "minimal" && OPENAI_REASONING_MINIMAL_AS_LOW_MODELS.includes(cleanModel)) continue;
       // Retain the legacy Astra adapter's omission of unsupported none.
       if (strictOpenAI && effort === "none" && OPENAI_REASONING_NONE_OMIT_MODELS.includes(cleanModel)) continue;
       if (!effort || !levels?.includes(effort)) {

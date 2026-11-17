@@ -4,7 +4,7 @@ import { prepareClaudeRequest, ensureTrailingUserTurn } from "./formats/claude.j
 import { cloakClaudeTools, decloakStreamChunk } from "../utils/claudeCloaking.js";
 import { compressToolNames, decloakOpenAIChunk } from "../utils/toolCompressor.js";
 import { filterToOpenAIFormat } from "./formats/openai.js";
-import { stripUnsupportedChatExtensions, validateSupportedParams } from "./concerns/paramSupport.js";
+import { limitTranslatedOpenAIOutput, stripUnsupportedChatExtensions, validateSupportedParams } from "./concerns/paramSupport.js";
 import { applyThinking, captureThinking, stripThinkingSuffix } from "./concerns/thinkingUnified.js";
 import { getThinkingContext, setThinkingContext } from "./concerns/thinking.js";
 import { captureSessionId } from "../utils/sessionManager.js";
@@ -120,7 +120,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   ensureInitialized();
   rejectGoKimiDeferredTools(sourceFormat, targetFormat, provider, model, body);
   body = ownRequestBody(body, requestContext);
-  validateSupportedParams(provider, model, body, targetFormat);
+  validateSupportedParams(provider, model, body, targetFormat, null, { sourceFormat });
   rejectUnsupportedTranslationMedia(body, sourceFormat, targetFormat);
   const responsesSource = sourceFormat === FORMATS.OPENAI_RESPONSES || sourceFormat === FORMATS.CODEX;
   const responsesTarget = targetFormat === FORMATS.OPENAI_RESPONSES || targetFormat === FORMATS.CODEX;
@@ -244,6 +244,7 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   } else if (!kiroThinkingMappedByTranslator) {
     applyThinking(targetFormat, model, result, provider, thinkingIntent, capabilities);
   }
+  limitTranslatedOpenAIOutput(provider, sourceFormat, model, result);
   const thinkingContext = getThinkingContext(result);
 
   // Always normalize to clean OpenAI format when target is OpenAI

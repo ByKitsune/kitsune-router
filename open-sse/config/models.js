@@ -27,3 +27,4 @@ export function usesOpenAIModernPromptCache(model) {
 export const OPENAI_PROMPT_CACHE_TTLS = ["30m", "12h"];
 
 export const OPENAI_REASONING_NONE_OMIT_MODELS = ["gpt-6-astra"];
+export const OPENAI_REASONING_MINIMAL_AS_LOW_MODELS = ["gpt-6-astra", "gpt-6.1-sol"];

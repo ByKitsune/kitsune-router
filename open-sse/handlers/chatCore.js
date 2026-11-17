@@ -267,7 +267,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
 
   try {
-    validateSupportedParams(provider, upstreamModel, body, targetFormat, model, { providerThinkingInjected: useProviderThinking });
+    validateSupportedParams(provider, upstreamModel, body, targetFormat, model, { sourceFormat, providerThinkingInjected: useProviderThinking });
   } catch (error) {
     const invalidRequest = requestParameterError(error);
     if (invalidRequest) return invalidRequest;

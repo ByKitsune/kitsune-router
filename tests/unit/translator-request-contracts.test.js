@@ -212,6 +212,18 @@ describe("Claude <-> OpenAI non-reasoning fields", () => {
     expect(wire).toMatchObject({ temperature: 0, top_p: 0, max_tokens: 31, stop: ["END"], user: "opaque-user" });
   });
 
+  it("bounds a required Claude default to the destination's published OpenAI output maximum", () => {
+    const native = translate(FORMATS.OPENAI, FORMATS.CLAUDE, chat({ user: "caller" }));
+    expect(native.max_tokens).toBeGreaterThan(32768);
+    const wire = translate(FORMATS.CLAUDE, FORMATS.OPENAI, native);
+    expect(wire).toMatchObject({ max_tokens: 32768, user: "caller" });
+  });
+
+  it("rejects a directly supplied OpenAI output limit above the same model maximum", () => {
+    expect(() => translate(FORMATS.OPENAI, FORMATS.OPENAI, chat({ max_tokens: 32769 })))
+      .toThrow(expect.objectContaining({ code: "invalid_output_budget", param: "max_tokens" }));
+  });
+
   it.each([
     ["none", { type: "none" }],
     ["auto", { type: "auto" }],

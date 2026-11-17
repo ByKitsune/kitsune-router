@@ -85,6 +85,27 @@ function matches(rule, model) {
   return typeof rule.match === "function" ? rule.match(model) : rule.match.test(model);
 }
 
+const OPENAI_OUTPUT_CAP_FIELDS = ["max_output_tokens", "max_completion_tokens", "max_tokens"];
+
+function getPublishedOpenAIOutputCap(model) {
+  if (typeof model !== "string") return null;
+  const modelId = stripThinkingSuffix(model).replace(/^openai\//, "");
+  const value = getReviewedModelMetadata("openai", modelId)?.capabilities?.maxOutput;
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function isNativeOpenAIRequest(sourceFormat) {
+  return sourceFormat == null || [FORMATS.OPENAI, FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI_RESPONSE, FORMATS.CODEX].includes(sourceFormat);
+}
+
+export function limitTranslatedOpenAIOutput(provider, sourceFormat, model, body) {
+  if (canonicalizeProviderId(provider) !== "openai" || isNativeOpenAIRequest(sourceFormat)) return;
+  const ceiling = getPublishedOpenAIOutputCap(model);
+  if (ceiling === null) return;
+  const field = OPENAI_OUTPUT_CAP_FIELDS.find(name => body[name] != null);
+  if (field && readOutputTokenCap(body, [field]) > ceiling) body[field] = ceiling;
+}
+
 // Check the source body before translation can rename or lose a control. Keep
 // the client's original parameter path in the existing request-error contract.
 export function validateSupportedParams(provider, model, body, targetFormat = null, requestedModel = null, options = {}) {
@@ -103,9 +124,9 @@ export function validateSupportedParams(provider, model, body, targetFormat = nu
           { code: "unsupported_parameter", param });
       }
     }
-    const ceiling = getReviewedModelMetadata("openai", modelId)?.capabilities?.maxOutput;
-    const field = ["max_output_tokens", "max_completion_tokens", "max_tokens"].find(name => body[name] != null);
-    if (field && Number.isSafeInteger(ceiling) && ceiling > 0) {
+    const ceiling = isNativeOpenAIRequest(options.sourceFormat) ? getPublishedOpenAIOutputCap(modelId) : null;
+    const field = OPENAI_OUTPUT_CAP_FIELDS.find(name => body[name] != null);
+    if (field && ceiling !== null) {
       const cap = readOutputTokenCap(body, [field]);
       if (cap > ceiling) {
         throw Object.assign(new Error(`${field} exceeds this model's published maximum of ${ceiling} tokens.`),
