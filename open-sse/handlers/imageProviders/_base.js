@@ -2,11 +2,46 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { canonicalizeUsage, extractUsage } from "../../utils/usageTracking.js";
 import { MAX_UPSTREAM_ERROR_BYTES, parseUpstreamError } from "../../utils/error.js";
+import { fetchImageAsBase64, parseDataUri } from "../../translator/concerns/image.js";
+import { hasAccountProxyPolicy } from "../../utils/accountTransport.js";
+import { IMAGE_POLLING_ORIGINS } from "../../config/imagePolling.js";
 
 export const POLL_INTERVAL_MS = 1500;
 export const POLL_TIMEOUT_MS = 120000;
 
 export const sleep = (ms, signal) => delay(ms, undefined, { signal });
+
+function imageRoutingError(message) {
+  return Object.assign(new Error(message), { code: "unsafe_image_provider_route" });
+}
+
+export function assertImagePollingUrl(value, provider) {
+  let url;
+  try { url = new URL(value); } catch { throw imageRoutingError("Invalid image provider polling URL"); }
+  if (typeof value !== "string" || url.protocol !== "https:" || url.username || url.password
+    || !IMAGE_POLLING_ORIGINS[provider]?.includes(url.origin)) {
+    throw imageRoutingError("Image provider polling URL is outside its allowed API origins");
+  }
+  return url.href;
+}
+
+// Account credentials cannot follow a provider redirect to a different route.
+// The shared transport rejects redirects; retain the policy for custom callers.
+export async function fetchImageProvider(transport, url, init = {}) {
+  try {
+    const response = await transport.fetch(url, { ...init, redirect: "error" });
+    if (response.status >= 300 && response.status < 400) {
+      void response.body?.cancel().catch(() => {});
+      throw imageRoutingError("Image provider redirect refused");
+    }
+    return response;
+  } catch (error) {
+    // Native fetch exposes its redirect policy rejection as a TypeError with
+    // this fixed cause. A response/malformed URL is handled above separately.
+    if (error?.cause?.message === "unexpected redirect") throw imageRoutingError("Image provider redirect refused");
+    throw error;
+  }
+}
 
 export function reportedImageUsage(value) {
   const raw = value?.usage ?? value?.response?.usage ?? value?.usageMetadata ?? value?.response?.usageMetadata;
@@ -30,13 +65,14 @@ export async function parseMediaError(response, observeUsage, signal) {
   const decoder = new TextDecoder();
   const chunks = [];
   let length = 0;
+  let complete = !reader;
   const onAbort = () => { void reader?.cancel(signal.reason).catch(() => {}); };
   signal?.addEventListener("abort", onAbort, { once: true });
   try {
     if (signal?.aborted) onAbort();
     while (reader && length < MAX_UPSTREAM_ERROR_BYTES) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) { complete = true; break; }
       const piece = value.subarray(0, MAX_UPSTREAM_ERROR_BYTES - length);
       chunks.push(decoder.decode(piece, { stream: true }));
       length += piece.byteLength;
@@ -50,8 +86,14 @@ export async function parseMediaError(response, observeUsage, signal) {
     }
   }
   const text = chunks.join("");
-  try { observeUsage?.(JSON.parse(text)); } catch {}
-  return parseUpstreamError(new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers }));
+  let validJson = false;
+  try {
+    const value = JSON.parse(text);
+    validJson = !!value && typeof value === "object" && !Array.isArray(value);
+    observeUsage?.(value);
+  } catch {}
+  const diagnostics = await parseUpstreamError(new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers }));
+  return { ...diagnostics, bodyComplete: complete && validJson };
 }
 
 // Map OpenAI size to provider-specific aspect ratio
@@ -67,17 +109,23 @@ export function sizeToAspectRatio(size) {
   return map[size] || "1:1";
 }
 
-// Fetch URL → base64 (for providers returning image URLs)
-export async function urlToBase64(url, signal) {
+// Keep arbitrary image URLs behind the same pinned public-IP, byte-budget and
+// image-signature policy used by chat media. A proxy cannot replace that guard.
+export async function readImageUrl(url, signal, transport) {
   signal?.throwIfAborted();
-  const res = signal ? await fetch(url, { signal }) : await fetch(url);
-  if (!res.ok) {
-    await res.body?.cancel().catch(() => {});
-    throw new Error(`Failed to fetch image: ${res.status}`);
+  if (hasAccountProxyPolicy(transport?.proxyOptions)) {
+    throw new Error("[ProxyFetch] Remote image downloads require inline data when an account proxy is configured");
   }
-  const buf = await res.arrayBuffer();
+  const image = await fetchImageAsBase64(url, { signal });
   signal?.throwIfAborted();
-  return Buffer.from(buf).toString("base64");
+  const parsed = image && parseDataUri(image.url);
+  if (!parsed) throw Object.assign(new Error("Remote image download rejected or unavailable"), { code: "unsafe_image_asset" });
+  return { base64: parsed.base64, mimeType: image.mimeType };
+}
+
+// Base64-only consumers (provider reference images) do not relabel the bytes.
+export async function urlToBase64(url, signal, transport) {
+  return (await readImageUrl(url, signal, transport)).base64;
 }
 
 export function nowSec() {

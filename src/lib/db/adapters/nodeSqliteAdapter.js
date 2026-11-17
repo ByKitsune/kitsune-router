@@ -2,6 +2,7 @@
 // No native build, no npm install. API mirrors betterSqliteAdapter.
 import { PRAGMA_SQL } from "../schema.js";
 import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
+import { createStatementCache } from "../helpers/statementCache.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
@@ -13,15 +14,10 @@ export async function createNodeSqliteAdapter(filePath) {
 
   db.exec(PRAGMA_SQL);
 
-  const stmtCache = new Map();
+  const stmtCache = createStatementCache(db);
   let transactionDepth = 0;
   function prepare(sql) {
-    let stmt = stmtCache.get(sql);
-    if (!stmt) {
-      stmt = db.prepare(sql);
-      stmtCache.set(sql, stmt);
-    }
-    return stmt;
+    return stmtCache.prepare(sql);
   }
 
   // Periodic WAL checkpoint to keep -wal/-shm small
@@ -57,6 +53,9 @@ export async function createNodeSqliteAdapter(filePath) {
       transactionDepth++;
       try {
         const result = fn();
+        if (result && typeof result.then === "function") {
+          throw new TypeError("Transaction function cannot return a promise");
+        }
         db.exec(nested ? `RELEASE ${sp}` : "COMMIT");
         return result;
       } catch (error) {

@@ -98,7 +98,9 @@ describe("Ollama Local TTS", () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe("http://127.0.0.1:11434/v1/audio/speech");
-    expect(init.redirect).toBe("error");
+    // The account transport inspects manual redirects and refuses every 3xx
+    // before credentials or audio can be forwarded to a second destination.
+    expect(init.redirect).toBe("manual");
     expect(init.headers.Authorization).toBe("Bearer synthetic-key");
     expect(JSON.parse(init.body)).toEqual({ model: "phonon:en", input: "  Hello.  ", voice: "Zoey", response_format: "pcm", speed: 1.2 });
   });

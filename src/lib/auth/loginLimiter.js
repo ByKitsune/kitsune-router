@@ -4,20 +4,39 @@ import { hasTrustedPeerHeaders } from "./trustedPeer.js";
 const MAX_FAILS_BEFORE_LOCK = 5;
 const LOCK_STEPS_MS = [30_000, 120_000, 600_000, 1_800_000]; // 30s, 2m, 10m, 30m
 const FAIL_WINDOW_MS = 60 * 60 * 1000; // 1h since last fail → auto reset
+const MAX_TRACKED_IPS = 4096;
+const SWEEP_INTERVAL_MS = 60_000;
 
 const attempts = new Map(); // ip → { fails, lockUntil, lockLevel, lastFailAt }
+let overflow = null;
+let nextSweepAt = 0;
 
 function now() { return Date.now(); }
 
-function getEntry(ip) {
-  const e = attempts.get(ip);
-  if (!e) return null;
-  // Auto reset if window expired and not currently locked
-  if (e.lastFailAt && now() - e.lastFailAt > FAIL_WINDOW_MS && (!e.lockUntil || now() >= e.lockUntil)) {
-    attempts.delete(ip);
-    return null;
+function isExpired(entry, timestamp) {
+  return timestamp - entry.lastFailAt > FAIL_WINDOW_MS && timestamp >= entry.lockUntil;
+}
+
+function pruneExpired(timestamp) {
+  if (timestamp < nextSweepAt) return;
+  for (const [ip, entry] of attempts) {
+    if (isExpired(entry, timestamp)) attempts.delete(ip);
   }
-  return e;
+  nextSweepAt = timestamp + SWEEP_INTERVAL_MS;
+}
+
+function getEntry(ip) {
+  const timestamp = now();
+  // A sweep also reclaims IPs that never return, without allocating a timer or
+  // scanning the full map on each unauthenticated request.
+  pruneExpired(timestamp);
+  const e = attempts.get(ip);
+  if (e) {
+    if (!isExpired(e, timestamp)) return e;
+    attempts.delete(ip);
+  }
+  if (overflow && isExpired(overflow, timestamp)) overflow = null;
+  return overflow;
 }
 
 export function checkLock(ip) {
@@ -38,12 +57,20 @@ export function recordFail(ip) {
     e.lockLevel += 1;
     e.fails = 0;
   }
-  attempts.set(ip, e);
+  if (attempts.has(ip) || (!overflow && attempts.size < MAX_TRACKED_IPS)) {
+    attempts.set(ip, e);
+  } else {
+    // Never evict an active client lockout to admit a rotating IP. During a
+    // high-cardinality flood, new clients share one bounded fail-closed bucket.
+    // Keep that bucket until expiry even if a tracked client frees a slot.
+    overflow = e;
+  }
   return { remainingBeforeLock: Math.max(0, MAX_FAILS_BEFORE_LOCK - e.fails) };
 }
 
 export function recordSuccess(ip) {
   attempts.delete(ip);
+  // An untracked client's success must not unlock other overflow clients.
 }
 
 export function getClientIp(request) {

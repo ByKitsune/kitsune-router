@@ -25,22 +25,43 @@ El launcher puede escuchar en todas las interfaces por defecto. Añade `--host 1
 
 En la raíz del repositorio confirmado o tu checkout existente, sin subcarpeta `app/`.
 
-Solo en instalación **nueva**, genera una vez el secreto en `.env` privado (POSIX shell/OpenSSL). `next dev` no usa el generador del launcher: login falla sin `JWT_SECRET` aleatorio de al menos 32 caracteres. Para actualizar conserva secretos JWT/API/identidad y `DATA_DIR` efectivo según [migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Revisa otros valores de ejemplo solo para instalación nueva; nunca publiques/commitees `.env`.
+Solo en instalación **nueva**, genera una vez el secreto en `kitsune-router.source.env` privado (POSIX shell/Node.js). `next dev` no usa el generador del launcher: login falla sin `JWT_SECRET` aleatorio de al menos 32 caracteres. Para actualizar conserva secretos JWT/API/identidad y `DATA_DIR` efectivo según [migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Revisa otros valores de ejemplo solo para instalación nueva; nunca publiques/commitees `kitsune-router.source.env`.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
-Producción: `npm run build` y después `npm run start`. Usa `DATA_DIR` absoluto y un `INITIAL_PASSWORD` fuerte antes de exponer el servicio.
+Producción: `npm run build` y después `HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js`. Usa `DATA_DIR` absoluto y un `INITIAL_PASSWORD` fuerte antes de exponer el servicio.
 
 Estado por defecto: `~/.kitsune-router` o `%APPDATA%\kitsune-router` en Windows. La base activa es `db/data.sqlite`, no `db.json`; conserva secretos, identidad, auth y certificados. Detén y respalda todo el estado antiguo; `DATA_DIR` explícito no se reubica. [Migración](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) · [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md) · [Inicio rápido](/es/getting-started/quick-start/). No se certifica un test/build actual.

@@ -153,6 +153,9 @@ export async function createSqlJsAdapter(filePath) {
     db.exec(`SAVEPOINT ${sp}`);
     try {
       const result = fn();
+      if (result && typeof result.then === "function") {
+        throw new TypeError("Transaction function cannot return a promise");
+      }
       db.exec(`RELEASE ${sp}`);
       scheduleSave();
       return result;

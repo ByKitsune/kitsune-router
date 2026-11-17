@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProviderConnections } from "@/lib/localDb";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
+import { discardTtsBody, getTtsTransport, readTtsJson } from "open-sse/handlers/ttsProviders/_base.js";
 
 const langNames = new Intl.DisplayNames(["en"], { type: "language" });
 
@@ -10,21 +12,27 @@ const langNames = new Intl.DisplayNames(["en"], { type: "language" });
  */
 export async function GET(request) {
   try {
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
     const { searchParams } = new URL(request.url);
     const langFilter = searchParams.get("lang");
 
     const connections = await getProviderConnections({ provider: "deepgram", isActive: true });
-    const apiKey = connections[0]?.apiKey;
+    const account = connections[0];
+    const apiKey = account?.apiKey;
     if (!apiKey) return NextResponse.json({ error: "No Deepgram connection found" }, { status: 400 });
 
-    const res = await fetch("https://api.deepgram.com/v1/models", {
+    const sourcePolicy = account.providerSpecificData || {};
+    const proxyOptions = sourcePolicy.proxyPoolId && sourcePolicy.proxyPoolId !== "__none__"
+      ? await resolveConnectionProxyConfig(sourcePolicy) : sourcePolicy;
+    const transport = getTtsTransport(account, { signal: request.signal, proxyOptions });
+    const res = await transport.fetch("https://api.deepgram.com/v1/models", {
       headers: { "Authorization": `Token ${apiKey}` },
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return NextResponse.json({ error: `Deepgram API ${res.status}: ${text || "Failed"}` }, { status: 502 });
+      discardTtsBody(res);
+      return NextResponse.json({ error: `Deepgram voice API returned HTTP ${res.status}` }, { status: 502 });
     }
-    const data = await res.json();
+    const data = await readTtsJson(res, request.signal);
     const ttsModels = data.tts || [];
 
     const byLang = {};
@@ -60,6 +68,8 @@ export async function GET(request) {
     }
     return NextResponse.json({ languages, byLang });
   } catch (err) {
-    return NextResponse.json({ error: err.message || "Failed to fetch voices" }, { status: 502 });
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
+    if (err.code === "TTS_HEADER_TIMEOUT") return NextResponse.json({ error: "TTS response headers timed out" }, { status: 408 });
+    return NextResponse.json({ error: "Failed to fetch Deepgram voices" }, { status: 502 });
   }
 }

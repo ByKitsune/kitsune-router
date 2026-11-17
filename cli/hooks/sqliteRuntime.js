@@ -14,8 +14,8 @@ const { resolveDataDirectory } = require("./dataDirectory");
 // and may need source-build tools. This does not extend CLI support below 22.19.
 const [NODE_MAJOR] = process.versions.node.split(".").map(Number);
 const USE_NAPI_BUILD = NODE_MAJOR >= 22;
-const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.0.3" : "12.11.1";
-const SQL_JS_VERSION = "1.15.2";
+const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.2.0" : "12.11.1";
+const SQL_JS_VERSION = "1.16.0";
 
 function getDataDir(env = process.env) {
   return resolveDataDirectory({ env });

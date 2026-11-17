@@ -102,8 +102,11 @@ export class BaseExecutor {
     return { status: response.status, ...parsed, message: parsed.message || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, requestContext = null }) {
-    const fallbackCount = this.getFallbackCount();
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, requestContext = null, transport = null }) {
+    // Image/media callers supply an account transport for one potentially
+    // billable submission. Its routing/cancellation policy is authoritative;
+    // replaying a failed POST or trying another URL could create a second job.
+    const fallbackCount = transport ? 1 : this.getFallbackCount();
     let lastError = null;
     let lastStatus = 0;
     const retryAttemptsByUrl = {};
@@ -114,6 +117,7 @@ export class BaseExecutor {
     // Schedule retry via retryConfig[statusKey]. Returns true when caller should `urlIndex--; continue`
     // response (optional) lets a subclass hook compute a dynamic delay (e.g. antigravity Retry-After).
     const tryRetry = async (urlIndex, statusKey, reason, response = null) => {
+      if (transport) return false;
       signal?.throwIfAborted();
       const { attempts, delayMs } = resolveRetryEntry(retryConfig[statusKey]);
       if (attempts <= 0 || retryAttemptsByUrl[urlIndex] >= attempts) return false;
@@ -161,13 +165,14 @@ export class BaseExecutor {
         const bodyStr = JSON.stringify(transformedBody);
         const fetchT0 = Date.now();
         dbg("FETCH", `${this.provider.toUpperCase()} → ${url} | body=${bodyStr.length}B | connectTimeout=${timeoutMs}ms`);
-        response = await proxyAwareFetch(url, {
+        const request = {
           method: "POST",
           headers,
           body: bodyStr,
           signal: mergedSignal,
           upstreamHeadersTimeoutMs: timeoutMs
-        }, proxyOptions);
+        };
+        response = transport ? await transport.fetch(url, request) : await proxyAwareFetch(url, request, proxyOptions);
         clearTimeout(connectTimer);
         const ct = response.headers?.get?.("content-type") || "";
         const cl = response.headers?.get?.("content-length") || "?";
@@ -175,7 +180,7 @@ export class BaseExecutor {
 
         if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) { urlIndex--; continue; }
 
-        if (this.shouldRetry(response.status, urlIndex)) {
+        if (!transport && this.shouldRetry(response.status, urlIndex)) {
           if (response.body && !response.body.locked) await response.body.cancel().catch(() => {});
           signal?.throwIfAborted();
           log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
@@ -190,6 +195,7 @@ export class BaseExecutor {
         // AbortSignal.reason may be an ordinary Error, not an AbortError.
         // Caller cancellation must never enter network retry or URL fallback.
         signal?.throwIfAborted();
+        if (transport) throw error;
         lastError = error;
         const isConnectTimeout = connectCtrl.signal.aborted;
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);

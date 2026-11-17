@@ -58,8 +58,12 @@ vi.mock("@/sse/services/tokenRefresh.js", () => ({
 vi.mock("@/shared/utils/ssrfGuard.js", () => ({ assertPublicUrlAsync: mocks.assertPublicUrlAsync }));
 vi.mock("@/lib/usageDb.js", () => ({ enqueueRequestUsage: mocks.enqueueRequestUsage }));
 vi.mock("@/sse/utils/logger.js", () => mocks.logger);
-vi.mock("open-sse/handlers/fetch/index.js", () => ({ handleFetchCore: mocks.fetchCore }));
-vi.mock("open-sse/handlers/search/index.js", () => ({ handleSearchCore: mocks.searchCore }));
+vi.mock("open-sse/handlers/fetch/index.js", async importOriginal => ({
+  ...await importOriginal(), handleFetchCore: mocks.fetchCore,
+}));
+vi.mock("open-sse/handlers/search/index.js", async importOriginal => ({
+  ...await importOriginal(), handleSearchCore: mocks.searchCore,
+}));
 vi.mock("open-sse/handlers/imageGenerationCore.js", () => ({ handleImageGenerationCore: mocks.imageCore }));
 vi.mock("open-sse/handlers/sttCore.js", () => ({ handleSttCore: mocks.sttCore }));
 vi.mock("open-sse/handlers/ttsCore.js", () => ({ handleTtsCore: mocks.ttsCore }));
@@ -153,7 +157,10 @@ function expectNoDispatchOrMutation() {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // Reset queued one-shot outcomes as well as call history so a failed case
+  // cannot contaminate the next modality's account-selection fixture.
+  vi.resetAllMocks();
+  mocks.logger.maskKey.mockImplementation(() => "[redacted]");
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(START);
   vi.stubEnv("TRUST_PROXY", "false");
@@ -235,7 +242,7 @@ describe("shared inference admission and response semantics", () => {
     mocks.getProviderCredentials
       .mockResolvedValueOnce(account)
       .mockResolvedValueOnce({ ...account, connectionId: "fallback-fixture-account" });
-    core.mockResolvedValueOnce({ success: false, status: 401, error: "fixture auth expired", response: Response.json({ error: "fixture auth expired" }, { status: 401 }) });
+    core.mockResolvedValueOnce({ success: false, status: 401, allowAccountFallback: true, error: "fixture auth expired", response: Response.json({ error: "fixture auth expired" }, { status: 401 }) });
     const response = await endpoints[index].call({ headers: { "x-connection-id": "preferred-fixture-account", "idempotency-key": "fixture-idempotency" } });
     expect(response.status).toBe(200);
     expect(response.headers.get("x-ratelimit-remaining")).toBe("7");
@@ -260,12 +267,22 @@ describe("shared inference admission and response semantics", () => {
     const combo = { name: "inference-fixture-combo", models };
     mocks.getCombos.mockResolvedValue([combo]);
     mocks.getComboByName.mockResolvedValue(combo);
-    core.mockResolvedValueOnce({ success: false, status: 401, error: "fixture auth expired", response: Response.json({ error: "fixture auth expired" }, { status: 401 }) });
+    if (_name === "image generation") {
+      // Only an explicit, pre-work rejection may exhaust this model's account
+      // before moving to the next combo model. A non-retryable health decision
+      // must not be bypassed merely by choosing another image model.
+      mocks.markAccountUnavailable.mockResolvedValue({ shouldFallback: true });
+      mocks.getProviderCredentials.mockResolvedValueOnce(account).mockResolvedValueOnce(null).mockResolvedValueOnce(account);
+    }
+    core.mockResolvedValueOnce({ success: false, status: 401, allowAccountFallback: true, error: "fixture auth expired", response: Response.json({ error: "fixture auth expired" }, { status: 401 }) });
     const response = await call(combo.name);
     expect(response.status).toBe(200);
     expect(response.headers.get("x-ratelimit-remaining")).toBe("7");
     expect(consume(rateLimitKey(CLIENT_KEY), START + 1000).remaining).toBe(6);
     expect(core).toHaveBeenCalledTimes(2);
+    if (_name === "image generation") {
+      expect(core.mock.calls.map(([options]) => options.modelInfo.model)).toEqual(["dall-e-3", "gpt-image-1"]);
+    }
   });
 
   it.each([

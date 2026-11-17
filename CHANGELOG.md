@@ -7,8 +7,65 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ## [Unreleased]
 
+### Changed
+
+- Refresh the application, test and documentation dependency trees from current
+  stable publisher metadata, including Next.js 16.4.6, React Flow 13.0.1,
+  better-sqlite3 13.2.0 and sql.js 1.16.0. Declare directly imported tooling
+  instead of relying on incidental transitive installs, and retain matching
+  managed CLI SQLite pins. Application release version remains 1.0.8; this is
+  unreleased source work, not a new registry artifact.
+- Migrate routing-map fit padding to React Flow 13 percentage units while
+  preserving the previous graph margin.
+- Keep source runtime secrets outside the checkout and standalone build in
+  current installation examples, generate fresh secrets only once, and use an
+  absolute private state path. Existing installations retain their effective
+  credentials and data directory.
+
 ### Fixed
 
+- Preserve active OAuth single-flight grants at cache capacity; new work receives
+  bounded backpressure instead of starting duplicate rotating-token refreshes.
+- Bound native SQLite prepared-statement caches and reject asynchronous
+  transaction callbacks before commit, retaining rollback behavior.
+- Bound dashboard login attempt tracking while preserving active lockouts;
+  untracked addresses share an overflow bucket under a high-cardinality flood.
+- Keep OAuth failure diagnostics to allowlisted codes, statuses and error types
+  instead of raw provider payloads or parser excerpts that can contain secrets.
+- Treat caller cancellation as terminal throughout video account selection,
+  token refresh and response reads. Reject truncated, oversized or malformed
+  success metadata instead of reporting an empty successful video job.
+- Keep video submission, polling and token refresh on the same frozen account
+  proxy route. Missing/inactive pools and relay failures fail closed without
+  another account, direct fallback or an account-health mutation.
+- Carry request-local account transport policy and cancellation through STT,
+  TTS and image requests/polling. Guarded search, web-fetch and remote-image
+  readers reject account proxy routes that cannot preserve their pinned-DNS,
+  private-address and redirect protections instead of silently dialing directly.
+- Load optional native SQLite through the shared runtime resolver so a missing
+  addon no longer prevents webpack from building the built-in SQLite fallback;
+  retain installed native binaries in standalone tracing and close Cursor's
+  read-only credential database on query failure.
+- Serialize STT multipart through matching FormData/Request implementations
+  before using the existing fetch/proxy transport, preserving file bytes,
+  fields and a fresh stream for each account attempt.
+- Show keyless SearXNG in the Web Search picker through its declared free-tier
+  policy, and share bounded read-only Fal key validation across new and saved
+  connections without creating paid generation requests.
+- Discover exact Kimi Code models for both OAuth/API-key connections and retain
+  positive safe-integer `limit.context` metadata. Empty live catalogs and unknown
+  limits remain explicit; no blanket static 1M limit or pricing is inferred.
+- Preserve a due Claude auto-ping cycle through request failures and cooldowns;
+  mark only accepted cycles. Keep provider-returned Qoder `enable:false` catalog
+  rows discoverable with their exact names/configs; visibility is not entitlement.
+- Acknowledge native tray readiness before reporting success, reject Hide when
+  no tray is ready, and dispose failed owned tray children while leaving the
+  gateway available. Bind the optional Headroom host port to loopback.
+- Normalize empty streamed tool placeholders consistently in streamed and
+  forced-SSE-to-JSON responses without emitting ghost tool calls.
+- Preserve explicit Codex `prompt_cache_options.ttl` (`30m` or `12h`) on the
+  verified Responses transport; reject invalid values before dispatch and
+  avoid injecting a cache-lifetime default.
 - Preserve standalone reasoning visibility across Gemini, OpenRouter and Responses without inventing effort or a token budget. Claude requires an explicit thinking mode/effort alongside visibility; reject unsupported display-only requests before dispatch instead of sending an invalid thinking object.
 - Exclude canonical Codex account entitlement denials from the generic circuit breaker so later eligible accounts can answer; other systemic errors still fast-fail.
 - Bound each Codex request to its initial account pool while rechecking current activation and locks, and preserve quota/billing cooldowns when typed availability evidence accompanies account-restriction text.
@@ -21,6 +78,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 - Reject directories masquerading as required standalone runtime files rather than reporting a complete installation.
 
 See the [PR #9 review and operator handoff](docs/audit/2026-11-08-pr9-review.md) for reasoning limits, installer recovery, and verification scope.
+
+See the [November 17 dependency and runtime audit](docs/audit/2026-11-17-dependency-runtime-audit.md)
+for current dependency, protocol-source, regression and verification boundaries.
+The [upstream reconciliation audit](docs/audit/2026-11-17-upstream-reconciliation.md)
+records fetched refs, commit/actual-issue triage, selective adaptations and
+deliberately retained differences instead of merging diverged histories wholesale.
 
 ## [1.0.8] — 2026-11-05
 

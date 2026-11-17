@@ -15,7 +15,7 @@ const legacy = createRequire(pluginFile("eslint-plugin-react"))("minimatch");
 
 describe("scoped compatibility for the patched publisher matcher", () => {
   it("uses the pinned patched matcher and preserves modern named exports", () => {
-    expect(require("minimatch/package.json").version).toBe("11.0.4");
+    expect(require("minimatch/package.json").version).toBe("11.0.9");
     expect(typeof modern).toBe("object");
     expect(Reflect.ownKeys(modern)).toEqual(modernKeys);
     expect(modern.minimatch).toBe(modernFunction);
@@ -90,9 +90,18 @@ describe("scoped compatibility for the patched publisher matcher", () => {
     expect(legacy.makeRe("# ignored pattern")).toBe(false);
   });
 
-  it("retains the publisher fix limiting preprocessing amplification", () => {
-    const matcher = new legacy.Minimatch("a/**/../".repeat(8) + "z", { optimizationLevel: 2, braceExpandMax: 4 });
+  it("retains bounded preprocessing for patterns below the publisher limit", () => {
+    const matcher = new legacy.Minimatch("a/**/../".repeat(3) + "z", { optimizationLevel: 2, braceExpandMax: 4 });
     expect(matcher.globParts.length).toBeLessThanOrEqual(4);
     expect(matcher.match("x")).toBe(false);
+  });
+
+  it("preserves the publisher rejection of preprocessing amplification", () => {
+    const pattern = "a/**/../".repeat(8) + "z";
+    const options = { optimizationLevel: 2, braceExpandMax: 4 };
+    for (const Matcher of [modern.Minimatch, legacy.Minimatch]) {
+      expect(() => new Matcher(pattern, options)).toThrow(RangeError);
+      expect(() => new Matcher(pattern, options)).toThrow("too many patterns from '**/..'");
+    }
   });
 });

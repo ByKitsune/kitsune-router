@@ -21,29 +21,37 @@ const CREDENTIALED_PROVIDERS = new Set(
 );
 
 export async function handleStt(request) {
+  const cancelledResponse = () => errorResponse(499, "Client closed request");
+  if (request.signal?.aborted) return cancelledResponse();
   let formData;
   try {
     formData = await request.formData();
   } catch {
+    if (request.signal?.aborted) return cancelledResponse();
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid multipart form data");
   }
+  if (request.signal?.aborted) return cancelledResponse();
 
   const modelStr = formData.get("model");
   log.request("POST", `/v1/audio/transcriptions | ${modelStr}`);
 
   const apiKey = extractApiKey(request);
   const settings = await getSettings();
+  if (request.signal?.aborted) return cancelledResponse();
   if (isApiKeyRequired(settings)) {
     if (!apiKey) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     const valid = await isValidApiKey(apiKey);
+    if (request.signal?.aborted) return cancelledResponse();
     if (!valid) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
   }
 
   return withInferenceLimit(request, apiKey, async () => {
+    if (request.signal?.aborted) return cancelledResponse();
     if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
     if (!formData.get("file")) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: file");
 
     const modelInfo = await getModelInfo(modelStr);
+    if (request.signal?.aborted) return cancelledResponse();
     if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
 
     const { provider, model } = modelInfo;
@@ -51,7 +59,8 @@ export async function handleStt(request) {
 
     // noAuth providers
     if (!CREDENTIALED_PROVIDERS.has(provider)) {
-      const result = await handleSttCore({ provider, model, formData, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
+      const result = await handleSttCore({ provider, model, formData, sttConfig: AI_PROVIDERS[provider]?.sttConfig, signal: request.signal });
+      if (request.signal?.aborted || result.status === 499) return cancelledResponse();
       if (result.success) return result.response;
       return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "STT failed");
     }
@@ -62,7 +71,9 @@ export async function handleStt(request) {
     let lastStatus = null;
 
     while (true) {
+      if (request.signal?.aborted) return cancelledResponse();
       const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
+      if (request.signal?.aborted) return cancelledResponse();
 
       if (!credentials || credentials.allRateLimited) {
         if (credentials?.allRateLimited) {
@@ -76,7 +87,10 @@ export async function handleStt(request) {
 
       log.info("AUTH", `\x1b[32mUsing ${provider} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
-      const result = await handleSttCore({ provider, model, formData, credentials, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
+      const result = await handleSttCore({ provider, model, formData, credentials, sttConfig: AI_PROVIDERS[provider]?.sttConfig, signal: request.signal });
+
+      if (request.signal?.aborted || result.status === 499) return cancelledResponse();
+      if (result.localFailure) return result.response;
 
       if (result.success) return result.response;
 

@@ -1,0 +1,225 @@
+{
+  "review_date": "2026-11-17",
+  "phase": "Final reconciled source including cross-modality/tool-identity, video redirect and legacy transport-pool alias repairs",
+  "source_base_commit": "2ba52e092acf606fef08df6f4dc96f4933af4dad",
+  "upstream_tip": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "scope": "Working-tree source tests; not a new release, publication, live provider acceptance or a verified Git push.",
+  "full_vitest": {
+    "runner": "Root npm test using tests/vitest.config.js",
+    "report_file": "reconciliation-vitest-final.json",
+    "report_sha256": "c3406cf2ed550568f3311d9ef8e705cbfcc8859cb5db40e9926b456f989207f6",
+    "success": true,
+    "total_cases": 11871,
+    "passed_cases": 11772,
+    "failed_cases": 0,
+    "skipped_cases": 99,
+    "todo_cases": 0,
+    "failed_nested_suites": 0,
+    "selected_files": 911,
+    "passed_files": 893,
+    "skipped_files": 18,
+    "duration_seconds": 200.73,
+    "regression_report_gate": "passed"
+  },
+  "focused_results": {
+    "shared_account_transport": {
+      "passed": 26,
+      "new_legacy_pool_alias_cases": 3
+    },
+    "stt_final": {
+      "passed": 19
+    },
+    "tts_final": {
+      "passed": 152,
+      "files": 8,
+      "new_cases": 59
+    },
+    "image_relevant": {
+      "passed": 259,
+      "files": 7,
+      "expanded_new_cases": 60,
+      "note": "Focused selections overlap; do not sum these figures with the full suite."
+    },
+    "search_webfetch": {
+      "passed": 124,
+      "files": 13,
+      "new_cases": 22
+    },
+    "tool_identity": {
+      "passed": 272,
+      "files": 13,
+      "new_cases": 17
+    },
+    "shared_inference_budget": {
+      "passed": 63
+    }
+  },
+  "pending": [],
+  "limitations": [
+    "No live provider inference or paid generation",
+    "No native Windows/macOS tray certification",
+    "Guarded dedicated search/web-fetch/remote assets intentionally reject account proxy routes that cannot preserve pinned-DNS/private-address/redirect protections",
+    "No client identity spoofing or provider-restriction bypass"
+  ],
+  "additional_results_before_video_redirect": {
+    "application_build": "passed",
+    "native_standalone_functional_smoke": "passed",
+    "documentation_tests": 18,
+    "browser_initial": {
+      "selected": 48,
+      "passed": 47,
+      "failed": 1,
+      "diagnosis": "Strict text locator matched both configured row and retained hidden modal; app selection/persistence succeeded. Narrowed assertion to main content, preserving original behavior checks.",
+      "reruns": "Original failed run retained as history; final editor-scoped48case production suite passed."
+    }
+  },
+  "separate_checks_after_reconciliation_notes": {
+    "documentation_tests": 18,
+    "documentation_static_pages": 109
+  },
+  "video_redirect_focused": {
+    "passed": 158,
+    "files": 6,
+    "new_real_http_cases": 14,
+    "before_fix_redirect_cases_failed": 8,
+    "final_full_suite": "passed11772cases/99skipped"
+  },
+  "interrupted_run": "An interim full suite was terminated before the final transport-pool alias repair; not completed validation evidence and not reclassified as a failed test run.",
+  "prior_full_vitest_before_video_redirect": {
+    "runner": "Root npm test using tests/vitest.config.js",
+    "report_file": "reconciliation-vitest-before-video-redirect.json",
+    "report_sha256": "485e4ceae7ecc34b8ce0bf4ba967d26912b6b2aaba5bcb16f5d4d2dd6473153e",
+    "success": true,
+    "total_cases": 11854,
+    "passed_cases": 11755,
+    "failed_cases": 0,
+    "skipped_cases": 99,
+    "todo_cases": 0,
+    "failed_nested_suites": 0,
+    "selected_files": 910,
+    "passed_files": 892,
+    "skipped_files": 18,
+    "duration_seconds": 206.73,
+    "regression_report_gate": "passed"
+  },
+  "documented_dev_launcher_check": {
+    "parent_parses_env_as_data": true,
+    "explicit_child_args": true,
+    "child_execArgv_empty": true,
+    "environment_preserved": true,
+    "literal_spaces_and_shell_metacharacters_preserved": true,
+    "secret_values_logged": false,
+    "exact_Next_functional_smoke": {
+      "status": "passed",
+      "bundler": "default Turbopack",
+      "behavior": [
+        "database health",
+        "unauthenticated401",
+        "login/session",
+        "dashboard",
+        "authenticated1082model list",
+        "temporarykey deleted"
+      ],
+      "logs": [
+        "final-dev-check.log",
+        "final-dev-smoke.log"
+      ],
+      "live_inference": false
+    }
+  },
+  "documentation_tests_after_final_launcher": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 5,
+    "duration_ms": 1247.691121,
+    "log": "docs-final-after-launcher-tests.log"
+  },
+  "documentation_static_build": {
+    "pages": 109,
+    "status": "passed_after_final_launcher_content",
+    "log": "final-docs-build.log"
+  },
+  "final_application_production_build": "passed",
+  "browser_fixture_correction": {
+    "scope": ".provider-combo-editor",
+    "reason": "Retained animated picker can remain inside main and duplicate a saved provider-row label.",
+    "behavior": "Selection and persistence already succeeded; saved-model/no-inference/page-error assertions retained.",
+    "application_regression": false,
+    "final48case_result": "48passed"
+  },
+  "final_production_browser": {
+    "passed": 48,
+    "failed": 0,
+    "duration_minutes": 1.2,
+    "log": "final-browser.log"
+  },
+  "final_strict_composed_lint": "passed",
+  "final_four_project_declaration_lock_checks": "consistent",
+  "final_native_standalone_functional_smoke": "passed again after all runtime fixes",
+  "physically_absent_native_addon": {
+    "production_build": "passed",
+    "standalone_functional_smoke": "passed",
+    "root_native_package": "Moved outside checkout during build and runtime; restored afterward.",
+    "bundled_native_package": false,
+    "NODE_PATH": "cleared",
+    "observed_database_driver": "node:sqlite",
+    "evidence_logs": [
+      "final-fallback-build.log",
+      "final-fallback-server.log",
+      "final-fallback-smoke.log",
+      "final-fallback-check.log"
+    ]
+  },
+  "cli_package": {
+    "status": "passed",
+    "publication_status": "local unpublished source candidate; distinct from original public1.0.8archive",
+    "archive": "bykitsune-router-1.0.8.tgz",
+    "bytes": 23262347,
+    "files": 3242,
+    "sha256": "598117807fb895f3ec8839e529232ee9e5b8c786609bc82f85c5b8a8eaf4d301"
+  },
+  "fresh_cli_install": {
+    "status": "passed",
+    "duration_seconds": 11,
+    "packages": 9,
+    "installed_help": "passed",
+    "installed_version": "1.0.8",
+    "installed_check_install": "passed",
+    "initial_environment_observation": "env-i omitted supplied cloud proxy/CA bindings, causing DNS EAI_AGAIN; restored only those bindings, without project/registry/TLS changes.",
+    "logs": [
+      "final-cli-install.log",
+      "final-cli-help.log",
+      "final-cli-version.log",
+      "final-cli-check.log"
+    ]
+  },
+  "packaged_sqljs": {
+    "version": "1.16.0",
+    "bundled_js_wasm_bytes_match": true,
+    "forced_fallback": "passed",
+    "persistence": "passed",
+    "restart": "passed",
+    "log": "final-cli-sqljs.log"
+  },
+  "installed_packaged_server": {
+    "functional_smoke": "passed",
+    "managed_better_sqlite3": "13.2.0 via NODE_PATH",
+    "managed_systray2": "2.1.4",
+    "bundled_sqljs": "1.16.0; no redundant managed copy required",
+    "app_bundled_native_addon": false,
+    "logs": [
+      "final-packed-check.log",
+      "final-packed-server.log",
+      "final-packed-smoke.log"
+    ]
+  },
+  "local_validation_status": "All selected local regression/build/browser/installed-package/fallback checks passed.",
+  "environment_configuration": {
+    "draft_revision": 4,
+    "install_script": "saved for all4projects",
+    "start_skill": "saved with default Turbopack startup",
+    "snapshot_publication": "Separate UI action; not performed or established by these source checks."
+  },
+  "git_delivery": "Commit/push is a separate delivery operation; verify final remote refs and report the actual resulting SHA in the final task receipt. No pushed SHA is inferred from local validation."
+}

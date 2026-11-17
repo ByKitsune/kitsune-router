@@ -35,7 +35,7 @@ function getDimensions(body) {
   };
 }
 
-async function resolveImageInput(value, signal) {
+async function resolveImageInput(value, signal, transport) {
   if (Array.isArray(value)) {
     return { bytes: value, b64: Buffer.from(value).toString("base64") };
   }
@@ -43,7 +43,7 @@ async function resolveImageInput(value, signal) {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (/^https?:\/\//i.test(trimmed)) {
-    const b64 = await urlToBase64(trimmed, signal);
+    const b64 = await urlToBase64(trimmed, signal, transport);
     return { bytes: base64ToBytes(b64), b64 };
   }
   const match = /^data:image\/[^;]+;base64,(.+)$/i.exec(trimmed);
@@ -67,20 +67,20 @@ function addOptionalFields(target, body, append) {
   }
 }
 
-async function buildJsonBody(body, signal) {
+async function buildJsonBody(body, signal, transport) {
   const req = { prompt: body.prompt, ...getDimensions(body) };
 
   addOptionalFields(req, body, (target, key, value) => {
     target[key] = value;
   });
 
-  const imageData = await resolveImageInput(body.image, signal);
+  const imageData = await resolveImageInput(body.image, signal, transport);
   if (imageData) {
     req.image_b64 = imageData.b64;
     req.image = imageData.bytes;
   }
 
-  const maskData = await resolveImageInput(body.mask_image || body.maskImage || body.mask, signal);
+  const maskData = await resolveImageInput(body.mask_image || body.maskImage || body.mask, signal, transport);
   if (maskData) {
     req.mask_b64 = maskData.b64;
     req.mask = maskData.bytes;
@@ -155,10 +155,10 @@ export default {
     return headers;
   },
 
-  buildBody: async (model, body, { clientSignal } = {}) => (
+  buildBody: async (model, body, { clientSignal, transport } = {}) => (
     MULTIPART_MODELS.has(model)
       ? buildMultipartBody(body)
-      : await buildJsonBody(body, clientSignal)
+      : await buildJsonBody(body, clientSignal, transport)
   ),
 
   async parseResponse(response, { observeUsage, clientSignal } = {}) {

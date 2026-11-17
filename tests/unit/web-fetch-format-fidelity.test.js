@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { lookup } from "node:dns/promises";
-import { Dispatcher1Wrapper } from "undici";
+import dns from "node:dns";
+const lookup = dns.promises.lookup;
+import { Agent, fetch as pinnedFetch } from "undici";
 
 const io = vi.hoisted(() => ({
   getProviderCredentials: vi.fn(), markAccountUnavailable: vi.fn(), clearAccountError: vi.fn(),
@@ -8,7 +9,11 @@ const io = vi.hoisted(() => ({
   getSettings: vi.fn(), getCombos: vi.fn(),
   log: { request: vi.fn(), info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn(), maskKey: vi.fn() },
 }));
-vi.mock("node:dns/promises", async original => ({ ...await original(), lookup: vi.fn() }));
+vi.mock("node:dns", async original => {
+  const actual = await original();
+  return { ...actual, default: { ...actual.default, promises: { ...actual.default.promises, lookup: vi.fn() } } };
+});
+vi.mock("undici", async original => ({ ...await original(), fetch: vi.fn() }));
 vi.mock("@/lib/localDb", () => ({
   getSettings: io.getSettings, getCombos: io.getCombos, isApiKeyRequired: () => false,
 }));
@@ -20,7 +25,7 @@ vi.mock("@/sse/services/tokenRefresh.js", () => ({
   checkAndRefreshToken: io.checkAndRefreshToken, updateProviderCredentials: io.updateProviderCredentials,
 }));
 vi.mock("@/sse/utils/logger.js", () => io.log);
-vi.mock("@/shared/utils/ssrfGuard.js", () => ({ assertPublicUrlAsync: io.assertPublicUrlAsync }));
+vi.mock("@/shared/utils/ssrfGuard.js", async original => ({ ...await original(), assertPublicUrlAsync: io.assertPublicUrlAsync }));
 
 import { handleFetch } from "@/sse/handlers/fetch.js";
 import { handleFetchCore } from "open-sse/handlers/fetch/index.js";
@@ -48,12 +53,11 @@ beforeEach(() => {
   io.markAccountUnavailable.mockResolvedValue({ shouldFallback: false });
   io.assertPublicUrlAsync.mockResolvedValue(undefined);
   lookup.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
-  vi.stubGlobal("fetch", vi.fn());
+  pinnedFetch.mockReset();
 });
 
 afterEach(async () => {
   vi.useRealTimers();
-  await Promise.all(global.fetch.mock.calls.map(([, init]) => init.dispatcher.close()));
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   resetRateLimiter();
@@ -67,7 +71,7 @@ describe("public web fetch preserves the selected native output format", () => {
     ["tavily", "markdown", "# Tavily markdown\n**Native content**"],
     ["tavily", "text", "Tavily plain text\nNative content"],
   ])("forwards %s/%s and labels the returned content consistently", async (provider, format, content) => {
-    global.fetch.mockResolvedValueOnce(provider === "jina-reader"
+    pinnedFetch.mockResolvedValueOnce(provider === "jina-reader"
       ? new Response(content, { headers: { "Content-Type": format === "html" ? "text/html" : "text/plain" } })
       : Response.json({ results: [{ url: TARGET, raw_content: content }], failed_results: [] }));
 
@@ -76,48 +80,48 @@ describe("public web fetch preserves the selected native output format", () => {
     expect(await response.json()).toMatchObject({
       provider, url: TARGET, content: { format, text: content, length: content.length },
     });
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [url, init] = global.fetch.mock.calls[0];
-    expect(url).toBe(UPSTREAM[provider]);
+    expect(pinnedFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = pinnedFetch.mock.calls[0];
+    expect(String(url)).toBe(UPSTREAM[provider]);
     expect(init.method).toBe("POST");
     expect(init.redirect).toBe("manual");
-    expect(init.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
+    expect(init.dispatcher).toBeInstanceOf(Agent);
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(init.signal.aborted).toBe(false);
-    expect(init.headers.authorization).toBe(`Bearer ${PROVIDER_KEY}`);
+    expect(init.headers.get("authorization")).toBe(`Bearer ${PROVIDER_KEY}`);
     if (provider === "jina-reader") {
-      expect(init.headers["x-return-format"]).toBe(format);
+      expect(init.headers.get("x-return-format")).toBe(format);
       expect(JSON.parse(init.body)).toEqual({ url: TARGET });
     } else {
       expect(JSON.parse(init.body)).toEqual({ urls: [TARGET], extract_depth: "basic", format });
     }
     expect(io.assertPublicUrlAsync).toHaveBeenCalledExactlyOnceWith(TARGET);
-    expect(lookup).toHaveBeenCalledExactlyOnceWith(new URL(UPSTREAM[provider]).hostname, { all: true });
+    expect(lookup).toHaveBeenCalledExactlyOnceWith(new URL(UPSTREAM[provider]).hostname, { all: true, verbatim: true });
     expect(io.clearAccountError).toHaveBeenCalledExactlyOnceWith(account.connectionId, account, `webfetch:${provider}`);
     expect(io.markAccountUnavailable).not.toHaveBeenCalled();
   });
 
   it.each(["jina-reader", "tavily"])("requests the explicit markdown default from %s when format is omitted", async provider => {
-    global.fetch.mockResolvedValueOnce(provider === "jina-reader"
+    pinnedFetch.mockResolvedValueOnce(provider === "jina-reader"
       ? new Response("# Default output")
       : Response.json({ results: [{ raw_content: "# Default output" }] }));
     const response = await handleFetch(request(provider));
     expect(response.status).toBe(200);
     expect((await response.json()).content.format).toBe("markdown");
-    const [, init] = global.fetch.mock.calls[0];
-    expect(provider === "jina-reader" ? init.headers["x-return-format"] : JSON.parse(init.body).format).toBe("markdown");
+    const [, init] = pinnedFetch.mock.calls[0];
+    expect(provider === "jina-reader" ? init.headers.get("x-return-format") : JSON.parse(init.body).format).toBe("markdown");
   });
 
   it("retains the UI model selector and max-character cap without changing the requested native format", async () => {
-    global.fetch.mockResolvedValueOnce(Response.json({ results: [{ raw_content: "Native plain text" }] }));
+    pinnedFetch.mockResolvedValueOnce(Response.json({ results: [{ raw_content: "Native plain text" }] }));
     const response = await handleFetch(request(undefined, "text", { model: "tavily", max_characters: 6 }));
     expect(response.status).toBe(200);
     expect((await response.json()).content).toEqual({ format: "text", text: "Native", length: 6 });
-    expect(JSON.parse(global.fetch.mock.calls[0][1].body).format).toBe("text");
+    expect(JSON.parse(pinnedFetch.mock.calls[0][1].body).format).toBe("text");
   });
 
   it.each(["jina-reader", "tavily"])("keeps %s native error status and safe public error normalization", async provider => {
-    global.fetch.mockResolvedValueOnce(Response.json({ detail: { error: "native-private-payload", trace: "private-upstream-trace" } }, { status: 402 }));
+    pinnedFetch.mockResolvedValueOnce(Response.json({ detail: { error: "native-private-payload", trace: "private-upstream-trace" } }, { status: 402 }));
     const response = await handleFetch(request(provider, "text"));
     expect(response.status).toBe(402);
     const body = await response.json();
@@ -149,7 +153,7 @@ describe("unsupported web fetch output surfaces are local request errors", () =>
     expect(io.updateProviderCredentials).not.toHaveBeenCalled();
     expect(io.markAccountUnavailable).not.toHaveBeenCalled();
     expect(io.clearAccountError).not.toHaveBeenCalled();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(pinnedFetch).not.toHaveBeenCalled();
     expect(lookup).not.toHaveBeenCalled();
   });
 
@@ -159,7 +163,7 @@ describe("unsupported web fetch output surfaces are local request errors", () =>
     const result = await handleFetchCore({ provider: "jina-reader", url: TARGET, format, credentials });
     expect(result).toMatchObject({ success: false, status: 400 });
     expect(readKey).not.toHaveBeenCalled();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(pinnedFetch).not.toHaveBeenCalled();
     expect(lookup).not.toHaveBeenCalled();
   });
 
@@ -170,7 +174,7 @@ describe("unsupported web fetch output surfaces are local request errors", () =>
     expect(response.headers.get("x-should-retry")).toBe("false");
     expect(io.getProviderCredentials).not.toHaveBeenCalled();
     expect(io.markAccountUnavailable).not.toHaveBeenCalled();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(pinnedFetch).not.toHaveBeenCalled();
   });
 
   it.each(["jina-reader", "tavily"])("retains the public target guard before a supported %s extraction", async provider => {
@@ -178,19 +182,19 @@ describe("unsupported web fetch output surfaces are local request errors", () =>
     const response = await handleFetch(request(provider, "text"));
     expect(response.status).toBe(400);
     expect(io.getProviderCredentials).not.toHaveBeenCalled();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(pinnedFetch).not.toHaveBeenCalled();
   });
 
   it.each(["jina-reader", "tavily"])("retains upstream DNS pin validation for %s", async provider => {
     lookup.mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }, { address: "127.0.0.1", family: 4 }]);
     const result = await handleFetchCore({ provider, url: TARGET, format: "text", credentials: account });
-    expect(result).toEqual({ success: false, status: 502, error: "SSRF blocked: private or invalid IP" });
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ success: false, status: 502, error: expect.stringMatching(/Blocked URL: private IP/) });
+    expect(pinnedFetch).not.toHaveBeenCalled();
   });
 
   it.each(["jina-reader", "tavily"])("retains %s's configured upstream timeout signal and 504 classification", async provider => {
     vi.useFakeTimers();
-    global.fetch.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+    pinnedFetch.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
       const abort = () => reject(new DOMException("Synthetic extraction timeout", "AbortError"));
       if (signal.aborted) abort();
       else signal.addEventListener("abort", abort, { once: true });
@@ -198,6 +202,6 @@ describe("unsupported web fetch output surfaces are local request errors", () =>
     const pending = handleFetchCore({ provider, url: TARGET, format: "text", credentials: account, providerConfig: { timeoutMs: 25 } });
     await vi.advanceTimersByTimeAsync(25);
     expect(await pending).toEqual({ success: false, status: 504, error: "Synthetic extraction timeout" });
-    expect(global.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(pinnedFetch.mock.calls[0][1].signal.aborted).toBe(true);
   });
 });

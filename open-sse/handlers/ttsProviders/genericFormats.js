@@ -1,59 +1,64 @@
 // Generic config-driven TTS handlers — dispatched by ttsConfig.format.
 // Each handler accepts { baseUrl, apiKey, text, modelId, voiceId } and returns { base64, format }.
-import { responseToBase64, throwUpstreamError } from "./_base.js";
+import { readTtsJson, responseToBase64, throwUpstreamError } from "./_base.js";
 import minimaxTts from "./minimax.js";
 
 // Hyperbolic: POST { text } → { audio: base64 }
-async function hyperbolic({ baseUrl, apiKey, text }) {
+async function hyperbolic({ baseUrl, apiKey, text, fetch = globalThis.fetch, signal }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({ text }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  const data = await res.json();
+  if (!res.ok) await throwUpstreamError(res, signal);
+  const data = await readTtsJson(res, signal);
   return { base64: data.audio, format: "mp3" };
 }
 
 // Deepgram: model via query, Token auth, returns binary
-async function deepgram({ baseUrl, apiKey, text, modelId }) {
+async function deepgram({ baseUrl, apiKey, text, modelId, fetch = globalThis.fetch, signal, responseFormat }) {
   const url = new URL(baseUrl);
   url.searchParams.set("model", modelId || "aura-asteria-en");
   const res = await fetch(url.toString(), {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Token ${apiKey}` },
     body: JSON.stringify({ text }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "mp3");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "mp3", signal, responseFormat);
 }
 
 // Nvidia NIM: POST { input: { text }, voice, model } → binary
-async function nvidia({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function nvidia({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({ input: { text }, voice: voiceId || "default", model: modelId }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "wav");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "wav", signal, responseFormat);
 }
 
 // HuggingFace: POST {baseUrl}/{modelId} { inputs: text } → binary
-async function huggingface({ baseUrl, apiKey, text, modelId }) {
+async function huggingface({ baseUrl, apiKey, text, modelId, fetch = globalThis.fetch, signal, responseFormat }) {
   if (!modelId || modelId.includes("..")) throw new Error("Invalid HuggingFace model ID");
   const res = await fetch(`${baseUrl}/${modelId}`, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({ inputs: text }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "wav");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "wav", signal, responseFormat);
 }
 
 // Fish Audio: model travels in an HTTP header, the voice is a reference_id, returns binary
-async function fishAudio({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function fishAudio({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -66,13 +71,14 @@ async function fishAudio({ baseUrl, apiKey, text, modelId, voiceId }) {
       ...(voiceId ? { reference_id: voiceId } : {}),
     }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "mp3");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "mp3", signal, responseFormat);
 }
 
 // Inworld: Basic auth, JSON { audioContent }
-async function inworld({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function inworld({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Basic ${apiKey}` },
     body: JSON.stringify({
@@ -82,15 +88,16 @@ async function inworld({ baseUrl, apiKey, text, modelId, voiceId }) {
       audioConfig: { audioEncoding: "MP3" },
     }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  const data = await res.json();
+  if (!res.ok) await throwUpstreamError(res, signal);
+  const data = await readTtsJson(res, signal);
   if (!data.audioContent) throw new Error("Inworld TTS returned no audio");
   return { base64: data.audioContent, format: "mp3" };
 }
 
 // Cartesia: X-API-Key header
-async function cartesia({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function cartesia({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -104,14 +111,15 @@ async function cartesia({ baseUrl, apiKey, text, modelId, voiceId }) {
       output_format: { container: "mp3", bit_rate: 128000, sample_rate: 44100 },
     }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "mp3");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "mp3", signal, responseFormat);
 }
 
 // PlayHT: token format "userId:apiKey", voice = s3 URL
-async function playht({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function playht({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const [userId, key] = (apiKey || ":").split(":");
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -127,37 +135,40 @@ async function playht({ baseUrl, apiKey, text, modelId, voiceId }) {
       speed: 1,
     }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "mp3");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "mp3", signal, responseFormat);
 }
 
 // Coqui (local, noAuth): POST { text, speaker_id } → WAV
-async function coqui({ baseUrl, text, voiceId }) {
+async function coqui({ baseUrl, text, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, ...(voiceId ? { speaker_id: voiceId } : {}) }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "wav");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "wav", signal, responseFormat);
 }
 
 // Tortoise (local, noAuth)
-async function tortoise({ baseUrl, text, voiceId }) {
+async function tortoise({ baseUrl, text, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, voice: voiceId || "random" }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "wav");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "wav", signal, responseFormat);
 }
 
 // OpenAI-compatible upstream (qwen3-tts, etc.)
-async function openaiCompat({ baseUrl, apiKey, text, modelId, voiceId }) {
+async function openaiCompat({ baseUrl, apiKey, text, modelId, voiceId, fetch = globalThis.fetch, signal, responseFormat }) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   const res = await fetch(baseUrl, {
+    signal,
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -168,8 +179,8 @@ async function openaiCompat({ baseUrl, apiKey, text, modelId, voiceId }) {
       speed: 1.0,
     }),
   });
-  if (!res.ok) await throwUpstreamError(res);
-  return responseToBase64(res, "mp3");
+  if (!res.ok) await throwUpstreamError(res, signal);
+  return responseToBase64(res, "mp3", signal, responseFormat);
 }
 
 // format → handler dispatcher

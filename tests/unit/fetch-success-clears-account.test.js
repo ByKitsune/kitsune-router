@@ -26,7 +26,8 @@ vi.mock("@/lib/localDb", () => ({
   isApiKeyRequired: (s) => s?.requireApiKey === true,
 }));
 
-vi.mock("open-sse/handlers/fetch/index.js", () => ({
+vi.mock("open-sse/handlers/fetch/index.js", async importOriginal => ({
+  ...await importOriginal(),
   handleFetchCore: mocks.handleFetchCore,
 }));
 

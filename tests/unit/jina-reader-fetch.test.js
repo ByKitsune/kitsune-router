@@ -1,31 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { lookup } from "node:dns/promises";
-import { Dispatcher1Wrapper } from "undici";
+import dns from "node:dns";
+import { Agent, fetch as pinnedFetch } from "undici";
 import { handleFetchCore } from "../../open-sse/handlers/fetch/index.js";
 
-vi.mock("node:dns/promises", async original => ({ ...await original(), lookup: vi.fn() }));
+vi.mock("node:dns", async original => {
+  const actual = await original();
+  return { ...actual, default: { ...actual.default, promises: { ...actual.default.promises, lookup: vi.fn() } } };
+});
+vi.mock("undici", async original => ({ ...await original(), fetch: vi.fn() }));
 
-const originalFetch = global.fetch;
+const lookup = dns.promises.lookup;
 
 describe("Jina Reader fetch", () => {
   beforeEach(() => {
     lookup.mockReset().mockImplementation(async (hostname, options) => {
       expect(hostname).toBe("r.jina.ai");
-      expect(options).toEqual({ all: true });
+      expect(options).toEqual({ all: true, verbatim: true });
       return [{ address: "93.184.216.34", family: 4 }];
     });
-    global.fetch = vi.fn();
+    pinnedFetch.mockReset();
+    vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Unexpected global fetch egress"); }));
   });
 
-  afterEach(async () => {
-    const calls = global.fetch.mock.calls;
-    global.fetch = originalFetch;
-    await Promise.all(calls.map(([, init]) => init.dispatcher.close()));
+  afterEach(() => {
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it("uses Jina's JSON POST API instead of embedding the URL in the path", async () => {
-    global.fetch.mockResolvedValueOnce(new Response([
+    pinnedFetch.mockResolvedValueOnce(new Response([
       "Title: Example page",
       "",
       "URL Source: https://example.com/article",
@@ -44,15 +48,15 @@ describe("Jina Reader fetch", () => {
 
     expect(result.success).toBe(true);
     expect(result.data.title).toBe("Example page");
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(pinnedFetch).toHaveBeenCalledTimes(1);
 
-    const [requestUrl, init] = global.fetch.mock.calls[0];
-    expect(requestUrl).toBe("https://r.jina.ai/");
+    const [requestUrl, init] = pinnedFetch.mock.calls[0];
+    expect(String(requestUrl)).toBe("https://r.jina.ai/");
     expect(init.method).toBe("POST");
     expect(init.redirect).toBe("manual");
-    expect(init.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
+    expect(init.dispatcher).toBeInstanceOf(Agent);
     expect(lookup).toHaveBeenCalledOnce();
-    expect(init.headers).toEqual({
+    expect(Object.fromEntries(init.headers)).toEqual({
       "content-type": "application/json",
       "x-return-format": "markdown",
       authorization: "Bearer jina-test-key",
@@ -61,7 +65,7 @@ describe("Jina Reader fetch", () => {
   });
 
   it("returns the upstream status and error body", async () => {
-    global.fetch.mockResolvedValueOnce(new Response(
+    pinnedFetch.mockResolvedValueOnce(new Response(
       JSON.stringify({ detail: "Payment required" }),
       { status: 402, headers: { "Content-Type": "application/json" } },
     ));
@@ -80,12 +84,12 @@ describe("Jina Reader fetch", () => {
     expect(result.error).toContain("Payment required");
   });
 
-  it("blocks an upstream hostname resolving to a private address before fetching credentials", async () => {
+  it("blocks an upstream hostname resolving to a private address before sending credentials", async () => {
     lookup.mockResolvedValueOnce([{ address: "127.0.0.1", family: 4 }]);
     const result = await handleFetchCore({
       url: "https://example.com/article", provider: "jina-reader", credentials: { apiKey: "jina-test-key" },
     });
-    expect(result).toEqual({ success: false, status: 502, error: "SSRF blocked: private or invalid IP" });
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, status: 502, error: "Blocked URL: private IP" });
+    expect(pinnedFetch).not.toHaveBeenCalled();
   });
 });

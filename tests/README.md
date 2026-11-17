@@ -41,6 +41,20 @@ npm test -- tests/unit/vision-capability-routing.test.js
 `npm --prefix tests test` also works; both entrypoints use the repository-root
 Vitest configuration. Use the installed runner rather than an unpinned download.
 
+Root, `tests/`, `cli/` and `gitbook/` have independent lockfiles. The small
+`package.json` files inside source directories declare module type rather than
+separate installable applications. After a dependency refresh, install the
+packages needed by the selected workflow and run
+`node scripts/check-installed-dependencies.mjs . tests cli gitbook` only when all
+four are installed. Direct imports must be declared in their owning manifest;
+an incidental parent/transitive package is not a dependency contract.
+
+Run the full regression suite, production build and production browser suite
+sequentially. Composed lint fixtures launch real subprocesses under a five-second
+case budget; concurrent compilers/browser suites can cause a timing failure even
+when their assertions pass in isolation. Keep the original report and label a
+focused rerun separately; a focused green report is not a full-suite result.
+
 ## Protect local state and credentials
 
 The Vitest config does not load repository `.env` files, including `.env.local` and mode-specific variants (`envDir: false`). Supply synthetic secrets, state paths and deliberate live-test opt-ins explicitly through the process environment. Inherited process credentials are still available to tests, so run automated verification with an isolated environment rather than production credentials.
@@ -82,6 +96,11 @@ These suites exercise consumer-visible boundaries rather than source text or a t
 | No-auth proxy pool exhaustion, denials and egress | `unit/noauth-proxy-fallback.test.js` (real SQLite, relay/CONNECT and direct-egress trap fixtures) |
 | Combo terminal responses, cancellation and public route boundaries | `unit/upstream-combo-terminal-response.test.js`, `unit/upstream-combo-terminal-public.test.js`, `unit/upstream-combo-caller-chat.test.js`, `unit/upstream-combo-caller-media.test.js` |
 | Full database imports and stale in-flight caches | `unit/db-import-cache.test.js`, `unit/db-import-cache-public.test.js`, `unit/db-import-cache-quota.test.js` |
+| Synchronous transaction rollback and bounded prepared statements | `unit/stability-audit-db-adapters.test.js` |
+| Rotating OAuth grants under cache pressure | `unit/token-refresh-capacity.test.js`, `unit/reconciliation-transport-refresh-cancellation.test.js` |
+| Video cancellation, bounded metadata and truncated successful bodies | `unit/video-stability-audit.test.js`, `unit/xai-video-core.test.js` |
+| Empty tool placeholders in streamed and aggregated responses | `unit/stream-aggregation-audit.test.js` |
+| Explicit Codex prompt-cache lifetime on the outgoing request | `unit/codex-prompt-cache-options.test.js` |
 | Native cancellation and public error boundaries | `unit/cursor-cancellation.test.js`, `unit/public-protocol-errors.test.js` |
 | Model probes, provider defaults and independent speed controls | `unit/model-test-thinking-budget.test.js`, `unit/model-test-service-tier.test.js`, `unit/provider-inference-settings.test.js`, `unit/provider-speed-ui.test.js`, `unit/backend-speed-*.test.js` |
 | GPT-6.1 Terra public API tools, model facts and tier boundaries | `unit/gpt-terra-tool-route.test.js`, `unit/terra-provider-metadata.test.js`, `unit/terra-tier-pricing.test.js` |

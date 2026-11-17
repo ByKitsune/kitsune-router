@@ -1,0 +1,126 @@
+{
+  "review_date": "2026-11-17",
+  "scope": "Read-only authoritative publisher source and package metadata review; no live provider credentials, inference, account eligibility, cryptographic signature authenticity, or anti-detection claims.",
+  "sources": [
+    {
+      "repository": "claude-code",
+      "source_url": "https://github.com/anthropics/claude-code",
+      "head": "d874cc7a65f969e0b479de5be02191569751b71b",
+      "executed_publisher_code": false
+    },
+    {
+      "repository": "codex",
+      "source_url": "https://github.com/openai/codex",
+      "head": "9537934ed6d5a6658fc77032b3290650765466a1",
+      "executed_publisher_code": false
+    },
+    {
+      "repository": "antigravity-cli",
+      "source_url": "https://github.com/google-antigravity/antigravity-cli",
+      "head": "f51cb8dca4d1b493850accaafde06f8d9fa21764",
+      "executed_publisher_code": false
+    },
+    {
+      "repository": "antigravity-sdk-python",
+      "source_url": "https://github.com/google-antigravity/antigravity-sdk-python",
+      "head": "75ba22bd00afae2f46393ff31f30c3f0df52982f",
+      "executed_publisher_code": false
+    }
+  ],
+  "npm_metadata": [
+    {
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.326",
+      "source": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code/latest",
+      "integrity": "sha512-F7OqxXKogQYUs+RN1903IWlXGuxn8iwAykx+umRbDKvoBeK0Xm6cdgQx9auu5dtsB+DczN58/EFrlaU8pLfgJg==",
+      "repository": null
+    },
+    {
+      "package": "@openai/codex",
+      "version": "0.169.0",
+      "source": "https://registry.npmjs.org/@openai%2fcodex/latest",
+      "integrity": "sha512-KhzYlkKPxoNssR8CEm45IjqnFWn7UtlF4CiD3tOJPea51xBs7MaHy0UQG9GSbCqk6Lrjn5QdJDV0QD1/FgWlGw==",
+      "repository": {
+        "url": "git+https://github.com/openai/codex.git",
+        "type": "git",
+        "directory": "codex-cli"
+      }
+    },
+    {
+      "package": "@google/gemini-cli",
+      "version": "0.68.0",
+      "source": "https://registry.npmjs.org/@google%2fgemini-cli/latest",
+      "integrity": "sha512-eq7AWY+YCijNGKVwyiRjN+GuOdXU/djuOZhX18p+HDmNyUqFdqH7C5V6vDJLl1uffhRPhGijePV+YvY8lymrbQ==",
+      "repository": {
+        "url": "git+https://github.com/google-gemini/gemini-cli.git",
+        "type": "git"
+      }
+    },
+    {
+      "package": "@tencent-ai/codebuddy-code",
+      "version": "2.184.0",
+      "source": "https://registry.npmjs.org/@tencent-ai%2fcodebuddy-code/latest",
+      "integrity": "sha512-2bvK8cO3zvRnOwyA28Na0sES99CBqlWoQGhndB2sdmBUv0WgAX9J2IRRqN6GsqHm9MKjcIAAWcS8WCCRW7ZAig==",
+      "repository": null
+    },
+    {
+      "package": "command-code",
+      "version": "1.89.2",
+      "source": "https://registry.npmjs.org/command-code/latest",
+      "integrity": "sha512-CPIF+sp9XqI0+qJsmxNZ6RuAxhLlclGfDnsAImBCtXuAoRsBJHHu0JLgWCtyl+DRFudV8DZfFm2++mVSTJGbNA==",
+      "repository": null
+    },
+    {
+      "package": "opencode-ai",
+      "version": "1.19.5",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "integrity": "sha512-tEqMvQahfhdDj8vceYpXtoIrvjPXm5XRfetWnPN5YISueU7adNx9JcUA3zZ+2GKuDVgDpGdQe1ZLtCZDjqodvA==",
+      "repository": null
+    },
+    {
+      "package": "@qoder-ai/qodercli",
+      "version": "1.1.89",
+      "source": "https://registry.npmjs.org/@qoder-ai%2fqodercli/latest",
+      "integrity": "sha512-VR7voMgwxr3QgZIX4GjfA/kUV7OyXXPQWJT6jI1uNH+jdlZr2/0tt3127nT2lm0vWWF6GPIBP/CkuPivRczXnw==",
+      "repository": null
+    },
+    {
+      "package": "@iflow-ai/iflow-cli",
+      "version": "0.5.19",
+      "source": "https://registry.npmjs.org/@iflow-ai%2fiflow-cli/latest",
+      "integrity": "sha512-cOQNLXJAjqcKq6XQpx47EUV8ocY5sdLXiy7MfJm+b1miRlMJmrQvueT75w1h9UqzrlFPio2VluTxbLRBoR/QBA==",
+      "repository": {
+        "url": "git+https://github.com/iflow-ai/iflow-cli.git",
+        "type": "git"
+      }
+    }
+  ],
+  "codex_stable": {
+    "tag": "rust-v0.169.0",
+    "commit": "a41fe5b443652cbdbee57717fbb9fd78d8d8b32a",
+    "request_schema_url": "https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/codex-api/src/common.rs",
+    "ttl_schema_url": "https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/protocol/src/turn_input.rs",
+    "regression_url": "https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/core/tests/suite/turn_input_submission.rs",
+    "contract": {
+      "prompt_cache_options": {
+        "ttl": [
+          "30m",
+          "12h"
+        ]
+      },
+      "default_when_absent": "No field is serialized; do not inject a requested cache lifetime"
+    },
+    "finding": "Gateway Codex final request allowlist silently removes caller-supplied prompt_cache_options.",
+    "out_of_scope_fields": "access_programs is account/policy owned; stream_options requires its own telemetry/schema review; neither added speculatively.",
+    "finding_phase": "Baseline before the caller cache-option repair; the fix and final11772case source validation are recorded in reconciliation-validation-20261117.json."
+  },
+  "antigravity": {
+    "cli_changelog_version": "1.5.9",
+    "python_sdk_version": "0.1.23",
+    "sdk_signature_type": "google.antigravity.types.Thought.signature: bytes | None",
+    "contract_boundary": "Python SDK agent/interactions API is not evidence that raw CloudCode /v1internal requests accept the same fields; CLI, IDE and SDK releases are distinct."
+  },
+  "identity_pin_decision": "No User-Agent, originator, SDK, API version, or fingerprint pins changed merely because a newer application release exists. Newest release metadata alone does not verify an actual gateway client migration or confer provider account entitlement.",
+  "signature_findings": "Existing first-party Claude/Google validators retain opaque original signed history, quarantine known retired fallback samples and isolate recovery maps per request. These are structural/history guards, not cryptographic verification and not a guarantee that a provider accepts the account or history.",
+  "network_observation": "api.github.com HTTPS requests returned proxy403; Git over the platform Git proxy and registry.npmjs.org metadata reads succeeded. No TLS/checksum verification was disabled."
+}

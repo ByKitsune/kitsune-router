@@ -803,20 +803,33 @@ function startServer(updatePromise) {
   });
 
   // Initialize tray icon (runs alongside TUI)
+  let trayStartup = null;
   const initTrayIcon = () => {
-    try {
-      const { initTray } = require("./src/cli/tray/tray");
-      initTray({
-        port,
-        onQuit: () => {
-          console.log("\n👋 Shutting down from tray...");
-          void finish();
-        },
-        onOpenDashboard: () => openBrowser(url)
-      });
-    } catch (err) {
-      // Tray not available - continue without it
-    }
+    if (trayStartup) return trayStartup;
+    trayStartup = new Promise(resolve => {
+      const onError = err => {
+        if (!isShuttingDown) {
+          console.log("\n⚠️  No tray icon — the server keeps running.");
+          if (err?.message) console.log(`   ${err.message.split("\n").join("\n   ")}`);
+          console.log(`   Dashboard: ${url}\n`);
+        }
+        resolve(false);
+      };
+      try {
+        const { initTray } = require("./src/cli/tray/tray");
+        initTray({
+          port,
+          onQuit: () => {
+            console.log("\n👋 Shutting down from tray...");
+            void finish();
+          },
+          onOpenDashboard: () => openBrowser(url),
+          onReady: () => resolve(true),
+          onError,
+        });
+      } catch (err) { onError(err); }
+    });
+    return trayStartup;
   };
 
   // Tray-only mode: no TUI, just tray icon
@@ -828,11 +841,12 @@ function startServer(updatePromise) {
     console.log(`\n🚀 ${pkg.name} v${pkg.version}`);
     console.log(`Server: http://${displayHost}:${port}`);
 
-    waitServerReady(port).then(() => {
+    waitServerReady(port).then(async () => {
       if (isShuttingDown) return;
-      initTrayIcon();
-      console.log("\n💡 Router is now running in system tray. Close this terminal if you want.");
-      console.log("   Right-click tray icon to open dashboard or quit.\n");
+      if (await initTrayIcon() && !isShuttingDown) {
+        console.log("\n💡 Router is now running in system tray. Close this terminal if you want.");
+        console.log("   Right-click tray icon to open dashboard or quit.\n");
+      }
     });
 
     return;
@@ -870,6 +884,12 @@ function startServer(updatePromise) {
           await startTerminalUI(port);
           // Loop continues, show menu again
         } else if (choice === "hide") {
+          if (!(await initTrayIcon())) {
+            console.log("\nHide to Tray is unavailable. The server and terminal menu remain active.");
+            const { pause } = require("./src/cli/utils/input");
+            await pause("\nPress Enter to return to the menu...");
+            continue;
+          }
           const { clearScreen } = require("./src/cli/utils/display");
           clearScreen();
 
@@ -894,7 +914,7 @@ function startServer(updatePromise) {
           }
 
           // Windows/Linux: spawn detached bgProcess (systray works fine in child)
-          console.log(`\n⏳ Starting background process... (tray icon will appear in ~3s)`);
+          console.log(`\n⏳ Starting background launcher...`);
 
           // Release the old server/tray before the new launcher can discover
           // and replace them. Otherwise its startup cleanup races our drain.
@@ -908,9 +928,9 @@ function startServer(updatePromise) {
           });
           bgProcess.unref();
 
-          console.log(`🔔 Kitsune Router is now running in background (PID: ${bgProcess.pid})`);
+          console.log(`🔔 Background launcher started (PID: ${bgProcess.pid})`);
           console.log(`   Server: http://${displayHost}:${port}`);
-          console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
+          console.log(`\n💡 The background launcher checks tray readiness. Use the dashboard if no icon appears.\n`);
 
           process.exit(0);
         } else if (choice === "exit") {

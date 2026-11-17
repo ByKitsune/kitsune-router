@@ -25,22 +25,43 @@ kitsune-router
 
 確認済み正規リポジトリか既存チェックアウトのルートで実行し、`app/` は使いません。
 
-**新規**だけで、非公開 `.env` に秘密を一度生成します（POSIX shell/OpenSSL）。`next dev` はランチャーの生成を使わず、32 文字以上の強い `JWT_SECRET` がなければログイン失敗します。更新時は既存の有効 JWT/API/識別秘密と絶対 `DATA_DIR` を [移行手順](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) で保持します。他の例の値は新規だけで見直し、`.env` を公開・コミットしません。
+**新規**だけで、チェックアウト外の非公開 `kitsune-router.source.env` に秘密を一度生成します（POSIX shell/Node.js）。`next dev` はランチャーの生成を使わず、32 文字以上の強い `JWT_SECRET` がなければログイン失敗します。更新時は既存の有効 JWT/API/識別秘密と絶対 `DATA_DIR` を [移行手順](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) で保持します。他の例の値は新規だけで見直し、`kitsune-router.source.env` を公開・コミットしません。
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
-本番ソース実行は `npm run build` の後に `npm run start`。`DATA_DIR` は絶対パスとし、公開前に強い `INITIAL_PASSWORD` を設定します。
+本番ソース実行は `npm run build` の後に `HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js`。`DATA_DIR` は絶対パスとし、公開前に強い `INITIAL_PASSWORD` を設定します。
 
 既定は `~/.kitsune-router`、Windows は `%APPDATA%\kitsune-router`。現行 DB は `db/data.sqlite` で、`db.json` ではありません。秘密・識別子・auth・証明書も保持します。旧状態は停止後に全体をバックアップし、明示 `DATA_DIR` は移動しません。[移行](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md) · [Docker](https://github.com/ByKitsune/kitsune-router/blob/master/DOCKER.md) · [開始](/ja/getting-started/quick-start/)。現行テスト・ビルド成功は主張しません。

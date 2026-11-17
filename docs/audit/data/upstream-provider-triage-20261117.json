@@ -1,0 +1,143 @@
+{
+  "review_date": "2026-11-17",
+  "upstream_repository": "https://github.com/decolua/9router",
+  "upstream_tip": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "last_previously_audited_tip": "54a88d0498ffea4e52576950235562ea420dc761",
+  "common_ancestor": "699edac3273e13d4744bc46f6082618f08560702",
+  "scope": "45 provider/auth/client/config commits since 2026-10-17; inspected semantic local code rather than treating unmerged Git ancestry as missing fixes. Additional scheduler commit supplied by frontend review. No blind cherry-picks, catalog feature activation, identity rewriting, or provider entitlement bypass.",
+  "findings": [
+    {
+      "upstream_sha": "ce1e0c3ce97316c2789be516f09e81798fd4c134",
+      "issue": 4001,
+      "status": "adapted_with_local_regression_validation",
+      "problem": "Claude opt-in auto-ping overwrites the due cached reset with the next quota reset before checking a due unpinged deadline; a 60-second timer can miss its five-second lead window.",
+      "paths": [
+        "src/shared/services/quotaAutoPing.js",
+        "tests/unit/quota-auto-ping.test.js"
+      ],
+      "proposal": "Retain the due deadline on failed requests; record only accepted cycles; preserve quota, cancellation, opt-in and shutdown guards."
+    },
+    {
+      "upstream_sha": "597ee684ddd481c6dabeb4fd67374a917817234c",
+      "status": "adapted_with_local_regression_validation",
+      "problem": "Qoder fetchQoderCatalogRaw still filters entry.enable===false although it retains the same entries' executable rawConfigs and upstream describes this as IDE visibility, not access entitlement.",
+      "paths": [
+        "open-sse/services/qoderModels.js"
+      ],
+      "proposal": "Preserve complete returned catalog and upstream display names without claiming the account can serve a particular model."
+    },
+    {
+      "upstream_sha": "0cf07ccf0f15f231b92b74e2c4040ef40acbb568",
+      "issue": 993,
+      "status": "adapted_with_local_regression_validation",
+      "problem": "Adding a Fal API key falls through media metadata without authHeader to the generic unsupported-provider response; the saved-key test already knows the safe Key-auth model-catalog probe.",
+      "paths": [
+        "src/app/api/providers/validate/route.js",
+        "src/app/api/providers/[id]/test/testUtils.js"
+      ],
+      "proposal": "Reuse bounded read-only Fal catalog authentication probe, distinguish rejected keys from transient/inconclusive server responses, preserve existing proxy/SSRF handling."
+    },
+    {
+      "upstream_sha": "333d249dfb63c29c20a12131279a07a40892f5af",
+      "status": "local_coverage_gap_present",
+      "problem": "Current Kiro executor validates region syntax but still substitutes syntactically valid yet unserved regions into each q/runtime/codewhisperer host, risking NXDOMAIN retry latency.",
+      "paths": [
+        "open-sse/executors/kiro.js",
+        "tests/unit/kiro-runtime-region-safety.test.js"
+      ],
+      "proposal": "Preserve stronger current origin/syntax guards and assess per-service served-region allowlists; do not import unrelated integrity-gate bypass toggle."
+    },
+    {
+      "upstream_sha": "43bc940ee93039c90fc80ee86f75ff094d551167",
+      "status": "supported_part_already_present_unsafe_part_not_ported",
+      "problem": "Live Claude OAuth model discovery is already present through fetchProviderLiveModels; auto-rewriting latest CLI User-Agent is a separate identity mechanism.",
+      "paths": [
+        "src/app/api/v1/models/route.js",
+        "src/app/api/providers/[id]/models/route.js"
+      ],
+      "proposal": "Keep existing authenticated catalog discovery; no identity-spoofing auto-updater."
+    },
+    {
+      "upstream_sha": "3ca0463989976a311302869bdc25684c37b56468",
+      "status": "prompt_preservation_already_present_identity_rewrite_not_ported",
+      "problem": "Current CodeBuddy Intl retains client system/developer text and typed user blocks; upstream additionally rewrites third-party agent identity to avoid WAF rejection.",
+      "paths": [
+        "open-sse/executors/codebuddy-intl.js"
+      ],
+      "proposal": "Retain user prompts and current ownership semantics; do not port WAF-evasion rewrite."
+    },
+    {
+      "upstream_sha": "850eb573559e624d385b67065f4573d0b311e94f",
+      "issue": 5602,
+      "status": "exact_upstream_trigger_absent_locally",
+      "problem": "Upstream STT-capability toggle converted custom chat models to STT, but current Kitsune CAPACITY_META exposes only vision/reasoning and provider save explicitly stores kind llm.",
+      "paths": [
+        "src/shared/constants/models.js",
+        "src/app/(dashboard)/dashboard/providers/[id]/AddCustomModelModal.js",
+        "src/app/(dashboard)/dashboard/providers/[id]/page.js"
+      ],
+      "proposal": "Do not port whole modal or manufacture the STT bug; assess independent stale-test UI behavior separately."
+    },
+    {
+      "upstream_sha": "97b2c545d84201723de7a10a945359e84ada7ba6",
+      "issue": 5539,
+      "status": "supported_node_runtime_not_affected",
+      "problem": "Two current web-provider call sites advertise zstd, but package engine Node>=22.19 is newer than the Node22.15 zstd introduction. Upstream bug specifically affects Node20/22.14.",
+      "paths": [
+        "open-sse/executors/grok-web.js",
+        "src/app/api/providers/validate/route.js"
+      ],
+      "proposal": "No urgent supported-Node fix; a future non-Node runtime compatibility check must test that runtime rather than blindly copy the helper."
+    },
+    {
+      "upstream_sha": "5e54377b0c923af6cf2445cf04399a96d139253e",
+      "status": "partially_present_with_intentional_catalog_differences",
+      "problem": "MiMo2.6 Pro/Flash already present;2.5 retired rows are explicitly deprecated, while inferModelKind already infers TTS IDs. New ASR row is catalog feature parity rather than a demonstrated regression.",
+      "paths": [
+        "open-sse/providers/registry/xiaomi-tokenplan.js",
+        "src/shared/constants/models.js"
+      ],
+      "proposal": "Preserve deprecation/migration provenance and directional metadata; no blanket model deletion or unverified model activation."
+    },
+    {
+      "upstream_sha": "fa73c93894608d804cf2887a974133360cd0b134",
+      "status": "optional_feature_parity_gap",
+      "problem": "CommandCode live public model catalog resolver is absent locally.",
+      "paths": [
+        "open-sse/services/commandcodeModels.js",
+        "src/app/api/providers/[id]/models/route.js",
+        "src/app/api/v1/models/route.js"
+      ],
+      "proposal": "Separate deliberate catalog feature work; preserve no-credential-leak and route cancellation/proxy boundaries if later added."
+    },
+    {
+      "upstream_sha": "5f925cf9efcb8d82ea3703aa430a82f541366918",
+      "status": "optional_feature_parity_gap",
+      "problem": "ClinePass authenticated usage-limit dashboard handler is absent locally.",
+      "paths": [
+        "open-sse/services/usage.js",
+        "open-sse/services/usage/clinepass.js"
+      ],
+      "proposal": "Separate usage feature work with WorkOS bearer handling and unknown quota semantics; do not claim known usage from absent data."
+    },
+    {
+      "upstream_sha": "201e81fb186332b839bcd832df90a182fd0a0329",
+      "status": "feature_not_implemented_locally",
+      "problem": "MiniMax desktop named-pipe lease auth is not an existing Kitsune provider mode, so upstream's missing lease usage eligibility is not the same local bug.",
+      "proposal": "Do not add lease auth or provider activation merely to copy a usage gate."
+    },
+    {
+      "upstream_sha": "402230ed10d76096dcae4ccb4501048cb9cde5d5",
+      "status": "feature_not_implemented_locally",
+      "problem": "Synthetic provider is not registered locally, so upstream's public models endpoint accepting invalid keys does not affect an existing Synthetic integration.",
+      "proposal": "If Synthetic is added later, use authenticated quotas for validation rather than treating public catalog HTTP200 as key validity."
+    }
+  ],
+  "limits": "This is provider/client scope commit triage, not a claim to have individually verified every upstream issue, live account, model catalog, or service endpoint. Concrete source changes require local reproduction and root ownership assignment. Existing uncommitted root fixes were not reset or overwritten.",
+  "validation": {
+    "before": "22 failed,16 passed across38 cases; source unmodified at reproduction",
+    "after": "126 passed across6 relevant files; Fal17cases also rechecked after config extraction",
+    "lint": "Targeted strict composed lint passed",
+    "live_accounts": "Not used; synthetic HTTP responses and local transports only"
+  }
+}

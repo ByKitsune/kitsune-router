@@ -4,6 +4,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { loadBetterSqlite } from "@/lib/db/helpers/optionalNativeSqlite.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -73,43 +74,33 @@ const normalize = (value) => {
 };
 
 /**
- * Extract tokens via better-sqlite3 (bundled dependency).
+ * Extract tokens via the optional native better-sqlite3 dependency.
  * This is the preferred strategy — no external CLI required.
  */
 async function extractTokensViaBetterSqlite(dbPath) {
-  // Dynamic import so the route stays importable even if native bindings fail
-  const { default: Database } = await import("better-sqlite3");
+  const Database = loadBetterSqlite();
   const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+  try {
+    const query = (key) => {
+      const row = db.prepare("SELECT value FROM itemTable WHERE key=? LIMIT 1").get(key);
+      return row?.value || null;
+    };
 
-  const query = (key) => {
-    const row = db.prepare("SELECT value FROM itemTable WHERE key=? LIMIT 1").get(key);
-    return row?.value || null;
-  };
-
-  const normalize = (value) => {
-    if (typeof value !== "string") return value;
-    try {
-      const parsed = JSON.parse(value);
-      return typeof parsed === "string" ? parsed : value;
-    } catch {
-      return value;
+    let accessToken = null;
+    for (const key of ACCESS_TOKEN_KEYS) {
+      const raw = query(key);
+      if (raw) { accessToken = normalize(raw); break; }
     }
-  };
 
-  let accessToken = null;
-  for (const key of ACCESS_TOKEN_KEYS) {
-    const raw = query(key);
-    if (raw) { accessToken = normalize(raw); break; }
+    let machineId = null;
+    for (const key of MACHINE_ID_KEYS) {
+      const raw = query(key);
+      if (raw) { machineId = normalize(raw); break; }
+    }
+    return { accessToken, machineId };
+  } finally {
+    db.close();
   }
-
-  let machineId = null;
-  for (const key of MACHINE_ID_KEYS) {
-    const raw = query(key);
-    if (raw) { machineId = normalize(raw); break; }
-  }
-
-  db.close();
-  return { accessToken, machineId };
 }
 
 /**
@@ -217,7 +208,7 @@ export async function GET() {
       }
     }
 
-    // Strategy 1: better-sqlite3 (bundled — no external tools required)
+    // Strategy 1: optional better-sqlite3 (no external tools required)
     try {
       const tokens = await extractTokensViaBetterSqlite(dbPath);
       if (tokens.accessToken && tokens.machineId) {

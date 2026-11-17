@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import { enqueueRequestUsage } from "@/lib/usageDb.js";
 import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
+import { getAccountRoutingPolicy } from "open-sse/utils/accountTransport.js";
 
 // Providers that don't require credentials (noAuth)
 const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui"]);
@@ -123,6 +124,7 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       body, modelInfo: { provider, model }, credentials: null, binaryOutput, clientSignal,
       onUsage: (usage, terminal = {}) => recordImageRequestUsage({ provider, model, apiKey, endpoint, eventId, timestamp, usage, status: terminal.status }),
     });
+    if (!result.success && result.allowAccountFallback !== true) result.response.headers.set("x-should-retry", "false");
     // The combo can return 499 before a cancelled attempt's accounting settles.
     if (clientSignal?.aborted && result.diagnostics?.code === "usage_acceptance_failed") {
       log.error("IMAGE", "Durable usage acceptance failed after client cancellation");
@@ -152,8 +154,9 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
     }
 
     if (clientSignal?.aborted) return cancelled();
+    const proxyOptions = getAccountRoutingPolicy(credentials);
     let refreshedCredentials;
-    try { refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: clientSignal }); }
+    try { refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: clientSignal, proxyOptions }); }
     catch (error) {
       if (clientSignal?.aborted) return cancelled();
       if (error?.code === "STALE_CONNECTION_WRITE") {
@@ -175,6 +178,7 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       streamToClient: wantsStream,
       binaryOutput,
       clientSignal,
+      proxyOptions,
       onCredentialsRefreshed: async (newCreds) => {
         const committed = await updateProviderCredentials(credentials.connectionId, {
           accessToken: newCreds.accessToken,
@@ -211,6 +215,7 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
         await clearAccountError(credentials.connectionId, credentials, model);
       }
     });
+    if (!result.success && result.allowAccountFallback !== true) result.response.headers.set("x-should-retry", "false");
 
     if (usageAcceptance) {
       try { await usageAcceptance; }
@@ -227,13 +232,16 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
 
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
 
-    if (shouldFallback) {
+    // A second account is safe only after an explicit pre-work rejection.
+    // Transport/body/poll failures may follow an accepted, billable image job.
+    if (result.allowAccountFallback === true && shouldFallback) {
       excludeConnectionIds.add(credentials.connectionId);
       lastError = result.error;
       lastStatus = result.status;
       continue;
     }
 
+    result.response.headers.set("x-should-retry", "false");
     return result.response;
   }
 }

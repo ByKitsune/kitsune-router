@@ -126,10 +126,12 @@ describe("public Qoder PAT model catalog", () => {
     expect(response.status).toBe(200);
     const catalog = await response.json();
     expect(catalog.object).toBe("list");
-    // The public list also contains valid no-auth providers; scope the exact
-    // singleton assertion to Qoder without weakening hidden-model exclusion.
-    expect(catalog.data.filter((model) => model.owned_by === "qd")).toEqual([expect.objectContaining({
-      id: "qd/pat-account-exclusive", object: "model", owned_by: "qd",
-    })]);
+    // Provider UI enable:false rows remain executable in the native catalog.
+    // Keep this account-scoped list exact, including that upstream row, without
+    // treating the UI flag as a new entitlement or inventing model limits.
+    expect(catalog.data.filter((model) => model.owned_by === "qd")).toEqual([
+      expect.objectContaining({ id: "qd/pat-account-exclusive", object: "model", owned_by: "qd" }),
+      expect.objectContaining({ id: "qd/pat-hidden", object: "model", owned_by: "qd" }),
+    ]);
   });
 });

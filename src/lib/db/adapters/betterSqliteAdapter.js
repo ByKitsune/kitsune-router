@@ -1,24 +1,21 @@
-import Database from "better-sqlite3";
+import { loadBetterSqlite } from "../helpers/optionalNativeSqlite.js";
 import { PRAGMA_SQL } from "../schema.js";
 import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
+import { createStatementCache } from "../helpers/statementCache.js";
 
 // Periodic checkpoint to keep WAL file small (avoid huge -wal/-shm growth)
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
 export function createBetterSqliteAdapter(filePath) {
+  const Database = loadBetterSqlite();
   const db = new Database(filePath);
   db.exec(PRAGMA_SQL);
   // Schema is created/synced by migrate.js after adapter init
 
-  const stmtCache = new Map();
+  const stmtCache = createStatementCache(db);
 
   function prepare(sql) {
-    let stmt = stmtCache.get(sql);
-    if (!stmt) {
-      stmt = db.prepare(sql);
-      stmtCache.set(sql, stmt);
-    }
-    return stmt;
+    return stmtCache.prepare(sql);
   }
 
   // Truncate WAL periodically so file stays small for backup/copy

@@ -1,5 +1,21 @@
 # 更新日志
 
+## 未发布源码 — 2026-11-17
+
+应用版本仍为 **1.0.8**。以下源码改动不替换已发布归档、标签或下方历史验证记录。
+
+- 更新稳定依赖和直接导入声明，为 SQLite 语句缓存、OAuth 刷新与登录记录设置边界，
+  保留取消语义并校验完整响应。
+- 选择性适配上游的 STT multipart、免密钥 SearXNG 选择、只读 Fal 密钥校验、
+  Claude 配额重置自动探测、Qoder 目录可见性、托盘就绪和 Headroom 回环绑定修复。
+  Kimi 的实时限制使用账户返回的精确元数据，不统一猜测静态上下文窗口。
+- 客户端发布版本与签名协议、SDK/API 身份及账户权限分别核对；不增加反检测或账户限制绕过。
+
+- 媒体请求显式传递账户代理及取消策略；搜索、网页和远程图片读取若无法保留 DNS 固定、私有地址及重定向校验，则拒绝所选代理路由。
+
+来源、回归结果、明确的策略变化和平台／真实账户限制见
+[依赖与运行时审计](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md)及[上游对照审计](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md)。
+
 ## Kitsune Router 1.0.8 — 安装器修复
 
 ### 准备阶段的集中验证快照

@@ -92,6 +92,17 @@ const googleModelsResolver = provider => async (connection, proxyOptions, signal
 
 // Provider models endpoints configuration
 const PROVIDER_MODELS_CONFIG = {
+  kimi: {
+    customResolver: async (connection, proxyOptions, signal) => {
+      // Match execution's proof priority. Both OAuth and API-key Kimi Code
+      // accounts expose exact IDs/limits through the existing native URL.
+      const credential = connection.apiKey || connection.accessToken;
+      if (!credential) return { error: "No valid token found", status: 401 };
+      return createNativeApiModelsConfig("kimi").customResolver(
+        { ...connection, apiKey: credential }, proxyOptions, signal,
+      );
+    },
+  },
   claude: {
     customResolver: async (connection, proxyOptions, signal) => {
       // Match execution's credential priority and the publisher's separate

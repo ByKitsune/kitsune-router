@@ -5,13 +5,16 @@
 // (`synthesizeViaConfig` reads `cfg.baseUrl`) and never looks at the connection,
 // which is exactly the limitation this provider exists to lift.
 import { Buffer } from "node:buffer";
+import { getTtsTransport, readTtsBuffer, readTtsJson, streamingTtsAudio } from "./_base.js";
 
 const DEFAULT_BASE_URL = "http://localhost:8880";
 const DEFAULT_MODEL = "kokoro";
 const DEFAULT_VOICE = "af_heart";
 
 export default {
-  async synthesize(text, model, credentials, responseFormat = "mp3") {
+  async synthesize(text, model, credentials, responseFormat, options = {}) {
+    const { fetch, signal } = getTtsTransport(credentials, options);
+    const outputFormat = responseFormat ?? "mp3";
     // Accept either providerSpecificData.baseUrl (how the custom embedding and
     // STT providers carry it) or a bare credentials.baseUrl (how the OpenAI TTS
     // adapter does), so a connection configured either way works.
@@ -45,8 +48,8 @@ export default {
         ttsModel = parts[0];
       }
     }
-
     const res = await fetch(`${base}/v1/audio/speech`, {
+      signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,14 +59,18 @@ export default {
         model: ttsModel,
         voice,
         input: text,
-        response_format: responseFormat,
+        response_format: outputFormat,
       }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await readTtsJson(res, signal).catch(() => { signal?.throwIfAborted(); return {}; });
       throw new Error(err?.error?.message || `Self-hosted TTS failed: ${res.status}`);
     }
-    const buf = await res.arrayBuffer();
-    return { base64: Buffer.from(buf).toString("base64"), format: responseFormat };
+    if (responseFormat && responseFormat !== "json") {
+      const streaming = await streamingTtsAudio(res, outputFormat, signal);
+      if (streaming) return streaming;
+    }
+    const buf = await readTtsBuffer(res, signal);
+    return { base64: Buffer.from(buf).toString("base64"), format: outputFormat };
   },
 };

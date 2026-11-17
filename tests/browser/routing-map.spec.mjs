@@ -52,6 +52,19 @@ test("routing map animates connected flow, distinguishes activity and pauses out
   const before = await map.locator(".react-flow__viewport").getAttribute("style");
   await map.getByRole("button", { name: "Zoom In", exact: true }).click();
   await expect.poll(() => map.locator(".react-flow__viewport").getAttribute("style")).not.toBe(before);
+  await map.getByRole("button", { name: "Fit View", exact: true }).click();
+  await expect.poll(() => map.locator(".react-flow").evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    // A numeric 0.12 becomes subpixel padding in React Flow 13. Real fitted
+    // nodes must retain a useful margin after the interactive Fit View action.
+    return [...element.querySelectorAll(".react-flow__node")].every(node => {
+      const rect = node.getBoundingClientRect();
+      return rect.left > bounds.left + bounds.width * 0.02
+        && rect.right < bounds.right - bounds.width * 0.02
+        && rect.top > bounds.top + bounds.height * 0.02
+        && rect.bottom < bounds.bottom - bounds.height * 0.02;
+    });
+  })).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -79,3 +92,15 @@ test("routing map retains readable status and controls without motion on a narro
   })).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+for (const [osTheme, appTheme] of [["dark", "light"], ["light", "dark"]]) {
+  test(`routing map follows explicit ${appTheme} app theme on a ${osTheme} operating system`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: osTheme, reducedMotion: "reduce" });
+    await page.addInitScript(theme => {
+      localStorage.setItem("theme", JSON.stringify({ state: { theme }, version: 0 }));
+    }, appTheme);
+    const map = await openRoutingMap(page);
+    await expect.poll(() => page.locator("html").evaluate(element => getComputedStyle(element).colorScheme)).toBe(appTheme);
+    await expect(map.locator(".react-flow")).toHaveCSS("color-scheme", appTheme);
+  });
+}

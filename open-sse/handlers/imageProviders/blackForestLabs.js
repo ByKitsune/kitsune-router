@@ -1,6 +1,7 @@
 // Black Forest Labs (FLUX) — async submit + polling_url
-import { sleep, nowSec, parseMediaError, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
+import { nowSec, parseMediaError, assertImagePollingUrl, fetchImageProvider, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { createAccountTransport } from "../../utils/accountTransport.js";
 
 const BASE_URL = PROVIDER_MEDIA["black-forest-labs"]?.imageConfig?.baseUrl;
 
@@ -21,15 +22,14 @@ export default {
     if (body.image) req.image_prompt = body.image;
     return req;
   },
-  async parseResponse(response, { headers, clientSignal, observeUsage }) {
+  async parseResponse(response, { headers, clientSignal, observeUsage, transport = createAccountTransport(null, { signal: clientSignal }) }) {
     const data = await response.json();
     observeUsage?.(data);
-    const pollingUrl = data.polling_url;
-    if (!pollingUrl) throw new Error("BFL: no polling_url returned");
+    const pollingUrl = assertImagePollingUrl(data.polling_url, "black-forest-labs");
     const deadline = Date.now() + POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      await sleep(POLL_INTERVAL_MS, clientSignal);
-      const r = await fetch(pollingUrl, { headers: { "x-key": headers["x-key"], "Accept": "application/json" }, signal: clientSignal });
+      await transport.sleep(POLL_INTERVAL_MS);
+      const r = await fetchImageProvider(transport, pollingUrl, { headers: { "x-key": headers["x-key"], "Accept": "application/json" }, signal: clientSignal });
       if (!r.ok) {
         const diagnostics = await parseMediaError(r, observeUsage, clientSignal);
         throw Object.assign(new Error(diagnostics.message || `BFL status ${r.status}`), { upstreamStatus: r.status });

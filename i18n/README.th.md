@@ -36,20 +36,41 @@ kitsune-router
 
 รันจากคลังทางการที่ยืนยันแล้วหรือ checkout ที่มีอยู่ ที่รากคลัง ไม่มีโฟลเดอร์ย่อย `app/`:
 
-สำหรับการติดตั้ง **ใหม่** เท่านั้น ให้สร้าง secret ครั้งเดียวใน `.env` ส่วนตัว (POSIX shell/OpenSSL) `next dev` ไม่เรียกตัวสร้าง secret ของ launcher; หากไม่มี `JWT_SECRET` แบบสุ่มอย่างน้อย 32 ตัวอักษรจะล็อกอินไม่ได้ การย้ายข้อมูลต้องคงค่าเดิมของ `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` และ `DATA_DIR` แบบ absolute ตรวจไฟล์และเปลี่ยนค่าตัวอย่างเฉพาะติดตั้งใหม่ อย่าเผยแพร่หรือ commit `.env`
+สำหรับการติดตั้ง **ใหม่** เท่านั้น ให้สร้าง secret ครั้งเดียวใน `kitsune-router.source.env` ส่วนตัว (POSIX shell/Node.js) `next dev` ไม่เรียกตัวสร้าง secret ของ launcher; หากไม่มี `JWT_SECRET` แบบสุ่มอย่างน้อย 32 ตัวอักษรจะล็อกอินไม่ได้ การย้ายข้อมูลต้องคงค่าเดิมของ `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` และ `DATA_DIR` แบบ absolute ตรวจไฟล์และเปลี่ยนค่าตัวอย่างเฉพาะติดตั้งใหม่ อย่าเผยแพร่หรือ commit `kitsune-router.source.env`
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
 ตั้ง `INITIAL_PASSWORD` ที่ปลอดภัยก่อนเปิดให้เข้าถึง เปิด `http://localhost:20128/dashboard` เชื่อมต่อผู้ให้บริการที่มีสิทธิ์ และสร้าง/คัดลอก key ของเกตเวย์ Base URL คือ `http://localhost:20128/v1` เลือกโมเดลจากรายการจริง `/api/health` ไม่ได้ยืนยันสิทธิ์ upstream

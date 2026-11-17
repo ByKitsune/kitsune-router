@@ -2,6 +2,7 @@ import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, REFRESH_LEAD_MS } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { dedupRefresh, getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { safeRefreshErrorType } from "../utils/oauthDiagnostics.js";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   refreshXaiToken,
@@ -284,7 +285,7 @@ export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null, si
       if (result) return result;
     } catch (error) {
       signal?.throwIfAborted();
-      log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed: ${error.message}`);
+      log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed`, { error: safeRefreshErrorType(error) });
     }
   }
 

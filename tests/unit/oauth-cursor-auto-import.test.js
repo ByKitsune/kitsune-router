@@ -42,8 +42,8 @@ const mockDbInstance = {
   __throwOnConstruct: false,
 };
 
-vi.mock("better-sqlite3", () => ({
-  default: class MockDatabase {
+vi.mock("../../src/lib/db/helpers/optionalNativeSqlite.js", () => ({
+  loadBetterSqlite: () => class MockDatabase {
     constructor() {
       if (mockDbInstance.__throwOnConstruct) {
         throw new Error("SQLITE_CANTOPEN");
@@ -177,6 +177,19 @@ describe("GET /api/oauth/cursor/auto-import", () => {
     expect(response.body.found).toBe(true);
     expect(response.body.accessToken).toBe("cli-token");
     expect(response.body.machineId).toBe("cli-machine");
+  });
+
+  it("closes the native database before falling back after a query error", async () => {
+    vi.mocked(fsPromises.access).mockResolvedValue();
+    mockDbInstance.prepare.mockImplementation(() => { throw new Error("SQLITE_CORRUPT"); });
+    execFileMock.mockImplementation((cmd, args, opts, cb) => {
+      expect(mockDbInstance.close).toHaveBeenCalledOnce();
+      if (cmd !== "sqlite3") return cb(new Error("not installed"));
+      return cb(null, { stdout: args[1].includes("cursorAuth/accessToken") ? "cli-token\n" : "cli-machine\n" });
+    });
+    const response = await GET();
+    expect(response.body).toMatchObject({ found: true, accessToken: "cli-token", machineId: "cli-machine" });
+    expect(mockDbInstance.close).toHaveBeenCalledOnce();
   });
 
   // ── Linux install gate ────────────────────────────────────────────────

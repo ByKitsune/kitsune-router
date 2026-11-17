@@ -72,6 +72,12 @@ export const CODEX_USER_AGENT = `codex_cli_rs/${CODEX_CLI_VERSION}`;
 // Antigravity-style codex_cli_rs gating is identical.
 export const CODEX_MODELS_CLIENT_VERSION = CODEX_CLI_VERSION;
 
+// Native Responses cache lifetime is an independent wire contract. The stable
+// rust-v0.169.0 source serializes these exact TTL values in prompt_cache_options;
+// do not infer other values from the public API or inject a lifetime by default.
+// https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/protocol/src/turn_input.rs
+export const CODEX_PROMPT_CACHE_TTLS = Object.freeze(["30m", "12h"]);
+
 // ─── GitHub Copilot ────────────────────────────────────────────────────
 // Stable VS Code 1.146.0 bundles Copilot Chat 0.74.0 in its tagged
 // extensions/copilot/package.json. Keep the editor and extension paired.

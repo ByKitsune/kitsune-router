@@ -32,23 +32,44 @@ The launcher can bind to all interfaces by default. For local-only use, append `
 
 Run at the root of the confirmed repository or an existing checkout, not an `app/` subdirectory.
 
-For a **fresh** source install only, generate the session secret once in private `.env` (POSIX shell/OpenSSL). `next dev` does not use the launcher's generator: dashboard login fails without a strong `JWT_SECRET` of at least 32 characters. For upgrades retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR` using the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Review other example values only for fresh setup; never commit or print `.env`.
+For a **fresh** source install only, generate the session secret once in private external `kitsune-router.source.env` (POSIX shell/Node.js). `next dev` does not use the launcher's generator: dashboard login fails without a strong `JWT_SECRET` of at least 32 characters. For upgrades retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR` using the [migration guide](https://github.com/ByKitsune/kitsune-router/blob/master/docs/MIGRATION.md). Review other example values only for fresh setup; never commit or print `kitsune-router.source.env`.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
-For production source builds use `npm run build` followed by `npm run start`; keep `DATA_DIR` absolute because standalone execution changes working directory. No build/test result is implied by these commands.
+For production source builds use `npm run build` followed by `HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js`; keep `DATA_DIR` absolute because standalone execution changes working directory. No build/test result is implied by these commands.
 
 ## State and migration
 

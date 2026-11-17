@@ -11,6 +11,7 @@ import { buildSearchRequest } from "./callers.js";
 import { normalizeSearchResponse } from "./normalizers.js";
 import { handleChatSearch } from "./chatSearch.js";
 import { fetchPublic } from "../../../src/shared/utils/ssrfGuard.js";
+import { getAccountRoutingPolicy, hasAccountProxyPolicy } from "../../utils/accountTransport.js";
 
 const GLOBAL_TIMEOUT_MS = 15000;
 const NON_RETRIABLE = new Set([400, 401, 403, 404]);
@@ -44,14 +45,22 @@ function jsonResponse(payload, status = 200) {
 }
 
 /** Wrap an error result with a Response object so the auth wrapper can return it directly. */
-function errorResult(status, error, errorScope) {
-  return {
+function errorResult(status, error, errorScope, localFailure = false) {
+  const result = {
     success: false,
     status,
     error,
     ...(errorScope ? { errorScope } : {}),
+    ...(localFailure ? { localFailure: true } : {}),
     response: jsonResponse({ error: { message: error, code: status } }, status)
   };
+  if (localFailure) result.response.headers.set("x-should-retry", "false");
+  return result;
+}
+
+export function getSearchAccountTransportFailure(credentials, providerConfig, proxyOptions = null) {
+  if (!providerConfig || !hasAccountProxyPolicy(getAccountRoutingPolicy(credentials, proxyOptions))) return null;
+  return errorResult(502, "[ProxyFetch] Configured account proxy cannot preserve guarded search URL safety; this search transport is unavailable for that account.", "request", true);
 }
 
 /** Wrap a success payload. */
@@ -63,7 +72,7 @@ function successResult(data) {
  * Run a single dedicated search provider attempt.
  * @returns {Promise<{success:boolean, status?:number, error?:string, data?:object}>}
  */
-async function tryDedicatedProvider({ provider, providerConfig, body, credentials, log, globalStartTime }) {
+async function tryDedicatedProvider({ provider, providerConfig, body, credentials, log, globalStartTime, signal }) {
   const startTime = Date.now();
   const token = credentials?.apiKey || credentials?.accessToken || undefined;
 
@@ -98,6 +107,7 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
   const timeout = Math.min(providerConfig.timeoutMs || 10000, Math.max(remaining, 1000));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
 
   log?.info?.("SEARCH", `${provider.id} | "${params.query.slice(0, 80)}" | type=${params.searchType}`);
 
@@ -111,14 +121,16 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
   const fetchFn = isTrustedInternal ? fetch : fetchPublic;
 
   try {
-    const resp = await fetchFn(url, { ...init, headers: sanitizeHeaders(init.headers), signal: controller.signal });
-    clearTimeout(timer);
+    requestSignal.throwIfAborted();
+    const resp = await fetchFn(url, { ...init, headers: sanitizeHeaders(init.headers), signal: requestSignal });
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
+      requestSignal.throwIfAborted();
       log?.error?.("SEARCH", `${provider.id} ${resp.status}: ${errText.slice(0, 200)}`);
       return { success: false, status: resp.status, error: `${provider.id} returned ${resp.status}: ${errText.slice(0, 200)}` };
     }
     const data = await resp.json();
+    requestSignal.throwIfAborted();
     const normalized = normalizeSearchResponse(provider.id, data, params.query, params.searchType);
     const results = normalized.results.slice(0, params.maxResults);
     const duration = Date.now() - startTime;
@@ -144,11 +156,13 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
       }
     };
   } catch (err) {
-    clearTimeout(timer);
-    const isTimeout = err.name === "AbortError";
+    if (signal?.aborted) return { success: false, status: 499, error: "Client closed request", localFailure: true, errorScope: "request" };
+    const isTimeout = controller.signal.aborted || err.name === "AbortError";
     const status = isTimeout ? 504 : 502;
     log?.error?.("SEARCH", `${provider.id} ${isTimeout ? "timeout" : "error"}: ${err.message}`);
     return { success: false, status, error: `${provider.id} ${isTimeout ? "timeout" : "error"}: ${err.message}` };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -163,8 +177,11 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
  * @param {object|null} options.credentials  Provider credentials
  * @param {object}   [options.log]           Logger
  */
-export async function handleSearchCore({ body, provider, providerConfig, credentials, log }) {
+export async function handleSearchCore({ body, provider, providerConfig, credentials, log, signal, proxyOptions = null }) {
   const globalStartTime = Date.now();
+  if (signal?.aborted) return errorResult(499, "Client closed request", "request", true);
+  const routingFailure = getSearchAccountTransportFailure(credentials, providerConfig, proxyOptions);
+  if (routingFailure) return routingFailure;
 
   // 1. Sanitize query
   const { clean, error: sanitizeError } = sanitizeQuery(body.query || "");
@@ -180,7 +197,8 @@ export async function handleSearchCore({ body, provider, providerConfig, credent
       body: normalizedBody,
       credentials,
       log,
-      globalStartTime
+      globalStartTime,
+      signal
     });
   } else if (provider.searchViaChat) {
     result = await handleChatSearch({
@@ -189,12 +207,15 @@ export async function handleSearchCore({ body, provider, providerConfig, credent
       maxResults: normalizedBody.max_results,
       model: normalizedBody.model || provider.searchViaChat.defaultModel,
       credentials,
-      log
+      log,
+      signal,
+      proxyOptions
     });
   } else {
     return errorResult(400, `Provider ${provider.id} does not support web search`);
   }
 
+  if (result.localFailure || signal?.aborted) return errorResult(signal?.aborted ? 499 : result.status, signal?.aborted ? "Client closed request" : result.error, "request", true);
   if (result.success) return successResult(result.data);
 
   // 3. Failover within global timeout for retriable errors
@@ -211,8 +232,11 @@ export async function handleSearchCore({ body, provider, providerConfig, credent
       maxResults: normalizedBody.max_results,
       model: normalizedBody.model || provider.searchViaChat.defaultModel,
       credentials,
-      log
+      log,
+      signal,
+      proxyOptions
     });
+    if (fallback.localFailure || signal?.aborted) return errorResult(signal?.aborted ? 499 : fallback.status, signal?.aborted ? "Client closed request" : fallback.error, "request", true);
     if (fallback.success) return successResult(fallback.data);
   }
 

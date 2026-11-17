@@ -1,6 +1,7 @@
 // Gemini TTS — generateContent with AUDIO modality returns PCM L16, wrap as WAV
 import { Buffer } from "node:buffer";
 import { PROVIDER_MEDIA, PROVIDER_MODELS } from "../../providers/index.js";
+import { getTtsTransport, readTtsJson } from "./_base.js";
 
 const TTS_CFG = PROVIDER_MEDIA["gemini"]?.ttsConfig || {};
 const TTS_BASE = TTS_CFG.baseUrl;
@@ -60,10 +61,12 @@ function buildPrompt(text, language) {
 
 export default {
   async synthesize(text, model, credentials, _responseFormat, opts = {}) {
+    const { fetch, signal } = getTtsTransport(credentials, opts);
     if (!credentials?.apiKey) throw new Error("No Gemini API key configured");
     const { modelId, voiceId } = parseGeminiModelVoice(model);
     const url = `${TTS_BASE}/${modelId}:generateContent?key=${credentials.apiKey}`;
     const res = await fetch(url, {
+      signal,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -75,10 +78,10 @@ export default {
       }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await readTtsJson(res, signal).catch(() => { signal?.throwIfAborted(); return {}; });
       throw new Error(err?.error?.message || `Gemini TTS failed: ${res.status}`);
     }
-    const data = await res.json();
+    const data = await readTtsJson(res, signal);
     const b64 = data?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data)?.inlineData?.data;
     if (!b64) {
       const reason = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason || "unknown";

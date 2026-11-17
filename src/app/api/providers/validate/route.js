@@ -9,6 +9,7 @@ import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/q
 import { normalizeProviderId } from "@/lib/providerNormalization";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
+import { validateFalApiKey } from "open-sse/services/falValidation.js";
 
 // Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
 // Returns true if API key is accepted (status !== 401 && !== 403).
@@ -281,6 +282,9 @@ export async function POST(request) {
       }
 
       switch (provider) {
+        case "fal-ai":
+          return NextResponse.json(await validateFalApiKey(apiKey, fetch, { signal: request.signal }));
+
         case "openai":
           const openaiRes = await fetch("https://api.openai.com/v1/models", {
             headers: { "Authorization": `Bearer ${apiKey}` },

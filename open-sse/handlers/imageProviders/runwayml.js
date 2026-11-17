@@ -1,6 +1,7 @@
 // Runway ML — async submit + /tasks/{id} polling
-import { sleep, nowSec, parseMediaError, sizeToAspectRatio, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
+import { nowSec, parseMediaError, sizeToAspectRatio, fetchImageProvider, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { createAccountTransport } from "../../utils/accountTransport.js";
 
 const BASE_URL = PROVIDER_MEDIA["runwayml"]?.imageConfig?.baseUrl;
 
@@ -26,7 +27,7 @@ export default {
     }
     return { promptText: body.prompt, model, ratio, ...(body.image ? { referenceImages: [{ uri: body.image }] } : {}) };
   },
-  async parseResponse(response, { headers, clientSignal, observeUsage }) {
+  async parseResponse(response, { headers, clientSignal, observeUsage, transport = createAccountTransport(null, { signal: clientSignal }) }) {
     const data = await response.json();
     observeUsage?.(data);
     const { id } = data;
@@ -34,8 +35,8 @@ export default {
     const taskUrl = `${BASE_URL}/tasks/${id}`;
     const deadline = Date.now() + POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      await sleep(POLL_INTERVAL_MS, clientSignal);
-      const r = await fetch(taskUrl, { headers, signal: clientSignal });
+      await transport.sleep(POLL_INTERVAL_MS);
+      const r = await fetchImageProvider(transport, taskUrl, { headers, signal: clientSignal });
       if (!r.ok) {
         const diagnostics = await parseMediaError(r, observeUsage, clientSignal);
         throw Object.assign(new Error(diagnostics.message || `Runway status ${r.status}`), { upstreamStatus: r.status });

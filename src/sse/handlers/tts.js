@@ -6,6 +6,7 @@ import { getSettings, isApiKeyRequired } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleTtsCore } from "open-sse/handlers/ttsCore.js";
 import { getTtsAdapter } from "open-sse/handlers/ttsProviders/index.js";
+import { discardTtsBody } from "open-sse/handlers/ttsProviders/_base.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
@@ -107,8 +108,8 @@ async function handleSingleModelTts(body, modelStr, responseFormat, language, st
 
   // noAuth providers — no credential needed
   if (!CREDENTIALED_PROVIDERS.has(provider)) {
-    const result = await handleTtsCore({ provider, model, input: body.input, responseFormat: format, language, style });
-    if (signal?.aborted) return cancelled();
+    const result = await handleTtsCore({ provider, model, input: body.input, responseFormat: format, language, style, signal });
+    if (signal?.aborted) { discardTtsBody(result.response); return cancelled(); }
     if (result.success) return result.response;
     return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "TTS failed");
   }
@@ -135,15 +136,15 @@ async function handleSingleModelTts(body, modelStr, responseFormat, language, st
 
     log.info("AUTH", `\x1b[32mUsing ${provider} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
-    // The shared TTS core currently has no signal/voice or upstream-status
-    // contract. Use the Ollama adapter directly without changing other adapters.
+    // Preserve Ollama's native voice/format/error contract; other adapters use
+    // the shared account-bound transport and caller cancellation in TTS core.
     const result = provider === "ollama-local"
       ? await getTtsAdapter(provider).synthesize(body.input, model, credentials, format, {
           signal, voice: body.voice, speed: body.speed, instructions: body.instructions,
         })
-      : await handleTtsCore({ provider, model, input: body.input, credentials, responseFormat: format, language, style });
+      : await handleTtsCore({ provider, model, input: body.input, credentials, responseFormat: format, language, style, signal });
 
-    if (signal?.aborted || result.status === 499) return cancelled();
+    if (signal?.aborted || result.status === 499) { discardTtsBody(result.response); return cancelled(); }
     if (result.success || result.localFailure) return result.response;
 
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);

@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { OLLAMA_PHONON_MODELS } from "../../config/ttsModels.js";
 import { FETCH_CONNECT_TIMEOUT_MS, HTTP_STATUS } from "../../config/runtimeConfig.js";
 import { createErrorResult, MAX_UPSTREAM_ERROR_BYTES, parseUpstreamError } from "../../utils/error.js";
-import { proxyAwareFetch } from "../../utils/proxyFetch.js";
+import { createAccountTransport, isAccountRoutingFailure } from "../../utils/accountTransport.js";
 import { isRequestValidationError } from "../../services/accountFallback.js";
 import { buildOllamaLocalEndpoint } from "../embeddingProviders/ollamaLocal.js";
 
@@ -114,20 +114,13 @@ export default {
     if (options.instructions !== undefined) body.instructions = options.instructions;
     const headers = { "Content-Type": "application/json" };
     if (credentials?.apiKey) headers.Authorization = `Bearer ${credentials.apiKey}`;
-    const data = credentials?.providerSpecificData;
-    const proxyOptions = {
-      connectionProxyEnabled: data?.connectionProxyEnabled === true,
-      connectionProxyUrl: data?.connectionProxyUrl || "",
-      connectionNoProxy: data?.connectionNoProxy || "",
-      vercelRelayUrl: data?.vercelRelayUrl || "",
-      strictProxy: data?.strictProxy === true,
-    };
+    const transport = options.fetch ? options : createAccountTransport(credentials, { signal: clientSignal, proxyOptions: options.proxyOptions });
     const deadline = AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS);
     const signal = clientSignal ? AbortSignal.any([clientSignal, deadline]) : deadline;
     try {
-      const res = await proxyAwareFetch(url, {
+      const res = await transport.fetch(url, {
         method: "POST", headers, body: JSON.stringify(body), signal, redirect: "error",
-      }, proxyOptions);
+      });
       if (clientSignal?.aborted) {
         discardBody(res);
         return cancelled();
@@ -164,6 +157,7 @@ export default {
       } }) };
     } catch (error) {
       if (clientSignal?.aborted) return cancelled();
+      if (isAccountRoutingFailure(error)) return { ...createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Configured TTS account route is unavailable"), localFailure: true };
       const message = deadline.aborted ? "Ollama Local TTS timed out" : "Ollama Local TTS request failed";
       return createErrorResult(HTTP_STATUS.BAD_GATEWAY, message);
     }

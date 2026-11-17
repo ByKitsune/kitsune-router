@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased source — 2026-11-17
+
+The application remains version **1.0.8**. These source changes do not replace
+published archives, tags or their historical verification below.
+
+- Refresh stable dependencies and explicit direct imports; bound SQLite statements,
+  OAuth refreshes and login tracking; preserve cancellation and complete responses.
+- Adapt reviewed upstream fixes for STT multipart, keyless SearXNG selection,
+  read-only Fal key validation, Claude reset auto-ping, Qoder catalog visibility,
+  tray readiness and loopback-only Headroom. Kimi live limits use exact returned
+  metadata rather than a blanket static context-window guess.
+- Keep client release inventory distinct from signed protocol, SDK/API identity
+  and provider entitlement. No anti-detection or account-restriction bypass is added.
+
+- Carry account proxy/cancellation policy explicitly across media operations; guarded search, web fetch and remote-image reads reject proxy routes that cannot preserve pinned DNS, private-address and redirect checks.
+
+See the [dependency/runtime audit](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md) and
+[upstream reconciliation](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md) for source evidence, regression results,
+intentional policy changes and remaining platform/live-account limits.
+
 ## Kitsune Router 1.0.8 — 2026-11-05
 
 ### Initial preparation snapshot

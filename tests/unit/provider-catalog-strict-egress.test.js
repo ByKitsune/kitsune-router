@@ -99,7 +99,7 @@ async function withRelay(handler, run) {
 const networkBranches = ["codex", "gemini-cli", "openai", "kiro", "cursor", "zed", "openai-compatible-catalog", "anthropic-compatible-catalog"];
 
 const catalogProxyFailure = ["log", "Error fetching provider models:", "Configured account proxy unavailable (strictProxy=true)"];
-const codexProxyFailure = ["log", expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\] ❌ \[TOKEN_REFRESH\] Network error refreshing Codex token: \[ProxyFetch\] Proxy required but no proxy URL configured \(strictProxy=true\)$/)];
+const codexProxyFailure = ["log", expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\] ❌ \[TOKEN_REFRESH\] Network error refreshing Codex token \{"error":"Error"\}$/)];
 const diagnosticExpectations = {
   ...Object.fromEntries(networkBranches.map(provider => [
     `does not dispatch ${provider} credentials when the strict pool is missing`, [catalogProxyFailure],

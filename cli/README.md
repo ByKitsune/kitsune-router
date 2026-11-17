@@ -38,7 +38,7 @@ guidance for authorized access/digest pinning. No GitHub Release was created.
 Both older attempt tags
 remain immutable; the 1.0.1 npm failure cause remains unknown. See the
 [1.0.2 notes](https://github.com/ByKitsune/kitsune-router/blob/master/releases/RELEASE_NOTES_v1.0.2.md).
-These records do not determine 1.0.7 availability.
+These records do not determine current-release availability.
 Historical 0.x packages retain their original ZenRouter identities.
 
 ## Install and start
@@ -100,6 +100,19 @@ default), then a stuck owned process tree is terminated and failure is reported.
 Windows uses a private launcher/server IPC channel because Node cannot catch its
 termination signal there. These source changes do not alter older published
 artifacts; native Windows behavior still requires platform-specific verification.
+
+Current source also waits for an owned native tray child to acknowledge readiness
+before reporting a working tray. A three-second handshake timeout, early exit or
+startup error disposes the failed tray child while the gateway remains available;
+the Hide action is refused without a ready tray. This lifecycle is covered by
+synthetic process/HTTP fixtures, not a claim that a real Windows/macOS tray icon
+was tested in the Linux cloud environment. See the
+[source reconciliation audit](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
+
+Managed source runtime pins now align SQLite with better-sqlite3 13.2.0 and
+sql.js 1.16.0; systray2 remains 2.1.4. Existing exact-runtime retention, private
+state and migration safeguards remain in effect. These are Unreleased source
+changes, separate from the published 1.0.8 artifact described above.
 
 ## Existing installations
 

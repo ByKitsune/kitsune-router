@@ -21,6 +21,7 @@ import codex from "../../open-sse/handlers/imageProviders/codex.js";
 import { MAX_UPSTREAM_ERROR_BYTES } from "../../open-sse/utils/error.js";
 import { handleImageGeneration } from "@/sse/handlers/imageGeneration.js";
 import { handleEmbeddings } from "@/sse/handlers/embeddings.js";
+import * as imageDownload from "../../open-sse/translator/concerns/image.js";
 
 const tokens = { prompt_tokens: 3, completion_tokens: 5, total_tokens: 8 };
 const nativeUsage = { input_tokens: 3, output_tokens: 5, total_tokens: 8 };
@@ -272,14 +273,15 @@ describe("image core cancellation and exact provider usage", () => {
   it("cancels a Cloudflare reference download before provider dispatch", async () => {
     const caller = new AbortController(); let began;
     const entered = new Promise(resolve => { began = resolve; });
-    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+    vi.stubGlobal("fetch", vi.fn());
+    const download = vi.spyOn(imageDownload, "fetchImageAsBase64").mockImplementation(async (_url, init) => {
       began();
       return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }));
-    }));
+    });
     const pending = handleImageGenerationCore(imageOptions({ modelInfo: { provider: "cloudflare-ai", model: "fixture" },
-      body: { prompt: "fixture", image: "http://127.0.0.1/reference" }, credentials: { apiKey: "synthetic", providerSpecificData: { accountId: "fixture" } }, clientSignal: caller.signal }));
+      body: { prompt: "fixture", image: "https://public-image.example/reference" }, credentials: { apiKey: "synthetic", providerSpecificData: { accountId: "fixture" } }, clientSignal: caller.signal }));
     await entered; caller.abort(new Error("client left"));
-    expect((await pending).status).toBe(499); expect(fetch).toHaveBeenCalledOnce();
+    expect((await pending).status).toBe(499); expect(download).toHaveBeenCalledOnce(); expect(fetch).not.toHaveBeenCalled();
   });
 
   it("reports failed partial image usage through the app exactly once", async () => {
@@ -299,7 +301,7 @@ describe("image core cancellation and exact provider usage", () => {
 
   it.each(["black-forest-labs", "fal-ai", "nanobanana", "runwayml"])("cancels %s polling delay before any next fetch", async provider => {
     const caller = new AbortController();
-    const submit = { polling_url: "http://127.0.0.1/poll", status_url: "http://127.0.0.1/poll", response_url: "http://127.0.0.1/result", code: 200, data: { taskId: "fixture" }, id: "fixture" };
+    const submit = { polling_url: "https://api.bfl.ai/poll", status_url: "https://queue.fal.run/poll", response_url: "https://queue.fal.run/result", code: 200, data: { taskId: "fixture" }, id: "fixture" };
     const fetch = vi.fn(async () => Response.json(submit)); vi.stubGlobal("fetch", fetch);
     const pending = handleImageGenerationCore(imageOptions({ modelInfo: { provider, model: "fixture-image" }, clientSignal: caller.signal }));
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce()); caller.abort(new Error("client left"));
@@ -307,7 +309,7 @@ describe("image core cancellation and exact provider usage", () => {
   });
 
   it.each(["black-forest-labs", "fal-ai", "nanobanana", "runwayml"])("retains exact %s polling HTTP-error usage without another dispatch", async provider => {
-    const submit = { polling_url: "http://127.0.0.1/poll", status_url: "http://127.0.0.1/poll", response_url: "http://127.0.0.1/result", code: 200, data: { taskId: "fixture" }, id: "fixture" };
+    const submit = { polling_url: "https://api.bfl.ai/poll", status_url: "https://queue.fal.run/poll", response_url: "https://queue.fal.run/result", code: 200, data: { taskId: "fixture" }, id: "fixture" };
     let errorResponse;
     const onUsage = vi.fn();
     vi.stubGlobal("fetch", vi.fn()

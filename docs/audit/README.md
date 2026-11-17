@@ -1,5 +1,17 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 17 upstream reconciliation](2026-11-17-upstream-reconciliation.md)
+records the common ancestor, fetched refs and diverged history, actual issue
+review, selective upstream adaptations and intentionally deferred differences.
+It keeps the dependency/runtime validation phase and later reconciliation checks
+separate, with commit/push and publication requiring their own evidence.
+
+The [November 17 dependency and runtime audit](2026-11-17-dependency-runtime-audit.md)
+records the stable dependency refresh, direct-import declarations, SQLite/OAuth
+resource bounds, video cancellation and response validation, shared tool-delta
+normalization, and verified Codex cache-lifetime contract. It separates current
+source validation from published artifacts and upstream account acceptance.
+
 The [November 12 client compatibility completion](37-client-compatibility-completion-2026-11-12.md)
 records the official release/SDK review, companion metadata and replay repairs,
 and the deterministic diagnosis and repair of the earlier hydration observation.

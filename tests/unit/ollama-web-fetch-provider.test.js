@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { lookup } from "node:dns/promises";
-import { Dispatcher1Wrapper } from "undici";
+import dns from "node:dns";
+const lookup = dns.promises.lookup;
+import { Agent, fetch as pinnedFetch } from "undici";
 
-vi.mock("node:dns/promises", async original => ({ ...await original(), lookup: vi.fn() }));
+vi.mock("node:dns", async original => {
+  const actual = await original();
+  return { ...actual, default: { ...actual.default, promises: { ...actual.default.promises, lookup: vi.fn() } } };
+});
+vi.mock("undici", async original => ({ ...await original(), fetch: vi.fn() }));
 
 import REGISTRY from "../../open-sse/providers/registry/index.js";
 import { handleFetchCore } from "../../open-sse/handlers/fetch/index.js";
@@ -14,15 +19,14 @@ const CONFIG = {
 };
 
 beforeEach(() => {
+  pinnedFetch.mockReset();
   lookup.mockReset().mockImplementation(async (hostname, options) => {
     expect(hostname).toBe("ollama.com");
-    expect(options).toEqual({ all: true });
+    expect(options).toEqual({ all: true, verbatim: true });
     return [{ address: "93.184.216.34", family: 4 }];
   });
 });
 afterEach(async () => {
-  const calls = global.fetch.mock?.calls || [];
-  await Promise.all(calls.map(([, init]) => init.dispatcher.close()));
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -46,14 +50,14 @@ describe("Ollama Cloud web fetch provider", () => {
   });
 
   it("calls Ollama with bearer auth and normalizes the response", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    pinnedFetch.mockImplementation(async () => new Response(JSON.stringify({
       title: "Example Domain",
       content: "Hello from Ollama",
       links: ["https://www.iana.org/domains/example"],
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
-    })));
+    }));
 
     const result = await handleFetchCore({
       url: "https://example.com",
@@ -65,14 +69,14 @@ describe("Ollama Cloud web fetch provider", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [requestUrl, init] = global.fetch.mock.calls[0];
-    expect(requestUrl).toBe("https://ollama.com/api/web_fetch");
+    expect(pinnedFetch).toHaveBeenCalledTimes(1);
+    const [requestUrl, init] = pinnedFetch.mock.calls[0];
+    expect(String(requestUrl)).toBe("https://ollama.com/api/web_fetch");
     expect(init.method).toBe("POST");
     expect(init.redirect).toBe("manual");
-    expect(init.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
+    expect(init.dispatcher).toBeInstanceOf(Agent);
     expect(lookup).toHaveBeenCalledOnce();
-    expect(init.headers).toEqual({
+    expect(Object.fromEntries(init.headers)).toEqual({
       "content-type": "application/json",
       authorization: "Bearer ollama-test-key",
     });
@@ -88,10 +92,10 @@ describe("Ollama Cloud web fetch provider", () => {
   });
 
   it("returns the upstream status and error message", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+    pinnedFetch.mockImplementation(async () => new Response(
       JSON.stringify({ error: "invalid API key" }),
       { status: 401, headers: { "Content-Type": "application/json" } },
-    )));
+    ));
 
     const result = await handleFetchCore({
       url: "https://example.com",
@@ -108,10 +112,10 @@ describe("Ollama Cloud web fetch provider", () => {
   });
 
   it("treats an empty successful response as an upstream error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, {
+    pinnedFetch.mockImplementation(async () => new Response(null, {
       status: 200,
       headers: { "Content-Type": "application/json" },
-    })));
+    }));
 
     const result = await handleFetchCore({
       url: "https://example.com",
@@ -129,11 +133,11 @@ describe("Ollama Cloud web fetch provider", () => {
 
   it("rejects a mixed public/private DNS answer before sending the bearer token", async () => {
     lookup.mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }, { address: "10.0.0.1", family: 4 }]);
-    vi.stubGlobal("fetch", vi.fn());
+    pinnedFetch.mockReset();
     const result = await handleFetchCore({
       url: "https://example.com", provider: "ollama", providerConfig: CONFIG, credentials: { apiKey: "ollama-test-key" },
     });
-    expect(result).toEqual({ success: false, status: 502, error: "SSRF blocked: private or invalid IP" });
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ success: false, status: 502, error: expect.stringMatching(/Blocked URL: private IP/) });
+    expect(pinnedFetch).not.toHaveBeenCalled();
   });
 });

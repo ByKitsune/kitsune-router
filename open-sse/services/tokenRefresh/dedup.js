@@ -24,9 +24,20 @@ function evictOldestIfNeeded() {
         if (refreshDedupCache.size < MAX_DEDUP_CACHE_SIZE) return;
       }
     }
-    // Fall back to oldest inserted entry
-    const oldestKey = refreshDedupCache.keys().next().value;
-    if (oldestKey) refreshDedupCache.delete(oldestKey);
+    // Only completed results may be evicted. Forgetting an in-flight grant
+    // starts a second refresh for the same rotating token and can invalidate
+    // the credentials that the first caller is about to persist.
+    for (const [key, val] of refreshDedupCache) {
+      if (!val.promise) {
+        refreshDedupCache.delete(key);
+        return;
+      }
+    }
+    // Bound both memory and concurrent work without breaking single-flight.
+    // Existing keys are admitted above; new grants must wait for capacity.
+    throw Object.assign(new Error("Token refresh capacity exhausted; retry after an active refresh completes"), {
+      code: "TOKEN_REFRESH_CAPACITY_EXCEEDED",
+    });
   }
 }
 

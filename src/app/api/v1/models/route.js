@@ -33,6 +33,12 @@ import { errorResponse } from "open-sse/utils/error.js";
 // returns { models: [{ id, name? }, ...] } | null on failure.
 // Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
+  kimi: async (conn, proxyOptions) => {
+    const credential = conn.apiKey || conn.accessToken;
+    if (!credential) return null;
+    const models = await fetchProviderLiveModels("kimi", credential, { proxyOptions, allowEmptyCatalog: true });
+    return models ? { models, complete: true } : null;
+  },
   codex: (conn, proxyOptions) => resolveCodexModels(conn, { proxyOptions }),
   "gemini-cli": (conn, proxyOptions) => resolveGoogleOAuthModels("gemini-cli", conn, { proxyOptions }),
   antigravity: (conn, proxyOptions) => resolveGoogleOAuthModels("antigravity", conn, { proxyOptions }),
@@ -513,8 +519,9 @@ export async function buildModelsList(kindFilter) {
         // table rather than emitting null and leaving clients to guess.
         if (!Number.isFinite(contextWindow) || !Number.isFinite(maxOutput)) {
           const fallback = getCapabilitiesForModel(providerId, modelId);
-          if (!Number.isFinite(contextWindow)) contextWindow = fallback.contextWindow;
-          if (!Number.isFinite(maxOutput)) maxOutput = fallback.maxOutput;
+          const kimiLiveModel = providerId === "kimi" && liveRows.has(modelId);
+          if (!Number.isFinite(contextWindow) && !(kimiLiveModel && contextWindow === null)) contextWindow = fallback.contextWindow;
+          if (!Number.isFinite(maxOutput) && !(kimiLiveModel && maxOutput === null)) maxOutput = fallback.maxOutput;
         }
         if (Number.isFinite(contextWindow)) model.context_length = contextWindow;
         if (Number.isFinite(caps?.maxInput) && caps.maxInput > 0) model.max_input_tokens = caps.maxInput;

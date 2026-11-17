@@ -24,10 +24,10 @@ const diagnosticExpectations = {
     ["log", "Error refreshing gemini-cli token:", strictProxyFailure],
   ],
   "does not directly refresh expired codex credentials without its strict proxy": [
-    ["error", "TOKEN_REFRESH", `Network error refreshing Codex token: ${strictProxyFailure}`],
+    ["error", "TOKEN_REFRESH", "Network error refreshing Codex token", { error: "Error" }],
   ],
   "does not directly refresh expired grok-cli credentials without its strict proxy": [
-    ["warn", "TOKEN_REFRESH", `xai refresh failed: ${strictProxyFailure}`],
+    ["warn", "TOKEN_REFRESH", "xai refresh failed", { error: "Error" }],
   ],
 };
 

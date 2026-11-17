@@ -1,0 +1,287 @@
+{
+  "review_date": "2026-11-17",
+  "source_base_commit": "2ba52e092acf606fef08df6f4dc96f4933af4dad",
+  "upstream_repository": "https://github.com/decolua/9router",
+  "upstream_master": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "common_ancestor": "699edac3273e13d4744bc46f6082618f08560702",
+  "divergence_before_work": {
+    "local_only_commits": 644,
+    "upstream_only_commits": 476
+  },
+  "local_tracking_branch": {
+    "ref": "refs/heads/upstream",
+    "remote": "upstream",
+    "merge": "refs/heads/master"
+  },
+  "preservation": "Existing checkout and changes preserved; no blanket pull, mass cherry-pick, PR merge or history rewrite.",
+  "selected_adaptations": [
+    {
+      "sha": "ec165e1cb41e59dfa7b59aedfa339e2755b68bea",
+      "area": "STT matching multipart serializer through existing fetch/proxy route"
+    },
+    {
+      "sha": "3a936d13a38692988bf35f5e0392722f7d77876b",
+      "area": "Keyless SearXNG picker visibility"
+    },
+    {
+      "sha": "0cf07ccf0f15f231b92b74e2c4040ef40acbb568",
+      "area": "Shared bounded read-only Fal authentication validation"
+    },
+    {
+      "sha": "ce1e0c3ce97316c2789be516f09e81798fd4c134",
+      "area": "Retain due unaccepted Claude auto-ping reset through transient failures"
+    },
+    {
+      "sha": "597ee684ddd481c6dabeb4fd67374a917817234c",
+      "area": "Qoder returned enable:false rows discoverable; visibility not entitlement"
+    },
+    {
+      "sha": "8650b04611e98f6415853c8930953219e8ef1711",
+      "area": "Owned tray readiness handshake and failed child cleanup"
+    },
+    {
+      "sha": "08ef047f8c2ede799294ca4d3ccac4548f63452b",
+      "area": "Headroom host bind loopback; newer reviewed Undici retained"
+    }
+  ],
+  "additional_primary_source": {
+    "repository": "https://github.com/MoonshotAI/kimi-code",
+    "commit": "fec742878d73678082b304c887e4fb1564088c54",
+    "area": "Kimi exact native OAuth/API-key model catalogs and positive native limit.context; no guessed static K3.1Pro limit"
+  },
+  "focused_validation": {
+    "stt": {
+      "before_passed": 2,
+      "before_failed": 5,
+      "after_passed": 7,
+      "after_failed": 0
+    },
+    "fal_scheduler_qoder": {
+      "after_passed": 126,
+      "files": 6
+    },
+    "searxng_picker": {
+      "after_passed": 23,
+      "files": 2
+    },
+    "tray_lifecycle": {
+      "after_passed": 16
+    },
+    "kimi_catalog": {
+      "after_passed": 87,
+      "files": 5
+    }
+  },
+  "pending": [],
+  "limits": [
+    "Actual GitHub issue review was first25OPENissues with8detailedreviews, not PRs or all issues",
+    "No live provider inference or paid generation",
+    "No native Windows/macOS tray icon certification",
+    "No anti-detection, WAF prompt rewriting or account restriction bypass"
+  ],
+  "late_local_security_followup": {
+    "status": "focused_full_regression_and_final_artifact_runtime_checks_passed",
+    "scope": "Request-local account policy/signals for STT/TTS/image operations and polling; no global account context replacement.",
+    "guarded_transport_limit": "Dedicated search/web-fetch/remote HTTP image paths fail closed before authenticated dispatch when explicit account proxy cannot preserve pinned DNS/private-address/redirect checks. Inline/data-URI paths remain local.",
+    "image_asset_retrieval": "Existing secure bounded image helper; no arbitrary unguarded asset fetch.",
+    "pending_validation": [],
+    "validated_focus": {
+      "shared_account_transport": {
+        "passed": 26,
+        "new_legacy_pool_alias_cases": 3
+      },
+      "stt_final": {
+        "passed": 19
+      },
+      "tts_final": {
+        "passed": 152,
+        "files": 8,
+        "new_cases": 59
+      },
+      "image_relevant": {
+        "passed": 259,
+        "files": 7,
+        "expanded_new_cases": 60,
+        "note": "Focused selections overlap; do not sum these figures with the full suite."
+      },
+      "search_webfetch": {
+        "passed": 124,
+        "files": 13,
+        "new_cases": 22
+      },
+      "tool_identity": {
+        "passed": 272,
+        "files": 13,
+        "new_cases": 17
+      },
+      "shared_inference_budget": {
+        "passed": 63
+      }
+    }
+  },
+  "final_full_regression": {
+    "passed_cases": 11772,
+    "skipped_cases": 99,
+    "failed_cases": 0,
+    "selected_files": 911,
+    "passed_files": 893,
+    "skipped_files": 18,
+    "duration_seconds": 200.73,
+    "gate": "passed",
+    "receipt": "reconciliation-validation-20261117.json"
+  },
+  "tool_identity_completion": {
+    "generated_ids": "Gateway-owned client IDs only for indexed complete ID-less Chat tools after successful terminal; existing/late/provider/signed IDs unchanged",
+    "signature_policy": "Opaque thought/signature bytes preserved; no forged upstream identity",
+    "limits": {
+      "eventChars": 67108864,
+      "outputItems": 65536
+    }
+  },
+  "late_video_redirect_followup": {
+    "status": "focused_full_regression_and_final_build_runtime_checks_passed",
+    "finding": "Direct/proxy307/308can forward a billable POST body even if credentials are stripped; use the shared redirect-refusing account transport and real HTTP regressions.",
+    "deadline_precision": "VIDEO_FETCH_TIMEOUT_MS starts inside the video core; application proactive refresh precedes it and observes caller cancellation only.",
+    "focused_validation": {
+      "passed": 158,
+      "files": 6,
+      "new_real_http_cases": 14,
+      "before_fix_redirect_failures": 8
+    }
+  },
+  "late_transport_alias_followup": {
+    "status": "26focused_and_final_full_regression_passed",
+    "contract": "proxyPoolId ?? connectionProxyPoolId; preserve explicit__none__; no egress around legacy account pool policy.",
+    "focused_tests": 26,
+    "new_cases": 3
+  },
+  "prior_full_regression_before_video_redirect": {
+    "passed_cases": 11755,
+    "skipped_cases": 99,
+    "failed_cases": 0,
+    "selected_files": 910,
+    "duration_seconds": 206.73,
+    "gate": "passed",
+    "receipt": "reconciliation-validation-20261117.json",
+    "phase": "Before final video-redirect hardening"
+  },
+  "documented_dev_launcher_check": {
+    "parent_parses_env_as_data": true,
+    "explicit_child_args": true,
+    "child_execArgv_empty": true,
+    "environment_preserved": true,
+    "literal_spaces_and_shell_metacharacters_preserved": true,
+    "secret_values_logged": false,
+    "exact_Next_functional_smoke": {
+      "status": "passed",
+      "bundler": "default Turbopack",
+      "behavior": [
+        "database health",
+        "unauthenticated401",
+        "login/session",
+        "dashboard",
+        "authenticated1082model list",
+        "temporarykey deleted"
+      ],
+      "logs": [
+        "final-dev-check.log",
+        "final-dev-smoke.log"
+      ],
+      "live_inference": false
+    }
+  },
+  "documentation_tests_after_final_launcher": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 5,
+    "duration_ms": 1247.691121,
+    "log": "docs-final-after-launcher-tests.log"
+  },
+  "documentation_static_build": {
+    "pages": 109,
+    "status": "passed_after_final_launcher_content",
+    "log": "final-docs-build.log"
+  },
+  "final_application_production_build": "passed",
+  "browser_fixture_correction": {
+    "scope": ".provider-combo-editor",
+    "reason": "Retained animated picker can remain inside main and duplicate a saved provider-row label.",
+    "behavior": "Selection and persistence already succeeded; saved-model/no-inference/page-error assertions retained.",
+    "application_regression": false,
+    "final48case_result": "48passed"
+  },
+  "final_production_browser": {
+    "passed": 48,
+    "failed": 0,
+    "duration_minutes": 1.2,
+    "log": "final-browser.log"
+  },
+  "final_strict_composed_lint": "passed",
+  "final_native_standalone_functional_smoke": "passed again after all runtime fixes",
+  "physically_absent_native_addon": {
+    "production_build": "passed",
+    "standalone_functional_smoke": "passed",
+    "root_native_package": "Moved outside checkout during build and runtime; restored afterward.",
+    "bundled_native_package": false,
+    "NODE_PATH": "cleared",
+    "observed_database_driver": "node:sqlite",
+    "evidence_logs": [
+      "final-fallback-build.log",
+      "final-fallback-server.log",
+      "final-fallback-smoke.log",
+      "final-fallback-check.log"
+    ]
+  },
+  "cli_package": {
+    "status": "passed",
+    "publication_status": "local unpublished source candidate; distinct from original public1.0.8archive",
+    "archive": "bykitsune-router-1.0.8.tgz",
+    "bytes": 23262347,
+    "files": 3242,
+    "sha256": "598117807fb895f3ec8839e529232ee9e5b8c786609bc82f85c5b8a8eaf4d301"
+  },
+  "fresh_cli_install": {
+    "status": "passed",
+    "duration_seconds": 11,
+    "packages": 9,
+    "installed_help": "passed",
+    "installed_version": "1.0.8",
+    "installed_check_install": "passed",
+    "initial_environment_observation": "env-i omitted supplied cloud proxy/CA bindings, causing DNS EAI_AGAIN; restored only those bindings, without project/registry/TLS changes.",
+    "logs": [
+      "final-cli-install.log",
+      "final-cli-help.log",
+      "final-cli-version.log",
+      "final-cli-check.log"
+    ]
+  },
+  "packaged_sqljs": {
+    "version": "1.16.0",
+    "bundled_js_wasm_bytes_match": true,
+    "forced_fallback": "passed",
+    "persistence": "passed",
+    "restart": "passed",
+    "log": "final-cli-sqljs.log"
+  },
+  "installed_packaged_server": {
+    "functional_smoke": "passed",
+    "managed_better_sqlite3": "13.2.0 via NODE_PATH",
+    "managed_systray2": "2.1.4",
+    "bundled_sqljs": "1.16.0; no redundant managed copy required",
+    "app_bundled_native_addon": false,
+    "logs": [
+      "final-packed-check.log",
+      "final-packed-server.log",
+      "final-packed-smoke.log"
+    ]
+  },
+  "local_validation_status": "All selected local regression/build/browser/installed-package/fallback checks passed.",
+  "environment_configuration": {
+    "draft_revision": 4,
+    "install_script": "saved for all4projects",
+    "start_skill": "saved with default Turbopack startup",
+    "snapshot_publication": "Separate UI action; not performed or established by these source checks."
+  },
+  "git_delivery": "Commit/push is a separate delivery operation; verify final remote refs and report the actual resulting SHA in the final task receipt. No pushed SHA is inferred from local validation."
+}

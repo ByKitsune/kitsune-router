@@ -36,20 +36,41 @@ kitsune-router
 
 اجرای سورس از مخزن رسمی تأییدشده یا checkout موجود، در ریشه است؛ زیرپوشهٔ `app/` وجود ندارد:
 
-فقط برای نصب **جدید**، secret را یک‌بار در `.env` خصوصی بسازید (POSIX shell/OpenSSL). `next dev` مولد launcher را اجرا نمی‌کند؛ بدون `JWT_SECRET` تصادفی با حداقل ۳۲ نویسه ورود شکست می‌خورد. در مهاجرت مقادیر مؤثر `JWT_SECRET`، `API_KEY_SECRET`، `MACHINE_ID_SALT` و `DATA_DIR` مطلق قبلی را حفظ کنید. فایل را بررسی و مقادیر نمونه را فقط در نصب جدید عوض کنید؛ `.env` را منتشر یا commit نکنید.
+فقط برای نصب **جدید**، secret را یک‌بار در `kitsune-router.source.env` خصوصی بسازید (POSIX shell/Node.js). `next dev` مولد launcher را اجرا نمی‌کند؛ بدون `JWT_SECRET` تصادفی با حداقل ۳۲ نویسه ورود شکست می‌خورد. در مهاجرت مقادیر مؤثر `JWT_SECRET`، `API_KEY_SECRET`، `MACHINE_ID_SALT` و `DATA_DIR` مطلق قبلی را حفظ کنید. فایل را بررسی و مقادیر نمونه را فقط در نصب جدید عوض کنید؛ `kitsune-router.source.env` را منتشر یا commit نکنید.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
 پیش از دسترسی عمومی، `INITIAL_PASSWORD` قوی تنظیم کنید. در `http://localhost:20128/dashboard` ارائه‌دهندهٔ مجاز را متصل و کلید درگاه را ایجاد/کپی کنید. نشانی پایهٔ کلاینت `http://localhost:20128/v1` است. مدل را از فهرست واقعی انتخاب کنید؛ `/api/health` دسترسی به upstream را ثابت نمی‌کند.

@@ -36,20 +36,41 @@ kitsune-router
 
 Depuis le dépôt canonique confirmé ou votre copie existante, à la racine sans sous-dossier `app/` :
 
-Pour une installation **neuve** seulement, générez une fois le secret dans un `.env` privé (shell POSIX/OpenSSL). `next dev` n’exécute pas le générateur du launcher ; sans `JWT_SECRET` aléatoire d’au moins 32 caractères, la connexion échoue. En migration, conservez les valeurs effectives `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` et le `DATA_DIR` absolu. Vérifiez le fichier et remplacez les exemples uniquement sur une installation neuve ; ne le publiez/committez jamais.
+Pour une installation **neuve** seulement, générez une fois le secret dans un `kitsune-router.source.env` privé (shell POSIX/Node.js). `next dev` n’exécute pas le générateur du launcher ; sans `JWT_SECRET` aléatoire d’au moins 32 caractères, la connexion échoue. En migration, conservez les valeurs effectives `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` et le `DATA_DIR` absolu. Vérifiez le fichier et remplacez les exemples uniquement sur une installation neuve ; ne le publiez/committez jamais.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
 Définissez un `INITIAL_PASSWORD` fort avant toute exposition. Ouvrez `http://localhost:20128/dashboard`, connectez un fournisseur autorisé et créez/copiez une clé de passerelle. Base client : `http://localhost:20128/v1`. Choisissez un modèle réellement disponible ; `/api/health` ne prouve pas l’accès au fournisseur.

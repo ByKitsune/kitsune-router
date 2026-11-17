@@ -1,7 +1,7 @@
 import { BaseExecutor } from "./base.js";
 import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.js";
 import { PROVIDERS } from "../config/providers.js";
-import { CODEX_CLI_VERSION } from "../config/clientVersions.js";
+import { CODEX_CLI_VERSION, CODEX_PROMPT_CACHE_TTLS } from "../config/clientVersions.js";
 import {
   refreshProviderCredentials,
   shouldRefreshCredentials,
@@ -71,7 +71,7 @@ const CODEX_PASSTHROUGH_TOOL_TYPES = new Set(["custom"]);
 // Allowlist of fields accepted by Codex Responses API — anything else is stripped
 const RESPONSES_API_ALLOWLIST = new Set([
   "model", "input", "instructions", "tools", "tool_choice", "stream", "store",
-  "reasoning", "service_tier", "include", "prompt_cache_key", "client_metadata",
+  "reasoning", "service_tier", "include", "prompt_cache_key", "prompt_cache_options", "client_metadata",
   "text", "parallel_tool_calls"
 ]);
 
@@ -585,6 +585,19 @@ export class CodexExecutor extends BaseExecutor {
    * Image fetching is handled separately in prefetchImages() so this stays sync.
    */
   transformRequest(model, body, stream, credentials) {
+    // Preserve the caller's native cache policy rather than silently lowering
+    // it to the upstream default. Other API surfaces have different lifetime
+    // vocabularies, so reject unsupported intent before dispatch.
+    if (body.prompt_cache_options !== undefined) {
+      const options = body.prompt_cache_options;
+      if (!options || typeof options !== "object" || Array.isArray(options)
+        || Object.keys(options).length !== 1 || !Object.hasOwn(options, "ttl")
+        || !CODEX_PROMPT_CACHE_TTLS.includes(options.ttl)) {
+        throw Object.assign(new Error(`Codex prompt_cache_options must contain only ttl (${CODEX_PROMPT_CACHE_TTLS.join(" or ")}).`), {
+          code: "unsupported_parameter", param: "prompt_cache_options",
+        });
+      }
+    }
     validateThinkingParams(this.provider, getModelUpstreamId("cx", body.model || model), body, FORMATS.OPENAI_RESPONSES, body.model || model);
     delete body._compact;
     // Resolve conversation-stable session_id (priority: body → assistant-text → workspace → machine)

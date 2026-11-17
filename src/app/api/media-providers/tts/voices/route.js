@@ -32,7 +32,10 @@ export async function GET(request) {
     }
 
     // ElevenLabs requires API key
-    const raw = provider === "elevenlabs" ? await fetcher(apiKey) : await fetcher();
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
+    // This endpoint accepts an explicit raw key, rather than selecting a saved
+    // account. Do not infer another account's routing policy from key equality.
+    const raw = provider === "elevenlabs" ? await fetcher(apiKey, { signal: request.signal }) : await fetcher({ signal: request.signal });
     const useElevenShape = provider === "elevenlabs" || provider === "gemini";
     let voices;
 
@@ -94,6 +97,8 @@ export async function GET(request) {
 
     return NextResponse.json({ voices, languages, byLang });
   } catch (err) {
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
+    if (err.code === "TTS_HEADER_TIMEOUT") return NextResponse.json({ error: "TTS response headers timed out" }, { status: 408 });
     return NextResponse.json({ error: err.message || "Failed to fetch voices" }, { status: 502 });
   }
 }

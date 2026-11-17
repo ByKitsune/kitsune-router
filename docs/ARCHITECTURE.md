@@ -171,7 +171,7 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 
 Keep `secrets.json`, `machine-id`, `auth/` and `mitm/` together with SQLite. Encryption derivation constants and trusted root subjects/keys intentionally retain their original values. Runtime caches are regenerated, not migrated as active binaries. Containers keep the same volume/mount at effective `DATA_DIR`, default `/app/data` or a supported custom absolute path; rollback does not merge subsequent writes backwards. See [MIGRATION.md](MIGRATION.md) for operator controls and refusal handling.
 
-The process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Bounded Linux evidence does not certify general non-root support; native Windows/macOS migration remains unverified. See [current release notes](../releases/RELEASE_NOTES_v1.0.2.md) for the timestamp-controlled cache test, source gates and private container publication; production ordering is unchanged.
+The process-isolated regression harness does not relax this production boundary: unreadable same-UID ownership still fails closed. Restricted Linux operators can stop/back up state and retain it with explicit `DATA_DIR` without relocation, or request privileged review. Bounded Linux evidence does not certify general non-root support; native Windows/macOS migration remains unverified. See [historical 1.0.2 release notes](../releases/RELEASE_NOTES_v1.0.2.md) for the timestamp-controlled cache test, source gates and private container publication; production ordering is unchanged.
 
 Startup recognizes legacy-prefixed operator settings at the migration boundary without rewriting environment files; explicit current names win. Process-only trusted-peer proof tokens are never imported. An existing implicit legacy SAML entity ID is persisted when no custom issuer was saved; fresh installations use `urn:kitsunerouter:sp`. Do not replace an existing IdP configuration to make its name look new.
 
@@ -200,6 +200,13 @@ Usage and request logs use the same SQLite layer:
 - `src/lib/usageDb.js` re-exports the `usageHistory`, `usageDaily`, log and request-detail repositories
 - State follows the absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database
 - Configuration mutations advance persisted scope revisions in the same transaction. Bounded per-adapter node/combo/connection/key/settings/pricing caches include access/filter parameters and reject stale in-flight snapshots across native SQLite workers. Runtime rotation counters use separate views. Full imports additionally advance the process-local generation and refresh dependent connection/project/quota/MITM state; a post-commit alias replica error is not a database rollback. Multi-process deployments still require coordinating non-repository state and lifecycle.
+- Native prepared statements retain a 256-template LRU working set. Transaction
+  callbacks are synchronous: node:sqlite/sql.js reject Promise/thenable results
+  before commit or nested savepoint release and roll back synchronous writes.
+  Asynchronous continuations must run outside transactions. Optional native
+  SQLite loads through the shared runtime resolver so missing addon files can
+  reach the existing built-in fallback; standalone tracing retains installed
+  native binaries and CLI-managed runtime resolution remains supported.
 - Usage acceptance freezes event identity, token snapshot, recorded timestamp, delivered tier and resolved quote in `usageOutbox`; a unique event index prevents replay duplication. Projection commits history, daily totals, lifetime count and queue removal together. Historical nullable costs remain unchanged. `enqueueRequestUsage` acknowledges durable acceptance only; `saveRequestUsage` waits for history-query visibility. SQLite acceptance/projection is deferred bounded synchronous work, not off-thread execution.
 - An incurred attempt retains its usage even on an upstream error or disconnect. `usage_acceptance_failed` is a local accounting failure, not provider unavailability: HTTP responses carry `x-should-retry: false`, without account cooldown, account/combo fallback or a fabricated retry time. The ByKitsune relay preserves that terminal header and does not repeat inference. An error after streaming headers remains a failed stream, not a success terminator.
 - Recorded token costs and component costs use `number | null`: an unknown used tariff is `null`, not a zero-dollar charge
@@ -218,6 +225,32 @@ Usage and request logs use the same SQLite layer:
 - Provider secrets persisted in `providerConnections` entries
 - Optional proxy support for upstream calls via env proxy variables (`open-sse/utils/proxyFetch.js`)
 - Account-level strict proxy policy also applies to model catalogs, delegated token refresh, and credential/project caches. Cache and in-flight identities include the effective transport policy.
+- Video account selection freezes one proxy policy for submission, polling,
+  proactive refresh and the permitted authorization retry. Invalid pools and
+  relays fail closed without direct/account fallback or health mutation. The
+  caller signal spans selection/proactive refresh/core work; the core deadline
+  bounds its authorization-refresh retry, fetch and body reads, while application
+  proactive refresh precedes that timer. Success
+  metadata is bounded complete UTF-8 JSON, and ambiguous submission failures
+  never trigger another billable job automatically.
+- `open-sse/utils/accountTransport.js` snapshots a request-local account routing
+  policy and carries the caller/deadline signal through media fetches and polling
+  waits. STT/TTS/image paths pass this transport explicitly; they do not replace
+  global fetch or a shared global account context. Independent requests therefore
+  cannot borrow another account's proxy or credentials through a context swap.
+- Dedicated search, web-fetch and remote HTTP image readers retain their secure
+  DNS/private-address/redirect boundary. If a configured account proxy/relay
+  cannot preserve that boundary, these paths reject the operation before
+  authenticated dispatch rather than using an unguarded proxy or direct fallback.
+  This is an explicit supported-transport limitation, not general proxy support
+  for every guarded operation. Inline/data-URI image input remains a separate
+  local decode path. Generated image asset downloads also use the secure image
+  retrieval helper rather than an unbounded arbitrary URL fetch.
+- OAuth single-flight retains every active grant within its 500-entry bound;
+  new keys receive capacity backpressure when no completed result can be evicted.
+  Diagnostics record allowlisted codes/status/error types, not raw credentialed
+  payloads. Dashboard login tracking is bounded at 4,096 addresses plus one
+  shared overflow bucket, preserving active locks during cardinality floods.
 - SAML callbacks require a one-use, signed request correlation bound to browser state. Use HTTPS for cross-site POST callbacks (`SameSite=None; Secure`). The outstanding-request cache is process-local; route login start and callback to the same process. Restarts invalidate pending logins.
 - OIDC supports public HTTP(S) issuers. Discovery issuer and advertised endpoints are validated; vetted DNS answers are pinned to each outbound socket. Token requests reject redirects. Draft tests reuse a stored secret only for the configured issuer/client pair.
 - CLI status aggregation returns installation/configured booleans, not host credentials. Cowork configuration access requires the existing local-only/CLI-token authorization. If an older deployment exposed a privileged CLI token, rotate it and reapply local MCP configuration.
@@ -228,6 +261,16 @@ Usage and request logs use the same SQLite layer:
 - Remote-image requests use the engine's independent public-address policy, not the app helper. Literal IPs bypass DNS only after validation; every DNS record must be well formed and public. Mapped/NAT64 IPv4 is checked against the IPv4 ranges, and local-use, multicast, benchmark and documentation ranges are rejected.
 - Shared chat/Responses/compact decoding authenticates and rate-limits before bounded identity/zstd reads. Wire bytes, expanded bytes, decoder workspace and the total read deadline are bounded; unsupported encodings fail explicitly rather than being treated as invalid JSON.
 - MITM interception trust does not imply upstream trust. Outbound ALPN, HTTP/2, and HTTPS connections validate upstream certificates and hostnames; failures return 502 without insecure retry. For an operator-managed CA, use Node's explicit startup trust contract (`NODE_EXTRA_CA_CERTS`); never disable TLS verification or add the interception root implicitly to upstream trust.
+
+Current source also preserves multipart byte/field boundaries by serializing
+STT forms through matching Undici FormData/Request objects before sending their
+streams through the existing fetch/proxy route. Fal credential validation is a
+bounded read-only catalog GET, shared by new and saved connection checks; HTTP
+429/5xx remain inconclusive rather than being classified as valid credentials.
+Qoder catalog visibility includes returned `enable:false` rows as an explicit
+display-policy change, not a provider entitlement decision. These selected
+upstream adaptations and their remaining boundaries are recorded in the
+[November 17 reconciliation](audit/2026-11-17-upstream-reconciliation.md).
 
 ### Client release and protocol identities
 

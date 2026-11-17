@@ -351,6 +351,74 @@ describe("quota auto-ping", () => {
     expect(deps.getExecutor).not.toHaveBeenCalled();
   });
 
+  it.each([10, 30, 54])("catches an observed Claude reset when its next tick is %s seconds late", async seconds => {
+    const connection = { id: "claude-1", provider: "claude", authType: "oauth", accessToken: "token" };
+    deps.getSettings.mockResolvedValue({ claudeAutoPing: { connections: { "claude-1": true } } });
+    deps.getProviderConnections.mockImplementation(async ({ provider }) => provider === "claude" ? [connection] : []);
+    deps.updateProviderConnection.mockImplementation(async (_id, patch) => Object.assign(connection, patch));
+    getClaudeUsage.mockReset()
+      .mockResolvedValueOnce({ quotas: { "session (5h)": { resetAt: "2026-01-01T12:00:00.000Z" } } })
+      .mockResolvedValue({ quotas: { "session (5h)": { resetAt: "2026-01-01T17:00:00.000Z" } } });
+    vi.setSystemTime(new Date(`2026-01-01T11:59:${seconds}.000Z`));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).not.toHaveBeenCalled();
+
+    vi.setSystemTime(new Date(`2026-01-01T12:00:${seconds}.000Z`));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(1);
+    expect(connection.lastPingedResetKey).toBe("2026-01-01T12:00:00.000Z");
+    expect(state.resetCache["claude:claude-1"]).toBe("2026-01-01T17:00:00.000Z");
+
+    vi.setSystemTime(new Date("2026-01-01T12:01:59.000Z"));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date("2026-01-01T17:00:30.000Z"));
+    getClaudeUsage.mockResolvedValue({ quotas: { "session (5h)": { resetAt: "2026-01-01T22:00:00.000Z" } } });
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(2);
+    expect(connection.lastPingedResetKey).toBe("2026-01-01T17:00:00.000Z");
+  });
+
+  it.each(["HTTP", "transport"])("retains a missed Claude deadline across %s failure until cooldown retry succeeds", async failure => {
+    const connection = { id: "claude-1", provider: "claude", authType: "oauth", accessToken: "token" };
+    deps.getSettings.mockResolvedValue({ claudeAutoPing: { connections: { "claude-1": true } } });
+    deps.getProviderConnections.mockImplementation(async ({ provider }) => provider === "claude" ? [connection] : []);
+    state.resetCache["claude:claude-1"] = "2026-01-01T12:00:00.000Z";
+    getClaudeUsage.mockResolvedValue({ quotas: { "session (5h)": { resetAt: "2026-01-01T17:00:00.000Z" } } });
+    if (failure === "HTTP") deps.proxyAwareFetch.mockResolvedValueOnce({ ok: false });
+    else deps.proxyAwareFetch.mockRejectedValueOnce(new Error("connection reset"));
+    vi.setSystemTime(new Date("2026-01-01T12:00:30.000Z"));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(1);
+    expect(deps.updateProviderConnection).not.toHaveBeenCalled();
+    expect(state.resetCache["claude:claude-1"]).toBe("2026-01-01T12:00:00.000Z");
+
+    vi.setSystemTime(new Date("2026-01-01T12:01:30.000Z"));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date("2026-01-01T12:16:00.000Z"));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).toHaveBeenCalledTimes(2);
+    expect(deps.updateProviderConnection).toHaveBeenCalledWith("claude-1", expect.objectContaining({
+      lastPingedResetKey: "2026-01-01T12:00:00.000Z",
+    }));
+    expect(state.resetCache["claude:claude-1"]).toBe("2026-01-01T17:00:00.000Z");
+  });
+
+  it("does not catch up an observed Claude deadline that was already accepted", async () => {
+    deps.getSettings.mockResolvedValue({ claudeAutoPing: { connections: { "claude-1": true } } });
+    deps.getProviderConnections.mockImplementation(async ({ provider }) => provider === "claude" ? [{
+      id: "claude-1", provider: "claude", authType: "oauth", accessToken: "token",
+      lastPingedResetKey: "2026-01-01T12:00:00.000Z",
+    }] : []);
+    state.resetCache["claude:claude-1"] = "2026-01-01T12:00:00.000Z";
+    getClaudeUsage.mockResolvedValue({ quotas: { "session (5h)": { resetAt: "2026-01-01T17:00:00.000Z" } } });
+    vi.setSystemTime(new Date("2026-01-01T12:00:30.000Z"));
+    await runQuotaAutoPingTick(deps, state);
+    expect(deps.proxyAwareFetch).not.toHaveBeenCalled();
+  });
+
   it("keeps Claude session quota key behavior", async () => {
     deps.getSettings.mockResolvedValue({ claudeAutoPing: { connections: { "claude-1": true } } });
     deps.getProviderConnections.mockImplementation(async ({ provider }) => (

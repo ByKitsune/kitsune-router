@@ -6,6 +6,15 @@
 
 [English](README.md) · [仓库](https://github.com/ByKitsune/kitsune-router) · [更新日志](CHANGELOG.md) · [迁移指南](docs/MIGRATION.md)
 
+## 当前源码维护
+
+[11 月 17 日依赖与运行时审计](docs/audit/2026-11-17-dependency-runtime-audit.md)
+记录稳定依赖更新、SQLite/OAuth 资源上限、视频取消与响应完整性、工具流一致性，
+以及 Codex 缓存时限支持。客户端发布版本与 SDK/API/签名协议分别核对；
+版本头不能授予账户权限，也不能保证账户不会被封禁。这些源码变更尚未发布新产物。
+[上游对照审计](docs/audit/2026-11-17-upstream-reconciliation.md)记录分叉历史与实际问题的
+选择性修复，包括 STT multipart、模型选择／目录和托盘就绪状态。
+
 ## 官方 ByKitsune 提供商
 
 ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **Providers** 中选择 **Connect ByKitsune**，添加[ByKitsune 密钥页面](https://bykitsune.com/dashboard?tab=keys)的密钥，然后选择 **Fetch Models**。API 基址为 `https://api.bykitsune.com/v1`，使用 Bearer 认证；客户端使用发现的 `bykitsune/<model-id>` 路由。账户和路由顺序仍由你选择。
@@ -42,25 +51,49 @@ kitsune-router
 
 源码方式（已确认的规范仓库或现有工作副本，在根目录运行，没有 `app/` 子目录）：
 
-以下生成密钥仅用于**全新源码安装**（POSIX shell 和 OpenSSL）。`next dev` 不经过启动器的自动密钥配置；`JWT_SECRET` 必须为至少 32 字符的强随机值，否则登录失败。升级/迁移必须保留原有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`，先阅读 [迁移](docs/MIGRATION.md)。
+以下生成密钥仅用于**全新源码安装**（POSIX shell 和 Node.js）。`next dev` 不经过启动器的自动密钥配置；`JWT_SECRET` 必须为至少 32 字符的强随机值，否则登录失败。升级/迁移必须保留原有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`，先阅读 [迁移](docs/MIGRATION.md)。
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
 对外开放前，在私密环境中设置强 `INITIAL_PASSWORD`。打开 `http://localhost:20128/dashboard`，连接你有权使用的提供商，创建/复制网关 API key，然后从当前目录选择模型或创建组合。
 
-启动前审阅 `.env`：全新安装使用可写绝对数据路径和私有 API/身份密钥，不使用公开示例值；升级保留旧值。不要提交 `.env` 或在日志/issue 输出秘密。
+启动前审阅 `kitsune-router.source.env`：全新安装使用可写绝对数据路径和私有 API/身份密钥，不使用公开示例值；升级保留旧值。不要提交 `kitsune-router.source.env` 或在日志/issue 输出秘密。
+
+示例配置保存在仓库外，避免被生产构建复制到 standalone 产物。
+生产启动和现有配置迁移步骤见[源码安装指南](docs/INSTALLATION.md#source-checkout)。
 
 ```bash
 curl http://localhost:20128/api/health

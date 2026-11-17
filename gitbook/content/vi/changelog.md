@@ -1,5 +1,25 @@
 # Nhật ký thay đổi
 
+## Mã nguồn chưa phát hành — 2026-11-17
+
+Ứng dụng vẫn giữ phiên bản **1.0.8**. Các thay đổi này không thay thế gói đã
+phát hành, tag hoặc kết quả xác minh lịch sử bên dưới.
+
+- Cập nhật phụ thuộc ổn định và khai báo import trực tiếp; giới hạn bộ nhớ câu
+  lệnh SQLite, làm mới OAuth và theo dõi đăng nhập; giữ ngữ nghĩa hủy và kiểm tra
+  tính toàn vẹn của phản hồi.
+- Chọn lọc sửa lỗi upstream cho STT multipart, chọn SearXNG không cần key,
+  xác thực Fal chỉ đọc, thăm dò sau khi quota Claude đặt lại, hiển thị danh mục
+  Qoder, trạng thái sẵn sàng của tray và Headroom chỉ bind loopback. Giới hạn Kimi
+  lấy từ metadata chính xác trả về, không gán một cửa sổ ngữ cảnh tĩnh chung.
+- Phân biệt bản phát hành client với giao thức chữ ký, SDK/API và quyền tài khoản;
+  không thêm cơ chế né phát hiện hoặc vượt hạn chế tài khoản.
+
+- Truyền rõ chính sách proxy/hủy của tài khoản qua tác vụ media; tìm kiếm, web và ảnh từ xa có bảo vệ sẽ từ chối tuyến không giữ được DNS cố định và kiểm tra địa chỉ riêng/chuyển hướng.
+
+Nguồn, hồi quy, thay đổi chính sách và giới hạn nền tảng/tài khoản thật nằm trong
+[kiểm toán phụ thuộc và runtime](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md) và [đối chiếu upstream](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
+
 ## Kitsune Router 1.0.8 — chuẩn bị sửa trình cài đặt
 
 **Ảnh chụp giai đoạn chuẩn bị:** các kết quả kiểm tra tập trung và giới hạn fixture dưới đây thuộc giai đoạn này, không xác minh runtime đã xuất bản.

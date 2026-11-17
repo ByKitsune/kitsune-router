@@ -89,6 +89,11 @@ export const QODER_SSE_PEEK_MAX_BYTES = 256 * 1024;
 // Gemini native TTS fetch timeout: abort if Google does not return response headers in time.
 export const GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS = envMs("GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS", 45 * 1000);
 
+// Async video endpoints return job metadata and asset URLs, never video bytes.
+// Keep one deadline across submission/polling, authentication retry and body reads.
+export const VIDEO_FETCH_TIMEOUT_MS = envMs("VIDEO_FETCH_TIMEOUT_MS", 120 * 1000);
+export const VIDEO_MAX_RESPONSE_BYTES = 1024 * 1024;
+
 // Default token limits
 export const DEFAULT_MAX_TOKENS = 64000;
 export const DEFAULT_MIN_TOKENS = 32000;

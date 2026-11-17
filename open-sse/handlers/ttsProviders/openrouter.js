@@ -1,10 +1,12 @@
 // OpenRouter TTS — via chat completions + audio modality (SSE stream)
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { getTtsTransport, readTtsJson, ttsBodyChunks } from "./_base.js";
 
 const TTS_CFG = PROVIDER_MEDIA["openrouter"]?.ttsConfig || {};
 
 export default {
-  async synthesize(text, model, credentials) {
+  async synthesize(text, model, credentials, _responseFormat, options = {}) {
+    const { fetch, signal } = getTtsTransport(credentials, options);
     if (!credentials?.apiKey) throw new Error("No OpenRouter API key configured");
 
     // model format: "tts-model/voice" e.g. "openai/gpt-4o-mini-tts/alloy"
@@ -25,6 +27,7 @@ export default {
     }
 
     const res = await fetch(TTS_CFG.baseUrl, {
+      signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -41,31 +44,37 @@ export default {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await readTtsJson(res, signal).catch(() => { signal?.throwIfAborted(); return {}; });
       throw new Error(err?.error?.message || `OpenRouter TTS failed: ${res.status}`);
     }
 
     // Parse SSE stream, accumulate base64 audio chunks
     const chunks = [];
-    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const consumeLine = line => {
+      if (!line.startsWith("data:")) return false;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") return true;
+      try {
+        const json = JSON.parse(data);
+        const audioData = json.choices?.[0]?.delta?.audio?.data;
+        if (audioData) chunks.push(audioData);
+      } catch {}
+      return false;
+    };
+    for await (const value of ttsBodyChunks(res, signal)) {
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop();
+      let done = false;
       for (const line of lines) {
-        if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
-        try {
-          const json = JSON.parse(line.slice(6));
-          const audioData = json.choices?.[0]?.delta?.audio?.data;
-          if (audioData) chunks.push(audioData);
-        } catch {}
+        if (consumeLine(line)) { done = true; break; }
       }
+      if (done) { buffer = ""; break; }
     }
+    buffer += decoder.decode();
+    if (buffer) consumeLine(buffer);
 
     if (chunks.length === 0) throw new Error("OpenRouter TTS returned no audio data");
     return { base64: chunks.join(""), format: "wav" };

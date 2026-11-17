@@ -63,15 +63,16 @@ export async function fetchLocalDeviceVoices() {
   }
 }
 
-async function synthesizeMacOrWin(text, voiceId) {
+async function synthesizeMacOrWin(text, voiceId, signal) {
+  signal?.throwIfAborted();
   const dir = await mkdtemp(join(tmpdir(), "tts-"));
   const aiffPath = join(dir, "out.aiff");
   const mp3Path = join(dir, "out.mp3");
   try {
     const args = voiceId ? ["-v", voiceId, "-o", aiffPath, text] : ["-o", aiffPath, text];
-    await execFileAsync("say", args);
-    await execFileAsync("ffmpeg", ["-y", "-i", aiffPath, "-codec:a", "libmp3lame", "-qscale:a", "4", mp3Path]);
-    const buf = await readFile(mp3Path);
+    await execFileAsync("say", args, { signal });
+    await execFileAsync("ffmpeg", ["-y", "-i", aiffPath, "-codec:a", "libmp3lame", "-qscale:a", "4", mp3Path], { signal });
+    const buf = await readFile(mp3Path, { signal });
     return buf.toString("base64");
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -80,8 +81,8 @@ async function synthesizeMacOrWin(text, voiceId) {
 
 export default {
   noAuth: true,
-  async synthesize(text, model) {
-    const base64 = await synthesizeMacOrWin(text, model);
+  async synthesize(text, model, _credentials, _responseFormat, options = {}) {
+    const base64 = await synthesizeMacOrWin(text, model, options.signal);
     return { base64, format: "mp3" };
   },
 };

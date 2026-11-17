@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProviderConnections } from "@/lib/localDb";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
+import { discardTtsBody, getTtsTransport, readTtsText } from "open-sse/handlers/ttsProviders/_base.js";
 
 const MINIMAX_VOICE_ENDPOINTS = {
   minimax: "https://api.minimax.io/v1/get_voice",
@@ -64,18 +66,24 @@ function normalizeMiniMaxVoices(data) {
  */
 export async function GET(request) {
   try {
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get("provider") === "minimax-cn" ? "minimax-cn" : "minimax";
     const voiceType = searchParams.get("voice_type") || "all";
     const langFilter = searchParams.get("lang");
 
     const connections = await getProviderConnections({ provider, isActive: true });
-    const apiKey = connections[0]?.apiKey;
+    const account = connections[0];
+    const apiKey = account?.apiKey;
     if (!apiKey) {
       return NextResponse.json({ error: `No ${provider} connection found` }, { status: 400 });
     }
 
-    const res = await fetch(MINIMAX_VOICE_ENDPOINTS[provider], {
+    const sourcePolicy = account.providerSpecificData || {};
+    const proxyOptions = sourcePolicy.proxyPoolId && sourcePolicy.proxyPoolId !== "__none__"
+      ? await resolveConnectionProxyConfig(sourcePolicy) : sourcePolicy;
+    const transport = getTtsTransport(account, { signal: request.signal, proxyOptions });
+    const res = await transport.fetch(MINIMAX_VOICE_ENDPOINTS[provider], {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -84,7 +92,11 @@ export async function GET(request) {
       body: JSON.stringify({ voice_type: voiceType }),
     });
 
-    const rawText = await res.text();
+    if (!res.ok) {
+      discardTtsBody(res);
+      return NextResponse.json({ error: `MiniMax voice API returned HTTP ${res.status}` }, { status: 502 });
+    }
+    const rawText = await readTtsText(res, request.signal);
     let data = {};
     if (rawText) {
       try { data = JSON.parse(rawText); } catch { data = {}; }
@@ -92,13 +104,8 @@ export async function GET(request) {
 
     const baseResp = data.base_resp || data.baseResp || {};
     const statusCode = Number(baseResp.status_code ?? baseResp.statusCode ?? 0);
-    const statusMessage = baseResp.status_msg || baseResp.statusMsg || data.message || "";
-
-    if (!res.ok) {
-      return NextResponse.json({ error: `MiniMax API ${res.status}: ${statusMessage || rawText || "Failed"}` }, { status: 502 });
-    }
     if (statusCode !== 0) {
-      return NextResponse.json({ error: statusMessage || "MiniMax voice API error" }, { status: 502 });
+      return NextResponse.json({ error: "MiniMax voice API error" }, { status: 502 });
     }
 
     const normalized = normalizeMiniMaxVoices(data);
@@ -108,6 +115,8 @@ export async function GET(request) {
 
     return NextResponse.json(normalized);
   } catch (err) {
-    return NextResponse.json({ error: err.message || "Failed to fetch MiniMax voices" }, { status: 502 });
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
+    if (err.code === "TTS_HEADER_TIMEOUT") return NextResponse.json({ error: "TTS response headers timed out" }, { status: 408 });
+    return NextResponse.json({ error: "Failed to fetch MiniMax voices" }, { status: 502 });
   }
 }

@@ -495,7 +495,7 @@ describe("strict Chat alias opener restoration", () => {
     expect(wire.match(/data: \[DONE\]/g)).toHaveLength(1);
   });
 
-  it("does not attach an index-less alias fragment to the last parallel tool or fabricate a missing ID", async () => {
+  it("keeps index-less aliases unowned while completing a valid indexed tool's client identity", async () => {
     const malformed = { function: { name: SHORT_B.slice(4), arguments: "opaque-indexless-bytes" }, extra_content: opaque };
     const chunks = [
       chatChunk({ tool_calls: [{ index: 0, id: "call_owned", type: "function", function: { name: SHORT_A.slice(0, 4), arguments: "" } }] }),
@@ -512,7 +512,29 @@ describe("strict Chat alias opener restoration", () => {
     expect(calls.find(call => call.index === undefined)).toEqual(malformed);
     expect(calls.filter(call => call.index === 0).map(call => call.function?.name || "").join("")).toBe(LONG_A);
     expect(calls.filter(call => call.index === 0).map(call => call.id || "").join("")).toBe("call_owned");
-    expect(calls.find(call => call.index === 1)).not.toHaveProperty("id");
+    const generated = calls.find(call => call.index === 1);
+    expect(generated.id).toMatch(/^call_[a-zA-Z0-9_-]+$/);
+    expect(calls.filter(call => call.index === 1 && call.id)).toHaveLength(1);
+    expect(generated.function).toEqual({ name: LONG_B, arguments: ARGS_B });
+    expect(generated.extra_content).toEqual(opaque);
+
+    const next = clientBody(F.OPENAI, [LONG_A, LONG_B]);
+    next.messages.push(
+      { role: "assistant", content: null, tool_calls: [{
+        id: generated.id, type: "function", function: generated.function, extra_content: generated.extra_content,
+      }] },
+      { role: "tool", tool_call_id: generated.id, content: "Synthetic tool result" },
+    );
+    socket.reply = { sse: false, body: {
+      id: "chatcmpl-tool-identity-follow-up", choices: [{ index: 0, message: { role: "assistant", content: "Follow-up accepted" }, finish_reason: "stop" }], usage: CHAT_USAGE,
+    } };
+    expect((await dispatch("openai", "gpt-5.5", F.OPENAI, next, false)).success).toBe(true);
+    const replay = socket.requests.at(-1).body.messages;
+    const replayedCall = replay.find(message => message.role === "assistant").tool_calls[0];
+    expect(replayedCall.id).toBe(generated.id);
+    expect(replayedCall.function.arguments).toBe(ARGS_B);
+    expect(replayedCall.extra_content).toEqual(opaque);
+    expect(replay.find(message => message.role === "tool").tool_call_id).toBe(generated.id);
   });
 
   it("preserves a structured upstream error instead of flushing an unresolved alias as a successful tool", async () => {

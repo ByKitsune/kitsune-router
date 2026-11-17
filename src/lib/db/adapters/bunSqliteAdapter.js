@@ -2,6 +2,7 @@
 // Loaded only when process.versions.bun is present.
 import { PRAGMA_SQL } from "../schema.js";
 import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
+import { createStatementCache } from "../helpers/statementCache.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
@@ -11,14 +12,9 @@ export async function createBunSqliteAdapter(filePath) {
   const db = new Database(filePath, { create: true });
   db.exec(PRAGMA_SQL);
 
-  const stmtCache = new Map();
+  const stmtCache = createStatementCache(db);
   function prepare(sql) {
-    let stmt = stmtCache.get(sql);
-    if (!stmt) {
-      stmt = db.prepare(sql);
-      stmtCache.set(sql, stmt);
-    }
-    return stmt;
+    return stmtCache.prepare(sql);
   }
 
   const checkpointTimer = setInterval(() => {

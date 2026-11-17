@@ -1,6 +1,7 @@
 // NanoBanana API — async submit + poll record-info
-import { sleep, nowSec, parseMediaError, sizeToAspectRatio, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
+import { nowSec, parseMediaError, sizeToAspectRatio, fetchImageProvider, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { createAccountTransport } from "../../utils/accountTransport.js";
 
 const IMG_CFG = PROVIDER_MEDIA["nanobanana"]?.imageConfig || {};
 const SUBMIT_URL = IMG_CFG.baseUrl;
@@ -34,7 +35,7 @@ export default {
     return req;
   },
   // Async: parse submit → poll until SUCCESS, return raw poll data
-  async parseResponse(response, { headers, clientSignal, observeUsage }) {
+  async parseResponse(response, { headers, clientSignal, observeUsage, transport = createAccountTransport(null, { signal: clientSignal }) }) {
     const submitData = await response.json();
     observeUsage?.(submitData);
     if (submitData.code !== 200) throw new Error(submitData.msg || "NanoBanana submit failed");
@@ -43,8 +44,8 @@ export default {
     const pollUrl = `${POLL_BASE}?taskId=${encodeURIComponent(taskId)}`;
     const deadline = Date.now() + POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      await sleep(POLL_INTERVAL_MS, clientSignal);
-      const r = await fetch(pollUrl, { headers, signal: clientSignal });
+      await transport.sleep(POLL_INTERVAL_MS);
+      const r = await fetchImageProvider(transport, pollUrl, { headers, signal: clientSignal });
       if (!r.ok) {
         const diagnostics = await parseMediaError(r, observeUsage, clientSignal);
         throw Object.assign(new Error(diagnostics.message || `NanoBanana status ${r.status}`), { upstreamStatus: r.status });

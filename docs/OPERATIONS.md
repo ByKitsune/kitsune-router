@@ -33,6 +33,13 @@ git diff --stat origin/master...upstream/master
 
 Review and test selected changes on a separate branch or worktree before integrating them into Kitsune. Do not automatically merge all of `upstream/master` into the active checkout: provider behavior, branding, settings, and security or migration safeguards can differ. Updating a source checkout does not itself update a separately deployed service.
 
+The [November 17 reconciliation](audit/2026-11-17-upstream-reconciliation.md)
+records the fetched upstream tip and selective commit/actual-issue review. The
+local branch named `upstream` tracks `upstream/master`; use the explicit
+`refs/heads/upstream` or `refs/remotes/upstream/master` when a command's ref lookup
+would be ambiguous. An ancestry difference is not proof that a semantic fix is
+missing locally, and this workflow does not require a blanket pull or PR merge.
+
 Keep the deployed service's existing absolute `DATA_DIR` and secrets when preparing an upgrade. Never replace or merge an existing active database with a legacy directory just to align names. Back up and verify all state during a planned maintenance window before changing the deployment or moving data; see [MIGRATION.md](MIGRATION.md).
 
 ## Local and remote access
@@ -42,8 +49,21 @@ Dashboard and API share port **20128**. Do not assume a second dashboard at 3000
 First follow [source installation](INSTALLATION.md#source-checkout) to provision a private stable `JWT_SECRET` (at least 32 characters) and review the other secrets/state path. `next dev` does not run the CLI's secret generator; missing/short JWT secrets make dashboard login fail. Existing installations must keep their effective values via [migration](MIGRATION.md), not generate replacements at each restart.
 
 ```bash
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+node --env-file=/absolute/private/kitsune-router.source.env -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
+
+Keep that runtime file outside the checkout when producing standalone builds;
+the build correctly rejects copied secret/state files. Generate fresh secrets
+only for a new installation. Existing deployments preserve their effective
+secret values and absolute `DATA_DIR`; see [source installation](INSTALLATION.md#source-checkout).
+The data-only parent avoids propagating `--env-file` into Next development
+workers' `NODE_OPTIONS`; do not execute the JSON-quoted env file as shell code.
 
 Local-first describes state/control, not a firewall guarantee. The launcher can bind to all interfaces by default; use `kitsune-router --host 127.0.0.1` for local-only access and review actual listeners. For source deployments use their supported bind settings and network policy.
 
@@ -60,6 +80,41 @@ curl http://localhost:20128/v1/models \
 Health can fail with 503 when storage is unavailable. Successful health/catalog responses do not make a live provider call or prove entitlement. Inspect the installed `/api/metrics` output and its current authentication policy before writing alerts; historical metric names may differ. Do not apply `rate()`/`increase()` to rolling-window snapshots. Alert on storage failure, positive reauthentication counts, and scoped latency samples, keeping unknown prices separate from complete costs.
 
 ## Diagnose safely
+
+The [November 17 source audit](audit/2026-11-17-dependency-runtime-audit.md) records
+new bounded OAuth/SQLite work and video response/cancellation handling. OAuth
+`TOKEN_REFRESH_CAPACITY_EXCEEDED` is transient capacity backpressure for new
+grants, not evidence that an account needs reauthentication. Let active refreshes
+settle before retrying; do not rotate credentials as a cache troubleshooting step.
+
+Video submission can create a billable job even when its response is interrupted.
+A malformed/truncated successful response is an upstream error, not an empty
+success; do not automatically resubmit it or switch accounts. Retain a caller's
+idempotency key and use the returned job ID to poll when available. Successful
+video metadata is capped at 1 MiB, error diagnostics at 8 KiB, and
+`VIDEO_FETCH_TIMEOUT_MS` defaults to 120,000 ms inside the video core across its
+authorization-refresh retry, fetch and body work. Application proactive refresh
+precedes that timer and observes caller cancellation; it is not included in a
+single 120-second application-wide bound.
+Caller cancellation remains terminal and does not mark a provider account unhealthy.
+
+Media operations carry the selected account's routing policy explicitly through
+STT/TTS/image requests and polls. This does not make every guarded operation
+proxy-capable: dedicated search, web fetch and remote HTTP image input must keep
+their pinned-DNS, private-address and redirect checks. When the configured
+account proxy/relay cannot preserve those checks, the operation fails closed
+before authenticated dispatch. Inline/data-URI image input does not need a remote
+image fetch. Do not interpret this local transport limitation as invalid provider
+credentials or expect an automatic direct/account fallback around the policy.
+Remote/generated image asset reads retain the secure image helper's size, type,
+DNS and address restrictions.
+
+The optional Compose Headroom host mapping is `127.0.0.1:8787:8787`; its internal
+Docker URL remains `http://headroom:8787`. Keep the unauthenticated helper on the
+reviewed host/network boundary rather than publishing it remotely. If a native
+tray fails readiness, the source launcher keeps the gateway available and refuses
+Hide; inspect the tray startup error instead of assuming an invisible icon is
+working. Native desktop behavior still needs verification on the target OS.
 
 | Symptom | Check |
 | --- | --- |

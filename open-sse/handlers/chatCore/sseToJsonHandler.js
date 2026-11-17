@@ -9,6 +9,7 @@ import { acceptUsageRecord } from "./streamingHandler.js";
 import { RESPONSES_ITEM } from "../../translator/schema/index.js";
 import { extractReasoningText, extractResponsesReasoningText } from "../../translator/concerns/reasoning.js";
 import { normalizeTypedContent } from "../../translator/concerns/typedContent.js";
+import { normalizeChatDeltaFields, discardEmptyChatToolDeltas, createChatToolIdentityBuffer } from "../../utils/chatDelta.js";
 import { translateResponse, initState } from "../../translator/index.js";
 import { openaiResponsesObjectToCompletion } from "../../translator/response/openai-responses.js";
 import { extractResponseError } from "../../translator/concerns/responseError.js";
@@ -94,9 +95,25 @@ export function createSSEAggregationState(targetFormat, sourceFormat, model) {
   };
 }
 
+function mergeToolExtraContent(previous, next) {
+  if (!next || typeof next !== "object" || Array.isArray(next)) return previous;
+  const merged = { ...previous };
+  for (const [namespace, value] of Object.entries(next)) {
+    const retained = Object.hasOwn(merged, namespace) ? merged[namespace] : undefined;
+    // Provider extension fields can arrive in separate deltas. Merge only their
+    // dictionaries; signatures and other opaque values remain exact values.
+    const fields = retained && value && typeof retained === "object" && typeof value === "object" &&
+      !Array.isArray(retained) && !Array.isArray(value) ? { ...retained, ...value } : value;
+    Object.defineProperty(merged, namespace, { value: fields, enumerable: true, configurable: true, writable: true });
+  }
+  return merged;
+}
+
 function createSSEAggregator(fallbackModel, targetFormat, translationState) {
   const state = translationState || createSSEAggregationState(targetFormat, FORMATS.OPENAI, fallbackModel);
   const choices = new Map();
+  const chatFinished = new Set();
+  const chatToolIdentities = createChatToolIdentityBuffer();
   let first = null;
   let usage = null;
   let incurredUsage = null;
@@ -108,6 +125,8 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
   const fail = message => { streamError ||= { type: "stream_error", code: "stream_disconnected", message }; };
   const append = chunk => {
     if (chunk == null) return;
+    normalizeChatDeltaFields(chunk);
+    discardEmptyChatToolDeltas(chunk);
     const failure = extractResponseError(chunk);
     if (failure) { streamError ||= failure.error; return; }
     first ||= { id: chunk.id, created: chunk.created, model: chunk.model };
@@ -137,6 +156,7 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
         if (call.id) tool.id = call.id;
         if (call.function?.name) tool.names.push(call.function.name);
         if (call.function?.arguments) tool.arguments.push(call.function.arguments);
+        tool.extraContent = mergeToolExtraContent(tool.extraContent, call.extra_content);
       }
     }
   };
@@ -159,8 +179,14 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
       const nativeTerminal = !isChat && (targetFormat === FORMATS.CLAUDE ? type === "message_stop"
         : targetFormat === FORMATS.OLLAMA ? parsed.done === true
           : (parsed.candidates || parsed.response?.candidates)?.some(candidate => Boolean(candidate.finishReason)));
-      for (const converted of (targetFormat === FORMATS.OPENAI || isChat ? [parsed] : translateResponse(targetFormat, FORMATS.OPENAI, parsed, state)) || []) append(converted);
-      if (isChat) terminal = choices.size > 0 && [...choices.values()].every(choice => choice.finishReason);
+      if (isChat) {
+        normalizeChatDeltaFields(parsed);
+        discardEmptyChatToolDeltas(parsed);
+        for (const choice of parsed.choices) if (choice.finish_reason) chatFinished.add(choice.index ?? 0);
+        if (parsed.choices.some(choice => ["network_error", "error", "server_error", "timeout"].includes(choice.native_finish_reason || choice.finish_reason))) append(parsed);
+        else for (const converted of chatToolIdentities.process(parsed)) append(converted);
+      } else for (const converted of translateResponse(targetFormat, FORMATS.OPENAI, parsed, state) || []) append(converted);
+      if (isChat) terminal = choices.size > 0 && [...choices.keys()].every(index => chatFinished.has(index));
       else if (nativeTerminal) terminal = true;
       if (streamError) { stopped = true; return false; }
       if (nativeTerminal) { stopped = true; return false; }
@@ -174,6 +200,7 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
       return { ...(observedUsage ? { usage: observedUsage } : {}), ...(actualServiceTier ? { service_tier: actualServiceTier } : {}) };
     },
     result() {
+      if (terminal && !streamError) for (const chunk of chatToolIdentities.flushCompleted()) append(chunk);
       if (!streamError && targetFormat !== FORMATS.OPENAI) for (const chunk of translateResponse(targetFormat, FORMATS.OPENAI, null, state) || []) append(chunk);
       if (!terminal && !streamError) fail("Upstream stream closed without a terminal event");
       if (streamError) return { error: streamError, ...(usage ? { usage } : {}) };
@@ -184,7 +211,10 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
           message: { role: "assistant", content: entry.content.join("") || (entry.tools.size ? null : ""),
             ...(entry.refusal.length ? { refusal: entry.refusal.join("") } : {}), ...(entry.reasoning.length ? { reasoning_content: entry.reasoning.join("") } : {}),
             ...(entry.details.length ? { reasoning_details: entry.details } : {}), ...(entry.images.length ? { images: entry.images } : {}),
-            ...(entry.tools.size ? { tool_calls: [...entry.tools.entries()].sort((a, b) => a[0] - b[0]).map(([, tool]) => ({ id: tool.id, type: "function", function: { name: tool.names.join(""), arguments: tool.arguments.join("") } })) } : {}),
+            ...(entry.tools.size ? { tool_calls: [...entry.tools.entries()].sort((a, b) => a[0] - b[0]).map(([, tool]) => ({
+              id: tool.id, type: "function", function: { name: tool.names.join(""), arguments: tool.arguments.join("") },
+              ...(tool.extraContent ? { extra_content: tool.extraContent } : {}),
+            })) } : {}),
           },
         })), ...(usage ? { usage } : {}), ...(actualServiceTier ? { service_tier: actualServiceTier } : {}),
       };

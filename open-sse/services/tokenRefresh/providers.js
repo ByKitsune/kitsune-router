@@ -5,6 +5,17 @@ import { parseTimeMs } from "../oauthCredentialManager.js";
 import { dedupRefresh } from "./dedup.js";
 import { KIRO_CLI_USER_AGENT, TRAE_USER_AGENT } from "../../config/clientVersions.js";
 import { assertValidAwsRegion } from "../../config/awsRegions.js";
+import { OAUTH_REFRESH_ERROR_CODES } from "../../config/oauthErrors.js";
+import { safeRefreshErrorType, safeRefreshExpiry } from "../../utils/oauthDiagnostics.js";
+
+function safeRefreshErrorCode(text) {
+  try {
+    const payload = JSON.parse(text);
+    const code = payload?.error?.code || payload?.error || payload?.error_code;
+    if (OAUTH_REFRESH_ERROR_CODES.has(code)) return code;
+  } catch { /* Non-JSON failure responses must not enter logs either. */ }
+  return "upstream_error";
+}
 
 let _xaiServiceSingleton = null;
 export async function refreshXaiToken(refreshToken, log, proxyOptions = null, signal = null) {
@@ -26,7 +37,7 @@ export async function refreshXaiToken(refreshToken, log, proxyOptions = null, si
       };
     } catch (e) {
       refreshSignal.throwIfAborted();
-      log?.warn?.("TOKEN_REFRESH", `xai refresh failed: ${e?.message || e}`);
+      log?.warn?.("TOKEN_REFRESH", "xai refresh failed", { error: safeRefreshErrorType(e) });
       const msg = String(e?.message || "");
       if (!msg.includes("[ProxyFetch]") && (msg.includes("invalid_grant") || msg.includes("invalid_request"))) {
         return { error: "invalid_grant" };
@@ -120,7 +131,7 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
       const errorText = await response.text();
       log?.error?.("TOKEN_REFRESH", `Failed to refresh token for ${provider}`, {
         status: response.status,
-        error: errorText,
+        error: safeRefreshErrorCode(errorText),
       });
       return null;
     }
@@ -130,7 +141,7 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
     log?.info?.("TOKEN_REFRESH", `Successfully refreshed token for ${provider}`, {
       hasNewAccessToken: !!tokens.access_token,
       hasNewRefreshToken: !!tokens.refresh_token,
-      expiresIn: tokens.expires_in,
+      expiresIn: safeRefreshExpiry(tokens.expires_in),
     });
 
     return {
@@ -142,7 +153,7 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
   } catch (error) {
     refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", `Error refreshing token for ${provider}`, {
-      error: error.message,
+      error: safeRefreshErrorType(error),
     });
     return null;
   }
@@ -179,7 +190,7 @@ export async function refreshClineToken(refreshToken, log, proxyOptions = null, 
         const errorText = await response.text();
         log?.error?.("TOKEN_REFRESH", "Failed to refresh Cline token", {
           status: response.status,
-          error: errorText,
+          error: safeRefreshErrorCode(errorText),
         });
         return null;
       }
@@ -199,7 +210,7 @@ export async function refreshClineToken(refreshToken, log, proxyOptions = null, 
       };
     } catch (error) {
       refreshSignal.throwIfAborted();
-      log?.error?.("TOKEN_REFRESH", `Error refreshing Cline token: ${error.message}`);
+      log?.error?.("TOKEN_REFRESH", "Error refreshing Cline token", { error: safeRefreshErrorType(error) });
       return null;
     }
   }, log, proxyOptions, signal);
@@ -247,11 +258,11 @@ export async function refreshGoogleToken(refreshToken, clientId, clientSecret, l
       log?.error?.("TOKEN_REFRESH", "Google refresh returned an invalid token response");
       return null;
     }
-    log?.info?.("TOKEN_REFRESH", "Successfully refreshed Google token", { hasNewAccessToken: !!tokens.access_token, expiresIn: tokens.expires_in });
+    log?.info?.("TOKEN_REFRESH", "Successfully refreshed Google token", { hasNewAccessToken: !!tokens.access_token, expiresIn: safeRefreshExpiry(tokens.expires_in) });
     return { accessToken: tokens.access_token, refreshToken: validToken(tokens.refresh_token) ? tokens.refresh_token : refreshToken, expiresIn };
   } catch (error) {
     refreshSignal.throwIfAborted();
-    log?.error?.("TOKEN_REFRESH", "Google token refresh failed", { error: error.name || "Error" });
+    log?.error?.("TOKEN_REFRESH", "Google token refresh failed", { error: safeRefreshErrorType(error) });
     return null;
   }
   }, log, proxyOptions, signal);
@@ -303,15 +314,15 @@ export async function refreshCodexToken(refreshToken, log, proxyOptions = null, 
         if (failure.permanent) {
           log?.error?.("TOKEN_REFRESH", "Codex refresh token already used or invalid. Re-auth required.", {
             status: response.status,
-            code: failure.code,
+            code: safeRefreshErrorCode(errorText),
           });
           return { error: "unrecoverable_refresh_error", code: failure.code };
         }
 
         log?.error?.("TOKEN_REFRESH", "Failed to refresh Codex token", {
           status: response.status,
-          error: errorText,
-          code: failure.code,
+          error: safeRefreshErrorCode(errorText),
+          code: safeRefreshErrorCode(errorText),
           permanent: failure.permanent,
         });
         return null;
@@ -323,7 +334,7 @@ export async function refreshCodexToken(refreshToken, log, proxyOptions = null, 
         hasNewAccessToken: !!tokens.access_token,
         hasNewRefreshToken: !!tokens.refresh_token,
         hasIdToken: !!tokens.id_token,
-        expiresIn: tokens.expires_in,
+        expiresIn: safeRefreshExpiry(tokens.expires_in),
       });
 
       return {
@@ -334,7 +345,7 @@ export async function refreshCodexToken(refreshToken, log, proxyOptions = null, 
       };
     } catch (error) {
       refreshSignal.throwIfAborted();
-      log?.error?.("TOKEN_REFRESH", `Network error refreshing Codex token: ${error.message}`);
+      log?.error?.("TOKEN_REFRESH", "Network error refreshing Codex token", { error: safeRefreshErrorType(error) });
       return null;
     }
   }, log, proxyOptions, signal);
@@ -410,7 +421,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro external_idp token", {
       hasNewAccessToken: !!tokens.access_token,
       hasNewRefreshToken: !!tokens.refresh_token,
-      expiresIn: tokens.expires_in,
+      expiresIn: safeRefreshExpiry(tokens.expires_in),
     });
 
     return {
@@ -456,7 +467,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro AWS token", {
       hasNewAccessToken: !!tokens.accessToken,
-      expiresIn: tokens.expiresIn,
+      expiresIn: safeRefreshExpiry(tokens.expiresIn),
     });
 
     return {
@@ -495,7 +506,7 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
 
   log?.info?.("TOKEN_REFRESH", "Successfully refreshed Kiro social token", {
     hasNewAccessToken: !!tokens.accessToken,
-    expiresIn: tokens.expiresIn,
+    expiresIn: safeRefreshExpiry(tokens.expiresIn),
   });
 
   return {
@@ -538,7 +549,7 @@ export async function refreshCopilotToken(githubAccessToken, log, proxyOptions =
       const errorText = await response.text();
       log?.error?.("TOKEN_REFRESH", "Failed to refresh Copilot token", {
         status: response.status,
-        error: errorText
+        error: safeRefreshErrorCode(errorText)
       });
       return null;
     }
@@ -547,7 +558,7 @@ export async function refreshCopilotToken(githubAccessToken, log, proxyOptions =
 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Copilot token", {
       hasToken: !!data.token,
-      expiresAt: data.expires_at
+      expiresAt: safeRefreshExpiry(data.expires_at)
     });
 
     return {
@@ -557,7 +568,7 @@ export async function refreshCopilotToken(githubAccessToken, log, proxyOptions =
   } catch (error) {
     refreshSignal.throwIfAborted();
     log?.error?.("TOKEN_REFRESH", "Error refreshing Copilot token", {
-      error: error.message
+      error: safeRefreshErrorType(error)
     });
     return null;
   }
@@ -592,7 +603,7 @@ export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = nu
       const errorText = await response.text();
       log?.error?.("TOKEN_REFRESH", "Failed to refresh CodeBuddy token", {
         status: response.status,
-        error: errorText,
+        error: safeRefreshErrorCode(errorText),
       });
       return null;
     }
@@ -600,8 +611,8 @@ export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = nu
     const data = await response.json();
     if (data.code !== 0 || !data.data?.accessToken) {
       log?.error?.("TOKEN_REFRESH", "CodeBuddy token refresh returned no token", {
-        code: data.code,
-        msg: data.msg,
+        code: Number.isFinite(data.code) ? data.code : null,
+        error: "missing_access_token",
       });
       return null;
     }
@@ -609,7 +620,7 @@ export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = nu
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed CodeBuddy token", {
       hasNewAccessToken: !!data.data.accessToken,
       hasNewRefreshToken: !!data.data.refreshToken,
-      expiresIn: data.data.expiresIn,
+      expiresIn: safeRefreshExpiry(data.data.expiresIn),
     });
 
     return {
@@ -645,7 +656,7 @@ export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions 
       const errorText = await response.text();
       log?.error?.("TOKEN_REFRESH", "Failed to refresh CodeBuddy intl token", {
         status: response.status,
-        error: errorText,
+        error: safeRefreshErrorCode(errorText),
       });
       return null;
     }
@@ -653,8 +664,8 @@ export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions 
     const data = await response.json();
     if (data.code !== 0 || !data.data?.accessToken) {
       log?.error?.("TOKEN_REFRESH", "CodeBuddy intl token refresh returned no token", {
-        code: data.code,
-        msg: data.msg,
+        code: Number.isFinite(data.code) ? data.code : null,
+        error: "missing_access_token",
       });
       return null;
     }
@@ -662,7 +673,7 @@ export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions 
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed CodeBuddy intl token", {
       hasNewAccessToken: !!data.data.accessToken,
       hasNewRefreshToken: !!data.data.refreshToken,
-      expiresIn: data.data.expiresIn,
+      expiresIn: safeRefreshExpiry(data.data.expiresIn),
     });
 
     return {
@@ -707,7 +718,7 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
         const errorText = await response.text();
         log?.error?.("TOKEN_REFRESH", "Failed to refresh Trae token", {
           status: response.status,
-          error: errorText,
+          error: safeRefreshErrorCode(errorText),
         });
         return null;
       }
@@ -716,7 +727,7 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
       const result = payload?.Result || payload?.result || payload;
       const accessToken = result?.AccessToken || result?.accessToken;
       if (!accessToken) {
-        log?.error?.("TOKEN_REFRESH", "Trae refresh returned no AccessToken", { payload });
+        log?.error?.("TOKEN_REFRESH", "Trae refresh returned no AccessToken", { status: response.status, error: "missing_access_token" });
         return null;
       }
 
@@ -742,7 +753,7 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
       };
     } catch (error) {
       refreshSignal.throwIfAborted();
-      log?.error?.("TOKEN_REFRESH", `Error refreshing Trae token: ${error.message}`);
+      log?.error?.("TOKEN_REFRESH", "Error refreshing Trae token", { error: safeRefreshErrorType(error) });
       return null;
     }
   }, log, proxyOptions, signal);

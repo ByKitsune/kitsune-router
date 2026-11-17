@@ -15,6 +15,7 @@ import { sanitizeClientError } from "./clientErrors.js";
 import { extractResponseError, responseErrorToClient } from "../translator/concerns/responseError.js";
 import { unsupportedResponseMedia } from "../translator/concerns/responseMedia.js";
 import { getResponseServiceTier } from "../providers/serviceTiers.js";
+import { normalizeChatDeltaFields, discardEmptyChatToolDeltas, createChatToolIdentityBuffer } from "./chatDelta.js";
 
 import { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER } from "./sseConstants.js";
 
@@ -27,56 +28,6 @@ const sharedEncoder = new TextEncoder();
 const responsesFormat = format => format === FORMATS.OPENAI_RESPONSES || format === FORMATS.CODEX;
 const failedReasons = new Set(["network_error", "error", "server_error", "timeout"]);
 const googleFormats = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.ANTIGRAVITY, FORMATS.VERTEX]);
-const hasChatToolValue = value => value !== undefined && value !== null && value !== "";
-
-// Null partial fields mean "not supplied yet" on compatible Chat streams.
-// Do not coerce non-null malformed values or rewrite complete message snapshots.
-function normalizeChatDeltaFields(chunk) {
-  const normalizeFunction = fn => {
-    if (!fn || typeof fn !== "object" || Array.isArray(fn)) return;
-    if (fn.name === null) delete fn.name;
-    if (fn.arguments === null) delete fn.arguments;
-  };
-  for (const choice of Array.isArray(chunk?.choices) ? chunk.choices : []) {
-    if (!choice || typeof choice !== "object" || choice.message) continue;
-    if (choice.delta === null) choice.delta = {};
-    const delta = choice.delta;
-    if (!delta || typeof delta !== "object" || Array.isArray(delta)) continue;
-    if (delta.role === null) delete delta.role;
-    normalizeFunction(delta.function_call);
-    for (const call of Array.isArray(delta.tool_calls) ? delta.tool_calls : []) {
-      if (!call || typeof call !== "object") continue;
-      if (call.function === null) delete call.function;
-      else normalizeFunction(call.function);
-    }
-  }
-}
-
-// Some Chat-compatible upstreams send index-only/null tool placeholders (#5345).
-// They do not start or continue a tool and must not allocate native tool state.
-// Keep partial IDs/names/arguments and opaque extension metadata untouched.
-function isEmptyChatToolDelta(call) {
-  if (call == null) return true;
-  if (typeof call !== "object" || Array.isArray(call)) return false;
-  const fn = call.function;
-  if (hasChatToolValue(call.id) || hasChatToolValue(fn?.name) || hasChatToolValue(fn?.arguments)) return false;
-  if (fn != null && (typeof fn !== "object" || Array.isArray(fn))) return false;
-  if (hasChatToolValue(call.type) && call.type !== "function") return false;
-  return Object.keys(call).every(key => ["index", "id", "type", "function"].includes(key)) &&
-    Object.keys(fn || {}).every(key => key === "name" || key === "arguments");
-}
-
-function discardEmptyChatToolDeltas(chunk) {
-  if (!Array.isArray(chunk?.choices)) return;
-  for (const choice of chunk.choices) {
-    const delta = choice?.delta;
-    const calls = delta?.tool_calls;
-    if (!Array.isArray(calls) || !calls.some(isEmptyChatToolDelta)) continue;
-    const retained = calls.filter(call => !isEmptyChatToolDelta(call));
-    if (retained.length) delta.tool_calls = retained;
-    else delete delta.tool_calls;
-  }
-}
 
 function isTerminalPayload(chunk, format, event = null) {
   if (format === FORMATS.OPENAI) return chunk?.choices?.some(choice => Boolean(choice?.finish_reason));
@@ -179,6 +130,7 @@ export function createSSEStream(options = {}) {
   const parser = createSSEParser({ mode: targetFormat === FORMATS.OLLAMA ? "ndjson" : "sse" });
   const responseIdentity = {};
   const toolNameDeltas = { names: new Map(), frames: [] };
+  const chatToolIdentities = createChatToolIdentityBuffer();
   const declaredWireNames = toolNameMap?.size > 0 ? new Set([...toolNameMap.keys(), ...(wireToolNames || [])]) : null;
   const contentChunks = [];
   const thinkingChunks = [];
@@ -418,6 +370,7 @@ export function createSSEStream(options = {}) {
     clearCompletionTimer();
     deferredNative = null;
     deferredClientTerminals.clear();
+    chatToolIdentities.clear();
     markFailed(message, failure?.status);
     discardPendingTools();
     await finalizeStream();
@@ -437,6 +390,14 @@ export function createSSEStream(options = {}) {
     if (completionWork) return completionWork;
     clearCompletionTimer();
     completionWork = (async () => {
+      let identityChunks;
+      try { identityChunks = chatToolIdentities.flushCompleted(); }
+      catch { return fail("Upstream tool call closed without a complete identity", controller); }
+      for (const parsed of identityChunks) {
+        await controller.ready();
+        if (disposed || finished) return;
+        await handleEvent({ event: null, data: "" }, controller, parsed, true);
+      }
       if (deferredNative) {
         const { parsed, eventName, trailer } = deferredNative;
         deferredNative = null;
@@ -489,12 +450,16 @@ export function createSSEStream(options = {}) {
       if (!processing && !finished && !disposed) void flushDeferred(controller).catch(error => controller.error(error));
     }, Math.max(0, completionDeadline - Date.now()));
   };
-  const handleEvent = async (event, controller) => {
+  const handleEvent = async (event, controller, resolvedChunk = null, identityResolved = false) => {
     if (finished || disposed) return;
     let parsed;
-    try { parsed = streamEventPayload(event, parseSSEEvent(event)); }
+    try { parsed = resolvedChunk || streamEventPayload(event, parseSSEEvent(event)); }
     catch { await fail("Invalid upstream stream event", controller); return; }
     if (event.data.trim() === "[DONE]") {
+      if (chatToolIdentities.hasPending() && !inputTerminalSeen) {
+        await fail("Upstream tool call closed without a terminal event", controller);
+        return;
+      }
       // Some compatible Chat providers send only DONE after generated output.
       // A sentinel proves completion, but metadata/usage alone and bare EOF do not.
       if (!inputTerminalSeen && targetFormat === FORMATS.OPENAI && chatInputSeen) {
@@ -528,6 +493,15 @@ export function createSSEStream(options = {}) {
     }
     normalizeChatDeltaFields(parsed);
     discardEmptyChatToolDeltas(parsed);
+    if (!identityResolved && Array.isArray(parsed.choices) && (chatToolIdentities.hasPending() || parsed.choices.some(choice => choice.delta?.tool_calls?.length)) &&
+      !extractResponseError(parsed) && !parsed.choices.some(choice => failedReasons.has(choice?.native_finish_reason || choice?.finish_reason))) {
+      // Record the real upstream finish before holding its ID-less tools. This
+      // keeps the existing usage/late-ID grace without releasing a client stop.
+      for (const choice of parsed.choices) if (choice.finish_reason) upstreamFinishedChoices.add(choice.index ?? 0);
+      if (firstTokenAt === null && hasSemanticContent(parsed, event.event || parsed.type)) firstTokenAt = lastChunkAt;
+      for (const chunk of chatToolIdentities.process(parsed)) await handleEvent(event, controller, chunk, true);
+      return;
+    }
     const eventName = event.event || parsed.type || null;
     const accountingChunk = !parsed.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...parsed, type: event.event } : parsed;
     captureUsage(accountingChunk);
@@ -602,7 +576,7 @@ export function createSSEStream(options = {}) {
       await finish(controller);
     } else if (inputTerminalSeen) {
       const trailer = Array.isArray(parsed.choices) && parsed.choices.length === 0 && parsed.usage;
-      if (trailer && deferredClientTerminals.size) await flushDeferred(controller);
+      if (trailer && (deferredClientTerminals.size || chatToolIdentities.hasPending())) await flushDeferred(controller);
       else armCompletion(controller);
     }
   };
@@ -612,6 +586,7 @@ export function createSSEStream(options = {}) {
     clearCompletionTimer();
     deferredNative = null;
     deferredClientTerminals.clear();
+    chatToolIdentities.clear();
     discardPendingTools();
     parser.reset();
     terminalListeners.clear();

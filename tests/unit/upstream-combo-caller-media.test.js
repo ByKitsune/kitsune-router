@@ -172,19 +172,34 @@ describe("public image combo caller cancellation", () => {
     expect(io.clearError).not.toHaveBeenCalled();
   });
 
-  it("interrupts combo backoff after a real first-image failure without starting a replacement", async () => {
+  it("cancels a combo handoff after a real pre-work image rejection without starting a replacement", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     io.combo = ["openai/dall-e-3", "openai/gpt-image-1"];
-    let waiting;
-    const inBackoff = new Promise(resolve => { waiting = resolve; });
-    io.info.mockImplementation((scope, message) => { if (scope === "COMBO" && message.includes("transient 502, waiting")) waiting(); });
-    io.fetch.mockImplementation(async () => Response.json({ error: { message: "request not allowed" } }, { status: 502 }));
     const caller = new AbortController();
+    let handingOff;
+    const comboHandoff = new Promise(resolve => { handingOff = resolve; });
+    const logger = await import("@/sse/utils/logger.js");
+    vi.spyOn(logger, "warn").mockImplementation((scope, message) => {
+      if (scope === "COMBO" && message.includes("failed, trying next")) {
+        // Quota failures can safely advance after explicit pre-work rejection
+        // and pool exhaustion. They do not enter the transient 5xx backoff.
+        caller.abort(new Error("caller closed"));
+        handingOff();
+      }
+    });
+    io.getCredentials
+      .mockResolvedValueOnce({ connectionId: "fixture", apiKey: "synthetic-key", providerSpecificData: {} })
+      .mockResolvedValue({ allRateLimited: true, lastErrorCode: "429", lastError: "rate limit exceeded" });
+    io.markUnavailable.mockResolvedValue({ shouldFallback: true });
+    io.fetch.mockImplementation(async () => Response.json({ error: { message: "rate limit exceeded" } }, { status: 429 }));
     const pending = imageRoute(imageRequest(caller.signal));
-    await inBackoff;
+    await comboHandoff;
     expect(io.fetch).toHaveBeenCalledOnce();
+    expect(io.fetch.mock.calls[0][1].method).toBe("POST");
+    expect(io.getCredentials).toHaveBeenCalledTimes(2);
+    expect(io.getCredentials.mock.calls[1][1].has("fixture")).toBe(true);
     expect(io.markUnavailable).toHaveBeenCalledOnce(); // the preceding provider failure, not the abort
-    caller.abort(new Error("caller closed"));
+    expect(io.markUnavailable.mock.calls[0][1]).toBe(429);
     expect((await pending).status).toBe(499);
     await vi.advanceTimersByTimeAsync(6000);
     expect(io.fetch).toHaveBeenCalledOnce();

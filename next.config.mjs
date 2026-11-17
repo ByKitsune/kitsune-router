@@ -33,7 +33,10 @@ const nextConfig = {
   },
   outputFileTracingRoot: tracingRoot,
   outputFileTracingIncludes: {
-    "/*": ["./src/mitm/**/*", "./cli/hooks/*.js", "./branding/identity.mjs", "./src/shared/constants/mitmToolHosts.js", "./open-sse/config/clientVersions.js", "./node_modules/next/dist/lib/metadata/**/*"]
+    // Optional native SQLite is loaded through Node's runtime require so an
+    // omitted optional dependency cannot fail webpack resolution. Retain its
+    // complete native asset closure when it is installed; an absent glob is OK.
+    "/*": ["./src/mitm/**/*", "./cli/hooks/*.js", "./branding/identity.mjs", "./src/shared/constants/mitmToolHosts.js", "./open-sse/config/clientVersions.js", "./node_modules/next/dist/lib/metadata/**/*", "./node_modules/better-sqlite3/**/*"]
   },
   outputFileTracingExcludes: {
     "*": [

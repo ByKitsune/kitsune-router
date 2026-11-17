@@ -93,6 +93,50 @@ const button = (tree, name) => nodes(tree).find(node => node.type === "button" &
 const connection = (id, provider, isActive = true) => ({ id, provider, isActive });
 
 describe("model picker live catalogs use enabled connection scope", () => {
+  it("offers the no-auth SearXNG provider in Web Search without a stored account", async () => {
+    const ui = picker([]);
+    const options = { kindFilter: "webSearch" };
+    try {
+      ui.render(options);
+      const tree = await ui.flush(options);
+      const search = button(tree, "SearXNG");
+      expect(search).toBeDefined();
+      search.props.onClick();
+      expect(ui.onSelect).toHaveBeenCalledWith(expect.objectContaining({ value: "searxng" }));
+      expect(button(tree, "Brave Search")).toBeUndefined();
+      expect(ui.fetch.mock.calls.map(([url]) => url).filter(url => url.startsWith("/api/providers/"))).toEqual([]);
+    } finally { ui.close(); }
+  });
+
+  it.each([null, "image", "webFetch"])("keeps SearXNG out of a different service picker (%s)", async kindFilter => {
+    const ui = picker([]);
+    const options = { kindFilter };
+    try {
+      ui.render(options);
+      expect(button(await ui.flush(options), "SearXNG")).toBeUndefined();
+    } finally { ui.close(); }
+  });
+
+  it("retains an explicit no-auth provider pause until one of its connections is enabled", async () => {
+    const ui = picker([connection("paused", "searxng", false)]);
+    const options = { kindFilter: "webSearch" };
+    try {
+      ui.render(options);
+      expect(button(await ui.flush(options), "SearXNG")).toBeUndefined();
+      ui.setConnections([connection("paused", "searxng", false), connection("enabled", "searxng")]);
+      expect(button(await ui.flush(options), "SearXNG")).toBeDefined();
+    } finally { ui.close(); }
+  });
+
+  it("keeps hidden no-auth providers out of the picker after enumerating all categories", async () => {
+    const ui = picker([]);
+    try {
+      ui.render();
+      const tree = await ui.flush();
+      expect(button(tree, "MiMo Code Free")).toBeUndefined();
+    } finally { ui.close(); }
+  });
+
   it("preserves an explicit custom declaration that shares a deprecated built-in ID", async () => {
     const ui = picker([connection("enabled", "gemini")], {
       enabled: { models: [{ id: "gemini-2.5-pro", name: "Deprecated upstream suggestion" }] },

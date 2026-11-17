@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## Código fuente sin publicar — 2026-11-17
+
+La aplicación conserva la versión **1.0.8**. Estos cambios no sustituyen los
+archivos publicados, las etiquetas ni sus verificaciones históricas.
+
+- Actualiza dependencias estables y declaraciones de imports directos; limita
+  cachés SQLite, renovaciones OAuth y registros de acceso, conservando cancelación
+  y validación de respuestas completas.
+- Adapta correcciones revisadas de STT multipart, selección SearXNG sin clave,
+  validación Fal de solo lectura, sondeo tras reinicio de cuota Claude, visibilidad
+  Qoder, preparación de bandeja y Headroom limitado a loopback. Los límites Kimi
+  usan metadatos exactos devueltos, sin asignar una ventana estática general.
+- Distingue versiones publicadas de clientes, protocolo firmado, SDK/API y permisos.
+  No añade evasión de detección ni de restricciones de cuentas.
+
+- Propaga la política de proxy/cancelación de cada cuenta en operaciones multimedia; las lecturas protegidas de búsqueda, web e imágenes remotas rechazan rutas que no mantienen DNS fijado y controles de direcciones privadas/redirecciones.
+
+Las fuentes, regresiones, cambios de política y límites de plataforma/cuentas reales
+figuran en la [auditoría de dependencias y runtime](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md) y la
+[reconciliación con upstream](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
+
 ## Kitsune Router 1.0.8 — preparación de la corrección del instalador
 
 **Instantánea de preparación:** los resultados enfocados y las limitaciones de fixtures siguientes corresponden a esta etapa; no prueban un runtime publicado.

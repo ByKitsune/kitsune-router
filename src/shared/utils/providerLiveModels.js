@@ -233,7 +233,8 @@ export async function fetchProviderLiveModels(providerId, apiKey, {
         const id = fetcher.type === "gemini" && typeof nativeId === "string" ? nativeId.replace(/^models\//, "") : nativeId;
         const name = m?.display_name || m?.displayName || m?.name || m?.id;
         const contextWindow = tokenLimit(
-          m?.context_length ?? m?.context_window ?? m?.contextWindow ?? m?.max_context_length ?? m?.max_context_tokens ?? m?.top_provider?.context_length
+          (providerId === "kimi" ? m?.limit?.context : undefined)
+          ?? m?.context_length ?? m?.context_window ?? m?.contextWindow ?? m?.max_context_length ?? m?.max_context_tokens ?? m?.top_provider?.context_length
         );
         const maxInput = tokenLimit(m?.max_input_tokens ?? m?.maxInput ?? m?.maxInputTokens ?? m?.per_request_limits?.prompt_tokens
           ?? (fetcher.type === "gemini" ? m?.inputTokenLimit : undefined));
@@ -260,6 +261,14 @@ export async function fetchProviderLiveModels(providerId, apiKey, {
           const value = tokenLimit(declared[key]);
           if (value === undefined) delete declared[key];
           else declared[key] = value;
+        }
+        // Kimi Code's current /models schema declares the account's context
+        // under limit.context. New account model IDs have no verified static
+        // token ceilings; do not replace omitted limits with generic guesses.
+        if (providerId === "kimi" && !provider.models?.some(row => row.id === id)) {
+          for (const key of ["contextWindow", "maxInput", "maxOutput"]) {
+            if (!Object.hasOwn(declared, key)) declared[key] = null;
+          }
         }
         return normalizeLiveModel(providerId, {
           id,

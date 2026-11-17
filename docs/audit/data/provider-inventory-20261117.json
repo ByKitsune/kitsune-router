@@ -1,0 +1,391 @@
+{
+  "review_date": "2026-11-17",
+  "inventory": [
+    {
+      "pin_name": "CLAUDE_CODE_VERSION",
+      "retained_pin": "2.1.322",
+      "observed_release": "2.1.326",
+      "status": "newer_public_release_observed",
+      "evidence_note": "npm metadata + official changelog; no current native artifact inspection"
+    },
+    {
+      "pin_name": "CODEX_CLI_VERSION",
+      "retained_pin": "0.167.2",
+      "observed_release": "0.169.0",
+      "status": "newer_public_release_observed",
+      "evidence_note": "npm metadata + stable rust-v0.169.0 source inspected; caller cache option bug fixed independently"
+    },
+    {
+      "pin_name": "VSCODE_VERSION",
+      "retained_pin": "1.146.0",
+      "observed_release": "1.146.0",
+      "status": "current_public_release_reverified",
+      "evidence_note": "GitHub releases/latest + immutable source tag"
+    },
+    {
+      "pin_name": "COPILOT_CHAT_VERSION",
+      "retained_pin": "0.74.0",
+      "observed_release": "0.74.0",
+      "status": "current_bundled_version_reverified",
+      "evidence_note": "VS Code1.146.0/extensions/copilot/package.json at69047191fc427f2f92828279aae1d90d8eeda7ab"
+    },
+    {
+      "pin_name": "CURSOR_VERSION",
+      "retained_pin": "3.29.15",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official cursor.com manifest request failed through proxy403"
+    },
+    {
+      "pin_name": "ANTIGRAVITY_IDE_VERSION",
+      "retained_pin": "2.6.0",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official IDE updater manifest failed through proxy403"
+    },
+    {
+      "pin_name": "ANTIGRAVITY_CLI_VERSION",
+      "retained_pin": "1.5.6",
+      "observed_release": "1.5.9",
+      "status": "newer_public_changelog_observed",
+      "evidence_note": "Official CLI GitHub changelog; signed artifact manifest unavailable through proxy403"
+    },
+    {
+      "pin_name": "GEMINI_CLI_VERSION",
+      "retained_pin": "0.68.0",
+      "observed_release": "0.68.0",
+      "status": "current_npm_release_reverified",
+      "evidence_note": "Official scoped npm latest unchanged"
+    },
+    {
+      "pin_name": "KIRO_IDE_VERSION",
+      "retained_pin": "1.4.154",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official IDE stable metadata failed through proxy403"
+    },
+    {
+      "pin_name": "KIRO_CLI_VERSION",
+      "retained_pin": "3.2.1",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official CLI stable manifest failed through proxy403"
+    },
+    {
+      "pin_name": "TRAE_APP_VERSION",
+      "retained_pin": "3.6.13",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official Trae manifest failed through proxy403; provider activation unchanged"
+    },
+    {
+      "pin_name": "CODEBUDDY_CLI_VERSION",
+      "retained_pin": "2.183.0",
+      "observed_release": "2.184.0",
+      "status": "newer_public_release_observed",
+      "evidence_note": "Official scoped npm latest"
+    },
+    {
+      "pin_name": "CODEBUDDY_INTL_WIRE_VERSION",
+      "retained_pin": "2.161.1",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official international download failed through proxy403; legacy wire profile retained"
+    },
+    {
+      "pin_name": "GROK_CLI_VERSION",
+      "retained_pin": "1.0.77",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official stable and Google Storage fallback feeds both proxy403; GitHub releases/latest did not select a release tag"
+    },
+    {
+      "pin_name": "KIMCHI_GATEWAY_VERSION",
+      "retained_pin": "1.34.2",
+      "observed_release": "1.35.0",
+      "status": "newer_public_release_observed",
+      "evidence_note": "GitHub releases/latest + tagv1.35.0 resolves todcdcab9ac3d72a1663cfedc98583b2efbb040aa5"
+    },
+    {
+      "pin_name": "COMMAND_CODE_VERSION",
+      "retained_pin": "1.88.5",
+      "observed_release": "1.89.2",
+      "status": "newer_public_release_observed",
+      "evidence_note": "Official npm latest"
+    },
+    {
+      "pin_name": "ZED_VERSION",
+      "retained_pin": "1.28.1",
+      "observed_release": "1.28.1",
+      "status": "current_public_release_reverified",
+      "evidence_note": "GitHub releases/latest + immutable tag/Cargo version reverified"
+    },
+    {
+      "pin_name": "WINDSURF_IDE_VERSION",
+      "retained_pin": "3.12.43",
+      "observed_release": null,
+      "status": "blocked_current_unknown",
+      "evidence_note": "Official desktop stable manifest failed through proxy403"
+    },
+    {
+      "pin_name": "OPENCODE_VERSION",
+      "retained_pin": "1.19.5",
+      "observed_release": "1.19.5",
+      "status": "current_npm_release_reverified",
+      "evidence_note": "Official npm latest unchanged"
+    },
+    {
+      "pin_name": "QODER_CLI_VERSION",
+      "retained_pin": "1.1.87",
+      "observed_release": "1.1.89",
+      "status": "newer_public_release_observed",
+      "evidence_note": "Official scoped npm latest; legacy signature-bound COSY profile is separate"
+    }
+  ],
+  "manifest_requests": {
+    "review_date": "2026-11-17",
+    "observed_at_utc": "2026-11-17T02:21:10.239708+00:00",
+    "checks": [
+      {
+        "name": "vscode-release",
+        "source_url": "https://github.com/microsoft/vscode/releases/latest",
+        "status": 206,
+        "final_url": "https://github.com/microsoft/vscode/releases/tag/1.146.0",
+        "content_type": "text/html; charset=utf-8"
+      },
+      {
+        "name": "kimchi-release",
+        "source_url": "https://github.com/getkimchi/kimchi/releases/latest",
+        "status": 206,
+        "final_url": "https://github.com/getkimchi/kimchi/releases/tag/v1.35.0",
+        "content_type": "text/html; charset=utf-8"
+      },
+      {
+        "name": "zed-release",
+        "source_url": "https://github.com/zed-industries/zed/releases/latest",
+        "status": 206,
+        "final_url": "https://github.com/zed-industries/zed/releases/tag/v1.28.1",
+        "content_type": "text/html; charset=utf-8"
+      },
+      {
+        "name": "grok-release",
+        "source_url": "https://github.com/xai-org/grok-build/releases/latest",
+        "status": 206,
+        "final_url": "https://github.com/xai-org/grok-build/releases",
+        "content_type": "text/html; charset=utf-8"
+      },
+      {
+        "name": "vscode-manifest",
+        "source_url": "https://update.code.visualstudio.com/api/update/linux-x64/stable/latest",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "cursor-manifest",
+        "source_url": "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "kiro-ide-manifest",
+        "source_url": "https://prod.download.desktop.kiro.dev/stable/metadata-linux-x64-stable.json",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "kiro-cli-manifest",
+        "source_url": "https://prod.download.cli.kiro.dev/stable/latest/manifest.json",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "trae-manifest",
+        "source_url": "https://icube-normal.trae.ai/icube/api/v1/native/version/trae/latest",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "windsurf-manifest",
+        "source_url": "https://windsurf-stable.codeium.com/api/update/linux-x64/stable/latest",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "grok-stable",
+        "source_url": "https://x.ai/cli/stable",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "grok-stable-fallback",
+        "source_url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "antigravity-ide-manifest",
+        "source_url": "https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/releases",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "antigravity-cli-manifest",
+        "source_url": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      },
+      {
+        "name": "codebuddy-intl-download",
+        "source_url": "https://www.codebuddy.ai/download",
+        "error_type": "URLError",
+        "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+      }
+    ],
+    "limits": "Only bounded public metadata requests; no giant IDE downloads. Network denial is an observation, not evidence a publisher release is absent."
+  },
+  "immutable_source_tags": [
+    {
+      "name": "vscode",
+      "repository": "https://github.com/microsoft/vscode.git",
+      "tag": "1.146.0",
+      "tag_refs": [
+        {
+          "commit": "69047191fc427f2f92828279aae1d90d8eeda7ab",
+          "ref": "refs/tags/1.146.0"
+        }
+      ],
+      "source_commit": "69047191fc427f2f92828279aae1d90d8eeda7ab",
+      "source_url": "https://raw.githubusercontent.com/microsoft/vscode/69047191fc427f2f92828279aae1d90d8eeda7ab/extensions/copilot/package.json",
+      "sha256": "cce8185763ef02b8e9d002b387168a63546eacec0d48a3989134d4b65a540d0c",
+      "bytes": 282102,
+      "bundled_copilot_version": "0.74.0"
+    },
+    {
+      "name": "kimchi",
+      "repository": "https://github.com/getkimchi/kimchi.git",
+      "tag": "v1.35.0",
+      "tag_refs": [
+        {
+          "commit": "dcdcab9ac3d72a1663cfedc98583b2efbb040aa5",
+          "ref": "refs/tags/v1.35.0"
+        }
+      ],
+      "source_commit": "dcdcab9ac3d72a1663cfedc98583b2efbb040aa5"
+    },
+    {
+      "name": "zed",
+      "repository": "https://github.com/zed-industries/zed.git",
+      "tag": "v1.28.1",
+      "tag_refs": [
+        {
+          "commit": "e8bc16acee5ae1937600d571d441c4b5d7b0d288",
+          "ref": "refs/tags/v1.28.1"
+        }
+      ],
+      "source_commit": "e8bc16acee5ae1937600d571d441c4b5d7b0d288",
+      "source_url": "https://raw.githubusercontent.com/zed-industries/zed/e8bc16acee5ae1937600d571d441c4b5d7b0d288/crates/zed/Cargo.toml",
+      "sha256": "17b8da1612d96c7529c70ef4cc018de00f712d24307d768a2ba29df70e31e255",
+      "version_lines": [
+        "version = \"1.28.1\""
+      ]
+    }
+  ],
+  "companion_and_shutdown": [
+    {
+      "name": "copilot-api",
+      "source_url": "https://registry.npmjs.org/@vscode%2fcopilot-api/latest",
+      "bytes": 2814,
+      "sha256": "2e89039373620cdd53210c765a4546c64fa916a1fcda71bc68e51c495cd52412",
+      "version": "0.5.2"
+    },
+    {
+      "name": "iflow-shutdown",
+      "source_url": "https://raw.githubusercontent.com/iflow-ai/iflow-cli/main/README.md",
+      "bytes": 9381,
+      "sha256": "351dd79882ef1b80d2659db46d7e1ec3cf651cfa0235fa4a7cc8d7cd5fdf460c",
+      "shutdown_notice_lines": [
+        "> **iFlow CLI will be shutting down on April 17, 2026 (UTC+8).** Thank you for every moment with iFlow CLI in your terminal. For details and migration guidance, please see our [farewell post](https://vibex.iflow.cn/t/topic/4819)."
+      ]
+    }
+  ],
+  "npm_releases": [
+    {
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.326",
+      "source": "https://registry.npmjs.org/@anthropic-ai%2fclaude-code/latest",
+      "integrity": "sha512-F7OqxXKogQYUs+RN1903IWlXGuxn8iwAykx+umRbDKvoBeK0Xm6cdgQx9auu5dtsB+DczN58/EFrlaU8pLfgJg==",
+      "repository": null
+    },
+    {
+      "package": "@openai/codex",
+      "version": "0.169.0",
+      "source": "https://registry.npmjs.org/@openai%2fcodex/latest",
+      "integrity": "sha512-KhzYlkKPxoNssR8CEm45IjqnFWn7UtlF4CiD3tOJPea51xBs7MaHy0UQG9GSbCqk6Lrjn5QdJDV0QD1/FgWlGw==",
+      "repository": {
+        "url": "git+https://github.com/openai/codex.git",
+        "type": "git",
+        "directory": "codex-cli"
+      }
+    },
+    {
+      "package": "@google/gemini-cli",
+      "version": "0.68.0",
+      "source": "https://registry.npmjs.org/@google%2fgemini-cli/latest",
+      "integrity": "sha512-eq7AWY+YCijNGKVwyiRjN+GuOdXU/djuOZhX18p+HDmNyUqFdqH7C5V6vDJLl1uffhRPhGijePV+YvY8lymrbQ==",
+      "repository": {
+        "url": "git+https://github.com/google-gemini/gemini-cli.git",
+        "type": "git"
+      }
+    },
+    {
+      "package": "@tencent-ai/codebuddy-code",
+      "version": "2.184.0",
+      "source": "https://registry.npmjs.org/@tencent-ai%2fcodebuddy-code/latest",
+      "integrity": "sha512-2bvK8cO3zvRnOwyA28Na0sES99CBqlWoQGhndB2sdmBUv0WgAX9J2IRRqN6GsqHm9MKjcIAAWcS8WCCRW7ZAig==",
+      "repository": null
+    },
+    {
+      "package": "command-code",
+      "version": "1.89.2",
+      "source": "https://registry.npmjs.org/command-code/latest",
+      "integrity": "sha512-CPIF+sp9XqI0+qJsmxNZ6RuAxhLlclGfDnsAImBCtXuAoRsBJHHu0JLgWCtyl+DRFudV8DZfFm2++mVSTJGbNA==",
+      "repository": null
+    },
+    {
+      "package": "opencode-ai",
+      "version": "1.19.5",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "integrity": "sha512-tEqMvQahfhdDj8vceYpXtoIrvjPXm5XRfetWnPN5YISueU7adNx9JcUA3zZ+2GKuDVgDpGdQe1ZLtCZDjqodvA==",
+      "repository": null
+    },
+    {
+      "package": "@qoder-ai/qodercli",
+      "version": "1.1.89",
+      "source": "https://registry.npmjs.org/@qoder-ai%2fqodercli/latest",
+      "integrity": "sha512-VR7voMgwxr3QgZIX4GjfA/kUV7OyXXPQWJT6jI1uNH+jdlZr2/0tt3127nT2lm0vWWF6GPIBP/CkuPivRczXnw==",
+      "repository": null
+    },
+    {
+      "package": "@iflow-ai/iflow-cli",
+      "version": "0.5.19",
+      "source": "https://registry.npmjs.org/@iflow-ai%2fiflow-cli/latest",
+      "integrity": "sha512-cOQNLXJAjqcKq6XQpx47EUV8ocY5sdLXiy7MfJm+b1miRlMJmrQvueT75w1h9UqzrlFPio2VluTxbLRBoR/QBA==",
+      "repository": {
+        "url": "git+https://github.com/iflow-ai/iflow-cli.git",
+        "type": "git"
+      }
+    }
+  ],
+  "pin_disposition": "No client/version/User-Agent/fingerprint headers changed. A newer application release is recorded separately from installed SDK, API version, signed protocol and account entitlement. Unreachable metadata never establishes latest-version parity or upstream service failure.",
+  "unchanged_independent_contracts": {
+    "anthropic_sdk": "0.128.0 retained; current native bundle not downloaded",
+    "anthropic_api_version": "2023-06-01 retained; release bump is not API migration",
+    "copilot_api_sdk": "npm0.5.2 reverified; CAPI2026-08-01 and token2025-04-01 remain independently scoped",
+    "cursor_connect": "1.6.1 retained; current IDE artifact not downloaded",
+    "gemini_auth_library": "10.9.0 retained; distinct from unchanged Gemini CLI0.68.0 release",
+    "kiro_aws_sdk": "3.0.0 retained legacy unverified wire text; cannot infer replacement from app version",
+    "windsurf_extension": "1.48.2 retained; current desktop manifest blocked",
+    "iflow": "iFlow-Cli static identity retained; official README shutdown date2026-04-17 UTC+8 reconfirmed, npm0.5.19 does not establish availability"
+  },
+  "limits": "Read-only, bounded metadata/source queries. No giant IDE downloads, publisher executable execution, provider credentials, or live inference. Existing prior artifact receipts remain historical and were not rewritten."
+}

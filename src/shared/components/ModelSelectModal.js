@@ -47,15 +47,17 @@ export default function ModelSelectModal({
     });
   }, [activeProviders, kindFilter]);
 
-  // Providers that need no auth — always show in model selector (registry-hidden
-  // entries excluded, #4681)
-  const noAuthProviderIds = useMemo(
-    () => visibleNoAuthProviderIds(
-      Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth),
+  // Authentication is independent of billing category: SearXNG is freeTier,
+  // while other keyless providers are free. Retain hidden and paused controls.
+  const noAuthProviderIds = useMemo(() => {
+    const connections = Array.isArray(activeProviders) ? activeProviders : [];
+    const configured = new Set(connections.map(connection => connection?.provider));
+    const enabled = new Set(filterEnabledConnections(connections).map(connection => connection.provider));
+    return visibleNoAuthProviderIds(
+      Object.keys(AI_PROVIDERS).filter(id => AI_PROVIDERS[id].noAuth),
       AI_PROVIDERS,
-    ),
-    [],
-  );
+    ).filter(id => !configured.has(id) || enabled.has(id));
+  }, [activeProviders]);
   const { getCaps } = useModelCaps();
   const [searchQuery, setSearchQuery] = useState("");
   const [combos, setCombos] = useState([]);

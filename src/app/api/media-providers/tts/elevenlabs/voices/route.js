@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProviderConnections } from "@/lib/localDb";
 import { fetchElevenLabsVoices } from "open-sse/handlers/ttsCore.js";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 
 const langNames = new Intl.DisplayNames(["en"], { type: "language" });
 
@@ -11,17 +12,22 @@ const langNames = new Intl.DisplayNames(["en"], { type: "language" });
  */
 export async function GET(request) {
   try {
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
     const { searchParams } = new URL(request.url);
     const langFilter = searchParams.get("lang");
 
     // Direct DB read - bypass auth mutex used for TTS inference
     const connections = await getProviderConnections({ provider: "elevenlabs", isActive: true });
-    const apiKey = connections[0]?.apiKey;
+    const account = connections[0];
+    const apiKey = account?.apiKey;
     if (!apiKey) {
       return NextResponse.json({ error: "No ElevenLabs connection found" }, { status: 400 });
     }
 
-    const voices = await fetchElevenLabsVoices(apiKey);
+    const sourcePolicy = account.providerSpecificData || {};
+    const proxyOptions = sourcePolicy.proxyPoolId && sourcePolicy.proxyPoolId !== "__none__"
+      ? await resolveConnectionProxyConfig(sourcePolicy) : sourcePolicy;
+    const voices = await fetchElevenLabsVoices(apiKey, { credentials: account, proxyOptions, signal: request.signal });
 
     // Group by all supported languages (verified_languages + labels.language)
     const byLang = {};
@@ -66,6 +72,8 @@ export async function GET(request) {
 
     return NextResponse.json({ languages, byLang });
   } catch (err) {
-    return NextResponse.json({ error: err.message || "Failed to fetch voices" }, { status: 502 });
+    if (request.signal?.aborted) return NextResponse.json({ error: "Client closed request" }, { status: 499 });
+    if (err.code === "TTS_HEADER_TIMEOUT") return NextResponse.json({ error: "TTS response headers timed out" }, { status: 408 });
+    return NextResponse.json({ error: "Failed to fetch ElevenLabs voices" }, { status: 502 });
   }
 }

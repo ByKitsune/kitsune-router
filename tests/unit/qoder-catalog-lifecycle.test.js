@@ -404,12 +404,15 @@ describe("Qoder native model limits remain distinct from raw signing metadata", 
     expect(state.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("retains exact hidden raw configs without advertising hidden models", async () => {
+  it("retains provider-returned UI-disabled models together with their exact raw configs", async () => {
     const hidden = { key: "hidden-native", enable: false, max_input_tokens: "2048", nested: { untouched: true } };
     state.fetch.mockResolvedValueOnce(Response.json({ chat: [hidden] }));
     const selected = credentials();
     const result = await catalog.resolveQoderModels(selected);
-    expect(result.models).toEqual([]);
+    expect(result.models).toEqual([{
+      id: "hidden-native", name: "hidden-native", maxInputTokens: 2048,
+      isVL: false, isReasoning: false, description: "",
+    }]);
     expect(result.rawConfigs.get("hidden-native")).toEqual(hidden);
     expect(await catalog.getQoderModelConfig(selected, "hidden-native")).toEqual(hidden);
   });

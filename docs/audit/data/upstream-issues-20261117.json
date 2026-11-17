@@ -1,0 +1,374 @@
+{
+  "captured_at_utc": "2026-11-17T02:33:21.298743+00:00",
+  "repository": "decolua/9router",
+  "upstream_head": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "scope": "First25 open actual issues sorted by latest update; detailed review of8 relevant issues. Not an exhaustive review of all repository issues. No pull-request search or review performed.",
+  "access": [
+    {
+      "route": "https://api.github.com/repos/decolua/9router/issues?state=open&sort=updated&direction=desc&per_page=50",
+      "method": "curl public HTTPS",
+      "outcome": "Proxy CONNECT403 before HTTP response",
+      "required_host_if_API_access_is_needed": "api.github.com"
+    },
+    {
+      "route": "https://api.github.com/repos/decolua/9router/issues",
+      "method": "gh api with existing platform authentication",
+      "outcome": "Forbidden; no credentials extracted or requested"
+    },
+    {
+      "route": "https://github.com/decolua/9router/issues?q=is%3Aissue%20is%3Aopen%20sort%3Aupdated-desc",
+      "method": "Public GitHub HTML embedded application JSON",
+      "http_status": 200,
+      "outcome": "25 records verified itemType REPO_ISSUES_DASHBOARD_ITEM_TYPE_ISSUE and OPEN state"
+    },
+    {
+      "route": "https://github.com/decolua/9router/issues.atom",
+      "method": "Public HTTPS",
+      "http_status": 406,
+      "outcome": "Atom unavailable; not used as issue evidence"
+    }
+  ],
+  "index_html_sha256": "f190d7f37df7da31de2249204c03a5f340861018af12432d826203f121047ee7",
+  "index_has_next_page": null,
+  "observed_issues": [
+    {
+      "number": 5605,
+      "title": "kimi k3.1 pro reports 200k context window",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-11T17:31:34Z",
+      "updatedAt": "2026-11-17T00:15:33Z",
+      "commentCount": 1,
+      "permalink": "https://github.com/decolua/9router/issues/5605"
+    },
+    {
+      "number": 5721,
+      "title": "Custom provider validation fails instantly with \"Connection timeout - provider node too slow\": EYEBALLS_CONNECT 250 ms attempt budget is below one RTT",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-16T20:40:49Z",
+      "updatedAt": "2026-11-16T20:52:28Z",
+      "commentCount": 1,
+      "permalink": "https://github.com/decolua/9router/issues/5721"
+    },
+    {
+      "number": 5714,
+      "title": "[BUG] Intermittent 503 Error When Using Gemini Model via Claude Code",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-16T03:58:16Z",
+      "updatedAt": "2026-11-16T19:34:55Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/5714"
+    },
+    {
+      "number": 5718,
+      "title": "tool_choice dropped in chat\u2192Responses translation: explicit client choice degrades to upstream default, model narrates instead of calling",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-16T15:01:45Z",
+      "updatedAt": "2026-11-16T16:25:03Z",
+      "commentCount": 1,
+      "permalink": "https://github.com/decolua/9router/issues/5718"
+    },
+    {
+      "number": 5695,
+      "title": "Antigravity requests fail",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T03:24:06Z",
+      "updatedAt": "2026-11-16T15:52:37Z",
+      "commentCount": 9,
+      "permalink": "https://github.com/decolua/9router/issues/5695"
+    },
+    {
+      "number": 5717,
+      "title": "feat(usage): show combo (requested alias) and API key per request, plus live in-flight requests",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-16T14:05:59Z",
+      "updatedAt": "2026-11-16T14:05:59Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5717"
+    },
+    {
+      "number": 5715,
+      "title": "Opencode Not working on Claude_Code",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-16T12:34:42Z",
+      "updatedAt": "2026-11-16T13:12:12Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/5715"
+    },
+    {
+      "number": 4873,
+      "title": "error after cleaned /C:",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-15T11:49:40Z",
+      "updatedAt": "2026-11-16T09:04:27Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/4873"
+    },
+    {
+      "number": 5696,
+      "title": "Antigravity returns prompt-triggered 429 for OpenClaw system identity sentence",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T04:38:27Z",
+      "updatedAt": "2026-11-16T04:40:25Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/5696"
+    },
+    {
+      "number": 1523,
+      "title": "Allow Explicit Empty API KEY for custom endpoint (openai compatible/anthropic)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-05-28T17:50:24Z",
+      "updatedAt": "2026-11-16T02:02:27Z",
+      "commentCount": 3,
+      "permalink": "https://github.com/decolua/9router/issues/1523"
+    },
+    {
+      "number": 4255,
+      "title": "Race condition: inst\u00e2ncia \"filha\" (tray) mata o processo \"pai\" que a criou, causando SIGKILL inesperado e perda do processo no terminal",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-22T23:59:25Z",
+      "updatedAt": "2026-11-15T23:49:13Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/4255"
+    },
+    {
+      "number": 5525,
+      "title": "0.5.116: /v1/audio/transcriptions no longer sends a multipart body, STT providers return 400",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-08T16:56:05Z",
+      "updatedAt": "2026-11-15T23:35:07Z",
+      "commentCount": 1,
+      "permalink": "https://github.com/decolua/9router/issues/5525"
+    },
+    {
+      "number": 5532,
+      "title": "Allow disabling update notifications",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-09T01:26:05Z",
+      "updatedAt": "2026-11-15T23:08:27Z",
+      "commentCount": 1,
+      "permalink": "https://github.com/decolua/9router/issues/5532"
+    },
+    {
+      "number": 5710,
+      "title": "Codex Responses API request for gpt-4o appears to reach upstream as deprecated o3-mini",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T20:12:05Z",
+      "updatedAt": "2026-11-15T20:12:05Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5710"
+    },
+    {
+      "number": 5690,
+      "title": "opencode free lane: instant 429 FreeUsageLimitError gated on tools[] names \u2014 ReportFindings pairs and the exact names Read/Edit (not quota)",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-14T20:37:27Z",
+      "updatedAt": "2026-11-15T18:54:03Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5690"
+    },
+    {
+      "number": 5705,
+      "title": "open code usage limit hit and reset after a 4h",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T15:53:44Z",
+      "updatedAt": "2026-11-15T15:53:44Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5705"
+    },
+    {
+      "number": 5693,
+      "title": "Claude CLI Fail to Call Antigravity Models ",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T01:16:55Z",
+      "updatedAt": "2026-11-15T15:20:13Z",
+      "commentCount": 5,
+      "permalink": "https://github.com/decolua/9router/issues/5693"
+    },
+    {
+      "number": 4248,
+      "title": "NVIDIA upstream connect timeouts (~250s) surface as 502",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-09-22T12:36:46Z",
+      "updatedAt": "2026-11-15T14:58:24Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/4248"
+    },
+    {
+      "number": 5704,
+      "title": "minimax-code-global: streamed responses are buffered until completion; long generations fail with 'fetch connect timeout' after ~249 s",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T14:58:16Z",
+      "updatedAt": "2026-11-15T14:58:16Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5704"
+    },
+    {
+      "number": 4529,
+      "title": "Claude Code stream stalls, then non-streaming retry returns OpenAI JSON on /v1/messages",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-10-01T22:32:46Z",
+      "updatedAt": "2026-11-15T13:25:17Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/4529"
+    },
+    {
+      "number": 5700,
+      "title": "[Feature Request] Built-in Agent-to-Agent (A2A) Messaging / Relay Hub via 9Router",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T11:40:58Z",
+      "updatedAt": "2026-11-15T11:40:58Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5700"
+    },
+    {
+      "number": 2938,
+      "title": "AG no longer working - 400 Errors from antigravity models",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-07-31T02:19:29Z",
+      "updatedAt": "2026-11-15T09:13:00Z",
+      "commentCount": 5,
+      "permalink": "https://github.com/decolua/9router/issues/2938"
+    },
+    {
+      "number": 5698,
+      "title": "feat(antigravity): add Gemini 4 Hydrogen tiers including xhigh",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T05:50:06Z",
+      "updatedAt": "2026-11-15T05:50:06Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5698"
+    },
+    {
+      "number": 5692,
+      "title": "Add Custom Account Groups and Group-Based Routing for Codex Agents",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-15T00:56:42Z",
+      "updatedAt": "2026-11-15T00:56:42Z",
+      "commentCount": null,
+      "permalink": "https://github.com/decolua/9router/issues/5692"
+    },
+    {
+      "number": 5668,
+      "title": "media-providers embedding nvidia",
+      "state": "REPO_ISSUE_STATE_OPEN",
+      "createdAt": "2026-11-13T18:37:02Z",
+      "updatedAt": "2026-11-14T19:31:28Z",
+      "commentCount": 2,
+      "permalink": "https://github.com/decolua/9router/issues/5668"
+    }
+  ],
+  "reviewed_issues": [
+    {
+      "number": 5721,
+      "title": "Custom provider validation fails instantly with \"Connection timeout - provider node too slow\": EYEBALLS_CONNECT 250 ms attempt budget is below one RTT",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5721",
+      "reproduction": "On a link with roughly 285ms RTT and dual-stack DNS but no usable IPv6, custom provider validation fails in about 0.5s even though native fetch/curl succeeds. The report compares 250ms vs 2000ms address-attempt budgets.",
+      "reported_cause": "Upstream proxyFetch sets autoSelectFamilyAttemptTimeout:250; validation mislabels connect ETIMEDOUT as slow provider.",
+      "kitsune_observation": "That exact constant/override is absent; Kitsune uses transportPool with configurable 10s total connect deadline and preserves native fetch. No same-bug claim without a connection-attempt reproduction.",
+      "disposition": "Inspect Kitsune transport settings and regression behavior; do not copy the upstream timeout patch blindly.",
+      "audit_status": "unconfirmed_different_transport",
+      "evidence_html_sha256": "2a7cdc7acec7ac1a1214bb1acadc31b97a18ed1a5ffc09f9466b6569c333c888"
+    },
+    {
+      "number": 5718,
+      "title": "tool_choice dropped in chat\u2192Responses translation: explicit client choice degrades to upstream default, model narrates instead of calling",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5718",
+      "reproduction": "Chat Completions request with required or named tool_choice sent through a Responses-only model can terminate with narration and no tool call after the choice is dropped.",
+      "reported_cause": "Upstream openaiToOpenAIResponsesRequest omits tool_choice; comment additionally reports missing Chat [DONE] terminal markers.",
+      "kitsune_observation": "Kitsune already preserves tool_choice and flattens named function shape at open-sse/translator/request/openai-responses.js:254; stream.js contains guarded terminal emission.",
+      "disposition": "Validate existing translator and stream contracts; no blind port or claimed new fix.",
+      "audit_status": "already_addressed_in_kitsune_source",
+      "evidence_html_sha256": "3a916d23dd6214c52931130ebb79c87d5728423184bdd0300cf31eaae5ea0b25"
+    },
+    {
+      "number": 5525,
+      "title": "0.5.116: /v1/audio/transcriptions no longer sends a multipart body, STT providers return 400",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5525",
+      "reproduction": "POST audio/wav plus model as multipart to /v1/audio/transcriptions; upstream STT returns400 saying Content-Type is not multipart after upgrade0.5.112 to0.5.116.",
+      "reported_cause": "Upstream switched to package Undici fetch while retaining a different global FormData implementation, producing a text serialization instead of multipart boundaries.",
+      "kitsune_observation": "Kitsune STT constructs global FormData, but its proxyFetch retains original native fetch rather than upstream package-fetch replacement. Actual wire validation is required to determine applicability.",
+      "disposition": "Compare multipart binary/headers on the current transport before selective port.",
+      "audit_status": "adapted_with_local_wire_and_final_regression_validation",
+      "evidence_html_sha256": "c0f765907e390fa31d13948de2398ecc93b66884944c347fba34a000fa0b6b7d",
+      "historical_initial_audit_status": "pending_wire_reproduction",
+      "later_resolution": "Matching multipart serializer and request-local account transport validated locally; final full11772case run passed. Upstream issue remains OPEN at capture."
+    },
+    {
+      "number": 5710,
+      "title": "Codex Responses API request for gpt-4o appears to reach upstream as deprecated o3-mini",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5710",
+      "reproduction": "A single documented Codex Responses request for openai/gpt-4o returned503 mentioning deprecated o3-mini in an installed0.5.119Windows package.",
+      "reported_cause": "Unconfirmed. Reporter explicitly found no hardcoded or persisted mapping and had no readable runtime trace.",
+      "kitsune_observation": "No verified current Kitsune model-substitution reproduction in this discovery task.",
+      "disposition": "Retain explicit model identity invariants and investigate reproducible dispatch traces; do not invent an o3-mini rewrite fix.",
+      "audit_status": "unconfirmed_report",
+      "evidence_html_sha256": "e430f1f13209d01b1716511c0a3bdbdfe19d9fef341ecad2130010d67a23592f"
+    },
+    {
+      "number": 5605,
+      "title": "kimi k3.1 pro reports 200k context window",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5605",
+      "reproduction": "Kimi provider bare model ID k3.1-pro reports a generic200K context instead of the model maximum.",
+      "reported_cause": "Bare Kimi Code IDs k3.1-pro/k3.1-pro-highspeed are absent while prefixed kimi-k3.1-pro metadata exists.",
+      "kitsune_observation": "Official current Kimi Code source confirms /models Bearer accessToken and native limit.context; Kitsune OAuth catalog is skipped and generic parser omits limit.context. Bare k3.1-pro static1M limit remains unverified because official model documentation is network-blocked.",
+      "disposition": "Implemented Kimi OAuth/API-key native catalog discovery and positive safe-integer limit.context propagation, including exact account model IDs, complete empty catalogs, and unknown token ceilings. No static1M model claim or new billing inference; upstream issue remains OPEN.",
+      "audit_status": "partial_fix_dynamic_catalog_verified_locally_static_limit_unverified",
+      "evidence_html_sha256": "2bc29f811bedb551085e7a570bb588ad5e5eed11014ebfa82413752fd0be58eb",
+      "primary_protocol_independently_verified": true,
+      "primary_static_limit_independently_verified": false,
+      "validation": {
+        "new_kimi_tests_passed": 20,
+        "adjacent_total_tests_passed": 87,
+        "failed": 0,
+        "skipped": 0,
+        "files": 5,
+        "red_then_green": true,
+        "strict_targeted_lint": "passed",
+        "primary_source_commit": "fec742878d73678082b304c887e4fb1564088c54",
+        "no_live_account_verification": true
+      }
+    },
+    {
+      "number": 5714,
+      "title": "[BUG] Intermittent 503 Error When Using Gemini Model via Claude Code",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5714",
+      "reproduction": "Initial curl through Antigravity Gemini succeeds, a Claude Code request fails503 with model cooldown, and later curl also fails.",
+      "reported_cause": "Unconfirmed; report does not distinguish provider throttling, request rejection, or router account-health classification.",
+      "kitsune_observation": "No live provider credentials or controlled account test used.",
+      "disposition": "Preserve documented validation vs quota distinctions and explicit permanent denials; only change code after a local synthetic reproduction.",
+      "audit_status": "unconfirmed_report",
+      "evidence_html_sha256": "ee5948e5745bf11cbc17acc6897525ee9de31f664525f6ddb3ff721256897ee8"
+    },
+    {
+      "number": 5695,
+      "title": "Antigravity requests fail",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5695",
+      "reproduction": "Account connection check succeeds while real Antigravity requests return resource exhausted.",
+      "reported_cause": "Comments allege prompt-triggered responses and account enforcement; these are operator reports, not independently verified universal quota diagnoses.",
+      "kitsune_observation": "No live requests/account testing in this audit.",
+      "disposition": "Do not import prompt rewriting, identity stripping, or account-enforcement evasion. Preserve clear error diagnostics and supported authentication behavior.",
+      "audit_status": "provider_restriction_report_no_bypass",
+      "evidence_html_sha256": "4d372fcd4cb30896904ca071cbc2c594be0c9bd0081994221b29cb3b8b286313"
+    },
+    {
+      "number": 5696,
+      "title": "Antigravity returns prompt-triggered 429 for OpenClaw system identity sentence",
+      "state": "OPEN",
+      "url": "https://github.com/decolua/9router/issues/5696",
+      "reproduction": "Reporter claims an exact OpenClaw system identity sentence yields429 while shorter/reworded variants do not.",
+      "reported_cause": "Alleged upstream identity/content-based restriction, not an established general quota cause.",
+      "kitsune_observation": "No live reproduction; source issue requests identity rewriting.",
+      "disposition": "No anti-detection or restriction-bypass rewrite is authorized by this technical compatibility audit. Treat account/service denials explicitly.",
+      "audit_status": "provider_restriction_report_no_bypass",
+      "evidence_html_sha256": "04c7126af52ed5c9b7c5c952bc3efe93eeedecce3258cf83f6f8ffe2e8af9e2b"
+    }
+  ],
+  "analysis_phase_note": "Issue capture and triage; selected fixes and later tests are recorded separately in the reconciliation audit. OPEN is the observed upstream issue state, not a statement that Kitsune lacks every reported fix. Initial STT triage remains retained even though the later local adaptation was tested."
+}

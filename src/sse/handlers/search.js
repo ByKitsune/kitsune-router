@@ -7,7 +7,7 @@ import {
 } from "../services/auth.js";
 import { getSettings, getCombos, isApiKeyRequired } from "@/lib/localDb";
 import { AI_PROVIDERS, resolveProviderId } from "@/shared/constants/providers.js";
-import { handleSearchCore } from "open-sse/handlers/search/index.js";
+import { handleSearchCore, getSearchAccountTransportFailure } from "open-sse/handlers/search/index.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
@@ -18,6 +18,16 @@ import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
 
+function localFailureResponse(status, message) {
+  const response = errorResponse(status, message);
+  response.headers.set("x-should-retry", "false");
+  return response;
+}
+
+function cancelledResponse() {
+  return localFailureResponse(499, "Client closed request");
+}
+
 /**
  * Handle web search request for the SSE/Next.js server.
  * Provider IS the model (no model field). Mirrors handleEmbeddings auth + fallback flow.
@@ -25,10 +35,13 @@ const MAX_RESOURCE_FALLBACK_ATTEMPTS = 3;
  * @param {Request} request
  */
 export async function handleSearch(request) {
+  if (request.signal.aborted) return cancelledResponse();
   let body;
   try {
     body = await request.json();
+    if (request.signal.aborted) return cancelledResponse();
   } catch {
+    if (request.signal.aborted) return cancelledResponse();
     log.warn("SEARCH", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
@@ -50,12 +63,14 @@ export async function handleSearch(request) {
 
   // Enforce API key if enabled in settings
   const settings = await getSettings();
+  if (request.signal.aborted) return cancelledResponse();
   if (isApiKeyRequired(settings)) {
     if (!apiKey) {
       log.warn("AUTH", "Missing API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     }
     const valid = await isValidApiKey(apiKey);
+    if (request.signal.aborted) return cancelledResponse();
     if (!valid) {
       log.warn("AUTH", "Invalid API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
@@ -63,6 +78,7 @@ export async function handleSearch(request) {
   }
 
   return withInferenceLimit(request, apiKey, async () => {
+    if (request.signal.aborted) return cancelledResponse();
     if (!providerInput || typeof providerInput !== "string") {
       log.warn("SEARCH", "Missing provider/model");
       return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
@@ -75,6 +91,7 @@ export async function handleSearch(request) {
 
     // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
     const combos = await getCombos();
+    if (request.signal.aborted) return cancelledResponse();
     const comboModels = getComboModelsFromData(providerInput, combos);
     if (comboModels) {
       const comboStrategies = settings.comboStrategies || {};
@@ -88,7 +105,8 @@ export async function handleSearch(request) {
         log,
         comboName: providerInput,
         comboStrategy,
-        comboStickyLimit
+        comboStickyLimit,
+        signal: request.signal
       });
     }
 
@@ -171,8 +189,10 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
       provider: resolvedProvider,
       providerConfig,
       credentials: null,
+      signal: request.signal,
       log
     });
+    if (request.signal.aborted) return cancelledResponse();
     if (result.success) return result.response;
     return result.response;
   }
@@ -196,6 +216,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
   const searchLockKey = `websearch:${providerId}`;
 
   while (true) {
+    if (request.signal.aborted) return cancelledResponse();
     // Provider that actually owns the connection in use — differs from
     // providerId once we fall back, and error locks must be attributed to it.
     let credentialProviderId = providerId;
@@ -203,6 +224,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
 
     // Fall back to the related chat provider's credentials when this search
     // provider has none of its own (one key, chat + search).
+    if (request.signal.aborted) return cancelledResponse();
     if (!credentials && fallbackProviderId) {
       credentials = await getProviderCredentials(fallbackProviderId, excludeConnectionIds, searchLockKey);
       if (credentials) {
@@ -211,6 +233,7 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
       }
     }
 
+    if (request.signal.aborted) return cancelledResponse();
     if (!credentials || credentials.allRateLimited) {
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
@@ -228,15 +251,32 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
 
     log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
-    const refreshedCredentials = await checkAndRefreshToken(providerId, credentials);
+    const routingFailure = getSearchAccountTransportFailure(credentials, providerConfig);
+    if (routingFailure) {
+      log.error("SEARCH", routingFailure.error);
+      return routingFailure.response;
+    }
+
+    let refreshedCredentials;
+    try {
+      refreshedCredentials = await checkAndRefreshToken(providerId, credentials, { signal: request.signal });
+    } catch (error) {
+      if (request.signal.aborted) return cancelledResponse();
+      throw error;
+    }
+    if (request.signal.aborted) return cancelledResponse();
 
     const result = await handleSearchCore({
       body: coreBody,
       provider: resolvedProvider,
       providerConfig,
       credentials: refreshedCredentials,
+      signal: request.signal,
       log
     });
+
+    if (request.signal.aborted) return cancelledResponse();
+    if (result.localFailure) return result.response;
 
     if (result.success) {
       await clearAccountError(credentials.connectionId, credentials, searchLockKey);

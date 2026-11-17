@@ -367,10 +367,10 @@ async function fetchQoderCatalogRaw(credentials, signal, proxyOptions = null) {
       const key = entry.key;
       if (!key) continue;
 
-      // Always cache the config — chat needs model_config even for UI-hidden
-      // models (enable:false). Upstream still accepts chat for these keys.
+      // enable is an IDE visibility flag, not a model retirement or account
+      // entitlement decision. Keep provider-returned entries and their exact
+      // native configs together; execution remains subject to upstream auth.
       rawConfigs.set(key, entry);
-      if (entry.enable === false) continue;
 
       const display = entry.display_name || key;
       const maxInputTokens = positiveTokenLimit(entry.max_input_tokens);

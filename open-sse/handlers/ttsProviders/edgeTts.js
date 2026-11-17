@@ -1,6 +1,6 @@
 // Microsoft Edge / Bing TTS (no auth) — via Bing translator endpoint
 import { Buffer } from "node:buffer";
-import { UA } from "./_base.js";
+import { discardTtsBody, getTtsTransport, readTtsBuffer, readTtsJson, readTtsText, UA } from "./_base.js";
 
 const REFRESH_MS = 5 * 60 * 1000; // token TTL ~1h, refresh early
 const VOICES_TTL = 24 * 60 * 60 * 1000;
@@ -9,16 +9,17 @@ const cache = { token: null, tokenTime: 0 };
 let _voicesCache = null;
 let _voicesCacheTime = 0;
 
-async function getToken() {
+async function getToken(fetch, signal) {
   const now = Date.now();
   if (cache.token && now - cache.tokenTime < REFRESH_MS) return cache.token;
   const res = await fetch("https://www.bing.com/translator", {
+    signal,
     headers: { "User-Agent": UA, "Accept-Language": "vi,en-US;q=0.9,en;q=0.8" },
   });
   if (!res.ok) throw new Error(`Bing translator fetch failed: ${res.status}`);
   const rawCookies = res.headers.getSetCookie?.() || [];
   const cookie = rawCookies.map((c) => c.split(";")[0]).join("; ");
-  const html = await res.text();
+  const html = await readTtsText(res, signal);
   const match = html.match(/params_AbusePreventionHelper\s*=\s*\[([^,]+),([^,]+),/);
   if (!match) throw new Error("Failed to parse Bing token");
   cache.token = { key: match[1], token: match[2].replace(/"/g, ""), cookie };
@@ -26,7 +27,7 @@ async function getToken() {
   return cache.token;
 }
 
-async function ttsRequest(text, voiceId, token) {
+async function ttsRequest(text, voiceId, token, fetch, signal) {
   const parts = voiceId.split("-");
   const xmlLang = parts.slice(0, 2).join("-");
   const gender = voiceId.toLowerCase().includes("male") ? "Male" : "Female";
@@ -36,6 +37,7 @@ async function ttsRequest(text, voiceId, token) {
   body.append("token", token.token);
   body.append("key", token.key);
   return fetch("https://www.bing.com/tfettts?isVertical=1&&IG=1&IID=translator.5023&SFX=1", {
+    signal,
     method: "POST",
     body: body.toString(),
     headers: {
@@ -49,15 +51,17 @@ async function ttsRequest(text, voiceId, token) {
   });
 }
 
-export async function fetchEdgeTtsVoices() {
+export async function fetchEdgeTtsVoices(options = {}) {
+  const { fetch, signal } = getTtsTransport(null, options);
+  signal?.throwIfAborted();
   const now = Date.now();
   if (_voicesCache && now - _voicesCacheTime < VOICES_TTL) return _voicesCache;
   const res = await fetch(
     "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=6A5AA1D4EAFF4E9FB37E23D68491D6F4",
-    { headers: { "User-Agent": UA } }
+    { signal, headers: { "User-Agent": UA } }
   );
   if (!res.ok) throw new Error(`Edge TTS voices fetch failed: ${res.status}`);
-  const voices = await res.json();
+  const voices = await readTtsJson(res, signal);
   _voicesCache = voices;
   _voicesCacheTime = now;
   return voices;
@@ -65,24 +69,26 @@ export async function fetchEdgeTtsVoices() {
 
 export default {
   noAuth: true,
-  async synthesize(text, model) {
+  async synthesize(text, model, credentials, _responseFormat, options = {}) {
+    const { fetch, signal } = getTtsTransport(credentials, options);
     const voiceId = model || "vi-VN-HoaiMyNeural";
-    let token = await getToken();
-    let res = await ttsRequest(text, voiceId, token);
+    let token = await getToken(fetch, signal);
+    let res = await ttsRequest(text, voiceId, token, fetch, signal);
 
     // 429/403: invalidate cache and retry once
     if (res.status === 429 || res.status === 403) {
+      discardTtsBody(res);
       cache.token = null;
       cache.tokenTime = 0;
-      token = await getToken();
-      res = await ttsRequest(text, voiceId, token);
+      token = await getToken(fetch, signal);
+      res = await ttsRequest(text, voiceId, token, fetch, signal);
     }
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
+      const body = await readTtsText(res, signal).catch(() => { signal?.throwIfAborted(); return ""; });
       throw new Error(`Bing TTS failed: ${res.status}${body ? " - " + body : ""}`);
     }
-    const buf = await res.arrayBuffer();
+    const buf = await readTtsBuffer(res, signal);
     if (buf.byteLength < 1024) throw new Error("Bing TTS returned empty audio");
     return { base64: Buffer.from(buf).toString("base64"), format: "mp3" };
   },

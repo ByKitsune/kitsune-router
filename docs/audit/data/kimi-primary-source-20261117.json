@@ -1,0 +1,103 @@
+{
+  "captured_at_utc": "2026-11-17T02:38:57.859476+00:00",
+  "issue_url": "https://github.com/decolua/9router/issues/5605",
+  "official_docs_access": [
+    {
+      "url": "https://www.kimi.com/code/docs/en/kimi-code/models",
+      "outcome": "CONNECT403 before HTTP response"
+    },
+    {
+      "url": "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+      "outcome": "CONNECT403 before HTTP response"
+    },
+    {
+      "url": "https://moonshotai.github.io/kimi-code/en/guides/models",
+      "outcome": "CONNECT403 before HTTP response"
+    }
+  ],
+  "primary_repository": "https://github.com/MoonshotAI/kimi-code",
+  "primary_commit": "fec742878d73678082b304c887e4fb1564088c54",
+  "primary_commit_time": "2026-11-16T21:13:18+08:00",
+  "archive_redirect": {
+    "repository": "https://github.com/MoonshotAI/kimi-cli",
+    "commit": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+    "evidence": "README explicitly marks Python Kimi CLI archived and points to MoonshotAI/kimi-code replacement."
+  },
+  "source_files": [
+    {
+      "path": "packages/oauth/src/managed-kimi-code.ts",
+      "url": "https://github.com/MoonshotAI/kimi-code/blob/fec742878d73678082b304c887e4fb1564088c54/packages/oauth/src/managed-kimi-code.ts",
+      "relevant_lines": [
+        420,
+        431,
+        550,
+        563
+      ],
+      "sha256": "a15c02f3845f06ca7b8b811faa32863bce01d76c70403b0e60bae9c4063f019c"
+    },
+    {
+      "path": "packages/oauth/src/managed-usage.ts",
+      "url": "https://github.com/MoonshotAI/kimi-code/blob/fec742878d73678082b304c887e4fb1564088c54/packages/oauth/src/managed-usage.ts",
+      "relevant_lines": [
+        8,
+        9
+      ],
+      "sha256": "130afd97e8c8e9d3b53f8ccaaa7bb1181af1f878a2e5d5c72f53bfab4e46ece9"
+    },
+    {
+      "path": "docs/en/configuration/config-files.md",
+      "url": "https://github.com/MoonshotAI/kimi-code/blob/fec742878d73678082b304c887e4fb1564088c54/docs/en/configuration/config-files.md",
+      "relevant_lines": [
+        28,
+        42
+      ],
+      "sha256": "2e94d532c726e483eafddd13541dc4dd545ee7fe810061d1196cf5680b61169e"
+    }
+  ],
+  "verified_contract": {
+    "catalog_endpoint": "GET https://api.kimi.com/coding/v1/models",
+    "catalog_auth": "Authorization: Bearer <accessToken>, shared with API-key-compatible managed endpoint",
+    "scope": "Kimi Code mainland endpoint; source also defines separate api.kimi.ai global endpoint. No credentials were sent and no live account response was fetched.",
+    "model_identity": "Use exact model.id returned by authenticated catalog, not a guessed prefix alias.",
+    "context_schema": "Positive integer model.limit.context in the current unified Kimi Code models schema. Older Open Platform source uses context_length.",
+    "static_facts": "Current primary docs show k3 context1048576; they do not independently establish k3.1-pro or k3.1-pro-highspeed limits."
+  },
+  "proposed_minimal_fix": "Kimi-scoped native catalog configuration/resolver using existing checked transport, normal credential priority, current-model IDs, and validated positive native limit.context. No static1M assignment or pricing/capability inference.",
+  "implementation_status": "Implemented in current Kitsune working tree: Kimi-only native context parsing and OAuth/API-key live discovery in both catalog surfaces. No static model facts or prices assigned.",
+  "validation": {
+    "red_run": {
+      "tests_failed": 15,
+      "tests_passed": 3,
+      "tests_total": 18,
+      "log": "kimi-catalog-red.log"
+    },
+    "green_run": {
+      "new_kimi_cases_passed": 20,
+      "total_cases_passed": 87,
+      "files_passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "json": "kimi-catalog-green.json",
+      "log": "kimi-catalog-green.log",
+      "regression_report_gate": "passed"
+    },
+    "strict_targeted_lint": "passed",
+    "live_provider_requests": "not run",
+    "static_k3_1_pro_limit": "unverified; official model documentation remained network-blocked"
+  },
+  "baseline_kitsune_confirmed_code_gaps": [
+    {
+      "file": "src/shared/utils/providerLiveModels.js",
+      "finding": "Generic model parser reads context_length/context_window variants but does not consume native limit.context."
+    },
+    {
+      "file": "src/app/api/providers/[id]/models/route.js",
+      "finding": "Kimi has no dedicated models resolver; generic fallback only accepts connection.apiKey, so OAuth-only Kimi does not list models."
+    },
+    {
+      "file": "src/app/api/v1/models/route.js",
+      "finding": "Kimi has no dedicated live resolver; generic public-model discovery is also gated on connection.apiKey."
+    }
+  ],
+  "baseline_note": "These findings describe the pre-repair source; implementation_status and final reconciliation receipt record their resolution."
+}

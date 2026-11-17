@@ -16,7 +16,7 @@ the receipt preserves the published 1.0.7 installer issue and earlier history.
 
 ### Historical distribution records
 
-**1.0.2 source verified; container published privately; npm denied at that check.** Runtime tag stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2` and `latest`, with independent authenticated digest/provenance/SPDX readback and published-image smoke. The package was **private** at that recorded readback and anonymous grants returned HTTP 401. npm publication received E403 with public readback HTTP 404; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment was established. These historical results do not determine 1.0.7 availability. See [1.0.2 evidence](CHANGELOG_v1.0.2.md).
+**1.0.2 source verified; container published privately; npm denied at that check.** Runtime tag stays at `65c8b97d783becab3f1e1210d2ab9ce67992e13b` (9,041 passed, 100 skipped, zero failures). Recovery `40485038668` published GHCR `1.0.2` and `latest`, with independent authenticated digest/provenance/SPDX readback and published-image smoke. The package was **private** at that recorded readback and anonymous grants returned HTTP 401. npm publication received E403 with public readback HTTP 404; token replacement had not been confirmed. No GitHub Release 1.0.2 or production deployment was established. These historical results do not determine current-release availability. See [1.0.2 evidence](CHANGELOG_v1.0.2.md).
 
 `v1.0.1` remains at `745834026a5a9f55dffce40c0ad01bf3106e8237`: its GHCR gate failed before login/push; npm publish failed with cause not yet known and public readback HTTP 404 on 2026-10-27. No canonical GHCR 1.0.1 image was published and no GitHub Release was created. `v1.0.0` remains at `390a65677c06a30084386d2a2adf8b0c48709281`, without npm/GHCR publication after its migration-test failure. Neither tag moves. See [1.0.2 status](../releases/RELEASE_NOTES_v1.0.2.md), not archived attempt commands. Original 0.x artifacts are unchanged.
 
@@ -67,23 +67,75 @@ Removing the package does not remove your state. Do not delete data as a trouble
 
 Use the canonical repository or an existing checkout. Commands run at the root, not `kitsune-router/app`:
 
-The initialization below is for a **fresh source install** (POSIX shell and OpenSSL). `next dev` does not run the CLI's secret generator, and source/standalone execution must not assume automatic secret provisioning. A strong `JWT_SECRET` of at least 32 characters is required; otherwise dashboard login fails. Generate it once into private `.env`, reuse it on restarts, and never commit or print it. For existing state, retain the original effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` using [migration](MIGRATION.md), not new generated values.
+The initialization below is for a **fresh source install** (POSIX shell and Node.js). `next dev` does not run the CLI's secret generator, and source/standalone execution must not assume automatic secret provisioning. A strong `JWT_SECRET` of at least 32 characters is required; otherwise dashboard login fails. Generate it once into private external `kitsune-router.source.env`, reuse it on restarts, and never commit or print it. For existing state, retain the original effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` using [migration](MIGRATION.md), not new generated values.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
-For production source builds, use `npm run build` then `npm run start`. Use an **absolute `DATA_DIR`**: the standalone server changes working directory. Automatic SQLite migration requires a supported Node runtime with `node:sqlite`, or a supported Bun runtime with native SQLite; there is no unsafe raw-file fallback when the snapshot API is unavailable.
+The development launcher parses this env file as data, then spawns Next with
+explicit arguments. Directly passing Node's `--env-file` to the Next CLI can
+copy that unsupported flag into a worker's `NODE_OPTIONS`; the parent/spawn
+boundary avoids it. Do not source the JSON-quoted file as shell code: paths and
+values can contain literal shell metacharacters. This is distinct from the
+standalone entry, which can be launched directly with Node's env-file option.
+
+For production source builds, keep runtime secrets outside the checkout, then run:
+
+```bash
+npm run build
+HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js
+```
+
+The standalone entry reads its environment, not launcher flags. Do not leave a private `.env` or `.env.*` in the checkout during a production build: Next can trace/copy it, and the postbuild guard correctly refuses embedded state or secrets. If upgrading a setup that already uses `.env`, preserve its exact effective values securely outside the checkout before changing the configuration path. Do not generate replacement credentials or delete the only copy.
+
+Use an **absolute `DATA_DIR`**: the standalone server changes working directory. Automatic SQLite migration requires a supported Node runtime with `node:sqlite`, or a supported Bun runtime with native SQLite; there is no unsafe raw-file fallback when the snapshot API is unavailable.
+
+Build-time page collection can initialize local SQLite state even though it does
+not need operator credentials. If the default home/state directory is read-only,
+give only the build process a writable absolute `DATA_DIR` belonging to an
+isolated build directory. For example,
+`DATA_DIR=/absolute/private/kitsune-build-state npm run build` selects build state;
+it does not change the runtime file's existing `DATA_DIR`. Do not point automated
+builds/tests at an operator database or copy runtime credentials into the build.
+
+If native dependency installation cannot write the default node-gyp cache, set
+`npm_package_config_node_gyp_devdir` to a writable absolute cache directory and
+rerun `npm ci`. Retain TLS and artifact checksum verification; do not run npm as
+root or change the lockfile merely to match an incomplete installation. An
+optional package omitted by npm is distinct from a missing lockfile entry.
+Build and functional checks remain necessary after the dependency metadata check.
 
 The current source CLI can also launch the completed root standalone build:
 
@@ -113,7 +165,7 @@ Bun launchers are installed with mode `0755`. On repeat global installation the 
 
 Source `--check-install` also requires the custom server's startup files (`custom-server.js`, `shutdown-lifecycle.cjs`, and `cli/hooks/dataDirectory.js`) alongside the generated `server.js` and build ID. These entries must be files. Partial source output is skipped in favor of a complete packaged `cli/app`, when present; otherwise the check fails with rebuild/reinstall guidance.
 
-Review `.env` before starting. On a fresh install choose a writable absolute state path, a strong initial password, and fresh private API/identity secrets instead of published example values. On upgrades keep all effective existing values; changing them can invalidate stored credentials and sessions. A commented or too-short existing `JWT_SECRET` must be corrected deliberately, not assumed usable because the file exists.
+Review the external `kitsune-router.source.env` before starting. On a fresh install choose a writable absolute state path, a strong initial password, and fresh private API/identity secrets instead of published example values. On upgrades keep all effective existing values; changing them can invalidate stored credentials and sessions. A commented or too-short existing `JWT_SECRET` must be corrected deliberately, not assumed usable because the file exists.
 
 ## First configuration
 

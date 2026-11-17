@@ -7,7 +7,7 @@ import {
 } from "../services/auth.js";
 import { getSettings, getCombos, isApiKeyRequired } from "@/lib/localDb";
 import { AI_PROVIDERS, resolveProviderId } from "@/shared/constants/providers.js";
-import { handleFetchCore } from "open-sse/handlers/fetch/index.js";
+import { handleFetchCore, getFetchAccountTransportFailure } from "open-sse/handlers/fetch/index.js";
 import { getWebFetchFormatError } from "open-sse/config/webFetchFormats.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
@@ -19,6 +19,16 @@ import { redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
 
+function localFailureResponse(status, message) {
+  const response = errorResponse(status, message);
+  response.headers.set("x-should-retry", "false");
+  return response;
+}
+
+function cancelledResponse() {
+  return localFailureResponse(499, "Client closed request");
+}
+
 /**
  * Handle web fetch (URL extraction) request for the SSE/Next.js server.
  * Provider IS the model. Mirrors handleEmbeddings auth + fallback flow.
@@ -26,10 +36,13 @@ import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
  * @param {Request} request
  */
 export async function handleFetch(request) {
+  if (request.signal.aborted) return cancelledResponse();
   let body;
   try {
     body = await request.json();
+    if (request.signal.aborted) return cancelledResponse();
   } catch {
+    if (request.signal.aborted) return cancelledResponse();
     log.warn("FETCH", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
@@ -53,12 +66,14 @@ export async function handleFetch(request) {
 
   // Enforce API key if enabled in settings
   const settings = await getSettings();
+  if (request.signal.aborted) return cancelledResponse();
   if (isApiKeyRequired(settings)) {
     if (!apiKey) {
       log.warn("AUTH", "Missing API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     }
     const valid = await isValidApiKey(apiKey);
+    if (request.signal.aborted) return cancelledResponse();
     if (!valid) {
       log.warn("AUTH", "Invalid API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
@@ -66,6 +81,7 @@ export async function handleFetch(request) {
   }
 
   return withInferenceLimit(request, apiKey, async () => {
+    if (request.signal.aborted) return cancelledResponse();
     if (!providerInput || typeof providerInput !== "string") {
       log.warn("FETCH", "Missing provider/model");
       return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: provider (or model)");
@@ -86,14 +102,28 @@ export async function handleFetch(request) {
 
     // SSRF guard: reject internal/private/metadata targets
     try {
-      await assertPublicUrlAsync(targetUrl);
+      let onAbort;
+      try {
+        await Promise.race([
+          assertPublicUrlAsync(targetUrl),
+          new Promise((_, reject) => {
+            onAbort = () => reject(request.signal.reason);
+            request.signal.addEventListener("abort", onAbort, { once: true });
+            if (request.signal.aborted) onAbort();
+          }),
+        ]);
+      } finally {
+        if (onAbort) request.signal.removeEventListener("abort", onAbort);
+      }
     } catch (err) {
+      if (request.signal.aborted) return cancelledResponse();
       log.warn("FETCH", "Blocked URL", { url: targetUrl });
       return errorResponse(HTTP_STATUS.BAD_REQUEST, err.message);
     }
 
     // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
     const combos = await getCombos();
+    if (request.signal.aborted) return cancelledResponse();
     const comboModels = getComboModelsFromData(providerInput, combos);
     if (comboModels) {
       const comboStrategies = settings.comboStrategies || {};
@@ -107,7 +137,8 @@ export async function handleFetch(request) {
         log,
         comboName: providerInput,
         comboStrategy,
-        comboStickyLimit
+        comboStickyLimit,
+        signal: request.signal
       });
     }
 
@@ -158,8 +189,12 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
       provider: resolvedProvider.id,
       providerConfig,
       credentials: null,
+      signal: request.signal,
       log
     });
+    if (request.signal.aborted) return cancelledResponse();
+    if (result.localFailure) return localFailureResponse(result.status || 502, result.error || "Fetch failed");
+
     if (result.success) {
       return new Response(JSON.stringify(result.data), {
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
@@ -179,8 +214,10 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
   const fetchLockKey = `webfetch:${providerId}`;
 
   while (true) {
+    if (request.signal.aborted) return cancelledResponse();
     const credentials = await getProviderCredentials(providerId, excludeConnectionIds, fetchLockKey);
 
+    if (request.signal.aborted) return cancelledResponse();
     if (!credentials || credentials.allRateLimited) {
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
@@ -198,7 +235,20 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
 
     log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${redactAccountName(credentials.connectionName, credentials.connectionId)}\x1b[0m`);
 
-    const refreshedCredentials = await checkAndRefreshToken(providerId, credentials);
+    const routingFailure = getFetchAccountTransportFailure(credentials);
+    if (routingFailure) {
+      log.error("FETCH", routingFailure.error);
+      return localFailureResponse(routingFailure.status, routingFailure.error);
+    }
+
+    let refreshedCredentials;
+    try {
+      refreshedCredentials = await checkAndRefreshToken(providerId, credentials, { signal: request.signal });
+    } catch (error) {
+      if (request.signal.aborted) return cancelledResponse();
+      throw error;
+    }
+    if (request.signal.aborted) return cancelledResponse();
 
     const result = await handleFetchCore({
       url: targetUrl,
@@ -207,6 +257,7 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
       provider: resolvedProvider.id,
       providerConfig,
       credentials: refreshedCredentials,
+      signal: request.signal,
       log,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
@@ -217,6 +268,9 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
         });
       }
     });
+
+    if (request.signal.aborted) return cancelledResponse();
+    if (result.localFailure) return localFailureResponse(result.status || 502, result.error || "Fetch failed");
 
     if (result.success) {
       await clearAccountError(credentials.connectionId, credentials, fetchLockKey);

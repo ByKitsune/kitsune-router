@@ -9,7 +9,7 @@ import { getModelUpstreamId } from "../../config/providerModels.js";
 import { applyThinking, stripThinkingSuffix } from "../../translator/concerns/thinkingUnified.js";
 import { randomUUID } from "node:crypto";
 import { resolveSessionId } from "../../utils/sessionManager.js";
-import { proxyAwareFetch } from "../../utils/proxyFetch.js";
+import { createAccountTransport, isAccountRoutingFailure } from "../../utils/accountTransport.js";
 
 // Default search model + endpoint derive from registry searchViaChat (single source)
 const searchModel = (id) => PROVIDER_MEDIA[id]?.searchViaChat?.defaultModel;
@@ -447,8 +447,12 @@ export async function handleChatSearch({
   maxResults,
   model,
   credentials,
-  log
+  log,
+  signal,
+  proxyOptions = null
 }) {
+  const cancelled = () => ({ success: false, status: 499, error: "Client closed request", localFailure: true, errorScope: "request" });
+  if (signal?.aborted) return cancelled();
   const startTime = Date.now();
   const cfg = CHAT_SEARCH_CONFIG[provider];
 
@@ -489,26 +493,21 @@ export async function handleChatSearch({
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+  const transport = createAccountTransport(credentials, { signal: requestSignal, proxyOptions });
 
   let upstreamStart = Date.now();
   let resp;
   try {
-    const accountPolicy = credentials?.providerSpecificData;
-    resp = await proxyAwareFetch(url, {
+    resp = await transport.fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
-      signal: controller.signal
-    }, {
-      connectionProxyEnabled: accountPolicy?.connectionProxyEnabled === true,
-      connectionProxyUrl: accountPolicy?.connectionProxyUrl || "",
-      connectionNoProxy: accountPolicy?.connectionNoProxy || "",
-      vercelRelayUrl: accountPolicy?.vercelRelayUrl || "",
-      strictProxy: accountPolicy?.strictProxy === true,
     });
   } catch (err) {
     clearTimeout(timer);
-    if (err?.name === "AbortError") {
+    if (signal?.aborted) return cancelled();
+    if (controller.signal.aborted || err?.name === "AbortError") {
       log?.warn?.("SEARCH", `[chatSearch] timeout provider=${provider}`);
       return { success: false, status: 504, error: "Upstream timeout" };
     }
@@ -516,21 +515,26 @@ export async function handleChatSearch({
     return {
       success: false,
       status: 502,
-      error: `Network error: ${err?.message || "unknown"}`
+      error: `Network error: ${err?.message || "unknown"}`,
+      ...(isAccountRoutingFailure(err) ? { localFailure: true, errorScope: "request" } : {}),
     };
   }
-  clearTimeout(timer);
   const upstreamLatency = Date.now() - upstreamStart;
 
   let data;
   try {
     data = await resp.json();
+    requestSignal.throwIfAborted();
   } catch {
+    if (signal?.aborted) return cancelled();
+    if (controller.signal.aborted) return { success: false, status: 504, error: "Upstream timeout" };
     return {
       success: false,
       status: 502,
       error: `Invalid upstream response (status ${resp.status})`
     };
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!resp.ok) {

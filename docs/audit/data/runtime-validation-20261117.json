@@ -1,0 +1,42 @@
+{
+  "review_date": "2026-11-17",
+  "source_base_commit": "2ba52e092acf606fef08df6f4dc96f4933af4dad",
+  "scope": "Working-tree source validation; not an immutable release, publication, live-provider acceptance or production deployment.",
+  "full_vitest": {
+    "command": "npm test -- --maxWorkers=4 --reporter=default --reporter=json --outputFile=/workspace/.kitsune-cloud/audit-vitest-final.json",
+    "report_sha256": "a88168d2c2d29cda5c933a79297374e7fe8a7a40400ec0336863d3ebad567e74",
+    "success": true,
+    "total_cases": 11590,
+    "passed_cases": 11491,
+    "failed_cases": 0,
+    "skipped_cases": 99,
+    "todo_cases": 0,
+    "failed_nested_suites": 0,
+    "selected_files": 899,
+    "passed_files": 881,
+    "skipped_files": 18,
+    "duration_seconds": 199.6,
+    "regression_report_gate": "passed",
+    "retained_report_file": "runtime-phase-vitest.json"
+  },
+  "additional_results": {
+    "documentation_tests": 18,
+    "documentation_static_pages": 109,
+    "application_production_build": "passed",
+    "strict_composed_lint": "passed",
+    "production_browser_cases_passed": 47
+  },
+  "limitations": [
+    "No live provider inference or paid video generation",
+    "Bun runtime unavailable",
+    "No new release or publication"
+  ],
+  "phase": "Dependency/runtime repairs before later upstream reconciliation",
+  "pending_at_phase1_observation": [
+    "CLI package build",
+    "physically absent optional-addon production build",
+    "later upstream reconciliation and any new source validation",
+    "commit/push outcome"
+  ],
+  "phase1_followup_resolution": "All later local checks completed in reconciliation-validation-20261117.json. Git delivery is independently verified after commit; snapshot publication remains a separate UI action."
+}

@@ -223,7 +223,7 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
   if (!canContinue()) return;
   const quotas = usage?.quotas || {};
   const quota = quotas?.[providerConfig.quotaKey];
-  const resetAt = quota?.resetAt;
+  let resetAt = quota?.resetAt;
   if (!resetAt) return;
 
   state.resetCache[key] = resetAt;
@@ -232,14 +232,27 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
   if (isQuotaExhausted(quota)) return;
 
   const now = Date.now();
-  const resetKey = normalizeResetKey(resetAt);
+  let resetKey = normalizeResetKey(resetAt);
   const lastPingedResetKey = connection.lastPingedResetKey || normalizeResetKey(connection.lastPingedResetAt);
+
+  // A minute-long scheduler tick can miss Claude's five-second lead window,
+  // after which quota polling already reports the following reset. Catch up
+  // only an observed, due, unaccepted deadline, keeping the fresh reset for the
+  // next cycle. Codex's separate sliding-window policy stays unchanged.
+  if (!providerConfig.pingWhenResetAtSlides && cachedReset
+    && lastPingedResetKey !== normalizeResetKey(cachedReset)
+    && shouldPingForReset(providerConfig, cachedReset, cachedReset, now)) {
+    resetAt = cachedReset;
+    resetKey = normalizeResetKey(cachedReset);
+  }
 
   // Claude waits for reset. Codex pings only when resetAt slides, which means the 5h window is inactive.
   if (!shouldPingForReset(providerConfig, cachedReset, resetAt, now)) return;
   if (wasPingedRecently(connection, providerConfig.minPingIntervalMs, now)) return;
   if (lastPingedResetKey === resetKey) return;
 
+  const catchingUpReset = resetAt !== quota.resetAt;
+  if (catchingUpReset) state.resetCache[key] = resetAt;
   const ok = await handler.sendPing(connection, providerConfig, proxyOptions, deps);
   if (!canContinue()) return;
   if (!ok) {
@@ -249,6 +262,7 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
     return;
   }
 
+  if (catchingUpReset) state.resetCache[key] = quota.resetAt;
   delete state.failureCache[key];
   await deps.updateProviderConnection(connection.id, {
     lastPingedResetAt: resetAt,

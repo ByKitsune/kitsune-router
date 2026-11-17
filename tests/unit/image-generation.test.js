@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CODEX_CLI_VERSION } from "../../open-sse/config/clientVersions.js";
 import { handleImageGenerationCore } from "../../open-sse/handlers/imageGenerationCore.js";
+import * as imageDownload from "../../open-sse/translator/concerns/image.js";
 
 const originalFetch = global.fetch;
 
@@ -22,6 +23,7 @@ describe("handleImageGenerationCore", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -446,9 +448,12 @@ describe("handleImageGenerationCore", () => {
   });
 
   it("resolves Cloudflare img2img and inpainting URL inputs before sending", async () => {
+    const source = [137, 80, 78, 71, 1, 2, 3];
+    const mask = [255, 216, 255, 4, 5, 6];
+    const download = vi.spyOn(imageDownload, "fetchImageAsBase64")
+      .mockResolvedValueOnce({ url: `data:image/png;base64,${Buffer.from(source).toString("base64")}`, mimeType: "image/png" })
+      .mockResolvedValueOnce({ url: `data:image/jpeg;base64,${Buffer.from(mask).toString("base64")}`, mimeType: "image/jpeg" });
     global.fetch
-      .mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { "Content-Type": "image/png" } }))
-      .mockResolvedValueOnce(new Response(new Uint8Array([4, 5, 6]), { status: 200, headers: { "Content-Type": "image/png" } }))
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({ result: { image: "base64inpaint" }, success: true }),
@@ -472,17 +477,18 @@ describe("handleImageGenerationCore", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(global.fetch).toHaveBeenNthCalledWith(1, "https://example.com/source.png");
-    expect(global.fetch).toHaveBeenNthCalledWith(2, "https://example.com/mask.png");
+    expect(download).toHaveBeenNthCalledWith(1, "https://example.com/source.png", { signal: undefined });
+    expect(download).toHaveBeenNthCalledWith(2, "https://example.com/mask.png", { signal: undefined });
+    expect(global.fetch).toHaveBeenCalledOnce();
 
-    const providerCall = global.fetch.mock.calls[2];
+    const providerCall = global.fetch.mock.calls[0];
     expect(providerCall[0]).toBe("https://api.cloudflare.com/client/v4/accounts/cf-account/ai/run/@cf/runwayml/stable-diffusion-v1-5-inpainting");
     const requestBody = JSON.parse(providerCall[1].body);
-    expect(requestBody.image).toEqual([1, 2, 3]);
-    expect(requestBody.image_b64).toBe(Buffer.from([1, 2, 3]).toString("base64"));
-    expect(requestBody.mask).toEqual([4, 5, 6]);
-    expect(requestBody.mask_image).toEqual([4, 5, 6]);
-    expect(requestBody.mask_b64).toBe(Buffer.from([4, 5, 6]).toString("base64"));
+    expect(requestBody.image).toEqual(source);
+    expect(requestBody.image_b64).toBe(Buffer.from(source).toString("base64"));
+    expect(requestBody.mask).toEqual(mask);
+    expect(requestBody.mask_image).toEqual(mask);
+    expect(requestBody.mask_b64).toBe(Buffer.from(mask).toString("base64"));
   });
 
   it("handles provider error responses", async () => {

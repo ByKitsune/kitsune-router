@@ -4,6 +4,60 @@ const path = require("path");
 
 let trayInstance = null;
 let isWinTray = false;
+let cancelTrayReadiness = null;
+const TRAY_READY_TIMEOUT_MS = 3000;
+
+function reportTrayError(options, error) {
+  const failure = error?.message ? error : new Error(String(error || "Tray startup failed"));
+  if (typeof options.onError === "function") options.onError(failure);
+  else process.stderr.write(`[kitsunerouter] tray failed to start: ${failure.message}\n`);
+}
+
+function ownedTrayProcess(instance) {
+  try { return instance._process || (typeof instance.process === "function" ? instance.process() : null); }
+  catch { return null; }
+}
+
+function watchTrayReadiness(instance, options, promiseReady, windows = false) {
+  let settled = false;
+  const child = ownedTrayProcess(instance);
+  const cleanup = () => {
+    clearTimeout(timer);
+    child?.off?.("error", fail);
+    child?.off?.("exit", exited);
+    if (cancelTrayReadiness === cancel) cancelTrayReadiness = null;
+  };
+  const cancel = () => { settled = true; cleanup(); };
+  const ready = () => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    options.onReady?.();
+  };
+  const fail = error => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    // Failure only owns the native tray resource. The working gateway must
+    // continue serving, and a late failure cannot dispose a replacement tray.
+    const disposal = trayInstance === instance ? killTray() : disposeTrayInstance(instance, windows);
+    Promise.resolve(disposal).catch(() => {});
+    reportTrayError(options, error);
+  };
+  const exited = (code, signal) => fail(new Error(`Tray process exited before startup (${signal || code})`));
+  const timer = setTimeout(() => fail(new Error(`No tray startup handshake within ${TRAY_READY_TIMEOUT_MS}ms`)), TRAY_READY_TIMEOUT_MS);
+  cancelTrayReadiness = cancel;
+  child?.once?.("error", fail);
+  child?.once?.("exit", exited);
+  if (child && (child.exitCode != null || child.signalCode != null)) {
+    exited(child.exitCode, child.signalCode);
+    return;
+  }
+  try {
+    if (promiseReady) Promise.resolve(instance.ready()).then(ready, fail);
+    else { instance.onReady(ready); instance.onError(fail); }
+  } catch (error) { fail(error); }
+}
 
 /**
  * Get icon base64 from file — used for systray (mac/linux)
@@ -38,11 +92,12 @@ function isTraySupported() {
 
 /**
  * Initialize system tray with menu
- * @param {Object} options - { port, onQuit, onOpenDashboard }
+ * @param {Object} options - { port, onQuit, onOpenDashboard, onReady, onError }
  * @returns {Object|null} tray instance or null if not supported/failed
  */
 function initTray(options) {
   if (!isTraySupported()) {
+    reportTrayError(options, new Error("System tray is unavailable without a supported graphical session"));
     return null;
   }
 
@@ -132,8 +187,11 @@ function initWindowsTray(options) {
     });
 
     isWinTray = true;
+    if (!trayInstance) throw new Error("Windows tray process did not start");
+    watchTrayReadiness(trayInstance, options, true, true);
     return trayInstance;
   } catch (err) {
+    reportTrayError(options, err);
     return null;
   }
 }
@@ -189,7 +247,7 @@ function initUnixTray(options) {
   const { port } = options;
   try {
     const resolved = resolveSystray();
-    if (!resolved) return null;
+    if (!resolved) { reportTrayError(options, new Error("System tray dependency is unavailable")); return null; }
     const { mod: SysTray, isV2 } = resolved;
 
     chmodTrayBin(isV2 ? "systray2" : "systray");
@@ -225,21 +283,12 @@ function initUnixTray(options) {
       });
     });
 
-    if (isV2) {
-      // systray2 exposes a ready() promise instead of onReady/onError. Surface
-      // failures (binary crash, EACCES, etc.) so users can see why the icon
-      // didn't appear instead of getting a misleading "running in tray" log.
-      trayInstance.ready().catch((err) => {
-        process.stderr.write(`[kitsunerouter] tray failed to start: ${err && err.message ? err.message : err}\n`);
-      });
-    } else {
-      trayInstance.onReady(() => {});
-      trayInstance.onError(() => {});
-    }
+    watchTrayReadiness(trayInstance, options, isV2);
 
     return trayInstance;
   } catch (err) {
-    process.stderr.write(`[kitsunerouter] tray init error: ${err.message}\n`);
+    if (trayInstance) void killTray();
+    reportTrayError(options, err);
     return null;
   }
 }
@@ -252,19 +301,21 @@ function initUnixTray(options) {
 function killTray() {
   const instance = trayInstance;
   const wasWin = isWinTray;
+  cancelTrayReadiness?.();
   trayInstance = null;
+  return disposeTrayInstance(instance, wasWin);
+}
+
+function disposeTrayInstance(instance, wasWin) {
   if (!instance) return Promise.resolve();
 
   if (wasWin) {
-    try { instance.kill(); } catch (e) {}
-    return Promise.resolve();
+    try { return Promise.resolve(instance.kill()).catch(() => {}); }
+    catch { return Promise.resolve(); }
   }
 
   // Unix: get the Go tray child process handle.
-  let proc = null;
-  try {
-    proc = instance._process || (typeof instance.process === "function" ? instance.process() : null);
-  } catch (e) {}
+  const proc = ownedTrayProcess(instance);
 
   // Graceful shutdown: send {type:"exit"} via IPC so the Go binary can call
   // systray.Quit() and release NSStatusItem. SIGKILL leaves a ghost icon on
@@ -280,18 +331,27 @@ function killTray() {
 
   return new Promise((resolve) => {
     let done = false;
-    const finish = () => { if (done) return; done = true; closeIpc(); resolve(); };
+    let termTimer, killTimer, poll;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(termTimer); clearTimeout(killTimer); clearInterval(poll);
+      proc.off?.("exit", finish);
+      closeIpc();
+      resolve();
+    };
 
     proc.once("exit", finish);
     gracefulQuit();
+    if (done) return;
 
     // Escalate: SIGTERM after 800ms, SIGKILL after 1600ms if still alive.
-    setTimeout(() => { try { process.kill(proc.pid, 0); proc.kill("SIGTERM"); } catch (e) {} }, 800);
-    setTimeout(() => { try { process.kill(proc.pid, 0); proc.kill("SIGKILL"); } catch (e) {} }, 1600);
+    termTimer = setTimeout(() => { try { proc.kill("SIGTERM"); } catch (e) {} }, 800);
+    killTimer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch (e) {} }, 1600);
 
     // Fallback poll in case "exit" never fires (detached child, pipe closed)
     const deadline = Date.now() + 3000;
-    const poll = setInterval(() => {
+    poll = setInterval(() => {
       try { process.kill(proc.pid, 0); } catch { clearInterval(poll); finish(); return; }
       if (Date.now() > deadline) { clearInterval(poll); finish(); }
     }, 50);

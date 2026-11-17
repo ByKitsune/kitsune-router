@@ -14,6 +14,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import * as log from "../utils/logger.js";
 import { publicMessage } from "open-sse/utils/clientErrors.js";
 import { withInferenceLimit } from "@/lib/rateLimit/inferenceLimit.js";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy.js";
 
 // Video generation is xAI-only today; requests without a provider prefix
 // (bare model id, or multipart bodies we deliberately don't parse) land here.
@@ -27,6 +28,22 @@ const CREATE_ROTATION_STATUSES = new Set([
   HTTP_STATUS.FORBIDDEN,
   HTTP_STATUS.RATE_LIMITED,
 ]);
+
+const cancelledResponse = () => errorResponse(499, "Client closed request");
+
+async function videoRoutingPolicy(credentials) {
+  const resolved = await resolveConnectionProxyConfig(credentials.providerSpecificData || {});
+  // Snapshot only the transport fields; neither refresh metadata nor later
+  // dashboard changes may change the egress route halfway through one attempt.
+  return Object.freeze({
+    connectionProxyEnabled: resolved.connectionProxyEnabled === true,
+    connectionProxyUrl: resolved.connectionProxyUrl,
+    connectionNoProxy: resolved.connectionNoProxy,
+    proxyPoolId: resolved.proxyPoolId,
+    strictProxy: resolved.strictProxy === true,
+    vercelRelayUrl: resolved.vercelRelayUrl,
+  });
+}
 
 async function requireValidApiKey(request) {
   const apiKey = extractApiKey(request);
@@ -95,17 +112,27 @@ function withConnectionHeader(response, connectionId) {
  * POST /v1/videos/{generations|edits|extensions} — async job creation proxy.
  */
 export async function handleVideoCreate(request, action) {
+  if (request.signal.aborted) return cancelledResponse();
   const authError = await requireValidApiKey(request);
+  if (request.signal.aborted) return cancelledResponse();
   if (authError) return authError;
 
   return withInferenceLimit(request, extractApiKey(request), () => handleVideoCreateAuthorized(request, action));
 }
 
 async function handleVideoCreateAuthorized(request, action) {
-  const bodyInfo = await readForwardableBody(request);
+  if (request.signal.aborted) return cancelledResponse();
+  let bodyInfo;
+  try { bodyInfo = await readForwardableBody(request); }
+  catch (error) {
+    if (request.signal.aborted) return cancelledResponse();
+    throw error;
+  }
+  if (request.signal.aborted) return cancelledResponse();
   if (bodyInfo.error) return bodyInfo.error;
 
   const resolved = await resolveVideoProvider(bodyInfo.parsed);
+  if (request.signal.aborted) return cancelledResponse();
   if (resolved.error) return resolved.error;
   const { provider, model } = resolved;
 
@@ -124,7 +151,9 @@ async function handleVideoCreateAuthorized(request, action) {
   let lastStatus = null;
 
   while (true) {
+    if (request.signal.aborted) return cancelledResponse();
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { preferredConnectionId });
+    if (request.signal.aborted) return cancelledResponse();
 
     if (!credentials || credentials.allRateLimited) {
       if (credentials?.allRateLimited) {
@@ -138,7 +167,15 @@ async function handleVideoCreateAuthorized(request, action) {
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    const proxyOptions = await videoRoutingPolicy(credentials);
+    if (request.signal.aborted) return cancelledResponse();
+    let refreshedCredentials;
+    try { refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: request.signal, proxyOptions }); }
+    catch (error) {
+      if (request.signal.aborted) return cancelledResponse();
+      throw error;
+    }
+    if (request.signal.aborted) return cancelledResponse();
 
     const result = await handleVideoProxyCore({
       provider,
@@ -147,6 +184,7 @@ async function handleVideoCreateAuthorized(request, action) {
       contentType: bodyInfo.contentType || null,
       idempotencyKey,
       credentials: refreshedCredentials,
+      proxyOptions,
       signal: request.signal,
       log,
       onCredentialsRefreshed: async (newCreds) => {
@@ -159,8 +197,12 @@ async function handleVideoCreateAuthorized(request, action) {
       },
     });
 
+    if (request.signal.aborted || result.status === 499) return cancelledResponse();
+    if (result.localFailure) return result.response;
+
     if (result.success) {
       await clearAccountError(credentials.connectionId, credentials, model);
+      if (request.signal.aborted) return cancelledResponse();
       log.info("VIDEO", `${provider.toUpperCase()} | ${action} accepted (connection ${credentials.connectionId})`);
       return withConnectionHeader(result.response, credentials.connectionId);
     }
@@ -169,6 +211,7 @@ async function handleVideoCreateAuthorized(request, action) {
     const { shouldFallback } = await markAccountUnavailable(
       credentials.connectionId, result.status, sanitizeSecrets(result.error, refreshedCredentials), provider, model
     );
+    if (request.signal.aborted) return cancelledResponse();
 
     if (shouldFallback && CREATE_ROTATION_STATUSES.has(result.status)) {
       excludeConnectionIds.add(credentials.connectionId);
@@ -187,7 +230,9 @@ async function handleVideoCreateAuthorized(request, action) {
  * caller pins the creating account via `x-connection-id` (returned on create).
  */
 export async function handleVideoGet(request, requestId) {
+  if (request.signal.aborted) return cancelledResponse();
   const authError = await requireValidApiKey(request);
+  if (request.signal.aborted) return cancelledResponse();
   if (authError) return authError;
 
   // Polling dispatches upstream with account credentials too; it shares the same
@@ -196,22 +241,33 @@ export async function handleVideoGet(request, requestId) {
 }
 
 async function handleVideoGetAuthorized(request, requestId) {
+  if (request.signal.aborted) return cancelledResponse();
   if (!requestId) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing video request id");
 
   const provider = DEFAULT_VIDEO_PROVIDER;
   const preferredConnectionId = request.headers.get("x-connection-id") || null;
 
   const credentials = await getProviderCredentials(provider, null, null, { preferredConnectionId });
+  if (request.signal.aborted) return cancelledResponse();
   if (!credentials || credentials.allRateLimited) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, publicMessage("no_credentials"));
   }
 
-  const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+  const proxyOptions = await videoRoutingPolicy(credentials);
+  if (request.signal.aborted) return cancelledResponse();
+  let refreshedCredentials;
+  try { refreshedCredentials = await checkAndRefreshToken(provider, credentials, { signal: request.signal, proxyOptions }); }
+  catch (error) {
+    if (request.signal.aborted) return cancelledResponse();
+    throw error;
+  }
+  if (request.signal.aborted) return cancelledResponse();
 
   const result = await handleVideoProxyCore({
     provider,
     requestId,
     credentials: refreshedCredentials,
+    proxyOptions,
     signal: request.signal,
     log,
     onCredentialsRefreshed: async (newCreds) => {
@@ -224,8 +280,12 @@ async function handleVideoGetAuthorized(request, requestId) {
     },
   });
 
+  if (request.signal.aborted || result.status === 499) return cancelledResponse();
+  if (result.localFailure) return result.response;
+
   if (result.success) {
     await clearAccountError(credentials.connectionId, credentials, "__video__");
+    if (request.signal.aborted) return cancelledResponse();
     return withConnectionHeader(result.response, credentials.connectionId);
   }
 

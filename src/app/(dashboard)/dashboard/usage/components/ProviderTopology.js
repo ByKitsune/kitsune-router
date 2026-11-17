@@ -19,6 +19,9 @@ import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/prov
 // Force-stop FE animation if a provider stays active longer than this
 const FE_ACTIVE_TIMEOUT_MS = 60000;
 const FE_ACTIVE_TICK_MS = 1000;
+// React Flow 13 uses pixel units for numeric padding. Preserve the old 0.12
+// viewport margin as a percentage (0.12 / (2 * (1 + 0.12)) per side).
+const FIT_VIEW_PADDING = "5.357142857%";
 
 function getProviderConfig(providerId) {
   return AI_PROVIDERS[providerId] || { color: "#6b7280", name: providerId };
@@ -347,7 +350,7 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
   const [inView, setInView] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const motionRunning = !reduceMotion && inView && pageVisible;
-  const fitOpts = useMemo(() => ({ padding: 0.12, duration: reduceMotion ? 0 : 450, maxZoom: 1.15 }), [reduceMotion]);
+  const fitOpts = useMemo(() => ({ padding: FIT_VIEW_PADDING, duration: reduceMotion ? 0 : 450, maxZoom: 1.15 }), [reduceMotion]);
   const onInit = useCallback((instance) => {
     rfInstance.current = instance;
     clearTimeout(initFitTimer.current);
@@ -426,6 +429,7 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
           edgeTypes={edgeTypes}
           fitView
           fitViewOptions={fitOpts}
+          style={{ colorScheme: "inherit" }}
           minZoom={0.1}
           maxZoom={2}
           onInit={onInit}
@@ -439,7 +443,7 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
           nodesConnectable={false}
           elementsSelectable={false}
         >
-          <Controls showInteractive={false} className="react-flow-controls-custom" />
+          <Controls showInteractive={false} fitViewOptions={fitOpts} className="react-flow-controls-custom" />
         </ReactFlow>
         </>
       )}

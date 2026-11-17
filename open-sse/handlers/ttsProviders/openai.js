@@ -3,11 +3,13 @@ import { Buffer } from "node:buffer";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
+import { getTtsTransport, readTtsBuffer, readTtsJson, streamingTtsAudio } from "./_base.js";
 
 const DEFAULT_TTS_MODEL = PROVIDER_MEDIA["openai"]?.ttsConfig?.defaultModel;
 
 export default {
-  async synthesize(text, model, credentials) {
+  async synthesize(text, model, credentials, responseFormat, options = {}) {
+    const { fetch, signal } = getTtsTransport(credentials, options);
     if (!credentials?.apiKey) throw new Error("No OpenAI API key configured");
 
     let ttsModel = DEFAULT_TTS_MODEL;
@@ -24,15 +26,20 @@ export default {
 
     const baseUrl = (credentials.baseUrl || "https://api.openai.com").replace(/\/+$/, "");
     const res = await fetch(`${baseUrl}/v1/audio/speech`, {
+      signal,
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${credentials.apiKey}` },
       body: JSON.stringify({ model: ttsModel, voice, input: text }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await readTtsJson(res, signal).catch(() => { signal?.throwIfAborted(); return {}; });
       throw new Error(err?.error?.message || `OpenAI TTS failed: ${res.status}`);
     }
-    const buf = await res.arrayBuffer();
+    if (responseFormat && responseFormat !== "json") {
+      const streaming = await streamingTtsAudio(res, "mp3", signal);
+      if (streaming) return streaming;
+    }
+    const buf = await readTtsBuffer(res, signal);
     return { base64: Buffer.from(buf).toString("base64"), format: "mp3" };
   },
 };

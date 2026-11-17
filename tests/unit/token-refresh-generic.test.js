@@ -13,7 +13,7 @@ const originalFetch = global.fetch;
 
 const diagnosticExpectations = {
   "returns null on non-ok response": [
-    ["error", "TOKEN_REFRESH", "Failed to refresh token for iflow", { status: 400, error: '{"error":"invalid_grant"}' }],
+    ["error", "TOKEN_REFRESH", "Failed to refresh token for iflow", { status: 400, error: "invalid_grant" }],
   ],
   "returns null when refreshToken missing": [
     ["warn", "TOKEN_REFRESH", "No refresh token available for provider: iflow"],

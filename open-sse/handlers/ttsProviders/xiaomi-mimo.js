@@ -3,19 +3,20 @@
 // Message contract: target text in `role: assistant` content, style/voice
 // instructions in `role: user` content. Voice is selected via the top-level
 // `audio.voice` field (NOT embedded in the model name).
-import { parseModelVoice } from "./_base.js";
+import { getTtsTransport, parseModelVoice, readTtsText } from "./_base.js";
 
 const DEFAULT_MODEL = "mimo-v2.5-tts";
 const DEFAULT_VOICE = "mimo_default";
 
 export default {
-  synthesize(text, model, credentials, responseFormat, { style, language } = {}) {
+  synthesize(text, model, credentials, responseFormat, options = {}) {
     if (!credentials?.apiKey) throw new Error("xiaomi-mimo API key required");
-    return synthesizeMiMo(text, model, credentials.apiKey, style, language);
+    return synthesizeMiMo(text, model, credentials.apiKey, options.style, options.language, getTtsTransport(credentials, options));
   },
 };
 
-export async function synthesizeMiMo(text, model, apiKey, style, language) {
+export async function synthesizeMiMo(text, model, apiKey, style, language, options = {}) {
+  const { fetch, signal } = getTtsTransport({ apiKey }, options);
   const { modelId, voiceId } = parseModelVoice(model, DEFAULT_MODEL, DEFAULT_VOICE, [DEFAULT_MODEL]);
 
   // Language and style are soft instructions → prepend as a role:user message.
@@ -29,6 +30,7 @@ export async function synthesizeMiMo(text, model, apiKey, style, language) {
   if (instructions.length) messages.unshift({ role: "user", content: instructions.join(" ") });
 
   const res = await fetch("https://api.xiaomimimo.com/v1/chat/completions", {
+    signal,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,7 +47,7 @@ export async function synthesizeMiMo(text, model, apiKey, style, language) {
     }),
   });
 
-  const rawText = await res.text();
+  const rawText = await readTtsText(res, signal);
   let data = {};
   if (rawText) {
     try { data = JSON.parse(rawText); } catch { data = {}; }

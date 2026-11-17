@@ -10,12 +10,22 @@ Kitsune Router connects coding tools, agents and SDKs to the providers **you cho
 
 ## Current source development
 
+The [November 17 dependency and runtime audit](docs/audit/2026-11-17-dependency-runtime-audit.md)
+covers the current dependency refresh, SQLite/OAuth resource bounds, video
+cancellation, streamed tool consistency and Codex cache-lifetime support.
+Client release metadata is reviewed separately from SDK/API/signature contracts;
+a version header cannot establish provider entitlement or prevent an account ban.
+
+The [upstream reconciliation](docs/audit/2026-11-17-upstream-reconciliation.md)
+records selective fixes from the diverged 9Router history and actual issue
+reports, including STT multipart, model selection/catalogs and tray readiness.
+
 The source dashboard now uses locally bundled DM Sans, a responsive workspace
 layout, smoother Usage interactions and the official ByKitsune artwork. Mobile
 quick navigation and a searchable language picker refine small-screen access.
 The [agent skills](skills/README.md) cover setup and eight API capabilities with
-model discovery and authenticated request guidance. See the current
-[1.0.7 source notes](docs/CHANGELOG_v1.0.7.md) and [UI design guide](docs/UI-DESIGN.md).
+model discovery and authenticated request guidance. See the
+[source change history](CHANGELOG.md) and [UI design guide](docs/UI-DESIGN.md).
 
 The [current pricing and capability audit](docs/audit/22-pricing-capability-localization-2026-10.md)
 distinguishes exact catalog facts, route limits, operator overrides and unknown
@@ -77,27 +87,54 @@ Do not append it to NPX or source/project installs; see the
 
 For a source checkout, run these commands from the repository root (there is no `app/` subdirectory):
 
-For a **fresh** source install, generate the session secret once in a private `.env` as below (POSIX shell and OpenSSL). `next dev` does **not** use the launcher's automatic secret setup; without a strong `JWT_SECRET` of at least 32 characters dashboard login fails. For an upgrade/migration, retain the existing effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` instead; follow [migration](docs/MIGRATION.md) before starting.
+For a **fresh** source install, generate the session secret once in a private external `kitsune-router.source.env` as below (POSIX shell and Node.js). `next dev` does **not** use the launcher's automatic secret setup; without a strong `JWT_SECRET` of at least 32 characters dashboard login fails. For an upgrade/migration, retain the existing effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` instead; follow [migration](docs/MIGRATION.md) before starting.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
 ```
 
 The canonical repository is available; an existing checkout can also be used. The launcher can bind beyond loopback by default; for a local-only session use `kitsune-router --host 127.0.0.1` (or append `--host 127.0.0.1` to NPX). Set a strong `INITIAL_PASSWORD` in your private environment before exposing the service. Open `http://localhost:20128/dashboard`, connect a permitted upstream, create/copy a gateway API key, and select a model actually listed by your installation.
 
 Application and documentation fonts are included in their locked dependency trees; their builds do not fetch Google Fonts. Install dependencies before building.
 
-Review `.env` before startup: use a writable **absolute** state path and fresh private API/identity secrets rather than published example values on a new install; keep all existing values on upgrades. Never commit `.env` or print its secrets in logs/issues.
+Review `kitsune-router.source.env` before startup: use a writable **absolute** state path and fresh private API/identity secrets rather than published example values on a new install; keep all existing values on upgrades. Never commit `kitsune-router.source.env` or print its secrets in logs/issues.
+
+The example file sits outside the checkout so production tracing cannot embed
+it. The development parent parses it as data and starts Next without copying
+`--env-file` into a worker's `NODE_OPTIONS`; do not source this JSON-quoted env
+file as shell code. For production build/start commands, external configuration upgrades and
+restricted-cache installation guidance, follow [source installation](docs/INSTALLATION.md#source-checkout).
 
 | Address | Purpose |
 | --- | --- |
@@ -160,7 +197,7 @@ Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the datab
 - [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 
 The [historical 1.0.2 evidence](docs/CHANGELOG_v1.0.2.md) separates its runtime,
-recovery tooling, npm tarballs and published image. Current 1.0.7 publication and
+recovery tooling, npm tarballs and published image. Current 1.0.8 publication and
 access results belong to the [publication follow-up](docs/audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md).
 
 **Languages:** [简体中文](README.zh-CN.md) · [Español](i18n/README.es.md) · [فارسی](i18n/README.fa_IR.md) · [Français](i18n/README.fr.md) · [Indonesia](i18n/README.id-ID.md) · [日本語](i18n/README.ja-JP.md) · [Português](i18n/README.pt-BR.md) · [Русский](i18n/README.ru.md) · [ไทย](i18n/README.th.md) · [Tiếng Việt](i18n/README.vi.md)

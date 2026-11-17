@@ -3,14 +3,21 @@
 import { nowSec, parseMediaError, sizeToAspectRatio } from "./_base.js";
 import { getExecutor } from "../../executors/index.js";
 import { detectImageMime, fetchImageAsBase64, parseDataUri } from "../../translator/concerns/image.js";
+import { createAccountTransport, hasAccountProxyPolicy } from "../../utils/accountTransport.js";
+import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 
 // Convert image input (data URI, remote URL, or raw base64) to Gemini inlineData.
-async function resolveImageInput(input, signal) {
+async function resolveImageInput(input, signal, transport) {
   if (!input || typeof input !== "string") return null;
 
   let parsed = parseDataUri(input);
 
   if (!parsed && /^https?:\/\//i.test(input)) {
+    // This public-IP-pinned loader cannot delegate DNS validation to a proxy.
+    // Never silently download outside an explicitly selected account route.
+    if (hasAccountProxyPolicy(transport?.proxyOptions)) {
+      throw new Error("[ProxyFetch] Remote image references require inline data when an account proxy is configured");
+    }
     const fetched = await fetchImageAsBase64(input, { timeoutMs: 15000, signal });
     signal?.throwIfAborted();
     parsed = fetched ? parseDataUri(fetched.url) : null;
@@ -45,8 +52,9 @@ export default {
   buildHeaders: () => ({}),
   buildBody: () => ({}),
 
-  async executeViaExecutor(model, body, credentials, log, { clientSignal, observeUsage } = {}) {
+  async executeViaExecutor(model, body, credentials, log, { clientSignal, observeUsage, transport } = {}) {
     clientSignal?.throwIfAborted();
+    transport ||= createAccountTransport(credentials, { signal: clientSignal });
     const executor = getExecutor("antigravity");
     if (!executor) throw new Error("Antigravity executor not found");
 
@@ -77,7 +85,7 @@ export default {
 
     const parts = [];
     for (const input of imageInputs) {
-      const inlineData = await resolveImageInput(input, clientSignal);
+      const inlineData = await resolveImageInput(input, clientSignal, transport);
       clientSignal?.throwIfAborted();
       if (!inlineData) {
         const error = new Error("Invalid reference image. Use a data URL, HTTP(S) URL, or raw base64 image.");
@@ -101,6 +109,8 @@ export default {
       credentials,
       log,
       signal: clientSignal,
+      proxyOptions: transport?.proxyOptions,
+      transport,
     });
 
     if (clientSignal?.aborted) {
@@ -115,6 +125,7 @@ export default {
       // real status (e.g. 404 for an unavailable model) instead of reporting a
       // generic 502 that would cool down healthy pooled accounts.
       error.upstreamStatus = result.response.status;
+      error.allowAccountFallback = diagnostics.bodyComplete && [HTTP_STATUS.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN, HTTP_STATUS.RATE_LIMITED].includes(result.response.status);
       error.resetsAtMs = diagnostics.resetsAtMs;
       throw error;
     }

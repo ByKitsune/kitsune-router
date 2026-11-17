@@ -40,21 +40,48 @@ The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the
 
 Dashboard/gateway (run from repo root):
 
-The source server (`next dev`, source production/standalone) is not the CLI launcher's secret-provisioning path. `JWT_SECRET` must be a strong value of at least 32 characters or dashboard login fails. The initialization below is for a **fresh** source install with POSIX shell/OpenSSL. On upgrades, retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR`; use `docs/MIGRATION.md` rather than generating replacements. Keep `.env` private/uncommitted and replace other public example defaults only for a fresh installation.
+The source server (`next dev`, source production/standalone) is not the CLI launcher's secret-provisioning path. `JWT_SECRET` must be a strong value of at least 32 characters or dashboard login fails. The initialization below is for a **fresh** source install with POSIX shell/Node.js. On upgrades, retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR`; use `docs/MIGRATION.md` rather than generating replacements. Keep the external `kitsune-router.source.env` private/uncommitted and replace other public example defaults only for a fresh installation.
 ```bash
-umask 077
-cp -n .env.example .env
-if ! grep -q '^JWT_SECRET=.' .env; then
-  printf '\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-fi
-chmod 600 .env
+# Keep runtime secrets outside the checkout and standalone build.
+kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
+node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+const values = {
+  JWT_SECRET: randomBytes(32).toString("hex"),
+  API_KEY_SECRET: randomBytes(32).toString("hex"),
+  MACHINE_ID_SALT: randomBytes(32).toString("hex"),
+  INITIAL_PASSWORD: randomBytes(24).toString("hex"),
+  DATA_DIR: process.argv[3],
+};
+try {
+  writeFileSync(process.argv[2], Object.entries(values).map(([key, value]) =>
+    `${key}=${JSON.stringify(value)}`).join("\n") + "\n", { flag: "wx", mode: 0o600 });
+} catch (error) {
+  if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
+}
+NODE
+chmod 600 "$kitsune_env"
 npm ci
 npm run check:deps
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
-npm run build && npm run start                                        # production (node)
-npm run build && npm run start:bun                                    # production (bun runtime; bun:sqlite)
+# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
+node --env-file="$kitsune_env" -e '
+const result = require("node:child_process").spawnSync(process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
+  { env: process.env, stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+'
+npm run build
+HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js # production (node)
+npm run build
+bun --env-file="$kitsune_env" ./.next/standalone/custom-server.js       # production (bun runtime; bun:sqlite)
 ```
-- All ports are aligned to **20128** (dashboard at `/dashboard`, API at `/v1`). The standalone server reads `PORT` from `.env` and ignores CLI args — keep `.env`'s `DATA_DIR` ABSOLUTE when running the standalone/bun build (it chdirs into `.next/standalone`; a relative DATA_DIR silently creates a fresh empty DB).
+- All ports are aligned to **20128** (dashboard at `/dashboard`, API at `/v1`). The standalone server reads `PORT` from its process environment and ignores CLI args; load the external env file explicitly and keep `DATA_DIR` ABSOLUTE when running the standalone/bun build (it chdirs into `.next/standalone`; a relative DATA_DIR silently creates a fresh empty DB).
+- Source Next CLI development uses a data-only Node env-file parent and explicit
+  child arguments; do not pass `--env-file` through Next's worker execArgv or
+  source the JSON-quoted file as shell code. Standalone Node startup can use
+  `--env-file` directly.
 - Lint: `npm run lint -- --max-warnings=0`. The composed runner applies Oxlint's Next.js policies (`.oxlintrc.json`) and ESLint's React/import/accessibility policies (`eslint.config.mjs`). Running ESLint alone does not cover the Next.js rules. Run `npm run lint:policy` after changing either policy or the runner.
 
 CLI package (`cli/`):
@@ -115,6 +142,17 @@ State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a
 - Full database import bypasses ordinary repository mutations. The process-local `src/lib/db/helpers/importGeneration.js` still advances only after commit; persisted scope revisions additionally fence native SQLite workers and dependent caches. Rollbacks retain warmed references. Preserve refresh of MITM aliases and connection/project/quota state, and do not claim success if post-commit alias synchronization failed.
 - Usage acceptance (`enqueueRequestUsage`) freezes tokens, recorded time, resolved pricing and delivered-tier costs into a bounded durable outbox. Projection commits history, daily totals, lifetime count and outbox removal together using a unique event ID. `saveRequestUsage` additionally waits for history visibility. Retain one ID per incurred routed attempt, reuse it on terminal retries and surface failed acceptance; request/detail/file logs are best-effort telemetry, not a billing ledger.
 - `custom-server.js` owns managed process shutdown: stop scheduling/admission, drain HTTP, flush durable usage, flush best-effort logs, close upstream pools, then checkpoint/close SQLite within one deadline. Direct adapter consumers retain their independent lifecycle by default.
+- Native prepared-statement caches retain at most 256 SQL templates with LRU
+  reuse. Transaction callbacks are synchronous: a returned Promise/thenable must
+  throw before commit/release and roll back writes, including nested savepoints.
+  Do not extend a transaction across asynchronous work.
+- OAuth single-flight capacity never evicts an active rotating-token grant.
+  Completed results may be evicted; a new key can receive
+  `TOKEN_REFRESH_CAPACITY_EXCEEDED` until capacity is available. Existing waiters
+  keep their shared result and independent cancellation semantics.
+- Video caller aborts are terminal through account selection, refresh and body
+  reads. Successful metadata must be complete bounded UTF-8 JSON; truncated
+  success is not a successful job or evidence of an unhealthy account.
 
 ### RTK token saver (`open-sse/rtk/`)
 Final-provider-body hooks, after translation/native preparation and before dispatch, compress `tool_result` content in-place to cut tokens. **Fail-open**: any error returns null and leaves the body untouched — never throw out of them. Skips `is_error`/`status:"error"` results to preserve traces.

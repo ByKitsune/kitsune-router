@@ -1,64 +1,21 @@
 // Web Fetch handler — dispatches to firecrawl, jina-reader, tavily, exa
 // Returns normalized shape across all providers
 
-import { lookup } from "node:dns/promises";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { fetchPublic } from "../../../src/shared/utils/ssrfGuard.js";
+import { getAccountRoutingPolicy, hasAccountProxyPolicy } from "../../utils/accountTransport.js";
 import { DEFAULT_WEB_FETCH_FORMAT, getWebFetchFormatError } from "../../config/webFetchFormats.js";
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
-// Private/reserved IP ranges for SSRF protection
-function isPrivateIp(ip) {
-  if (!ip) return true;
-  if (ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80")) return true;
-  const v4 = ip.includes(".") ? ip.split(":").pop() : ip;
-  const parts = v4.split(".").map((n) => Number.parseInt(n, 10));
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return ip.includes(":") ? false : true;
-  const [a, b] = parts;
-  if (a === 10 || a === 127 || a === 0) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  return false;
+/** Guarded fetch cannot delegate DNS validation to an account proxy. */
+export function getFetchAccountTransportFailure(credentials, proxyOptions = null) {
+  if (!hasAccountProxyPolicy(getAccountRoutingPolicy(credentials, proxyOptions))) return null;
+  return {
+    success: false, status: 502, localFailure: true, errorScope: "request",
+    error: "[ProxyFetch] Configured account proxy cannot preserve guarded WebFetch URL safety; this fetch transport is unavailable for that account.",
+  };
 }
 
-// Resolve hostname and validate all IPs are public (SSRF guard)
-async function resolveAndValidatePublicIps(hostname) {
-  if (!hostname) return null;
-  try {
-    const records = await lookup(hostname, { all: true });
-    if (!records.length || records.some((r) => isPrivateIp(r.address))) return null;
-    return records;
-  } catch {
-    return null;
-  }
-}
-
-// Create undici Agent that pins to validated public IPs (TOCTOU fix)
-function createPinnedAgent(pinnedIps) {
-  // Adapt Undici 8's dispatcher handlers for Node's built-in fetch.
-  return new Dispatcher1Wrapper(new Agent({
-    connect: {
-      lookup: (_h, _o, cb) => cb(null, pinnedIps.map((r) => ({ address: r.address, family: r.family })))
-    }
-  }));
-}
-
-/**
- * @typedef {Object} FetchResult
- * @property {boolean} success
- * @property {number} [status]
- * @property {string} [error]
- * @property {Object} [data]
- */
-
-/**
- * Fetch with timeout abort.
- * @param {string} url
- * @param {RequestInit} init
- * @param {number} timeoutMs
- */
 // Strip non-ASCII chars from header values (HTTP headers must be ByteString).
 function sanitizeHeaders(headers) {
   if (!headers) return headers;
@@ -69,24 +26,15 @@ function sanitizeHeaders(headers) {
   return out;
 }
 
-async function tryFetch(url, init, timeoutMs) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+async function tryFetch(url, init, signal) {
   try {
-    const urlObj = new URL(url);
-    const pinnedIps = await resolveAndValidatePublicIps(urlObj.hostname);
-    if (!pinnedIps) {
-      return { ok: false, timeout: false, error: "SSRF blocked: private or invalid IP" };
-    }
-    const dispatcher = createPinnedAgent(pinnedIps);
-    // redirect: "manual" prevents a public URL redirecting to a private one (SSRF bypass)
-    const res = await fetch(url, { ...init, headers: sanitizeHeaders(init.headers), signal: ctrl.signal, redirect: "manual", dispatcher });
+    const res = await fetchPublic(url, {
+      ...init, headers: sanitizeHeaders(init.headers), signal,
+    }, { maxRedirects: 0 });
     return { ok: true, res };
   } catch (err) {
-    const isAbort = err?.name === "AbortError";
-    return { ok: false, timeout: isAbort, error: err?.message || String(err) };
-  } finally {
-    clearTimeout(timer);
+    if (signal?.aborted) throw err;
+    return { ok: false, error: err?.message || String(err) };
   }
 }
 
@@ -136,9 +84,10 @@ async function readJsonOrText(res) {
  * @param {Object} [params.providerConfig]
  * @param {Object} [params.credentials]
  * @param {Function} [params.log]
- * @returns {Promise<FetchResult>}
+ * @returns {Promise<{success:boolean, status?:number, error?:string, data?:object}>}
  */
-export async function handleFetchCore({ url, format, maxCharacters, provider, providerConfig, credentials, log }) {
+export async function handleFetchCore({ url, format, maxCharacters, provider, providerConfig, credentials, log, signal, proxyOptions = null }) {
+  if (signal?.aborted) return { success: false, status: 499, error: "Client closed request", localFailure: true, errorScope: "request" };
   if (!url || typeof url !== "string") {
     return { success: false, status: 400, error: "url is required" };
   }
@@ -149,45 +98,38 @@ export async function handleFetchCore({ url, format, maxCharacters, provider, pr
   const formatError = getWebFetchFormatError(provider, format);
   if (formatError) return { success: false, status: 400, error: formatError };
 
+  const routingFailure = getFetchAccountTransportFailure(credentials, proxyOptions);
+  if (routingFailure) return routingFailure;
+
   const fmt = format || DEFAULT_WEB_FETCH_FORMAT;
   const timeoutMs = providerConfig?.timeoutMs || DEFAULT_TIMEOUT_MS;
   const apiKey = credentials?.apiKey || credentials?.key || credentials?.token || "";
   const costPerQuery = providerConfig?.costPerQuery ?? null;
   const startedAt = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
 
   try {
-    if (provider === "firecrawl") {
-      return await runFirecrawl({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt });
-    }
-    if (provider === "jina-reader") {
-      return await runJina({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt });
-    }
-    if (provider === "tavily") {
-      return await runTavily({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt });
-    }
-    if (provider === "exa") {
-      return await runExa({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt });
-    }
-    if (provider === "ollama") {
-      return await runOllama({
-        url,
-        fmt,
-        timeoutMs,
-        apiKey,
-        maxCharacters,
-        costPerQuery,
-        startedAt,
-        baseUrl: providerConfig?.baseUrl,
-      });
-    }
-    return { success: false, status: 400, error: `Unsupported provider: ${provider}` };
+    const runners = { firecrawl: runFirecrawl, "jina-reader": runJina, tavily: runTavily, exa: runExa, ollama: runOllama };
+    const run = Object.hasOwn(runners, provider) ? runners[provider] : null;
+    if (!run) return { success: false, status: 400, error: `Unsupported provider: ${provider}` };
+    const result = await run({ url, fmt, signal: requestSignal, apiKey, maxCharacters,
+      costPerQuery, startedAt, baseUrl: providerConfig?.baseUrl });
+    requestSignal.throwIfAborted();
+    return result;
   } catch (err) {
-    log?.("fetch handler error:", err?.message || err);
+    if (signal?.aborted) return { success: false, status: 499, error: "Client closed request", localFailure: true, errorScope: "request" };
+    if (controller.signal.aborted) return { success: false, status: 504, error: err?.message || "Upstream timeout" };
+    if (typeof log === "function") log("fetch handler error:", err?.message || err);
+    else log?.error?.("FETCH", err?.message || "Internal fetch error");
     return { success: false, status: 502, error: err?.message || "Internal fetch error" };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function runFirecrawl({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt }) {
+async function runFirecrawl({ url, fmt, signal, apiKey, maxCharacters, costPerQuery, startedAt }) {
   const upstreamStart = Date.now();
   const r = await tryFetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
@@ -196,10 +138,10 @@ async function runFirecrawl({ url, fmt, timeoutMs, apiKey, maxCharacters, costPe
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
     body: JSON.stringify({ url, formats: [fmt] })
-  }, timeoutMs);
+  }, signal);
 
   if (!r.ok) {
-    return { success: false, status: r.timeout ? 504 : 502, error: r.error };
+    return { success: false, status: 502, error: r.error };
   }
   const upstreamMs = Date.now() - upstreamStart;
   const { json } = await readJsonOrText(r.res);
@@ -218,7 +160,7 @@ async function runFirecrawl({ url, fmt, timeoutMs, apiKey, maxCharacters, costPe
   };
 }
 
-async function runJina({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt }) {
+async function runJina({ url, fmt, signal, apiKey, maxCharacters, costPerQuery, startedAt }) {
   const upstreamStart = Date.now();
   const r = await tryFetch("https://r.jina.ai/", {
     method: "POST",
@@ -228,10 +170,10 @@ async function runJina({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuer
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
     body: JSON.stringify({ url })
-  }, timeoutMs);
+  }, signal);
 
   if (!r.ok) {
-    return { success: false, status: r.timeout ? 504 : 502, error: r.error };
+    return { success: false, status: 502, error: r.error };
   }
   const upstreamMs = Date.now() - upstreamStart;
   const body = await r.res.text();
@@ -248,7 +190,7 @@ async function runJina({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuer
   };
 }
 
-async function runTavily({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt }) {
+async function runTavily({ url, fmt, signal, apiKey, maxCharacters, costPerQuery, startedAt }) {
   const upstreamStart = Date.now();
   const r = await tryFetch("https://api.tavily.com/extract", {
     method: "POST",
@@ -257,10 +199,10 @@ async function runTavily({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQu
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
     body: JSON.stringify({ urls: [url], extract_depth: "basic", format: fmt })
-  }, timeoutMs);
+  }, signal);
 
   if (!r.ok) {
-    return { success: false, status: r.timeout ? 504 : 502, error: r.error };
+    return { success: false, status: 502, error: r.error };
   }
   const upstreamMs = Date.now() - upstreamStart;
   const { json } = await readJsonOrText(r.res);
@@ -278,7 +220,7 @@ async function runTavily({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQu
   };
 }
 
-async function runExa({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery, startedAt }) {
+async function runExa({ url, fmt, signal, apiKey, maxCharacters, costPerQuery, startedAt }) {
   const upstreamStart = Date.now();
   const r = await tryFetch("https://api.exa.ai/contents", {
     method: "POST",
@@ -287,10 +229,10 @@ async function runExa({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery
       ...(apiKey ? { "x-api-key": apiKey } : {})
     },
     body: JSON.stringify({ ids: [url], text: true })
-  }, timeoutMs);
+  }, signal);
 
   if (!r.ok) {
-    return { success: false, status: r.timeout ? 504 : 502, error: r.error };
+    return { success: false, status: 502, error: r.error };
   }
   const upstreamMs = Date.now() - upstreamStart;
   const { json } = await readJsonOrText(r.res);
@@ -311,7 +253,7 @@ async function runExa({ url, fmt, timeoutMs, apiKey, maxCharacters, costPerQuery
 async function runOllama({
   url,
   fmt,
-  timeoutMs,
+  signal,
   apiKey,
   maxCharacters,
   costPerQuery,
@@ -326,10 +268,10 @@ async function runOllama({
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
     },
     body: JSON.stringify({ url })
-  }, timeoutMs);
+  }, signal);
 
   if (!r.ok) {
-    return { success: false, status: r.timeout ? 504 : 502, error: r.error };
+    return { success: false, status: 502, error: r.error };
   }
   const upstreamMs = Date.now() - upstreamStart;
   const { json, text: responseText } = await readJsonOrText(r.res);
