@@ -44,12 +44,18 @@ describe("Codex CLI protocol and registry alignment", () => {
     expect(codex.models).toContainEqual(expect.objectContaining({ id: model }));
     expect(executor.buildUrl(model, true)).toBe("https://chatgpt.com/backend-api/codex/responses");
     expect(getCapabilitiesForModel("cx", model)).toMatchObject({
-      contextWindow: cliDefaultContext, maxInput: null, maxOutput: null, vision: true, pdf: false,
+      contextWindow: 1050000, maxInput: 922000, maxOutput: 128000, vision: true, pdf: false,
       thinkingEfforts: efforts, thinkingCanDisable: false,
     });
     const metadata = getReviewedModelMetadata("cx", model);
     expect(metadata.limits).toMatchObject({ cliDefaultContext, cliMaxContext: 872000, cliMinimumVersion: "0.166.0", cliDefaultReasoningEffort: "low", authenticatedRouteVerified: false });
-    expect(metadata.limits).toMatchObject({ apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000, unverifiedCapabilityFields: ["maxInput", "maxOutput"] });
+    expect(metadata.limits).toMatchObject({
+      scope: "public-model-specification-reference",
+      codexDocumentedContextWindow: 1000000,
+      tokenLimitsReference: { source: "https://models.dev/api.json", provider: "openai", model },
+      apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000,
+    });
+    expect(metadata.limits.unverifiedCapabilityFields ?? []).toEqual([]);
     expect(metadata.billing.planPricing).toMatchObject({ ...credits, currency: "credits", separateCacheWriteCharge: false });
     expect(getPricingForModel("cx", model)).toMatchObject({ input: null, output: null, cached: null });
 

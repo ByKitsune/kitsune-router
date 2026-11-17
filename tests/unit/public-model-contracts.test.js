@@ -11,6 +11,9 @@ vi.mock("@/lib/disabledModelsDb", () => db);
 vi.mock("@/sse/services/tokenRefresh", () => ({ updateProviderCredentials: vi.fn() }));
 vi.mock("@/lib/network/connectionProxy", () => ({ resolveConnectionProxyConfig: vi.fn() }));
 vi.mock("@/shared/utils/providerLiveModels", () => ({ fetchProviderLiveModels: vi.fn() }));
+vi.mock("open-sse/services/codexModels.js", async importOriginal => ({
+  ...await importOriginal(), resolveCodexModels: vi.fn(),
+}));
 
 import { buildModelsList } from "@/app/api/v1/models/route.js";
 import { GET as getModel } from "@/app/api/v1/models/[...model]/route.js";
@@ -20,6 +23,7 @@ import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.j
 import { getThinkingLevels } from "../../open-sse/providers/thinkingLevels.js";
 import { getReviewedModelMetadata, getPublicModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 import { getModelInfoCore } from "../../open-sse/services/model.js";
+import { parseCodexModels, resolveCodexModels } from "open-sse/services/codexModels.js";
 import { getModelUpstreamId, isValidModel } from "../../open-sse/config/providerModels.js";
 import { calculateCostFromTokens, getPricingForModel, resolveEffectivePricing } from "../../open-sse/providers/pricing.js";
 
@@ -37,6 +41,7 @@ beforeEach(() => {
   db.getModelAliases.mockResolvedValue({});
   db.getDisabledModels.mockResolvedValue({});
   db.getProviderNodes.mockResolvedValue([]);
+  resolveCodexModels.mockResolvedValue(null);
 });
 
 describe("public route availability is separate from saved resolution", () => {
@@ -166,17 +171,47 @@ describe("route-scoped capabilities and actionable constraints", () => {
     expect(row.metadata.limits.promptAccounting).not.toHaveProperty("instructionTokens");
   });
 
-  it.each([["gpt-6.2-sol", 500000], ["gpt-6.2-astra", 272000]])("publishes %s with the Codex CLI default and separate OpenAI API limits", async (model, contextWindow) => {
+  it.each([["gpt-6.2-sol", 500000], ["gpt-6.2-astra", 272000]])("publishes %s model limits alongside the Codex CLI settings", async (model, cliDefaultContext) => {
     connect("codex", { enabledModels: [model] });
     const row = await rowFor(`cx/${model}`);
     expect(row).toMatchObject({
-      context_length: contextWindow,
-      capabilities: { contextWindow, maxInput: null, maxOutput: null },
-      metadata: { modalities: { input: ["text", "image"], output: ["text"] }, limits: { cliDefaultContext: contextWindow, cliMaxContext: 872000, apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000 } },
+      context_length: 1050000, max_input_tokens: 922000, max_completion_tokens: 128000,
+      capabilities: { contextWindow: 1050000, maxInput: 922000, maxOutput: 128000, pdf: false },
+      metadata: {
+        modalities: { input: ["text", "image"], output: ["text"] },
+        limits: {
+          scope: "public-model-specification-reference", authenticatedRouteVerified: false,
+          cliDefaultContext, cliMaxContext: 872000, codexDocumentedContextWindow: 1000000,
+          tokenLimitsReference: { source: "https://models.dev/api.json", provider: "openai", model },
+        },
+      },
     });
-    expect(row).not.toHaveProperty("max_input_tokens");
-    expect(row).not.toHaveProperty("max_completion_tokens");
     expect(row.capabilities).not.toHaveProperty("reasoningModes");
+  });
+
+  it.each([["gpt-6.2-sol", 500000], ["gpt-6.2-astra", 272000]])("keeps %s published limits when the live CLI catalog provides smaller values", async (model, cliDefaultContext) => {
+    connect("codex");
+    const models = parseCodexModels({ models: [{
+      slug: model, visibility: "list", context_window: cliDefaultContext,
+      max_context_window: 872000, max_input_tokens: 200000, max_output_tokens: 32000,
+    }] });
+    resolveCodexModels.mockResolvedValue({ models, complete: true });
+
+    expect(await rowFor(`cx/${model}`)).toMatchObject({
+      context_length: 1050000, max_input_tokens: 922000, max_completion_tokens: 128000,
+      capabilities: { contextWindow: 1050000, maxInput: 922000, maxOutput: 128000 },
+      metadata: { limits: { cliDefaultContext, cliMaxContext: 872000 } },
+    });
+    expect(resolveCodexModels).toHaveBeenCalledTimes(1);
+
+    db.getCustomModels.mockResolvedValue([{
+      providerAlias: "codex", id: model, caps: { contextWindow: 650000, maxInput: 600000, maxOutput: 50000 },
+    }]);
+    expect(await rowFor(`cx/${model}`)).toMatchObject({
+      context_length: 650000, max_input_tokens: 600000, max_completion_tokens: 50000,
+      capabilities: { contextWindow: 650000, maxInput: 600000, maxOutput: 50000 },
+      metadata: { limits: { cliDefaultContext, cliMaxContext: 872000 } },
+    });
   });
 
   it.each([["gpt-6.2-sol", "2026-06-01"], ["gpt-6.2-astra", "2026-05-18"]])("publishes %s Pro reasoning on the existing OpenAI Responses route", async (model, knowledgeCutoff) => {
@@ -275,11 +310,18 @@ describe("published OpenAI processing profiles", () => {
     expect(profiles).not.toHaveProperty("ultrafast");
   });
 
-  it.each(["cx", "codex"])("keeps Codex account limits separate when looking up %s", async alias => {
-    const response = await getInfo(new Request(`http://localhost/v1/models/info?id=${alias}/gpt-6.2-sol`));
+  it.each([
+    ["cx", "gpt-6.2-sol", 500000], ["codex", "gpt-6.2-sol", 500000],
+    ["cx", "gpt-6.2-astra", 272000], ["codex", "gpt-6.2-astra", 272000],
+  ])("publishes the model limits and CLI settings for %s/%s", async (alias, model, cliDefaultContext) => {
+    const response = await getInfo(new Request(`http://localhost/v1/models/info?id=${alias}/${model}`));
     expect(response.status).toBe(200);
     const row = await response.json();
-    expect(row.capabilities).toMatchObject({ contextWindow: 500000, maxInput: null, maxOutput: null });
+    expect(row).toMatchObject({
+      contextWindow: 1050000,
+      capabilities: { contextWindow: 1050000, maxInput: 922000, maxOutput: 128000 },
+      metadata: { limits: { cliDefaultContext, cliMaxContext: 872000, authenticatedRouteVerified: false } },
+    });
     expect(row.metadata).not.toHaveProperty("processingTiers");
   });
 });

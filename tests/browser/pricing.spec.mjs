@@ -33,15 +33,18 @@ test("GPT-6.2 model discovery keeps API rates and Codex plan billing separate", 
     const [api, zen, codex] = await Promise.all([
       modelInfo(`openai/${model}`), modelInfo(`opencode-zen/${model}`), modelInfo(`cx/${model}`),
     ]);
-    for (const entry of [api, zen]) {
+    for (const entry of [api, zen, codex]) {
       expect(entry.capabilities).toMatchObject({ contextWindow: 1050000, maxInput: 922000, maxOutput: 128000 });
+    }
+    for (const entry of [api, zen]) {
       expect(entry.metadata.pricing).toMatchObject({ input, output, cached, tier: { threshold: 272000 } });
     }
     expect(codex.capabilities.thinkingEfforts).toEqual(["low", "medium", "high", "xhigh", "max"]);
-    expect(codex.contextWindow).toBe(cliDefaultContext);
-    expect(codex.capabilities.maxInput ?? null).toBeNull();
-    expect(codex.capabilities.maxOutput ?? null).toBeNull();
-    expect(codex.metadata.limits.cliDefaultContext).toBe(cliDefaultContext);
+    expect(codex.contextWindow).toBe(1050000);
+    expect(codex.metadata.limits).toMatchObject({
+      scope: "public-model-specification-reference", cliDefaultContext, cliMaxContext: 872000,
+      codexDocumentedContextWindow: 1000000, authenticatedRouteVerified: false,
+    });
     expect(codex.metadata.billing).toMatchObject({ kind: "plan", unit: "subscription" });
     expect(codex.metadata.pricing).toMatchObject({ input: null, output: null });
   }

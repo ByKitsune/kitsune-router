@@ -29,8 +29,14 @@ const gpt62Models = {
   "gpt-6.2-astra": { knowledgeCutoff: "2026-05-18", cliDefaultContext: 272000, credits: { input: 200, cached: 10, output: 1000 } },
 };
 const gpt62CodexCatalog = {
-  url: "https://raw.githubusercontent.com/openai/codex/8fca6ffb92a602875a0b97e3e535eb48375bdd8c/codex-rs/models-manager/models.json",
+  url: "https://raw.githubusercontent.com/openai/codex/7066a55a7b94345757758385a538c72fda571b84/codex-rs/models-manager/models.json",
   sha256: "d50b6749506d97e5f334dbabcb666eb1689f423cf3e88cfabdcf3c536b873068",
+};
+const gpt62CodexModelGuide = "https://learn.chatgpt.com/docs/models";
+const gpt62ModelLimitCatalog = {
+  url: "https://models.dev/api.json",
+  capturedAtUtc: "2026-11-17T23:41:06Z",
+  sha256: "152e5625c5a807eb0a7f2517f277f6b7eda66ca5ba1ac773acdc7e488d54cfd0",
 };
 const gpt62CodexRateCard = "https://help.openai.com/en/articles/11481834-chatgpt-rate-card-business-enterpriseedu-credit-based-pricing";
 
@@ -3520,17 +3526,20 @@ const reference = (entry, note) => {
   return result;
 };
 const codex = {};
-for (const [id, { cliDefaultContext, credits }] of Object.entries(gpt62Models)) {
+for (const [id, { knowledgeCutoff, cliDefaultContext, credits }] of Object.entries(gpt62Models)) {
   const api = openai[id];
+  const { contextWindow, maxInput, maxOutput } = api.capabilities;
   codex[id] = {
+    knowledgeCutoff,
     modalities: gpt62Modalities,
-    capabilities: { ...gpt62Capabilities, contextWindow: cliDefaultContext, maxInput: null, maxOutput: null, pdf: false },
+    capabilities: { ...gpt62Capabilities, contextWindow, maxInput, maxOutput, pdf: false },
     pricing: { input: null, output: null, cached: null, reasoning: null, cache_creation: null, cache_write_30m: null, cache_write_12h: null },
     sources: [
       ...api.sources,
-      "https://learn.chatgpt.com/docs/models",
+      gpt62CodexModelGuide,
       gpt62CodexCatalog.url,
       gpt62CodexRateCard,
+      gpt62ModelLimitCatalog.url,
     ],
     billing: {
       kind: "plan", currency: "unknown", unit: "subscription",
@@ -3542,16 +3551,22 @@ for (const [id, { cliDefaultContext, credits }] of Object.entries(gpt62Models)) 
       },
     },
     limits: {
-      scope: "codex-cli-catalog", authenticatedRouteVerified: false, cliDefaultContext,
+      scope: "public-model-specification-reference", authenticatedRouteVerified: false,
+      tokenLimitsReference: { source: gpt62ModelLimitCatalog.url, provider: "openai", model: id },
+      fieldSources: { ...api.limits.fieldSources },
+      codexDocumentedContextWindow: 1000000, codexDocumentedContextSource: gpt62CodexModelGuide,
+      cliDefaultContext,
       cliMaxContext: 872000, cliMinimumVersion: "0.166.0", cliDefaultReasoningEffort: "low",
+      cliMaxContextSemantics: "Maximum context window allowed for CLI configuration overrides.",
       cliReasoningEfforts: [...gpt62Efforts, "ultra"],
       cliUltraInferenceEffort: "xhigh", cliMultiAgentVersion: "v2", cliUsesResponsesLite: true,
-      unverifiedCapabilityFields: ["maxInput", "maxOutput"],
-      contextWindowStatus: "The default Codex CLI context setting is published. This account's independent input and output limits are unverified.",
-      apiContextWindow: api.capabilities.contextWindow, apiMaxInput: api.capabilities.maxInput, apiMaxOutput: api.capabilities.maxOutput,
+      cliSupportsParallelToolCalls: true, cliSupportsReasoningEffortUpdates: true,
+      cliSupportsReasoningSummaries: true, cliDefaultReasoningSummary: "none",
+      contextWindowStatus: "Discovery reports the published OpenAI model token limits as a reference. The connected Codex account's independent limits are unverified.",
+      apiContextWindow: contextWindow, apiMaxInput: maxInput, apiMaxOutput: maxOutput,
       routeReasoningEfforts: gpt62Efforts,
     },
-    provenance: { cliCatalog: gpt62CodexCatalog },
+    provenance: { cliCatalog: gpt62CodexCatalog, catalogCrosscheck: gpt62ModelLimitCatalog },
   };
 }
 const codexSources = [

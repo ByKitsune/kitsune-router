@@ -465,7 +465,8 @@ export async function buildModelsList(kindFilter) {
       const isDeprecated = [staticRows.get(modelId), liveRows.get(modelId)]
         .some((byKind) => byKind && [...byKind.values()].some((row) => row?.deprecated === true));
       if (isDeprecated && !isCustomDeclared) continue;
-      if (getReviewedModelMetadata(providerId, modelId)?.limits?.routeAvailable === false && !isCustomDeclared) continue;
+      const reviewed = getReviewedModelMetadata(providerId, modelId);
+      if (reviewed?.limits?.routeAvailable === false && !isCustomDeclared) continue;
 
       const model = {
         id: `${outputAlias}/${modelId}`,
@@ -488,6 +489,12 @@ export async function buildModelsList(kindFilter) {
         }, providerId, modelId),
         ...modelMetadata(liveRows.get(modelId)?.get(kind)),
       };
+      // The Codex catalog's context_window is the CLI default. Keep the
+      // model-specification reference in discovery before applying operator declarations.
+      if (reviewed?.limits?.tokenLimitsReference) {
+        const { contextWindow, maxInput, maxOutput } = reviewed.capabilities;
+        Object.assign(baseCaps, { contextWindow, maxInput, maxOutput });
+      }
       const declared = {
         ...(customRow?.kind === "imageToText" ? capabilitiesFromServiceKind("imageToText") : {}),
         ...modelMetadata(customRow),
