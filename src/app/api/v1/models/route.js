@@ -112,14 +112,9 @@ const LIVE_MODEL_RESOLVERS = {
     }, {
       log: console,
       proxyOptions,
-      onCredentialsRefreshed: async (refreshed) => {
-        await updateProviderCredentials(conn.id, {
-          ...refreshed,
-          existingProviderSpecificData: conn.providerSpecificData || {},
-        });
-      },
+      allowRefresh: false,
     });
-    return result?.models?.length ? { models: result.models } : null;
+    return result?.models?.length || result?.complete === true ? result : null;
   },
   cursor: async (conn, proxyOptions) => {
     const result = await resolveCursorModels({

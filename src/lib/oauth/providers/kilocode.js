@@ -26,7 +26,7 @@ const kilocode = {
     };
   },
   pollToken: async (config, deviceCode) => {
-    const response = await fetch(`${config.pollUrlBase}/${deviceCode}`);
+    const response = await fetch(`${config.pollUrlBase}/${deviceCode}`, { redirect: "error" });
     if (response.status === 202) return { ok: false, data: { error: "authorization_pending" } };
     if (response.status === 403) return { ok: false, data: { error: "access_denied", error_description: "Authorization denied by user" } };
     if (response.status === 410) return { ok: false, data: { error: "expired_token", error_description: "Authorization code expired" } };
@@ -37,7 +37,8 @@ const kilocode = {
       let orgId = null;
       try {
         const profileRes = await fetch(`${config.apiBaseUrl}/api/profile`, {
-          headers: { "Authorization": `Bearer ${data.token}` }
+          headers: { "Authorization": `Bearer ${data.token}` },
+          redirect: "error"
         });
         if (profileRes.ok) {
           const profile = await profileRes.json();

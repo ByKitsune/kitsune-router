@@ -88,10 +88,10 @@ export default {
     { id: "gpt-4o-transcribe", deprecated: true, name: "GPT-4o Transcribe", params: ["language","response_format","temperature","prompt"], kind: "stt", deprecationDate: "2027-02-26", deprecationNotice: "Scheduled API shutdown February 26, 2027; migrate to GPT Transcribe or GPT Live Transcribe." },
     { id: "gpt-4o-mini-transcribe", deprecated: true, name: "GPT-4o Mini Transcribe", params: ["language","response_format","temperature","prompt"], kind: "stt", deprecationDate: "2027-02-26", deprecationNotice: "Scheduled API shutdown February 26, 2027; migrate to GPT Transcribe or GPT Live Transcribe." },
     { id: "gpt-transcribe", name: "GPT Transcribe", params: ["language","response_format","temperature","prompt"], kind: "stt" },
-    { id: "gpt-image-2.5-flare", name: "GPT Image 2.5 Flare", kind: "image" },
-    { id: "gpt-image-2.5-sunburst", name: "GPT Image 2.5 Sunburst", kind: "image" },
+    { id: "gpt-image-2.5-flare", name: "GPT Image 2.5 Flare", params: ["n", "size", "quality", "background", "output_format"], kind: "image" },
+    { id: "gpt-image-2.5-sunburst", name: "GPT Image 2.5 Sunburst", params: ["n", "size", "quality", "background", "output_format"], kind: "image" },
     { id: "gpt-image-1", deprecated: true, name: "GPT Image 1", params: ["n","size","quality","response_format"], kind: "image", deprecationDate: "2026-10-23", deprecationNotice: "Scheduled API shutdown October 23, 2026; migrate to GPT Image 2.5 Sunburst or Flare." },
-    { id: "gpt-image-2", name: "GPT Image 2", params: ["n","size","quality","response_format"], kind: "image" },
+    { id: "gpt-image-2", name: "GPT Image 2", params: ["n", "size", "quality", "background", "output_format"], kind: "image" },
   ],
   serviceKinds: ["llm","embedding","tts","stt","image","imageToText","webSearch"],
   ttsConfig: {

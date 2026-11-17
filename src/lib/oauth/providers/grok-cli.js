@@ -25,6 +25,7 @@ const grokCli = {
         "User-Agent": GROK_CLI_USER_AGENT,
       },
       body,
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -47,6 +48,7 @@ const grokCli = {
         device_code: deviceCode,
         client_id: config.clientId,
       }),
+      redirect: "error",
     });
 
     let data;
@@ -77,6 +79,7 @@ const grokCli = {
           "x-xai-token-auth": "xai-grok-cli",
           "x-grok-client-version": GROK_CLI_VERSION,
         },
+        redirect: "error",
       });
       if (res.ok) return { user: await res.json() };
     } catch {

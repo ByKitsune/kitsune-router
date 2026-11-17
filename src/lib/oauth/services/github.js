@@ -26,6 +26,7 @@ export class GitHubService extends OAuthService {
         client_id: GITHUB_CONFIG.clientId,
         scope: GITHUB_CONFIG.scopes,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -69,6 +70,7 @@ export class GitHubService extends OAuthService {
           device_code: deviceCode,
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
         }),
+        redirect: "error",
       });
 
       const data = await response.json();
@@ -111,6 +113,7 @@ export class GitHubService extends OAuthService {
         "X-GitHub-Api-Version": COPILOT_TOKEN_API_VERSION,
         "User-Agent": GITHUB_CONFIG.userAgent,
       },
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -132,6 +135,7 @@ export class GitHubService extends OAuthService {
         "X-GitHub-Api-Version": GITHUB_CONFIG.apiVersion,
         "User-Agent": GITHUB_CONFIG.userAgent,
       },
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -208,6 +212,7 @@ export class GitHubService extends OAuthService {
           userInfo: authResult.userInfo,
           copilotTokenInfo: authResult.copilotTokenInfo,
         }),
+        redirect: "error",
       });
       
       if (!response.ok) {

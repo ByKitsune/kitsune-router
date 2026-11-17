@@ -2,7 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { SSE_DONE, SSE_HEADERS_NO_BUFFER } from "../utils/sseConstants.js";
 import { sseChunk } from "../utils/sse.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { fetchWithAccountPolicy } from "../utils/accountTransport.js";
 
 const PPLX_SSE_ENDPOINT = PROVIDERS["perplexity-web"].baseUrl;
 const PPLX_API_VERSION = "2.18";
@@ -458,7 +458,7 @@ export class PerplexityWebExecutor extends BaseExecutor {
 
     let response;
     try {
-      response = await proxyAwareFetch(PPLX_SSE_ENDPOINT, fetchOptions, proxyOptions);
+      response = await fetchWithAccountPolicy(PPLX_SSE_ENDPOINT, fetchOptions, proxyOptions);
     } catch (err) {
       signal?.throwIfAborted();
       log?.error?.("PPLX-WEB", `Fetch failed: ${err.message || String(err)}`);

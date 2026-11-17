@@ -30,6 +30,7 @@ const geminiCli = {
         code: code,
         redirect_uri: redirectUri,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -43,6 +44,7 @@ const geminiCli = {
     // Fetch user info
     const userInfoRes = await fetch(`${GEMINI_CONFIG.userInfoUrl}?alt=json`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
+      redirect: "error",
     });
     const userInfo = userInfoRes.ok ? await userInfoRes.json() : {};
 
@@ -63,6 +65,7 @@ const geminiCli = {
             metadata: getGeminiOAuthClientMetadata(),
             mode: 1,
           }),
+          redirect: "error",
         }
       );
       if (projectRes.ok) {

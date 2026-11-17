@@ -11,9 +11,9 @@ export function makeKv(scope) {
     async getAll() {
       const db = await getAdapter();
       const rows = db.all(`SELECT key, value FROM kv WHERE scope = ?`, [scope]);
-      const out = {};
-      for (const r of rows) out[r.key] = parseJson(r.value);
-      return out;
+      // Keys are literal data. Assignment to __proto__ on {} would silently
+      // discard a string alias or replace the result's prototype with a record.
+      return Object.fromEntries(rows.map(row => [row.key, parseJson(row.value)]));
     },
     async set(key, value) {
       const db = await getAdapter();

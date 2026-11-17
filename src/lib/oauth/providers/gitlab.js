@@ -35,12 +35,14 @@ const gitlab = {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
       body: body.toString(),
+      redirect: "error",
     });
     if (!response.ok) throw new Error(`GitLab token exchange failed: ${await response.text()}`);
     const tokens = await response.json();
     // Fetch user info
     const userRes = await fetch(`${baseUrl}${config.userInfoUrlPath}`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
+      redirect: "error",
     });
     const user = userRes.ok ? await userRes.json() : {};
     return { ...tokens, _user: user, _baseUrl: baseUrl, _clientId: clientId };

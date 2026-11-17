@@ -81,7 +81,6 @@ describe("the previously unbounded caches are now bounded (P10-E)", () => {
     ["open-sse/executors/default.js", "rejectedBetaByConnection", "CACHE_LIMITS.rejectedBeta"],
     ["open-sse/services/usage/claude.js", "usageCache", "CACHE_LIMITS.usageCache"],
     ["open-sse/services/usage/claude.js", "oauthCooldown", "CACHE_LIMITS.oauthCooldown"],
-    ["src/sse/services/auth.js", "providerMutexes", "CACHE_LIMITS.providerMutexes"],
   ];
 
   it.each(CASES)("%s writes %s through setBounded", (rel, mapName, limit) => {

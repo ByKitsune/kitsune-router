@@ -1,6 +1,6 @@
 # Kitsune Router Architecture
 
-_Architecture review: 2026-10-19; current distribution: 1.0.2 container published privately, anonymous access pending, npm blocked._
+_Historical architecture snapshot: 2026-10-19; distribution observed then: 1.0.2 container published privately, anonymous access pending, npm blocked._
 
 **Kitsune Router — Your models. Your routes.** Maintained and sponsored by [ByKitsune](https://bykitsune.com), without a mandatory account or provider order. Current source changes and published artifacts have separate verification scopes. See the [changelog](../CHANGELOG.md) and [publication receipt](audit/33-1.0.6-publication-and-registry-verification-2026-11-05.md) for release status; historical architecture checks below retain their original numeric data and scope. See also [installation](INSTALLATION.md), [migration](MIGRATION.md) and [client integration contracts](INTEGRATIONS.md).
 
@@ -163,7 +163,29 @@ Public Argon documentation verifies published capabilities and eligible surfaces
 - The public speech route dispatches Ollama directly to its adapter. A direct internal `handleTtsCore` call is different: it defaults to MP3, which Ollama rejects, and does not pass the public route's voice, signal, speed or instructions options. Internal callers must explicitly request WAV for the tested WAV path; this is not equivalent to the public route.
 
 
+### Native Codex Images
+
+The image path uses native JSON `/backend-api/codex/images/generations` or
+`images/edits`, rather than selecting a text model and injecting a Responses
+tool. `cx/gpt-image-2` is the canonical route; the three registered legacy
+text-image aliases explicitly map to it without rewriting stored routes.
+Native image/generation IDs and exact reported usage are retained. JSON,
+single-image binary and client SSE delivery have separate contracts. This
+transport does not establish account feature access or permit paid replay after
+an accepted/ambiguous generation. See the
+[deep audit](audit/2026-11-17-deep-stability-audit.md) for pinned source evidence.
+Legacy `image_detail` is accepted as an unused compatibility hint, not a native
+Images control; the dashboard excludes it and other hidden fields from payloads.
+Binary requests with multiple outputs are refused before dispatch. Public OpenAI
+GPT image routes retain applicable native parameters; `stream: true` and
+`partial_images` are rejected before dispatch because that route returns JSON.
+
 ## 3) Persistence Layer
+
+The later [deep stability audit](audit/2026-11-17-deep-stability-audit.md) records
+automatic additive schema 4 upgrade fixtures, initialization recovery, exact
+pending/usage bookkeeping and transactional compatible-node mutations. These
+current source checks remain distinct from the historical snapshot above.
 
 ### Rebrand startup boundary
 
@@ -195,6 +217,29 @@ operator recovery. Repos live in `src/lib/db/repos/*`; schema/migrations in
   adapter. Recovery is manual — verify a candidate under
   `${DATA_DIR}/db/backups` with `PRAGMA quick_check`, then restore it.
 
+Declarative schema/backup target 4 adds the `(provider, authType, name)` lookup index through the existing
+additive synchronization path. A pre-change backup is attempted automatically;
+generic backup failures retain existing best-effort behavior, while unsafe
+permissions fail closed. Fresh legacy JSON sources are validated together before
+schema/import stamps, and originals remain available for repair. Once SQLite is
+authoritative, obsolete JSON is not parsed on every restart. A rejected adapter
+initialization can retry after repair; close/reopen serialization prevents a new
+consumer from receiving the closing handle.
+The independent versioned migration ledger is separate from that backup target;
+neither field should be manually rewritten to force an upgrade.
+Versioned migration 3 adds nullable `usageHistory.sourceTimestamp`, canonicalizes
+valid explicit-zone historical index timestamps in <=500-row ID-keyset pages,
+and retains changed originals. Invalid/zone-unknown values remain stored and are
+excluded only from date-window matches; bare range bounds retain `idx_uh_ts`.
+Daily aggregates, monetary history and frozen quote provenance are not rebuilt.
+Fresh legacy absent/null timestamps stay unknown rather than becoming now;
+missing/null costs become SQL NULL, with explicit zero retained.
+
+Compatible-node endpoint/account propagation and owned deletion are
+transactional, with revision invalidation. Discovery hides older orphan
+declarations under reserved node IDs without deleting their raw KV/export data;
+unrelated aliases, combos, pricing and historical usage remain independent.
+
 Usage and request logs use the same SQLite layer:
 
 - `src/lib/usageDb.js` re-exports the `usageHistory`, `usageDaily`, log and request-detail repositories
@@ -208,6 +253,12 @@ Usage and request logs use the same SQLite layer:
   reach the existing built-in fallback; standalone tracing retains installed
   native binaries and CLI-managed runtime resolution remains supported.
 - Usage acceptance freezes event identity, token snapshot, recorded timestamp, delivered tier and resolved quote in `usageOutbox`; a unique event index prevents replay duplication. Projection commits history, daily totals, lifetime count and queue removal together. Historical nullable costs remain unchanged. `enqueueRequestUsage` acknowledges durable acceptance only; `saveRequestUsage` waits for history-query visibility. SQLite acceptance/projection is deferred bounded synchronous work, not off-thread execution.
+- New indexed record/outbox timestamps with verified explicit zones normalize
+  offsets to UTC while accepted frozen quote timestamps retain their literal
+  provenance. Valid zone-less accepted timestamps remain literal unknowns,
+  without an invented daily bucket or known quote. The existing
+  60-second latest-activity pending watchdog remains tuple-scoped; sibling or
+  unmatched completion and another account's expiry cannot erase its contribution.
 - An incurred attempt retains its usage even on an upstream error or disconnect. `usage_acceptance_failed` is a local accounting failure, not provider unavailability: HTTP responses carry `x-should-retry: false`, without account cooldown, account/combo fallback or a fabricated retry time. The ByKitsune relay preserves that terminal header and does not repeat inference. An error after streaming headers remains a failed stream, not a success terminator.
 - Recorded token costs and component costs use `number | null`: an unknown used tariff is `null`, not a zero-dollar charge
 - Real free tariffs and zero token usage remain numeric zero; historical recorded costs are not repriced during endpoint backfill
@@ -513,7 +564,7 @@ Physical storage files:
 - main state: `${DATA_DIR}/db/data.sqlite` (or `~/.kitsune-router/db/data.sqlite`; legacy `db.json`/`usage.json` kept only for migration via `src/lib/db/paths.js:LEGACY_FILES`)
 - usage stats: SQLite tables `usageHistory`/`usageDaily` + in-memory recent-requests ring (`src/lib/db/repos/usageRepo.js`)
 - request details: SQLite `requestDetails` (`requestDetailsRepo.js`, payloads redacted)
-- optional translator/request debug sessions: `<repo>/logs/...`
+- optional translator/request diagnostic sessions: `${DATA_DIR}/logs/...`
 
 ## Deployment Topology
 
@@ -792,9 +843,17 @@ Runtime visibility sources:
 
 - console logs from `src/sse/utils/logger.js`
 - per-request usage aggregates and recent status logs through the SQLite repositories
-- optional deep request/translation logs under `logs/` when `ENABLE_REQUEST_LOGS=true`
+- optional metadata-only request/translation logs under `${DATA_DIR}/logs/` when `ENABLE_REQUEST_LOGS=true`; new appended stream/error files are capped at 64 KiB, and historical session retention remains operator-managed
 - dashboard usage endpoints (`/api/usage/*`) for UI consumption
 - `/api/metrics`: rolling usage/TTFT gauges and bounded process-lifetime terminal-failure counters. The latter count logged routed attempts, not every inbound HTTP request, and reset on process restart.
+
+Console formatting is bounded to 8 KiB per line and capture to the existing
+200-line/512-KiB limits. Formatting avoids executing getters/`toJSON`, redacts
+known credential forms and isolates subscriber failures. Slow console-SSE
+subscribers stop instead of retaining an unbounded queue; abort/cancel removes
+listeners/timers, and clear discards pending replay. Request-detail queries
+validate complete integer paging and date ranges before SQL. These diagnostic
+paths are best-effort telemetry, separate from durable usage acceptance.
 
 ## Security-Sensitive Boundaries
 

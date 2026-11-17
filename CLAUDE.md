@@ -150,6 +150,22 @@ State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a
   Completed results may be evicted; a new key can receive
   `TOKEN_REFRESH_CAPACITY_EXCEEDED` until capacity is available. Existing waiters
   keep their shared result and independent cancellation semantics.
+- The later [deep stability audit](docs/audit/2026-11-17-deep-stability-audit.md)
+  starts from `c787fb45`; do not reuse that base's test counts as final proof.
+  Declarative schema/backup target 4 and versioned migration ledger 3 are
+  distinct. Migration 3 canonicalizes valid explicit-zone historical index times
+  in bounded pages, retaining changed literals in `sourceTimestamp`; never
+  reprice old costs/quotes or invent times for unknown legacy timestamps. Existing state upgrades additively; failed fresh JSON import must
+  retain sources and withhold schema/import stamps. Generic schema-backup failures
+  remain best-effort, while unsafe permissions fail closed.
+- Codex images use native JSON `images/generations` or `images/edits` under the
+  Codex backend. Registered legacy text-image aliases map explicitly to
+  `gpt-image-2`; do not route them by stripping `-image` into a text Responses
+  request, fabricate entitlement, or replay accepted/ambiguous paid generations.
+- Console/request diagnostic logs have byte/count/backpressure limits and known
+  credential redaction. Opt-in metadata files use `DATA_DIR/logs`; their historic
+  session retention remains operator-managed. Diagnostics are best-effort,
+  distinct from durable usage, and cannot guarantee arbitrary third-party captures.
 - Video caller aborts are terminal through account selection, refresh and body
   reads. Successful metadata must be complete bounded UTF-8 JSON; truncated
   success is not a successful job or evidence of an unhealthy account.

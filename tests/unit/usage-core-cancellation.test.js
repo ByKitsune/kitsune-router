@@ -145,7 +145,7 @@ describe("Codex image reader terminal ownership", () => {
     const chunks = [event("response.image_generation_call.partial_image", { partial_image_b64: "cGFydA==", partial_image_index: 0 }), imageEvent + usageEvent];
     const stream = new ReadableStream({ pull(controller) { reads++; if (chunks.length) controller.enqueue(encoder.encode(chunks.shift())); else controller.close(); } }, { highWaterMark: 0 });
     const onUsage = vi.fn();
-    const { sseResponse } = await codex.parseResponse(new Response(stream), { streamToClient: true, onUsage });
+    const { sseResponse } = await codex.parseResponse(new Response(stream, { headers: { "Content-Type": "text/event-stream" } }), { streamToClient: true, onUsage });
     await new Promise(resolve => setImmediate(resolve));
     expect(reads).toBe(0);
     const reader = sseResponse.body.getReader();
@@ -285,7 +285,7 @@ describe("image core cancellation and exact provider usage", () => {
   });
 
   it("reports failed partial image usage through the app exactly once", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(event("response.incomplete", { response: { usage: nativeUsage } }))));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(event("response.incomplete", { response: { usage: nativeUsage } }), { headers: { "Content-Type": "text/event-stream" } })));
     const response = await handleImageGeneration(request("/v1/images/generations", { model: "fixture", prompt: "fixture" }));
     expect(response.status).toBe(502);
     expect(fixture.entries).toHaveLength(1);
@@ -293,7 +293,7 @@ describe("image core cancellation and exact provider usage", () => {
   });
 
   it.each([null, {}, { prompt_tokens: 0, completion_tokens: 0 }, { ...tokens, estimated: true }, { prompt_tokens: "3", completion_tokens: 5 }])("never invents provider image counters %#", async usage => {
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: [], usage })));
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ created: 1, data: [{ b64_json: "aW1hZ2U=" }], usage })));
     const onUsage = vi.fn();
     const result = await handleImageGenerationCore(imageOptions({ modelInfo: { provider: "openai", model: "fixture" }, onUsage }));
     expect(result.success).toBe(true); expect(onUsage).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { randomUUID } = require("node:crypto");
 const { DATA_DIR } = require("./paths");
 const { LOG_BLACKLIST_URL_PARTS } = require("./config");
 
@@ -11,19 +12,35 @@ const log = (msg) => console.log(`[${time()}] [MITM] ${msg}`);
 const err = (msg) => console.error(`[${time()}] ❌ [MITM] ${msg}`);
 
 const DUMP_DIR = path.join(DATA_DIR, "logs", "mitm");
-if (!fs.existsSync(DUMP_DIR)) fs.mkdirSync(DUMP_DIR, { recursive: true });
+
+function ensureDumpDir(create = true) {
+  try {
+    for (const directory of [path.join(DATA_DIR, "logs"), DUMP_DIR]) {
+      if (create) fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+      if (!fs.lstatSync(directory).isDirectory()) return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
+function writePrivateDump(file, contents) {
+  const fd = fs.openSync(file, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY | (fs.constants.O_NOFOLLOW || 0), 0o600);
+  try { fs.writeFileSync(fd, contents); } finally { fs.closeSync(fd); }
+}
 
 // Clear all files inside DUMP_DIR (called on MITM server start to avoid unbounded growth)
 function clearDumpDir() {
   try {
-    if (!fs.existsSync(DUMP_DIR)) return;
-    for (const f of fs.readdirSync(DUMP_DIR)) {
-      try { fs.rmSync(path.join(DUMP_DIR, f), { recursive: true, force: true }); } catch { /* ignore */ }
+    if (!ensureDumpDir(false)) return;
+    for (const entry of fs.readdirSync(DUMP_DIR, { withFileTypes: true })) {
+      // Preserve operator files/subdirectories and never traverse a symlink.
+      if (!entry.isFile() || !/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_[a-zA-Z0-9_-]+\.(?:req\.json|res\.txt)$/.test(entry.name)) continue;
+      try { fs.unlinkSync(path.join(DUMP_DIR, entry.name)); } catch { /* ignore */ }
     }
   } catch { /* ignore */ }
 }
 
-const SENSITIVE_HEADER_RE = /authorization|api[-_]?key|cookie|token|credential|secret/i;
+const SENSITIVE_HEADER_RE = /authorization|authentication|api[-_]?key|cookie|token|credential|secret|password|passwd|session|signature|(^|[-_])auth($|[-_])/i;
 
 function slugify(s, max = 80) {
   return String(s).replace(/[^a-zA-Z0-9]/g, "_").substring(0, max);
@@ -41,10 +58,17 @@ function safeUrl(url) {
 
 function maskSensitiveHeaders(headers) {
   if (!headers || typeof headers !== "object") return {};
-  return Object.fromEntries(Object.entries(headers).map(([key, value]) => [
-    key,
-    SENSITIVE_HEADER_RE.test(key) ? "[REDACTED]" : value
-  ]));
+  const masked = {};
+  let count = 0;
+  for (const key in headers) {
+    const descriptor = Object.getOwnPropertyDescriptor(headers, key);
+    if (!descriptor?.enumerable) continue;
+    if (count++ >= 40) break;
+    const value = "value" in descriptor ? descriptor.value : "[Accessor]";
+    const primitive = value == null || ["string", "number", "boolean"].includes(typeof value);
+    masked[key.slice(0, 100)] = SENSITIVE_HEADER_RE.test(key) ? "[REDACTED]" : primitive ? String(value).slice(0, 256) : "[Complex header]";
+  }
+  return masked;
 }
 
 function bodyMetadata(body) {
@@ -56,11 +80,12 @@ function bodyMetadata(body) {
 function dumpRequest(req, bodyBuffer, tag = "raw") {
   if (isBlacklisted(req.url)) return null;
   try {
+    if (!ensureDumpDir()) return null;
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
     const url = safeUrl(req.url);
     const slug = slugify((req.headers?.host || "") + url);
-    const file = path.join(DUMP_DIR, `${ts}_${tag}_${slug}.req.json`);
-    fs.writeFileSync(file, JSON.stringify({
+    const file = path.join(DUMP_DIR, `${ts}_${slugify(tag)}_${slug}_${randomUUID()}.req.json`);
+    writePrivateDump(file, JSON.stringify({
       method: req.method,
       url,
       host: req.headers?.host,
@@ -74,10 +99,11 @@ function dumpRequest(req, bodyBuffer, tag = "raw") {
 // Response dumper — records response metadata without retaining stream content.
 function createResponseDumper(req, tag = "raw") {
   if (isBlacklisted(req.url)) return null;
+  if (!ensureDumpDir()) return null;
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   const url = safeUrl(req.url);
   const slug = slugify((req.headers?.host || "") + url);
-  const file = path.join(DUMP_DIR, `${ts}_${tag}_${slug}.res.txt`);
+  const file = path.join(DUMP_DIR, `${ts}_${slugify(tag)}_${slug}_${randomUUID()}.res.txt`);
   let status = 0;
   let headers = {};
   let responseBytes = 0;
@@ -90,7 +116,7 @@ function createResponseDumper(req, tag = "raw") {
     end: () => {
       try {
         const out = `STATUS: ${status}\nURL: ${url}\nHEADERS: ${JSON.stringify(maskSensitiveHeaders(headers), null, 2)}\n---BODY-METADATA---\n${JSON.stringify({ present: responseBytes > 0, bytes: responseBytes })}`;
-        fs.writeFileSync(file, out);
+        writePrivateDump(file, out);
       } catch { /* ignore */ }
     },
     file

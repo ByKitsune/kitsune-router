@@ -1,5 +1,10 @@
 # Kitsune Router — historical audit & knowledge map
 
+The [November 17 deep stability audit](2026-11-17-deep-stability-audit.md)
+records the later provider/translator, old-state database, logging and native
+Codex Images follow-up from `c787fb45`. Its issue survey and final validation
+receipt remain separate from the earlier dependency/reconciliation phase.
+
 The [November 17 upstream reconciliation](2026-11-17-upstream-reconciliation.md)
 records the common ancestor, fetched refs and diverged history, actual issue
 review, selective upstream adaptations and intentionally deferred differences.

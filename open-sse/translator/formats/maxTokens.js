@@ -38,5 +38,5 @@ export function adjustMaxTokens(body, ceiling = null, options = {}) {
  * @returns {boolean} true when the request must carry max_completion_tokens
  */
 export function requiresMaxCompletionTokens(model) {
-  return /gpt-[56]|o[134]-/i.test(model);
+  return /gpt-[56]|o[134](?:-|$)/i.test(model);
 }

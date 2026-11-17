@@ -1,6 +1,7 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { readScopeRevision } from "../helpers/scopedCache.js";
+import { REQUEST_DETAIL_QUERY_LIMITS } from "open-sse/config/logging.js";
 
 const DEFAULT_MAX_RECORDS = 200;
 const DEFAULT_BATCH_SIZE = 20;
@@ -218,7 +219,37 @@ export async function flushRequestDetails({ deadline = Date.now() + 5000 } = {})
   return { ...(await getRequestDetailQueueMetrics()), drained: queue.items.length === 0 };
 }
 
+function invalidDetailFilter(message) {
+  return Object.assign(new RangeError(message), { code: "INVALID_REQUEST_DETAIL_FILTER" });
+}
+
+export function normalizeRequestDetailFilter(filter = {}) {
+  const integer = (value, fallback, name, max = Number.MAX_SAFE_INTEGER) => {
+    const parsed = value == null ? fallback : typeof value === "number" ? value
+      : typeof value === "string" && /^\d+$/.test(value) ? Number(value) : NaN;
+    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > max) {
+      throw invalidDetailFilter(`${name} must be an integer between 1 and ${max}`);
+    }
+    return parsed;
+  };
+  const page = integer(filter.page, 1, "Page");
+  const pageSize = integer(filter.pageSize, REQUEST_DETAIL_QUERY_LIMITS.defaultPageSize, "PageSize", REQUEST_DETAIL_QUERY_LIMITS.maxPageSize);
+  if (!Number.isSafeInteger((page - 1) * pageSize)) throw invalidDetailFilter("Page offset exceeds the supported range");
+  const normalized = { ...filter, page, pageSize };
+  for (const name of ["startDate", "endDate"]) {
+    if (!filter[name]) continue;
+    const date = new Date(filter[name]);
+    if (!Number.isFinite(date.getTime())) throw invalidDetailFilter(`${name} must be a valid date`);
+    normalized[name] = date.toISOString();
+  }
+  if (normalized.startDate && normalized.endDate && normalized.startDate > normalized.endDate) {
+    throw invalidDetailFilter("startDate must be earlier than or equal to endDate");
+  }
+  return normalized;
+}
+
 export async function getRequestDetails(filter = {}) {
+  filter = normalizeRequestDetailFilter(filter);
   const db = await getAdapter();
   const conds = [];
   const params = [];
@@ -227,15 +258,14 @@ export async function getRequestDetails(filter = {}) {
   if (filter.model) { conds.push("model = ?"); params.push(filter.model); }
   if (filter.connectionId) { conds.push("connectionId = ?"); params.push(filter.connectionId); }
   if (filter.status) { conds.push("status = ?"); params.push(filter.status); }
-  if (filter.startDate) { conds.push("timestamp >= ?"); params.push(new Date(filter.startDate).toISOString()); }
-  if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
+  if (filter.startDate) { conds.push("timestamp >= ?"); params.push(filter.startDate); }
+  if (filter.endDate) { conds.push("timestamp <= ?"); params.push(filter.endDate); }
 
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
   const cntRow = db.get(`SELECT COUNT(*) as c FROM requestDetails ${where}`, params);
   const totalItems = cntRow ? cntRow.c : 0;
 
-  const page = filter.page || 1;
-  const pageSize = filter.pageSize || 50;
+  const { page, pageSize } = filter;
   const totalPages = Math.ceil(totalItems / pageSize);
   const offset = (page - 1) * pageSize;
 

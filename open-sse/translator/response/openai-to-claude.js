@@ -3,6 +3,7 @@ import { FORMATS } from "../formats.js";
 import { ROLE, CLAUDE_BLOCK, MODEL_FALLBACK } from "../schema/index.js";
 import { fromOpenAIFinish } from "../concerns/finishReason.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
+import { getCacheCreationUsage, toOpenAIUsage } from "../concerns/usage.js";
 import { isCompleteToolName } from "../../utils/toolCompressor.js";
 
 // Sanitize tool call arguments to fix bad params from non-Anthropic models
@@ -103,26 +104,31 @@ export function openaiToClaudeResponse(chunk, state) {
 
   // Track usage from OpenAI chunk if available
   if (chunk.usage && typeof chunk.usage === "object") {
-    const promptTokens = typeof chunk.usage.prompt_tokens === "number" ? chunk.usage.prompt_tokens : 0;
-    const outputTokens = typeof chunk.usage.completion_tokens === "number" ? chunk.usage.completion_tokens : 0;
-
-    // Extract cache tokens from prompt_tokens_details
-    const cachedTokens = chunk.usage.prompt_tokens_details?.cached_tokens;
-    const cacheCreationTokens = chunk.usage.prompt_tokens_details?.cache_creation_tokens;
-    const cacheReadTokens = typeof cachedTokens === "number" ? cachedTokens : 0;
-    const cacheCreateTokens = typeof cacheCreationTokens === "number" ? cacheCreationTokens : 0;
+    // Use the same aliases and integrity validation as native accounting. A
+    // compatibility provider's top-level cached_tokens is still measured cache,
+    // and malformed counters must not become an apparently free response.
+    const usage = toOpenAIUsage(chunk.usage, "openai");
+    const creation = getCacheCreationUsage(usage);
+    const promptTokens = usage.prompt_tokens;
+    const outputTokens = usage.completion_tokens;
+    const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+    const cacheCreateTokens = creation?.total ?? 0;
 
     // input_tokens = prompt_tokens - cached_tokens - cache_creation_tokens
     // Because OpenAI's prompt_tokens includes all prompt-side tokens
     const inputTokens = promptTokens - cacheReadTokens - cacheCreateTokens;
+    const inputValid = Number.isSafeInteger(inputTokens) && inputTokens >= 0;
+    const outputValid = Number.isSafeInteger(outputTokens) && outputTokens >= 0;
 
     state.usage = {
-      input_tokens: inputTokens,
-      output_tokens: outputTokens
+      input_tokens: inputValid ? inputTokens : 0,
+      output_tokens: outputValid ? outputTokens : 0,
+      ...(usage.usage_invalid || !inputValid || !outputValid ? { usage_invalid: true } : {}),
+      ...(usage.estimated ? { estimated: true } : {}),
     };
 
     // Add cache_read_input_tokens if present
-    if (cacheReadTokens > 0) {
+    if (Number.isSafeInteger(cacheReadTokens) && cacheReadTokens > 0) {
       state.usage.cache_read_input_tokens = cacheReadTokens;
     }
 
@@ -130,17 +136,25 @@ export function openaiToClaudeResponse(chunk, state) {
     if (cacheCreateTokens > 0) {
       state.usage.cache_creation_input_tokens = cacheCreateTokens;
     }
+    const validFiveMinute = Number.isSafeInteger(creation?.fiveMinute) && creation.fiveMinute >= 0;
+    const validOneHour = Number.isSafeInteger(creation?.oneHour) && creation.oneHour >= 0;
+    if (validFiveMinute || validOneHour) {
+      state.usage.cache_creation = {
+        ...(validFiveMinute ? { ephemeral_5m_input_tokens: creation.fiveMinute } : {}),
+        ...(validOneHour ? { ephemeral_1h_input_tokens: creation.oneHour } : {}),
+      };
+    }
 
     // Preserve reasoning tokens for usage tracking: Claude clients ignore the
     // extra field, but saveUsageStats/canonicalizeUsage need it populated or
     // the pivot drops every reasoning count for translated streams.
-    const reasoningTokens = chunk.usage.completion_tokens_details?.reasoning_tokens;
-    if (typeof reasoningTokens === "number" && reasoningTokens > 0) {
+    const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens;
+    if (Number.isSafeInteger(reasoningTokens) && reasoningTokens > 0) {
       state.usage.reasoning_tokens = reasoningTokens;
     }
     state.claudeUsage = state.usage;
   }
-  const completeUsage = typeof chunk.usage?.prompt_tokens === "number" && typeof chunk.usage?.completion_tokens === "number";
+  const completeUsage = chunk.usage?.prompt_tokens !== undefined && chunk.usage?.completion_tokens !== undefined;
   if (!chunk.choices?.[0]) return completeUsage ? emitClaudeTerminal(state) : null;
   const choice = chunk.choices[0];
   const delta = choice.delta;

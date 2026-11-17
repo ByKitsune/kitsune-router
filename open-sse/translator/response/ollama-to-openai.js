@@ -25,45 +25,22 @@ export function ollamaToOpenAIResponse(chunk, state) {
     state.ollama = {
       id: `chatcmpl-${Date.now()}`,
       created: Math.floor(Date.now() / 1000),
-      model: chunk.model || state.model
+      model: chunk.model || state.model,
+      nextToolIndex: 0,
     };
   }
 
   const { id, created, model } = state.ollama;
 
-  // Final chunk with done=true
-  if (chunk.done) {
-    const usage = extractUsage(chunk);
-    
-    // Determine finish_reason: map upstream done_reason, override to tool_calls if tools used
-    let finishReason = toOpenAIFinish(chunk.done_reason, "ollama");
-    if (chunk.done_reason === OPENAI_FINISH.TOOL_CALLS || state.hadToolCalls) {
-      finishReason = OPENAI_FINISH.TOOL_CALLS;
-    }
-
-    const doneChunk = buildChunk({ id, created, model }, {}, finishReason);
-    doneChunk.usage = usage;
-    return doneChunk;
-  }
-
-  // Content chunk
+  // A final NDJSON record may carry content or complete tools as well as usage.
+  // Lower its message before emitting the finish instead of discarding it.
   const message = chunk.message;
-  if (!message) return null;
-
-  const content = typeof message.content === "string" ? message.content : "";
-  const thinking = typeof message.thinking === "string" ? message.thinking : "";
-  const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : null;
+  const content = typeof message?.content === "string" ? message.content : "";
+  const thinking = typeof message?.thinking === "string" ? message.thinking : "";
+  const toolCalls = Array.isArray(message?.tool_calls) && message.tool_calls.length ? message.tool_calls : null;
 
   // Skip empty chunks
-  if (!content && !thinking && !toolCalls) return null;
-
-  // Accumulate content in state
-  if (content) {
-    state.accumulatedContent = (state.accumulatedContent || "") + content;
-  }
-  if (thinking) {
-    state.accumulatedThinking = (state.accumulatedThinking || "") + thinking;
-  }
+  if (!chunk.done && !content && !thinking && !toolCalls) return null;
 
   const delta = {};
   if (content) delta.content = content;
@@ -72,9 +49,16 @@ export function ollamaToOpenAIResponse(chunk, state) {
   // Convert Ollama tool_calls to OpenAI format
   if (toolCalls) {
     state.hadToolCalls = true;
-    delta.tool_calls = convertToolCalls(toolCalls);
+    delta.tool_calls = convertToolCalls(toolCalls, state.ollama);
   }
 
+  if (chunk.done) {
+    let finishReason = toOpenAIFinish(chunk.done_reason, "ollama");
+    if (chunk.done_reason === OPENAI_FINISH.TOOL_CALLS || state.hadToolCalls) finishReason = OPENAI_FINISH.TOOL_CALLS;
+    const doneChunk = buildChunk({ id, created, model }, delta, finishReason);
+    doneChunk.usage = extractUsage(chunk);
+    return doneChunk;
+  }
   return buildChunk({ id, created, model }, delta, null);
 }
 
@@ -88,18 +72,24 @@ function extractUsage(ollamaChunk) {
 /**
  * Convert tool_calls from Ollama format to OpenAI format
  */
-function convertToolCalls(toolCalls) {
-  return toolCalls.map((tc, i) => ({
-    index: tc.function?.index ?? i,
-    id: tc.id || fallbackToolCallId(i),
-    type: OPENAI_BLOCK.FUNCTION,
-    function: {
-      name: tc.function?.name || "",
-      arguments: typeof tc.function?.arguments === "string"
-        ? tc.function.arguments
-        : JSON.stringify(tc.function?.arguments || {})
-    }
-  }));
+function convertToolCalls(toolCalls, streamState = { nextToolIndex: 0 }) {
+  return toolCalls.map(tc => {
+    // Native Ollama calls are complete records. Unindexed calls in a later
+    // record are new calls, not more arguments for the previous array's zero.
+    const suppliedIndex = tc.function?.index;
+    const index = Number.isSafeInteger(suppliedIndex) && suppliedIndex >= 0 ? suppliedIndex : streamState.nextToolIndex;
+    streamState.nextToolIndex = Math.max(streamState.nextToolIndex, index + 1);
+    return {
+      index,
+      id: tc.id || fallbackToolCallId(index),
+      type: OPENAI_BLOCK.FUNCTION,
+      function: {
+        name: tc.function?.name || "",
+        arguments: typeof tc.function?.arguments === "string"
+          ? tc.function.arguments : JSON.stringify(tc.function?.arguments || {}),
+      },
+    };
+  });
 }
 
 /**

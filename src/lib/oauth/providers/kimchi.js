@@ -24,6 +24,7 @@ const kimchi = {
         Accept: "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
+      redirect: "error",
     });
     if (!validationRes.ok) {
       throw new Error(`Kimchi token validation failed: ${validationRes.status}`);
@@ -38,6 +39,7 @@ const kimchi = {
             Accept: "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
+          redirect: "error",
         });
         if (userRes.ok) {
           userInfo = await userRes.json();

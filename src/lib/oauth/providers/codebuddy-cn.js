@@ -21,6 +21,7 @@ const codebuddyCn = {
         "X-Product": "SaaS",
       },
       body: "{}",
+      redirect: "error",
     });
     if (!response.ok) throw new Error(`CodeBuddy state request failed: ${await response.text()}`);
     const data = await response.json();
@@ -51,6 +52,7 @@ const codebuddyCn = {
         "X-No-Department-Info": "true",
         "X-Product": "SaaS",
       },
+      redirect: "error",
     });
     if (!response.ok) return { ok: false, data: { error: "request_failed" } };
     const data = await response.json();

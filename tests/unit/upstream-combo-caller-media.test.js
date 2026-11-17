@@ -100,7 +100,9 @@ describe("public image combo caller cancellation", () => {
     const acceptanceStarted = new Promise(resolve => { accepting = resolve; });
     const cancel = vi.fn();
     const source = new ReadableStream({
-      start(controller) { controller.enqueue(encoder.encode(event("response.completed", { response: { usage: nativeUsage } }))); },
+      // Keep generation in progress: a completed event correctly ends the
+      // reader without the subsequent source pull used to synchronize abort.
+      start(controller) { controller.enqueue(encoder.encode(event("response.in_progress", { response: { usage: nativeUsage } }))); },
       pull() { reading(); }, cancel,
     }, { highWaterMark: 0 });
     io.fetch.mockResolvedValueOnce(new Response(source, { headers: { "content-type": "text/event-stream" } }));
@@ -112,6 +114,8 @@ describe("public image combo caller cancellation", () => {
     await started;
     await new Promise(resolve => setImmediate(resolve));
     expect(settled).toBe(false); // no peek timeout has elapsed
+    expect(io.enqueue).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
     caller.abort(new Error("caller closed"));
     expect((await pending).status).toBe(499);
     await acceptanceStarted;
@@ -133,6 +137,8 @@ describe("public image combo caller cancellation", () => {
     expect(io.clearError).not.toHaveBeenCalled();
     expect(JSON.stringify([...io.error.mock.calls, ...consoleError.mock.calls])).not.toContain(privateDetail);
     await vi.advanceTimersByTimeAsync(200);
+    expect(io.fetch).toHaveBeenCalledOnce();
+    expect(io.info.mock.calls.some(([scope, message]) => scope === "COMBO" && message.includes("Trying model 2/"))).toBe(false);
   });
 
   it("reports a late real acceptance failure from a no-auth image attempt", async () => {

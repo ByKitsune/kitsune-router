@@ -1,6 +1,7 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
+import { isProviderNodeId } from "../helpers/nodeOwnership.js";
 
 const aliasKv = makeKv("modelAliases");
 const customKv = makeKv("customModels");
@@ -26,7 +27,13 @@ function customKey(providerAlias, id, type) {
 
 export async function getCustomModels() {
   const all = await customKv.getAll();
-  return Object.values(all);
+  const models = Object.values(all);
+  if (!models.some(model => isProviderNodeId(model?.providerAlias))) return models;
+  const db = await getAdapter();
+  const nodes = new Set(db.all(`SELECT id FROM providerNodes`).map(node => node.id));
+  // Prior versions left declarations behind on node removal. Hide only this
+  // reserved ID namespace; retain the underlying KV/export data for recovery.
+  return models.filter(model => !isProviderNodeId(model?.providerAlias) || nodes.has(model.providerAlias));
 }
 
 // Atomic upsert inside transaction to prevent duplicate races.

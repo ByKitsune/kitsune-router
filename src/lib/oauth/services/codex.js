@@ -56,6 +56,7 @@ export class CodexService extends OAuthService {
         expiresIn: tokens.expires_in,
         lastRefreshAt: new Date().toISOString(),
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

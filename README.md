@@ -193,6 +193,7 @@ Preserve `secrets.json`, `machine-id`, `auth/`, and `mitm/` as well as the datab
 - [Installation](docs/INSTALLATION.md) · [Integrations](docs/INTEGRATIONS.md) · [Operations](docs/OPERATIONS.md)
 - [Architecture](docs/ARCHITECTURE.md) · [Processing speed](docs/PROCESSING-SPEED.md) · [Reasoning](docs/REASONING-BUDGETS.md) · [Web search](docs/WEB-SEARCH.md)
 - [Tests and verification boundaries](tests/README.md) · [UI design and responsive review](docs/UI-DESIGN.md)
+- [Deep stability audit](docs/audit/2026-11-17-deep-stability-audit.md): old-state database upgrades, native Codex Images, logging and cross-format repairs.
 - [Agent skills and API workflows](skills/README.md) · [Contributor/agent guidance](CLAUDE.md)
 - [Historical audits](docs/audit/README.md) · [Release history](CHANGELOG.md)
 

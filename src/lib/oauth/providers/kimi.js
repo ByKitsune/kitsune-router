@@ -18,6 +18,7 @@ const kimi = {
       method: "POST",
       headers,
       body: new URLSearchParams({ client_id: config.clientId }),
+      redirect: "error",
     });
     if (!response.ok) {
       const error = await response.text();
@@ -53,6 +54,7 @@ const kimi = {
         client_id: config.clientId,
         device_code: deviceCode,
       }),
+      redirect: "error",
     });
     let data;
     try {

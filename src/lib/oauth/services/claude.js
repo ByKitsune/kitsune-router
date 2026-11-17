@@ -60,6 +60,7 @@ export class ClaudeService extends OAuthService {
         Accept: "application/json",
       },
       body: JSON.stringify(tokenPayload),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -90,6 +91,7 @@ export class ClaudeService extends OAuthService {
         expiresIn: tokens.expires_in,
         scope: tokens.scope,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

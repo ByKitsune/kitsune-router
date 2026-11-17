@@ -17,6 +17,31 @@ Kitsune Router is a provider-neutral, local-first gateway maintained/sponsored b
 - Keep operator secrets stable. `.env.example` documents current `KITSUNE_ROUTER_*` settings; unprefixed `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and `DATA_DIR` retain their meanings.
 - Migration verifies copied state and keeps the source; existing destinations are never overwritten. Read [MIGRATION.md](MIGRATION.md) before resolving an ambiguous/busy/damaged source or attempting rollback. Existing encryption derivation constants and certificate subjects are intentionally retained.
 
+### Automatic schema updates
+
+The current Unreleased source upgrades existing SQLite state at startup through
+additive schema synchronization; declarative schema/backup target 4 adds the provider/auth/name lookup index. Keep the same
+absolute `DATA_DIR` and installation secrets. No empty replacement database,
+manual model-name rewrite or historical usage repricing is required.
+
+Integrity checks run before mutation. Schema changes attempt a pre-change
+backup automatically; generic backup failures retain the existing best-effort
+policy, while unsafe backup permissions stop startup. Keep a separately verified
+full-state backup, including auth keys/certificates. Fresh legacy JSON import
+refuses invalid/unreadable sources before stamping its one-time marker. Preserve
+and repair that source, then retry; an adapter initialization failure no longer
+requires restarting the process after the prerequisite has been repaired.
+
+See the [deep stability audit](audit/2026-11-17-deep-stability-audit.md) for actual
+old-schema upgrade, retained-data, backup and query-plan verification boundaries.
+
+Valid historical timestamps with an explicit zone are adapted for indexed UTC
+queries automatically, with the original changed literal retained in nullable
+`sourceTimestamp`. Invalid/missing/zone-unknown values remain stored, excluded
+from date-window matches rather than guessed. Existing daily totals, monetary
+history and frozen quotes are not repriced. The migration is paged for large
+histories; it does not require loading complete request payloads.
+
 ## Source repository and upstream updates
 
 The primary repository is [ByKitsune/kitsune-router](https://github.com/ByKitsune/kitsune-router); its default branch is `master`. Use it as `origin` and track `origin/master` for Kitsune changes. The separate `upstream` remote is [decolua/9router](https://github.com/decolua/9router), whose default branch is also `master`. The two histories have diverged; the older `origin/main` branch is not the current Kitsune release branch.
@@ -81,6 +106,43 @@ Health can fail with 503 when storage is unavailable. Successful health/catalog 
 
 ## Diagnose safely
 
+### Codex image requests
+
+Use `cx/gpt-image-2` for the native Codex Images route. Existing
+`cx/gpt-5.5-image`, `cx/gpt-5.4-image` and `cx/gpt-5.3-image` are explicit gateway
+aliases to that image model. They no longer submit a text model to Responses,
+and saved routes need no destructive database rewrite.
+
+```bash
+curl http://localhost:20128/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KITSUNE_ROUTER_API_KEY" \
+  -d '{"model":"cx/gpt-image-2","prompt":"A small red square","n":1,"size":"auto","quality":"auto","background":"auto","output_format":"png"}'
+```
+
+The gateway sends generation/edit JSON to the native Codex Images endpoints
+using the selected account's existing proof. Reference images use the edit
+endpoint and retain guarded remote-input rules. Client `Accept:
+text/event-stream` can receive a final `done` event; it does not make the native
+upstream JSON request a Responses-tool stream. Account/model entitlement errors
+remain terminal, without a guessed alternative model or automatic paid replay.
+Exact image usage is recorded when reported; an absent counter is unknown.
+
+Old recipes may retain `image_detail` as a deprecated compatibility hint; the
+native Images request does not forward it or use it to change image processing.
+The dashboard omits that control and hidden fields. Binary output is for one
+image; `n > 1` with binary delivery is refused before any generation is submitted.
+OpenAI GPT Image 2/2.5 routes also retain applicable native image controls instead
+of dropping them from the outgoing request. Native Codex GIF output is accepted,
+while non-null `frame_count` and `frame_duration_ms` are unsupported and rejected
+before image submission. Invalid supplied image-reference values fail before
+image submission instead of silently turning an edit request into a generation.
+An existing proactive credential check may precede adapter input validation.
+
+The source contract does not prove availability for every account or rollout.
+Inspect the real sanitized provider diagnostic and account feature access rather
+than assuming a gateway alias grants entitlement.
+
 The [November 17 source audit](audit/2026-11-17-dependency-runtime-audit.md) records
 new bounded OAuth/SQLite work and video response/cancellation handling. OAuth
 `TOKEN_REFRESH_CAPACITY_EXCEEDED` is transient capacity backpressure for new
@@ -127,7 +189,32 @@ working. Native desktop behavior still needs verification on the target OS.
 | Unsupported parameter/document | Choose a supporting route or change the request explicitly; don't silently drop user intent. |
 | Unknown cost | Inspect known subtotal/unpriced counts and upstream billing. Unknown is not free; API reference tariffs are not subscription invoices. |
 
-Request/response debug logs can contain private prompts, credentials or account details. Enable deliberately, redact before sharing, and include version, source SHA, sanitized model/error and reproduction steps in [issues](https://github.com/ByKitsune/kitsune-router/issues). Never upload full state or secret files.
+### Logging bounds and sharing
+
+Opt-in request diagnostics use the resolved `DATA_DIR/logs` and store metadata.
+New appended stream/error files stop at 64 KiB and count dropped records;
+queued writes are grouped per file. Console capture retains at most 200 lines
+and 512 KiB, with an 8 KiB formatted-line cap. A slow console-SSE subscriber is
+closed and can reconnect to a bounded snapshot, rather than accumulating an
+unbounded transcript. Clearing the console also clears pending replay.
+
+Request details reject invalid dates, reversed ranges and unsafe paging; page
+size is bounded to 100. Empty/unknown usage and failed durable acceptance retain
+their existing accounting meanings. Logs are best-effort telemetry, not the
+durable billing ledger.
+
+Historical request-log sessions remain operator-managed; this source change
+does not silently delete their directories. Existing MITM dump cleanup is
+restricted to recognized managed metadata files, retaining operator files,
+directories and links. Redaction is not encryption or a guarantee about arbitrary
+third-party captures. Keep logs/state private, enable diagnostics deliberately,
+and share only version, source SHA, sanitized model/error and reproduction steps
+in [issues](https://github.com/ByKitsune/kitsune-router/issues).
+
+Inbound request limits remain process-local. At tracking capacity, new caller
+identities share a bounded overflow window while active caller budgets remain
+intact. A 429 during a high-cardinality flood can therefore affect a new caller;
+respect `Retry-After` rather than rotating identities to evade it.
 
 ## Upgrades and verification
 

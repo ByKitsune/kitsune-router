@@ -1,6 +1,6 @@
 import { HTTP_STATUS, RETRY_CONFIG, DEFAULT_RETRY_CONFIG, resolveRetryEntry, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { shouldRefreshCredentials } from "../services/oauthCredentialManager.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { discardAccountResponse, fetchWithAccountPolicy, isAccountRoutingFailure } from "../utils/accountTransport.js";
 import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
@@ -128,7 +128,7 @@ export class BaseExecutor {
         if (dynamic === false) return false; // hook vetoes retry (e.g. Retry-After too long)
         if (dynamic != null) waitMs = dynamic;
       }
-      if (response?.body && !response.body.locked) await response.body.cancel().catch(() => {});
+      discardAccountResponse(response);
       signal?.throwIfAborted();
       retryAttemptsByUrl[urlIndex]++;
       log?.debug?.("RETRY", `${reason} retry ${retryAttemptsByUrl[urlIndex]}/${attempts} after ${waitMs / 1000}s`);
@@ -172,8 +172,9 @@ export class BaseExecutor {
           signal: mergedSignal,
           upstreamHeadersTimeoutMs: timeoutMs
         };
-        response = transport ? await transport.fetch(url, request) : await proxyAwareFetch(url, request, proxyOptions);
+        response = transport ? await transport.fetch(url, request) : await fetchWithAccountPolicy(url, request, proxyOptions);
         clearTimeout(connectTimer);
+        mergedSignal.throwIfAborted();
         const ct = response.headers?.get?.("content-type") || "";
         const cl = response.headers?.get?.("content-length") || "?";
         dbg("FETCH", `${this.provider.toUpperCase()} ← ${response.status} | ttft=${Date.now() - fetchT0}ms | ct=${ct} | cl=${cl}`);
@@ -181,7 +182,7 @@ export class BaseExecutor {
         if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) { urlIndex--; continue; }
 
         if (!transport && this.shouldRetry(response.status, urlIndex)) {
-          if (response.body && !response.body.locked) await response.body.cancel().catch(() => {});
+          discardAccountResponse(response);
           signal?.throwIfAborted();
           log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
           lastStatus = response.status;
@@ -191,11 +192,12 @@ export class BaseExecutor {
         return { response, url, headers, transformedBody };
       } catch (error) {
         clearTimeout(connectTimer);
-        if (response?.body && !response.body.locked) await response.body.cancel().catch(() => {});
+        discardAccountResponse(response);
         // AbortSignal.reason may be an ordinary Error, not an AbortError.
         // Caller cancellation must never enter network retry or URL fallback.
         signal?.throwIfAborted();
         if (transport) throw error;
+        if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
         lastError = error;
         const isConnectTimeout = connectCtrl.signal.aborted;
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);

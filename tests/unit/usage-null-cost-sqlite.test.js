@@ -312,7 +312,7 @@ describe("SQLite usage consumers preserve unknown cost", () => {
     expectGroupCosts(stats, null, 1);
   });
 
-  it("preserves explicit null while importing legacy JSON and leaves missing historical cost at zero", async () => {
+  it("preserves unknown legacy JSON costs while retaining explicit zero", async () => {
     await db.close();
     const legacyDir = join(dataDir, "legacy-import");
     await mkdir(legacyDir);
@@ -327,7 +327,7 @@ describe("SQLite usage consumers preserve unknown cost", () => {
     vi.resetModules();
     usage = await import("../../src/lib/db/repos/usageRepo.js");
     const history = await usage.getUsageHistory();
-    expect(history.map((row) => row.cost)).toEqual([null, 0, 0]);
+    expect(history.map((row) => row.cost)).toEqual([null, 0, null]);
     expect(history[0]).toMatchObject({ inputCost: null, cachedCost: 0, outputCost: null });
     const stats = await usage.getUsageStats("24h");
     expect(stats).toMatchObject({ totalRequests: 3, totalPromptTokens: 3000, totalCompletionTokens: 1500, totalCost: null });

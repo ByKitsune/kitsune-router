@@ -1,3 +1,5 @@
+import { WEB_FETCH_FORMATS } from "../../config/webFetchFormats.js";
+
 export default {
   id: "firecrawl",
   alias: "firecrawl",
@@ -17,17 +19,13 @@ export default {
     "webFetch"
   ],
   fetchConfig: {
-    baseUrl: "https://api.firecrawl.dev/v1/scrape",
+    baseUrl: "https://api.firecrawl.dev/v2/scrape",
     method: "POST",
     authType: "apikey",
     authHeader: "bearer",
     costPerQuery: 0.002,
     freeMonthlyQuota: 1000,
-    formats: [
-      "markdown",
-      "html",
-      "text"
-    ],
+    formats: [...WEB_FETCH_FORMATS.firecrawl],
     maxCharacters: 200000,
     timeoutMs: 30000
   }

@@ -52,6 +52,7 @@ export class IFlowService {
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -72,6 +73,7 @@ export class IFlowService {
         headers: {
           Accept: "application/json",
         },
+        redirect: "error",
       }
     );
 
@@ -109,6 +111,7 @@ export class IFlowService {
         apiKey: userInfo.apiKey,
         email: userInfo.email || userInfo.phone,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

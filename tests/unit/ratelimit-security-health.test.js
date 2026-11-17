@@ -120,12 +120,11 @@ describe("inbound rate limiter (P03-A)", () => {
     expect(body.error.message).not.toMatch(/provider|account|codex|openai/i);
   });
 
-  it("is bounded, so the limiter itself cannot leak", () => {
-    // Many distinct keys must not grow the table without limit.
-    for (let i = 0; i < 5000; i++) consume(rateLimitKey(`sk-flood-${i}`));
-    // No assertion on internals: the important property is that this completes
-    // without unbounded growth, which the bounded-cache test covers directly.
-    expect(consume(rateLimitKey("sk-after")).allowed).toBe(true);
+  it("bounds new caller floods without evicting active budgets", () => {
+    const start = Date.now();
+    for (let i = 0; i < 5000; i++) consume(rateLimitKey(`sk-flood-${i}`), start);
+    expect(consume(rateLimitKey("sk-after"), start).allowed).toBe(false);
+    expect(consume(rateLimitKey("sk-after"), start + 61_000).allowed).toBe(true);
   });
 
   it("is wired into the chat handler before any upstream work", () => {

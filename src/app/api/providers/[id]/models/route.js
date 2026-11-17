@@ -380,13 +380,14 @@ const PROVIDER_MODELS_CONFIG = {
     customResolver: googleModelsResolver("gemini-cli")
   },
   "grok-cli": {
-    customResolver: async (connection, proxyOptions) => {
+    customResolver: async (connection, proxyOptions, signal) => {
       const result = await resolveGrokCliModels({
         ...connection,
         connectionId: connection.id,
       }, {
         log: console,
         proxyOptions,
+        signal,
         onCredentialsRefreshed: async (refreshed) => {
           await updateProviderCredentials(connection.id, {
             ...refreshed,
@@ -394,7 +395,7 @@ const PROVIDER_MODELS_CONFIG = {
           });
         },
       });
-      if (result.models.length) return result;
+      if (result.models.length || result.complete === true) return result;
       return {
         models: getStaticProviderModels("grok-cli"),
         warning: result.warning || "Grok CLI returned no live models; using static catalog.",

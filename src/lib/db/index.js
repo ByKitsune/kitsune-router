@@ -87,16 +87,16 @@ export async function exportDb() {
 
   const out = {
     settings: await exportSettings(),
-    providerConnections: db.all(`SELECT pc.*, cr.data AS runtimeData, cr.updatedAt AS runtimeUpdatedAt FROM providerConnections pc LEFT JOIN connectionRuntime cr ON cr.connectionId = pc.id`).map((r) => ({ ...parseJson(r.data, {}), ...parseJson(r.runtimeData, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.runtimeUpdatedAt || r.updatedAt })),
+    providerConnections: db.all(`SELECT pc.*, cr.data AS runtimeData, cr.updatedAt AS runtimeUpdatedAt FROM providerConnections pc LEFT JOIN connectionRuntime cr ON cr.connectionId = pc.id`).map((r) => ({ ...parseJson(r.data, {}), ...parseJson(r.runtimeData, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.runtimeUpdatedAt && r.runtimeUpdatedAt > r.updatedAt ? r.runtimeUpdatedAt : r.updatedAt })),
     providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     apiKeys: db.all(`SELECT * FROM apiKeys`).map((r) => ({ id: r.id, key: r.key, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, createdAt: r.createdAt })),
     combos: db.all(`SELECT * FROM combos`).map((r) => ({ id: r.id, name: r.name, kind: r.kind, models: parseJson(r.models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
-    modelAliases: {},
+    modelAliases: Object.create(null),
     customModels: [],
-    mitmAlias: {},
-    pricing: {},
-    disabledModels: {},
+    mitmAlias: Object.create(null),
+    pricing: Object.create(null),
+    disabledModels: Object.create(null),
   };
 
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'modelAliases'`)) out.modelAliases[r.key] = parseJson(r.value);

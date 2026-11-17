@@ -5,6 +5,7 @@ import { MAX_UPSTREAM_ERROR_BYTES, parseUpstreamError } from "../../utils/error.
 import { fetchImageAsBase64, parseDataUri } from "../../translator/concerns/image.js";
 import { hasAccountProxyPolicy } from "../../utils/accountTransport.js";
 import { IMAGE_POLLING_ORIGINS } from "../../config/imagePolling.js";
+import { MAX_IMAGE_RESPONSE_BYTES, IMAGE_RESPONSE_BODY_TIMEOUT_MS, IMAGE_RESPONSE_CHUNK_BATCH } from "../../config/mediaConfig.js";
 
 export const POLL_INTERVAL_MS = 1500;
 export const POLL_TIMEOUT_MS = 120000;
@@ -81,8 +82,8 @@ export async function parseMediaError(response, observeUsage, signal) {
     chunks.push(decoder.decode());
     signal?.removeEventListener("abort", onAbort);
     if (reader) {
-      try { await reader.cancel(); } catch {}
-      finally { reader.releaseLock(); }
+      try { void reader.cancel().catch(() => {}); } catch {}
+      reader.releaseLock();
     }
   }
   const text = chunks.join("");
@@ -94,6 +95,67 @@ export async function parseMediaError(response, observeUsage, signal) {
   } catch {}
   const diagnostics = await parseUpstreamError(new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers }));
   return { ...diagnostics, bodyComplete: complete && validJson };
+}
+
+// Bound successful provider JSON as carefully as error bodies. Cancellation
+// never depends on an upstream source acknowledging its cleanup promise.
+export async function readImageProviderJson(response, callerSignal, maxBytes = MAX_IMAGE_RESPONSE_BYTES, timeoutMs = IMAGE_RESPONSE_BODY_TIMEOUT_MS) {
+  if (callerSignal?.aborted) {
+    try { void response.body?.cancel(callerSignal.reason).catch(() => {}); } catch {}
+  }
+  callerSignal?.throwIfAborted();
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Image provider returned an empty response");
+  const deadline = new AbortController();
+  const signal = callerSignal ? AbortSignal.any([callerSignal, deadline.signal]) : deadline.signal;
+  const timer = setTimeout(() => deadline.abort(new DOMException("Image provider response timed out", "TimeoutError")), timeoutMs);
+  timer.unref?.();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const chunks = [];
+  const blocks = [];
+  let bytes = 0;
+  let complete = false;
+  let rejectRead;
+  const discard = () => { try { void reader.cancel(signal?.reason).catch(() => {}); } catch {} };
+  const onAbort = () => { discard(); rejectRead?.(signal.reason); };
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    if (signal?.aborted) onAbort();
+    signal?.throwIfAborted();
+    const declaredBytes = Number(response.headers?.get?.("content-length"));
+    if (declaredBytes > maxBytes) throw new RangeError("Image provider response exceeds size limit");
+    while (true) {
+      // Keep only the current read's rejection, rather than one promise reaction
+      // per tiny chunk retained until an entire response finishes.
+      const { done, value } = await new Promise((resolve, reject) => {
+        rejectRead = reject;
+        try { Promise.resolve(reader.read()).then(resolve, reject); } catch (error) { reject(error); }
+      });
+      rejectRead = null;
+      signal?.throwIfAborted();
+      if (done) { complete = true; break; }
+      bytes += value.byteLength;
+      if (bytes > maxBytes) throw new RangeError("Image provider response exceeds size limit");
+      chunks.push(decoder.decode(value, { stream: true }));
+      if (chunks.length >= IMAGE_RESPONSE_CHUNK_BATCH) {
+        blocks.push(chunks.join(""));
+        chunks.length = 0;
+      }
+    }
+    chunks.push(decoder.decode());
+    let result;
+    blocks.push(chunks.join(""));
+    try { result = JSON.parse(blocks.join("")); }
+    catch { throw new Error("Invalid image provider JSON response"); }
+    if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error("Invalid image provider response");
+    return result;
+  } finally {
+    clearTimeout(timer);
+    rejectRead = null;
+    signal?.removeEventListener("abort", onAbort);
+    if (!complete) discard();
+    try { reader.releaseLock(); } catch { /* A cancellation may have released it. */ }
+  }
 }
 
 // Map OpenAI size to provider-specific aspect ratio

@@ -20,6 +20,24 @@ See the [dependency/runtime audit](https://github.com/ByKitsune/kitsune-router/b
 [upstream reconciliation](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md) for source evidence, regression results,
 intentional policy changes and remaining platform/live-account limits.
 
+### Deeper stability follow-up
+
+- Adapt existing database state through additive schema synchronization, retaining
+  credentials/history and testing old-schema recovery, query plans and backups.
+  Keep parallel pending counts and newly recorded UTC timestamps consistent.
+- Use native Codex Images JSON generation/edit endpoints with `gpt-image-2`;
+  keep existing text-image aliases as explicit compatibility routes without a
+  bulk database rewrite or account-entitlement bypass.
+- Bound/redact console and request diagnostics, isolate slow/failed subscribers,
+  and keep opt-in metadata below `DATA_DIR/logs`; historical session retention
+  remains operator-managed.
+- Preserve tool/content/cache/usage semantics across translators and harden
+  executor/OAuth cancellation, credential scope and redirect refusal.
+
+The [deep stability audit](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-deep-stability-audit.md)
+keeps this later phase, actual-issue survey and its validation separate from the
+earlier November 17 source results and published artifacts.
+
 ## Kitsune Router 1.0.8 — 2026-11-05
 
 ### Initial preparation snapshot

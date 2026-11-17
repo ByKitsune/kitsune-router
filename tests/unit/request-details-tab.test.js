@@ -94,10 +94,10 @@ describe("request details — tab crash-risk cases", () => {
     expect(res.pagination.totalItems).toBeGreaterThanOrEqual(0);
   });
 
-  it("invalid startDate → Invalid Date ISO throws inside getRequestDetails is caught upstream", async () => {
-    // new Date("bad").toISOString() throws RangeError; verify it surfaces
-    // so the API route's try/catch returns 500 rather than silent corruption.
-    await expect(db.getRequestDetails({ startDate: "not-a-date" })).rejects.toThrow();
+  it("invalid startDate → explicit caller-filter rejection before a query", async () => {
+    await expect(db.getRequestDetails({ startDate: "not-a-date" })).rejects.toMatchObject({
+      name: "RangeError", code: "INVALID_REQUEST_DETAIL_FILTER",
+    });
   });
 
   it("valid date filter range → no throw", async () => {
@@ -108,16 +108,23 @@ describe("request details — tab crash-risk cases", () => {
     expect(Array.isArray(res.details)).toBe(true);
   });
 
-  it("large pageSize (providers route uses 9999) → returns all, no crash", async () => {
+  it("oversized pageSize rejects while bounded pages retain saved row metadata and redaction", async () => {
     await saveDetail({
       id: "big-1", provider: "anthropic", model: "claude-3",
       status: "ok", tokens: { input_tokens: 5 },
       request: { method: "POST" }, response: { content: "hi" },
     });
 
-    const res = await db.getRequestDetails({ pageSize: 9999 });
+    await expect(db.getRequestDetails({ pageSize: 9999 })).rejects.toMatchObject({ code: "INVALID_REQUEST_DETAIL_FILTER" });
+    // Provider discovery uses DISTINCT; detail readers use bounded pages.
+    const res = await db.getRequestDetails({ provider: "anthropic", pageSize: 100 });
     expect(res.details.length).toBeGreaterThanOrEqual(1);
-    expect(res.pagination.pageSize).toBe(9999);
+    expect(res.pagination.pageSize).toBe(100);
+    expect(res.pagination.totalItems).toBeGreaterThanOrEqual(1);
+    expect(res.details.find(detail => detail.id === "big-1")).toMatchObject({
+      provider: "anthropic", model: "claude-3", status: "ok", tokens: { input_tokens: 5 },
+      request: { redacted: true }, response: { redacted: true },
+    });
   });
 
   it("oversized field → stored redacted + reparseable (no circular)", async () => {
@@ -279,21 +286,27 @@ describe("API route contract — validation boundary", () => {
     expect(res.status).toBe(400);
   });
 
-  it("pageSize=abc (NaN) → defaults to 20, returns 200", async () => {
-    const res = await GET(makeReq("pageSize=abc"));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.pagination.pageSize).toBe(20);
+  it("omitted pageSize defaults to 20; explicit malformed pageSize returns 400", async () => {
+    const diagnostics = captureExpectedDiagnostics();
+    try {
+      const defaultRes = await GET(makeReq(""));
+      expect(defaultRes.status).toBe(200);
+      expect((await defaultRes.json()).pagination.pageSize).toBe(20);
+      const invalidRes = await GET(makeReq("pageSize=abc"));
+      expect(invalidRes.status).toBe(400);
+      expect((await invalidRes.json()).error).toMatch(/PageSize.*integer.*100/);
+    } finally {
+      diagnostics.verify();
+    }
   });
 
-  it("invalid startDate → route catches, returns 500 (not thrown)", async () => {
+  it("invalid startDate → caller 400 without server-error logging", async () => {
     const diagnostics = captureExpectedDiagnostics();
-    diagnostics.expectError("[API] Failed to get request details:", expect.objectContaining({ name: "RangeError", message: "Invalid time value" }));
     try {
       const res = await GET(makeReq("startDate=not-a-date"));
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBeDefined();
+      expect(body.error).toBe("startDate must be a valid date");
     } finally {
       diagnostics.verify();
     }

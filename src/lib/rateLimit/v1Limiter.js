@@ -21,7 +21,8 @@
 //  - Limits are env-tunable with a deliberately GENEROUS default, because the
 //    first job is to not break real traffic (ByKitsune protects its own users
 //    at 60 RPM/user, 120 RPM/key, concurrency 100).
-import { CACHE_LIMITS, setBounded } from "open-sse/utils/boundedCache.js";
+import { createHash } from "node:crypto";
+import { CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
 import { buildErrorBody } from "open-sse/utils/error.js";
 
 const DEFAULT_RPM = 600;         // requests per minute per API key
@@ -32,8 +33,8 @@ const WINDOW_MS = 60_000;
 const MAX_TRACKED_KEYS = Math.max(CACHE_LIMITS.providerMutexes, 2000);
 
 function readPositiveInt(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  const n = Math.floor(Number(value));
+  return Number.isSafeInteger(n) && n > 0 ? n : fallback;
 }
 
 export const RATE_LIMIT_RPM = readPositiveInt(process.env.V1_RATE_LIMIT_RPM, DEFAULT_RPM);
@@ -41,13 +42,30 @@ export const RATE_LIMIT_BURST = readPositiveInt(process.env.V1_RATE_LIMIT_BURST,
 
 // bucket key → { windowStart, count, secondStart, secondCount }
 const buckets = new Map();
+let overflow = null;
+let nextSweepAt = 0;
+
+function pruneExpired(now) {
+  if (now < nextSweepAt) return;
+  for (const [key, bucket] of buckets) {
+    if (now - bucket.windowStart >= WINDOW_MS) buckets.delete(key);
+  }
+  nextSweepAt = now + 1000;
+}
 
 function bucketFor(key, now) {
   let b = buckets.get(key);
   if (!b) {
-    b = { windowStart: now, count: 0, secondStart: now, secondCount: 0 };
-    setBounded(buckets, key, b, MAX_TRACKED_KEYS);
-    return b;
+    pruneExpired(now);
+    if (overflow && now - overflow.windowStart >= WINDOW_MS) overflow = null;
+    // Never erase an active caller's budget to admit a new identity. Excess
+    // identities share one window until it expires, even if a slot opens.
+    if (!overflow && buckets.size < MAX_TRACKED_KEYS) {
+      b = { windowStart: now, count: 0, secondStart: now, secondCount: 0 };
+      buckets.set(key, b);
+    } else {
+      b = overflow ??= { windowStart: now, count: 0, secondStart: now, secondCount: 0 };
+    }
   }
   // Roll the fixed 60s window.
   if (now - b.windowStart >= WINDOW_MS) {
@@ -73,11 +91,8 @@ function bucketFor(key, now) {
  */
 export function rateLimitKey(apiKey) {
   if (typeof apiKey !== "string" || !apiKey) return "anon";
-  // djb2 — fast, no crypto import, and only needs to be collision-resistant
-  // enough to avoid mixing up two live keys in one window.
-  let h = 5381;
-  for (let i = 0; i < apiKey.length; i++) h = ((h << 5) + h + apiKey.charCodeAt(i)) >>> 0;
-  return `k${h.toString(36)}:${apiKey.length}`;
+  // A 32-bit rolling hash allowed equal-length credentials to share budgets.
+  return `k${createHash("sha256").update(apiKey).digest("hex")}:${apiKey.length}`;
 }
 
 /**
@@ -159,4 +174,6 @@ export function rateLimitedResponse(result, corsHeaders = {}) {
 // Test seam: reset all counters.
 export function resetRateLimiter() {
   buckets.clear();
+  overflow = null;
+  nextSweepAt = 0;
 }

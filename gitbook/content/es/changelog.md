@@ -21,6 +21,25 @@ Las fuentes, regresiones, cambios de política y límites de plataforma/cuentas 
 figuran en la [auditoría de dependencias y runtime](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md) y la
 [reconciliación con upstream](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
 
+### Revisión adicional de estabilidad
+
+- Adaptar el estado existente mediante sincronización aditiva del esquema,
+  conservando credenciales e historial y probando recuperación, planes de consulta
+  y copias de seguridad con esquemas anteriores. Mantener recuentos paralelos y
+  nuevas marcas de tiempo UTC coherentes.
+- Usar los endpoints JSON nativos de generación/edición de Codex Images con
+  `gpt-image-2`; los alias anteriores siguen como rutas de compatibilidad explícitas,
+  sin reescritura masiva de la base ni acceso adicional a la cuenta.
+- Limitar y redactar diagnósticos de consola y solicitudes, aislar suscriptores
+  lentos o fallidos y guardar metadatos opcionales en `DATA_DIR/logs`. La retención
+  de sesiones históricas sigue bajo control del operador.
+- Preservar herramientas, contenido, caché y uso entre traductores; reforzar la
+  cancelación, el alcance de credenciales y el rechazo de redirecciones OAuth.
+
+La [auditoría profunda de estabilidad](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-deep-stability-audit.md)
+separa esta fase, la revisión de issues reales y su validación de los resultados
+anteriores del 17 de noviembre y de los artefactos publicados.
+
 ## Kitsune Router 1.0.8 — preparación de la corrección del instalador
 
 **Instantánea de preparación:** los resultados enfocados y las limitaciones de fixtures siguientes corresponden a esta etapa; no prueban un runtime publicado.

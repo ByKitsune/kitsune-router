@@ -6,9 +6,7 @@ const SCOPE = "disabledModels";
 export async function getDisabledModels() {
   const db = await getAdapter();
   const rows = db.all(`SELECT key, value FROM kv WHERE scope = ?`, [SCOPE]);
-  const out = {};
-  for (const r of rows) out[r.key] = parseJson(r.value, []);
-  return out;
+  return Object.fromEntries(rows.map(row => [row.key, parseJson(row.value, [])]));
 }
 
 export async function getDisabledByProvider(providerAlias) {

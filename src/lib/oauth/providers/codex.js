@@ -36,6 +36,7 @@ const codex = {
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

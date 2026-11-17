@@ -15,6 +15,7 @@ import { handleImageGenerationCore } from "../../open-sse/handlers/imageGenerati
 import * as imageDownload from "../../open-sse/translator/concerns/image.js";
 
 const originalFetch = global.fetch;
+const nativeCodexImage = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQWQAAAAASUVORK5CYII=";
 
 describe("handleImageGenerationCore", () => {
   beforeEach(() => {
@@ -319,16 +320,11 @@ describe("handleImageGenerationCore", () => {
     expect(responseBody.data[0].b64_json).toBeTruthy();
   });
 
-  it("generates image with Codex gpt-5.5-image using current Codex version header", async () => {
+  it("maps the legacy Codex image alias to the native Images API with current version header", async () => {
     global.fetch.mockResolvedValueOnce(
       new Response(
-        [
-          "event: response.output_item.done",
-          'data: {"item":{"type":"image_generation_call","result":"base64codeximage"}}',
-          "",
-          "",
-        ].join("\n"),
-        { status: 200, headers: { "Content-Type": "text/event-stream" } }
+        JSON.stringify({ created: 1794888000, data: [{ b64_json: nativeCodexImage }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
       )
     );
 
@@ -348,7 +344,7 @@ describe("handleImageGenerationCore", () => {
 
     expect(result.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledWith(
-      "https://chatgpt.com/backend-api/codex/responses",
+      "https://chatgpt.com/backend-api/codex/images/generations",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -361,13 +357,11 @@ describe("handleImageGenerationCore", () => {
 
     const fetchCall = global.fetch.mock.calls[0];
     const requestBody = JSON.parse(fetchCall[1].body);
-    expect(requestBody.model).toBe("gpt-5.5");
-    expect(requestBody.tools).toEqual([
-      { type: "image_generation", output_format: "png", size: "1024x1024" },
-    ]);
+    expect(requestBody).toEqual({ model: "gpt-image-2", prompt: "A green square", n: 1, output_format: "png", size: "1024x1024" });
+    expect(requestBody).not.toHaveProperty("tools");
 
     const responseBody = await result.response.json();
-    expect(responseBody.data[0].b64_json).toBe("base64codeximage");
+    expect(responseBody.data[0].b64_json).toBe(nativeCodexImage);
   });
 
   it("generates image with Cloudflare Workers AI JSON response", async () => {

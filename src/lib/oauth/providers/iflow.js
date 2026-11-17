@@ -33,6 +33,7 @@ const iflow = {
         client_id: config.clientId,
         client_secret: config.clientSecret,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -50,6 +51,7 @@ const iflow = {
         headers: {
           Accept: "application/json",
         },
+        redirect: "error",
       }
     );
 

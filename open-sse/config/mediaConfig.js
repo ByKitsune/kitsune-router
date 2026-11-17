@@ -2,6 +2,16 @@
 
 // Max bytes accepted from a remote image fetch (reject larger to prevent memory DoS).
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
+// Includes base64 JSON for a multi-image response; individual remote assets
+// still use the smaller MAX_IMAGE_BYTES guard.
+export const MAX_IMAGE_RESPONSE_BYTES = 64 * 1024 * 1024;
+export const IMAGE_RESPONSE_BODY_TIMEOUT_MS = 120000;
+export const IMAGE_RESPONSE_CHUNK_BATCH = 256;
+export const IMAGE_BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+export const MAX_OPENAI_IMAGE_COUNT = 10;
+export const IMAGE_OUTPUT_MIME_TYPES = {
+  png: "image/png", jpeg: "image/jpeg", jpg: "image/jpeg", webp: "image/webp", gif: "image/gif",
+};
 
 // Fetch timeout for remote media.
 export const FETCH_TIMEOUT_MS = 10000;

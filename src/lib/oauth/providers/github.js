@@ -15,6 +15,7 @@ const github = {
         client_id: config.clientId,
         scope: config.scopes,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -36,6 +37,7 @@ const github = {
         device_code: deviceCode,
         grant_type: "urn:ietf:params:oauth:grant-type:device_code",
       }),
+      redirect: "error",
     });
 
     // Handle response properly - if not ok, try to get error as text first
@@ -62,6 +64,7 @@ const github = {
         "X-GitHub-Api-Version": COPILOT_TOKEN_API_VERSION,
         "User-Agent": GITHUB_CONFIG.userAgent,
       },
+      redirect: "error",
     });
     const copilotToken = copilotRes.ok ? await copilotRes.json() : {};
 
@@ -73,6 +76,7 @@ const github = {
         "X-GitHub-Api-Version": GITHUB_CONFIG.apiVersion,
         "User-Agent": GITHUB_CONFIG.userAgent,
       },
+      redirect: "error",
     });
     const userInfo = userRes.ok ? await userRes.json() : {};
 

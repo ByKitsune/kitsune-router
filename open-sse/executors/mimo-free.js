@@ -1,6 +1,6 @@
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { discardAccountResponse, fetchWithAccountPolicy } from "../utils/accountTransport.js";
 import { createHash } from "crypto";
 import os from "os";
 
@@ -76,21 +76,24 @@ function resetJwtCache() {
   jwtExpiresAt = 0;
 }
 
-async function bootstrapJwt(proxyOptions = null) {
+async function bootstrapJwt(proxyOptions = null, signal = null) {
+  signal?.throwIfAborted();
   if (cachedJwt && Date.now() < jwtExpiresAt - JWT_EXPIRY_BUFFER_MS) {
     return cachedJwt;
   }
 
-  const response = await proxyAwareFetch(BOOTSTRAP_URL, {
+  const response = await fetchWithAccountPolicy(BOOTSTRAP_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
     },
     body: JSON.stringify({ client: generateFingerprint() }),
+    signal,
   }, proxyOptions);
 
   if (!response.ok) {
+    discardAccountResponse(response);
     throw new Error(`MiMo bootstrap failed: ${response.status}`);
   }
 
@@ -129,9 +132,10 @@ export class MimoFreeExecutor extends BaseExecutor {
   }
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
+    signal?.throwIfAborted();
     let jwt;
     try {
-      jwt = await bootstrapJwt(proxyOptions);
+      jwt = await bootstrapJwt(proxyOptions, signal);
     } catch (error) {
       log?.error?.("AUTH", `MiMo bootstrap failed: ${error.message}`);
       throw error;
@@ -143,15 +147,17 @@ export class MimoFreeExecutor extends BaseExecutor {
     const bodyStr = JSON.stringify(transformedBody);
     log?.debug?.("FETCH", `MIMO-FREE → ${url} | body=${bodyStr.length}B`);
 
-    const response = await proxyAwareFetch(url, { method: "POST", headers, body: bodyStr, signal }, proxyOptions);
+    const response = await fetchWithAccountPolicy(url, { method: "POST", headers, body: bodyStr, signal }, proxyOptions);
 
     // On auth failure, invalidate cache and retry once with a fresh JWT
     if (response.status === 401 || response.status === 403) {
+      discardAccountResponse(response);
+      signal?.throwIfAborted();
       log?.debug?.("AUTH", `MiMo auth failed (${response.status}), re-bootstrapping...`);
       resetJwtCache();
-      jwt = await bootstrapJwt(proxyOptions);
+      jwt = await bootstrapJwt(proxyOptions, signal);
       headers["Authorization"] = `Bearer ${jwt}`;
-      const retryResponse = await proxyAwareFetch(url, { method: "POST", headers, body: bodyStr, signal }, proxyOptions);
+      const retryResponse = await fetchWithAccountPolicy(url, { method: "POST", headers, body: bodyStr, signal }, proxyOptions);
       return { response: retryResponse, url, headers, transformedBody };
     }
 

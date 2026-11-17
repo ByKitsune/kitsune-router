@@ -1,4 +1,5 @@
 import { getProviderConnections, getProviderConnectionById, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
+import { createHash } from "node:crypto";
 import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, classifyAvailabilityError, isRequestValidationError, isModelLockActive, getModelLockUntil, getModelLockIdentity, buildModelLockUpdate, needsOperatorReauth } from "open-sse/services/accountFallback.js";
@@ -24,17 +25,18 @@ export { captureCodexEntitlementContext } from "./codexEntitlementScope.js";
 // Per-provider mutexes to prevent race conditions without cross-provider serialization (#3629)
 // Previously a single global Promise chain serialized ALL providers, causing TTFT degradation
 // when Claude + Codex + OpenAI requests arrived concurrently.
-// Bounded: keyed by provider id, and a removed/custom provider would otherwise
-// leave an entry for the life of the process.
+// Keep live tails until their final queued owner releases. Cache eviction would
+// permit a second selection for the same provider while its first one runs.
 const providerMutexes = new Map(); // providerId -> Promise
 function getProviderMutex(providerId) {
   return providerMutexes.get(providerId) || Promise.resolve();
 }
 function setProviderMutex(providerId, promise) {
-  setBounded(providerMutexes, providerId, promise, CACHE_LIMITS.providerMutexes);
+  providerMutexes.set(providerId, promise);
 }
 
-const quotaSnapshotCacheByTtl = new Map();
+const quotaSnapshotCaches = new Map();
+let quotaSnapshotGeneration = getDbImportGeneration();
 
 // The caller's exclusion Set is the request lifetime. Snapshot eligible pool
 // IDs once so configuration changes cannot extend retries or enable direct
@@ -97,12 +99,33 @@ export function clearCodexEntitlementDenials() {
   codexEntitlementDenials.clear();
 }
 
-function getQuotaCache(ttlMs) {
-  const key = String(ttlMs);
-  if (!quotaSnapshotCacheByTtl.has(key)) {
-    quotaSnapshotCacheByTtl.set(key, createQuotaSnapshotCache({ ttlMs, getGeneration: getDbImportGeneration }));
+function syncQuotaSnapshotGeneration() {
+  const generation = getDbImportGeneration();
+  if (generation !== quotaSnapshotGeneration) {
+    quotaSnapshotCaches.clear();
+    quotaSnapshotGeneration = generation;
   }
-  return quotaSnapshotCacheByTtl.get(key);
+  return generation;
+}
+
+function getQuotaCache(ttlMs, provider, connection, proxy, proxyOptions) {
+  const key = createHash("sha256").update(JSON.stringify([
+    codexDatabaseScope, syncQuotaSnapshotGeneration(), provider, connection.id,
+    codexCredentialIdentity(connection), connection.projectId,
+    connection.providerSpecificData, proxy.proxyPoolId ?? null, proxyOptions, ttlMs,
+  ])).digest("hex");
+  let cache = quotaSnapshotCaches.get(key);
+  if (!cache) cache = createQuotaSnapshotCache({ ttlMs, getGeneration: getDbImportGeneration });
+  // Each inner cache owns one digest, not an unbounded set of retired tokens or
+  // policy generations. Only bounded, hashed scopes remain after requests end.
+  setBounded(quotaSnapshotCaches, key, cache, CACHE_LIMITS.usageCache);
+  return { key, cache };
+}
+
+/** Resource gauges only: never expose credential, proxy or account cache keys. */
+export function getProviderSelectionCacheMetrics() {
+  syncQuotaSnapshotGeneration();
+  return { activeProviders: providerMutexes.size, quotaScopes: quotaSnapshotCaches.size };
 }
 
 const USAGE_FETCHERS = {
@@ -158,7 +181,8 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
   const earlyProviderId = resolveProviderId(provider);
   const currentMutex = getProviderMutex(earlyProviderId);
   let resolveMutex;
-  setProviderMutex(earlyProviderId, new Promise(resolve => { resolveMutex = resolve; }));
+  const nextMutex = new Promise(resolve => { resolveMutex = resolve; });
+  setProviderMutex(earlyProviderId, nextMutex);
 
   try {
     await currentMutex;
@@ -316,14 +340,14 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     const quotaProviders = Array.isArray(settings.quotaAwareProviders)
       ? settings.quotaAwareProviders
       : ["claude", "codex"];
-    const ttlMs = Number(settings.quotaCacheTtlMs) > 0
-      ? Number(settings.quotaCacheTtlMs)
+    const configuredTtlMs = Number(settings.quotaCacheTtlMs);
+    const ttlMs = Number.isFinite(configuredTtlMs) && configuredTtlMs > 0
+      ? configuredTtlMs
       : DEFAULT_QUOTA_CACHE_TTL_MS;
 
     let selectable = availableConnections;
     let quotaBlockedResets = [];
     if (quotaAwareOn && quotaProviders.includes(providerId) && USAGE_FETCHERS[providerId]) {
-      const cache = getQuotaCache(ttlMs);
       const fetchUsage = USAGE_FETCHERS[providerId];
       const annotated = [];
       for (const conn of availableConnections) {
@@ -335,7 +359,8 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
           vercelRelayUrl: proxy.vercelRelayUrl || "",
           strictProxy: proxy.strictProxy === true,
         };
-        const snap = await cache.getOrFetch(conn.id, async () => {
+        const { key, cache } = getQuotaCache(ttlMs, providerId, conn, proxy, proxyOptions);
+        const snap = await cache.getOrFetch(key, async () => {
           const usage = await fetchUsage(conn.accessToken, proxyOptions, { force: false });
           return normalizeQuotasToSnapshot(providerId, usage);
         });
@@ -494,6 +519,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     return selected;
   } finally {
     if (resolveMutex) resolveMutex();
+    if (providerMutexes.get(earlyProviderId) === nextMutex) providerMutexes.delete(earlyProviderId);
   }
 }
 

@@ -1,8 +1,10 @@
 // Jina's official crawler-options DTO accepts x-return-format as an alias for
 // x-respond-with. Tavily Extract's format enum is markdown/text. These are the
 // textual formats this router can normalize, not every native output surface.
+// Firecrawl v2 exposes markdown/html here; plain text is not a native format.
 export const DEFAULT_WEB_FETCH_FORMAT = "markdown";
 export const WEB_FETCH_FORMATS = Object.freeze({
+  firecrawl: Object.freeze(["markdown", "html"]),
   "jina-reader": Object.freeze(["markdown", "text", "html"]),
   tavily: Object.freeze(["markdown", "text"]),
 });

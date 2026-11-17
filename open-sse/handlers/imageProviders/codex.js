@@ -1,14 +1,13 @@
-// Codex (ChatGPT Plus/Pro) image generation via Responses API + SSE
+// Native Codex Images requests. Legacy Responses SSE decoding remains accepted.
 import { randomUUID } from "node:crypto";
 import { nowSec, reportedImageUsage } from "./_base.js";
-import { PROVIDERS } from "../../config/providers.js";
 import { CODEX_USER_AGENT, CODEX_CLI_VERSION } from "../../config/clientVersions.js";
+import { buildCodexImageBody, codexImagesUrl, parseNativeCodexImage } from "./codexNative.js";
+import { createSSEParser, parseSSEEvent, SSE_LIMITS } from "../../utils/sse.js";
+import { parseUpstreamErrorBody } from "../../utils/error.js";
 
-const CODEX_RESPONSES_URL = PROVIDERS["codex"].baseUrl;
 const CODEX_VERSION = CODEX_CLI_VERSION;
 const CODEX_ORIGINATOR = "codex_cli_rs";
-const CODEX_MODEL_SUFFIX = "-image";
-const CODEX_REF_DETAIL = "high";
 
 function decodeAccountId(idToken) {
   try {
@@ -23,26 +22,6 @@ function decodeAccountId(idToken) {
   }
 }
 
-function stripImageSuffix(model) {
-  return model.endsWith(CODEX_MODEL_SUFFIX) ? model.slice(0, -CODEX_MODEL_SUFFIX.length) : model;
-}
-
-function toDataUrl(input) {
-  if (!input || typeof input !== "string") return null;
-  if (/^data:image\//i.test(input) || /^https?:\/\//i.test(input)) return input;
-  return `data:image/png;base64,${input}`;
-}
-
-function buildContent(prompt, refs, detail = CODEX_REF_DETAIL) {
-  const content = [];
-  refs.forEach((url, index) => {
-    content.push({ type: "input_text", text: `<image name=image${index + 1}>` });
-    content.push({ type: "input_image", image_url: url, detail });
-    content.push({ type: "input_text", text: "</image>" });
-  });
-  content.push({ type: "input_text", text: prompt });
-  return content;
-}
 
 function normalizeResponsesUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -66,42 +45,76 @@ function normalizeResponsesUsage(raw) {
   return usage;
 }
 
+function imageStreamError(response, error) {
+  if (error instanceof SyntaxError) return new Error("Codex image stream contains invalid event data.");
+  const diagnostic = parseUpstreamErrorBody(response, JSON.stringify({ error: {
+    message: error?.message || "Stream failed", code: error?.code, type: error?.type,
+  } }));
+  const message = diagnostic.message || "Codex image stream failed.";
+  return Object.assign(new Error(message), { ...diagnostic, message });
+}
+
 function createImageReader(response, { log, clientSignal, onUsage }) {
+  if (!response.body) throw new Error("Codex did not return a completed image.");
   const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const parser = createSSEParser();
+  let pending = null;
+  let eof = false;
+  let terminal = false;
   let imageB64 = null;
   let usage = null;
   let failed = false;
+  let failure = null;
   let completion;
   let closed = false;
   let abortReason;
   let lastEvent;
   let lastProgress = 0;
   let bytesReceived = 0;
-  const processBlock = block => {
-    let eventName;
-    const dataLines = [];
-    for (const line of block.split(/\r?\n/)) {
-      if (line.startsWith("event:")) eventName = line.slice(6).trim();
-      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
-    }
-    if (!eventName) return [];
-    let data;
-    try { data = JSON.parse(dataLines.join("\n")); } catch { return []; }
+  let eventCount = 0;
+  const processEvent = event => {
+    if (terminal) return [];
+    if (++eventCount > SSE_LIMITS.outputItems) throw new RangeError("Upstream image event count exceeds limit");
+    const data = parseSSEEvent(event);
+    if (data.done) { terminal = true; return []; }
+    const eventName = event.event || data.type;
     const next = normalizeResponsesUsage(data?.response?.usage ?? data?.usage);
     const tier = data?.response?.service_tier ?? data?.service_tier;
     if (next && typeof tier === "string" && tier) next.actualServiceTier = tier;
     if (next && (!usage || next.total_tokens >= usage.total_tokens)) usage = next;
-    if (["response.failed", "response.incomplete", "error"].includes(eventName) || data?.error || data?.response?.error) failed = true;
-    if (eventName === "response.output_item.done" && data?.item?.type === "image_generation_call" && data.item.result) imageB64 = data.item.result;
-    if (eventName !== lastEvent) { log?.info?.("IMAGE", `codex progress: ${eventName}`); lastEvent = eventName; }
+    const responseState = data?.response?.status;
+    if (["response.failed", "response.incomplete", "error"].includes(eventName) ||
+        ["response.failed", "response.incomplete", "error"].includes(data.type) ||
+        ["failed", "incomplete", "cancelled"].includes(responseState) || data.error || data?.response?.error) {
+      failed = true;
+      const raw = data?.response?.error || data.error || data?.response?.incomplete_details || data;
+      const diagnostic = parseUpstreamErrorBody(response, JSON.stringify({ error: raw }));
+      const message = `Codex did not return a completed image.${diagnostic.message ? ` ${diagnostic.message}` : ""}`;
+      failure ||= Object.assign(new Error(message), { ...diagnostic, message });
+      terminal = true;
+    }
+    const acceptImage = item => {
+      if (item?.type === "image_generation_call" && typeof item.result === "string" && item.result) imageB64 = item.result;
+    };
+    if (eventName === "response.output_item.done") acceptImage(data.item);
+    if (["response.completed", "response.done"].includes(eventName) || ["response.completed", "response.done"].includes(data.type)) {
+      for (const item of data?.response?.output || data?.output || []) acceptImage(item);
+      terminal = true;
+    }
+    // Stage labels are protocol names, never arbitrary upstream strings.
+    let stage = "response.in_progress";
+    switch (eventName) {
+      case "response.created": case "response.in_progress": case "response.output_item.done":
+      case "response.image_generation_call.partial_image": case "response.completed": case "response.done":
+      case "response.failed": case "response.incomplete": case "error": stage = eventName;
+    }
+    if (stage !== lastEvent) { log?.info?.("IMAGE", `codex progress: ${stage}`); lastEvent = stage; }
     const frames = [];
     if (Date.now() - lastProgress > 200) {
       lastProgress = Date.now();
-      frames.push(["progress", { stage: eventName, bytesReceived }]);
+      frames.push(["progress", { stage, bytesReceived }]);
     }
-    if (eventName === "response.image_generation_call.partial_image" && data?.partial_image_b64) {
+    if (eventName === "response.image_generation_call.partial_image" && typeof data.partial_image_b64 === "string" && data.partial_image_b64) {
       frames.push(["partial_image", { b64_json: data.partial_image_b64, index: data.partial_image_index }]);
     }
     return frames;
@@ -113,60 +126,72 @@ function createImageReader(response, { log, clientSignal, onUsage }) {
     completion.catch(() => {});
     closed = true;
     clientSignal?.removeEventListener("abort", onAbort);
-    buffer += decoder.decode();
-    for (const block of buffer.split(/\r?\n\r?\n/)) if (block.trim()) processBlock(block);
-    buffer = "";
-    const release = (async () => {
-      try { if (cancel) await reader.cancel(reason); }
-      catch {}
-      finally { reader.releaseLock(); }
-    })();
-    release.catch(() => {});
-    void (async () => {
-      try {
-        if (usage && onUsage) {
-          if (status === "success") await onUsage(structuredClone(usage));
-          else await onUsage(structuredClone(usage), { status });
-        }
-      } finally { await release; }
-    })().then(resolveCompletion, rejectCompletion);
+    // Cancellation keeps measured usage already delivered in this network
+    // chunk, but never initiates another upstream read or consumes a later turn.
+    try {
+      while (pending && !terminal) {
+        const event = pending.next();
+        if (event.done) { pending = null; break; }
+        processEvent(event.value);
+      }
+      if (!terminal) for (const event of parser.end()) { processEvent(event); if (terminal) break; }
+    } catch (error) { failed = true; failure ||= imageStreamError(response, error); }
+    pending?.return?.();
+    pending = null;
+    parser.reset();
+    if (cancel) {
+      try { void Promise.resolve(reader.cancel(reason)).catch(() => {}); } catch { /* Already closed. */ }
+    }
+    try { reader.releaseLock(); } catch { /* Reader cleanup cannot hide accounting failure. */ }
+    // Keep the durable accounting acknowledgment, without coupling it to a
+    // potentially unbounded source-cancellation acknowledgment.
+    void Promise.resolve().then(async () => {
+      if (usage && onUsage) {
+        const finalStatus = clientSignal?.aborted || status === "aborted" ? "aborted"
+          : failed || !imageB64 ? "error" : status;
+        if (finalStatus === "success") await onUsage(structuredClone(usage));
+        else await onUsage(structuredClone(usage), { status: finalStatus });
+      }
+    }).then(resolveCompletion, rejectCompletion);
     return completion;
   };
   const onAbort = () => {
     abortReason = clientSignal.reason || new Error("Client closed request");
     void finish("aborted", abortReason, true);
   };
+  const done = async () => {
+    await completion;
+    if (abortReason) throw abortReason;
+    clientSignal?.throwIfAborted();
+    return { done: true, imageB64, failed, error: failure };
+  };
   clientSignal?.addEventListener("abort", onAbort, { once: true });
   if (clientSignal?.aborted) onAbort();
   return {
     async next() {
-      if (closed) { await completion; if (abortReason) throw abortReason; return { done: true, imageB64, failed }; }
+      if (closed) return done();
       try {
         while (true) {
-          const separator = /\r?\n\r?\n/.exec(buffer);
-          if (separator) {
-            const block = buffer.slice(0, separator.index);
-            buffer = buffer.slice(separator.index + separator[0].length);
-            const frames = processBlock(block);
+          if (terminal || (eof && !pending)) {
+            await finish(imageB64 && !failed ? "success" : "error", undefined, !eof);
+            return done();
+          }
+          if (pending) {
+            const event = pending.next();
+            if (event.done) { pending = null; continue; }
+            const frames = processEvent(event.value);
             if (frames.length) return { frames };
             continue;
           }
           const chunk = await reader.read();
-          if (closed) { await completion; if (abortReason) throw abortReason; return { done: true, imageB64, failed }; }
-          if (chunk.done) {
-            buffer += decoder.decode();
-            if (buffer.trim()) processBlock(buffer);
-            buffer = "";
-            const success = !!imageB64 && !failed;
-            await finish(success ? "success" : "error");
-            return { done: true, imageB64, failed };
-          }
-          bytesReceived += chunk.value.byteLength;
-          buffer += decoder.decode(chunk.value, { stream: true });
+          if (closed) return done();
+          if (chunk.done) { eof = true; pending = parser.end(); }
+          else { bytesReceived += chunk.value.byteLength; pending = parser.feed(chunk.value); }
         }
       } catch (error) {
         await finish(clientSignal?.aborted ? "aborted" : "error", error, true);
-        throw error;
+        if (clientSignal?.aborted) clientSignal.throwIfAborted();
+        throw imageStreamError(response, error);
       }
     },
     cancel: reason => finish("aborted", reason, true),
@@ -190,13 +215,17 @@ function buildSseResponse(providerResponse, options) {
           if (options.onRequestSuccess) await options.onRequestSuccess();
           options.clientSignal?.throwIfAborted();
           controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify({ created: nowSec(), data: [{ b64_json: chunk.imageB64 }] })}\n\n`));
-        } else controller.enqueue(encoder.encode('event: error\ndata: {"message":"Codex did not return a completed image."}\n\n'));
+        } else {
+          const error = chunk.error || new Error("Codex did not return a completed image.");
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: error.message, ...(error.code ? { code: error.code } : {}) })}\n\n`));
+        }
         controller.close();
       } catch (error) {
         if (cancelled) return;
         if (options.clientSignal?.aborted) controller.error(error);
         else {
-          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: error?.message || "Stream failed" })}\n\n`));
+          const diagnostic = imageStreamError(providerResponse, error);
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: diagnostic.message, ...(diagnostic.code ? { code: diagnostic.code } : {}) })}\n\n`));
           controller.close();
         }
       }
@@ -211,11 +240,11 @@ function buildSseResponse(providerResponse, options) {
 
 export default {
   stream: true,
-  buildUrl: () => CODEX_RESPONSES_URL,
+  buildUrl: (_model, _credentials, body) => codexImagesUrl(body),
   buildHeaders: (creds) => {
-    const accountId = creds?.providerSpecificData?.chatgptAccountId || decodeAccountId(creds?.idToken);
+    const accountId = creds?.providerSpecificData?.workspaceId || creds?.providerSpecificData?.chatgptAccountId || creds?.providerSpecificData?.accountId || decodeAccountId(creds?.idToken);
     return {
-      "accept": "text/event-stream, application/json",
+      "accept": "application/json",
       "authorization": `Bearer ${creds?.accessToken || ""}`,
       "chatgpt-account-id": accountId || "",
       "content-type": "application/json",
@@ -224,38 +253,18 @@ export default {
       "user-agent": CODEX_USER_AGENT,
       "version": CODEX_VERSION,
       "x-client-request-id": randomUUID(),
+      "x-codex-image-turn-id": randomUUID(),
     };
   },
-  buildBody: (model, body) => {
-    const refs = [];
-    if (Array.isArray(body.images)) body.images.forEach((i) => { const u = toDataUrl(i); if (u) refs.push(u); });
-    const single = toDataUrl(body.image);
-    if (single) refs.push(single);
-    const detail = body.image_detail || CODEX_REF_DETAIL;
-    const imgTool = { type: "image_generation", output_format: (body.output_format || "png").toLowerCase() };
-    if (body.size && body.size !== "") imgTool.size = body.size;
-    if (body.quality && body.quality !== "") imgTool.quality = body.quality;
-    if (body.background && body.background !== "") imgTool.background = body.background;
-    return {
-      model: stripImageSuffix(model),
-      instructions: "",
-      input: [{ type: "message", role: "user", content: buildContent(body.prompt, refs, detail) }],
-      tools: [imgTool],
-      tool_choice: "auto",
-      parallel_tool_calls: false,
-      prompt_cache_key: randomUUID(),
-      stream: true,
-      store: false,
-      reasoning: null,
-    };
-  },
+  buildBody: buildCodexImageBody,
   async parseResponse(response, options = {}) {
+    if (!response.headers.get("content-type")?.includes("text/event-stream")) return parseNativeCodexImage(response, options);
     if (options.streamToClient) return { sseResponse: buildSseResponse(response, options) };
     const session = createImageReader(response, options);
     while (true) {
       const result = await session.next();
       if (!result.done) continue;
-      if (!result.imageB64 || result.failed) throw new Error("Codex did not return a completed image. Account may not be entitled (Plus/Pro required).");
+      if (!result.imageB64 || result.failed) throw result.error || new Error("Codex did not return a completed image.");
       return { created: nowSec(), data: [{ b64_json: result.imageB64 }] };
     }
   },

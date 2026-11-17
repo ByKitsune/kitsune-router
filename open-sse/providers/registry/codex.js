@@ -1,4 +1,7 @@
 import { CODEX_USER_AGENT } from "../../config/clientVersions.js";
+import { CODEX_IMAGE_DEFAULT_MODEL, CODEX_IMAGE_PARAM_OPTIONS } from "../../config/codexImage.js";
+
+const imageOptions = { capabilities: ["text2img", "edit"], params: ["n", "size", "quality", "background", "output_format"], paramOptions: CODEX_IMAGE_PARAM_OPTIONS, kind: "image" };
 
 export default {
   id: "codex",
@@ -16,7 +19,7 @@ export default {
     deprecated: true,
     deprecationNotice: "RISK_NOTICE",
     kindNotice: {
-      image: "Requires a ChatGPT Plus (or higher) account. Free accounts are not supported for image generation.",
+      image: "Uses the native Codex Images API. Availability and limits depend on the connected ChatGPT account. Legacy image aliases use GPT Image 2.",
     },
   },
   category: "oauth",
@@ -81,10 +84,10 @@ export default {
     // Codex CLI's auto-review virtual model. Unlike the "-review" variants above it is not derived
     // from a base model, so it is forwarded verbatim instead of having "-review" stripped (#1398, #4135).
     { id: "codex-auto-review", name: "Codex Auto Review", upstreamModelId: "codex-auto-review", quotaFamily: "review" },
-    { id: "gpt-image-2", name: "GPT Image 2", capabilities: ["text2img","edit"], params: ["size","quality","background","image_detail","output_format"], kind: "image" },
-    { id: "gpt-5.5-image", name: "GPT 5.5 Image", capabilities: ["text2img","edit"], params: ["size","quality","background","image_detail","output_format"], kind: "image" },
-    { id: "gpt-5.4-image", name: "GPT 5.4 Image", capabilities: ["text2img","edit"], params: ["size","quality","background","image_detail","output_format"], kind: "image" },
-    { id: "gpt-5.3-image", name: "GPT 5.3 Image", capabilities: ["text2img","edit"], params: ["size","quality","background","image_detail","output_format"], kind: "image" },
+    { ...imageOptions, id: CODEX_IMAGE_DEFAULT_MODEL, name: "GPT Image 2" },
+    { ...imageOptions, id: "gpt-5.5-image", name: "GPT Image 2 (legacy GPT 5.5 alias)", upstreamModelId: CODEX_IMAGE_DEFAULT_MODEL },
+    { ...imageOptions, id: "gpt-5.4-image", name: "GPT Image 2 (legacy GPT 5.4 alias)", upstreamModelId: CODEX_IMAGE_DEFAULT_MODEL },
+    { ...imageOptions, id: "gpt-5.3-image", name: "GPT Image 2 (legacy GPT 5.3 alias)", upstreamModelId: CODEX_IMAGE_DEFAULT_MODEL },
   ],
   serviceKinds: ["llm","image"],
   oauth: {

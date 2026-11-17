@@ -48,6 +48,7 @@ export class AntigravityService {
         code: code,
         redirect_uri: redirectUri,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -67,6 +68,7 @@ export class AntigravityService {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/json",
       },
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -104,6 +106,7 @@ export class AntigravityService {
       method: "POST",
       headers: this.getApiHeaders(accessToken),
       body: JSON.stringify({ metadata: this.getMetadata() }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -141,6 +144,7 @@ export class AntigravityService {
       method: "POST",
       headers: this.getApiHeaders(accessToken),
       body: JSON.stringify({ tierId, metadata: this.getMetadata() }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -211,6 +215,7 @@ export class AntigravityService {
         email: userInfo.email,
         projectId: projectId, // Send projectId to server
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

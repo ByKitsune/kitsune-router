@@ -155,6 +155,13 @@ async function transcribeOpenAICompatible(cfg, file, model, token, formData, tra
     const v = formData.get(k);
     if (v !== null && v !== undefined && v !== "") fd.append(k, v);
   }
+  // Preserve repeated array values; get() would silently retain only the first.
+  // Accept the common unbracketed spelling but use the provider's native name.
+  for (const [field, value] of formData.entries()) {
+    if (field === "timestamp_granularities[]" || field === "timestamp_granularities") {
+      fd.append("timestamp_granularities[]", value);
+    }
+  }
   const res = await transport.fetch(cfg.baseUrl, multipartOptions(cfg.baseUrl, fd, buildAuthHeaders(cfg, token)));
   if (!res.ok) return upstreamError(res);
   const ct = res.headers.get("content-type") || "application/json";

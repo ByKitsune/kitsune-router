@@ -38,8 +38,8 @@ export async function refreshXaiToken(refreshToken, log, proxyOptions = null, si
     } catch (e) {
       refreshSignal.throwIfAborted();
       log?.warn?.("TOKEN_REFRESH", "xai refresh failed", { error: safeRefreshErrorType(e) });
-      const msg = String(e?.message || "");
-      if (!msg.includes("[ProxyFetch]") && (msg.includes("invalid_grant") || msg.includes("invalid_request"))) {
+      if ((e?.status === 400 || e?.status === 401)
+        && (e.oauthErrorCode === "invalid_grant" || e.oauthErrorCode === "invalid_request")) {
         return { error: "invalid_grant" };
       }
       return null;
@@ -125,7 +125,7 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
       ...(profile.extraHeaders ? (profile.extraHeaders(credentials, config) || {}) : {}),
     };
     refreshSignal.throwIfAborted();
-    const response = await proxyAwareFetch(url, { method: "POST", headers, body, signal: refreshSignal }, proxyOptions);
+    const response = await proxyAwareFetch(url, { method: "POST", redirect: "error", headers, body, signal: refreshSignal }, proxyOptions);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -174,6 +174,7 @@ export async function refreshClineToken(refreshToken, log, proxyOptions = null, 
     try {
       const response = await proxyAwareFetch(PROVIDERS.cline?.refreshUrl, {
         signal: refreshSignal,
+        redirect: "error",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -296,6 +297,7 @@ export async function refreshCodexToken(refreshToken, log, proxyOptions = null, 
     try {
       const response = await proxyAwareFetch(OAUTH_ENDPOINTS.openai.token, {
         signal: refreshSignal,
+        redirect: "error",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -535,6 +537,7 @@ export async function refreshCopilotToken(githubAccessToken, log, proxyOptions =
   try {
     const response = await proxyAwareFetch(PROVIDER_OAUTH["github"]?.copilotTokenUrl, {
       signal: refreshSignal,
+      redirect: "error",
       headers: {
         "Authorization": `token ${githubAccessToken}`,
         "User-Agent": GITHUB_COPILOT.USER_AGENT,
@@ -585,6 +588,7 @@ export async function refreshCodebuddyToken(refreshToken, log, proxyOptions = nu
     const oauth = PROVIDER_OAUTH["codebuddy-cn"] || {};
     const response = await proxyAwareFetch(oauth.refreshUrl, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -638,6 +642,7 @@ export async function refreshCodebuddyIntlToken(refreshToken, log, proxyOptions 
     const oauth = PROVIDER_OAUTH["codebuddy-intl"] || {};
     const response = await proxyAwareFetch(oauth.refreshUrl, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -700,6 +705,7 @@ export async function refreshTraeToken(refreshToken, credentials, log, proxyOpti
     try {
       const response = await proxyAwareFetch(url, {
         signal: refreshSignal,
+        redirect: "error",
         method: "POST",
         headers: {
           "Content-Type": "application/json",

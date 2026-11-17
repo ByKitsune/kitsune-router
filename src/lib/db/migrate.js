@@ -10,6 +10,7 @@ import { stringifyJson } from "./helpers/jsonCol.js";
 import { assertDatabaseIntegrity } from "./integrity.js";
 import durableUsageMigration from "./migrations/002-durable-usage.js";
 import { preserveLegacyBrandSettings } from "./helpers/brandSettings.js";
+import { canonicalUsageTimestamp } from "./helpers/usageTimestamp.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -71,9 +72,21 @@ function importWithAssertion(adapter, tableName, rows, insertFn, rowMeta) {
   }
 }
 
-function readJsonSafe(file) {
-  if (!fs.existsSync(file)) return null;
-  try { return JSON.parse(fs.readFileSync(file, "utf-8")); } catch { return null; }
+function readLegacyJson(file) {
+  let source;
+  try { source = fs.lstatSync(file); }
+  catch (error) { if (error.code === "ENOENT") return null; throw error; }
+  if (!source.isFile() || source.nlink > 1) throw new Error("Refusing non-regular or hard-linked backup source");
+  const bytes = fs.readFileSync(file, "utf-8");
+  try {
+    const data = JSON.parse(bytes);
+    if (!data || typeof data !== "object" || Array.isArray(data)) throw new TypeError();
+    return data;
+  } catch {
+    // JSON.parse diagnostics can quote credential-bearing input. Keep the
+    // original file and refuse all schema/import stamps with a fixed message.
+    throw Object.assign(new Error(`[DB] Invalid legacy JSON object: ${file}. Preserve and repair this file before retrying migration.`), { code: "DB_LEGACY_INVALID_JSON" });
+  }
 }
 
 function isFreshDb(adapter) {
@@ -206,17 +219,23 @@ function importLegacyUsage(adapter, data) {
   if (!data || typeof data !== "object") return;
   for (const e of data.history || []) {
     const t = e.tokens || {};
+    const originalTimestamp = e.timestamp ?? "";
+    const canonical = canonicalUsageTimestamp(originalTimestamp);
+    const meta = e.meta && typeof e.meta === "object" && !Array.isArray(e.meta) ? { ...e.meta } : {};
+    for (const key of ["inputCost", "cachedCost", "outputCost"]) if (Object.hasOwn(e, key)) meta[key] = e[key];
+    if (Object.hasOwn(e, "quote") && !Object.hasOwn(meta, "quote")) meta.quote = e.quote;
     adapter.run(
-      `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO usageHistory(timestamp, sourceTimestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        e.timestamp || new Date().toISOString(),
+        canonical ?? originalTimestamp,
+        canonical !== null && canonical !== originalTimestamp ? originalTimestamp : null,
         e.provider || null, e.model || null, e.connectionId || null, e.apiKey || null, e.endpoint || null,
         t.prompt_tokens || t.input_tokens || 0,
         t.completion_tokens || t.output_tokens || 0,
-        e.cost === undefined ? 0 : e.cost,
+        e.cost ?? null,
         e.status || "ok",
         stringifyJson(t),
-        stringifyJson({ inputCost: e.inputCost, cachedCost: e.cachedCost, outputCost: e.outputCost }),
+        stringifyJson(meta),
       ]
     );
   }
@@ -259,10 +278,15 @@ export async function runMigrationOnce(adapter) {
   const previousAppVersion = fresh ? null : getMetaSync(adapter, "appVersion", null);
 
   const alreadyImported = fs.existsSync(MIGRATED_MARKER);
-  const legacyMain = readJsonSafe(LEGACY_FILES.main);
-  const legacyUsage = readJsonSafe(LEGACY_FILES.usage);
-  const legacyDisabled = readJsonSafe(LEGACY_FILES.disabled);
-  const legacyDetails = readJsonSafe(LEGACY_FILES.details);
+  // Retained JSON is no longer authoritative after SQLite initialization. Do
+  // not read obsolete files on every restart, but validate the complete source
+  // set before a fresh import so a broken main file cannot be skipped while a
+  // valid secondary file publishes the one-time migration marker.
+  const inspectLegacy = fresh && !alreadyImported;
+  const legacyMain = inspectLegacy ? readLegacyJson(LEGACY_FILES.main) : null;
+  const legacyUsage = inspectLegacy ? readLegacyJson(LEGACY_FILES.usage) : null;
+  const legacyDisabled = inspectLegacy ? readLegacyJson(LEGACY_FILES.disabled) : null;
+  const legacyDetails = inspectLegacy ? readLegacyJson(LEGACY_FILES.details) : null;
   const hasLegacy = !!(legacyMain || legacyUsage || legacyDisabled || legacyDetails);
   const importLegacy = fresh && hasLegacy && !alreadyImported;
   let backupDir;

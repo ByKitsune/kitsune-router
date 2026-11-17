@@ -4,12 +4,15 @@ import {
   refreshTokenByProvider,
 } from "./tokenRefresh.js";
 import { PROVIDER_OAUTH } from "../providers/index.js";
-import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "./tokenRefresh/dedup.js";
+import { createRefreshOperation, getRefreshProxyKey, MAX_DEDUP_CACHE_SIZE, waitForRefresh } from "./tokenRefresh/dedup.js";
+import { createHash } from "node:crypto";
 
 // Single source: codex.oauth.maxRefreshAgeMs (8 days) — proactive refresh window
 export const CODEX_MAX_REFRESH_AGE_MS = PROVIDER_OAUTH["codex"]?.maxRefreshAgeMs;
 
 const refreshLocks = new Map();
+const anonymousCredentialIds = new WeakMap();
+let nextAnonymousCredentialId = 0;
 
 const NUMERIC_STRING = /^\d+(\.\d+)?$/;
 
@@ -141,14 +144,19 @@ export function mergeRefreshedCredentials(provider, currentCredentials, refreshe
 }
 
 function getRefreshLockKey(provider, credentials) {
-  const stableId =
-    credentials?.connectionId ||
-    credentials?.id ||
-    credentials?.email ||
-    credentials?.name ||
-    credentials?.refreshToken?.slice?.(-16) ||
-    "default";
-  return `${provider}:${stableId}`;
+  const stableId = credentials?.connectionId || credentials?.id;
+  if (stableId) return JSON.stringify([provider, "connection", stableId]);
+  // Display names, emails and token suffixes are not account identities. A
+  // collision here could return another account's newly rotated credentials.
+  const proof = credentials?.refreshToken || credentials?.accessToken || credentials?.apiKey || credentials?.token;
+  if (typeof proof === "string" && proof) {
+    return JSON.stringify([provider, "proof", createHash("sha256").update(proof).digest("hex")]);
+  }
+  if (credentials && typeof credentials === "object") {
+    if (!anonymousCredentialIds.has(credentials)) anonymousCredentialIds.set(credentials, ++nextAnonymousCredentialId);
+    return JSON.stringify([provider, "anonymous", anonymousCredentialIds.get(credentials)]);
+  }
+  return JSON.stringify([provider, "anonymous", ++nextAnonymousCredentialId]);
 }
 
 export async function withCredentialRefreshLock(provider, credentials, refreshFn, proxyOptions = null, signal = null) {
@@ -156,6 +164,11 @@ export async function withCredentialRefreshLock(provider, credentials, refreshFn
   const key = JSON.stringify([getRefreshLockKey(provider, credentials), getRefreshProxyKey(proxyOptions)]);
   const existing = refreshLocks.get(key);
   if (existing && !existing.controller.signal.aborted) return waitForRefresh(existing, signal);
+  if (!existing && refreshLocks.size >= MAX_DEDUP_CACHE_SIZE) {
+    throw Object.assign(new Error("Credential refresh capacity exhausted; retry after an active refresh completes"), {
+      code: "CREDENTIAL_REFRESH_CAPACITY_EXCEEDED",
+    });
+  }
 
   const operation = createRefreshOperation(refreshFn);
   const cleanup = () => {

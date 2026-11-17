@@ -46,7 +46,8 @@ async function fetchWithTimeout(url, init = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort("timeout"), FETCH_TIMEOUT_MS);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetch(url, { ...init, signal: controller.signal,
+      redirect: "error" });
   } finally {
     clearTimeout(timer);
   }

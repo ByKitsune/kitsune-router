@@ -49,6 +49,7 @@ export class GeminiCLIService {
         code: code,
         redirect_uri: redirectUri,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -76,7 +77,8 @@ export class GeminiCLIService {
         body: JSON.stringify({
           metadata: getGeminiOAuthClientMetadata(),
           mode: 1
-        })
+        }),
+        redirect: "error"
       }
     );
 
@@ -111,6 +113,7 @@ export class GeminiCLIService {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/json",
       },
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -142,6 +145,7 @@ export class GeminiCLIService {
         email: userInfo.email,
         projectId: projectId,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

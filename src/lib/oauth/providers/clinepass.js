@@ -34,6 +34,7 @@ const clinepass = {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ grant_type: "authorization_code", code, client_type: "extension", redirect_uri: redirectUri }),
+        redirect: "error",
       });
       if (!response.ok) {
         const error = await response.text();

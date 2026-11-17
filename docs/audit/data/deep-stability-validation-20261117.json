@@ -1,0 +1,822 @@
+{
+  "review_date": "2026-11-17",
+  "phase": "Deep provider, persistence, logging and translation repair after c787fb45",
+  "source_base_commit": "c787fb45d80392b2fbd546eb7af911d6766f1606",
+  "application_version": "1.0.8",
+  "release_status": "Unreleased source; no artifact publication or deployment implied",
+  "prior_phase": {
+    "passed_cases": 11772,
+    "skipped_cases": 99,
+    "scope": "Earlier pushed c787fb45 source, not proof for the deep-audit changes"
+  },
+  "upstream_issue_review": {
+    "receipt": "deep-upstream-issues-20261117.json",
+    "index_requests_http200": 17,
+    "distinct_recent_open_issues": 200,
+    "distinct_actual_issues": 289,
+    "verified_detail_pages": 62,
+    "substantive_local_dispositions": 51,
+    "bug_fix_count": null,
+    "scope": "Overlapping discovery counts, not independent repaired bug counts; no pull-request search or issue writes"
+  },
+  "database": {
+    "automatic_upgrade": "Existing additive schema synchronization and retained-state migration path",
+    "added_index": [
+      "provider",
+      "authType",
+      "name"
+    ],
+    "pre_schema_backup": "Automatic attempt; generic failures retain existing best-effort policy; DB_BACKUP_PERMISSIONS fails closed",
+    "legacy_json": "Validate all fresh import sources before schema stamps/marker; authoritative SQLite does not re-import obsolete JSON",
+    "historical_repricing": false,
+    "focused_validation": {
+      "report_file": "deep-db-civil-admission-final.json",
+      "report_sha256": "ffa0bd800e96540f6ae3bbffa8e37a14016580aa555fcf058517f81a33f232a7",
+      "passed": 349,
+      "failed": 0,
+      "skipped": 0,
+      "files": 32,
+      "duration_seconds": 48.26,
+      "success": true,
+      "regression_report_gate": "passed"
+    },
+    "declarative_schema_and_backup_version": 4,
+    "versioned_migration_ledger_latest": 3,
+    "new_cases": 50,
+    "new_test_files": 5,
+    "upgrade_scope": [
+      "Pre-outbox migration-ledger version 1",
+      "Migration-ledger version 2 with previous backup target 3",
+      "Credentials/history/queued frozen quote retained",
+      "Successful backup independently checked read-only",
+      "No repeated schema backup on next open"
+    ],
+    "usage_time": {
+      "indexed_record_and_outbox": "New accepted and verified historical explicit-zone index times canonicalized to UTC; changed old literal retained in sourceTimestamp; valid zone-less accepted times remain literal unknowns",
+      "accepted_quote_provenance": "Original literal timestamp retained",
+      "historical_rewrite": "Index representation only, with original retained; no monetary/quote rewrite",
+      "new_zone_less": "Accepted literal unknown, nullable quote and no invented daily bucket",
+      "new_civil_literal": "Valid zone-less ISO admitted literally with sourceTimestamp NULL; malformed calendar/clock inputs reject before admission",
+      "endpoint_enrichment": "Unknown instants update their own durable row but do not borrow a known daily aggregate bucket"
+    },
+    "pending_watchdog": "Existing 60-second latest-activity tuple watchdog; sibling completion/another account/unmatched completion isolation repaired, not per-attempt tracing",
+    "historical_orphans": "Reserved node-ID declarations hidden from discovery; raw KV/export retained",
+    "prior_focused_validation": {
+      "report_file": "deep-db-focused-before-historical-utc.json",
+      "report_sha256": "84faaa02ac8f067e79a2ba15f39540da4453da9da9a1b602c4c9dae4050f50de",
+      "passed": 310,
+      "failed": 0,
+      "skipped": 0,
+      "files": 30,
+      "success": true,
+      "regression_report_gate": "passed",
+      "scope": "Before final historical indexed-time migration follow-up"
+    },
+    "historical_time_repair": {
+      "migration": 3,
+      "new_cases": 7,
+      "before_failed": 7,
+      "after_passed": 7,
+      "source_provenance": "Nullable usageHistory.sourceTimestamp retains changed literal with COALESCE",
+      "page_bound_rows": 500,
+      "selected_timestamp_char_bound": 128,
+      "index": "idx_uh_ts selected on the three tested adapters",
+      "unknown_instants": "Invalid calendar/clock, missing and zone-less timestamps remain stored; excluded only from date windows",
+      "daily_aggregate_rebuild": false,
+      "monetary_history_rewrite": false,
+      "frozen_quote_rewrite": false,
+      "legacy_missing_timestamp": "Unknown empty value, never invented now",
+      "legacy_missing_or_null_cost": "SQL NULL; explicit zero retained",
+      "old_outbox": "Canonical index time at projection; accepted quote literal/amount retained",
+      "evidence_logs": [
+        "deep-db-historical-timestamps-red.log",
+        "deep-db-historical-lint.log",
+        "deep-db-cost-contract-lint.log"
+      ]
+    },
+    "pre_civil_admission_validation": {
+      "report_file": "deep-db-focused-final.json",
+      "report_sha256": "87066e2ae32f00be6a21c09e45a61f3954ee10c60a707b506e3f4fa1d19fbefd",
+      "passed": 317,
+      "failed": 0,
+      "skipped": 0,
+      "files": 31,
+      "duration_seconds": 42.69,
+      "success": true,
+      "regression_report_gate": "passed",
+      "scope": "Prior 317-case selection before final civil-time/endpoint ownership integration repair"
+    },
+    "civil_time_followup": {
+      "new_cases": 6,
+      "same_added_test_file": "tests/unit/deep-db-usage-tracking.test.js",
+      "unchanged_original_pricing_tests": 26,
+      "before_admission": {
+        "failed": 4,
+        "passed": 37,
+        "log_file": "deep-db-civil-admission-red.log"
+      },
+      "after_admission_only": {
+        "targeted_endpoint_failures": 3,
+        "log_file": "deep-db-civil-endpoint-red.log",
+        "scope": "Name-filtered diagnostic, no new suite skips"
+      },
+      "strict_targeted_composed_lint_log": "deep-db-civil-admission-lint.log",
+      "unknown_rows": "Retained in unfiltered history/lifetime facts; excluded from summaries needing an assignable day",
+      "endpoint_enrichment": "Only its durable row changes; unrelated known-day aggregate JSON remains byte-for-byte unchanged"
+    }
+  },
+  "logging": {
+    "console_line_max_bytes": 8192,
+    "console_capture_max_bytes": 524288,
+    "new_request_stream_metadata_max_bytes_per_file": 65536,
+    "request_detail_max_page_size": 100,
+    "diagnostic_directory": "Resolved DATA_DIR/logs",
+    "historical_session_retention": "Operator-managed",
+    "focused_validation": {
+      "report_file": "deep-logging-final.json",
+      "report_sha256": "f3d9e5b632ecde8a7c736a538fbdf364b87a088838469144ca5f4c7669a85b92",
+      "passed": 93,
+      "failed": 0,
+      "skipped": 0,
+      "files": 13,
+      "success": true,
+      "regression_report_gate": "passed"
+    },
+    "new_cases": 53,
+    "new_test_files": 6,
+    "console_capture_max_lines": 200,
+    "new_diagnostic_retention_deletion_policy": false,
+    "mitm_cleanup": "Existing startup cleanup restricted to recognized managed metadata files; operator files/directories/links retained",
+    "same_file_batch_fixture": {
+      "metadata_records": 1000,
+      "before_open_operations": 1000,
+      "after_open_operations": 20,
+      "records_preserved": true,
+      "scope": "Deterministic work-bound fixture, not a wall-clock benchmark"
+    }
+  },
+  "native_codex_images": {
+    "official_source_commit": "9537934ed6d5a6658fc77032b3290650765466a1",
+    "primary_source_receipt": "deep-upstream-issues-20261117.json",
+    "generation": "JSON POST https://chatgpt.com/backend-api/codex/images/generations",
+    "editing": "JSON POST https://chatgpt.com/backend-api/codex/images/edits",
+    "native_model": "gpt-image-2",
+    "legacy_gateway_aliases": [
+      "gpt-5.5-image",
+      "gpt-5.4-image",
+      "gpt-5.3-image"
+    ],
+    "legacy_alias_target": "gpt-image-2",
+    "entitlement_bypass": false,
+    "paid_replay": false,
+    "focused_validation": "Final input-focused selection64 passed across4files including native23; overlapping prior result-integrity selection158 passed; final full suite separate",
+    "canonical_accounting": "Registered legacy routes resolve upstreamModelId gpt-image-2; stored configuration strings retained",
+    "deprecated_image_detail": "Accepted compatibility hint; not forwarded and does not change native processing",
+    "dashboard": "Native controls only; hidden fields no longer serialized",
+    "binary": "One image only, validated before dispatch/cardinality success; binary response takes precedence over Accept SSE",
+    "result_integrity": "Canonical base64 and recognized raster signature required before success; buffered native usage deferred until final core output/cardinality validation",
+    "input_boundary": "Invalid supplied singular references false/0/empty string reject before image submission instead of selecting generation; null/undefined stay optional; GIF output accepted but non-null frame_count/frame_duration_ms unsupported and rejected",
+    "validation_auth_boundary": "Public handler may perform existing proactive credential check before adapter validation; no claim of zero authentication activity",
+    "final_input_followup": {
+      "new_cases": 7,
+      "native_file_cases": 23,
+      "native_file_before_failed": 5,
+      "native_file_before_positive_controls": 18,
+      "scope": "Final input-focused selection passed; final full suite/artifacts separate",
+      "after_passed": 64,
+      "after_failed": 0,
+      "after_skipped": 0,
+      "after_files": 4,
+      "report_file": "deep-final-image-input-after.json",
+      "report_sha256": "6e3562739b148aff10cecff07cbecfe1c38943dbbd49adb71e91a63820e58684",
+      "duration_seconds": 5.38,
+      "strict_targeted_composed_lint": "passed",
+      "lint_log_file": "deep-final-image-input-lint.log"
+    }
+  },
+  "translator_focused_validation": {
+    "production_files": 7,
+    "new_test_files": 4,
+    "new_cases": 78,
+    "earlier_broad_selection": {
+      "passed": 953,
+      "skipped": 73,
+      "files": 69,
+      "report_file": "deep-translator-final.json",
+      "report_sha256": "f102e40818479f117fa17046cd289b7a53865dc3e5933a73a9695f1c9611d6aa"
+    },
+    "latest_reverse_cache_selection": {
+      "passed": 162,
+      "skipped": 0,
+      "files": 7,
+      "report_file": "deep-translator-cache-final.json",
+      "report_sha256": "6d8cc003859f6a353d48c794837f35c1a8c399998efeb9e9cc296477a4cfc4f8"
+    },
+    "scope": "Focused selections overlap; earlier broad selection precedes the last reverse-cache repair",
+    "strict_targeted_lint": "passed",
+    "full_regression": "Final integrated suite passed 12,346 / zero failures / 99 skips; see final_validation.full_regression",
+    "production_paths": [
+      "open-sse/translator/concerns/usage.js",
+      "open-sse/translator/formats/gemini.js",
+      "open-sse/translator/formats/maxTokens.js",
+      "open-sse/translator/request/claude-to-openai.js",
+      "open-sse/translator/response/claude-to-openai.js",
+      "open-sse/translator/response/ollama-to-openai.js",
+      "open-sse/translator/response/openai-to-claude.js"
+    ]
+  },
+  "final_validation": {
+    "status": "passed",
+    "full_regression": {
+      "report_file": "deep-vitest-final.json",
+      "report_sha256": "f169a06fc81dd1012a72ee59deb0cd1d8d32131d0a4d36aff280a46da999a269",
+      "log_file": "deep-tests-final.log",
+      "log_sha256": "8ce2f54097b243d50500d64279f722024b49760851fdac334689bf9f7c35f0bf",
+      "passed": 12346,
+      "failed": 0,
+      "skipped": 99,
+      "total_cases": 12445,
+      "files": 950,
+      "passed_files": 932,
+      "skipped_files": 18,
+      "duration_seconds": 234.71,
+      "regression_report_gate": "passed",
+      "source_scope": "Final frozen runtime/tests including the last seven native image-input cases"
+    },
+    "strict_composed_lint": {
+      "command": "npm run lint -- --max-warnings=0",
+      "exit_code": 0,
+      "oxlint_files": 2131,
+      "errors": 0,
+      "warnings": 0,
+      "log_file": "deep-lint-final.log",
+      "log_sha256": "2665466f1041d33a08e3ce488fc9ac2de8cd51a1a3f020c3fe5cc4321d9474af",
+      "scope": "Full composed lint passed; subsequent final DB helper/repository and native image input edits also passed owner strict targeted lint",
+      "final_db_followup": {
+        "status": "passed",
+        "log_file": "deep-db-civil-admission-lint.log",
+        "scope": "Last DB helper and usage repository source edits",
+        "log_sha256": "f496a65f864e22fa5d4ca8173ec2cfb32e1af8babaa4b745cf096d6a4a54c6db"
+      },
+      "final_native_input_followup": {
+        "status": "passed",
+        "log_file": "deep-final-image-input-lint.log",
+        "scope": "Last native input source/test edits",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "status": "passed",
+      "final_root_followup": {
+        "status": "passed",
+        "exit_code": 0,
+        "command": "node scripts/lint.mjs --max-warnings=0 src/lib/db/helpers/usageTimestamp.js src/lib/db/repos/usageRepo.js tests/unit/deep-db-usage-tracking.test.js open-sse/handlers/imageProviders/codexNative.js tests/unit/deep-codex-images-native.test.js",
+        "files": 5,
+        "warnings": 0,
+        "errors": 0,
+        "log_file": "deep-last-changes-composed-lint.log",
+        "log_sha256": "569637985e4ad0073ab8d3fa9d7b27aa3c3a19610cd00b65f05c49317c1cfc43"
+      }
+    },
+    "application_build": {
+      "command": "npm run build",
+      "exit_code": 0,
+      "completed_at_utc": "2026-11-17T14:27:57Z",
+      "log_file": "deep-build.log",
+      "log_sha256": "e2548945fcdfddb26d3923ba2a1d7f7feeee67979fdf09878104647f83cbc88a",
+      "scope": "Local production application build; no publication/deployment implied"
+    },
+    "browser_suite": {
+      "passed": 51,
+      "failed": 0,
+      "retries": 0,
+      "duration_minutes": 1.3,
+      "new_native_codex_ui_cases": 3,
+      "log_file": "deep-browser.log",
+      "log_sha256": "94813c1537ca8107c92304f6d3f1b07201a7245d8ee55c91b78c7ab961418e45",
+      "scope": "Production browser fixtures, no live provider generation",
+      "skipped": 0
+    },
+    "documentation_tests": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 5,
+      "duration_ms": 1232.597604,
+      "log_file": "deep-docs-final-tests.log",
+      "log_sha256": "1c12788082a90e74bd5a351420052567bd125cfab1f48dfa160de3db35f6f520",
+      "scope": "Final lightweight rerun after frozen Gitbook content; static build verified separately"
+    },
+    "documentation_build": {
+      "command": "npm --prefix gitbook run build",
+      "exit_code": 0,
+      "actual_static_html_files": 109,
+      "log_file": "deep-docs-build.log",
+      "log_sha256": "652e70618164f32429f583e3ff394331a7ba526cb1babe0c6971e2864e4d4386"
+    },
+    "cli_package_and_runtime": {
+      "status": "passed",
+      "version": "1.0.8",
+      "candidate_file": "bykitsune-router-1.0.8.tgz",
+      "candidate_bytes": 23328917,
+      "candidate_sha256": "6c86ee7156535b06e29967449df6ff42d3b934875c63caecc7b2fdb205ef87e8",
+      "published": false,
+      "fresh_install_packages": 9,
+      "fresh_install_seconds": 11,
+      "commands": [
+        "--help",
+        "--version",
+        "--check-install"
+      ],
+      "packed_runtime_driver": "better-sqlite3",
+      "forced_sqljs": "Matching JS/WASM, forced fallback, persistence and restart passed",
+      "logs": [
+        {
+          "log_file": "deep-cli-pack.log",
+          "log_sha256": "75b0d4824eeb54017073690cee0c159f0318c65141ac01a9208ca19060d8dcb5"
+        },
+        {
+          "log_file": "deep-cli-install.log",
+          "log_sha256": "17703adff94f097bc9f039ba8c7d70aa04474143c4c0091dffe7c038f8081165"
+        },
+        {
+          "log_file": "deep-cli-help.log",
+          "log_sha256": "9b443dd7a384472be6f18687e0cd988417f2479270af00fa7d49c110a6618b97"
+        },
+        {
+          "log_file": "deep-cli-version.log",
+          "log_sha256": "326dd5d8641f399990de42def50ac29eb4c9222601c0a0a3fc3c947dd3bec65d"
+        },
+        {
+          "log_file": "deep-cli-check-install.log",
+          "log_sha256": "2062349f0e65919705633934778452a80f148470155aa9d8df54776836793b6a"
+        },
+        {
+          "log_file": "deep-packed-check.log",
+          "log_sha256": "1e69afc98f5a0235817413b57b68eaa75f3f855b6cbb43019ccecc68bbc3ad6d"
+        },
+        {
+          "log_file": "deep-packed-server.log",
+          "log_sha256": "ee0e4da9d900c4d48007e8345e5ba0297278242afed05815b6e417bf77c641d3"
+        },
+        {
+          "log_file": "deep-packed-smoke.log",
+          "log_sha256": "05341763436e4f6e84f0411ae368a5af2980e71af142a7eb9f192bd998371aa4"
+        },
+        {
+          "log_file": "deep-cli-sqljs.log",
+          "log_sha256": "b608d8c078bf3997b24d13accb4249c0538013dbf519f499fb4b6d6feb372636"
+        }
+      ]
+    },
+    "first_integrated_run": {
+      "passed": 12325,
+      "failed": 8,
+      "skipped": 99,
+      "files": 950,
+      "duration_seconds": 238.7,
+      "report_file": "deep-vitest-before-integration-sync.json",
+      "scope": "Archived failing run, not final validation; the admission bug and obsolete fixtures were subsequently repaired",
+      "report_sha256": "39be23ec582c659f2e4c4cffb7cf23a2ddb979021b7039284a97a643b5f0cfc4"
+    },
+    "read_only_gates": {
+      "passed": 8,
+      "failed": 0,
+      "summary_file": "deep-final-gates-summary.json",
+      "summary_sha256": "e6ae60d6420be578fa9f2719a2737105336c342ad4cb77d92af452016abdb315",
+      "checks": [
+        {
+          "check": "compat",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-compat.log",
+          "log_sha256": "9ad95a9ccfdce97f3563cd63936c5cef84d84fc05bc5222a6b49348e62c0a1ee"
+        },
+        {
+          "check": "i18n",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-i18n.log",
+          "log_sha256": "2f0ac511ce770939e8bccdd237885c4e8b6d2cfbae3194ea036d171bfd49f0f4"
+        },
+        {
+          "check": "providers",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-providers.log",
+          "log_sha256": "a786574dd0bc8a9e54541f106fa35c687941956beebbfb82d390501aba8f3783"
+        },
+        {
+          "check": "aliases",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-aliases.log",
+          "log_sha256": "67c070e00c10118c9fedcb12560e3414681539dd7387245aba3e993f58c46849"
+        },
+        {
+          "check": "oauth-urls",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-oauth-urls.log",
+          "log_sha256": "a3e7e5039eb383acf2b546f1179dced6e35a27227a05f0f6ea33a50668ec45a5"
+        },
+        {
+          "check": "provider-identity",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-provider-identity.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "check": "brand",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-brand.log",
+          "log_sha256": "3ac17b025f981897e4a0c429019813e9b0b3e65484bd5a697c1c26ff3a142015"
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "log_file": "deep-final-gates-dependencies.log",
+          "log_sha256": "719a47d14e83e9b75292bd51483931773601be3602aa60329656d939dd684c01"
+        }
+      ],
+      "compatibility_cases": 1,
+      "providers": 83,
+      "aliases": 117,
+      "oauth_urls": "equal to baseline",
+      "generated_identity": "--check passed",
+      "brand_version": "1.0.8",
+      "installed_direct_dependency_inventories": {
+        "root": 51,
+        "tests": 3,
+        "cli": 5,
+        "gitbook": 12,
+        "optional_skipped": 0
+      },
+      "i18n_scope": "Existing inventory gate passed; not a claim of complete translation coverage"
+    },
+    "pre_final_image_input_run": {
+      "passed": 12339,
+      "failed": 0,
+      "skipped": 99,
+      "files": 950,
+      "duration_seconds": 232.43,
+      "report_file": "deep-vitest-before-final-image-input.json",
+      "scope": "Green before final independent image-input review; superseded after new input source edits; not final proof",
+      "report_sha256": "7e6ac2d46a3a350ab16d81961a8b4559f910b34c5f05f0c1d200212580e31847"
+    },
+    "development_smoke": {
+      "status": "passed",
+      "launcher": "Node parent --env-file launcher, default Turbopack",
+      "checks": [
+        "health",
+        "unauthenticated dashboard API 401",
+        "login/settings/dashboard 200",
+        "temporary gateway key creation/deletion",
+        "models discovery 1082"
+      ],
+      "inference_calls": 0,
+      "logs": [
+        {
+          "log_file": "deep-dev-check.log",
+          "log_sha256": "8cb6849bce65f9630de0e297480fb853cd808a9abb434724a217a9e420c25d0b"
+        },
+        {
+          "log_file": "deep-dev-smoke.log",
+          "log_sha256": "05341763436e4f6e84f0411ae368a5af2980e71af142a7eb9f192bd998371aa4"
+        }
+      ]
+    },
+    "standalone_runtime": {
+      "native_dependency_present": {
+        "status": "passed",
+        "completed_at_utc": "2026-11-17T14:29:22Z",
+        "checks": [
+          "health",
+          "login",
+          "settings",
+          "dashboard",
+          "models discovery 1082",
+          "synthetic gateway key cleanup"
+        ],
+        "logs": [
+          {
+            "log_file": "deep-native-check.log",
+            "log_sha256": "15023fdb7cf3c1e4862ddd7e4030bb926045e967d9686a59f829b885967bc5f9"
+          },
+          {
+            "log_file": "deep-native-server.log",
+            "log_sha256": "d4debf36ebf5368fa11cf75409ec40fe1c8e8b29ac3d876b23b28d46e3fff947"
+          },
+          {
+            "log_file": "deep-native-smoke.log",
+            "log_sha256": "05341763436e4f6e84f0411ae368a5af2980e71af142a7eb9f192bd998371aa4"
+          }
+        ],
+        "inference_calls": 0,
+        "driver": "better-sqlite3"
+      },
+      "native_dependency_absent_fallback": {
+        "status": "passed",
+        "driver": "node:sqlite",
+        "native_module": "better-sqlite3 physically absent from root and standalone during build and smoke; restored afterward",
+        "checks": [
+          "health",
+          "authentication",
+          "dashboard",
+          "models discovery",
+          "synthetic state fixture"
+        ],
+        "inference_calls": 0,
+        "logs": [
+          {
+            "log_file": "deep-fallback-build.log",
+            "log_sha256": "96fbb05086db49b40ebbbd13b5f553513e6256abcecb15a65fd55b5226d48104"
+          },
+          {
+            "log_file": "deep-fallback-check.log",
+            "log_sha256": "8549a8070291b8bfe3c4088d5b534e4b2857e1fa62563aa769cf57b6483ab652"
+          },
+          {
+            "log_file": "deep-fallback-server.log",
+            "log_sha256": "65a5a3f7d4957e9669f7f9071d474c6f56289654976ab0855c36956d20b25cfe"
+          },
+          {
+            "log_file": "deep-fallback-smoke.log",
+            "log_sha256": "05341763436e4f6e84f0411ae368a5af2980e71af142a7eb9f192bd998371aa4"
+          }
+        ]
+      }
+    },
+    "artifact_pipeline": {
+      "exit_code": 0,
+      "completed_at_utc": "2026-11-17T14:32:16Z",
+      "log_file": "deep-artifacts.log",
+      "log_sha256": "ce45849399f42a2006c7e83e50ee902a3100a4e8a51487e1ddd097cdc5887540",
+      "scope": "Local builds and isolated synthetic runtimes; no registry publication or deployment"
+    }
+  },
+  "limitations": [
+    "No live provider inference or paid image generation",
+    "Official source contract does not establish rollout or account entitlement",
+    "No new Bun or native Windows/macOS desktop certification",
+    "No registry publication, deployment or pushed SHA inferred from local source checks"
+  ],
+  "executor_focused_validation": {
+    "new_cases": 64,
+    "new_test_files": 6,
+    "new_cases_passed": 64,
+    "exact_base_replay": {
+      "failed": 57,
+      "positive_controls_passed": 7,
+      "source": "c787fb45d80392b2fbd546eb7af911d6766f1606"
+    },
+    "inventory": {
+      "classes_or_modules": 27,
+      "specialized": 25,
+      "base_and_default": 2
+    },
+    "strict_targeted_lint": "passed for 17 owned files",
+    "earlier_broad_selection": {
+      "passed": 1444,
+      "skipped": 2,
+      "files": 78,
+      "scope": "Earlier subset, before final Azure/Windsurf additions"
+    },
+    "preintegration_selection": {
+      "passed": 3338,
+      "failed": 2,
+      "skipped": 2,
+      "files": 182,
+      "scope": "Root-owned image SSE fixture integration failures; not final full-suite evidence"
+    },
+    "evidence_logs": [
+      "deep-executor-all-final-before.log",
+      "deep-executor-final-new.log",
+      "deep-executor-lint.log"
+    ],
+    "final_broad_validation": "Final integrated suite passed 12,346 / zero failures / 99 skips; supersedes the earlier 182-file integration phase"
+  },
+  "provider_services_focused_validation": {
+    "new_cases": 161,
+    "new_test_files": 8,
+    "new_cases_focused": "161 new cases passed; final 92-file selection passed 1,293",
+    "earlier_integration": {
+      "passed": 314,
+      "files": 18,
+      "scope": "Before final initial-OAuth/XAI/Zed additions"
+    },
+    "initial_oauth": {
+      "credential_fetch_guards": 60,
+      "files": 28,
+      "browser_authorization_redirects": "unchanged",
+      "url_baseline": "byte-identical"
+    },
+    "refresh_redirects": {
+      "provider_matrix": 12,
+      "new_cases": 48,
+      "scope": "Real local HTTP proof-forwarding traps, not live provider calls"
+    },
+    "final_broad_validation": {
+      "report_file": "deep-services-broad.json",
+      "report_sha256": "af2a3874492ed5829cd78f8a0711d1fd7839c6619fffeb3de114abb99d7140e1",
+      "passed": 1293,
+      "failed": 0,
+      "skipped": 0,
+      "files": 92,
+      "duration_seconds": 48.78,
+      "success": true,
+      "regression_report_gate": "passed"
+    },
+    "evidence_logs": [
+      "deep-services-before.log",
+      "deep-services-after.log",
+      "deep-grok-before.log",
+      "deep-grok-after.log",
+      "deep-refresh-redirects-before.log",
+      "deep-refresh-redirects-after.log",
+      "deep-initial-oauth-redirects-before.log",
+      "deep-initial-oauth-redirects-after.log",
+      "deep-xai-before.log",
+      "deep-xai-after.log",
+      "deep-zed-before.log",
+      "deep-zed-after.log"
+    ],
+    "strict_targeted_composed_lint": "passed",
+    "source_summary_file": "deep-services-summary.json",
+    "final_sensitive_direct_fetch_inventory": "No unguarded credential-bearing direct fetch sites in the reviewed OAuth source inventory; public discovery/browser redirects remain separate"
+  },
+  "openai_image_parameters": {
+    "preserved_outbound_fields": [
+      "background",
+      "output_format",
+      "output_compression",
+      "moderation"
+    ],
+    "count": "1..10 on the native GPT image adapter",
+    "invalid_or_empty_success": "502 with measured usage recorded as error, no replay",
+    "progressive_sse_claim": false,
+    "unsupported_streaming_controls": "stream:true and partial_images rejected before dispatch on this JSON route"
+  },
+  "inbound_limiter": {
+    "new_cases": 5,
+    "credential_identity": "SHA-256 separates the demonstrated equal-length old-hash collision",
+    "active_budget_eviction": false,
+    "overflow": "Bounded shared window for new identities at capacity; expiry recovery",
+    "invalid_limits": "Zero after fractional truncation and unsafe integers use valid defaults",
+    "distributed_billing_limit": false,
+    "baseline_new_cases_failed": 5
+  },
+  "legacy_codex_image_sse": {
+    "new_cases": 8,
+    "before": {
+      "failed": 7,
+      "positive_control_passed": 1
+    },
+    "after": {
+      "passed": 8,
+      "failed": 0
+    },
+    "adjacent_selection": {
+      "passed": 89,
+      "failed": 0,
+      "scope": "New8 + native16 + existing usage5 + usage-core-cancellation60"
+    },
+    "strict_targeted_composed_lint": "passed",
+    "changes": [
+      "Shared linear/bounded SSE framing",
+      "Data-only CR framing and completed snapshot artifacts",
+      "Terminal completion without EOF",
+      "Nonblocking cancellation cleanup with durable usage acknowledgment",
+      "Sanitized upstream error details and exact usage once"
+    ],
+    "limit_test_scope": "Real shared parser with small injected ceiling; no 64-MiB allocation or throughput benchmark",
+    "before_source_sha256": "3d0db6bfdbce2294937bc769ae900402c9fe6f93cb903488233852102032561a",
+    "evidence_logs": [
+      "deep-codex-image-stream-before.log",
+      "deep-codex-image-stream-after.log",
+      "deep-codex-image-stream-lint.log"
+    ]
+  },
+  "root_image_focused_validation": {
+    "passed": 177,
+    "files": 7,
+    "before_controls_batch": {
+      "failed": 12,
+      "total": 13
+    },
+    "scope": "Earlier focused selection, preceding final result-integrity additions; overlaps latest selection and final full suite",
+    "log_file": "deep-images-focused-final.log",
+    "log_sha256": "3ff14a94f0026b62755a7217858e045d39424a64ab8c05795c9ee7e6cce6e17e"
+  },
+  "image_json_reader": {
+    "new_cases": 26,
+    "passed": 26,
+    "max_response_bytes": 67108864,
+    "post_header_body_deadline_ms": 120000,
+    "timer_and_abort_cleanup": "verified",
+    "diagnostics": "neutral malformed JSON errors",
+    "scope": "Body read budget after headers, not a new operation-wide fetch deadline or throughput benchmark",
+    "chunk_batch_size": 256,
+    "independent_focused_report": {
+      "report_file": "image-response-limits-final.json",
+      "report_sha256": "6314c980ecf19c0c17a9a0c00b86b0de4a2ebd2183b7b5ed5f95369b5bf407fc",
+      "passed": 26,
+      "files": 1,
+      "scope": "New bounded-reader lifecycle feature validation; not a c787 baseline bug count"
+    }
+  },
+  "application_selection_focused_validation": {
+    "passed": 122,
+    "files": 8,
+    "new_cases": 24,
+    "baseline_new_cases_failed": 24,
+    "strict_targeted_composed_lint": "passed",
+    "scope": "Root-assigned auth.js provider-tail and quota-snapshot scope repair; separate from services/OAuth fixtures",
+    "provider_tail_locks": "Retain live tails until matching final release; completed tails removed, no FIFO eviction of active queues",
+    "quota_snapshots": "500 full-SHA256 scopes including database/import/provider/account/proof/PSD/resolved policy/pool/TTL; one inner entry per scope",
+    "metrics": "Counts only, no credential material",
+    "report_sha256": "da2d9a10d4686a120c1ebc0d43db9ba52837f08a363cfa1a888554a1ca5e9422",
+    "report_file": "deep-provider-selection-final.json",
+    "failed": 0,
+    "skipped": 0
+  },
+  "chat_routing_focused_validation": {
+    "new_cases": 18,
+    "before": {
+      "failed": 16,
+      "positive_controls_passed": 2
+    },
+    "after": {
+      "passed": 275,
+      "failed": 0,
+      "skipped": 0,
+      "files": 18
+    },
+    "report_file": "deep-chat-routing-final.json",
+    "report_sha256": "d5fd7d505c1316e0ac753e72720ed94c3f9fd6b8b73827971dd68f4c8b2e2ee9",
+    "strict_targeted_composed_lint": "passed for seven owned files",
+    "trusted_local_failures": "routing_configuration_error 502; x-should-retry:false; no alternate account/combo/direct route/health penalty",
+    "transport": "Original caller signal and frozen selected account policy retained through refresh/project/core and actual relay wire",
+    "provider_failures": "Ordinary fallback behavior retained; untrusted provider text is not classified as a trusted local exception"
+  },
+  "root_image_integrity_focused_validation": {
+    "passed": 158,
+    "failed": 0,
+    "files": 7,
+    "new_integrity_cases": 16,
+    "before_failed": 14,
+    "before_positive_controls": 2,
+    "log_file": "deep-images-integrity-final.log",
+    "log_sha256": "cd677ba44794f974adc8d0f842ebe243fc9b7a54a0ae2b27dc422c03d5abf651",
+    "scope": "Latest focused selection after final native result-integrity fixes; overlaps earlier image selections"
+  },
+  "root_image_request_contracts": {
+    "new_cases": 15,
+    "original_before_failed": 12,
+    "original_positive_control": 1,
+    "additional_controls": 2,
+    "native_wire_cases": 16,
+    "scope": "Earlier focused source contracts (native wire16 before final7 input cases); no live account acceptance"
+  },
+  "stt_timestamp_fields": {
+    "issue": 5663,
+    "new_cases": 7,
+    "before_failed": 6,
+    "before_positive_controls": 1,
+    "adjacent_passed": 42,
+    "adjacent_files": 4,
+    "wire_contract": "Repeated timestamp_granularities[] and unbracketed alias retain order; caller FormData/audio/format/response offsets unchanged",
+    "before_report_file": "stt-timestamp-before-final.json",
+    "after_report_file": "stt-native-codex-after.json",
+    "evidence_directory": "Private synthetic validation workspace; no raw provider credentials or issue bodies copied",
+    "live_provider_calls": false
+  },
+  "firecrawl_v2": {
+    "issue": 5590,
+    "official_source_commit": "8e7e5887cfd69e1db2d3f16be22a642a02370aec",
+    "pinned_source_paths": 3,
+    "new_cases": 27,
+    "before_failed": 21,
+    "before_positive_controls": 6,
+    "adjacent_passed": 83,
+    "adjacent_files": 4,
+    "before_report_file": "firecrawl-before.json",
+    "after_report_file": "firecrawl-after.json",
+    "wire_contract": "POST v2/scrape; success:true/object data/string selected markdown or html required; native HTML not substituted; unsupported text rejected before account selection",
+    "reported_december_10_shutdown": "Reporter-only, unverified",
+    "live_provider_calls": false
+  },
+  "stt_firecrawl_combined_validation": {
+    "passed": 125,
+    "failed": 0,
+    "files": 8,
+    "report_sha256": "fcc0c3d6314bebd9adbed8db18606744f4ea488506a5fa647ee60ac86bb2a99a",
+    "scope": "Overlapping adjacent selection including existing media and web-fetch cases, not 125 new independent fixes",
+    "report_file": "deep-upstream-local-final.json"
+  },
+  "documentation_checks": {
+    "changed_markdown_local_links": "Resolved, including five Gitbook route URLs",
+    "scoped_diff_check": "passed",
+    "read_only_contract_review": "Two reviews found no material inaccuracies; final validation results remain separate",
+    "scope": "Final changed Markdown link/JSON/diff checks and lightweight documentation test rerun; no heavy rebuild after frozen Gitbook content"
+  },
+  "review_environment": {
+    "platform": "Linux cloud",
+    "node": "24.22.1",
+    "npm": "11.9.0",
+    "scope": "Local validation runtime; not certification of every supported platform/runtime"
+  }
+}

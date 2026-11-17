@@ -6,6 +6,7 @@ import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { ANTHROPIC_API_VERSION } from "../../providers/shared.js";
 import { U, parseResetTime } from "./shared.js";
 import { setBounded, sweepExpired, CACHE_LIMITS } from "../../utils/boundedCache.js";
+import { getRefreshProxyKey } from "../tokenRefresh/dedup.js";
 
 // Claude API config (urls from registry, apiVersion is header logic kept here)
 const CLAUDE_CONFIG = {
@@ -31,6 +32,7 @@ const usageCache = new Map(); // token -> { promise } | { result, expiresAt }
 
 export async function getClaudeUsage(accessToken, proxyOptions = null, options = {}) {
   const force = options?.force === true;
+  const cacheKey = accessToken ? JSON.stringify([accessToken, getRefreshProxyKey(proxyOptions)]) : null;
 
   // Drop expired entries opportunistically (size cap alone would keep a dead
   // token's entry until 500 newer tokens appeared, which on a single gateway
@@ -39,29 +41,33 @@ export async function getClaudeUsage(accessToken, proxyOptions = null, options =
 
   // Serve in-flight or fresh cached result (skip on manual force)
   if (!force && accessToken) {
-    const hit = usageCache.get(accessToken);
+    const hit = usageCache.get(cacheKey);
     if (hit?.promise) return hit.promise;
     if (hit && hit.expiresAt > Date.now()) return hit.result;
   }
 
-  const stale = (!force && accessToken && usageCache.get(accessToken)?.result) || null;
-
+  const entry = {};
   const promise = (async () => {
-    const result = await fetchClaudeUsageRaw(accessToken, proxyOptions);
-    // Only cache real quota data, not soft-failure {message: ...} payloads
-    if (accessToken && result?.quotas) {
-      setBounded(usageCache, accessToken, {
-        result,
-        expiresAt: Date.now() + USAGE_CACHE_TTL_MS,
-      }, CACHE_LIMITS.usageCache);
+    try {
+      const result = await fetchClaudeUsageRaw(accessToken, proxyOptions);
+      // A forced refresh may supersede this read while it is awaiting HTTP.
+      // Only the current operation may publish cache state for this identity.
+      if (cacheKey && result?.quotas && usageCache.get(cacheKey) === entry) {
+        setBounded(usageCache, cacheKey, {
+          result,
+          expiresAt: Date.now() + USAGE_CACHE_TTL_MS,
+        }, CACHE_LIMITS.usageCache);
+      }
       return result;
+    } finally {
+      // Keeping a completed soft-failure promise would make all future normal
+      // polls reuse that failure forever, without reaching the provider again.
+      if (cacheKey && usageCache.get(cacheKey) === entry) usageCache.delete(cacheKey);
     }
-    // Soft failure (429/error): prefer the last good read over a transient error
-    if (stale) return stale;
-    return result;
   })();
 
-  if (accessToken) setBounded(usageCache, accessToken, { promise }, CACHE_LIMITS.usageCache);
+  entry.promise = promise;
+  if (cacheKey) setBounded(usageCache, cacheKey, entry, CACHE_LIMITS.usageCache);
   return promise;
 }
 

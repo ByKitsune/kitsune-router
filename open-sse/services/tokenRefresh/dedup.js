@@ -1,5 +1,5 @@
 const REFRESH_RESULT_TTL_MS = 10_000;
-const MAX_DEDUP_CACHE_SIZE = 500;
+export const MAX_DEDUP_CACHE_SIZE = 500;
 const refreshDedupCache = new Map();
 
 // Periodic sweep to clean up expired cache entries and prevent memory leaks
@@ -44,12 +44,14 @@ function evictOldestIfNeeded() {
 // Match the policy fields consumed by proxyAwareFetch; keys stay in memory only.
 export function getRefreshProxyKey(proxyOptions = null) {
   const normalize = (value) => typeof value === "string" ? value.trim() : "";
+  const poolId = normalize(proxyOptions?.proxyPoolId ?? proxyOptions?.connectionProxyPoolId);
   return JSON.stringify([
     proxyOptions?.enabled === true || proxyOptions?.connectionProxyEnabled === true,
     normalize(proxyOptions?.url ?? proxyOptions?.connectionProxyUrl),
     normalize(proxyOptions?.noProxy ?? proxyOptions?.connectionNoProxy),
     proxyOptions?.strictProxy === true,
     normalize(proxyOptions?.vercelRelayUrl),
+    poolId === "__none__" ? "" : poolId,
   ]);
 }
 

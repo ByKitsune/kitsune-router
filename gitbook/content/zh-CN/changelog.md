@@ -16,6 +16,20 @@
 来源、回归结果、明确的策略变化和平台／真实账户限制见
 [依赖与运行时审计](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md)及[上游对照审计](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md)。
 
+### 深入稳定性审计
+
+- 现有数据库通过增量 schema 同步适配更新，保留凭据和历史；验证旧 schema 恢复、
+  查询计划与备份，并保持并发请求计数和新写入 UTC 时间的一致性。
+- 使用 Codex Images 原生 JSON 生成／编辑接口及 `gpt-image-2`。旧图片别名作为
+  明确的兼容路由保留，无需批量改写数据库，也不绕过账户权限。
+- 为控制台和请求诊断设置边界及敏感信息脱敏，隔离缓慢或故障订阅者；可选元数据
+  日志写入 `DATA_DIR/logs`，历史会话的保留仍由运维人员管理。
+- 保留跨格式转换中的工具、内容、缓存与用量语义，并加强执行器／OAuth 的取消、
+  凭据作用域及重定向拒绝。
+
+[深入稳定性审计](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-deep-stability-audit.md)
+将本次后续阶段、实际 issue 调查及验证，与同日先前结果和已发布产物分别记录。
+
 ## Kitsune Router 1.0.8 — 安装器修复
 
 ### 准备阶段的集中验证快照

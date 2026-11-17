@@ -99,6 +99,7 @@ export class OAuthService {
         Accept: "application/json",
       },
       body: body,
+      redirect: "error",
     });
 
     if (!response.ok) {

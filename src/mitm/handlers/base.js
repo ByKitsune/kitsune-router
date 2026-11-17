@@ -106,7 +106,7 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
       if (data === "[DONE]") continue;
 
       if (process.env.DEBUG_MITM) {
-        log(`[SSE in] ${data.slice(0, 200)}`);
+        log(`[SSE in] (${Buffer.byteLength(data)}B)`);
       }
 
       try {
@@ -116,8 +116,8 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
           const outputs = Array.isArray(result) ? result : [result];
           for (const output of outputs) {
             if (process.env.DEBUG_MITM) {
-              const len = output.length || output.byteLength || 0;
-              log(`[write binary frame] (${len}B) first 20B: ${Array.from(output.slice(0, 20)).join(',')}`);
+              const len = typeof output === "string" ? Buffer.byteLength(output) : output.byteLength ?? output.length ?? 0;
+              log(`[write binary frame] (${len}B)`);
             }
             res.write(Buffer.from(output));
           }
@@ -187,7 +187,7 @@ async function pipeTransformedEventStream(routerRes, res, transformFn, state) {
       if (data === "[DONE]") continue;
 
       if (process.env.DEBUG_MITM) {
-        log(`[SSE in] ${data.slice(0, 200)}`);
+        log(`[SSE in] (${Buffer.byteLength(data)}B)`);
       }
 
       try {
@@ -197,8 +197,8 @@ async function pipeTransformedEventStream(routerRes, res, transformFn, state) {
           const outputs = Array.isArray(result) ? result : [result];
           for (const output of outputs) {
             if (process.env.DEBUG_MITM) {
-              const len = output.length || output.byteLength || 0;
-              log(`[write binary frame] (${len}B) first 20B: ${Array.from(output.slice(0, 20)).join(',')}`);
+              const len = typeof output === "string" ? Buffer.byteLength(output) : output.byteLength ?? output.length ?? 0;
+              log(`[write binary frame] (${len}B)`);
             }
             res.write(Buffer.from(output));
           }

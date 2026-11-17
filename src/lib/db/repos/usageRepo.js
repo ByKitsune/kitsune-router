@@ -7,6 +7,7 @@ import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { hardenEmitter } from "../../schedulerLifecycle.mjs";
 import { addNullableCost, mergeCostCoverage } from "../../../shared/utils/cost.js";
 import { canonicalizeUsage } from "../../../../open-sse/utils/usageTracking.js";
+import { canonicalUsageTimestamp, isValidCivilUsageTimestamp, CANONICAL_USAGE_TIMESTAMP_SQL } from "../helpers/usageTimestamp.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -43,6 +44,7 @@ const CONN_CACHE_TTL_MS = 30 * 1000;
 const PERIOD_MS = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
 const USAGE_PERIODS = new Set(["today", "24h", "7d", "30d", "60d", "all"]);
 const COMPONENT_COST_FIELDS = ["inputCost", "cachedCost", "outputCost"];
+const acceptedQuoteTimestamp = Symbol.for("kitsunerouter.usage.acceptedQuoteTimestamp");
 
 // In-memory state shared across Next.js modules
 if (!global._pendingRequests) global._pendingRequests = { byModel: {}, byAccount: {} };
@@ -65,6 +67,9 @@ if (!global._statsEmitTimers) global._statsEmitTimers = { pending: null, update:
 if (!global._requestFailureCounts) global._requestFailureCounts = Object.create(null);
 
 const pendingRequests = global._pendingRequests;
+const pendingBucketKey = Symbol.for("kitsunerouter.db.pendingRequestBuckets");
+if (!pendingRequests[pendingBucketKey]) Object.defineProperty(pendingRequests, pendingBucketKey, { value: new Map() });
+const pendingBuckets = pendingRequests[pendingBucketKey];
 const lastErrorProvider = global._lastErrorProvider;
 const pendingTimers = global._pendingTimers;
 const recentRing = global._recentRing;
@@ -247,39 +252,54 @@ async function calculateCost(provider, model, tokens, timestamp) {
   }
 }
 
+function changePendingCounter(record, key, delta) {
+  const previous = Object.hasOwn(record, key) ? record[key] : 0;
+  const count = Math.max(0, previous + delta);
+  if (count > 0) {
+    // Imported IDs are data, including names such as __proto__/constructor.
+    Object.defineProperty(record, key, { value: count, writable: true, enumerable: true, configurable: true });
+  } else delete record[key];
+}
+
+function changePendingBucket(bucket, delta) {
+  changePendingCounter(pendingRequests.byModel, bucket.modelKey, delta);
+  if (!bucket.connectionId) return;
+  if (!Object.hasOwn(pendingRequests.byAccount, bucket.connectionId)) {
+    Object.defineProperty(pendingRequests.byAccount, bucket.connectionId, { value: Object.create(null), writable: true, enumerable: true, configurable: true });
+  }
+  const account = pendingRequests.byAccount[bucket.connectionId];
+  changePendingCounter(account, bucket.modelKey, delta);
+  if (!Object.keys(account).length) delete pendingRequests.byAccount[bucket.connectionId];
+}
+
 export function trackPendingRequest(model, provider, connectionId, started, error = false) {
   const modelKey = provider ? `${model} (${provider})` : model;
-  const timerKey = `${connectionId}|${modelKey}`;
-
-  if (!pendingRequests.byModel[modelKey]) pendingRequests.byModel[modelKey] = 0;
-  pendingRequests.byModel[modelKey] = Math.max(0, pendingRequests.byModel[modelKey] + (started ? 1 : -1));
-  if (pendingRequests.byModel[modelKey] === 0) delete pendingRequests.byModel[modelKey];
-
-  if (connectionId) {
-    if (!pendingRequests.byAccount[connectionId]) pendingRequests.byAccount[connectionId] = {};
-    if (!pendingRequests.byAccount[connectionId][modelKey]) pendingRequests.byAccount[connectionId][modelKey] = 0;
-    pendingRequests.byAccount[connectionId][modelKey] = Math.max(0, pendingRequests.byAccount[connectionId][modelKey] + (started ? 1 : -1));
-    if (pendingRequests.byAccount[connectionId][modelKey] === 0) {
-      delete pendingRequests.byAccount[connectionId][modelKey];
-      if (Object.keys(pendingRequests.byAccount[connectionId]).length === 0) {
-        delete pendingRequests.byAccount[connectionId];
-      }
-    }
-  }
-
+  const timerKey = JSON.stringify([connectionId || null, modelKey]);
+  let bucket = pendingBuckets.get(timerKey);
   if (started) {
+    if (!bucket) { bucket = { modelKey, connectionId, count: 0 }; pendingBuckets.set(timerKey, bucket); }
+    bucket.count++;
+    changePendingBucket(bucket, 1);
     clearTimeout(pendingTimers[timerKey]);
-    pendingTimers[timerKey] = setTimeout(() => {
+    // The public API has no per-attempt ID: keep the tuple watchdog alive while
+    // siblings remain, and only remove this tuple's share on expiry.
+    const timer = setTimeout(() => {
+      if (pendingTimers[timerKey] !== timer) return;
       delete pendingTimers[timerKey];
-      if (pendingRequests.byModel[modelKey] > 0) pendingRequests.byModel[modelKey] = 0;
-      if (connectionId && pendingRequests.byAccount[connectionId]?.[modelKey] > 0) {
-        pendingRequests.byAccount[connectionId][modelKey] = 0;
-      }
+      pendingBuckets.delete(timerKey);
+      changePendingBucket(bucket, -bucket.count);
       scheduleStatsEvent("pending");
     }, PENDING_TIMEOUT_MS);
-  } else {
-    clearTimeout(pendingTimers[timerKey]);
-    delete pendingTimers[timerKey];
+    pendingTimers[timerKey] = timer;
+    timer.unref?.();
+  } else if (bucket) {
+    bucket.count--;
+    changePendingBucket(bucket, -1);
+    if (bucket.count === 0) {
+      clearTimeout(pendingTimers[timerKey]);
+      delete pendingTimers[timerKey];
+      pendingBuckets.delete(timerKey);
+    }
   }
 
   if (!started && error && provider) {
@@ -347,24 +367,29 @@ export function initializeUsagePersistence(db) {
 function projectUsageEvent(db, entry) {
   if (db.get(`SELECT id FROM usageHistory WHERE eventId = ?`, [entry.eventId])) return null;
   const tokens = entry.tokens || {};
+  const canonical = canonicalUsageTimestamp(entry.timestamp);
+  const timestamp = canonical ?? entry.timestamp ?? "";
+  const sourceTimestamp = entry.sourceTimestamp ?? (canonical !== null && canonical !== entry.timestamp ? entry.timestamp : null);
   const result = db.run(
-    `INSERT INTO usageHistory(eventId, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, ttftMs, totalMs) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [entry.eventId, entry.timestamp, entry.provider, entry.model, entry.connectionId, entry.apiKey, entry.endpoint,
+    `INSERT INTO usageHistory(eventId, timestamp, sourceTimestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, ttftMs, totalMs) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [entry.eventId, timestamp, sourceTimestamp, entry.provider, entry.model, entry.connectionId, entry.apiKey, entry.endpoint,
       tokens.prompt_tokens ?? tokens.input_tokens ?? 0, tokens.completion_tokens ?? tokens.output_tokens ?? 0,
       entry.cost, entry.status, stringifyJson(tokens), stringifyJson({ inputCost: entry.inputCost, cachedCost: entry.cachedCost, outputCost: entry.outputCost, quote: entry.quote, dateKey: entry.dateKey, canonicalTokens: entry.canonicalTokens }),
       Number.isFinite(entry.latency?.ttft) && entry.latency.ttft > 0 ? Math.round(entry.latency.ttft) : null,
       Number.isFinite(entry.latency?.total) && entry.latency.total > 0 ? Math.round(entry.latency.total) : null]);
-  const dateKey = entry.dateKey || getLocalDateKey(entry.timestamp);
-  const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
-  const day = row ? parseJson(row.data, {}) : {
-    requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
-    costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
-    byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
-  };
-  aggregateEntryToDay(day, entry);
-  db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
+  const dateKey = entry.dateKey || (canonical !== null ? getLocalDateKey(timestamp) : null);
+  if (dateKey !== null) {
+    const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
+    const day = row ? parseJson(row.data, {}) : {
+      requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
+      costCoverage: requestCostCoverage({ cost: 0, inputCost: 0, cachedCost: 0, outputCost: 0 }),
+      byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
+    };
+    aggregateEntryToDay(day, entry);
+    db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
+  }
   db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '1') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1`);
-  return { ...entry, _persistedUsageId: Number(result.lastInsertRowid) };
+  return { ...entry, timestamp, _persistedUsageId: Number(result.lastInsertRowid) };
 }
 
 export async function enqueueRequestUsage(entry) {
@@ -382,15 +407,23 @@ export async function enqueueRequestUsage(entry) {
   let eventId = submitted.eventId || state.identities.get(entry);
   if (!eventId) { eventId = randomUUID(); state.identities.set(entry, eventId); }
   if (typeof eventId !== "string" || !eventId || eventId.length > 200) throw new TypeError("Invalid usage eventId");
-  if (!Number.isFinite(Date.parse(submitted.timestamp))) throw new TypeError("Invalid usage timestamp");
+  const originalTimestamp = submitted.timestamp;
+  const timestamp = canonicalUsageTimestamp(originalTimestamp);
+  if (timestamp === null && !isValidCivilUsageTimestamp(originalTimestamp)) throw new TypeError("Invalid usage timestamp");
+  // Date filters and the timestamp index compare ISO strings. Accepted offsets
+  // must represent the same UTC instant as Z timestamps, retaining milliseconds.
+  submitted.timestamp = timestamp ?? originalTimestamp;
+  if (timestamp !== null && typeof originalTimestamp === "string" && originalTimestamp !== timestamp) submitted.sourceTimestamp = originalTimestamp;
   try {
     if (!entry.eventId) Object.defineProperty(entry, "eventId", { value: eventId, configurable: true });
     if (!entry.timestamp) entry.timestamp = submitted.timestamp;
   } catch {}
-  const { timestamp } = submitted;
   let snapshot = state.snapshots.get(entry);
   if (!snapshot || snapshot.eventId !== eventId) {
-    snapshot = { ...submitted, eventId, dateKey: getLocalDateKey(timestamp), canonicalTokens: canonicalizeUsage(submitted.tokens) };
+    snapshot = { ...submitted, eventId, dateKey: timestamp !== null ? getLocalDateKey(submitted.timestamp) : null, canonicalTokens: canonicalizeUsage(submitted.tokens) };
+    // The accounting quote retains the literal accepted timestamp as provenance,
+    // while its record/index uses UTC. Keep this bookkeeping off the payload.
+    Object.defineProperty(snapshot, acceptedQuoteTimestamp, { value: originalTimestamp });
     state.snapshots.set(entry, snapshot);
   }
   let operation = state.admissions.get(eventId);
@@ -409,7 +442,7 @@ export async function enqueueRequestUsage(entry) {
         snapshot.inputCost = addNullableCost(breakdown.inputCost, breakdown.cacheCreationCost);
         snapshot.cachedCost = breakdown.cachedCost;
         snapshot.outputCost = addNullableCost(breakdown.outputCost, breakdown.reasoningCost);
-        snapshot.quote = { provider: snapshot.provider, model: snapshot.model, timestamp: snapshot.timestamp, pricing: pricing ?? null, breakdown };
+        snapshot.quote = { provider: snapshot.provider, model: snapshot.model, timestamp: snapshot[acceptedQuoteTimestamp] ?? snapshot.timestamp, pricing: pricing ?? null, breakdown };
       }
       return acceptOutbox(db, snapshot);
     })();
@@ -428,7 +461,8 @@ function backfillUsageEndpoint(db, eventId, endpoint) {
     row = db.get(`SELECT * FROM usageHistory WHERE eventId = ?`, [eventId]);
     if (!row || row.endpoint) return;
     db.run(`UPDATE usageHistory SET endpoint = ? WHERE eventId = ? AND endpoint IS NULL`, [endpoint, eventId]);
-    const dateKey = parseJson(row.meta, {})?.dateKey || getLocalDateKey(row.timestamp);
+    const dateKey = parseJson(row.meta, {})?.dateKey || (canonicalUsageTimestamp(row.timestamp) !== null ? getLocalDateKey(row.timestamp) : null);
+    if (dateKey === null) return;
     const daily = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
     if (!daily) return;
     const day = parseJson(daily.data, {});
@@ -518,6 +552,7 @@ export async function getUsageHistory(filter = {}) {
   if (filter.model) { conds.push("model = ?"); params.push(filter.model); }
   if (filter.startDate) { conds.push("timestamp >= ?"); params.push(new Date(filter.startDate).toISOString()); }
   if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
+  if (filter.startDate || filter.endDate) conds.push(CANONICAL_USAGE_TIMESTAMP_SQL);
 
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
   const rows = db.all(`SELECT timestamp, provider, model, connectionId, apiKey, endpoint, cost, status, tokens, meta FROM usageHistory ${where} ORDER BY id ASC`, params);
@@ -629,7 +664,7 @@ export async function getUsageStats(period = "all") {
     stats.last10Minutes.push(bucketMap[ts]);
   }
   const recent10 = db.all(
-    `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ? AND timestamp <= ?`,
+    `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL}`,
     [tenMinutesAgo.toISOString(), now.toISOString()]
   );
   for (const r of recent10) {
@@ -774,8 +809,8 @@ export async function getUsageStats(period = "all") {
     const overlayCutoffIso = new Date(maxDays ? Date.now() - maxDays * 86400000 : 0).toISOString();
 
     const maxModelRows = db.all(
-      `SELECT model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? GROUP BY model, provider`,
-      [overlayCutoffIso]
+      `SELECT model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL} GROUP BY model, provider`,
+      [overlayCutoffIso, now.toISOString()]
     );
     for (const r of maxModelRows) {
       const modelKey = r.provider ? `${r.model} (${r.provider})` : r.model;
@@ -785,8 +820,8 @@ export async function getUsageStats(period = "all") {
     }
 
     const maxAccountRows = db.all(
-      `SELECT connectionId, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE connectionId IS NOT NULL AND timestamp >= ? GROUP BY connectionId, model, provider`,
-      [overlayCutoffIso]
+      `SELECT connectionId, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE connectionId IS NOT NULL AND timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL} GROUP BY connectionId, model, provider`,
+      [overlayCutoffIso, now.toISOString()]
     );
     for (const r of maxAccountRows) {
       const accountKey = accountUsageKey(r.connectionId, r.model, r.provider);
@@ -796,8 +831,8 @@ export async function getUsageStats(period = "all") {
     }
 
     const maxApiKeyRows = db.all(
-      `SELECT apiKey, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? GROUP BY apiKey, model, provider`,
-      [overlayCutoffIso]
+      `SELECT apiKey, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL} GROUP BY apiKey, model, provider`,
+      [overlayCutoffIso, now.toISOString()]
     );
     for (const r of maxApiKeyRows) {
       const apiKeyKey = (r.apiKey && typeof r.apiKey === "string")
@@ -809,8 +844,8 @@ export async function getUsageStats(period = "all") {
     }
 
     const maxEndpointRows = db.all(
-      `SELECT endpoint, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? GROUP BY endpoint, model, provider`,
-      [overlayCutoffIso]
+      `SELECT endpoint, model, provider, MAX(timestamp) AS lastUsed FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL} GROUP BY endpoint, model, provider`,
+      [overlayCutoffIso, now.toISOString()]
     );
     for (const r of maxEndpointRows) {
       const endpoint = r.endpoint || "Unknown";
@@ -822,8 +857,8 @@ export async function getUsageStats(period = "all") {
   } else {
     // 24h / today: live history
     const filtered = db.all(
-      `SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, tokens, meta FROM usageHistory WHERE timestamp >= ?`,
-      [dateStart]
+      `SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, tokens, meta FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL}`,
+      [dateStart, now.toISOString()]
     );
 
     for (const r of filtered) {
@@ -929,7 +964,7 @@ export async function getUsageStats(period = "all") {
   // Latency aggregates over rows that actually recorded a measurement.
   // percentiles via SQL so the whole window is considered, not a sample.
   try {
-    const where = dateStart ? "WHERE timestamp >= ? AND timestamp <= ?" : "WHERE timestamp <= ?";
+    const where = `${dateStart ? "WHERE timestamp >= ? AND timestamp <= ?" : "WHERE timestamp <= ?"} AND ${CANONICAL_USAGE_TIMESTAMP_SQL}`;
     const latencyParams = dateStart ? [dateStart, now.toISOString()] : [now.toISOString()];
     const row = db.get(
       `SELECT COUNT(*) AS n,
@@ -981,8 +1016,8 @@ export async function getChartData(period = "7d") {
     const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0 }));
 
     const rows = db.all(
-      `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ?`,
-      [new Date(startTime).toISOString()]
+      `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL}`,
+      [new Date(startTime).toISOString(), new Date(now).toISOString()]
     );
     for (const r of rows) {
       const t = new Date(r.timestamp).getTime();
@@ -1004,8 +1039,8 @@ export async function getChartData(period = "7d") {
     const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0 }));
 
     const rows = db.all(
-      `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ?`,
-      [new Date(startTime).toISOString()]
+      `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ? AND timestamp <= ? AND ${CANONICAL_USAGE_TIMESTAMP_SQL}`,
+      [new Date(startTime).toISOString(), new Date(now).toISOString()]
     );
     for (const r of rows) {
       const t = new Date(r.timestamp).getTime();

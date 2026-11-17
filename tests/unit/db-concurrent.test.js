@@ -99,8 +99,15 @@ describe("DB Concurrency — atomic safety", () => {
     // Wait for any timer-based flush
     await new Promise((r) => setTimeout(r, 6000));
 
-    const list = await db.getRequestDetails({ provider: "openai", pageSize: 500 });
+    const list = await db.getRequestDetails({ provider: "openai", pageSize: 100 });
     expect(list.pagination.totalItems).toBeGreaterThanOrEqual(N);
+    const savedIds = new Set(list.details.map(detail => detail.id));
+    for (let page = 2; page <= list.pagination.totalPages; page++) {
+      const next = await db.getRequestDetails({ provider: "openai", pageSize: 100, page });
+      for (const detail of next.details) savedIds.add(detail.id);
+    }
+    expect(savedIds.size).toBeGreaterThanOrEqual(N);
+    for (let i = 0; i < N; i++) expect(savedIds.has(`det-${i}`)).toBe(true);
   }, 15000);
 
   it("mixed concurrent: usage + details + connections + aliases", async () => {

@@ -2,7 +2,7 @@ import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, OPENAI_FINISH } from "../schema/index.js";
 import { buildChunk } from "../concerns/chunk.js";
-import { getCacheCreationUsage, toOpenAIUsage } from "../concerns/usage.js";
+import { getCacheCreationUsage, hasInvalidUsageCounters, normalizeUsageCount, toOpenAIUsage } from "../concerns/usage.js";
 import { reasoningDelta } from "../concerns/reasoning.js";
 import { toOpenAIFinish } from "../concerns/finishReason.js";
 
@@ -23,7 +23,7 @@ function createChunk(state, delta, finishReason = null) {
 // prompt only when cached_tokens is absent). Keeping the raw Claude-exclusive
 // split here without cached_tokens dropped the cache from the client's final
 // chunk and double-counted the prompt in usage logs.
-function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, cacheCreation5mTokens, cacheCreation1hTokens }) {
+function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, cacheCreation5mTokens, cacheCreation1hTokens, usageInvalid = false, estimated = false }) {
   state.usage = {
     ...toOpenAIUsage({
       input_tokens: inputTokens,
@@ -32,6 +32,8 @@ function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cach
       cache_creation_input_tokens: cacheCreationTokens,
       cache_creation_5m_tokens: cacheCreation5mTokens,
       cache_creation_1h_tokens: cacheCreation1hTokens,
+      usage_invalid: usageInvalid,
+      estimated,
     }, "claude"),
     cached_tokens: cacheReadTokens,
     input_tokens: inputTokens,
@@ -46,7 +48,8 @@ function setUsageState(state, { inputTokens, outputTokens, cacheReadTokens, cach
 // The OpenAI-facing subset of state.usage (drops the Claude-native mirror fields).
 function clientUsage(usage) {
   const { prompt_tokens, completion_tokens, total_tokens, prompt_tokens_details } = usage;
-  return { prompt_tokens, completion_tokens, total_tokens, ...(prompt_tokens_details ? { prompt_tokens_details } : {}) };
+  return { prompt_tokens, completion_tokens, total_tokens, ...(prompt_tokens_details ? { prompt_tokens_details } : {}),
+    ...(usage.usage_invalid ? { usage_invalid: true } : {}), ...(usage.estimated ? { estimated: true } : {}) };
 }
 
 function flushToolInputSnapshot(state, toolCall, results) {
@@ -130,12 +133,14 @@ export function claudeToOpenAIResponse(chunk, state) {
       if (startUsage && typeof startUsage === "object") {
         const creation = getCacheCreationUsage(startUsage);
         setUsageState(state, {
-          inputTokens: typeof startUsage.input_tokens === "number" ? startUsage.input_tokens : 0,
+          inputTokens: normalizeUsageCount(startUsage.input_tokens),
           outputTokens: 0,
-          cacheReadTokens: typeof startUsage.cache_read_input_tokens === "number" ? startUsage.cache_read_input_tokens : 0,
+          cacheReadTokens: normalizeUsageCount(startUsage.cache_read_input_tokens),
           cacheCreationTokens: creation?.total || 0,
           cacheCreation5mTokens: creation?.fiveMinute,
           cacheCreation1hTokens: creation?.oneHour,
+          usageInvalid: hasInvalidUsageCounters(startUsage, "claude") || creation?.invalid === true,
+          estimated: startUsage.estimated === true,
         });
       }
       results.push(createChunk(state, { role: ROLE.ASSISTANT }));
@@ -177,7 +182,7 @@ export function claudeToOpenAIResponse(chunk, state) {
         };
         state.toolCalls.set(chunk.index, {
           index: toolCallIndex,
-          inputSnapshot: block.input && Object.keys(block.input).length > 0 ? JSON.stringify(block.input) : null,
+          inputSnapshot: block.input && typeof block.input === "object" ? JSON.stringify(block.input) : null,
           hasInputDeltas: false, snapshotEmitted: false,
         });
         results.push(createChunk(state, { tool_calls: [toolCall] }));
@@ -237,12 +242,16 @@ export function claudeToOpenAIResponse(chunk, state) {
         const creation = getCacheCreationUsage(chunk.usage);
         const previousCreation = getCacheCreationUsage(prev);
         setUsageState(state, {
-          inputTokens: typeof chunk.usage.input_tokens === "number" ? chunk.usage.input_tokens : (prev.input_tokens || 0),
-          outputTokens: typeof chunk.usage.output_tokens === "number" ? chunk.usage.output_tokens : 0,
-          cacheReadTokens: typeof chunk.usage.cache_read_input_tokens === "number" ? chunk.usage.cache_read_input_tokens : (prev.cache_read_input_tokens || 0),
+          inputTokens: chunk.usage.input_tokens !== undefined ? normalizeUsageCount(chunk.usage.input_tokens) : (prev.input_tokens ?? 0),
+          outputTokens: chunk.usage.output_tokens !== undefined ? normalizeUsageCount(chunk.usage.output_tokens) : (prev.output_tokens ?? 0),
+          cacheReadTokens: chunk.usage.cache_read_input_tokens !== undefined ? normalizeUsageCount(chunk.usage.cache_read_input_tokens) : (prev.cache_read_input_tokens ?? 0),
           cacheCreationTokens: Math.max(creation?.total || 0, previousCreation?.total || 0),
           cacheCreation5mTokens: creation?.fiveMinute ?? previousCreation?.fiveMinute,
           cacheCreation1hTokens: creation?.oneHour ?? previousCreation?.oneHour,
+          // Preserve invalid observations before normalization can erase them.
+          // A later output-only update cannot make malformed input/cache free.
+          usageInvalid: prev.usage_invalid === true || hasInvalidUsageCounters(chunk.usage, "claude") || creation?.invalid === true,
+          estimated: prev.estimated === true || chunk.usage.estimated === true,
         });
       }
 

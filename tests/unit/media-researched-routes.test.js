@@ -69,7 +69,7 @@ describe("researched media: basic image JSON generation", () => {
     expect(sentUrl).toBe(url);
     expect(init.method).toBe("POST");
     expect(init.headers.Authorization).toBe("Bearer offline-fixture");
-    expect(JSON.parse(init.body)).toEqual({ model, prompt: "sample", n: 1, size: "1024x1024" });
+    expect(JSON.parse(init.body)).toEqual({ model, prompt: "sample", n: 1, size: provider === "openai" ? "auto" : "1024x1024" });
     expect(await result.response.json()).toEqual(upstream);
     expect(fetch).toHaveBeenCalledTimes(1);
   });

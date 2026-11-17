@@ -5,14 +5,21 @@ import { encodeDataUri } from "../concerns/image.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK, TOOL_ERROR_PREFIX } from "../schema/index.js";
 import { collapseTextParts } from "../concerns/message.js";
 import { splitToolResultContent } from "../concerns/multimodal.js";
+import { PROVIDERS } from "../../providers/index.js";
 
 function stripAnthropicBillingHeader(text) {
   if (typeof text !== "string") return "";
   return text.replace(/^x-anthropic-billing-header:[^\n]*(?:\r?\n)?/i, "");
 }
 
+function collapseClaudeTextParts(parts, preserveCacheControl) {
+  return preserveCacheControl && parts.some(part => Object.hasOwn(part, "cache_control"))
+    ? parts : collapseTextParts(parts);
+}
+
 // Convert Claude request to OpenAI format
-export function claudeToOpenAIRequest(model, body, stream) {
+export function claudeToOpenAIRequest(model, body, stream, _credentials = null, provider = null) {
+  const preserveCacheControl = PROVIDERS[provider]?.quirks?.preserveCacheControl === true;
   const result = {
     model: model,
     messages: [],
@@ -60,10 +67,13 @@ export function claudeToOpenAIRequest(model, body, stream) {
   // System message
   if (body.system) {
     const systemContent = Array.isArray(body.system)
-      ? body.system.map(s => stripAnthropicBillingHeader(s.text || "")).filter(Boolean).join("\n")
+      ? collapseClaudeTextParts(body.system.map(block => ({
+        type: OPENAI_BLOCK.TEXT, text: stripAnthropicBillingHeader(block.text || ""),
+        ...(preserveCacheControl && Object.hasOwn(block, "cache_control") ? { cache_control: block.cache_control } : {}),
+      })).filter(block => block.text), preserveCacheControl)
       : stripAnthropicBillingHeader(body.system);
     
-    if (systemContent) {
+    if (systemContent.length) {
       result.messages.push({
         role: ROLE.SYSTEM,
         content: systemContent
@@ -75,7 +85,7 @@ export function claudeToOpenAIRequest(model, body, stream) {
   if (body.messages && Array.isArray(body.messages)) {
     for (let i = 0; i < body.messages.length; i++) {
       const msg = body.messages[i];
-      const converted = convertClaudeMessage(msg);
+      const converted = convertClaudeMessage(msg, preserveCacheControl);
       if (converted) {
         // Handle array of messages (multiple tool results)
         if (Array.isArray(converted)) {
@@ -181,7 +191,7 @@ function systemReminderText(content) {
 }
 
 // Convert single Claude message - returns single message or array of messages
-function convertClaudeMessage(msg) {
+function convertClaudeMessage(msg, preserveCacheControl = false) {
   // Some clients send content as a single block object; normalize to the
   // one-element array every branch below (the system-reminder fold included)
   // expects. Must run BEFORE the role branch: systemReminderText only reads
@@ -212,7 +222,9 @@ function convertClaudeMessage(msg) {
     for (const block of msg.content) {
       switch (block.type) {
         case CLAUDE_BLOCK.TEXT:
-          parts.push({ type: OPENAI_BLOCK.TEXT, text: block.text });
+          parts.push({ type: OPENAI_BLOCK.TEXT, text: block.text,
+            ...(preserveCacheControl && Object.hasOwn(block, "cache_control") ? { cache_control: block.cache_control } : {}),
+          });
           break;
 
         case CLAUDE_BLOCK.IMAGE:
@@ -302,7 +314,7 @@ function convertClaudeMessage(msg) {
     // If has tool results, return array of tool messages
     if (toolResults.length > 0) {
       if (parts.length > 0) {
-        return [...toolResults, { role: ROLE.USER, content: collapseTextParts(parts) }];
+        return [...toolResults, { role: ROLE.USER, content: collapseClaudeTextParts(parts, preserveCacheControl) }];
       }
       return toolResults;
     }
@@ -311,7 +323,7 @@ function convertClaudeMessage(msg) {
     if (toolCalls.length > 0) {
       const result = { role: ROLE.ASSISTANT };
       if (parts.length > 0) {
-        result.content = collapseTextParts(parts);
+        result.content = collapseClaudeTextParts(parts, preserveCacheControl);
       }
       result.tool_calls = toolCalls;
       if (reasoningContent) {
@@ -324,7 +336,7 @@ function convertClaudeMessage(msg) {
     if (parts.length > 0) {
       const result = {
         role,
-        content: collapseTextParts(parts)
+        content: collapseClaudeTextParts(parts, preserveCacheControl)
       };
       if (reasoningContent && role === ROLE.ASSISTANT) {
         result.reasoning_content = reasoningContent;

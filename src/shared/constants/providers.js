@@ -82,21 +82,10 @@ export const MEDIA_PROVIDER_KINDS = [
   { id: "music",       label: "Music",          icon: "music_note",        endpoint: { method: "POST", path: "/v1/audio/music" } },
 ];
 
-export const OPENAI_COMPATIBLE_PREFIX = "openai-compatible-";
-export const ANTHROPIC_COMPATIBLE_PREFIX = "anthropic-compatible-";
-export const CUSTOM_EMBEDDING_PREFIX = "custom-embedding-";
-
-export function isOpenAICompatibleProvider(providerId) {
-  return typeof providerId === "string" && providerId.startsWith(OPENAI_COMPATIBLE_PREFIX);
-}
-
-export function isAnthropicCompatibleProvider(providerId) {
-  return typeof providerId === "string" && providerId.startsWith(ANTHROPIC_COMPATIBLE_PREFIX);
-}
-
-export function isCustomEmbeddingProvider(providerId) {
-  return typeof providerId === "string" && providerId.startsWith(CUSTOM_EMBEDDING_PREFIX);
-}
+export {
+  OPENAI_COMPATIBLE_PREFIX, ANTHROPIC_COMPATIBLE_PREFIX, CUSTOM_EMBEDDING_PREFIX,
+  isOpenAICompatibleProvider, isAnthropicCompatibleProvider, isCustomEmbeddingProvider,
+} from "./providerNodeTypes.js";
 
 // All providers (combined)
 export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...FREE_TIER_PROVIDERS, ...OAUTH_PROVIDERS, ...APIKEY_PROVIDERS, ...WEB_COOKIE_PROVIDERS };

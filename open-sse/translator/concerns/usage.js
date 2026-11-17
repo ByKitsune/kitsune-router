@@ -149,7 +149,8 @@ export function buildUsage({ promptTokens, completionTokens, totalTokens, cached
 // The shared validator and normalizer accept finite integer numeric strings.
 // Native bridges must retain those same counters instead of turning them into
 // unmarked zeroes before the durable accounting gate.
-const n = (v) => validCount(v) ? Number(v) : typeof v === "number" ? v : 0;
+export const normalizeUsageCount = (v) => validCount(v) ? Number(v) : typeof v === "number" ? v : 0;
+const n = normalizeUsageCount;
 
 // Per-provider raw token field-map + math. Returns buildUsage() args (NOT the usage object).
 // Keeps each provider's exact semantics: claude/gemini fold cache+reasoning, others don't.

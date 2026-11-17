@@ -5,7 +5,8 @@ import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE, selec
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { OAUTH_ENDPOINTS, buildKimiHeaders } from "../config/appConstants.js";
 import { buildClineHeaders } from "../shared/clineAuth.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { discardAccountResponse, fetchWithAccountPolicy, isAccountRoutingFailure } from "../utils/accountTransport.js";
+import { safeRefreshErrorType } from "../utils/oauthDiagnostics.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { KIRO_CLI_USER_AGENT } from "../config/clientVersions.js";
@@ -170,7 +171,7 @@ export class DefaultExecutor extends BaseExecutor {
     const sys = messages.find(m => m.role === "system");
     if (sys) {
       if (typeof sys.content === "string") sys.content = `${sys.content}\n\n${prompt}`;
-      else if (Array.isArray(sys.content)) sys.content.push({ type: "text", text: `\n\n${prompt}` });
+      else if (Array.isArray(sys.content)) sys.content = [...sys.content, { type: "text", text: `\n\n${prompt}` }];
     } else {
       messages.unshift({ role: "system", content: prompt });
     }
@@ -397,68 +398,69 @@ export class DefaultExecutor extends BaseExecutor {
       return result;
     } catch (error) {
       signal?.throwIfAborted();
-      log?.error?.("TOKEN", `${this.provider} refresh error: ${error.message}`);
+      if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
+      log?.error?.("TOKEN", `${this.provider} refresh error: ${safeRefreshErrorType(error)}`);
       return null;
     }
   }
 
   async refreshWithJSON(url, body, proxyOptions = null, signal = null) {
-    const response = await proxyAwareFetch(url, {
+    const response = await fetchWithAccountPolicy(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const tokens = await response.json();
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || body.refresh_token, expiresIn: tokens.expires_in };
   }
 
   async refreshWithForm(url, params, proxyOptions = null, signal = null) {
-    const response = await proxyAwareFetch(url, {
+    const response = await fetchWithAccountPolicy(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
       body: new URLSearchParams(params),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const tokens = await response.json();
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || params.refresh_token, expiresIn: tokens.expires_in };
   }
 
   async refreshIflow(refreshToken, proxyOptions = null, signal = null) {
     const basicAuth = btoa(`${PROVIDERS.iflow.clientId}:${PROVIDERS.iflow.clientSecret}`);
-    const response = await proxyAwareFetch(OAUTH_ENDPOINTS.iflow.token, {
+    const response = await fetchWithAccountPolicy(OAUTH_ENDPOINTS.iflow.token, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json", "Authorization": `Basic ${basicAuth}` },
       body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken, client_id: PROVIDERS.iflow.clientId, client_secret: PROVIDERS.iflow.clientSecret }),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const tokens = await response.json();
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
   }
 
   async refreshKiro(refreshToken, proxyOptions = null, signal = null) {
-    const response = await proxyAwareFetch(PROVIDERS.kiro.tokenUrl, {
+    const response = await fetchWithAccountPolicy(PROVIDERS.kiro.tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json", "User-Agent": KIRO_CLI_USER_AGENT },
       body: JSON.stringify({ refreshToken }),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const tokens = await response.json();
     return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || refreshToken, expiresIn: tokens.expiresIn };
   }
 
   async refreshCline(refreshToken, proxyOptions = null, signal = null) {
-    const response = await proxyAwareFetch(PROVIDERS.cline.refreshUrl, {
+    const response = await fetchWithAccountPolicy(PROVIDERS.cline.refreshUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({ refreshToken, grantType: "refresh_token", clientType: "extension" }),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const payload = await response.json();
     const data = payload?.data || payload;
     const expiresAtIso = data?.expiresAt;
@@ -476,7 +478,7 @@ export class DefaultExecutor extends BaseExecutor {
     const cfg = PROVIDERS.kimi || PROVIDERS["kimi-coding"];
     if (!cfg?.refreshUrl || !cfg?.clientId) return null;
     const kimiHeaders = buildKimiHeaders(credentials?.providerSpecificData?.deviceId);
-    const response = await proxyAwareFetch(cfg.refreshUrl, {
+    const response = await fetchWithAccountPolicy(cfg.refreshUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -486,7 +488,7 @@ export class DefaultExecutor extends BaseExecutor {
       body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken, client_id: cfg.clientId }),
       signal,
     }, proxyOptions);
-    if (!response.ok) return null;
+    if (!response.ok) { discardAccountResponse(response); return null; }
     const tokens = await response.json();
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
   }

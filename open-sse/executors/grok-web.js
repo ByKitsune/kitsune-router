@@ -2,7 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { SSE_DONE, SSE_HEADERS_NO_BUFFER } from "../utils/sseConstants.js";
 import { sseChunk } from "../utils/sse.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { fetchWithAccountPolicy } from "../utils/accountTransport.js";
 
 const GROK_CHAT_API = PROVIDERS["grok-web"].baseUrl;
 const GROK_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
@@ -296,7 +296,7 @@ export class GrokWebExecutor extends BaseExecutor {
 
     let response;
     try {
-      response = await proxyAwareFetch(GROK_CHAT_API, {
+      response = await fetchWithAccountPolicy(GROK_CHAT_API, {
         method: "POST", headers, body: JSON.stringify(grokPayload), signal,
       }, proxyOptions);
     } catch (err) {

@@ -20,6 +20,24 @@ phát hành, tag hoặc kết quả xác minh lịch sử bên dưới.
 Nguồn, hồi quy, thay đổi chính sách và giới hạn nền tảng/tài khoản thật nằm trong
 [kiểm toán phụ thuộc và runtime](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md) và [đối chiếu upstream](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
 
+### Kiểm toán sâu hơn về độ ổn định
+
+- Tự đồng bộ bổ sung schema cho dữ liệu hiện có, giữ nguyên thông tin xác thực
+  và lịch sử; kiểm tra khôi phục schema cũ, kế hoạch truy vấn và bản sao lưu.
+  Giữ nhất quán bộ đếm yêu cầu song song và thời gian UTC mới ghi nhận.
+- Dùng endpoint JSON tạo/sửa ảnh gốc của Codex Images với `gpt-image-2`; các
+  alias ảnh cũ vẫn là tuyến tương thích rõ ràng, không ghi lại hàng loạt cơ sở
+  dữ liệu hoặc vượt quyền tài khoản.
+- Giới hạn và che dữ liệu nhạy cảm trong chẩn đoán console/yêu cầu, cô lập bên
+  nhận chậm hoặc lỗi; metadata tùy chọn nằm trong `DATA_DIR/logs`. Việc giữ các
+  phiên log lịch sử vẫn do người vận hành quản lý.
+- Bảo toàn công cụ, nội dung, cache và usage khi dịch định dạng; cải thiện hủy,
+  phạm vi thông tin xác thực và từ chối chuyển hướng trong executor/OAuth.
+
+[Kiểm toán ổn định chuyên sâu](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-deep-stability-audit.md)
+tách giai đoạn bổ sung, khảo sát issue thật và kết quả xác minh khỏi kết quả
+trước đó ngày 17 tháng 11 và các gói đã phát hành.
+
 ## Kitsune Router 1.0.8 — chuẩn bị sửa trình cài đặt
 
 **Ảnh chụp giai đoạn chuẩn bị:** các kết quả kiểm tra tập trung và giới hạn fixture dưới đây thuộc giai đoạn này, không xác minh runtime đã xuất bản.

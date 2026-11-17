@@ -99,21 +99,38 @@ async function initAdapter() {
 }
 
 export async function getAdapter() {
+  // A close may yield while draining a driver's durable writes. Do not hand
+  // that same, already-closing handle to a new request or open a second writer.
+  if (state.closePromise) await state.closePromise;
   if (state.instance) return state.instance;
-  if (!state.initPromise) state.initPromise = initAdapter().then((a) => { state.instance = a; return a; });
+  if (!state.initPromise) {
+    const pending = initAdapter().then((a) => { state.instance = a; return a; }).catch(error => {
+      // Retain single-flight while initializing, but allow an operator to repair
+      // a failed migration/permission prerequisite and retry in this process.
+      if (state.initPromise === pending) state.initPromise = null;
+      throw error;
+    });
+    state.initPromise = pending;
+  }
   return state.initPromise;
 }
 
 export { configureDbLifecycle } from "./helpers/adapterLifecycle.js";
 
 export async function closeDb() {
-  const adapter = state.instance || (state.initPromise ? await state.initPromise : null);
-  if (!adapter) return;
-  adapter.checkpoint?.();
-  adapter.flushDurable?.();
-  await adapter.close();
-  state.instance = null;
-  state.initPromise = null;
+  if (state.closePromise) return state.closePromise;
+  const closing = (async () => {
+    const adapter = state.instance || (state.initPromise ? await state.initPromise : null);
+    if (!adapter) return;
+    adapter.checkpoint?.();
+    adapter.flushDurable?.();
+    await adapter.close();
+    state.instance = null;
+    state.initPromise = null;
+  })();
+  state.closePromise = closing;
+  try { await closing; }
+  finally { if (state.closePromise === closing) state.closePromise = null; }
 }
 
 export function getAdapterSync() {

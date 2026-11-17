@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestDetails } from "@/lib/usageDb";
+import { normalizeRequestDetailFilter } from "@/lib/db/repos/requestDetailsRepo.js";
 
 /**
  * GET /api/usage/request-details
@@ -9,30 +10,14 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     
-    const pageRaw = parseInt(searchParams.get("page"));
-    const page = Number.isNaN(pageRaw) ? 1 : pageRaw;
-    const pageSizeRaw = parseInt(searchParams.get("pageSize"));
-    const pageSize = Number.isNaN(pageSizeRaw) ? 20 : pageSizeRaw;
+    const page = searchParams.get("page") ?? 1;
+    const pageSize = searchParams.get("pageSize") ?? 20;
     const provider = searchParams.get("provider");
     const model = searchParams.get("model");
     const connectionId = searchParams.get("connectionId");
     const status = searchParams.get("status");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
-    
-    if (page < 1) {
-      return NextResponse.json(
-        { error: "Page must be >= 1" },
-        { status: 400 }
-      );
-    }
-    
-    if (pageSize < 1 || pageSize > 100) {
-      return NextResponse.json(
-        { error: "PageSize must be between 1 and 100" },
-        { status: 400 }
-      );
-    }
     
     const filter = {
       page,
@@ -46,7 +31,7 @@ export async function GET(request) {
     if (startDate) filter.startDate = startDate;
     if (endDate) filter.endDate = endDate;
     
-    const result = await getRequestDetails(filter);
+    const result = await getRequestDetails(normalizeRequestDetailFilter(filter));
 
     // Redact conversation payloads: the stored details include full request
     // bodies (user prompts, tool calls) and provider responses. Returning them
@@ -65,6 +50,9 @@ export async function GET(request) {
 
     return NextResponse.json({ ...result, details: redactedDetails });
   } catch (error) {
+    if (error?.code === "INVALID_REQUEST_DETAIL_FILTER") {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("[API] Failed to get request details:", error);
     return NextResponse.json(
       { error: "Failed to fetch request details" },

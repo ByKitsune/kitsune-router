@@ -93,6 +93,7 @@ export class KimchiService {
     try {
       const res = await fetch(KIMCHI_CONFIG.meUrl, {
         headers: { Authorization: `Bearer ${token}` },
+        redirect: "error",
       });
       if (!res.ok) return {};
       const j = await res.json();
@@ -117,6 +118,7 @@ export class KimchiService {
           Accept: "application/json",
         },
         signal: controller.signal,
+        redirect: "error",
       });
       status = res.status;
     } catch {

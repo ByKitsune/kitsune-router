@@ -8,6 +8,7 @@ import { spinner as createSpinner } from "../utils/ui.js";
 import { createRefreshOperation, getRefreshProxyKey, waitForRefresh } from "open-sse/services/tokenRefresh/dedup.js";
 import { FETCH_CONNECT_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { CACHE_LIMITS, setBounded } from "open-sse/utils/boundedCache.js";
+import { createOAuthEndpointError } from "../endpointErrors.js";
 
 /**
  * xAI (Grok) OAuth Service
@@ -149,7 +150,9 @@ export class XaiService extends OAuthService {
    * xAI is a public PKCE client — no client_secret.
    */
   async exchangeXaiCode({ tokenUrl, code, redirectUri, codeVerifier }) {
+    const signal = AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS);
     const res = await fetch(tokenUrl, {
+      signal,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -162,11 +165,11 @@ export class XaiService extends OAuthService {
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       }),
+      redirect: "error",
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`xAI token exchange failed: ${err}`);
+      throw await createOAuthEndpointError(res, "xAI token exchange", signal);
     }
     return await res.json();
   }
@@ -186,6 +189,7 @@ export class XaiService extends OAuthService {
     const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
     const res = await fetchRequest(tokenUrl, {
       signal: requestSignal,
+      redirect: "error",
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -198,8 +202,7 @@ export class XaiService extends OAuthService {
       }),
     }, proxyOptions);
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`xAI token refresh failed: ${err}`);
+      throw await createOAuthEndpointError(res, "xAI token refresh", requestSignal);
     }
     return await res.json();
   }

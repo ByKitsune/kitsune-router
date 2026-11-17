@@ -2,8 +2,29 @@ import { setTimeout as delay } from "node:timers/promises";
 import { proxyAwareFetch } from "./proxyFetch.js";
 import { ACCOUNT_REDIRECT_STATUSES } from "../config/accountTransport.js";
 
-function discardResponse(response) {
+export function discardAccountResponse(response) {
   try { void Promise.resolve(response?.body?.cancel?.()).catch(() => {}); } catch { /* Already owned or closed. */ }
+}
+
+// Executors that already received a resolved account policy must retain its
+// exact identity. Share the request/response safety boundary without rebuilding
+// that policy or accidentally selecting another account during a retry.
+export function fetchWithAccountPolicy(url, init = {}, policy = null) {
+  const signal = init.signal;
+  signal?.throwIfAborted();
+  return proxyAwareFetch(url, { ...init, redirect: "manual" }, policy).then(response => {
+    if (signal?.aborted) {
+      discardAccountResponse(response);
+      signal.throwIfAborted();
+    }
+    if (ACCOUNT_REDIRECT_STATUSES.includes(response.status)) {
+      discardAccountResponse(response);
+      throw Object.assign(new Error("[ProxyFetch] Account request redirect refused; configure the canonical API endpoint"), {
+        code: "ACCOUNT_REDIRECT_REFUSED",
+      });
+    }
+    return response;
+  });
 }
 
 export function getAccountRoutingPolicy(credentials, proxyOptions = null) {
@@ -38,19 +59,7 @@ export function createAccountTransport(credentials, { signal = null, proxyOption
       const combined = signal && init.signal && signal !== init.signal
         ? AbortSignal.any([signal, init.signal]) : signal || init.signal;
       combined?.throwIfAborted();
-      return proxyAwareFetch(url, { ...init, redirect: "manual", ...(combined ? { signal: combined } : {}) }, policy).then(response => {
-        if (combined?.aborted) {
-          discardResponse(response);
-          combined.throwIfAborted();
-        }
-        if (ACCOUNT_REDIRECT_STATUSES.includes(response.status)) {
-          discardResponse(response);
-          throw Object.assign(new Error("[ProxyFetch] Account request redirect refused; configure the canonical API endpoint"), {
-            code: "ACCOUNT_REDIRECT_REFUSED",
-          });
-        }
-        return response;
-      });
+      return fetchWithAccountPolicy(url, { ...init, ...(combined ? { signal: combined } : {}) }, policy);
     },
     async sleep(milliseconds) {
       signal?.throwIfAborted();

@@ -62,6 +62,7 @@ export async function handleImageGeneration(request) {
   } catch {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return errorResponse(HTTP_STATUS.BAD_REQUEST, "JSON body must be an object");
 
   const url = new URL(request.url);
   const preferredConnectionId = request.headers.get("x-connection-id") || null;
@@ -78,8 +79,9 @@ export async function handleImageGeneration(request) {
   }
 
   return withInferenceLimit(request, apiKey, async () => {
-    if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
-    if (!body.prompt) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
+    if (typeof modelStr !== "string" || !modelStr.trim()) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing or invalid model");
+    if (body.prompt == null || body.prompt === "") return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
+    if (typeof body.prompt !== "string" || !body.prompt.trim()) return errorResponse(HTTP_STATUS.BAD_REQUEST, "prompt must be a nonempty string");
 
     // Combo expansion: model may be a combo name → run fallback/round-robin across models
     const comboModels = await getComboModels(modelStr);
@@ -220,7 +222,7 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
     if (usageAcceptance) {
       try { await usageAcceptance; }
       catch {
-        await result.response?.body?.cancel().catch(() => {});
+        void result.response?.body?.cancel().catch(() => {});
         const response = errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Usage accounting could not be accepted", { code: "usage_acceptance_failed" });
         onUsageAcceptanceFailure?.(response);
         return response;
@@ -229,8 +231,13 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
     if (result.localFailure) { onUsageAcceptanceFailure?.(result.response); return result.response; }
     if (clientSignal?.aborted || result.status === 499) return cancelled();
     if (result.success) return result.response;
+    if (result.requestRejected) {
+      result.response.headers.set("x-should-retry", "false");
+      return result.response;
+    }
 
-    const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
+    const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model,
+      ...(result.resetsAtMs == null ? [] : [result.resetsAtMs]));
 
     // A second account is safe only after an explicit pre-work rejection.
     // Transport/body/poll failures may follow an accepted, billable image job.

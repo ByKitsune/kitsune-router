@@ -1,5 +1,5 @@
 import { BaseExecutor } from "./base.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { fetchWithAccountPolicy } from "../utils/accountTransport.js";
 import { PROVIDERS } from "../config/providers.js";
 import { TRAE_APP_VERSION } from "../config/clientVersions.js";
 
@@ -119,7 +119,7 @@ export default class TraeExecutor extends BaseExecutor {
       auto_create_project: false,
       origin: "web",
     };
-    const res = await proxyAwareFetch(`${this.base()}/chat_sessions`, {
+    const res = await fetchWithAccountPolicy(`${this.base()}/chat_sessions`, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
@@ -143,7 +143,7 @@ export default class TraeExecutor extends BaseExecutor {
     signal?.addEventListener("abort", onAbort, { once: true });
     let reader;
     try {
-      const res = await proxyAwareFetch(url, { method: "GET", headers, signal: ctrl.signal }, proxyOptions);
+      const res = await fetchWithAccountPolicy(url, { method: "GET", headers, signal: ctrl.signal }, proxyOptions);
       if (!res.ok || !res.body) {
         await res.body?.cancel().catch(() => {});
         throw new Error(`[${res.status}] events stream failed`);

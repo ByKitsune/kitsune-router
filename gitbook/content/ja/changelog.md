@@ -19,6 +19,23 @@
 出典、回帰結果、明示的なポリシー変更と実環境の制限は
 [依存・ランタイム監査](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-dependency-runtime-audit.md)と[上流照合監査](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md)を参照してください。
 
+### 安定性の追加監査
+
+- 既存データベースを追加型のスキーマ同期で更新し、認証情報と履歴を保持します。
+  旧スキーマの復旧、クエリプラン、バックアップを検証し、並列リクエスト数と
+  新規記録の UTC 時刻を整合させます。
+- Codex Images のネイティブ JSON 生成・編集 API と `gpt-image-2` を使用します。
+  既存の画像エイリアスは明示的な互換ルートとして保持し、DB の一括書換えや
+  アカウント権限の迂回は行いません。
+- コンソールとリクエスト診断に上限と秘匿化を適用し、遅延・故障した購読者を
+  分離します。任意のメタデータログは `DATA_DIR/logs` に保存し、過去セッションの
+  保持は引き続き運用者が管理します。
+- 変換時のツール・本文・キャッシュ・使用量を保持し、実行器と OAuth の
+  キャンセル、認証情報のスコープ、リダイレクト拒否を改善します。
+
+[詳細安定性監査](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-deep-stability-audit.md)は、
+この追加フェーズ、実際の issue 調査と検証を、同日の先行結果および公開済み成果物から区別します。
+
 ## Kitsune Router 1.0.8 — インストーラー修正
 
 ### 準備時点の集中検証

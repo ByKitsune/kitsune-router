@@ -8,7 +8,8 @@ import { initState, translateRequest, translateResponse } from "../translator/in
 import { FORMATS } from "../translator/formats.js";
 import { readOutputTokenCap, requiresMaxCompletionTokens } from "../translator/formats/maxTokens.js";
 import { parseSSELine, formatSSE } from "../utils/streamHelpers.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { discardAccountResponse, fetchWithAccountPolicy, isAccountRoutingFailure } from "../utils/accountTransport.js";
+import { safeRefreshErrorType } from "../utils/oauthDiagnostics.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
 import { reconcileClaudeThinkingBudget } from "../translator/concerns/thinking.js";
@@ -190,7 +191,7 @@ export class GithubExecutor extends BaseExecutor {
 
     log?.debug("GITHUB", "Sending translated request to /responses");
 
-    const response = await proxyAwareFetch(url, {
+    const response = await fetchWithAccountPolicy(url, {
       method: "POST",
       headers,
       body: JSON.stringify(transformedBody),
@@ -288,7 +289,7 @@ export class GithubExecutor extends BaseExecutor {
 
     log?.debug("GITHUB", "Sending translated request to /v1/messages");
 
-    const response = await proxyAwareFetch(url, {
+    const response = await fetchWithAccountPolicy(url, {
       method: "POST",
       headers,
       body: JSON.stringify(transformedBody),
@@ -364,7 +365,7 @@ export class GithubExecutor extends BaseExecutor {
   async refreshCopilotToken(githubAccessToken, log, proxyOptions = null, signal = null) {
     signal?.throwIfAborted();
     try {
-      const response = await proxyAwareFetch("https://api.github.com/copilot_internal/v2/token", {
+      const response = await fetchWithAccountPolicy("https://api.github.com/copilot_internal/v2/token", {
         signal,
         headers: {
           "Authorization": `token ${githubAccessToken}`,
@@ -376,8 +377,8 @@ export class GithubExecutor extends BaseExecutor {
         }
       }, proxyOptions);
       if (!response.ok) {
-        const errorText = await response.text();
-        log?.error?.("TOKEN", `Copilot token refresh failed: ${response.status} ${errorText}`);
+        discardAccountResponse(response);
+        log?.error?.("TOKEN", `Copilot token refresh failed: HTTP ${response.status}`);
         return null;
       }
       const data = await response.json();
@@ -385,7 +386,8 @@ export class GithubExecutor extends BaseExecutor {
       return { token: data.token, expiresAt: data.expires_at };
     } catch (error) {
       signal?.throwIfAborted();
-      log?.error?.("TOKEN", `Copilot refresh error: ${error.message}`);
+      if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
+      log?.error?.("TOKEN", `Copilot refresh error: ${safeRefreshErrorType(error)}`);
       return null;
     }
   }
@@ -402,19 +404,20 @@ export class GithubExecutor extends BaseExecutor {
         params.client_secret = this.config.clientSecret;
       }
 
-      const response = await proxyAwareFetch(OAUTH_ENDPOINTS.github.token, {
+      const response = await fetchWithAccountPolicy(OAUTH_ENDPOINTS.github.token, {
         signal,
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
         body: new URLSearchParams(params)
       }, proxyOptions);
-      if (!response.ok) return null;
+      if (!response.ok) { discardAccountResponse(response); return null; }
       const tokens = await response.json();
       log?.info?.("TOKEN", "GitHub token refreshed");
       return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || refreshToken, expiresIn: tokens.expires_in };
     } catch (error) {
       signal?.throwIfAborted();
-      log?.error?.("TOKEN", `GitHub refresh error: ${error.message}`);
+      if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
+      log?.error?.("TOKEN", `GitHub refresh error: ${safeRefreshErrorType(error)}`);
       return null;
     }
   }

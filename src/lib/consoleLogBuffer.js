@@ -1,6 +1,8 @@
 import { EventEmitter } from "events";
 import { CONSOLE_LOG_CONFIG } from "@/shared/constants/config.js";
 import { hardenEmitter } from "@/lib/schedulerLifecycle.mjs";
+import { CONSOLE_CAPTURE_LIMITS } from "open-sse/config/logging.js";
+import { formatLogArguments } from "open-sse/utils/logSanitizer.js";
 
 const consoleLevels = ["log", "info", "warn", "error", "debug"];
 
@@ -11,7 +13,6 @@ if (!global._consoleLogBufferState) {
     originals: {},
     emitter: new EventEmitter(),
   };
-  hardenEmitter(global._consoleLogBufferState.emitter, { name: "consoleLogEmitter", cap: 50, warnAt: 40 });
 }
 
 const state = global._consoleLogBufferState;
@@ -19,14 +20,26 @@ const state = global._consoleLogBufferState;
 // Ensure emitter exists (handles hot reload with stale global)
 if (!state.emitter) {
   state.emitter = new EventEmitter();
-  hardenEmitter(state.emitter, { name: "consoleLogEmitter", cap: 50, warnAt: 40 });
+}
+
+// One disconnected subscriber must not interrupt a request or other clients.
+if (!state.emitter._safeConsoleDispatch) {
+  state.emitter.emit = function emitSafely(event, ...args) {
+    const listeners = this.rawListeners(event);
+    for (const listener of listeners) {
+      try { listener.apply(this, args); } catch { /* Best-effort diagnostics. */ }
+    }
+    return listeners.length > 0;
+  };
+  state.emitter._safeConsoleDispatch = true;
+  hardenEmitter(state.emitter, {
+    name: "consoleLogEmitter", cap: CONSOLE_CAPTURE_LIMITS.listenerCap, warnAt: CONSOLE_CAPTURE_LIMITS.listenerWarnAt,
+  });
 }
 
 if (!state.pendingLines) state.pendingLines = [];
 if (!state.flushTimer) state.flushTimer = null;
-
-const FLUSH_INTERVAL_MS = 100;
-const MAX_BATCH_LINES = 50;
+if (!Number.isFinite(state.bytes)) state.bytes = state.logs.reduce((sum, line) => sum + Buffer.byteLength(line), 0);
 
 function flushPendingLines() {
   state.flushTimer = null;
@@ -38,39 +51,19 @@ function flushPendingLines() {
 
 function scheduleFlush() {
   if (state.flushTimer) return;
-  state.flushTimer = setTimeout(flushPendingLines, FLUSH_INTERVAL_MS);
+  state.flushTimer = setTimeout(flushPendingLines, CONSOLE_CAPTURE_LIMITS.flushIntervalMs);
   state.flushTimer?.unref?.();
-}
-
-function toLogLine(level, args) {
-  return args.map(formatArg).join(" ");
-}
-
-// Strip ANSI escape codes so terminal colors don't bleed into UI
-const ANSI_RE = /\x1b\[[0-9;]*m/g;
-
-function stripAnsi(str) {
-  return str.replace(ANSI_RE, "");
-}
-
-function formatArg(arg) {
-  if (typeof arg === "string") return stripAnsi(arg);
-  if (arg instanceof Error) return stripAnsi(arg.stack || arg.message || String(arg));
-  try {
-    return stripAnsi(JSON.stringify(arg));
-  } catch {
-    return stripAnsi(String(arg));
-  }
 }
 
 function appendLine(line) {
   state.logs.push(line);
+  state.bytes += Buffer.byteLength(line);
   const maxLines = CONSOLE_LOG_CONFIG.maxLines;
-  if (state.logs.length > maxLines) {
-    state.logs = state.logs.slice(-maxLines);
+  while (state.logs.length > maxLines || state.bytes > CONSOLE_CAPTURE_LIMITS.maxBytes) {
+    state.bytes -= Buffer.byteLength(state.logs.shift());
   }
   state.pendingLines.push(line);
-  if (state.pendingLines.length >= MAX_BATCH_LINES) {
+  if (state.pendingLines.length >= CONSOLE_CAPTURE_LIMITS.batchLines) {
     if (state.flushTimer) {
       clearTimeout(state.flushTimer);
       state.flushTimer = null;
@@ -82,25 +75,30 @@ function appendLine(line) {
 }
 
 export function initConsoleLogCapture() {
-  if (state.patched) return;
+  if (state.patched && state.captureVersion === 1) return;
 
   for (const level of consoleLevels) {
-    state.originals[level] = console[level];
+    state.originals[level] ||= console[level];
     console[level] = (...args) => {
-      appendLine(toLogLine(level, args));
+      try { appendLine(formatLogArguments(args)); } catch { /* Capture cannot break the caller. */ }
       state.originals[level](...args);
     };
   }
 
   state.patched = true;
+  state.captureVersion = 1;
 }
 
 export function getConsoleLogs() {
-  return state.logs;
+  return [...state.logs];
 }
 
 export function clearConsoleLogs() {
   state.logs = [];
+  state.bytes = 0;
+  state.pendingLines = [];
+  if (state.flushTimer) clearTimeout(state.flushTimer);
+  state.flushTimer = null;
   state.emitter.emit("clear");
 }
 

@@ -1,5 +1,5 @@
 import { BaseExecutor } from "./base.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { fetchWithAccountPolicy } from "../utils/accountTransport.js";
 import { PROVIDERS } from "../config/providers.js";
 import { WINDSURF_IDE_VERSION, WINDSURF_EXTENSION_VERSION } from "../config/clientVersions.js";
 import { randomUUID } from "node:crypto";
@@ -417,7 +417,7 @@ export class WindsurfExecutor extends BaseExecutor {
 
     log?.debug?.("WS", `Windsurf → ${wsModel} (${wsMessages.length} messages)`);
 
-    const upstream = await proxyAwareFetch(url, {
+    const upstream = await fetchWithAccountPolicy(url, {
       method: "POST",
       headers,
       body: framedPayload,
@@ -442,7 +442,6 @@ export class WindsurfExecutor extends BaseExecutor {
       async start(controller) {
         const enc = new TextEncoder();
         let roleEmitted = false;
-        let totalText = "";
         let promptTokens = 0;
         let completionTokens = 0;
         let hadError = null;
@@ -451,6 +450,7 @@ export class WindsurfExecutor extends BaseExecutor {
 
         try {
           let pending = new Uint8Array(0);
+          let frameCount = 0;
           const reader = upstream.body?.getReader();
 
           const handleFrame = (flag, payload) => {
@@ -473,7 +473,6 @@ export class WindsurfExecutor extends BaseExecutor {
               : decodeCompletionChunk(payload);
 
             if (chunk.kind === "content" && chunk.text) {
-              totalText += chunk.text;
               if (!roleEmitted) {
                 emit(`data: ${JSON.stringify({
                   id: responseId, object: "chat.completion.chunk", created, model,
@@ -504,6 +503,7 @@ export class WindsurfExecutor extends BaseExecutor {
                 pending[offset + 4];
               if (len < 0 || offset + 5 + len > pending.length) break;
               handleFrame(flag, pending.slice(offset + 5, offset + 5 + len));
+              frameCount++;
               offset += 5 + len;
             }
             if (offset > 0) pending = pending.slice(offset);
@@ -523,6 +523,8 @@ export class WindsurfExecutor extends BaseExecutor {
             }
           }
           drainFrames();
+          if (pending.length > 0) throw new Error("Incomplete gRPC-web frame");
+          if (frameCount === 0) throw new Error("Upstream returned no gRPC-web frames");
 
           if (hadError) {
             emit(`data: ${JSON.stringify({
@@ -531,18 +533,6 @@ export class WindsurfExecutor extends BaseExecutor {
             emit("data: [DONE]\n\n");
             controller.close();
             return;
-          }
-
-          // Unary fallback: nothing streamed but text decoded → emit as one chunk.
-          if (!roleEmitted && totalText) {
-            emit(`data: ${JSON.stringify({
-              id: responseId, object: "chat.completion.chunk", created, model,
-              choices: [{ index: 0, delta: { role: "assistant", content: "" }, finish_reason: null }],
-            })}\n\n`);
-            emit(`data: ${JSON.stringify({
-              id: responseId, object: "chat.completion.chunk", created, model,
-              choices: [{ index: 0, delta: { content: totalText }, finish_reason: null }],
-            })}\n\n`);
           }
 
           const finishPayload = {

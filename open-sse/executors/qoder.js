@@ -27,7 +27,7 @@ import { createHash } from "crypto";
 
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { fetchWithAccountPolicy } from "../utils/accountTransport.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 import { FETCH_CONNECT_TIMEOUT_MS, HTTP_STATUS, QODER_SSE_PEEK_TIMEOUT_MS, QODER_SSE_PEEK_MAX_BYTES } from "../config/runtimeConfig.js";
 import {
@@ -616,7 +616,7 @@ export class QoderExecutor extends BaseExecutor {
 
     let response;
     try {
-      response = await proxyAwareFetch(
+      response = await fetchWithAccountPolicy(
         url,
         { method: "POST", headers, body: encodedBodyBuf, signal: mergedSignal },
         proxyOptions,

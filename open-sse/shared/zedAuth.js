@@ -10,7 +10,7 @@
 // No embedded client_id/secret — the credential is a per-login keypair.
 
 import crypto from "node:crypto";
-import { proxyAwareFetch } from "../utils/proxyFetch.js";
+import { discardAccountResponse, fetchWithAccountPolicy } from "../utils/accountTransport.js";
 import { getRefreshProxyKey } from "../services/tokenRefresh/dedup.js";
 
 export const ZED_WEB_BASE_URL = "https://zed.dev";
@@ -174,7 +174,7 @@ function getSystemId(credentials) {
 }
 
 async function fetchJson(url, options, proxyOptions = null) {
-  const res = await proxyAwareFetch(url, options, proxyOptions);
+  const res = await fetchWithAccountPolicy(url, options, proxyOptions);
   const text = await res.text();
   let data = null;
   if (text) {
@@ -196,6 +196,7 @@ async function fetchJson(url, options, proxyOptions = null) {
 }
 
 export async function fetchZedAuthenticatedUser(credentials, options = {}) {
+  options.signal?.throwIfAborted();
   const config = options.config || {};
   const headers = {
     Accept: "application/json",
@@ -242,17 +243,18 @@ function zedUserCacheKey(credentials, organizationId) {
   const psd = credentials?.providerSpecificData || {};
   const userId = psd.userId || credentials?.userId || "unknown";
   const token = credentials?.accessToken || credentials?.apiKey || "";
-  return `${userId}:${organizationId || "default"}:${token.slice(-16)}`;
+  return JSON.stringify([userId, organizationId || "default", getSystemId(credentials), crypto.createHash("sha256").update(token).digest("hex")]);
 }
 
 function zedModelCacheKey(credentials) {
   const psd = credentials?.providerSpecificData || {};
   const org = psd.organizationId || psd.defaultOrganizationId || "default";
   const token = credentials?.accessToken || credentials?.apiKey || "";
-  return `${psd.userId || "unknown"}:${org}:${token.slice(-16)}`;
+  return JSON.stringify([psd.userId || "unknown", org, getSystemId(credentials), crypto.createHash("sha256").update(token).digest("hex")]);
 }
 
 export async function fetchZedLlmToken(credentials, options = {}) {
+  options.signal?.throwIfAborted();
   const config = options.config || {};
   let organizationId = options.organizationId || resolveZedOrganizationId(credentials);
   if (!organizationId) {
@@ -261,7 +263,10 @@ export async function fetchZedLlmToken(credentials, options = {}) {
   }
   if (!organizationId) throw new Error("No Zed organization selected");
 
-  const cacheKey = JSON.stringify([zedUserCacheKey(credentials, organizationId), getRefreshProxyKey(options.proxyOptions)]);
+  const cacheKey = JSON.stringify([
+    zedUserCacheKey(credentials, organizationId),
+    normalizeBaseUrl(config.cloudBaseUrl, ZED_CLOUD_BASE_URL), getRefreshProxyKey(options.proxyOptions),
+  ]);
   const cached = llmTokenCache.get(cacheKey);
   if (!options.forceRefresh && cached && cached.expiresAt > Date.now()) return cached.token;
 
@@ -299,11 +304,12 @@ export function shouldRefreshZedLlmToken(response) {
 }
 
 export async function zedLlmFetch(credentials, path, options = {}) {
+  options.signal?.throwIfAborted();
   const config = options.config || {};
   const url = zedUrl(config, "llmBaseUrl", path, ZED_LLM_BASE_URL);
   const buildRequest = async (forceRefresh) => {
     const token = await fetchZedLlmToken(credentials, { ...options, forceRefresh });
-    return proxyAwareFetch(url, {
+    return fetchWithAccountPolicy(url, {
       ...options.fetchOptions,
       headers: {
         ...(options.fetchOptions?.headers || {}),
@@ -315,7 +321,7 @@ export async function zedLlmFetch(credentials, path, options = {}) {
 
   let response = await buildRequest(false);
   if (shouldRefreshZedLlmToken(response)) {
-    if (response.body && !response.body.locked) await response.body.cancel().catch(() => {});
+    discardAccountResponse(response);
     options.signal?.throwIfAborted();
     response = await buildRequest(true);
   }
@@ -359,8 +365,13 @@ export function mapZedModel(model) {
 
 /** Resolve (and cache) the live Zed model catalog. Never hardcoded — always a live fetch. */
 export async function resolveZedModels(credentials, options = {}) {
+  options.signal?.throwIfAborted();
   if (!credentials?.accessToken) return null;
-  const key = JSON.stringify([zedModelCacheKey(credentials), getRefreshProxyKey(options.proxyOptions)]);
+  const key = JSON.stringify([
+    zedModelCacheKey(credentials),
+    normalizeBaseUrl(options.config?.cloudBaseUrl, ZED_CLOUD_BASE_URL),
+    normalizeBaseUrl(options.config?.llmBaseUrl, ZED_LLM_BASE_URL), getRefreshProxyKey(options.proxyOptions),
+  ]);
   const cached = modelCache.get(key);
   if (!options.forceRefresh && cached && cached.expiresAt > Date.now()) return cached;
 

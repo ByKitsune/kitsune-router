@@ -4,6 +4,8 @@ import { applyThinking, extractThinking, parseSuffix, stripThinkingSuffix } from
 import { FORMATS } from "../translator/formats.js";
 import { normalizeClaudePassthrough, anchorClaudeCache } from "../translator/formats/claude.js";
 import { createStreamController } from "../utils/streamHandler.js";
+import { discardAccountResponse, getAccountRoutingPolicy, isAccountRoutingFailure } from "../utils/accountTransport.js";
+import { safeRefreshErrorType } from "../utils/oauthDiagnostics.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { isPermanentAuthDenial } from "../services/accountFallback.js";
 import { createRequestLogger } from "../utils/requestLogger.js";
@@ -45,6 +47,14 @@ import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.
 import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
 import { startRequestPhase } from "../utils/requestTiming.js";
 import { REQUEST_SAFETY_ERROR_CODES, REQUEST_SAFETY_ERROR_MESSAGES } from "../config/errorConfig.js";
+
+// A local account routing failure is an operator configuration problem. It
+// cannot be healed by replaying the request with another URL/account/model.
+export function createChatRoutingFailure() {
+  const result = createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Account routing configuration failed; contact the administrator", undefined, { code: "routing_configuration_error" });
+  result.response.headers.set("x-should-retry", "false");
+  return { ...result, localRoutingFailure: true };
+}
 
 const GOOGLE_WIRE_FORMATS = new Set([FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX, FORMATS.ANTIGRAVITY]);
 
@@ -123,7 +133,7 @@ function permanentDenialEvidence(status, responseBody, diagnostics) {
   return isPermanentAuthDenial(status, unquoted);
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, sourceBody, providerThinking, providerServiceTier, clientSignal }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, onStreamFailed, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, sourceBody, providerThinking, providerServiceTier, clientSignal, proxyOptions: selectedProxyOptions = null }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -521,13 +531,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     else clientSignal.addEventListener("abort", abort, { once: true });
   }
 
-  const proxyOptions = {
-    connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,
-    connectionProxyUrl: credentials?.providerSpecificData?.connectionProxyUrl || "",
-    connectionNoProxy: credentials?.providerSpecificData?.connectionNoProxy || "",
-    vercelRelayUrl: credentials?.providerSpecificData?.vercelRelayUrl || "",
-    strictProxy: credentials?.providerSpecificData?.strictProxy === true,
-  };
+  const proxyOptions = selectedProxyOptions && Object.isFrozen(selectedProxyOptions)
+    ? selectedProxyOptions : getAccountRoutingPolicy(credentials, selectedProxyOptions);
 
   if (proxyOptions.vercelRelayUrl) {
     const connectionName = credentials?.connectionName || credentials?.connectionId || "unknown";
@@ -573,6 +578,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   } catch (error) {
     const invalidRequest = requestParameterError(error);
     const cancelled = clientSignal?.aborted || streamController.signal?.aborted || error.name === "AbortError";
+    const routingFailure = isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED";
     const status = cancelled ? 499 : invalidRequest ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.BAD_GATEWAY;
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${status}` }).catch(() => { });
@@ -582,7 +588,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       tokens: { prompt_tokens: 0, completion_tokens: 0 },
       request: extractRequestConfig(body, stream),
       providerRequest: translatedBody || null,
-      response: { error: error.message || String(error), status, thinking: null },
+      response: { error: routingFailure ? "Account routing configuration failed" : error.message || String(error), status, thinking: null },
       pxpipe: pxpipeSummary,
       status: "error"
     })).catch(() => { });
@@ -592,6 +598,10 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       return createErrorResult(499, "Request aborted");
     }
     streamController.handleComplete();
+    if (routingFailure) {
+      log?.warn?.("PROXY", "Account routing configuration failed");
+      return createChatRoutingFailure();
+    }
     if (invalidRequest) return invalidRequest;
     const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
     if (log?.errorLine) {
@@ -647,8 +657,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
             const committed = await onCredentialsRefreshed(newCredentials);
             if (committed === false) throw Object.assign(new Error("Selected credentials changed during refresh"), { code: "STALE_CONNECTION_WRITE" });
           } catch (e) {
-            if (e?.code === "STALE_CONNECTION_WRITE") throw e;
-            log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`);
+            if (e?.code === "STALE_CONNECTION_WRITE" || isAccountRoutingFailure(e) || e?.code === "ACCOUNT_REDIRECT_REFUSED") throw e;
+            log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${safeRefreshErrorType(e)}`);
           }
         }
         try {
@@ -664,18 +674,35 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
           providerUrl = retryResult.url;
           finalBody = retryResult.transformedBody ?? finalBody;
           providerResponseFormat = retryResult.responseFormat || targetFormat;
-        } catch { log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`); }
+        } catch (error) {
+          if (clientSignal?.aborted || streamController.signal?.aborted || error?.name === "AbortError"
+            || isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
+          log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`);
+        }
       } else {
         log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
       }
     } catch (e) {
+      if (clientSignal?.aborted || streamController.signal?.aborted || e?.name === "AbortError") {
+        discardAccountResponse(providerResponse);
+        trackPendingRequest(model, provider, connectionId, false);
+        streamController.handleComplete();
+        return createErrorResult(499, "Client closed request");
+      }
+      if (isAccountRoutingFailure(e) || e?.code === "ACCOUNT_REDIRECT_REFUSED") {
+        discardAccountResponse(providerResponse);
+        trackPendingRequest(model, provider, connectionId, false);
+        streamController.handleComplete();
+        log?.warn?.("PROXY", "Account routing configuration failed");
+        return createChatRoutingFailure();
+      }
       if (e?.code === "STALE_CONNECTION_WRITE") {
-        await providerResponse.body?.cancel().catch(() => {});
+        discardAccountResponse(providerResponse);
         trackPendingRequest(model, provider, connectionId, false);
         streamController.handleComplete();
         return { ...createErrorResult(HTTP_STATUS.SERVICE_UNAVAILABLE, "Routing configuration changed; retry the request"), credentialsSuperseded: true };
       }
-      log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${e.message}`);
+      log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${safeRefreshErrorType(e)}`);
     }
     } // end else (non-permanent 401/403 → refresh path)
   }
@@ -685,7 +712,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (providerResponse.ok && (clientSignal?.aborted || streamController.signal?.aborted)) {
     trackPendingRequest(model, provider, connectionId, false);
     streamController.handleComplete();
-    await providerResponse.body?.cancel().catch(() => {});
+    discardAccountResponse(providerResponse);
     return createErrorResult(499, "Client closed request");
   }
 

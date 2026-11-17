@@ -1,4 +1,5 @@
 // Logger utility for cloud
+import { formatLogValue, truncateLogText } from "open-sse/utils/logSanitizer.js";
 
 const LOG_LEVELS = {
   DEBUG: 0,
@@ -35,12 +36,12 @@ export function tagForSession(seed) {
 // Print one correlated line: [time] tag symbol message
 export function line(tag, symbol, message) {
   if (LEVEL > LOG_LEVELS.INFO) return;
-  console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
+  console.log(truncateLogText(`[${formatTime()}] ${formatLogValue(tag)} ${formatLogValue(symbol)} ${formatLogValue(message)}`));
 }
 
 // Like line() but always printed regardless of LOG_LEVEL (errors must never be hidden)
 export function errorLine(tag, symbol, message) {
-  console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
+  console.log(truncateLogText(`[${formatTime()}] ${formatLogValue(tag)} ${formatLogValue(symbol)} ${formatLogValue(message)}`));
 }
 
 // Format thinking intent for the request line ("high(10k)" / "off" / "auto")
@@ -57,57 +58,48 @@ export function fmtThink(intent) {
 }
 
 function formatData(data) {
-  if (!data) return "";
-  if (typeof data === "string") return data;
-  try {
-    return JSON.stringify(data);
-  } catch {
-    return String(data);
-  }
+  return data === undefined ? "" : ` ${formatLogValue(data)}`;
+}
+
+function diagnostic(prefix, message, data) {
+  return truncateLogText(`${prefix} ${formatLogValue(message)}${formatData(data)}`);
 }
 
 export function debug(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.DEBUG) {
-    const dataStr = data ? ` ${formatData(data)}` : "";
-    console.log(`[${formatTime()}] 🔍 [${tag}] ${message}${dataStr}`);
+    console.log(diagnostic(`[${formatTime()}] 🔍 [${formatLogValue(tag)}]`, message, data));
   }
 }
 
 export function info(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.INFO) {
-    const dataStr = data ? ` ${formatData(data)}` : "";
-    console.log(`[${formatTime()}] ℹ️  [${tag}] ${message}${dataStr}`);
+    console.log(diagnostic(`[${formatTime()}] ℹ️  [${formatLogValue(tag)}]`, message, data));
   }
 }
 
 export function warn(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.WARN) {
-    const dataStr = data ? ` ${formatData(data)}` : "";
-    console.warn(`[${formatTime()}] ⚠️  [${tag}] ${message}${dataStr}`);
+    console.warn(diagnostic(`[${formatTime()}] ⚠️  [${formatLogValue(tag)}]`, message, data));
   }
 }
 
 export function error(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.ERROR) {
-    const dataStr = data ? ` ${formatData(data)}` : "";
-    console.log(`[${formatTime()}] ❌ [${tag}] ${message}${dataStr}`);
+    console.log(diagnostic(`[${formatTime()}] ❌ [${formatLogValue(tag)}]`, message, data));
   }
 }
 
 export function request(method, path, extra) {
-  const dataStr = extra ? ` ${formatData(extra)}` : "";
-  console.log(`\x1b[36m[${formatTime()}] 📥 ${method} ${path}${dataStr}\x1b[0m`);
+  console.log(`\x1b[36m${truncateLogText(`[${formatTime()}] 📥 ${formatLogValue(method)} ${formatLogValue(path)}${formatData(extra)}`)}\x1b[0m`);
 }
 
 export function response(status, duration, extra) {
   const icon = status < 400 ? "📤" : "💥";
-  const dataStr = extra ? ` ${formatData(extra)}` : "";
-  console.log(`[${formatTime()}] ${icon} ${status} (${duration}ms)${dataStr}`);
+  console.log(truncateLogText(`[${formatTime()}] ${icon} ${formatLogValue(status)} (${formatLogValue(duration)}ms)${formatData(extra)}`));
 }
 
 export function stream(event, data) {
-  const dataStr = data ? ` ${formatData(data)}` : "";
-  console.log(`[${formatTime()}] 🌊 [STREAM] ${event}${dataStr}`);
+  console.log(diagnostic(`[${formatTime()}] 🌊 [STREAM]`, event, data));
 }
 
 // Mask sensitive data

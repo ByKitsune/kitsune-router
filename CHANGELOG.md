@@ -9,6 +9,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
 
 ### Changed
 
+- Upgrade existing state through additive synchronization to declarative schema/backup target 4, including an
+  indexed provider/auth/name lookup, while retaining existing credentials,
+  usage history and backup/integrity safeguards. Schema backup attempts retain
+  their existing best-effort failure policy; unsafe backup permissions fail closed.
+- Use the native Codex Images generation/edit JSON endpoints with `gpt-image-2`.
+  Explicitly retain old text-image gateway aliases as compatibility routes to
+  that image model, without rewriting saved configurations or granting entitlement.
+
 - Refresh the application, test and documentation dependency trees from current
   stable publisher metadata, including Next.js 16.4.6, React Flow 13.0.1,
   better-sqlite3 13.2.0 and sql.js 1.16.0. Declare directly imported tooling
@@ -23,6 +31,34 @@ Format based on [Keep a Changelog](https://keepachangelog.com/) and Conventional
   credentials and data directory.
 
 ### Fixed
+
+- Recover after repaired database initialization failures, refuse incomplete
+  legacy JSON imports before publishing migration markers, and keep parallel
+  pending-request expiry consistent. Automatically canonicalize valid historical
+  index timestamps to UTC in bounded migration pages while retaining original
+  literals, frozen quotes and monetary history; missing legacy costs remain unknown.
+- Validate native image bytes and output cardinality before committing buffered
+  success usage; preserve binary output when the caller also accepts SSE. Retain
+  applicable OpenAI image controls and reject unsupported progressive-stream
+  controls before dispatch.
+- Preserve repeated STT timestamp-granularity multipart fields in order and
+  use Firecrawl's verified v2 scrape contract with strict result/format validation.
+- Keep selected chat routing policy through refresh/project lookup and actual
+  dispatch; trusted local routing failures terminate without alternate-account
+  fallback, direct egress or account-health penalties.
+- Keep compatible-node endpoint updates and owned deletion changes atomic,
+  including account/runtime/custom-model state, without deleting unrelated history.
+- Preserve cross-format empty tool inputs, terminal Ollama content/tools,
+  caller cache markers and accurate/unknown usage counters; lower only legacy
+  Gemini Schema annotations and select modern output caps for supported families.
+- Refuse credential-bearing redirects, preserve caller cancellation and discard
+  late/rejected bodies without waiting indefinitely for cleanup acknowledgments.
+  Scope refresh/catalog/usage caches to complete credentials and account policy.
+- Bound and redact console/request diagnostics, isolate failed/slow log
+  subscribers, prevent post-clear replay, validate detail-query paging/dates,
+  and write opt-in metadata logs below the resolved `DATA_DIR`.
+- Preserve active inbound rate-limit budgets under identity floods and separate
+  credentials that collided under the former short hash.
 
 - Preserve active OAuth single-flight grants at cache capacity; new work receives
   bounded backpressure instead of starting duplicate rotating-token refreshes.
@@ -84,6 +120,13 @@ for current dependency, protocol-source, regression and verification boundaries.
 The [upstream reconciliation audit](docs/audit/2026-11-17-upstream-reconciliation.md)
 records fetched refs, commit/actual-issue triage, selective adaptations and
 deliberately retained differences instead of merging diverged histories wholesale.
+The later [deep stability audit](docs/audit/2026-11-17-deep-stability-audit.md)
+records old-state upgrade, native Images, logging and cross-format repairs with
+a separate expanded actual-issue review and validation receipt. Final source
+verification passed 12,346 tests with 99 skips and zero failures, 51 browser
+cases, production/docs builds, native and absent-native standalone runtimes,
+fresh CLI installation and forced SQL.js persistence/restart. These local
+checks do not publish the new source or replace existing release artifacts.
 
 ## [1.0.8] — 2026-11-05
 

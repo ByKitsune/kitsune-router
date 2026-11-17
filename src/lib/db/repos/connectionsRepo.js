@@ -144,16 +144,21 @@ export async function getProviderConnections(filter = {}) {
     const byId = new Map(runtime.map(row => [row.connectionId, row]));
     return base.map(connection => {
       const row = byId.get(connection.id);
-      return row ? { ...connection, ...parseJson(row.data, {}), updatedAt: row.updatedAt } : connection;
+      return row ? withRuntime(connection, row) : connection;
     });
   });
+}
+
+function withRuntime(connection, runtime) {
+  return { ...connection, ...parseJson(runtime.data, {}),
+    updatedAt: !connection.updatedAt || runtime.updatedAt > connection.updatedAt ? runtime.updatedAt : connection.updatedAt };
 }
 
 function readConnection(db, id) {
   const connection = rowToConn(db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]));
   if (!connection) return null;
   const runtime = db.get(`SELECT data, updatedAt FROM connectionRuntime WHERE connectionId = ?`, [id]);
-  return runtime ? { ...connection, ...parseJson(runtime.data, {}), updatedAt: runtime.updatedAt } : connection;
+  return runtime ? withRuntime(connection, runtime) : connection;
 }
 
 export async function getProviderConnectionById(id) {
@@ -209,9 +214,9 @@ export async function createProviderConnection(data) {
           [data.provider, "apikey", data.name]
         ).map(rowToConn)
       : db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [data.provider]).map(rowToConn);
-    const poolSize = isApikey
-      ? db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [data.provider])?.n ?? all.length
-      : all.length;
+    // Named API keys already supply their label; counting every existing
+    // provider row here made an otherwise indexed bulk insert quadratic.
+    const poolSize = isApikey ? 0 : all.length;
 
     let existing = null;
     if (data.authType === "oauth" && data.email) {

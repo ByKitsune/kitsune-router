@@ -15,6 +15,7 @@ async function windsurfSeatRequest(baseUrl, path, body) {
       "User-Agent": WINDSURF_CONFIG.userAgent,
     },
     body: JSON.stringify(body),
+    redirect: "error",
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Windsurf ${path} HTTP ${res.status}: ${text.slice(0, 200)}`);

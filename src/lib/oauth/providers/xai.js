@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { XAI_CONFIG, XAI_PKCE_VERIFIER_BYTES } from "../constants/xai.js";
 import { validateXaiOAuthEndpoint, decodeXaiIdTokenEmail } from "../providerHelpers.js";
+import { createOAuthEndpointError } from "../endpointErrors.js";
+import { FETCH_CONNECT_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 
 // Inlined from services/xai.js to keep web route bundle free of `open` (CLI-only) package
 let cachedXaiDiscovery = null;
@@ -57,7 +59,9 @@ const xai = {
     return `${config.authorizeUrl}?${qs}`;
   },
   exchangeToken: async (config, code, redirectUri, codeVerifier) => {
+    const signal = AbortSignal.timeout(FETCH_CONNECT_TIMEOUT_MS);
     const response = await fetch(config.tokenUrl, {
+      signal,
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -70,10 +74,10 @@ const xai = {
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       }),
+      redirect: "error",
     });
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`xAI token exchange failed: ${error}`);
+      throw await createOAuthEndpointError(response, "xAI token exchange", signal);
     }
     return await response.json();
   },

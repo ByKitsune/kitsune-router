@@ -35,6 +35,7 @@ async function fetchTraeLoginGuidance(loginTraceId) {
           "User-Agent": TRAE_CONFIG.userAgent,
         },
         body,
+        redirect: "error",
       });
       if (!res.ok) { lastErr = `${url} HTTP ${res.status}`; continue; }
       const data = await res.json();
@@ -128,7 +129,8 @@ async function fetchTraeExchangeToken(refreshToken, cloudideToken) {
         "User-Agent": TRAE_CONFIG.userAgent,
       };
       if (cloudideToken) headers["x-cloudide-token"] = cloudideToken;
-      const res = await fetch(url, { method: "POST", headers, body });
+      const res = await fetch(url, { method: "POST", headers, body,
+        redirect: "error" });
       const text = await res.text();
       if (!res.ok) { lastErr = `${url} HTTP ${res.status}`; continue; }
       let data; try { data = JSON.parse(text); } catch { lastErr = `${url} invalid JSON`; continue; }
@@ -165,6 +167,7 @@ async function fetchTraeUserInfo(accessToken) {
           "x-cloudide-token": accessToken,
         },
         body: JSON.stringify({}),
+        redirect: "error",
       });
       if (!res.ok) continue;
       const data = await res.json();

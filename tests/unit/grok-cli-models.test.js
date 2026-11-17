@@ -76,10 +76,12 @@ describe("Grok CLI live models", () => {
       expect.any(Object),
       expect.anything(),
       proxyOptions,
+      expect.any(AbortSignal),
     );
     expect(onCredentialsRefreshed).toHaveBeenCalledWith({ accessToken: "new-token" });
     expect(fetchFn).toHaveBeenCalledTimes(2);
-    expect(fetchFn.mock.calls[0][2]).toBe(proxyOptions);
+    expect(fetchFn.mock.calls[0][2]).toEqual(proxyOptions);
+    expect(Object.isFrozen(fetchFn.mock.calls[0][2])).toBe(true);
     expect(fetchFn.mock.calls[1][1].headers.Authorization).toBe("Bearer new-token");
     expect(fetchFn.mock.calls[1][1].headers["x-grok-client-version"]).toBe(GROK_CLI_VERSION);
   });

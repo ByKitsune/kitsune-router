@@ -69,6 +69,7 @@ export async function fetchKiroProfileArn(accessToken, proxyOptions = null, sign
     try {
       const response = await proxyAwareFetch("https://codewhisperer.us-east-1.amazonaws.com/ListAvailableProfiles", {
         method: "POST", signal: requestSignal,
+        redirect: "error",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
@@ -76,7 +77,10 @@ export async function fetchKiroProfileArn(accessToken, proxyOptions = null, sign
         },
         body: JSON.stringify({ maxResults: 10 }),
       }, proxyOptions);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        try { void response.body?.cancel().catch(() => {}); } catch { /* Already closed. */ }
+        return null;
+      }
       const data = await response.json();
       sharedSignal.throwIfAborted();
       return data.profiles?.find((p) => p.arn?.trim())?.arn?.trim() || null;

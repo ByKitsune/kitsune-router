@@ -2,6 +2,32 @@
 
 Run the gateway, translator, persistence, discovery, pricing and dashboard contract suites from the repository root. Keep provider inference opt-in and use isolated state for runtime smoke checks.
 
+## Deep stability and upgrade regressions
+
+The [deep stability audit](../docs/audit/2026-11-17-deep-stability-audit.md) and its
+separate validation receipt cover the later changes from `c787fb45`; that base's
+11,772-pass result is not reused as proof for new code. Relevant focused groups
+include actual old-schema/legacy-import preservation, concurrent pending usage,
+transactional node changes, logging/subscriber bounds, cross-format semantic
+integrity and the native Codex Images wire contract. The final integrated deep
+audit run passed **12,346 cases with 99 skips and zero failures** across 950
+files; the linked receipt keeps focused selections and artifact checks separate:
+
+```bash
+npm test -- tests/unit/deep-db-*.test.js
+npm test -- tests/unit/deep-logging-*.test.js
+npm test -- tests/translator/deep-audit-*.test.js
+npm test -- tests/unit/deep-codex-image*.test.js tests/unit/deep-image-*.test.js
+npm test -- tests/unit/deep-chat-routing-failure.test.js tests/unit/deep-provider-selection-scope.test.js
+npm test -- tests/unit/deep-executor-*.test.js tests/unit/deep-provider-services-*.test.js
+```
+
+Use the isolated environment/state guidance below. Before/after source replay
+counts and overlapping focused selections are separate from the final full
+suite. An inspected query plan or deterministic work-bound assertion is not a
+provider/network latency benchmark. Native Images fixtures use synthetic account
+proofs and local HTTP servers; they do not spend credits or prove entitlement.
+
 ## Local translator latency benchmark
 
 `node scripts/benchmark-translator.mjs --output /tmp/translator-after.json` measures

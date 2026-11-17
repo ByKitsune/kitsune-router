@@ -368,8 +368,11 @@ export const DECLARED_UPSTREAM_MODEL_IDS = {
   },
   "codex": {
     "gpt-5.3-codex-spark-review": "gpt-5.3-codex-spark",
+    "gpt-5.3-image": "gpt-image-2",
+    "gpt-5.4-image": "gpt-image-2",
     "gpt-5.4-mini-review": "gpt-5.4-mini",
     "gpt-5.4-review": "gpt-5.4",
+    "gpt-5.5-image": "gpt-image-2",
     "gpt-5.5-review": "gpt-5.5",
     "gpt-5.6-luna-review": "gpt-5.6-luna",
     "gpt-5.6-sol-review": "gpt-5.6-sol",

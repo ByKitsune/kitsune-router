@@ -7,57 +7,57 @@ initConsoleLogCapture();
 export async function GET(request) {
   const encoder = new TextEncoder();
   const emitter = getConsoleEmitter();
-  const state = { closed: false, send: null, sendLines: null, sendClear: null, keepalive: null };
+  const state = { closed: false, controller: null, send: null, sendLines: null, sendClear: null, keepalive: null };
 
   // Idempotent: safe to call from request.signal abort, cancel(), or enqueue failure.
-  const cleanup = () => {
+  const cleanup = (close = false) => {
     if (state.closed) return;
     state.closed = true;
     if (state.send) emitter.off("line", state.send);
     if (state.sendLines) emitter.off("lines", state.sendLines);
     if (state.sendClear) emitter.off("clear", state.sendClear);
     if (state.keepalive) clearInterval(state.keepalive);
+    request.signal.removeEventListener("abort", onAbort);
+    if (close) {
+      try { state.controller?.close(); } catch { /* Already closed or cancelled. */ }
+    }
   };
+  const onAbort = () => cleanup(true);
 
-  // request.signal fires reliably on client disconnect; ReadableStream.cancel()
-  // is not always invoked in Next.js, which caused listeners to accumulate.
-  request.signal.addEventListener("abort", cleanup, { once: true });
+  const sendFrame = (frame) => {
+    if (state.closed) return;
+    // A live console is best-effort. Reconnecting provides the bounded current
+    // snapshot; a slow reader must not retain an unlimited queue of old lines.
+    if (state.controller.desiredSize <= 0) { cleanup(true); return; }
+    try { state.controller.enqueue(encoder.encode(frame)); } catch { cleanup(true); }
+  };
 
   const stream = new ReadableStream({
     start(controller) {
+      state.controller = controller;
+      if (request.signal.aborted) { cleanup(true); return; }
+      // Next disconnects can signal abort without cancelling the response body.
+      request.signal.addEventListener("abort", onAbort, { once: true });
       // Send all buffered logs immediately on connect
       const buffered = getConsoleLogs();
       if (buffered.length > 0) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "init", logs: buffered })}\n\n`));
+        sendFrame(`data: ${JSON.stringify({ type: "init", logs: buffered })}\n\n`);
       }
+      if (state.closed) return;
 
       // Push new lines as they arrive
       state.send = (line) => {
-        if (state.closed) return;
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "line", line })}\n\n`));
-        } catch {
-          cleanup();
-        }
+        sendFrame(`data: ${JSON.stringify({ type: "line", line })}\n\n`);
       };
 
       state.sendLines = (lines) => {
         if (state.closed || !Array.isArray(lines) || lines.length === 0) return;
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "lines", lines })}\n\n`));
-        } catch {
-          cleanup();
-        }
+        sendFrame(`data: ${JSON.stringify({ type: "lines", lines })}\n\n`);
       };
 
       // Notify client when cleared
       state.sendClear = () => {
-        if (state.closed) return;
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "clear" })}\n\n`));
-        } catch {
-          cleanup();
-        }
+        sendFrame(`data: ${JSON.stringify({ type: "clear" })}\n\n`);
       };
 
       emitter.on("line", state.send);
@@ -67,11 +67,7 @@ export async function GET(request) {
       // Keepalive ping every 25s
       state.keepalive = setInterval(() => {
         if (state.closed) { clearInterval(state.keepalive); return; }
-        try {
-          controller.enqueue(encoder.encode(": ping\n\n"));
-        } catch {
-          cleanup();
-        }
+        sendFrame(": ping\n\n");
       }, 25000);
     },
 

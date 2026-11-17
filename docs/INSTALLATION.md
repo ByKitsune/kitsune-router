@@ -185,6 +185,25 @@ curl http://localhost:20128/v1/models \
 
 ## State and upgrades
 
+Current Unreleased source adapts existing SQLite state automatically through
+additive synchronization to declarative schema/backup target 4; it adds the indexed provider/auth/name lookup.
+Keep the same absolute `DATA_DIR`, credentials, installation secrets and mounted
+volume when updating. A schema change attempts a pre-change backup; generic
+backup failures retain the existing best-effort policy, while unsafe backup
+permissions fail closed. Keep a verified full-state backup before upgrading.
+Fresh legacy JSON imports stop on invalid/unreadable input before publishing
+schema stamps or the import marker, preserving the source for repair and retry.
+Established SQLite state does not re-import obsolete retained JSON on every boot.
+The historical-time migration also canonicalizes valid explicit-zone index
+timestamps while retaining changed originals in nullable `sourceTimestamp`.
+Invalid or zone-unknown values remain stored and do not fabricate a date-window
+match. Existing monetary/daily history and frozen quotes are retained. Fresh
+legacy missing/null timestamps and costs stay unknown; explicit zero costs stay zero.
+The versioned migration ledger is separate from the declarative backup target;
+do not manually change either metadata version to force startup.
+See the [deep stability audit](audit/2026-11-17-deep-stability-audit.md) for actual
+upgrade fixtures and the distinction between local checks and published artifacts.
+
 Defaults: `~/.kitsune-router` on macOS/Linux and `%APPDATA%\kitsune-router` on Windows. `DATA_DIR=/absolute/path` overrides discovery and relocation. Configuration and usage live in `db/data.sqlite`; retain `secrets.json`, `machine-id`, `auth/` and `mitm/` alongside it. Not all provider credentials are guaranteed encrypted at rest. Protect the directory and backups.
 
 For ZenRouter/9Router, stop the source and its helpers and back up the entire directory. First startup can discover `~/.zenrouter` or `~/.9router`, verify a consistent snapshot and copied files, then create the new directory without deleting originals. Existing destinations are never merged/overwritten. See [MIGRATION.md](MIGRATION.md) for source selection, skip controls, certificate/key preservation and rollback.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Card } from "@/shared/components";
 import { MEDIA_PROVIDER_KINDS, getProviderAlias, resolveProviderId } from "@/shared/constants/providers";
@@ -27,6 +27,14 @@ function toImagePreviewSrc(value) {
   if (!trimmed) return "";
   if (/^(data:image\/|https?:\/\/)/i.test(trimmed)) return trimmed;
   return `data:image/png;base64,${trimmed}`;
+}
+
+function normalizeExampleFields(values, model) {
+  const normalized = { ...values };
+  for (const [key, options] of Object.entries(model?.paramOptions || {})) {
+    if (Array.isArray(options) && normalized[key] !== "" && !options.includes(normalized[key])) normalized[key] = options[0];
+  }
+  return normalized;
 }
 
 export function GenericExampleCard({ providerId, kind }) {
@@ -96,6 +104,18 @@ export function GenericExampleCard({ providerId, kind }) {
     return () => { cancelled = true; };
   }, [providerId]);
 
+  const { effectiveExtraValues, extraBodyFromFields } = useMemo(() => {
+    const effectiveExtraValues = normalizeExampleFields(extraValues, selectedModelObj);
+    const extraBodyFromFields = Object.entries(effectiveExtraValues).reduce((acc, [k, v]) => {
+      if (kindModels.length > 0 && !(Array.isArray(selectedModelObj?.params) && selectedModelObj.params.includes(k))) return acc;
+      if (v === "" || v === null || v === undefined) return acc;
+      if (typeof v === "number" && Number.isNaN(v)) return acc;
+      acc[k] = v;
+      return acc;
+    }, {});
+    return { effectiveExtraValues, extraBodyFromFields };
+  }, [extraValues, selectedModelObj, kindModels.length]);
+
   // Safe to early-return now that all hooks are declared
   if (!kindConfig || !exConfig) return null;
 
@@ -111,13 +131,7 @@ export function GenericExampleCard({ providerId, kind }) {
   const refImagePreviewSrc = toImagePreviewSrc(effectiveRefImage);
   const maskImagePreviewSrc = toImagePreviewSrc(effectiveMaskImage);
 
-  // Build request body with optional extra fields (only non-empty values)
-  const extraBodyFromFields = Object.entries(extraValues).reduce((acc, [k, v]) => {
-    if (v === "" || v === null || v === undefined) return acc;
-    if (typeof v === "number" && Number.isNaN(v)) return acc;
-    acc[k] = v;
-    return acc;
-  }, {});
+  // Include only the controls supported by the selected model.
   const requestBody = {
     model: modelFull,
     [exConfig.bodyKey]: input,
@@ -127,7 +141,7 @@ export function GenericExampleCard({ providerId, kind }) {
     ...(supportsMask && effectiveMaskImage ? { mask_image: effectiveMaskImage } : {}),
   };
 
-  // Streaming supported for codex image (Plus/Pro accounts) — disabled when binary output requested
+  // Codex native JSON results can be delivered as client SSE; binary is separate.
   const wantBinary = kind === "image" && imageOutputFormat === "binary";
   const useStreaming = kind === "image" && providerId === "codex" && !wantBinary;
   const apiPathWithQuery = `${apiPath}${wantBinary ? "?response_format=binary" : ""}`;
@@ -409,11 +423,11 @@ export function GenericExampleCard({ providerId, kind }) {
           <Row key={f.key} label={f.label}>
             {f.type === "select" ? (
               <select
-                value={extraValues[f.key] ?? ""}
+                value={effectiveExtraValues[f.key] ?? ""}
                 onChange={(e) => setExtraValues((s) => ({ ...s, [f.key]: e.target.value }))}
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
               >
-                {(f.options || []).map((opt) => (
+                {(f.options || []).filter(opt => !Array.isArray(selectedModelObj?.paramOptions?.[f.key]) || selectedModelObj.paramOptions[f.key].includes(opt)).map((opt) => (
                   <option key={opt} value={opt}>{opt === "" ? "(default)" : opt}</option>
                 ))}
               </select>

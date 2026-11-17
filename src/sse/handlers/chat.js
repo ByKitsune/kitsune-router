@@ -12,7 +12,7 @@ import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../service
 import { getSettings, isApiKeyRequired, getProviderConnectionById } from "@/lib/localDb";
 import { getDisabledByProvider } from "@/lib/disabledModelsDb";
 import { getModelInfo, getComboModels, resolveModelCapabilities } from "../services/model.js";
-import { handleChatCore } from "open-sse/handlers/chatCore.js";
+import { handleChatCore, createChatRoutingFailure } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
 import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
@@ -31,6 +31,7 @@ import { stripThinkingSuffix } from "open-sse/translator/concerns/thinkingUnifie
 import { resolveSessionId } from "open-sse/utils/sessionManager.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
+import { getAccountRoutingPolicy, isAccountRoutingFailure } from "open-sse/utils/accountTransport.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { redactAccountName } from "@/shared/utils/accountRedaction.js";
@@ -565,33 +566,38 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
+    const proxyOptions = getAccountRoutingPolicy(credentials);
     let entitlementContext = captureCodexEntitlementContext(provider, credentials, request?.signal);
     let refreshedCredentials;
     try {
-      refreshedCredentials = credentials.id === "noauth" ? credentials : await checkAndRefreshToken(provider, credentials);
+      refreshedCredentials = credentials.id === "noauth" ? credentials : await checkAndRefreshToken(provider, credentials, { signal: request?.signal || null, proxyOptions });
     } catch (error) {
+      if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
+      if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") {
+        log.warn("PROXY", "Account routing configuration failed");
+        return withRateLimitHeaders(createChatRoutingFailure().response, rateLimit);
+      }
       if (error?.code !== "STALE_CONNECTION_WRITE") throw error;
       excludeConnectionIds.add(credentials.connectionId);
       continue;
     }
+    if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
     entitlementContext = captureCodexEntitlementContext(provider, refreshedCredentials, request?.signal, entitlementContext);
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
-      const connProxyOptions = {
-        connectionProxyEnabled: refreshedCredentials.providerSpecificData?.connectionProxyEnabled === true,
-        connectionProxyUrl: refreshedCredentials.providerSpecificData?.connectionProxyUrl || "",
-        connectionNoProxy: refreshedCredentials.providerSpecificData?.connectionNoProxy || "",
-        vercelRelayUrl: refreshedCredentials.providerSpecificData?.vercelRelayUrl || "",
-        strictProxy: refreshedCredentials.providerSpecificData?.strictProxy === true,
-      };
       let pid;
       try {
-        pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, connProxyOptions, request?.signal || null);
+        pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, proxyOptions, request?.signal || null);
       } catch (error) {
         if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
+        if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") {
+          log.warn("PROXY", "Account routing configuration failed");
+          return withRateLimitHeaders(createChatRoutingFailure().response, rateLimit);
+        }
         throw error;
       }
+      if (request?.signal?.aborted) return withRateLimitHeaders(errorResponse(499, "Client Closed Request"), rateLimit);
       if (pid) {
         refreshedCredentials.projectId = pid;
         const committed = await updateProviderCredentials(credentials.connectionId, { projectId: pid }, {
@@ -620,6 +626,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
+      proxyOptions,
       log,
       clientRawRequest,
       connectionId: credentials.connectionId,
@@ -705,6 +712,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     if (request?.signal?.aborted && result.diagnostics?.code === "usage_acceptance_failed") {
       log.error("CHAT", "Durable usage acceptance failed after client cancellation");
     }
+    if (result.localRoutingFailure === true) return withRateLimitHeaders(result.response, rateLimit);
     if (result.success) return withRateLimitHeaders(result.response, rateLimit);
     if (result.credentialsSuperseded === true || result.response?.headers?.get("x-should-retry") === "false") return withRateLimitHeaders(result.response, rateLimit);
 

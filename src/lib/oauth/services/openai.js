@@ -47,6 +47,7 @@ export class OpenAIService extends OAuthService {
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {
@@ -77,6 +78,7 @@ export class OpenAIService extends OAuthService {
         idToken: tokens.id_token,
         scope: tokens.scope,
       }),
+      redirect: "error",
     });
 
     if (!response.ok) {

@@ -4,6 +4,7 @@
 import { fetchPublic } from "../../../src/shared/utils/ssrfGuard.js";
 import { getAccountRoutingPolicy, hasAccountProxyPolicy } from "../../utils/accountTransport.js";
 import { DEFAULT_WEB_FETCH_FORMAT, getWebFetchFormatError } from "../../config/webFetchFormats.js";
+import firecrawlProvider from "../../providers/registry/firecrawl.js";
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -131,7 +132,7 @@ export async function handleFetchCore({ url, format, maxCharacters, provider, pr
 
 async function runFirecrawl({ url, fmt, signal, apiKey, maxCharacters, costPerQuery, startedAt }) {
   const upstreamStart = Date.now();
-  const r = await tryFetch("https://api.firecrawl.dev/v1/scrape", {
+  const r = await tryFetch(firecrawlProvider.fetchConfig.baseUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -146,11 +147,16 @@ async function runFirecrawl({ url, fmt, signal, apiKey, maxCharacters, costPerQu
   const upstreamMs = Date.now() - upstreamStart;
   const { json } = await readJsonOrText(r.res);
   if (!r.res.ok) {
-    return { success: false, status: r.res.status, error: json?.error || `Firecrawl error: ${r.res.status}` };
+    return { success: false, status: r.res.status, error: typeof json?.error === "string" ? json.error : `Firecrawl error: ${r.res.status}` };
   }
-  const d = json?.data || {};
-  const text = truncate(d.markdown || d.html || d.text || "", maxCharacters);
-  const title = d.metadata?.title || null;
+  const d = json?.data;
+  if (json?.success !== true || !d || typeof d !== "object" || Array.isArray(d) || typeof d[fmt] !== "string") {
+    return { success: false, status: 502, error: typeof json?.error === "string" ? json.error : "Firecrawl returned an invalid scrape document" };
+  }
+  // A native HTML request must not be relabeled markdown, including when its
+  // legitimate content is empty and another returned format is nonempty.
+  const text = truncate(d[fmt], maxCharacters);
+  const title = typeof d.metadata?.title === "string" ? d.metadata.title : null;
   return {
     success: true,
     data: buildData({

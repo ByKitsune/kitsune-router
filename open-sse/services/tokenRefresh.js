@@ -1,9 +1,12 @@
 import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, REFRESH_LEAD_MS } from "../config/appConstants.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
-import { dedupRefresh, getRefreshProxyKey } from "./tokenRefresh/dedup.js";
+import { dedupRefresh, getRefreshProxyKey, MAX_DEDUP_CACHE_SIZE } from "./tokenRefresh/dedup.js";
+import { isAccountRoutingFailure } from "../utils/accountTransport.js";
 import { safeRefreshErrorType } from "../utils/oauthDiagnostics.js";
 import { setTimeout as delay } from "node:timers/promises";
+import { createHash } from "node:crypto";
+import { setBounded } from "../utils/boundedCache.js";
 import {
   refreshXaiToken,
   refreshAccessToken,
@@ -77,12 +80,18 @@ export function parseVertexSaJson(apiKey) {
   }
 }
 
-// Cache Vertex tokens by service account email and transport policy { token, expiresAt }
+// Bind bearer reuse to the supplied signing proof as well as account and policy.
 const vertexTokenCache = new Map();
 
 export async function refreshVertexToken(saJson, log, proxyOptions = null, signal = null) {
   signal?.throwIfAborted();
-  const cacheKey = JSON.stringify([saJson.client_email, getRefreshProxyKey(proxyOptions)]);
+  if (typeof saJson?.client_email !== "string" || !saJson.client_email
+    || typeof saJson?.private_key !== "string" || !saJson.private_key) return null;
+  const signingProof = saJson.private_key.replace(/\\n/g, "\n");
+  const cacheKey = JSON.stringify([
+    saJson.client_email, saJson.project_id, saJson.private_key_id,
+    createHash("sha256").update(signingProof).digest("hex"), getRefreshProxyKey(proxyOptions),
+  ]);
   const cached = vertexTokenCache.get(cacheKey);
 
   if (cached && cached.expiresAt - Date.now() > 5 * 60 * 1000) {
@@ -92,8 +101,8 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null, signa
   return dedupRefresh("vertex", cacheKey, async refreshSignal => {
   try {
     const { SignJWT, importPKCS8 } = await import("jose");
-    log?.debug?.("TOKEN_REFRESH", `Vertex minting token for ${saJson.client_email}`);
-    const privateKey = await importPKCS8(saJson.private_key.replace(/\\n/g, "\n"), "RS256");
+    log?.debug?.("TOKEN_REFRESH", "Vertex minting service-account token");
+    const privateKey = await importPKCS8(signingProof, "RS256");
     const now = Math.floor(Date.now() / 1000);
 
     const jwt = await new SignJWT({ scope: "https://www.googleapis.com/auth/cloud-platform" })
@@ -106,6 +115,7 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null, signa
 
     const res = await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, {
       signal: refreshSignal,
+      redirect: "error",
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -115,21 +125,29 @@ export async function refreshVertexToken(saJson, log, proxyOptions = null, signa
     }, proxyOptions);
 
     if (!res.ok) {
-      const err = await res.text();
-      log?.error?.("TOKEN_REFRESH", `Vertex token mint failed: ${err}`);
+      try { void res.body?.cancel().catch(() => {}); } catch { /* Already closed. */ }
+      log?.error?.("TOKEN_REFRESH", "Vertex token mint failed", { status: res.status });
       return null;
     }
 
     const { access_token, expires_in } = await res.json();
-    const expiresAt = Date.now() + (expires_in ?? 3600) * 1000;
+    const expiresIn = expires_in == null ? 3600
+      : typeof expires_in === "number" || typeof expires_in === "string" && expires_in.trim() ? Number(expires_in) : NaN;
+    if (typeof access_token !== "string" || !access_token
+      || !Number.isSafeInteger(expiresIn) || expiresIn <= 0) {
+      log?.error?.("TOKEN_REFRESH", "Vertex token response has invalid credentials", { status: res.status });
+      return null;
+    }
+    const expiresAt = Date.now() + expiresIn * 1000;
+    if (!Number.isSafeInteger(expiresAt)) return null;
 
-    vertexTokenCache.set(cacheKey, { token: access_token, expiresAt });
-    log?.info?.("TOKEN_REFRESH", `Vertex token minted for ${saJson.client_email}`);
+    setBounded(vertexTokenCache, cacheKey, { token: access_token, expiresAt }, MAX_DEDUP_CACHE_SIZE);
+    log?.info?.("TOKEN_REFRESH", "Vertex token minted");
 
     return { accessToken: access_token, expiresAt };
   } catch (error) {
     refreshSignal.throwIfAborted();
-    log?.error?.("TOKEN_REFRESH", `Vertex token error: ${error.message}`);
+    log?.error?.("TOKEN_REFRESH", "Vertex token error", { error: safeRefreshErrorType(error) });
     return null;
   }
   }, log, proxyOptions, signal);
@@ -285,6 +303,7 @@ export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null, si
       if (result) return result;
     } catch (error) {
       signal?.throwIfAborted();
+      if (isAccountRoutingFailure(error) || error?.code === "ACCOUNT_REDIRECT_REFUSED") throw error;
       log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed`, { error: safeRefreshErrorType(error) });
     }
   }
