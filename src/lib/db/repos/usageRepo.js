@@ -431,6 +431,7 @@ function recoverUsageRow(db, row, resolveTariff, calculateBreakdown) {
   if (!(tokens?.total_tokens > 0) || (rawTokens?.total_tokens > 0 && rawTokens.total_tokens !== tokens.total_tokens
     && !Object.hasOwn(rawTokens, "cache_read_input_tokens") && !Object.hasOwn(rawTokens, "cache_creation_input_tokens"))) return false;
   tokens.actualServiceTier = rawTokens.actualServiceTier;
+  tokens.requestedServiceTier = rawTokens.requestedServiceTier;
   tokens.serviceTierCostStatus = rawTokens.serviceTierCostStatus;
   const breakdown = calculateBreakdown(tokens, pricing);
   if (!Number.isFinite(breakdown.totalCost) || !agreesWithRecordedCosts(meta.quote?.breakdown, breakdown)) return false;

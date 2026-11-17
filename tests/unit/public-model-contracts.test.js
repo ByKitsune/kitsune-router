@@ -238,3 +238,48 @@ describe("public metadata does not export audit internals or ambiguous billing",
     expect(row.metadata).not.toHaveProperty("publicAPI");
   });
 });
+
+describe("published OpenAI processing profiles", () => {
+  it("uses the same model limits with separate delivered-tier rates on list and detail discovery", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-11-18T00:00:00Z"));
+      connect("openai", { enabledModels: ["gpt-6.2-sol"] });
+      const response = await getInfo(new Request("http://localhost/v1/models/info?id=openai/gpt-6.2-sol"));
+      expect(response.status).toBe(200);
+      const profiles = (await response.json()).metadata.processingTiers;
+      expect((await rowFor("openai/gpt-6.2-sol")).metadata.processingTiers).toEqual(profiles);
+      for (const tier of Object.values(profiles)) {
+        expect(tier).toMatchObject({ contextWindow: 1050000, maxInput: 922000, maxOutput: 128000 });
+      }
+      expect(profiles.default.pricing).toMatchObject({ cached: 0.1, cache_write_30m: 2.5, output: 10 });
+      expect(profiles.fast.pricing).toMatchObject({ cached: 0.2, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30 } });
+      expect(profiles.ultrafast.pricing).toMatchObject({ input: 6, cached: 0.3, output: 30 });
+
+      vi.setSystemTime(new Date("2027-03-01T08:00:00Z"));
+      const listRate = getPublicModelMetadata("openai", "gpt-6.2-sol").processingTiers.ultrafast.pricing;
+      expect(listRate).toMatchObject({ input: 12, cached: 0.6, output: 60 });
+      expect(getPublicModelMetadata("codex", "gpt-6.2-sol")).not.toHaveProperty("processingTiers");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports the documented GPT-5.4 Fast fallback above 272K and only publishes supported tiers", () => {
+    const profiles = getPublicModelMetadata("openai", "gpt-5.4").processingTiers;
+    expect(profiles.fast).toMatchObject({
+      contextWindow: 1050000,
+      longContextFallback: { inputThreshold: 272000, serviceTier: "default" },
+      pricing: { tier: { threshold: 272000, inclusive: false, input: null, output: null } },
+    });
+    expect(profiles).not.toHaveProperty("ultrafast");
+  });
+
+  it.each(["cx", "codex"])("keeps Codex account limits separate when looking up %s", async alias => {
+    const response = await getInfo(new Request(`http://localhost/v1/models/info?id=${alias}/gpt-6.2-sol`));
+    expect(response.status).toBe(200);
+    const row = await response.json();
+    expect(row.capabilities).toMatchObject({ contextWindow: 500000, maxInput: null, maxOutput: null });
+    expect(row.metadata).not.toHaveProperty("processingTiers");
+  });
+});

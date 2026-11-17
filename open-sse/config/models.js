@@ -19,3 +19,11 @@ export function isGemini4Model(model) {
 export function isGpt62Model(model) {
   return /(?:^|\/)gpt-6\.2-(?:astra|sol)$/i.test(String(model || ""));
 }
+
+export function usesOpenAIModernPromptCache(model) {
+  return /^(?:gpt-5\.6(?:-(?:sol|terra|luna))?|gpt-6-(?:astra|sol|luna)|gpt-6\.1-(?:sol|terra)|gpt-6\.2-(?:astra|sol))$/.test(model);
+}
+
+export const OPENAI_PROMPT_CACHE_TTLS = ["30m", "12h"];
+
+export const OPENAI_REASONING_NONE_OMIT_MODELS = ["gpt-6-astra"];

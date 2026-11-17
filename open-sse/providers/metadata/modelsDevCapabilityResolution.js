@@ -24,7 +24,7 @@ export function getModelsDevCapabilityReference(provider, model) {
 export function hasPrimaryCapabilityAuthority(reviewed, field) {
   if (!Object.hasOwn(reviewed?.capabilities || {}, field)) return false;
   const fieldSource = reviewed?.limits?.fieldSources?.[field];
-  if (typeof fieldSource === "string" && !/^https:\/\/models\.dev(?:\/|$)/.test(fieldSource)) return true;
+  if (typeof fieldSource === "string") return !/^https:\/\/models\.dev(?:\/|$)/.test(fieldSource);
   // Billing reviews append their URLs to the shared sources list. That does
   // not turn previously imported catalog capabilities into primary evidence.
   if (reviewed?.limits?.scope === "exact-route-modelsdev-catalog") return false;

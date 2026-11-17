@@ -42,6 +42,12 @@ describe("delivered service-tier estimates use explicit tier tariffs", () => {
     expect(cost.totalCost).toBeNull();
   });
 
+  it.each(["auto", "priority", "ultrafast"])("keeps legacy %s requests without a delivered tier unpriced", requestedServiceTier => {
+    const tokens = { ...usage, requestedServiceTier };
+    expect(calculateCostBreakdown(tokens, quote).totalCost).toBeNull();
+    expect(calculateCostBreakdown({ ...tokens, actualServiceTier: "default" }, quote).totalCost).toBeCloseTo(0.262, 12);
+  });
+
   it("honors an explicit null Fast tariff and a genuinely free premium tariff", () => {
     const tokens = { ...usage, actualServiceTier: "priority", serviceTierCostStatus: "unpriced" };
     expect(calculateCostBreakdown(tokens, { ...quote, service_tiers: { priority: null, fast: quote.service_tiers.fast } }).totalCost).toBeNull();

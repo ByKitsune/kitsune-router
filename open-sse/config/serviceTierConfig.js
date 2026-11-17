@@ -30,5 +30,10 @@ export const OPENAI_ULTRAFAST_REGIONS = {
   "gpt-6-astra": ["global", "us"],
   "gpt-6.1-sol": ["global", "us", "eu"],
 };
+// The Fast guide lists these exclusions for European inference residency.
+export const OPENAI_FAST_UNSUPPORTED_REGIONS = {
+  "gpt-6-astra": ["eu"],
+  "gpt-6-sol": ["eu"],
+};
 export const SERVICE_TIER_MODES = ["auto", "default", "fast", "ultrafast"];
 export const SERVICE_TIER_WIRE_VALUES = [...SERVICE_TIER_MODES, "priority", "flex", "scale"];

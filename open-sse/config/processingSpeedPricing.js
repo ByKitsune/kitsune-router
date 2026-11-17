@@ -1,6 +1,8 @@
 // Native public OpenAI API quotes only, USD per million tokens. These are not
 // Codex subscription credits, reseller estimates, or account entitlement.
 // Every numeric rate is a literal table cell, never a speed multiplier.
+import { parsePricingTimestamp } from "./timeOfUsePricing.js";
+
 export const OPENAI_TOKEN_PRICING_SOURCE = {
   url: "https://developers.openai.com/api/docs/pricing.md",
   capturedAtUtc: "2026-10-21T10:47:37.142421Z",
@@ -215,6 +217,23 @@ export const OPENAI_GPT_62_ULTRAFAST_LIST_PRICING = tokenQuotes({
   "gpt-6.2-astra": { input: 48, output: 240, cached: 2.4, cache_write_30m: 60, cache_write_12h: 120, tier: { threshold: 272000, inclusive: false, input: 96, output: 360, cached: 4.8, cache_write_30m: 120, cache_write_12h: 240 } },
   "gpt-6.2-sol": { input: 12, output: 60, cached: 0.6, cache_write_30m: 15, cache_write_12h: 30, tier: { threshold: 272000, inclusive: false, input: 24, output: 90, cached: 1.2, cache_write_30m: 30, cache_write_12h: 60 } },
 });
+
+/** Public OpenAI API token rates, including independently published speed tiers. */
+export function getOpenAIPublishedTokenPricing(model, { timestamp } = {}) {
+  // https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  if (model === "gpt-5.6") model = "gpt-5.6-sol";
+  if (!Object.hasOwn(OPENAI_STANDARD_TOKEN_PRICING, model)) return null;
+  const standard = OPENAI_STANDARD_TOKEN_PRICING[model];
+  if (!Object.hasOwn(OPENAI_PROCESSING_SPEED_PRICING, model)) return standard;
+  const serviceTiers = OPENAI_PROCESSING_SPEED_PRICING[model];
+  if (!Object.hasOwn(OPENAI_GPT_62_ULTRAFAST_LIST_PRICING, model)) return { ...standard, service_tiers: serviceTiers };
+
+  const at = parsePricingTimestamp(timestamp === undefined ? Date.now() : timestamp);
+  const ultrafast = !at ? null : at.getTime() < Date.parse(OPENAI_GPT_62_ULTRAFAST_LIST_RATE_FROM)
+    ? serviceTiers.ultrafast
+    : OPENAI_GPT_62_ULTRAFAST_LIST_PRICING[model];
+  return { ...standard, service_tiers: { ...serviceTiers, ultrafast } };
+}
 
 // Compatibility projection for existing native cache-write consumers. Every
 // Standard key is present (including unknown writes) so the old integration

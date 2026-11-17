@@ -171,9 +171,9 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
       }
       const parsed = !chunk.type && event.event && targetFormat !== FORMATS.OPENAI ? { ...chunk, type: event.event } : chunk;
       incurredUsage = mergeUsage(incurredUsage, extractUsage(parsed));
+      actualServiceTier = getResponseServiceTier(parsed) ?? actualServiceTier;
       const failure = extractResponseError(parsed) || unsupportedResponseMedia(targetFormat, state.clientFormat || FORMATS.OPENAI, parsed);
       if (failure) { usage = failure.usage || canonicalizeUsage(incurredUsage) || usage; streamError = failure.error; stopped = true; return false; }
-      actualServiceTier = getResponseServiceTier(parsed) ?? actualServiceTier;
       const isChat = Array.isArray(parsed.choices);
       const type = event.event || parsed.type;
       const nativeTerminal = !isChat && (targetFormat === FORMATS.CLAUDE ? type === "message_stop"
@@ -203,7 +203,11 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
       if (terminal && !streamError) for (const chunk of chatToolIdentities.flushCompleted()) append(chunk);
       if (!streamError && targetFormat !== FORMATS.OPENAI) for (const chunk of translateResponse(targetFormat, FORMATS.OPENAI, null, state) || []) append(chunk);
       if (!terminal && !streamError) fail("Upstream stream closed without a terminal event");
-      if (streamError) return { error: streamError, ...(usage ? { usage } : {}) };
+      if (streamError) return {
+        error: streamError,
+        ...(usage ? { usage } : {}),
+        ...(actualServiceTier ? { service_tier: actualServiceTier } : {}),
+      };
       if (!first) return null;
       return {
         id: first.id || `chatcmpl-${Date.now()}`, object: "chat.completion", created: first.created || Math.floor(Date.now() / 1000), model: first.model || fallbackModel || "unknown",
@@ -220,6 +224,7 @@ function createSSEAggregator(fallbackModel, targetFormat, translationState) {
       };
     },
   };
+
 }
 
 export function parseSSEToOpenAIResponse(rawSSE, fallbackModel, targetFormat = FORMATS.OPENAI, translationState = null) {

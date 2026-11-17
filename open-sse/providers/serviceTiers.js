@@ -1,9 +1,9 @@
 import {
   OPENAI_FAST_MODELS, OPENAI_ULTRAFAST_MODELS, OPENAI_MODELS_WITHOUT_FLEX,
   CODEX_NO_ULTRAFAST_MODELS, CODEX_NO_ULTRAFAST_PLANS, CODEX_LIMITED_ULTRAFAST_PLANS,
-  OPENAI_ULTRAFAST_REGIONS, SERVICE_TIER_MODES, SERVICE_TIER_WIRE_VALUES,
+  OPENAI_ULTRAFAST_REGIONS, OPENAI_FAST_UNSUPPORTED_REGIONS, SERVICE_TIER_MODES, SERVICE_TIER_WIRE_VALUES,
 } from "../config/serviceTierConfig.js";
-import { isGpt62Model } from "../config/models.js";
+import { isGpt62Model, usesOpenAIModernPromptCache } from "../config/models.js";
 import openai from "./registry/openai.js";
 
 // Browser-safe: no auth, persistence, fetch or process-level capability cache.
@@ -50,7 +50,7 @@ export function getServiceTierAvailability(provider, model, tier, credentials = 
   }
   if (tier === "ultrafast" && provider === "openai") {
     const region = credentials?.providerSpecificData?.dataResidency;
-    if (region && OPENAI_ULTRAFAST_REGIONS[id] && !OPENAI_ULTRAFAST_REGIONS[id].includes(region)) {
+    if (region && Object.hasOwn(OPENAI_ULTRAFAST_REGIONS, id) && !OPENAI_ULTRAFAST_REGIONS[id].includes(region)) {
       return { status: "unsupported", scope: "account", reason: "Ultrafast is unavailable in the configured data residency region for this model; choose Standard/Fast or a supported model." };
     }
     return ultrafastModels.has(id)
@@ -58,6 +58,10 @@ export function getServiceTierAvailability(provider, model, tier, credentials = 
       : { status: "unsupported", reason: "Ultrafast is unavailable for this model on the public Responses API." };
   }
   if (tier === "fast" && provider === "openai") {
+    if (Object.hasOwn(OPENAI_FAST_UNSUPPORTED_REGIONS, id)
+      && OPENAI_FAST_UNSUPPORTED_REGIONS[id].includes(credentials?.providerSpecificData?.dataResidency)) {
+      return { status: "unsupported", scope: "account", reason: "Fast is unavailable in the configured data residency region for this model." };
+    }
     if (fastModels.has(id)) return { status: "supported", reason: null };
     if (knownModels.has(id)) return { status: "unsupported", reason: "Fast is not supported for this model." };
   }
@@ -143,12 +147,21 @@ export function prepareServiceTierRequest(provider, model, body, providerService
     throw tierError("serviceTier is an OpenCode configuration option. Send the native request field service_tier instead.", "invalid_service_tier", "serviceTier");
   }
   const selection = Object.hasOwn(body, "service_tier") ? body.service_tier : providerServiceTier ?? undefined;
-  const wire = resolveServiceTier(provider, model, selection, credentials);
-  return { selection, requestedServiceTier: selection ?? null, wireServiceTier: wire ?? null, requiresResponses: provider === "openai" && wire === "ultrafast" };
+  // Explicit Auto leaves project routing in effect and asks OpenAI to report
+  // the delivered tier, even when GPT-6.2 callers omit the selection.
+  const useProjectTier = provider === "openai" && selection == null && isGpt62Model(modelId(provider, model));
+  const wire = resolveServiceTier(provider, model, useProjectTier ? "auto" : selection, credentials);
+  const cache = body.prompt_cache_options;
+  const requiresResponses = provider === "openai" && (wire === "ultrafast"
+    || (usesOpenAIModernPromptCache(modelId(provider, model)) && (cache?.ttl === "12h" || cache?.mode !== undefined || cache?.prewarm !== undefined)));
+  return { selection, requestedServiceTier: selection ?? null, wireServiceTier: wire ?? null, requiresResponses };
 }
 
-export function getResponseServiceTier(response) {
-  const value = response?.response?.service_tier ?? response?.data?.response?.service_tier ?? response?.service_tier;
+export function getResponseServiceTier(response, eventType = response?.type ?? response?.data?.type) {
+  const snapshot = response?.response ?? response?.data?.response ?? response;
+  if (["response.created", "response.queued", "response.in_progress"].includes(eventType)
+    || ["queued", "in_progress"].includes(snapshot?.status)) return null;
+  const value = snapshot?.service_tier ?? response?.service_tier;
   return typeof value === "string" && value ? value : null;
 }
 

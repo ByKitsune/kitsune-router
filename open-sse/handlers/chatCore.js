@@ -153,9 +153,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   body = cloneRequestBody(body);
 
   let serviceTier;
+  let serviceTierParam;
   try {
     serviceTier = prepareServiceTierRequest(provider, model, body, providerServiceTier, credentials);
-    if (serviceTier?.selection !== undefined) body.service_tier = serviceTier.selection;
+    serviceTierParam = provider === "openai" ? serviceTier?.wireServiceTier ?? serviceTier?.selection : serviceTier?.selection;
+    if (serviceTierParam !== undefined) body.service_tier = serviceTierParam;
   } catch (error) {
     const invalidRequest = requestParameterError(error);
     if (invalidRequest) {
@@ -372,7 +374,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // Speed is orthogonal to the source format. Claude and other translators
   // need not know OpenAI-only extension fields; retain the selected intent here.
-  if (serviceTier?.selection !== undefined) translatedBody.service_tier = serviceTier.selection;
+  if (serviceTierParam !== undefined) translatedBody.service_tier = serviceTierParam;
 
   // Same-format and native passthrough bypass the request translators. Normalize
   // their actual outbound Parts too, without inventing a native tool result.

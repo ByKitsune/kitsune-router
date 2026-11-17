@@ -13,7 +13,8 @@ import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimod
 import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 import { splitToolCallId } from "../concerns/thoughtSignature.js";
-import { isGpt62Model } from "../../config/models.js";
+import { isGpt62Model, usesOpenAIModernPromptCache } from "../../config/models.js";
+import { stripThinkingSuffix } from "../concerns/thinkingUnified.js";
 
 const MAX_CALL_ID_LEN = 64;
 
@@ -261,8 +262,13 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials,
   if (body.reasoning_effort !== undefined) result.reasoning = { effort: body.reasoning_effort, summary: "auto" };
   if (body.service_tier !== undefined) result.service_tier = body.service_tier;
   if (body.prompt_cache_key !== undefined) result.prompt_cache_key = body.prompt_cache_key;
-  if (body.prompt_cache_options !== undefined && isGpt62Model(model) && ["openai", "codex", "cx", "opencode-zen"].includes(provider)) {
+  const modernCache = provider === "openai" && usesOpenAIModernPromptCache(stripThinkingSuffix(model));
+  const existingCacheRoute = isGpt62Model(stripThinkingSuffix(model)) && ["codex", "cx", "opencode-zen"].includes(provider);
+  if (body.prompt_cache_options !== undefined && (modernCache || existingCacheRoute)) {
     result.prompt_cache_options = body.prompt_cache_options;
+  }
+  if (body.prompt_cache_retention !== undefined && provider === "openai" && !modernCache) {
+    result.prompt_cache_retention = body.prompt_cache_retention;
   }
 
   // Structured output (9router #4547, fixes #2896): Chat Completions'

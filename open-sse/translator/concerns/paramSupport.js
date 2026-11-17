@@ -1,12 +1,14 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
-import { isGemini4Model, isGpt62Model } from "../../config/models.js";
+import { getReviewedModelMetadata } from "../../providers/metadata/reviewed.js";
+import { isGemini4Model, isGpt62Model, OPENAI_PROMPT_CACHE_TTLS, usesOpenAIModernPromptCache } from "../../config/models.js";
 import { FORMATS } from "../formats.js";
 import { rejectClaudeAudio } from "./requestMedia.js";
 import { antigravityOutputConfig } from "./structuredOutput.js";
 import { normalizeChatReasoningAliases } from "./reasoningAliases.js";
-import { validateThinkingParams } from "./thinkingUnified.js";
+import { stripThinkingSuffix, validateThinkingParams } from "./thinkingUnified.js";
+import { readOutputTokenCap, requiresMaxCompletionTokens } from "../formats/maxTokens.js";
 import { OPENAI_BLOCK, RESPONSES_ITEM } from "../schema/index.js";
 
 // Model-specific request controls. Legacy strip rules retain their behavior;
@@ -73,7 +75,7 @@ const STRIP_RULES = [
   // OpenAI gpt-5.4-mini / newer models: max_tokens is deprecated and rejected with 400.
   // Translate max_tokens -> max_completion_tokens.
   // Must be provider-agnostic: gateways like openrouter/vercel also proxy gpt-5.4-mini (#3587).
-  { provider: "openai", match: /gpt-5\.4-mini|gpt-5\.[4-9]|o1|o3/i, translateMaxTokens: true },
+  { provider: "openai", match: requiresMaxCompletionTokens, translateMaxTokens: true },
   { match: /gpt-5\.4-mini|gpt-5\.[4-9]|o1|o3/i, translateMaxTokens: true },
 ];
 
@@ -90,6 +92,27 @@ export function validateSupportedParams(provider, model, body, targetFormat = nu
   const nativeProvider = canonicalizeProviderId(provider || targetFormat);
   const format = targetFormat || PROVIDERS[nativeProvider]?.format;
   validateThinkingParams(nativeProvider, model, body, format, requestedModel, options);
+  if (nativeProvider === "openai" && typeof model === "string") {
+    const modelId = stripThinkingSuffix(model).replace(/^openai\//, "");
+    if (usesOpenAIModernPromptCache(modelId)) {
+      const ttl = body.prompt_cache_options?.ttl;
+      const param = body.prompt_cache_retention != null ? "prompt_cache_retention"
+        : ttl !== undefined && !OPENAI_PROMPT_CACHE_TTLS.includes(ttl) ? "prompt_cache_options.ttl" : null;
+      if (param) {
+        throw Object.assign(new Error("Use prompt_cache_options.ttl with 30m or 12h for this model."),
+          { code: "unsupported_parameter", param });
+      }
+    }
+    const ceiling = getReviewedModelMetadata("openai", modelId)?.capabilities?.maxOutput;
+    const field = ["max_output_tokens", "max_completion_tokens", "max_tokens"].find(name => body[name] != null);
+    if (field && Number.isSafeInteger(ceiling) && ceiling > 0) {
+      const cap = readOutputTokenCap(body, [field]);
+      if (cap > ceiling) {
+        throw Object.assign(new Error(`${field} exceeds this model's published maximum of ${ceiling} tokens.`),
+          { code: "invalid_output_budget", param: field });
+      }
+    }
+  }
   // Runs before Core's legacy modality stripping as well as before conversion.
   // A model capability cannot create an audio block in Anthropic's wire schema.
   if (format === FORMATS.CLAUDE) rejectClaudeAudio(body);
@@ -157,6 +180,10 @@ export function stripUnsupportedParams(provider, model, body) {
     ? body : normalizeChatReasoningAliases(body);
   if (normalized !== body) body.messages = normalized.messages;
   validateSupportedParams(provider, model, body);
+  if (provider === "openai" && Object.hasOwn(body, "input") && body.max_completion_tokens !== undefined) {
+    if (body.max_output_tokens == null && body.max_completion_tokens != null) body.max_output_tokens = body.max_completion_tokens;
+    delete body.max_completion_tokens;
+  }
   for (const rule of STRIP_RULES) {
     if (rule.provider && rule.provider !== provider) continue;
     if (rule.checkProvider && !rule.checkProvider(provider)) continue;

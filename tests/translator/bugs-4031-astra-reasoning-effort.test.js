@@ -44,7 +44,7 @@ describe("gpt-6-astra never receives reasoning_effort none (#4031)", () => {
   });
 
   it("models that CAN disable still get explicit none", () => {
-    const out = apply("openai", "gpt-5", { reasoning_effort: "none" }, "openai");
+    const out = apply("openai", "gpt-6-sol", { reasoning_effort: "none" }, "openai");
     expect(out.reasoning_effort).toBe("none");
   });
 });

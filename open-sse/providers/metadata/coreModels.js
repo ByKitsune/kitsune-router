@@ -11,6 +11,7 @@
  */
 
 import { OPENAI_GPT_62_TOKEN_PRICING_SOURCE, OPENAI_STANDARD_TOKEN_PRICING } from "../../config/processingSpeedPricing.js";
+import { applyOpenAIModelFacts } from "./openaiModelFacts.js";
 
 const gpt62Efforts = ["low", "medium", "high", "xhigh", "max"];
 const gpt62ReasoningModes = ["standard", "pro"];
@@ -3498,6 +3499,8 @@ for (const [id, { knowledgeCutoff }] of Object.entries(gpt62Models)) {
   };
 }
 
+applyOpenAIModelFacts(openai);
+
 const reference = (entry, note) => {
   const result = copy(entry);
   result.billing.kind = "api-reference";
@@ -3505,6 +3508,8 @@ const reference = (entry, note) => {
   result.limits.scope = "api-reference-for-client-route";
   result.limits.routeContextWindow = null;
   result.limits.routeMaxOutput = null;
+  delete result.limits.apiPromptCaching;
+  delete result.limits.apiFastLongContextFallback;
   // API project eligibility does not establish entitlement on an OAuth bridge.
   if (result.limits.accountEligibility) {
     result.limits.apiAccountEligibility = result.limits.accountEligibility;

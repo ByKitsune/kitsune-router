@@ -36,23 +36,43 @@ curl http://localhost:20128/v1/responses \
   -H "Authorization: Bearer $KITSUNE_ROUTER_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "codex/gpt-6.2-sol",
+    "model": "openai/gpt-6.2-sol",
     "input": "Explain this function",
     "reasoning": {"effort": "high"},
+    "max_output_tokens": 128000,
+    "prompt_cache_options": {"ttl": "30m"},
     "service_tier": "ultrafast"
   }'
 ```
 
-Use `openai/gpt-6.2-sol` to route through the public API instead of a Codex
-subscription. For Fast, set `service_tier` to `fast`; for Standard, use `default`.
-Prefer `/v1/responses` when selecting Ultrafast. A successful request does not by
-itself prove that the upstream delivered the requested speed tier.
+For Fast, set `service_tier` to `fast`. For Standard, use `default`. OpenAI API
+Ultrafast uses `/v1/responses`. Read `service_tier` from the upstream response
+to confirm the delivered speed. Use `codex/gpt-6.2-sol` for Codex OAuth and its
+account-specific settings. [Fast mode](https://developers.openai.com/api/docs/guides/fast-mode),
+[Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode).
+
+### Model limits and published quotes
+
+OpenAI's published model limits and tier quotes appear under
+`metadata.processingTiers` in `/v1/models` and `/v1/models/info`. The `default`,
+`fast`, and `ultrafast` entries carry the model's context, input, and output
+limits and the published rate for that speed. OpenAI publishes a 1,050,000-token
+window for GPT-6.2 Sol and Astra, with up to 922,000 input and 128,000 output
+tokens. Older GPT models use their own documented ceilings. `metadata.limits`
+includes documented prompt-cache controls and default reasoning effort. Above
+272,000 input tokens, the applicable long-context rate covers the full request.
+GPT-5.4 requests above that boundary are processed at Standard rates when Fast
+is requested. [GPT-6.2 model guide](https://developers.openai.com/api/docs/guides/latest-model),
+[GPT-5.4 model guide](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.4),
+[OpenAI API pricing](https://developers.openai.com/api/docs/pricing).
 
 ## Eligibility and cost
 
 - Public API Ultrafast is documented for **GPT-6.2 Sol**, **GPT-6.2 Astra**,
   **GPT-6 Astra**, and **GPT-6.1 Sol** using Responses. API access depends on
-  the account, region, and rate limits.
+  the account, region, and rate limits. GPT-6.2 supports US and EU data
+  residency with Fast and US data residency with Ultrafast. [OpenAI Fast mode](https://developers.openai.com/api/docs/guides/fast-mode),
+  [OpenAI Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode).
 - Codex Ultrafast for GPT-6.2 Sol is available to Pro $200, Pro $500, and
   eligible Enterprise/Edu accounts. GPT-6.2 Astra requires Pro $500 or eligible
   Enterprise/Edu access. Workspace permission and regional availability also
@@ -70,14 +90,10 @@ itself prove that the upstream delivered the requested speed tier.
   must not be presented as confirmed premium delivery or used to invent an
   invoice. Operator pricing overrides remain separate from upstream charges.
 
-**Estimator policy (unreleased source, reviewed 2026-10-21):** Kitsune Router records
-requested and actual tiers separately. Pricing supports independent complete
-`service_tiers` quotes (`fast`, `ultrafast`, `flex`, `scale`) and retains saved
-operator zero/unknown overrides. Published native OpenAI API quotes are included
-for the reviewed Astra, Sol 6.1 and Luna pairs; Luna Ultrafast and contract Scale
-remain unpriced. `priority` uses the Fast quote. Context tiers and native
-30-minute/12-hour cache-write tariffs belong to that delivered tier; missing
-components never inherit Standard rates.
+Kitsune Router records the requested and delivered tiers separately. `priority`
+uses the Fast quote. The delivered tier determines input, output, cache-read,
+and native 30-minute and 12-hour cache-write rates. Each used component needs
+its own published rate or operator override for a complete estimate.
 
 Actual `auto` is a selection-policy echo, not confirmed delivery. Missing or
 unconfirmed premium delivery therefore remains **unknown (`null`)**, never zero

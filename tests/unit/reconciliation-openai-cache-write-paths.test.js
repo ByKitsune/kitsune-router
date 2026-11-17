@@ -10,8 +10,11 @@ vi.mock("@/lib/usageDb.js", () => ({
   enqueueRequestUsage: async record => { storage.records.push(record); return { accepted: true, eventId: record.eventId }; },
 }));
 import { createSSEStream } from "../../open-sse/utils/stream.js";
+import { calculateCostBreakdown, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { convertResponsesStreamToJson } from "../../open-sse/transformer/streamToJsonConverter.js";
 import { canonicalizeUsage, normalizeUsage } from "../../open-sse/utils/usageTracking.js";
 import { handleNonStreamingResponse } from "../../open-sse/handlers/chatCore/nonStreamingHandler.js";
+import { parseSSEToOpenAIResponse } from "../../open-sse/handlers/chatCore/sseToJsonHandler.js";
 import { FORMATS } from "../../open-sse/translator/formats.js";
 
 const nativeDetails = {
@@ -57,10 +60,10 @@ async function stream(events, targetFormat, sourceFormat, mode) {
   return { captured, wire, parsed };
 }
 
-async function jsonCompletion(body, targetFormat, sourceFormat) {
+async function jsonCompletion(body, targetFormat, sourceFormat, requestedServiceTier) {
   const result = await handleNonStreamingResponse({
     providerResponse: Response.json(body), provider: "openai", model: "offline-cache-write-fixture",
-    sourceFormat, targetFormat, body: { model: "offline-cache-write-fixture", messages: [] }, stream: false,
+    sourceFormat, targetFormat, body: { model: "offline-cache-write-fixture", messages: [], service_tier: requestedServiceTier }, stream: false,
     translatedBody: {}, finalBody: {}, requestStartTime: Date.now(), connectionId: "offline-cache-write-fixture",
     clientRawRequest: { endpoint: sourceFormat === FORMATS.OPENAI_RESPONSES ? "/v1/responses" : "/v1/chat/completions" },
     reqLogger: { logProviderResponse() {}, logConvertedResponse() {} }, trackDone() {}, appendLog() {},
@@ -102,6 +105,18 @@ describe("OpenAI cache writes on consumed JSON handler paths", () => {
     });
     expect(storage.records[0].tokens).not.toHaveProperty("cache_write_12h_tokens");
   });
+
+  it.each([
+    ["default", 0.1396], ["priority", 0.2792], ["ultrafast", 0.4188],
+    ["future-tier", null], [undefined, null],
+  ])("prices persisted cache reads/writes using delivered %s instead of requested Ultrafast", async (actual, expected) => {
+    await jsonCompletion({ ...nativeBody(nativeUsage()), service_tier: actual }, FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI_RESPONSES, "ultrafast");
+    expect(storage.records[0].tokens.actualServiceTier).toBe(actual ?? null);
+    const quote = getPricingForModel("openai", "gpt-6.2-astra", { timestamp: "2026-11-18T00:00:00Z" });
+    const { totalCost } = calculateCostBreakdown(storage.records[0].tokens, quote);
+    if (expected === null) expect(totalCost).toBeNull();
+    else expect(totalCost).toBeCloseTo(expected, 12);
+  });
 });
 
 describe("OpenAI cache writes on consumed SSE accounting/forwarding paths", () => {
@@ -127,6 +142,22 @@ describe("OpenAI cache writes on consumed SSE accounting/forwarding paths", () =
       FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI, "translate");
     expect(result.parsed.some(event => event.choices?.[0]?.finish_reason === "stop")).toBe(true);
     expect(canonicalizeUsage(result.captured)).toMatchObject(expectedTokens);
+  });
+
+  it("keeps provisional Responses speed out of accounting and recognizes a confirmed fallback", async () => {
+    const created = { type: "response.created", response: { id: "resp_cache", status: "in_progress", service_tier: "priority" } };
+    const completed = { type: "response.completed", response: nativeBody(nativeUsage()) };
+    const convert = terminal => convertResponsesStreamToJson(new Response([created, terminal]
+      .map(event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join("")).body);
+    expect(await convert(completed)).not.toHaveProperty("service_tier");
+    expect(await convert({ ...completed, response: { ...completed.response, service_tier: "default" } }))
+      .toMatchObject({ service_tier: "default", usage: nativeUsage() });
+  });
+
+  it("retains confirmed speed with incurred Chat SSE error usage", () => {
+    const failed = { error: { message: "fixture failure" }, service_tier: "priority", usage: chatUsage() };
+    expect(parseSSEToOpenAIResponse(`data: ${JSON.stringify(failed)}\n\n`, "gpt-5.5"))
+      .toMatchObject({ error: { message: "fixture failure" }, service_tier: "priority", usage: chatUsage() });
   });
 
   it("replaces prior write counters with an explicit all-zero terminal snapshot", async () => {

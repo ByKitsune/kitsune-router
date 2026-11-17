@@ -121,6 +121,10 @@ export class DefaultExecutor extends BaseExecutor {
     if (this.provider === "openai") {
       const tier = prepareServiceTierRequest(this.provider, model, body, null, credentials);
       if (tier.requiresResponses && credentials?.runtimeTransport?.format !== FORMATS.OPENAI_RESPONSES) {
+        if (tier.wireServiceTier !== "ultrafast") {
+          throw Object.assign(new Error("These prompt cache options require the Responses API transport."),
+            { code: "unsupported_parameter", param: "prompt_cache_options" });
+        }
         throw Object.assign(new Error("Ultrafast requires the Responses API transport, not Chat Completions."), { code: "unsupported_service_tier", param: "service_tier" });
       }
     }

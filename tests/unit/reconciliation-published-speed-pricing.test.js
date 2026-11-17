@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { calculateCostBreakdown, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { calculateCostBreakdown, getDefaultPricing, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { getOpenAIPublishedTokenPricing } from "../../open-sse/config/processingSpeedPricing.js";
 
 describe("dated public OpenAI processing-speed tariffs", () => {
   // Literal USD/1M-token table from OpenAI pricing.md, captured 2026-10-21.
@@ -29,6 +30,19 @@ describe("dated public OpenAI processing-speed tariffs", () => {
       expect(calculateCostBreakdown({ prompt_tokens: 1000, completion_tokens: 100, actualServiceTier }, quote).totalCost).toBeNull();
     }
   });
+
+  it.each(["gpt-5.5", "gpt-5.4"])("leaves the published long-context Fast dash unpriced for %s", model => {
+    const quote = getOpenAIPublishedTokenPricing(model);
+    expect(quote.service_tiers.fast.tier).toMatchObject({ threshold: 272000, input: null, output: null, cached: null });
+    expect(calculateCostBreakdown({ prompt_tokens: 272001, completion_tokens: 1000, actualServiceTier: "priority" }, quote).totalCost).toBeNull();
+    expect(calculateCostBreakdown({ prompt_tokens: 273000, completion_tokens: 1000, actualServiceTier: "default" }, quote).totalCost).not.toBeNull();
+  });
+
+  it("honors the documented native gpt-5.6 alias without borrowing it across providers", () => {
+    const options = { timestamp: "2026-11-18T00:00:00Z" };
+    expect(getPricingForModel("openai", "gpt-5.6", options)).toEqual(getPricingForModel("openai", "gpt-5.6-sol", options));
+    expect(getPricingForModel("unverified-reseller", "gpt-5.6", options)).toBeNull();
+  });
 });
 
 describe("GPT-6.2 public OpenAI rates", () => {
@@ -52,5 +66,8 @@ describe("GPT-6.2 public OpenAI rates", () => {
     expect(calculateCostBreakdown(usage, price("2027-03-01T08:00:00Z")).outputCost).toBe(listOutput * 0.01);
     expect(calculateCostBreakdown(usage, price("2027-02-29T00:00:00Z")).totalCost).toBeNull();
     expect(calculateCostBreakdown(usage, getPricingForModel("cx", model, { timestamp: "2027-03-01T08:00:00Z" })).totalCost).toBeNull();
+    const options = { timestamp: "2027-03-01T08:00:00Z" };
+    expect(getOpenAIPublishedTokenPricing(model, options)).toEqual(price(options.timestamp));
+    expect(getDefaultPricing(options).openai[model]).toEqual(price(options.timestamp));
   });
 });

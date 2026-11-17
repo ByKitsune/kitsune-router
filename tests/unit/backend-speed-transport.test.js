@@ -25,6 +25,8 @@ vi.mock("../../open-sse/utils/requestLogger.js", () => ({ createRequestLogger: a
 
 import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
 import { CodexExecutor } from "../../open-sse/executors/codex.js";
+import { enqueueRequestUsage } from "@/lib/usageDb.js";
+import { calculateCostBreakdown, getPricingForModel } from "../../open-sse/providers/pricing.js";
 
 let server;
 beforeAll(async () => {
@@ -129,6 +131,28 @@ describe("processing-speed serialization to real HTTP", () => {
     expect(fixture.requests[0].body).not.toHaveProperty("service_tier");
   });
 
+  it.each([["default", "standard", true], [null, "unconfirmed", false]])("sends implicit GPT-6.2 Auto through Chat translation with delivered tier %s", async (actual, status, priced) => {
+    const model = "gpt-6.2-sol";
+    fixture.tier = actual;
+    const result = await dispatch({ model, source: "openai" });
+    expect(result.success).toBe(true);
+    expect(fixture.urls).toEqual(["https://api.openai.com/v1/responses"]);
+    expect(fixture.requests[0].body.service_tier).toBe("auto");
+    const tokens = enqueueRequestUsage.mock.calls[0][0].tokens;
+    expect(tokens).toMatchObject({ requestedServiceTier: null, actualServiceTier: actual, serviceTierCostStatus: status });
+    const cost = calculateCostBreakdown(tokens, getPricingForModel("openai", model)).totalCost;
+    if (priced) expect(cost).toBeCloseTo(0.00009, 10);
+    else expect(cost).toBeNull();
+  });
+
+  it("preserves a GPT-6.2 saved tier and explicit Auto override", async () => {
+    const model = "gpt-6.2-sol";
+    expect((await dispatch({ model, providerServiceTier: "fast" })).success).toBe(true);
+    expect(fixture.requests[0].body.service_tier).toBe("fast");
+    expect((await dispatch({ model, providerServiceTier: "fast", extra: { service_tier: null } })).success).toBe(true);
+    expect(fixture.requests[1].body.service_tier).toBe("auto");
+  });
+
   it.each(["openai", "openai-responses", "claude"])("injects the provider default into %s translation", async source => {
     expect((await dispatch({ source, providerServiceTier: "fast" })).success).toBe(true);
     expect(fixture.requests[0].body.service_tier).toBe("fast");
@@ -151,6 +175,110 @@ describe("processing-speed serialization to real HTTP", () => {
     expect((await dispatch({ source: "openai", extra: { service_tier } })).success).toBe(true);
     expect(fixture.urls).toEqual(["https://api.openai.com/v1/chat/completions"]);
     expect(fixture.requests[0].body).toMatchObject({ service_tier, reasoning_effort: "high" });
+  });
+
+  it.each(["gpt-5.6-sol", "gpt-6-sol", "gpt-6.2-astra"])("carries %s Fast, effort, output cap and Responses-only 12-hour cache option", async model => {
+    const result = await dispatch({
+      model, source: "openai",
+      extra: { service_tier: "fast", max_completion_tokens: 12345, prompt_cache_options: { ttl: "12h" } },
+    });
+    expect(result.success).toBe(true);
+    expect(fixture.urls).toEqual(["https://api.openai.com/v1/responses"]);
+    expect(fixture.requests[0].body).toMatchObject({
+      model, service_tier: "fast", max_output_tokens: 12345, prompt_cache_options: { ttl: "12h" },
+      reasoning: { effort: "high" },
+    });
+    expect(fixture.requests[0].body).not.toHaveProperty("max_completion_tokens");
+  });
+
+  it("keeps GPT-6 Sol on Chat for 30-minute cache with the native output cap field", async () => {
+    const result = await dispatch({
+      model: "gpt-6-sol", source: "openai",
+      extra: { service_tier: "fast", max_tokens: 12345, prompt_cache_options: { ttl: "30m" } },
+    });
+    expect(result.success).toBe(true);
+    expect(fixture.urls).toEqual(["https://api.openai.com/v1/chat/completions"]);
+    expect(fixture.requests[0].body).toMatchObject({
+      service_tier: "fast", max_completion_tokens: 12345, prompt_cache_options: { ttl: "30m" }, reasoning_effort: "high",
+    });
+    expect(fixture.requests[0].body).not.toHaveProperty("max_tokens");
+  });
+
+  it("preserves native cache breakpoints, exact output limit and Ultrafast on GPT-6.2 Responses", async () => {
+    const input = [{
+      role: "user",
+      content: [{ type: "input_text", text: "hello", prompt_cache_breakpoint: { mode: "explicit", ttl: "12h" } }],
+    }];
+    const result = await dispatch({
+      model: "gpt-6.2-astra",
+      extra: { input, service_tier: "ultrafast", max_output_tokens: 128000, prompt_cache_options: { mode: "explicit", ttl: "30m" } },
+    });
+    expect(result.success).toBe(true);
+    expect(fixture.requests[0].body).toMatchObject({
+      input, service_tier: "ultrafast", max_output_tokens: 128000, prompt_cache_options: { mode: "explicit", ttl: "30m" },
+    });
+  });
+
+  it("forwards legacy GPT-5.5 Pro cache retention on Chat-to-Responses translation", async () => {
+    const result = await dispatch({ model: "gpt-5.5-pro", source: "openai", extra: { prompt_cache_retention: "24h" } });
+    expect(result.success).toBe(true);
+    expect(fixture.urls).toEqual(["https://api.openai.com/v1/responses"]);
+    expect(fixture.requests[0].body.prompt_cache_retention).toBe("24h");
+  });
+
+  it("normalizes an explicit compatibility output budget on a native Responses request", async () => {
+    const result = await dispatch({ model: "gpt-6.2-sol", extra: { max_completion_tokens: 12345 } });
+    expect(result.success).toBe(true);
+    expect(fixture.requests[0].body).toMatchObject({ max_output_tokens: 12345 });
+    expect(fixture.requests[0].body).not.toHaveProperty("max_completion_tokens");
+  });
+
+  it.each([
+    ["gpt-5.5-pro", "none"],
+    ["gpt-5.4-pro", "low"],
+    ["gpt-5.2", "minimal"],
+  ])("applies the published %s effort enum before dispatch", async (model, effort) => {
+    const result = await dispatch({ model, extra: { reasoning: { effort } } });
+    expect(result.response.status).toBe(400);
+    expect(await result.response.json()).toMatchObject({ error: { code: "unsupported_parameter", param: "reasoning.effort" } });
+    expect(fixture.urls).toHaveLength(0);
+  });
+
+  it("maps Claude effort to GPT-5's published maximum on the actual upstream request", async () => {
+    const result = await dispatch({
+      model: "gpt-5", source: "claude", extra: { output_config: { effort: "max" } },
+    });
+    expect(result.success).toBe(true);
+    expect(fixture.requests[0].body.reasoning_effort).toBe("high");
+  });
+
+  it.each([
+    [{ max_output_tokens: 128001 }, "invalid_output_budget", "max_output_tokens"],
+    [{ prompt_cache_retention: "24h" }, "unsupported_parameter", "prompt_cache_retention"],
+    [{ prompt_cache_options: { ttl: "24h" } }, "unsupported_parameter", "prompt_cache_options.ttl"],
+  ])("rejects a documented GPT-6.2 request limit or unsupported cache option before dispatch", async (extra, code, param) => {
+    const result = await dispatch({ model: "gpt-6.2-astra", extra });
+    expect(result.response.status).toBe(400);
+    expect(await result.response.json()).toMatchObject({ error: { code, param } });
+    expect(fixture.urls).toHaveLength(0);
+  });
+
+  it.each([
+    ["gpt-6-astra", "fast", "eu", false],
+    ["gpt-6-sol", "priority", "eu", false],
+    ["gpt-6.2-astra", "fast", "eu", true],
+    ["gpt-6.2-sol", "ultrafast", "eu", false],
+    ["gpt-6.2-sol", "ultrafast", "us", true],
+  ])("honors documented %s %s residency for %s", async (model, tier, dataResidency, allowed) => {
+    const result = await dispatch({ model, extra: { service_tier: tier }, credentials: { providerSpecificData: { dataResidency } } });
+    if (allowed) {
+      expect(result.success).toBe(true);
+      expect(fixture.requests[0].body.service_tier).toBe(tier);
+    } else {
+      expect(result.response.status).toBe(400);
+      expect(result.accountServiceTierDenied).toBe(true);
+      expect(fixture.urls).toHaveLength(0);
+    }
   });
 
   it.each([["fast", "priority"], ["priority", "priority"], ["ultrafast", "ultrafast"]])("sends Codex %s as %s even on native passthrough", async (service_tier, wire) => {

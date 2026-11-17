@@ -23,10 +23,11 @@ export async function convertResponsesStreamToJson(stream, { signal, onAbort } =
       return false;
     }
     const type = event.event || parsed.type;
-    serviceTier = getResponseServiceTier(parsed) ?? serviceTier;
+    serviceTier = getResponseServiceTier(parsed, type) ?? serviceTier;
     const error = extractResponseError(parsed);
     if (parsed.response && typeof parsed.response === "object") {
-      const snapshot = parsed.response;
+      // Queue/creation metadata does not establish the delivered pricing tier.
+      const { service_tier: _provisionalTier, ...snapshot } = parsed.response;
       response = { ...response, ...snapshot };
       if (snapshot.usage) usage = snapshot.usage;
       if (Array.isArray(snapshot.output)) {

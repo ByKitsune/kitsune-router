@@ -12,6 +12,7 @@ import loginCatalogRefreshModels from "./loginCatalogRefreshModels.js";
 import { applyOpenCodeCatalog } from "./opencodeCatalog.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
 import { applyExactCatalogCapabilities, getCapabilityVerification, getPublicCapabilityCatalogReference } from "./modelsDevCapabilityResolution.js";
+import { getOpenAIPublishedTokenPricing } from "../../config/processingSpeedPricing.js";
 
 export const REVIEWED_MODEL_METADATA = {};
 for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antigravityModels, oauthModels, codebuddyModels, opencodeRefreshModels, loginCatalogRefreshModels]) {
@@ -71,11 +72,33 @@ function publicMetadataValue(value) {
     .filter(([, item]) => item !== undefined));
 }
 
+function openAIProcessingTiers(provider, model, record) {
+  if (canonicalizeProviderId(provider) !== "openai" || !record?.capabilities) return null;
+  const published = getOpenAIPublishedTokenPricing(model, { timestamp: new Date().toISOString() });
+  if (!Number.isFinite(published?.input) || !Number.isFinite(published?.output)) return null;
+
+  // OpenAI publishes these as model limits. A billing boundary or a fallback
+  // to Standard does not reduce the input the model can accept.
+  const { contextWindow = null, maxInput = null, maxOutput = null } = record.capabilities;
+  const limits = { contextWindow, maxInput, maxOutput };
+  const { service_tiers: rates, ...standard } = published;
+  const tiers = { default: { ...limits, pricing: standard } };
+  for (const tier of ["fast", "ultrafast"]) {
+    if (rates?.[tier]) tiers[tier] = { ...limits, pricing: rates[tier] };
+  }
+  if (tiers.fast && record.limits?.apiFastLongContextFallback) {
+    tiers.fast.longContextFallback = record.limits.apiFastLongContextFallback;
+  }
+  return tiers;
+}
+
 export function getPublicModelMetadata(provider, model, capabilities, declaredCapabilities) {
   const record = getReviewedModelMetadata(provider, model);
   const capabilityCatalog = getPublicCapabilityCatalogReference(provider, model);
   if (!record && !capabilityCatalog && !capabilities) return null;
   const result = publicMetadataValue(record || {});
+  const processingTiers = openAIProcessingTiers(provider, model, record);
+  if (processingTiers) result.processingTiers = publicMetadataValue(processingTiers);
   if (capabilityCatalog) result.capabilityCatalog = capabilityCatalog;
   if (capabilities) result.capabilities = publicMetadataValue(capabilities);
   if (capabilities) result.capabilityVerification = getCapabilityVerification(provider, model, capabilities, record, declaredCapabilities);

@@ -4,12 +4,13 @@
 
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { getThinkingLevels } from "../../providers/thinkingLevels.js";
+import { getReviewedModelMetadata } from "../../providers/metadata/reviewed.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel, getThinkingContext, setThinkingContext } from "./thinking.js";
 import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
 import { getProviderModels, PROVIDER_ID_TO_ALIAS } from "../../config/providerModels.js";
-import { isGpt62Model } from "../../config/models.js";
+import { isGpt62Model, OPENAI_REASONING_NONE_OMIT_MODELS } from "../../config/models.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
 const FORMAT_TO_NATIVE = {
@@ -172,15 +173,17 @@ function unsupportedThinking(param, message) {
 // registry preset, precedence rule or ordinal clamp hide rejected client intent.
 export function validateThinkingParams(provider, model, body, targetFormat = null, requestedModel = null, options = {}) {
   const nativeProvider = canonicalizeProviderId(provider);
-  const strictGpt62 = (nativeProvider === "openai" || nativeProvider === "opencode-zen") && isGpt62Model(stripThinkingSuffix(model));
-  if (nativeProvider !== "antigravity" && nativeProvider !== "codex" && !strictGpt62) return;
-  const context = getThinkingContext(body);
   const alias = PROVIDER_ID_TO_ALIAS[nativeProvider] || nativeProvider;
   const localModel = value => typeof value === "string" && (value.startsWith(`${alias}/`) || value.startsWith(`${nativeProvider}/`))
     ? value.slice(value.indexOf("/") + 1) : value;
+  const cleanModel = stripThinkingSuffix(localModel(model));
+  const publishedOpenAIEfforts = nativeProvider === "openai" && getReviewedModelMetadata("openai", cleanModel)?.limits?.apiReasoningEfforts;
+  const strictOpenAI = Array.isArray(publishedOpenAIEfforts);
+  const strictZen = nativeProvider === "opencode-zen" && isGpt62Model(cleanModel);
+  if (nativeProvider !== "antigravity" && nativeProvider !== "codex" && !strictOpenAI && !strictZen) return;
+  const context = getThinkingContext(body);
   const requested = localModel(requestedModel || context?.requestedModel || model);
   const parsed = parseSuffix(requested);
-  const cleanModel = stripThinkingSuffix(localModel(model));
   const providerDefault = options.providerThinkingInjected ?? context?.providerDefault ?? false;
   setThinkingContext(body, { requestedModel: requested, ...(providerDefault ? { providerDefault: true, explicitBudget: false } : {}) });
   const models = nativeProvider === "antigravity" ? getProviderModels(alias) : null;
@@ -193,6 +196,8 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
   for (const [prefix, value] of [["", body], ["request.", body.request]]) {
     if (!value || providerDefault) continue;
     for (const [path, effort] of [["reasoning_effort", value.reasoning_effort], ["reasoning.effort", value.reasoning?.effort], ["output_config.effort", value.output_config?.effort]]) {
+      // Claude output_config is translated to the closest OpenAI effort.
+      if (strictOpenAI && path === "output_config.effort") continue;
       if (effort != null) efforts.push([`${prefix}${path}`, effort]);
     }
   }
@@ -202,10 +207,12 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
     unsupportedThinking("model", "the thinking suffix is not supported; use a declared effort or remove the suffix.");
   }
 
-  if (nativeProvider === "codex" || strictGpt62) {
-    const levels = getThinkingLevels(nativeProvider, cleanModel);
+  if (nativeProvider === "codex" || strictOpenAI || strictZen) {
+    const levels = strictOpenAI ? publishedOpenAIEfforts : getThinkingLevels(nativeProvider, cleanModel);
     for (const [param, raw] of efforts) {
       const effort = typeof raw === "string" ? raw.trim().toLowerCase() : null;
+      // Retain the legacy Astra adapter's omission of unsupported none.
+      if (strictOpenAI && effort === "none" && OPENAI_REASONING_NONE_OMIT_MODELS.includes(cleanModel)) continue;
       if (!effort || !levels?.includes(effort)) {
         unsupportedThinking(param, `this model accepts reasoning effort ${levels?.join(", ") || "only when declared by the destination"}; omit ${param} to use its default.`);
       }

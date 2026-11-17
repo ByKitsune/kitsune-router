@@ -784,6 +784,8 @@ export function getPricingForModel(provider, model, options = {}) {
         return Object.fromEntries(PRICING_RATE_FIELDS.map(field => [field, null]));
       }
     }
+    const native = owner === "openai" ? openAIProcessingQuotes.getOpenAIPublishedTokenPricing(id, options) : null;
+    if (native) return native;
     // Explicit provider tariffs are complete, even when they contain nulls.
     for (const { table } of providerTables) {
       const price = exactPrice(table, id);
@@ -799,6 +801,7 @@ export function getPricingForModel(provider, model, options = {}) {
     for (const { table, literalOnly } of providerTables) {
       if (literalOnly) continue;
       const price = exactPrice(table, id, true);
+      if (price && owner === "openai") return openAIProcessingQuotes.getOpenAIPublishedTokenPricing(id.toLowerCase(), options) || price;
       if (price) return price;
     }
     // Only registry-declared aliases: no guessed review/thinking/date stripping.
@@ -809,15 +812,7 @@ export function getPricingForModel(provider, model, options = {}) {
     if (FREE_MODEL_NAMESPACES.some(namespace => FREE_MODEL_NAMESPACE_OWNERS[namespace] === owner && id.startsWith(namespace))) return ZERO_PRICING;
     return getModelsDevPricingEstimate(provider, id, options);
   }
-  const pricing = resolve(model);
-  if (owner !== "openai" || !pricing?.service_tiers?.ultrafast) return pricing;
-  const listQuotes = openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_PRICING;
-  const id = upstreamModel.toLowerCase();
-  if (!Object.hasOwn(listQuotes, id)) return pricing;
-  const date = parsePricingTimestamp(options.timestamp === undefined ? Date.now() : options.timestamp);
-  if (date && date.getTime() < Date.parse(openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_RATE_FROM)) return pricing;
-  const ultrafast = date ? listQuotes[id] : null;
-  return { ...pricing, service_tiers: { ...pricing.service_tiers, ultrafast } };
+  return resolve(model);
 }
 
 /**
@@ -825,8 +820,12 @@ export function getPricingForModel(provider, model, options = {}) {
  * Returns provider-scoped pricing; unlisted models must not inherit another
  * provider's global model or family reference.
  */
-export function getDefaultPricing() {
-  return PROVIDER_PRICING;
+export function getDefaultPricing(options = {}) {
+  const openai = { ...PROVIDER_PRICING.openai };
+  for (const model of Object.keys(openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_PRICING)) {
+    openai[model] = getPricingForModel("openai", model, options);
+  }
+  return { ...PROVIDER_PRICING, openai };
 }
 
 /**
@@ -885,7 +884,10 @@ function resolveDeliveredTierPricing(tokens, pricing) {
     const alias = actual === "priority" ? "fast" : actual === "fast" ? "priority" : null;
     return alias && Object.hasOwn(tiers, alias) ? tiers[alias] : null;
   }
-  return tokens?.serviceTierCostStatus === "unpriced" || tokens?.serviceTierCostStatus === "unconfirmed" ? null : pricing;
+  const requested = tokens?.requestedServiceTier;
+  if ((requested != null && requested !== "default")
+    || tokens?.serviceTierCostStatus === "unpriced" || tokens?.serviceTierCostStatus === "unconfirmed") return null;
+  return pricing;
 }
 
 function tokenCost(tokens, rate) {
