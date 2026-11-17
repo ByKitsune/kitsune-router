@@ -41,14 +41,14 @@ describe("hosted billing contracts", () => {
 
   it.each([
     ["morph-kimik3", 500000, 2.0915],
-    ["morph-glm53-744b", 500000, 0.576],
-    ["morph-glm53flash", 500000, 0.491],
+    ["morph-glm53-744b", 500000, 1.042],
+    ["morph-glm53flash", 500000, 0.1232],
     ["morph-dsv41flash", 0, 0.266],
     ["morph-dsv4flash", 500000, 0.0851],
   ])("uses %s's hosted tariff for cache-inclusive usage and output-billed reasoning", (id, cached, expected) => {
-    // Primary https://www.morphllm.com/api/models/json captured 2026-10-21.
-    // cost_usd is explicitly per token. Half cached input + 100K total output
-    // (including 60K reasoning); no extra reasoning charge or guessed cache fee.
+    // https://www.morphllm.com/api/models/json publishes cost_usd per token.
+    // The two ready GLM routes use the November 17 rates. The 100K output
+    // tokens include the 60K reasoning tokens.
     const tokens = { prompt_tokens: 1000000, cached_tokens: cached, completion_tokens: 100000, reasoning_tokens: 60000 };
     expect(calculateCostFromTokens(tokens, getPricingForModel("morph", id))).toBeCloseTo(expected, 12);
   });

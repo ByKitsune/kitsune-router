@@ -61,7 +61,7 @@ test("Gemini 4 Hydrogen shows paid Standard and Priority rates in the pricing ed
   await dialog.getByRole("searchbox", { name: "Find provider or model" }).fill(model);
   const input = dialog.getByRole("spinbutton", { name: `gemini ${model} input (USD per million tokens)`, exact: true });
   await expect(input).toHaveValue("1.5");
-  const row = dialog.getByRole("row").filter({ has: input });
+  const row = input.locator("xpath=ancestor::tr");
   await row.getByText("Delivered speed tariffs", { exact: true }).click();
   await expect(row.getByRole("spinbutton", { name: "priority input", exact: true })).toHaveValue("2.7");
   await expect(row.getByRole("spinbutton", { name: "priority output", exact: true })).toHaveValue("13.5");
