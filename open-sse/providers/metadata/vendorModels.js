@@ -173,6 +173,15 @@ const baiduBilling = "https://cloud.baidu.com/doc/qianfan/s/wmh4sv6ya";
 const baiduNote = "Qianfan native hosted route, CNY per 1000 tokens. No FX conversion or direct-vendor USD fallback. Native max_tokens ranges take precedence over conflicting overview k notation. Independent input/context k/M notation is not silently converted from another host. Native price facts are billing.nativeQuote only; the USD calculator remains explicitly unknown. Search enhancement and other tools are separately billed.";
 const mistralPricing = "https://docs.mistral.ai/inference/pricing";
 const mistralNote = "Mistral-hosted standard USD per 1M tokens; not the half-price batch figures found in some catalogs. Only explicitly published cached-input prices are accepted. No guessed 10% cache rate, cache-write multiplier or output ceiling copied from the shared context window. Latest aliases retain the mapping explicitly printed in each model page.";
+const mistralLarge4Model = "https://docs.mistral.ai/models/mistral-large-4-0.md";
+const mistralLarge4 = {
+  capabilities: caps(1048576, null, { vision: true, reasoning: true, tools: true, structuredOutput: true }),
+  limits: { contextWindowLiteral: "1M", fieldSources: { contextWindow: mistralLarge4Model },
+    contextWindowScope: "The provider identifies both API names as Large 4 with a shared 1M window. The current exact catalog supplies the numeric reference of 1,048,576 for both." },
+  pricing: { input: 0.7, output: 2.1, cached: 0.07 },
+  sources: [mistralLarge4Model],
+  billing: { reviewedAt: "2026-11-17", effectiveFrom: "2026-11-17T22:58:59Z" },
+};
 const poolsideSource = "https://docs.poolside.ai/get-started/supported-models.md";
 const poolsideNote = "Poolside-hosted S/XS access is advertised free for a limited time, with no permanent paid tariff or promotion expiry published. Do not manufacture a permanent zero quote. Self-managed supported-model specs and architecture positions do not prove account-specific hosted entitlement or an independent output ceiling. Existing IDs retained; no authenticated inference performed.";
 const agentSource = "https://docs.perplexity.ai/docs/agent-api/models.md";
@@ -409,11 +418,7 @@ export default {
     billing: { currency: "CNY", unit: "per_1000_tokens", kind: "payg", quoteStatus: "unpublished", region: "Qianfan", note: baiduNote },
   }),
   mistral: reviewed({
-    "mistral-large-4": {
-      capabilities: caps(null, null, { vision: true, reasoning: true, tools: true, structuredOutput: true }),
-      limits: { catalogAsOf: asOf, contextWindowLiteral: "1M", unknownLimitNote: "Current model page publishes1M context but no independent output maximum; exact context notation conversion not independently verified." },
-      pricing: { input: 1.36, output: 4.18, cached: 0.14 }, sources: ["https://docs.mistral.ai/models/mistral-large-4-0.md"],
-    },
+    "mistral-large-4": mistralLarge4,
     "zai-glm-5-3": {
       capabilities: caps(1048576, 131072, { reasoning: true, tools: true, structuredOutput: true }),
       limits: { contextWindowLiteral: "1M", maxOutputLiteral: "128k", maxOutputScope: "Independent output-token limit is published by the Mistral model page; numeric binary-k convention retains the exact route catalog comparison." },
@@ -426,7 +431,7 @@ export default {
       limits: { architectureContextWindow: 262144, contextWindowStatus: "The current exact-provider catalog records the native API /v1/models ceiling as131072 while model documentation/weights describe262144. Advertise the smaller API-route reference, not the architecture maximum; no new authenticated API probe was performed.", fieldSources: { contextWindow: "https://models.dev/api.json" } },
       sources: ["https://docs.mistral.ai/models/ministral-3-3b-25-12", "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/raw/main/config.json"],
     },
-    "mistral-large-latest": { capabilities: caps(262144, null, { vision: true, reasoning: false, tools: true }), pricing: { input: 0.5, output: 1.5 }, sources: ["https://docs.mistral.ai/models/mistral-large-3-25-12.md"] },
+    "mistral-large-latest": mistralLarge4,
     "mistral-medium-latest": { capabilities: caps(262144, null, { vision: true, reasoning: true, tools: true, structuredOutput: true }), pricing: { input: 1.5, output: 7.5 }, sources: ["https://docs.mistral.ai/models/mistral-medium-3-5-26-04.md"] },
     "mistral-small-latest": { capabilities: caps(262144, null, { vision: true, reasoning: true, tools: true }), pricing: { input: 0.15, output: 0.6 }, sources: ["https://docs.mistral.ai/models/mistral-small-4-0-26-03.md"] },
     "codestral-latest": { capabilities: caps(null, null, { reasoning: false, tools: true }), pricing: { input: 0.3, output: 0.9 }, limits: { contextWindowStatus: "The exact native catalog publishes256000 for codestral-latest while its declared Codestral2508 base/documentation reference publishes128000. The changing alias ceiling is unresolved; no new authenticated API probe was performed.", contextWindowConflict: { catalog: 256000, documentedBase: 128000, asOf: "2026-10-29" } }, sources: ["https://docs.mistral.ai/models/codestral-25-08.md"] },

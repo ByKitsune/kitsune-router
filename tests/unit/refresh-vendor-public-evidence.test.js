@@ -35,7 +35,7 @@ describe("vendor billing provenance in the public dashboard catalog", () => {
       ["xiaomi-tokenplan", "mimo-v2.6-pro", "subscription-unknown"],
       ["cohere", "command-a-plus-05-2026", "quote-verified", "2026-11-17"],
       ["qianfan", "ernie-5.1", "quote-verified"],
-      ["mistral", "mistral-large-latest", "quote-verified"],
+      ["mistral", "mistral-large-latest", "quote-verified", "2026-11-17"],
       ["ps", "poolside/laguna-s-2.1", "unpublished"],
       ["pa", "perplexity/sonar", "quote-verified"],
       ["hunyuan", "hy3-preview", "unpublished"],

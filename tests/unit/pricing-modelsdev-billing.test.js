@@ -81,11 +81,11 @@ describe("2026-10-17 provider-scoped billing evidence", () => {
     expect(calculateCostBreakdown(tokens, pricing).cachedCost).toBeNull();
   });
 
-  it("uses Together's current literal Qwen tariff over a stale catalog reference", () => {
+  it("uses Together's current published Qwen tariff including cache reads", () => {
     const tokens = { prompt_tokens: 1000000, cached_tokens: 500000, completion_tokens: 100000 };
     const pricing = getPricingForModel("together", "Qwen/Qwen3.7-Max");
-    expect(calculateCostFromTokens(tokens, pricing)).toBeCloseTo(1.35, 12);
-    expect(calculateCostBreakdown(tokens, pricing).totalCost).toBeCloseTo(1.35, 12);
+    expect(calculateCostFromTokens(tokens, pricing)).toBeCloseTo(2.25, 12);
+    expect(calculateCostBreakdown(tokens, pricing).totalCost).toBeCloseTo(2.25, 12);
   });
 
   it.each([

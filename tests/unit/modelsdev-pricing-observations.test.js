@@ -12,11 +12,13 @@ import {
 } from "../../open-sse/providers/metadata/modelsDevPricing.js";
 import current from "../../open-sse/providers/metadata/modelsDevPricingCurrent.js";
 import october29 from "../../open-sse/providers/metadata/modelsDevPricing20261029.js";
+import october30 from "../../open-sse/providers/metadata/modelsDevPricing20261030.js";
 
 const model = "nvidia/nemotron-3-super-120b-a12b";
 const before = { timestamp: "2026-10-29T06:00:00Z" };
 const after = { timestamp: "2026-10-29T07:00:00Z" };
 const currentAt = { timestamp: Date.parse(current.source.verifiedAtUtc) + 3600000 };
+const october30At = { timestamp: Date.parse(october30.source.verifiedAtUtc) + 3600000 };
 const source = (suffix = "a", at = "2026-10-29T08:00:00Z") => ({
   url: "https://models.dev/api.json", verifiedAtUtc: at,
   sha256: suffix.repeat(64), snapshotDate: "2026-10-29",
@@ -28,23 +30,28 @@ const importer = fileURLToPath(new URL("../../scripts/import-modelsdev-pricing.m
 afterEach(() => setModelsDevPricingObservationSource(null));
 
 describe("versioned models.dev pricing observations", () => {
-  it("retains old event quotes while exposing the verified reconstructed current source", () => {
+  it("retains older event quotes alongside the live HTTP source", () => {
     const old = getModelsDevPricingEstimate("openrouter", model, before);
     const now = getModelsDevPricingEstimate("openrouter", model, after);
     expect(old).toMatchObject({ input: 0.3, output: 2.4, cached: null });
     expect(old.provenance.sha256).toBe("bb81b8bddd68fe7cba6504ce9a8cb217fdafb8cf1fd29b56232138b0860bb82f");
     expect(now).toMatchObject({ input: 0.3, output: 2.4, cached: 0.15, reasoning: null });
     expect(now.provenance).toMatchObject({ sha256: "d1f9cdad590fc031c5633132107d0818efec98f2ba8d27e4ba9cf952f473fc4b", repositoryCommit: "91395aca0144ed1a54cdd527dc9d7eb682e1e4cd" });
-    expect(getModelsDevPricingEstimate("openrouter", model, currentAt).provenance).toMatchObject({
+    expect(getModelsDevPricingEstimate("openrouter", model, october30At).provenance).toMatchObject({
       sha256: "d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c", repositoryCommit: "971a07c53cdb688185015776b76151d514b7bde5",
     });
-    expect(getModelsDevPricingReference("openrouter", model).retrieval).toMatch(/not an HTTP API (?:response )?capture/);
+    expect(getModelsDevPricingReference("openrouter", model, october30At).retrieval).toMatch(/not an HTTP API (?:response )?capture/);
+    expect(getModelsDevPricingReference("openrouter", model)).toMatchObject({
+      retrieval: "validated-https-response", sha256: "152e5625c5a807eb0a7f2517f277f6b7eda66ca5ba1ac773acdc7e488d54cfd0",
+    });
     expect(getModelsDevPricingReference("openrouter", model, before).sha256).toBe(old.provenance.sha256);
   });
 
   it("covers dynamic exact-product IDs without borrowing another host's quote", () => {
-    expect(Object.values(current.references).reduce((sum, rows) => sum + Object.keys(rows).length, 0)).toBe(1410);
-    expect(Object.values(current.estimates).flat()).toHaveLength(357);
+    expect(Object.values(october30.references).reduce((sum, rows) => sum + Object.keys(rows).length, 0)).toBe(1410);
+    expect(Object.values(october30.estimates).flat()).toHaveLength(357);
+    expect(Object.values(current.references).reduce((sum, rows) => sum + Object.keys(rows).length, 0)).toBe(2296);
+    expect(Object.values(current.estimates).flat()).toHaveLength(508);
     expect(getPricingForModel("mistral", "devstral-2512", after)).toMatchObject({ input: 0.4, output: 2 });
     expect(getPricingForModel("unknown-host", "devstral-2512", after)).toBeNull();
     expect(getPricingForModel("openrouter", model, after).input).toBe(0.3);
@@ -52,11 +59,36 @@ describe("versioned models.dev pricing observations", () => {
     expect(getPricingForModel("openrouter", model.toUpperCase(), after)).toBeNull();
   });
 
+  it("uses the latest exact gateway quote and leaves other products separate", () => {
+    expect(getPricingForModel("kilo-gateway", "aion-labs/aion-2.0", currentAt)).toMatchObject({
+      input: 0.8, output: 1.6, cached: 0.2, provenance: { product: "kilo", sha256: current.source.sha256 },
+    });
+    expect(getPricingForModel("kilocode", "aion-labs/aion-2.0", currentAt)).toBeNull();
+    expect(getModelsDevPricingStatus("opencode-go", "gpt-6-luna", currentAt).status).toBe("reference-only");
+    expect(getModelsDevPricingEstimate("opencode-go", "gpt-6-luna", currentAt)).toBeNull();
+    expect(getModelsDevPricingReference("codex", "gpt-6.2-sol", currentAt)).toBeNull();
+    expect(getPricingForModel("openai", "gpt-6.2-sol", currentAt)).toMatchObject({ input: 2, output: 10 });
+  });
+
   it("uses a current explicit cached rate but does not invent reasoning or speed tariffs", () => {
-    const quote = getPricingForModel("openrouter", model, currentAt);
+    const quote = getPricingForModel("openrouter", model, october30At);
     expect(calculateCostBreakdown({ prompt_tokens: 1000000, cached_tokens: 100000, completion_tokens: 1000000 }, quote).totalCost).toBeCloseTo(2.685);
     expect(calculateCostBreakdown({ prompt_tokens: 100, completion_tokens: 100, reasoning_tokens: 10 }, quote).totalCost).toBeNull();
     expect(calculateCostBreakdown({ prompt_tokens: 100, completion_tokens: 100, actualServiceTier: "fast" }, quote).totalCost).toBeNull();
+  });
+
+  it("uses v2's explicit reasoning price without inferring a write lifetime or rewriting v1 history", () => {
+    const row = textModel("m", { input: 2, output: 6, cache_read: 0.5, reasoning: 9, cache_write: 3 });
+    const next = createModelsDevPricingObservation(catalog({ m: row }), source("d", "2030-01-02T08:00:00Z"));
+    const prior = validateModelsDevPricingObservation({ ...structuredClone(next), format: october30.format,
+      source: source("e", "2030-01-01T08:00:00Z"), estimates: {} });
+    setModelsDevPricingObservationSource(() => [prior, next]);
+    expect(getModelsDevPricingStatus("openrouter", "m", { timestamp: "2030-01-01T09:00:00Z" }).status).toBe("reference-only");
+    const quote = getModelsDevPricingEstimate("openrouter", "m", { timestamp: "2030-01-02T09:00:00Z" });
+    expect(quote).toMatchObject({ input: 2, output: 6, cached: 0.5, reasoning: 9, cache_creation: null,
+      cache_write_30m: null, cache_write_12h: null });
+    expect(calculateCostBreakdown({ prompt_tokens: 1000, completion_tokens: 1000, reasoning_tokens: 500 }, quote).totalCost).toBe(0.0095);
+    expect(calculateCostBreakdown({ prompt_tokens: 1000, cache_write_30m_tokens: 500 }, quote).totalCost).toBeNull();
   });
 
   it("requires a recorded timestamp and expires exactly24h after a real observation", () => {
@@ -133,6 +165,7 @@ describe("versioned models.dev pricing observations", () => {
 
   it("keeps current generated source and importer check mode offline and deterministic", () => {
     expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS[1]).toBe(october29);
+    expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS[2]).toBe(october30);
     expect(BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS.at(-1)).toBe(current);
     const directory = mkdtempSync(join(tmpdir(), "pricing-source-check-"));
     try {

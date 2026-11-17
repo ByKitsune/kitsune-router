@@ -159,6 +159,49 @@ describe("SQLite usage consumers preserve unknown cost", () => {
     });
   });
 
+  it("retains an operator's recorded unknown rate after that override is removed", async () => {
+    const provider = "cohere";
+    const model = "command-a-03-2025";
+    const tariff = { output: null };
+    await pricing.updatePricing({ [provider]: { [model]: tariff } });
+    const at = { provider, model, timestamp: "2025-03-14T12:00:00Z" };
+    await usage.saveRequestUsage(request({ ...at, eventId: "operator-quote" }));
+    await usage.saveRequestUsage(request({ ...at, eventId: "legacy-operator-quote" }));
+    const legacy = JSON.parse(db.get("SELECT meta FROM usageHistory WHERE eventId = ?", ["legacy-operator-quote"]).meta);
+    delete legacy.quote.pricing.provenance;
+    db.run("UPDATE usageHistory SET meta = ? WHERE eventId = ?", [JSON.stringify(legacy), "legacy-operator-quote"]);
+    const before = db.all("SELECT cost, meta FROM usageHistory ORDER BY id");
+    expect(before.every(row => row.cost === null)).toBe(true);
+    expect(JSON.parse(before[0].meta).quote.pricing.provenance).toEqual({ kind: "operator-override", overriddenFields: ["output"] });
+    await pricing.resetPricing(provider, model);
+    expect(await usage.recoverUnpricedUsage()).toEqual({ checked: 2, recovered: 0 });
+    expect(db.all("SELECT cost, meta FROM usageHistory ORDER BY id")).toEqual(before);
+  });
+
+  it("checks newer pricing evidence after an overlapping recovery finishes", async () => {
+    const provider = "cohere";
+    const model = "command-a-03-2025";
+    const missing = vi.spyOn(pricing, "getPricingForModel").mockResolvedValueOnce(null);
+    await usage.saveRequestUsage(request({ provider, model, timestamp: "2025-03-14T12:00:00Z" }));
+    missing.mockRestore();
+    const started = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    const resolver = vi.spyOn(pricing, "createHistoricalPricingResolver").mockImplementationOnce(async () => {
+      started.resolve();
+      await release.promise;
+      return () => null;
+    });
+    const initial = usage.recoverUnpricedUsage();
+    await started.promise;
+    const newer = usage.recoverUnpricedUsage();
+    await new Promise(resolve => setImmediate(resolve));
+    const startedBeforeRelease = resolver.mock.calls.length;
+    release.resolve();
+    expect(await Promise.all([initial, newer])).toEqual([{ checked: 1, recovered: 0 }, { checked: 1, recovered: 1 }]);
+    expect(startedBeforeRelease).toBe(1);
+    expect(db.get("SELECT cost FROM usageHistory").cost).toBe(0.0075);
+  });
+
   it("persists an unpriced request as NULL and retains unused zero components after history and ring reload", async () => {
     const entry = request();
     await usage.saveRequestUsage(entry);

@@ -115,6 +115,8 @@ export const OPENAI_STANDARD_TOKEN_PRICING = tokenQuotes({
 
 // Complete, independent mode quotes. A missing mode (including Scale) is not
 // priced. Explicit-null >272K cells prevent extrapolating short Fast prices.
+// Batch rows use the November 17 pricing capture. They describe published
+// tariffs for Batch usage and are separate from online service_tier values.
 export const OPENAI_PROCESSING_SPEED_PRICING = Object.fromEntries(Object.entries({
   "gpt-6.2-astra": {
     batch: { input: 4, output: 20, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30, cached: 0.4, cache_write_30m: 10, cache_write_12h: 20 } },
@@ -127,82 +129,121 @@ export const OPENAI_PROCESSING_SPEED_PRICING = Object.fromEntries(Object.entries
     ultrafast: { input: 6, output: 30, cached: 0.3, cache_write_30m: 7.5, cache_write_12h: 15, tier: { threshold: 272000, inclusive: false, input: 12, output: 45, cached: 0.6, cache_write_30m: 15, cache_write_12h: 30 } },
   },
   "gpt-6-astra": {
+    batch: { input: 5, output: 25, cached: 0.5, cache_write_30m: 6.25, cache_write_12h: 12.5, tier: { threshold: 272000, inclusive: false, input: 10, output: 37.5, cached: 1, cache_write_30m: 12.5, cache_write_12h: 25 } },
     fast: { input: 20, cached: 2, output: 100, cache_write_30m: 25, cache_write_12h: 50, tier: { threshold: 272000, inclusive: false, input: 40, cached: 4, output: 150, cache_write_30m: 50, cache_write_12h: 100 } },
     ultrafast: { input: 60, cached: 6, output: 300, cache_write_30m: 75, cache_write_12h: 150, tier: { threshold: 272000, inclusive: false, input: 120, cached: 12, output: 450, cache_write_30m: 150, cache_write_12h: 300 } },
     flex: { input: 5, cached: 0.5, output: 25, cache_write_30m: 6.25, cache_write_12h: 12.5, tier: { threshold: 272000, inclusive: false, input: 10, cached: 1, output: 37.5, cache_write_30m: 12.5, cache_write_12h: 25 } },
   },
   "gpt-6.1-sol": {
+    batch: { input: 1, output: 5, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5 } },
     fast: { input: 4, cached: 0.2, output: 20, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, cached: 0.4, output: 30, cache_write_30m: 10, cache_write_12h: 20 } },
     ultrafast: { input: 12, cached: 0.6, output: 60, cache_write_30m: 15, cache_write_12h: 30, tier: { threshold: 272000, inclusive: false, input: 24, cached: 1.2, output: 90, cache_write_30m: 30, cache_write_12h: 60 } },
     flex: { input: 1, cached: 0.05, output: 5, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, cached: 0.1, output: 7.5, cache_write_30m: 2.5, cache_write_12h: 5 } },
   },
   "gpt-6.1-terra": {
+    batch: { input: 0.5, output: 2.5, cached: 0.025, cache_write_30m: 0.625, cache_write_12h: 1.25, tier: { threshold: 272000, inclusive: false, input: 1, output: 3.75, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5 } },
     fast: { input: 2, cached: 0.1, output: 10, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, cached: 0.2, output: 15, cache_write_30m: 5, cache_write_12h: 10 } },
     flex: { input: 0.5, cached: 0.025, output: 2.5, cache_write_30m: 0.625, cache_write_12h: 1.25, tier: { threshold: 272000, inclusive: false, input: 1, cached: 0.05, output: 3.75, cache_write_30m: 1.25, cache_write_12h: 2.5 } },
   },
   "gpt-6-luna": {
+    batch: { input: 0.05, output: 0.25, cached: 0.005, cache_write_30m: 0.0625, cache_write_12h: 0.125, tier: { threshold: 272000, inclusive: false, input: 0.1, output: 0.375, cached: 0.01, cache_write_30m: 0.125, cache_write_12h: 0.25 } },
     fast: { input: 0.2, cached: 0.02, output: 1, cache_write_30m: 0.25, cache_write_12h: 0.5, tier: { threshold: 272000, inclusive: false, input: 0.4, cached: 0.04, output: 1.5, cache_write_30m: 0.5, cache_write_12h: 1 } },
     flex: { input: 0.05, cached: 0.005, output: 0.25, cache_write_30m: 0.0625, cache_write_12h: 0.125, tier: { threshold: 272000, inclusive: false, input: 0.1, cached: 0.01, output: 0.375, cache_write_30m: 0.125, cache_write_12h: 0.25 } },
   },
   "gpt-6-sol": {
+    batch: { input: 1, output: 5, cached: 0.1, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5 } },
     fast: { input: 4, output: 20, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30, cached: 0.8, cache_write_30m: 10, cache_write_12h: 20 } },
     flex: { input: 1, output: 5, cached: 0.1, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5 } },
   },
   "gpt-5.6-sol": {
+    batch: { input: 2, output: 10, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10 } },
     fast: { input: 8, output: 40, cached: 0.8, cache_write_30m: 10, cache_write_12h: 20, tier: { threshold: 272000, inclusive: false, input: 16, output: 60, cached: 1.6, cache_write_30m: 20, cache_write_12h: 40 } },
     flex: { input: 2, output: 10, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10 } },
   },
   "gpt-5.6-terra": {
+    batch: { input: 1, output: 6, cached: 0.1, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 9, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5 } },
     fast: { input: 4, output: 24, cached: 0.4, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 36, cached: 0.8, cache_write_30m: 10, cache_write_12h: 20 } },
     flex: { input: 1, output: 6, cached: 0.1, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 9, cached: 0.2, cache_write_30m: 2.5, cache_write_12h: 5 } },
   },
   "gpt-5.6-luna": {
+    batch: { input: 0.1, output: 0.6, cached: 0.01, cache_write_30m: 0.125, cache_write_12h: 0.25, tier: { threshold: 272000, inclusive: false, input: 0.2, output: 0.9, cached: 0.02, cache_write_30m: 0.25, cache_write_12h: 0.5 } },
     fast: { input: 0.4, output: 2.4, cached: 0.04, cache_write_30m: 0.5, cache_write_12h: 1, tier: { threshold: 272000, inclusive: false, input: 0.8, output: 3.6, cached: 0.08, cache_write_30m: 1, cache_write_12h: 2 } },
     flex: { input: 0.1, output: 0.6, cached: 0.01, cache_write_30m: 0.125, cache_write_12h: 0.25, tier: { threshold: 272000, inclusive: false, input: 0.2, output: 0.9, cached: 0.02, cache_write_30m: 0.25, cache_write_12h: 0.5 } },
   },
   "gpt-5.5": {
+    batch: { input: 2.5, output: 15, cached: 0.25, tier: { threshold: 272000, inclusive: false, input: 5, output: 22.5, cached: 0.5 } },
     fast: { input: 12.5, output: 75, cached: 1.25, tier: { threshold: 272000, inclusive: false, input: null, output: null, cached: null } },
     flex: { input: 2.5, output: 15, cached: 0.25, tier: { threshold: 272000, inclusive: false, input: 5, output: 22.5, cached: 0.5 } },
   },
   "gpt-5.5-pro": {
+    batch: { input: 15, output: 90, tier: { threshold: 272000, inclusive: false, input: null, output: null, cached: null } },
     flex: { input: 15, output: 90, tier: { threshold: 272000, inclusive: false, input: null, output: null, cached: null } },
   },
   "gpt-5.4": {
+    batch: { input: 1.25, output: 7.5, cached: 0.13, tier: { threshold: 272000, inclusive: false, input: 2.5, output: 11.25, cached: 0.25 } },
     fast: { input: 5, output: 30, cached: 0.5, tier: { threshold: 272000, inclusive: false, input: null, output: null, cached: null } },
     flex: { input: 1.25, output: 7.5, cached: 0.13, tier: { threshold: 272000, inclusive: false, input: 2.5, output: 11.25, cached: 0.25 } },
   },
   "gpt-5.4-pro": {
+    batch: { input: 15, output: 90, tier: { threshold: 272000, inclusive: false, input: 30, output: 135 } },
     flex: { input: 15, output: 90, tier: { threshold: 272000, inclusive: false, input: 30, output: 135 } },
   },
   "gpt-5.4-mini": {
+    batch: { input: 0.375, output: 2.25, cached: 0.0375 },
     fast: { input: 1.5, output: 9, cached: 0.15 },
     flex: { input: 0.375, output: 2.25, cached: 0.0375 },
   },
-  "gpt-5.4-nano": { flex: { input: 0.1, output: 0.625, cached: 0.01 } },
+  "gpt-5.4-nano": {
+    batch: { input: 0.1, output: 0.625, cached: 0.01 },
+    flex: { input: 0.1, output: 0.625, cached: 0.01 },
+  },
   "gpt-5.2": {
+    batch: { input: 0.875, output: 7, cached: 0.0875 },
     fast: { input: 3.5, output: 28, cached: 0.35 },
     flex: { input: 0.875, output: 7, cached: 0.0875 },
   },
+  "gpt-5.2-pro": { batch: { input: 10.5, output: 84 } },
   "gpt-5.1": {
+    batch: { input: 0.625, output: 5, cached: 0.0625 },
     fast: { input: 2.5, output: 20, cached: 0.25 },
     flex: { input: 0.625, output: 5, cached: 0.0625 },
   },
   "gpt-5": {
+    batch: { input: 0.625, output: 5, cached: 0.0625 },
     fast: { input: 2.5, output: 20, cached: 0.25 },
     flex: { input: 0.625, output: 5, cached: 0.0625 },
   },
   "gpt-5-mini": {
+    batch: { input: 0.125, output: 1, cached: 0.0125 },
     fast: { input: 0.45, output: 3.6, cached: 0.045 },
     flex: { input: 0.125, output: 1, cached: 0.0125 },
   },
-  "gpt-5-nano": { flex: { input: 0.025, output: 0.2, cached: 0.0025 } },
-  "gpt-4.1": { fast: { input: 3.5, output: 14, cached: 0.875 } },
-  "gpt-4.1-mini": { fast: { input: 0.7, output: 2.8, cached: 0.175 } },
+  "gpt-5-nano": {
+    batch: { input: 0.025, output: 0.2, cached: 0.0025 },
+    flex: { input: 0.025, output: 0.2, cached: 0.0025 },
+  },
+  "gpt-5-pro": { batch: { input: 7.5, output: 60 } },
+  "gpt-4.1": {
+    batch: { input: 1, output: 4 },
+    fast: { input: 3.5, output: 14, cached: 0.875 },
+  },
+  "gpt-4.1-mini": {
+    batch: { input: 0.2, output: 0.8 },
+    fast: { input: 0.7, output: 2.8, cached: 0.175 },
+  },
   "gpt-4.1-nano": { fast: { input: 0.2, output: 0.8, cached: 0.05 } },
-  "gpt-4o": { fast: { input: 4.25, output: 17, cached: 2.125 } },
+  "gpt-4o": {
+    batch: { input: 1.25, output: 5 },
+    fast: { input: 4.25, output: 17, cached: 2.125 },
+  },
   "gpt-4o-2024-05-13": { fast: { input: 8.75, output: 26.25 } },
-  "gpt-4o-mini": { fast: { input: 0.25, output: 1, cached: 0.125 } },
+  "gpt-4o-mini": {
+    batch: { input: 0.075, output: 0.3 },
+    fast: { input: 0.25, output: 1, cached: 0.125 },
+  },
+  "o3-pro": { batch: { input: 10, output: 40 } },
   "o3": {
+    batch: { input: 1, output: 4 },
     fast: { input: 3.5, output: 14, cached: 0.875 },
     flex: { input: 1, output: 4, cached: 0.25 },
   },

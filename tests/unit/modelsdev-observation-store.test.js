@@ -37,6 +37,26 @@ describe("immutable pricing observation storage", () => {
     expect(createPricingObservationStore(directory).read()).toHaveLength(2);
   });
 
+  it("loads only the applicable instant for runtime references while retaining exact historical reads", () => {
+    const store = installPricingObservationStore(directory);
+    store.publish(catalog(1), source("01"));
+    store.publish(catalog(2), source("02", "b"));
+    const earlier = fs.readdirSync(directory).sort()[0];
+    fs.writeFileSync(path.join(directory, earlier), "{}");
+
+    const current = getModelsDevPricingStatus("openrouter", id);
+    expect(current.reference.cost.input).toBe(2);
+    expect(getModelsDevPricingStatus("openrouter", id, { timestamp: "2030-01-01T13:00:00Z" }).status).toBe("source-unavailable");
+    expect(getModelsDevPricingEstimate("openrouter", id, { timestamp: "2030-01-02T13:00:00Z" }).input).toBe(2);
+  });
+
+  it("fails closed when the latest instant has conflicting publications", () => {
+    const store = installPricingObservationStore(directory);
+    store.publish(catalog(1), source("01"));
+    store.publish(catalog(2), source("01", "b"));
+    expect(getModelsDevPricingStatus("openrouter", id).status).toBe("source-unavailable");
+  });
+
   it("does not revive a removed model from an older observation", () => {
     const store = installPricingObservationStore(directory);
     store.publish(catalog(1), source("01"));
@@ -94,8 +114,12 @@ describe("complete source response validation", () => {
     const bytes = await readModelsDevResponse(new Response(JSON.stringify(expected)), new AbortController().signal);
     expect(parseModelsDevCatalog(bytes)).toEqual(expected);
   });
-  it("rejects an oversized announced body before reading it", async () => {
-    await expect(readModelsDevResponse(new Response("{}", { headers: { "content-length": String(33 * 1024 * 1024) } }))).rejects.toThrow(/too large/);
+  it("rejects and cancels an oversized announced body before reading it", async () => {
+    let cancelled = false;
+    const body = new ReadableStream({ cancel() { cancelled = true; } });
+    const response = new Response(body, { headers: { "content-length": String(33 * 1024 * 1024) } });
+    await expect(readModelsDevResponse(response)).rejects.toThrow(/too large/);
+    expect(cancelled).toBe(true);
   });
   it("observes caller cancellation rather than accepting a response after abort", async () => {
     const controller = new AbortController(); controller.abort();

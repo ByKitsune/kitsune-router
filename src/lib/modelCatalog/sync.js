@@ -1,8 +1,7 @@
 // Periodic refresh of model capabilities and dated price observations.
 //
-// Downloads the catalog, keeps only what differs from the hand-written tables,
-// and writes it next to the database. Failures are swallowed on purpose: a
-// stale or missing file just means those tables keep deciding on their own.
+// Refreshes the saved catalog and appends dated price observations. The
+// bundled and last persisted observations remain usable without network access.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -25,10 +24,12 @@ const MODALITY_BY_INPUT = { image: "vision", pdf: "pdf", audio: "audioInput", vi
 const MODALITY_BY_OUTPUT = { image: "imageOutput", audio: "audioOutput" };
 const FEATURE_FIELDS = { reasoning: "reasoning", tool_call: "tools", structured_output: "structuredOutput", temperature: "temperature" };
 
-let state = { running: false, lastSync: null, lastError: null, lastResult: null, etag: null, fileVersion: null };
+let state = { running: false, lastSync: null, lastError: null, lastResult: null, etag: null, fileVersion: null, startupPricingRecovery: null };
 let timer = null;
 let activeSync = null;
 let syncController = null;
+let startupRecovery = null;
+let startupRecoveryController = null;
 let stopped = false;
 let pricingStore;
 
@@ -181,11 +182,24 @@ export function syncModelCatalog() {
   return task;
 }
 
+async function recoverCatalogPricing(signal) {
+  try {
+    signal.throwIfAborted();
+    const { recoverUnpricedUsage } = await import("@/lib/db/repos/usageRepo.js");
+    return await recoverUnpricedUsage(signal);
+  } catch (error) {
+    if (signal.aborted) return null;
+    const message = error?.message || String(error);
+    console.warn(`[modelCatalog] pricing recovery failed: ${message}`);
+    return { error: message };
+  }
+}
+
 async function runSync(signal) {
   try {
     const headers = { accept: "application/json" };
     const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]);
-    const response = await fetch(CATALOG_URL, { headers, signal: requestSignal });
+    const response = await fetch(CATALOG_URL, { headers, signal: requestSignal, redirect: "error" });
 
     let result;
     if (response.status === 304) {
@@ -215,15 +229,7 @@ async function runSync(signal) {
       state.etag = etag;
       state.fileVersion = CATALOG_VERSION;
       invalidateCatalog();
-      let pricingRecovery;
-      try {
-        signal.throwIfAborted();
-        const { recoverUnpricedUsage } = await import("@/lib/db/repos/usageRepo.js");
-        pricingRecovery = await recoverUnpricedUsage(signal);
-      } catch (error) {
-        pricingRecovery = { error: error?.message || String(error) };
-        console.warn(`[modelCatalog] pricing recovery failed: ${pricingRecovery.error}`);
-      }
+      const pricingRecovery = await recoverCatalogPricing(signal);
       result = {
         status: "updated",
         etag,
@@ -251,8 +257,8 @@ async function runSync(signal) {
   }
 }
 
-// The etag lives in the file we wrote, so a restart can resume from it instead
-// of re-downloading 4.3MB to be told nothing changed.
+// Restore diagnostics from the saved catalog. Pricing still requires a full
+// response for each newly dated observation.
 function restoreEtag() {
   try {
     const parsed = JSON.parse(fs.readFileSync(CATALOG_FILE, "utf8"));
@@ -265,11 +271,14 @@ function restoreEtag() {
   }
 }
 
-// Schedule the recurring sync. Disable entirely with MODEL_CATALOG_SYNC=off.
+// Restore local pricing and recover eligible usage even when network sync is off.
 export function startModelCatalogSync() {
-  // Restored observations must remain readable even when outbound sync is off.
   getPricingStore();
-  if (timer || stopped) return;
+  if (startupRecovery || stopped || process.env.NEXT_PHASE === "phase-production-build") return;
+  startupRecoveryController = new AbortController();
+  startupRecovery = recoverCatalogPricing(startupRecoveryController.signal).then(result => {
+    state.startupPricingRecovery = result;
+  });
   if (String(process.env.MODEL_CATALOG_SYNC || "").toLowerCase() === "off") return;
   restoreEtag();
 
@@ -290,5 +299,6 @@ export async function stopModelCatalogSync() {
   clearTimeout(timer);
   timer = null;
   syncController?.abort();
-  await activeSync;
+  startupRecoveryController?.abort();
+  await Promise.all([activeSync, startupRecovery]);
 }

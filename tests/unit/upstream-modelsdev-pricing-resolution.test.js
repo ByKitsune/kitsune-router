@@ -126,7 +126,8 @@ describe("models.dev exact-product pricing references", () => {
     expect(getPricingForModel("groq", "llama-3.3-70b-versatile", snapshotTime)).toMatchObject({ input: null, output: null });
     expect(getPricingForModel("cohere", "command-r-08-2024", snapshotTime)).toMatchObject({ input: null, output: null });
     expect(getModelsDevPricingReference("together", "Qwen/Qwen3.7-Max").cost).toMatchObject({ input: 2.5, output: 7.5 });
-    expect(getPricingForModel("together", "Qwen/Qwen3.7-Max", snapshotTime)).toMatchObject({ input: 1.5, output: 4.5, cached: 0.3 });
+    expect(getPricingForModel("together", "Qwen/Qwen3.7-Max", snapshotTime)).toMatchObject({ input: null, output: null });
+    expect(getPricingForModel("together", "Qwen/Qwen3.7-Max", { timestamp: "2026-11-17T22:58:59Z" })).toMatchObject({ input: 2.5, output: 7.5, cached: 0.5 });
     expect(getPricingForModel("gemini", "gemini-3.1-flash-image", snapshotTime)).toMatchObject({ input: 0.5, output: null });
     expect(getModelsDevPricingReference("cloudflare-ai", "@cf/qwen/qwen3.8-27b").cost.cache_read).toBe(0.05);
     expect(getPricingForModel("cloudflare-ai", "@cf/qwen/qwen3.8-27b", snapshotTime).cached).toBeUndefined();

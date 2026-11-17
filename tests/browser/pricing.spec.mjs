@@ -47,6 +47,26 @@ test("GPT-6.2 model discovery keeps API rates and Codex plan billing separate", 
   }
 });
 
+test("Gemini 4 Hydrogen shows paid Standard and Priority rates in the pricing editor", async ({ page }) => {
+  const model = "gemini-4-hydrogen";
+  const response = await page.request.get("/v1/models/info", { params: { id: `gemini/${model}` } });
+  expect(response.status()).toBe(200);
+  const info = await response.json();
+  expect(info.capabilities).toMatchObject({ contextWindow: 1048576, maxOutput: 65536 });
+  expect(info.metadata.pricing).toMatchObject({ input: 1.5, output: 7.5, cached: 0.075, service_tiers: { priority: { input: 2.7, output: 13.5 } } });
+
+  await page.goto("/dashboard/settings/pricing");
+  await page.getByRole("button", { name: "Edit Pricing", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Pricing Configuration", exact: true });
+  await dialog.getByRole("searchbox", { name: "Find provider or model" }).fill(model);
+  const input = dialog.getByRole("spinbutton", { name: `gemini ${model} input (USD per million tokens)`, exact: true });
+  await expect(input).toHaveValue("1.5");
+  const row = dialog.getByRole("row").filter({ has: input });
+  await row.getByText("Delivered speed tariffs", { exact: true }).click();
+  await expect(row.getByRole("spinbutton", { name: "priority input", exact: true })).toHaveValue("2.7");
+  await expect(row.getByRole("spinbutton", { name: "priority output", exact: true })).toHaveValue("13.5");
+});
+
 test("pricing editor fits a phone, retains fractional rates and restores focus", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dashboard/settings/pricing");

@@ -6334,7 +6334,8 @@ const gatewayTariffReview = {
   },
   together: {
     sources: ["https://docs.together.ai/docs/serverless-models", "https://www.together.ai/pricing"],
-    note: "Serverless Chat API IDs and USD per million token quotes. The primary pricing page's Qwen3.7-Max 1.50/4.50/0.30 and Qwen3.8-2.4T-A95B 2/6/0.25 quotes take precedence over conflicting catalog/documentation references. Missing catalog rows are not retirements.",
+    note: "Serverless Chat API IDs and USD per million token quotes. The current pricing page and serverless model table agree on the Qwen3.7-Max input, output and cached-input rates. Missing catalog rows are not retirements.",
+    effectiveFrom: { "Qwen/Qwen3.7-Max": "2026-11-17T22:58:59Z" },
     rates: {
       "deepseek-ai/DeepSeek-V4-Pro-0813": { input: 1.32, output: 3.96, cached: 0.13 },
       "deepseek-ai/DeepSeek-V4.1-Flash": { input: 0.3, output: 1.2, cached: 0.006 },
@@ -6348,7 +6349,7 @@ const gatewayTariffReview = {
       "Qwen/Qwen3.8-Flash": { input: 0.15, output: 0.47 },
       "Qwen/Qwen3.8-2.4T-A95B": { input: 2, output: 6, cached: 0.25 },
       "Qwen/Qwen3.7-Plus": { input: 0.32, output: 1.28 },
-      "Qwen/Qwen3.7-Max": { input: 1.5, output: 4.5, cached: 0.3 },
+      "Qwen/Qwen3.7-Max": { input: 2.5, output: 7.5, cached: 0.5 },
       "Qwen/Qwen3.6-Plus": { input: 0.5, output: 3 },
       "Qwen/Qwen3.5-9B": { input: 0.17, output: 0.25 },
       "MiniMaxAI/MiniMax-M3": { input: 0.3, output: 1.2, cached: 0.06 },
@@ -6604,6 +6605,7 @@ for (const [provider, review] of Object.entries(gatewayTariffReview)) {
         kind: unknown ? review.unknownKind || "unverified-pricing" : review.kind || "metered",
         reviewedAt: "2026-10-21", authenticatedRouteVerified: false,
         invoiceVerified: false, catalogSnapshot: gatewayCatalogSnapshot,
+        ...(review.effectiveFrom?.[model] ? { effectiveFrom: review.effectiveFrom[model], reviewedAt: review.effectiveFrom[model].slice(0, 10) } : {}),
         ...(unknown ? { unverifiedPriceFields: Object.keys(unknownGatewayPrice) } : {}),
         note: review.note,
       },

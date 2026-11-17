@@ -328,6 +328,7 @@ function normalizeOpenAILevel(level, supportedLevels) {
 
 function toGeminiThinkingLevel(cfg, supportedLevels) {
   const raw = cfg.mode === "auto" ? "high" : (toLevel(cfg) || "high");
+  if (raw === "xhigh" && supportedLevels?.includes("xhigh")) return "xhigh";
   const level = effortToThinkingLevel(raw);
   const ordered = ["minimal", "low", "medium", "high"];
   const allowed = ordered.filter(value => !supportedLevels || supportedLevels.includes(value));

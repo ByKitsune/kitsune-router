@@ -8,6 +8,7 @@ import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { hardenEmitter } from "../../schedulerLifecycle.mjs";
 import { addNullableCost, mergeCostCoverage } from "../../../shared/utils/cost.js";
 import { canonicalizeUsage } from "../../../../open-sse/utils/usageTracking.js";
+import { PRICING_RATE_FIELDS } from "../../../../open-sse/config/pricingConfig.js";
 import { canonicalUsageTimestamp, isValidCivilUsageTimestamp, CANONICAL_USAGE_TIMESTAMP_SQL } from "../helpers/usageTimestamp.js";
 
 function maskApiKey(key) {
@@ -48,6 +49,7 @@ const COMPONENT_COST_FIELDS = ["inputCost", "cachedCost", "outputCost"];
 const PRICING_RECOVERY_BATCH_SIZE = 128;
 const PRICING_RECOVERY_SCOPE = "usagePricingRecovery";
 const acceptedQuoteTimestamp = Symbol.for("kitsunerouter.usage.acceptedQuoteTimestamp");
+const pricingRecoveries = globalThis[Symbol.for("kitsunerouter.db.pricingRecoveries")] ||= new WeakMap();
 
 // In-memory state shared across Next.js modules
 if (!global._pendingRequests) global._pendingRequests = { byModel: {}, byAccount: {} };
@@ -230,7 +232,7 @@ async function calculateCost(provider, model, tokens, timestamp) {
     const [{ getPricingForModel }, { calculateCostBreakdown }] = await Promise.all([
       import("./pricingRepo.js"), import("open-sse/providers/pricing.js"),
     ]);
-    const pricing = provider && model ? await getPricingForModel(provider, model, { timestamp }) : null;
+    const pricing = provider && model ? await getPricingForModel(provider, model, { timestamp, recordProvenance: true }) : null;
 
     // Keep pricing math centralized, including unknown and unused tariffs.
     const breakdown = calculateCostBreakdown(tokens, pricing);
@@ -419,13 +421,28 @@ function applyRecoveredCoverage(bucket, before, after) {
   return true;
 }
 
+function hasUnknownRate(quote) {
+  return quote?.tier === null || PRICING_RATE_FIELDS.some(field => quote?.[field] === null || quote?.tier?.[field] === null);
+}
+
+function protectsRecordedTariff(quote) {
+  if (!quote) return false;
+  const kind = quote.provenance?.kind;
+  if (kind === "operator-override" || quote.provenance?.overriddenFields?.length) return true;
+  if (["built-in-estimate", "models-dev-catalog-estimate", "published-provider-tariff"].includes(kind)) return false;
+  // Older usage quotes did not always record override provenance. An explicit
+  // unknown can be the operator's chosen rate, including on a pricing tier.
+  return hasUnknownRate(quote) || quote.service_tiers === null
+    || Object.values(quote.service_tiers || {}).some(tier => tier === null || hasUnknownRate(tier));
+}
+
 function recoverUsageRow(db, row, resolveTariff, calculateBreakdown) {
   const timestamp = canonicalUsageTimestamp(row.timestamp);
   if (!timestamp || (row.sourceTimestamp && canonicalUsageTimestamp(row.sourceTimestamp) !== timestamp)) return false;
+  const meta = parseJson(row.meta, {}) || {};
+  if (protectsRecordedTariff(meta.quote?.pricing)) return false;
   const pricing = resolveTariff(row.provider, row.model, timestamp);
   if (!pricing) return false;
-  const meta = parseJson(row.meta, {}) || {};
-  if (meta.quote?.pricing?.provenance?.overriddenFields?.length) return false;
   const rawTokens = parseJson(row.tokens, null);
   const tokens = canonicalizeUsage(rawTokens);
   if (!(tokens?.total_tokens > 0) || (rawTokens?.total_tokens > 0 && rawTokens.total_tokens !== tokens.total_tokens
@@ -476,11 +493,13 @@ function recoverUsageRow(db, row, resolveTariff, calculateBreakdown) {
   return true;
 }
 
-export async function recoverUnpricedUsage(signal) {
-  const [db, resolveTariff, { calculateCostBreakdown }] = await Promise.all([
-    getAdapter(), import("./pricingRepo.js").then(module => module.createHistoricalPricingResolver()),
+async function recoverUsagePricing(db, signal) {
+  signal?.throwIfAborted();
+  const [resolveTariff, { calculateCostBreakdown }] = await Promise.all([
+    import("./pricingRepo.js").then(module => module.createHistoricalPricingResolver()),
     import("open-sse/providers/pricing.js"),
   ]);
+  signal?.throwIfAborted();
   const maximum = db.get("SELECT MAX(id) AS id FROM usageHistory")?.id ?? 0;
   let afterId = 0;
   let checked = 0;
@@ -506,6 +525,21 @@ export async function recoverUnpricedUsage(signal) {
     return { checked, recovered };
   } finally {
     if (recovered) scheduleStatsEvent("update");
+  }
+}
+
+export async function recoverUnpricedUsage(signal) {
+  signal?.throwIfAborted();
+  const db = await getAdapter();
+  const previous = pricingRecoveries.get(db);
+  // A sync can publish newer evidence while deploy recovery is scanning old
+  // rows. Queue its pass so those rows are checked against the new evidence.
+  const pending = (previous?.catch(() => {}) ?? Promise.resolve()).then(() => recoverUsagePricing(db, signal));
+  pricingRecoveries.set(db, pending);
+  try {
+    return await pending;
+  } finally {
+    if (pricingRecoveries.get(db) === pending) pricingRecoveries.delete(db);
   }
 }
 

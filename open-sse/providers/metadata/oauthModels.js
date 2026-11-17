@@ -1,8 +1,112 @@
-// Exact OAuth/IDE and hosted-route facts reviewed 2026-10-21. Standalone literal;
-// the parent owns registration in reviewed.js. Public evidence does not prove
+// Exact OAuth/IDE and hosted-route facts. Public evidence does not prove
 // authenticated model entitlement. Captures, UTC timestamps, SHA-256 and source
 // bundle provenance: /tmp/opencode/zenrouter-client-pricing-refresh-20261021/oauth-catalog.
 // Null tariffs/limits deliberately block unrelated vendor and pattern guesses.
+const blackboxPricingSource = "https://docs.blackbox.ai/api-reference/models/chat-pricing";
+const blackboxPricingCapture = {
+  url: `${blackboxPricingSource}.md`,
+  verifiedAtUtc: "2026-11-17T22:58:44Z",
+  sha256: "9ce91cb8407a1c5d4a98e4beff553f4dd519b3254be893866b038b56fc416f61",
+};
+const blackboxPublishedQuotes = Object.fromEntries([
+  ["anthropic/claude-opus-4.8", 5, 25, 1000000],
+  ["anthropic/claude-sonnet-4.6", 3, 15, 1000000],
+  ["openai/gpt-5.5", 5, 30, 1000000],
+  ["openai/gpt-5.4-pro", 30, 180, 1050000],
+  ["openai/gpt-5.4", 2.5, 15, 1050000],
+  ["openai/gpt-5.3-codex", 1.75, 14, 400000],
+  ["openai/gpt-5.4-nano", 0.2, 1.25, 400000],
+  ["deepseek/deepseek-v4-flash", 0.14, 0.28, 1000000],
+  ["x-ai/grok-4.3", 1.25, 2.5, 1000000],
+].flatMap(([model, input, output, contextWindow]) => {
+  const wireModelId = `blackboxai/${model}`;
+  const record = {
+    sources: [blackboxPricingSource],
+    provenance: { pricing: blackboxPricingCapture },
+    limits: {
+      scope: "public-provider-documentation",
+      catalogAsOf: "2026-11-17",
+      authenticatedRouteVerified: false,
+      unverifiedCapabilityFields: ["maxInput", "maxOutput"],
+    },
+    capabilities: { contextWindow },
+    pricing: { input, output },
+    billing: {
+      kind: "published-token-quote",
+      currency: "USD",
+      unit: "per_1000000_tokens",
+      wireModelId,
+      invoiceVerified: false,
+      effectiveFrom: blackboxPricingCapture.verifiedAtUtc,
+      note: "Published input/output token quote. Cache and separate context-tier prices are unverified.",
+    },
+  };
+  return [[model.split("/")[1], record], [wireModelId, record]];
+}));
+
+const bazaarlinkPricingCapture = {
+  url: "https://bazaarlink.ai/api/v1/models",
+  verifiedAtUtc: "2026-11-17T22:56:57.199Z",
+  sha256: "8245ea4719521bc27b6885eaaa86783c435216528449e69730e16982cde19356",
+};
+// The live catalog's per-token prices reconcile with each model page's explicit USD/1M prices.
+const bazaarlinkTextQuotes = {
+  "deepseek-v4.1-flash-1017": { input: 0.21225, output: 0.84825, cached: 0.021 },
+  "minimax-m3": { input: 0.3, output: 1.2, cached: 0.06, tier: { threshold: 524288, input: 0.6, output: 2.4, cached: 0.12 } },
+  "kimi-k3": { input: 2.827, output: 14.133, cached: 0.283 },
+  "gemini-3.1-flash-lite-preview": { input: 0.25, output: 1.5, cached: 0.025, cacheWrite: 0.083333 },
+  "gemini-3.1-pro-preview": { input: 1.8, output: 10.8, cached: 0.18, cacheWrite: 0.3375, tier: { threshold: 200000, input: 3.6, output: 16.2, cached: 0.36 } },
+  "claude-sonnet-4.6": { input: 3, output: 15, cached: 0.3, cacheWrite: 3.75 },
+  "qwen3.6-plus": { input: 0.26, output: 1.56, cached: 0.0224, cacheWrite: 0.325, tier: { threshold: 256000, input: 1.04, output: 3.12 } },
+  "gemini-3-flash-preview": { input: 0.45, output: 2.7, cached: 0.045, cacheWrite: 0.075 },
+  "gpt-5.4-mini": { input: 0.675, output: 4.05, cached: 0.0675 },
+  "claude-haiku-4.5": { input: 1, output: 5, cached: 0.1, cacheWrite: 1.25 },
+  "grok-4.3": { input: 1.125, output: 2.25, cached: 0.18, tier: { threshold: 200000, input: 2.25, output: 4.5, cached: 0.36 } },
+  "gpt-6.1-sol": { input: 2, output: 10, cached: 0.2, cacheWrite: 2.5, tierCacheWrite: 5, tier: { threshold: 272000, input: 4, output: 15, cached: 0.4 } },
+  "claude-sonnet-5.5": { input: 2, output: 10, cached: 0.2, cacheWrite: 2.5 },
+  "gpt-5.4": { input: 2.25, output: 13.5, cached: 0.225, tier: { threshold: 272000, input: 4.5, output: 20.25, cached: 0.45 } },
+  "claude-opus-5.5": { input: 4, output: 20, cached: 0.2, cacheWrite: 5 },
+  "claude-opus-4.7": { input: 5, output: 25, cached: 0.5, cacheWrite: 6.25 },
+  "gpt-5.5": { input: 5, output: 30, cached: 0.5, tier: { threshold: 272000, input: 10, output: 45, cached: 1 } },
+  "grok-4.20": { input: 1.25, output: 2.5, cached: 0.2 },
+};
+
+function withBazaarlinkTextQuotes(modelMetadata) {
+  const records = Object.fromEntries(Object.entries(bazaarlinkTextQuotes).map(([model, { cacheWrite, tierCacheWrite, ...pricing }]) => {
+    const previous = modelMetadata[model];
+    return [model, {
+      ...previous,
+      sources: [bazaarlinkPricingCapture.url, `https://bazaarlink.ai/en/models/${model}`, "https://bazaarlink.ai/docs/api.md"],
+      provenance: { pricing: bazaarlinkPricingCapture },
+      pricing,
+      billing: {
+        kind: "public-catalog-estimate",
+        currency: "USD",
+        unit: "per_1000000_tokens",
+        invoiceVerified: false,
+        effectiveFrom: bazaarlinkPricingCapture.verifiedAtUtc,
+        ...(cacheWrite !== undefined && { cacheWriteReference: { rate: cacheWrite, lifetime: null } }),
+        ...(tierCacheWrite !== undefined && { tierCacheWriteReference: { rate: tierCacheWrite, lifetime: null, threshold: pricing.tier.threshold } }),
+        note: "Public text-token estimate, before tax. Host selection, BYOK and add-on charges can change the final charge.",
+      },
+    }];
+  }));
+  records["auto:free"] = {
+    sources: [bazaarlinkPricingCapture.url, "https://bazaarlink.ai/docs/api.md"],
+    provenance: { pricing: bazaarlinkPricingCapture },
+    pricing: { input: 0, output: 0 },
+    billing: {
+      kind: "verified-zero-token-quote",
+      currency: "USD",
+      unit: "per_1000000_tokens",
+      invoiceVerified: false,
+      effectiveFrom: bazaarlinkPricingCapture.verifiedAtUtc,
+      note: "The public catalog explicitly publishes zero text input and output rates for this rate-limited router.",
+    },
+  };
+  return records;
+}
+
 export default {
   cursor: {
     "claude-sonnet-5-5": {
@@ -287,6 +391,7 @@ export default {
   blackbox: {
     // Keep exact public-alias quotes too: pricing resolves a literal generic
     // model table before following a registry upstreamModelId alias.
+    ...blackboxPublishedQuotes,
     "gemini-3.5-flash": {
       sources: ["https://docs.blackbox.ai/api-reference/models/chat-pricing", "https://docs.blackbox.ai/api-reference/chat"],
       limits: { scope: "public-provider-documentation", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
@@ -330,43 +435,28 @@ export default {
       billing: { kind: "published-token-quote", currency: "USD", unit: "per_1000000_tokens" },
     },
   },
-  bazaarlink: {
+  bazaarlink: withBazaarlinkTextQuotes({
     "gpt-6.1-sol": {
-      sources: ["https://bazaarlink.ai/api/v1/models"],
       limits: { scope: "public-provider-catalog", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
       capabilities: { contextWindow: 1050000, vision: true, reasoning: true, thinkingCanDisable: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
-      pricing: { input: null, output: null },
-      billing: { kind: "public-catalog-reference", note: "Raw pricing and pricing_tiers captured; effective billing units/surcharges are not independently verified here." },
     },
     "claude-sonnet-5.5": {
-      sources: ["https://bazaarlink.ai/api/v1/models"],
       limits: { scope: "public-provider-catalog", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
       capabilities: { contextWindow: 1000000, vision: true, reasoning: true, thinkingCanDisable: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
-      pricing: { input: null, output: null },
-      billing: { kind: "public-catalog-reference" },
     },
     "claude-opus-5.5": {
-      sources: ["https://bazaarlink.ai/api/v1/models"],
       limits: { scope: "public-provider-catalog", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
       capabilities: { contextWindow: 1000000, vision: true, reasoning: true, thinkingCanDisable: false, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
-      pricing: { input: null, output: null },
-      billing: { kind: "public-catalog-reference" },
     },
     "deepseek-v4.1-flash-1017": {
-      sources: ["https://bazaarlink.ai/api/v1/models"],
       limits: { scope: "public-provider-catalog", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
       capabilities: { contextWindow: 1048576, vision: true, reasoning: true, thinkingCanDisable: true, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
-      pricing: { input: null, output: null },
-      billing: { kind: "public-catalog-reference" },
     },
     "kimi-k3": {
-      sources: ["https://bazaarlink.ai/api/v1/models"],
       limits: { scope: "public-provider-catalog", catalogAsOf: "2026-10-21", authenticatedRouteVerified: false, unverifiedCapabilityFields: ["maxInput", "maxOutput"] },
       capabilities: { contextWindow: 1048576, vision: true, reasoning: true, thinkingCanDisable: true, audioInput: false, videoInput: false, imageOutput: false, audioOutput: false },
-      pricing: { input: null, output: null },
-      billing: { kind: "public-catalog-reference" },
     },
-  },
+  }),
   "api-airforce": {
     "claude-sonnet-5.5": {
       sources: ["https://api.airforce/v1/models"],

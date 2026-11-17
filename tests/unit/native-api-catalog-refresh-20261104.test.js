@@ -40,11 +40,35 @@ describe("provider-owned November catalog refresh", () => {
     }
   });
 
-  it("does not assign TEE guarantees, token ceilings or native-vendor prices to new Chutes IDs", () => {
+  it("uses the dated Chutes rate without assigning TEE guarantees or unsupported token ceilings", () => {
     const id = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
-    expect(getReviewedModelMetadata("chutes", id).limits.confidentialCompute).toBe(false);
+    const metadata = getReviewedModelMetadata("chutes", id);
+    expect(metadata.limits.confidentialCompute).toBe(false);
     expect(getCapabilitiesForModel("chutes", id)).toMatchObject({ contextWindow: null, maxInput: null, maxOutput: null });
-    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 100 }, getPricingForModel("chutes", id))).toBeNull();
+    const tokens = { prompt_tokens: 1000, completion_tokens: 100 };
+    expect(calculateCostFromTokens(tokens, getPricingForModel("chutes", id, { timestamp: "2026-11-04T00:00:00Z" }))).toBeNull();
+    expect(calculateCostFromTokens(tokens, getPricingForModel("chutes", id, { timestamp: metadata.billing.effectiveFrom }))).toBeCloseTo(0.00042, 12);
+  });
+
+  it("publishes the exact hosted Kilo and ParalonCloud amounts with an observed effective date", () => {
+    const kiloId = "openai/gpt-6.1-terra";
+    const kilo = getReviewedModelMetadata("kgw", kiloId);
+    expect(getPricingForModel("kgw", kiloId, { timestamp: kilo.billing.effectiveFrom })).toMatchObject({ input: 2, cached: 0.1, output: 7.5 });
+    expect(getPricingForModel("openai", "gpt-6.1-terra").input).toBe(1);
+    expect(kilo.billing.cacheWriteReference).toEqual({ rate: 2.5, lifetime: null });
+    expect(getPricingForModel("kgw", kiloId).cache_write_30m).toBeUndefined();
+    expect(getPricingForModel("kgw", "reflection/beam-free")).toMatchObject({ input: 0, output: 0 });
+    expect(getPricingForModel("kgw", "kilo-auto/efficient")).toMatchObject({ input: null, output: null });
+    expect(getPricingForModel("paralon", "qwen3.8-27b")).toMatchObject({ input: 0.12, output: 1.7 });
+    expect(getPricingForModel("paraloncloud", "qwen3-3b")).toMatchObject({ input: 0.05, output: 0.2 });
+    expect(getPricingForModel("paraloncloud", "qwen3-3b", { timestamp: "2026-11-17T00:00:00Z" })).toMatchObject({ input: null, output: null });
+  });
+
+  it.each([
+    ["moonshotai/Kimi-K2.6-TEE", 0.39, 1.8, 0.039],
+    ["zai-org/GLM-5.1-TEE", 0.9, 2.9, 0.09],
+  ])("reconciles %s with its current Chutes tariff", (id, input, output, cached) => {
+    expect(getPricingForModel("chutes", id)).toMatchObject({ input, output, cached });
   });
 
   it("does not expose decision-only or unready models as ordinary chat", async () => {
@@ -64,7 +88,7 @@ describe("provider-owned November catalog refresh", () => {
     const id = "morph-glm52-744b";
     expect(getCapabilitiesForModel("morph", id)).toMatchObject({ contextWindow: 1048576, maxInput: null, maxOutput: 1048576, vision: false, tools: true });
     expect(getPricingForModel("morph", id).cache_creation).toBe(0);
-    expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 200000, completion_tokens: 100000 }, getPricingForModel("morph", id))).toBeCloseTo(0.2234, 12);
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 200000, completion_tokens: 100000 }, getPricingForModel("morph", id))).toBeCloseTo(0.7556, 12);
   });
 
   it("keeps Perplexity Agent's exact tiers separate from direct vendor tariffs", () => {

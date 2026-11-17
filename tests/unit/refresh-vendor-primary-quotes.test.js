@@ -45,7 +45,7 @@ describe("2026-10-21 vendor-native quote consumers", () => {
 
   it.each([
     ["ministral-14b-2512", 0.2], ["ministral-8b-2512", 0.15],
-    ["ministral-3b-2512", 0.1], ["mistral-large-latest", 0.5],
+    ["ministral-3b-2512", 0.1],
     ["mistral-medium-latest", 1.5], ["mistral-small-latest", 0.15],
     ["codestral-latest", 0.3],
   ])("does not infer Mistral's %s cache discount from its ordinary input price", (model, input) => {

@@ -43,7 +43,7 @@ describe("specific-before-generic ordering is preserved", () => {
   });
 
   it("uses exact native Mistral latest windows independently of the Ministral fix", () => {
-    expect(getCapabilitiesForModel("mistral", "mistral-large-latest").contextWindow).toBe(262144);
+    expect(getCapabilitiesForModel("mistral", "mistral-large-latest").contextWindow).toBe(1048576);
     expect(getCapabilitiesForModel("mistral", "mistral-medium-latest").contextWindow).toBe(262144);
     expect(getCapabilitiesForModel("mistral", "mistral-small-latest").contextWindow).toBe(262144);
     // Versioned legacy codestral keeps its older 128k entry.

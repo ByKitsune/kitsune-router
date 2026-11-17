@@ -210,7 +210,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     };
     const safeContent = contentObj?.content || "[Empty streaming response]";
     const safeThinking = contentObj?.thinking || null;
-    const tierAccounting = getServiceTierAccounting(provider, { ...(serviceTier || { requestedServiceTier: body?.service_tier }), actualServiceTier: streamMeta?.actualServiceTier });
+    const tierAccounting = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, { service_tier: streamMeta?.actualServiceTier });
     // In-stream upstream failure (e.g. Responses response.failed on an
     // HTTP-200 stream) must not be logged as success (#4104).
     const failed = streamMeta?.failed === true;
@@ -278,7 +278,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     };
     const usage = snapshot?.usage || null;
     const safeContent = snapshot?.content || "[No content before disconnect]";
-    const tierAccounting = getServiceTierAccounting(provider, { ...(serviceTier || { requestedServiceTier: body?.service_tier }), actualServiceTier: snapshot?.actualServiceTier });
+    const tierAccounting = getServiceTierAccounting(provider, serviceTier || { requestedServiceTier: body?.service_tier }, { service_tier: snapshot?.actualServiceTier });
 
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId, serviceTier: tierAccounting,

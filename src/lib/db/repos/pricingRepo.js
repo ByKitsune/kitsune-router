@@ -23,28 +23,31 @@ export async function getSavedPricing() {
 
 // Shared display/billing merge: choose one saved row, exact token first. Missing
 // fields inherit static metadata, not a conflicting row saved under another alias.
-function resolvePricing(userPricing, provider, model, resolveConst, defaultsModel = model) {
+function resolvePricing(userPricing, provider, model, resolveConst, defaultsModel = model, recordOverrideProvenance = false) {
   const defaults = resolveConst(provider, defaultsModel);
   for (const token of getProviderIdentityTokens(provider)) {
     if (!Object.hasOwn(userPricing, token)) continue;
     const models = userPricing[token];
     if (models && Object.hasOwn(models, model)) {
-      return mergeQuote(defaults, models[model]);
+      return mergeQuote(defaults, models[model], recordOverrideProvenance);
     }
   }
   return defaults;
 }
 
-function mergeQuote(defaults, saved) {
+function mergeQuote(defaults, saved, recordOverrideProvenance = false) {
   const merged = { ...defaults, ...saved };
   // Imported legacy overrides are not a trusted source of catalog provenance.
   if (saved && Object.hasOwn(saved, "provenance")) delete merged.provenance;
+  const overriddenFields = saved ? [...PRICING_RATE_FIELDS, "tier", "service_tiers"].filter(field => Object.hasOwn(saved, field)) : [];
   if (defaults?.provenance?.kind === "models-dev-catalog-estimate" && saved) {
     // The snapshot remains auditable, but operator-owned fields must never be
     // attributed to the catalog merely because they share its base quote.
     merged.provenance = { ...defaults.provenance,
       inheritedFields: defaults.provenance.inheritedFields.filter(field => !Object.hasOwn(saved, field)),
-      overriddenFields: PRICING_RATE_FIELDS.filter(field => Object.hasOwn(saved, field)) };
+      overriddenFields };
+  } else if (recordOverrideProvenance && overriddenFields.length) {
+    merged.provenance = { kind: "operator-override", overriddenFields };
   }
   // Explicit null means unknown, not an omitted override.
   if (saved && Object.hasOwn(saved, "output") && !Object.hasOwn(saved, "reasoning")
@@ -120,9 +123,14 @@ export async function getPricingForModel(provider, model, options = {}) {
       node = await getProviderNodeById(provider);
     }
     if (readScopeRevision(db, ["pricing", "nodes"]) !== revision) continue;
-    return resolveModelPricing(userPricing, provider, model,
+    const quote = resolveModelPricing(userPricing, provider, model,
       defaultResolver(resolveConst, node, options, getReviewedModelMetadata), stripThinkingSuffix,
-      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, node, options));
+      (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, node, options), options?.recordProvenance);
+    // Distinguish today's built-in unknowns from pre-provenance snapshots
+    // whose explicit null rates may reflect an operator choice.
+    return options?.recordProvenance && quote && !quote.provenance
+      ? { ...quote, provenance: { kind: "built-in-estimate" } }
+      : quote;
   }
 }
 
@@ -143,7 +151,8 @@ export async function createHistoricalPricingResolver() {
       if (quote.provenance?.kind === "models-dev-catalog-estimate") return quote;
       const record = getReviewedModelMetadata(product, id);
       const billing = record?.billing;
-      const effectiveFrom = billing?.effectiveFrom || record?.provenance?.catalog?.verifiedAtUtc;
+      const effectiveFrom = billing?.effectiveFrom || record?.limits?.documentedBillingRedirect?.effectiveFrom
+        || record?.provenance?.catalog?.verifiedAtUtc;
       const start = parsePricingTimestamp(effectiveFrom);
       const end = billing?.effectiveUntil && parsePricingTimestamp(billing.effectiveUntil);
       if (!start || timestamp < start || (billing?.effectiveUntil && (!end || timestamp >= end))
@@ -190,11 +199,11 @@ function defaultResolver(resolveConst, node, options = {}, getReviewedModelMetad
   };
 }
 
-function resolveModelPricing(userPricing, provider, model, resolveDefaults, stripThinkingSuffix, hasLiteral = () => false) {
+function resolveModelPricing(userPricing, provider, model, resolveDefaults, stripThinkingSuffix, hasLiteral, recordOverrideProvenance = false) {
   const base = stripThinkingSuffix(model);
   // A user override on the exact (effort-annotated) id always wins.
   if (hasUserOverride(userPricing, provider, model)) {
-    return resolvePricing(userPricing, provider, model, resolveDefaults, hasLiteral(provider, model) ? model : base);
+    return resolvePricing(userPricing, provider, model, resolveDefaults, hasLiteral(provider, model) ? model : base, recordOverrideProvenance);
   }
   // Usage rows keep the effort-annotated id ("gpt-6.1-sol(xhigh)"); resolving
   // it as-is missed the base model's exact entry and fell through to a broader
@@ -203,9 +212,9 @@ function resolveModelPricing(userPricing, provider, model, resolveDefaults, stri
   // An independently quoted literal annotated ID is a different product, not
   // a synthetic thinking suffix. Preserve it before considering the base ID.
   if (base === model || hasLiteral(provider, model)) {
-    return resolvePricing(userPricing, provider, model, resolveDefaults);
+    return resolvePricing(userPricing, provider, model, resolveDefaults, model, recordOverrideProvenance);
   }
-  return resolvePricing(userPricing, provider, base, resolveDefaults);
+  return resolvePricing(userPricing, provider, base, resolveDefaults, base, recordOverrideProvenance);
 }
 
 // Effective editor rows include configured and consumed custom/native IDs, but public

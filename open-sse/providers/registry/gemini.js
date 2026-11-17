@@ -44,6 +44,8 @@ export default {
   },
   models: [
     { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash" },
+    { id: "gemini-4-hydrogen", name: "Gemini 4 Hydrogen" },
+    { id: "gemini-4-carbon", name: "Gemini 4 Carbon" },
     { id: "gemini-4-argon", name: "Gemini 4 Argon", description: "Flagship reasoning for complex coding, science, and agents; long decode requires a separate continuation workflow." },
     { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash" },
     { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash" },

@@ -25,7 +25,7 @@ describe("DeepSeek reference pricing", () => {
 
 describe("Mistral exact and legacy model identities", () => {
   it("prices the -latest slugs", () => {
-    expect(getPricingForModel("mistral", "mistral-large-latest")).toMatchObject({ input: 0.5, output: 1.5 });
+    expect(getPricingForModel("mistral", "mistral-large-latest")).toMatchObject({ input: 0.7, output: 2.1, cached: 0.07 });
     expect(getPricingForModel("mistral", "mistral-small-latest")).toMatchObject({ input: 0.15, output: 0.6 });
     expect(getPricingForModel("mistral", "codestral-latest")).toMatchObject({ input: 0.3, output: 0.9 });
   });

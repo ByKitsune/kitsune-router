@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import currentObservation from "../../open-sse/providers/metadata/modelsDevPricingCurrent.js";
+import liveObservation from "../../open-sse/providers/metadata/modelsDevPricingCurrent.js";
+import october30Observation from "../../open-sse/providers/metadata/modelsDevPricing20261030.js";
 
 const model = "nvidia/nemotron-3-super-120b-a12b";
 const time = "2026-10-29T12:00:00Z";
-const expiredTimestamp = new Date(Date.parse(currentObservation.source.verifiedAtUtc) + 86400000).toISOString();
+const expiredTimestamp = new Date(Date.parse(october30Observation.source.verifiedAtUtc) + 86400000).toISOString();
 const events = ["beforeExit", "exit", "SIGINT", "SIGTERM"];
 const globals = ["_dbAdapter", "_pendingRequests", "_lastErrorProvider", "_statsEmitter", "_pendingTimers", "_recentRing", "_connectionMapCache", "_statsEmitTimers", "_requestFailureCounts"];
 let directory, previousGlobals, listeners, repo, custom, db;
@@ -72,6 +73,18 @@ describe("models.dev reference at the persistence and editor boundary", () => {
     const patch = await PATCH(new Request("http://localhost/api/pricing", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ openrouter: { [model]: shown } }) }));
     expect(patch.status).toBe(200);
   }, 20000);
+
+  it("uses the live capture for configured dynamic gateway pricing", async () => {
+    const provider = "kilo-gateway";
+    const id = "aion-labs/aion-2.0";
+    const timestamp = new Date(Date.parse(liveObservation.source.verifiedAtUtc) + 3600000).toISOString();
+    vi.setSystemTime(new Date(timestamp));
+    await custom.addCustomModel({ providerAlias: provider, id, type: "llm" });
+    const quote = await repo.getPricingForModel(provider, id, { timestamp });
+    expect(quote).toMatchObject({ input: 0.8, output: 1.6, cached: 0.2, provenance: { product: "kilo", sha256: liveObservation.source.sha256 } });
+    expect((await repo.getConfiguredPricing())[provider][id]).toEqual(rateFields(quote));
+    expect(await repo.getSavedPricing()).toEqual({});
+  });
 
   it("preserves explicit zero/null and partial operator overrides over the reference", async () => {
     await custom.addCustomModel({ providerAlias: "openrouter", id: model });

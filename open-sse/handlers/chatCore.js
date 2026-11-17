@@ -42,7 +42,7 @@ import { cloneRequestBody } from "../utils/requestBody.js";
 import { normalizeGeminiContents, normalizeGeminiToolResultMedia } from "../translator/formats/gemini.js";
 import { isGemini4Model } from "../config/models.js";
 import { validateSupportedParams } from "../translator/concerns/paramSupport.js";
-import { getServiceTierAccounting, prepareServiceTierRequest } from "../providers/serviceTiers.js";
+import { getGeminiServiceTierSelection, getServiceTierAccounting, prepareServiceTierRequest } from "../providers/serviceTiers.js";
 import { rejectUnsupportedDocuments } from "../translator/concerns/requestMedia.js";
 import { getThinkingContext, setThinkingContext } from "../translator/concerns/thinking.js";
 import { startRequestPhase } from "../utils/requestTiming.js";
@@ -623,10 +623,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   let errorServiceTier = serviceTier;
   let permanentDenial = false;
   let accountingUncertain = false;
+  const responseServiceTier = () => provider === "gemini"
+    ? getGeminiServiceTierSelection(finalBody?.service_tier ?? body?.service_tier, providerResponse.headers)
+    : serviceTier;
   const readProviderError = () => parseUpstreamError(providerResponse, executor, (responseBody, capture) => {
     accountingUncertain = capture.uncertain;
     incurredUsage = extractUsageFromResponse(responseBody);
-    errorServiceTier = getServiceTierAccounting(provider, serviceTier, responseBody);
+    errorServiceTier = getServiceTierAccounting(provider, responseServiceTier(), responseBody);
     permanentDenial = permanentDenialEvidence(providerResponse.status, responseBody);
   }, { signal: streamController.signal });
   if (!executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
@@ -740,6 +743,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
+      ...(provider === "gemini" && { serviceTier: errorServiceTier }),
       latency: { ttft: 0, total: Date.now() - requestStartTime },
       tokens: incurredUsage || { prompt_tokens: 0, completion_tokens: 0 },
       request: extractRequestConfig(body, stream),
@@ -759,7 +763,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs, diagnostics);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, serviceTier, usageEventId, usageTimestamp, pxpipe: pxpipeSummary, reqTag, log };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, serviceTier: responseServiceTier(), usageEventId, usageTimestamp, pxpipe: pxpipeSummary, reqTag, log };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 

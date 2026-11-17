@@ -24,7 +24,9 @@ describe("new documented native text routes", () => {
     expect(isValidModel("mistral", "mistral-large-4")).toBe(true);
     expect(getModelUpstreamId("mistral", "mistral-large-latest")).toBe("mistral-large-latest");
     expect(getCapabilitiesForModel("mistral", "mistral-large-4")).toMatchObject({ vision: true, tools: true, reasoning: true, maxOutput: null });
-    expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 200000, completion_tokens: 100000 }, getPricingForModel("mistral", "mistral-large-4"))).toBeCloseTo(1.534, 12);
+    for (const id of ["mistral-large-4", "mistral-large-4-0", "mistral-large-latest"]) {
+      expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 200000, completion_tokens: 100000 }, getPricingForModel("mistral", id))).toBeCloseTo(0.784, 12);
+    }
   });
 
   it("preserves Baidu's exact native Flash snapshot output range", () => {

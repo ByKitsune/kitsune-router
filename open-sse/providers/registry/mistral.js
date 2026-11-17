@@ -34,7 +34,7 @@ export default {
     { id: "ministral-14b-2512", name: "ministral 14b 2512" },
     { id: "ministral-8b-2512", name: "ministral 8b 2512" },
     { id: "ministral-3b-2512", name: "ministral 3b 2512" },
-    { id: "mistral-large-latest", name: "Mistral Large 3" },
+    { id: "mistral-large-latest", name: "Mistral Large 4 (Latest)" },
     { id: "mistral-small-latest", name: "Mistral Small 4" },
     { id: "codestral-latest", name: "Codestral" },
     { id: "mistral-medium-latest", name: "Mistral Medium 3.5" },

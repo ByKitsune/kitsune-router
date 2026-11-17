@@ -3,10 +3,11 @@
 // entitlements, currency conversion, or a model's continued availability.
 // Verify the literal rows against the pinned input with
 // scripts/verify-modelsdev-pricing.mjs before changing this file.
-import { canonicalizeProviderId } from "../identity.js";
+import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
 import { parsePricingTimestamp } from "../../config/timeOfUsePricing.js";
 import { MODELS_DEV_REGISTRY_PRICING_REFERENCES } from "./modelsDevPricingRegistry.js";
 import currentObservation from "./modelsDevPricingCurrent.js";
+import october30Observation from "./modelsDevPricing20261030.js";
 import october29Observation from "./modelsDevPricing20261029.js";
 import {
   freezePricingObservation, getObservedPricingEstimate,
@@ -199,7 +200,8 @@ const legacyObservation = freezePricingObservation({
 // Keep the previously shipped whole observation available for its recorded
 // instants; refreshing the current seed must not replace an in-flight quote.
 export const BUNDLED_MODELS_DEV_PRICING_OBSERVATIONS = Object.freeze([
-  legacyObservation, validatePricingObservation(october29Observation), validatePricingObservation(currentObservation),
+  legacyObservation, validatePricingObservation(october29Observation), validatePricingObservation(october30Observation),
+  validatePricingObservation(currentObservation),
 ]);
 // Next bundles pricing into instrumentation and API chunks independently. Use
 // one process-wide reader, and read it on every lookup so clearing it also
@@ -225,10 +227,18 @@ function observationFor(options = {}) {
   return options.timestamp == null ? latestObservation(history) : selectPricingObservation(history, options.timestamp);
 }
 
+function observedModelId(observation, provider, model) {
+  return Object.hasOwn(observation?.references?.[provider] || {}, model) ? model : getDeclaredUpstreamModelId(provider, model);
+}
+
 /** Exact product/literal ID reference, optionally selected at a recorded instant. */
 export function getModelsDevPricingReference(provider, model, options = {}) {
   if (typeof provider !== "string" || typeof model !== "string" || !model) return null;
-  try { return getObservedPricingReference(observationFor(options), canonicalizeProviderId(provider), model); }
+  try {
+    const product = canonicalizeProviderId(provider);
+    const observation = observationFor(options);
+    return getObservedPricingReference(observation, product, observedModelId(observation, product, model));
+  }
   catch { return null; }
 }
 
@@ -242,7 +252,8 @@ export function getModelsDevPricingStatus(provider, model, options = {}) {
   try {
     const selected = observationFor(options);
     const observation = selected || latestObservation(observations(options));
-    return getObservedPricingStatus(observation, canonicalizeProviderId(provider), model, options);
+    const product = canonicalizeProviderId(provider);
+    return getObservedPricingStatus(observation, product, observedModelId(observation, product, model), options);
   } catch {
     return { status: "source-unavailable", reference: null, eligible: false, observedAtUtc: null, expiresAtUtc: null };
   }
@@ -254,6 +265,7 @@ export function getModelsDevPricingEstimate(provider, model, options = {}) {
     const observation = observationFor(options);
     if (!observation) return null;
     if (observation === legacyObservation) return getLegacyPricingEstimate(provider, model, options);
-    return getObservedPricingEstimate(observation, canonicalizeProviderId(provider), model, options);
+    const product = canonicalizeProviderId(provider);
+    return getObservedPricingEstimate(observation, product, observedModelId(observation, product, model), options);
   } catch { return null; }
 }

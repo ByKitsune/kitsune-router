@@ -68,20 +68,20 @@ describe("models.dev reference attribution in the pricing editor", () => {
     const inputs = nodes(target).filter(node => node.type === "input");
     expect(inputs[0].props.value).toBe("");
     expect(inputs[1].props.placeholder).toBe("Not specified");
-    expect(text(target)).toContain("models.dev catalog reference · 2026-10-30");
+    expect(text(target)).toContain("models.dev catalog reference · 2026-11-17");
     expect(text(target)).toContain("Reference only, not an invoice");
     expect(text(target)).toContain('"input":0.59');
-    expect(text(target)).toContain("d8efcc4d8abe4748b0739826df309d7af8de15f3026d71cac6db8dc459f66b9c");
+    expect(text(target)).toContain("152e5625c5a807eb0a7f2517f277f6b7eda66ca5ba1ac773acdc7e488d54cfd0");
     await modal.save();
     expect(modal.fetch.mock.calls.some(([, options]) => options?.method === "PATCH")).toBe(false);
   });
 
   it("saves an edited zero without persisting the public reference or unknown fields", async () => {
     const id = "nvidia/nemotron-3-super-120b-a12b";
-    const modal = fixture({ openrouter: { [id]: { input: 0.3, output: 2.4, cached: null, reasoning: null } } });
+    const modal = fixture({ openrouter: { [id]: { input: 0.075, output: 0.4, cached: null, reasoning: null } } });
     let tree = await modal.mount();
     const target = row(tree, id);
-    expect(text(target)).toContain('"input":0.3');
+    expect(text(target)).toContain('"input":0.075');
     nodes(target).filter(node => node.type === "input")[0].props.onChange({ target: { value: "0" } });
     tree = modal.render();
     expect(nodes(row(tree, id)).filter(node => node.type === "input")[0].props.value).toBe(0);

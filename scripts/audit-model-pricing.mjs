@@ -42,7 +42,7 @@ for (const provider of registry) for (const model of provider.models || []) {
           : reviewed && !["llm", "imageToText"].includes(model.kind || "llm") ? "non-chat-billing-unit"
             : reviewed ? "reviewed-unknown-or-conditional" : catalogStatus.status === "expired" ? "catalog-observation-expired"
               : catalogStatus.reference ? "catalog-reference-not-token-eligible" : "no-exact-product-reference";
-  const sourceModel = catalogStatus.reference && catalog[catalogStatus.reference.product]?.models?.[model.id];
+  const sourceModel = catalogStatus.reference && catalog[catalogStatus.reference.product]?.models?.[catalogStatus.reference.model];
   const differences = [];
   if (sourceModel?.cost) for (const [field, key] of [["input", "input"], ["output", "output"], ["cached", "cache_read"]]) {
     if (Number.isFinite(sourceModel.cost[key]) && Number.isFinite(price?.[field]) && price[field] !== sourceModel.cost[key]) {

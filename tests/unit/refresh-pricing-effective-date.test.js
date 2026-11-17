@@ -35,11 +35,14 @@ afterEach(() => {
 describe("published future price transitions use the recorded quote date", () => {
   it.each([
     ["2026-11-30T23:59:59Z", 0.012],
-    ["2026-12-01T00:00:00Z", 0.024],
+    ["2026-12-01T00:00:00Z", null],
+    ["2026-12-01T08:00:00Z", 0.024],
   ])("selects the native Argon %s reference without changing old recorded costs", async (timestamp, expected) => {
     const repo = await import("../../src/lib/db/repos/pricingRepo.js");
     const price = await repo.getPricingForModel("gemini", "gemini-4-argon", { timestamp });
-    expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 1000 }, price)).toBeCloseTo(expected, 12);
+    const estimate = expect(calculateCostFromTokens({ prompt_tokens: 1000, completion_tokens: 1000 }, price));
+    if (expected === null) estimate.toBeNull();
+    else estimate.toBeCloseTo(expected, 12);
   });
 
   it.each(["gemini", "vertex"])("uses the published %s Flash post-promotion cache rate rather than leaving the old promo forever", async provider => {
@@ -49,6 +52,16 @@ describe("published future price transitions use the recorded quote date", () =>
     const tokens = { prompt_tokens: 100000, cached_tokens: 20000, completion_tokens: 10000, reasoning_tokens: 6000 };
     expect(calculateCostFromTokens(tokens, before)).toBeCloseTo(0.099, 12);
     expect(calculateCostFromTokens(tokens, after)).toBeCloseTo(0.198, 12);
+  });
+
+  it("recovers a documented billing redirect only once its date has fully elapsed", async () => {
+    const repo = await import("../../src/lib/db/repos/pricingRepo.js");
+    const boundary = "2026-12-01T08:00:00Z";
+    const live = await repo.getPricingForModel("gemini", "gemini-2.5-pro", { timestamp: boundary });
+    const recover = await repo.createHistoricalPricingResolver();
+    expect(recover("gemini", "gemini-2.5-pro", "2026-12-01T07:59:59Z")).toBeNull();
+    expect(recover("gemini", "gemini-2.5-pro", boundary)).toMatchObject({ input: live.input, output: live.output,
+      provenance: { kind: "published-provider-tariff", effectiveFrom: "2026-12-01T08:00:00.000Z" } });
   });
 
   it("keeps operator zero/null overrides above a dated future quote", async () => {

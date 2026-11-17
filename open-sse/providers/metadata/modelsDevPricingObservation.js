@@ -4,12 +4,13 @@
 // a prior capture to be silently reused after a newer observation exists.
 import { parsePricingTimestamp } from "../../config/timeOfUsePricing.js";
 
-export const MODELS_DEV_PRICING_OBSERVATION_FORMAT = "kitsune-modelsdev-pricing-observation-v1";
+const V1_FORMAT = "kitsune-modelsdev-pricing-observation-v1";
+export const MODELS_DEV_PRICING_OBSERVATION_FORMAT = "kitsune-modelsdev-pricing-observation-v2";
 export const MODELS_DEV_MAX_ESTIMATE_AGE_MS = 24 * 60 * 60 * 1000;
 
 // These products expose public pay-as-you-go token schedules. A similarly named
 // subscription, credit plan, regional product, or reseller is not interchangeable.
-export const MODELS_DEV_PUBLIC_TOKEN_PRODUCTS = Object.freeze({
+const V1_PUBLIC_TOKEN_PRODUCTS = Object.freeze({
   openai: "openai", anthropic: "anthropic", gemini: "google", deepseek: "deepseek",
   xai: "xai", mistral: "mistral", groq: "groq", cohere: "cohere",
   openrouter: "openrouter", "vercel-ai-gateway": "vercel", chutes: "chutes",
@@ -19,12 +20,34 @@ export const MODELS_DEV_PUBLIC_TOKEN_PRODUCTS = Object.freeze({
 });
 
 // Reference-only routes remain separate products and never become token estimates.
-export const MODELS_DEV_PRICING_PRODUCT_POLICY = Object.freeze({
-  ...MODELS_DEV_PUBLIC_TOKEN_PRODUCTS,
+const V1_PRODUCT_POLICY = Object.freeze({
+  ...V1_PUBLIC_TOKEN_PRODUCTS,
   github: "github-copilot", glm: "zai-coding-plan", "glm-cn": "zhipuai-coding-plan",
   nvidia: "nvidia", codex: "openai", "gemini-cli": "google", ollama: "ollama-cloud",
   "alicode-intl": "alibaba-coding-plan", alicode: "alibaba-coding-plan-cn",
   "alitp-intl": "alibaba-token-plan", kimi: "kimi-code-plan-cn", "xiaomi-tokenplan": "xiaomi-token-plan",
+});
+
+export const MODELS_DEV_PUBLIC_TOKEN_PRODUCTS = Object.freeze({
+  ...V1_PUBLIC_TOKEN_PRODUCTS,
+  // The configured routes use the same public API endpoints and cite the
+  // publishers' native lists. Account quotas and BYOK fees are separate.
+  // https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  "alims-intl": "alibaba",
+  // https://kilo.ai/docs/gateway/usage-and-billing
+  "kilo-gateway": "kilo",
+});
+
+// Other exact hosted products contribute reference prices only. In particular,
+// OpenCode Go allowance rates and subscriptions do not become dollar estimates.
+// OAuth API-reference comparisons remain in their immutable v1 observations.
+const { codex: _codexApiReference, "gemini-cli": _geminiApiReference, ...exactV1Products } = V1_PRODUCT_POLICY;
+export const MODELS_DEV_PRICING_PRODUCT_POLICY = Object.freeze({
+  ...exactV1Products, ...MODELS_DEV_PUBLIC_TOKEN_PRODUCTS,
+  clinepass: "cline-pass", minimax: "minimax", "minimax-cn": "minimax-cn", morph: "morph",
+  "opencode-zen": "opencode", "opencode-go": "opencode-go", paraloncloud: "paraloncloud", perplexity: "perplexity",
+  "perplexity-agent": "perplexity-agent", poolside: "poolside", sambanova: "sambanova", tokenrouter: "tokenrouter",
+  vertex: "google-vertex", "vertex-partner": "google-vertex",
 });
 
 const timestampMs = value => parsePricingTimestamp(value)?.getTime() ?? null;
@@ -36,19 +59,25 @@ export function freezePricingObservation(value) {
   return Object.freeze(value);
 }
 
+const v1AllowedCostFields = ["input", "output", "cache_read"];
+const v2AllowedCostFields = [...v1AllowedCostFields, "reasoning", "cache_write"];
+
 /** Positive, untiered text-token quotes only. Unsupported units remain references. */
-export function getObservedTextPricing(record) {
+export function getObservedTextPricing(record, format = MODELS_DEV_PRICING_OBSERVATION_FORMAT) {
   const cost = record?.cost;
+  const v1 = format === V1_FORMAT;
+  const allowedFields = v1 ? v1AllowedCostFields : v2AllowedCostFields;
   if (!record || !Array.isArray(record.input) || record.input.length !== 1 || record.input[0] !== "text"
     || !Array.isArray(record.output) || record.output.length !== 1 || record.output[0] !== "text"
     || !cost || typeof cost !== "object" || Array.isArray(cost)
     || !Number.isFinite(cost.input) || cost.input <= 0 || !Number.isFinite(cost.output) || cost.output <= 0
-    || Object.keys(cost).some(field => !["input", "output", "cache_read"].includes(field))
-    || (own(cost, "cache_read") && (!Number.isFinite(cost.cache_read) || cost.cache_read < 0))) return null;
+    || Object.entries(cost).some(([field, value]) => !allowedFields.includes(field) || !Number.isFinite(value) || value < 0)) return null;
   return {
     input: cost.input, output: cost.output,
     cached: own(cost, "cache_read") ? cost.cache_read : null,
-    reasoning: null, cache_creation: null, cache_creation_1h: null,
+    // The catalog's generic cache_write has no lifetime. Keep it as a
+    // reference without guessing which accounting counter it belongs to.
+    reasoning: !v1 && own(cost, "reasoning") ? cost.reasoning : null, cache_creation: null, cache_creation_1h: null,
     cache_write_30m: null, cache_write_12h: null,
   };
 }
@@ -129,7 +158,7 @@ export function getObservedPricingStatus(observation, provider, model, options =
 export function getObservedPricingEstimate(observation, provider, model, options = {}) {
   const status = getObservedPricingStatus(observation, provider, model, options);
   if (status.status !== "estimate") return null;
-  const quote = getObservedTextPricing(observation.references[provider][model]);
+  const quote = getObservedTextPricing(observation.references[provider][model], observation.format);
   const reference = status.reference;
   return { ...quote, provenance: { kind: "models-dev-catalog-estimate", product: reference.product, model,
     url: reference.url, snapshotDate: reference.snapshotDate, verifiedAtUtc: reference.verifiedAtUtc,
@@ -139,24 +168,26 @@ export function getObservedPricingEstimate(observation, provider, model, options
 
 /** Validate persisted observations before they enter the synchronous resolver. */
 export function validatePricingObservation(value) {
-  if (!value || value.format !== MODELS_DEV_PRICING_OBSERVATION_FORMAT || !value.products || !value.references || !value.estimates
+  if (!value || ![V1_FORMAT, MODELS_DEV_PRICING_OBSERVATION_FORMAT].includes(value.format) || !value.products || !value.references || !value.estimates
     || Array.isArray(value.products) || Array.isArray(value.references) || Array.isArray(value.estimates)
     || value.source?.url !== "https://models.dev/api.json" || timestampMs(value.source?.verifiedAtUtc) == null
     || typeof value.source.sha256 !== "string" || !/^[a-f\d]{64}$/.test(value.source.sha256)) {
     throw new Error("Invalid models.dev pricing observation");
   }
   if (value.source.repositoryCommit && !/^[a-f\d]{40}$/.test(value.source.repositoryCommit)) throw new Error("Invalid pricing observation repository commit");
+  const policies = value.format === V1_FORMAT ? V1_PRODUCT_POLICY : MODELS_DEV_PRICING_PRODUCT_POLICY;
+  const tokenProducts = value.format === V1_FORMAT ? V1_PUBLIC_TOKEN_PRODUCTS : MODELS_DEV_PUBLIC_TOKEN_PRODUCTS;
   const expected = Object.create(null);
   for (const [provider, product] of Object.entries(value.products)) {
     const rows = value.references[provider];
-    if (MODELS_DEV_PRICING_PRODUCT_POLICY[provider] !== product || typeof product !== "string" || !rows || typeof rows !== "object" || Array.isArray(rows)) throw new Error("Invalid pricing observation product");
+    if (policies[provider] !== product || typeof product !== "string" || !rows || typeof rows !== "object" || Array.isArray(rows)) throw new Error("Invalid pricing observation product");
     for (const [model, row] of Object.entries(rows)) {
       if (!model || !row || !row.cost || typeof row.cost !== "object" || Array.isArray(row.cost)
         || !Array.isArray(row.input) || !Array.isArray(row.output) || [...row.input, ...row.output].some(item => typeof item !== "string")) {
         throw new Error("Invalid pricing observation record");
       }
       validateRawCost(row.cost);
-      if (MODELS_DEV_PUBLIC_TOKEN_PRODUCTS[provider] === product && getObservedTextPricing(row)) (expected[provider] ||= []).push(model);
+      if (tokenProducts[provider] === product && getObservedTextPricing(row, value.format)) (expected[provider] ||= []).push(model);
     }
   }
   for (const ids of Object.values(expected)) ids.sort();

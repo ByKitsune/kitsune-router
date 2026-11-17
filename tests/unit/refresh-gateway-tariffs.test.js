@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { calculateCostBreakdown, calculateCostFromTokens, getPricingForModel, PROVIDER_PRICING } from "../../open-sse/providers/pricing.js";
 import { getReviewedModelMetadata } from "../../open-sse/providers/metadata/reviewed.js";
 
-// Independently hand-calculated from the captured 2026-10-21 primary catalogs.
+// Independently hand-calculated from the captured primary catalogs.
 // Evidence: /tmp/opencode/zenrouter-client-pricing-refresh-20261021/gateway.
 // These cases catch reseller/vendor substitution, stale rates, and lost real zeros.
 describe("2026-10-21 hosted route token estimates", () => {
@@ -18,8 +18,8 @@ describe("2026-10-21 hosted route token estimates", () => {
     ["nebius", "deepseek-ai/DeepSeek-V4-Flash-0731", 0.14, 0.28, 0.01, 0.103],
     ["nebius", "deepseek-ai/DeepSeek-V4.1-Flash", 0.3, 1.2, 0.01, 0.275],
     ["nebius", "MiniMaxAI/MiniMax-M3", 0.3, 1.2, 0.06, 0.3],
-    ["morph", "morph-dsv41flash-1017", 0.206, 0.6, 0.018, 0.172],
-    ["morph", "morph-glm53-744b", 0.217, 4.4, 0.055, 0.576],
+    ["morph", "morph-dsv41flash-1017", 0.059, 0.52, 0.005, 0.084],
+    ["morph", "morph-glm53-744b", 0.976, 4.555, 0.197, 1.042],
     ["siliconflow", "deepseek-ai/DeepSeek-V4.1-Flash", 0.15, 0.6, 0.003, 0.1365],
     ["siliconflow", "openai/gpt-oss-120b", 0.05, 0.45, 0.075, 0.1075],
     ["together", "Qwen/Qwen3.8-2.4T-A95B", 2, 6, 0.25, 1.725],
@@ -35,10 +35,9 @@ describe("2026-10-21 hosted route token estimates", () => {
     expect(calculateCostBreakdown(usage, pricing).totalCost).toBeCloseTo(total, 12);
   });
 
-  it("retains Together's primary price rather than a conflicting secondary catalog", () => {
-    // Pricing landing page: 1.50/4.50/0.30; serverless API-ID table: 2.50/7.50/0.50.
+  it("applies Together's current pricing page and serverless API table", () => {
     const pricing = getPricingForModel("together", "Qwen/Qwen3.7-Max");
-    expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 500000, completion_tokens: 100000 }, pricing)).toBeCloseTo(1.35, 12);
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 500000, completion_tokens: 100000 }, pricing)).toBeCloseTo(2.25, 12);
     expect(getReviewedModelMetadata("together", "Qwen/Qwen3.7-Max").billing.kind).toBe("metered");
   });
 

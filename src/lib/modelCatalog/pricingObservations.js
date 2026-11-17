@@ -22,6 +22,7 @@ export function createPricingObservationStore(directory) {
   let history = [];
   let loaded = new Map();
   let names = [];
+  let namesAtInstant = new Map();
   let cachedSelection = null;
 
   function directoryStat() {
@@ -48,16 +49,24 @@ export function createPricingObservationStore(directory) {
     if (stamp !== cachedStamp) {
       names = fs.readdirSync(folder).filter(name => FILE_NAME.test(name))
         .sort((a, b) => Number(b.split("-")[0]) - Number(a.split("-")[0]) || a.localeCompare(b));
+      namesAtInstant = new Map();
+      for (const name of names) {
+        const instant = name.split("-")[0];
+        if (!namesAtInstant.has(instant)) namesAtInstant.set(instant, []);
+        namesAtInstant.get(instant).push(name);
+      }
     }
     let selected = names.slice(0, MAX_LOADED_OBSERVATIONS);
-    if (options.timestamp != null) {
-      const at = parsePricingTimestamp(options.timestamp)?.getTime();
-      if (!Number.isFinite(at)) throw new Error("Invalid observation lookup timestamp");
-      // Index all retained observations, then load the actual predecessor for
-      // this request. A memory bound must never revive an older bundled rate.
-      const match = names.find(name => Number(name.split("-")[0]) <= at);
-      const instant = match?.split("-")[0];
-      selected = instant ? names.filter(name => name.split("-")[0] === instant) : [];
+    if (options.latestOnly || options.timestamp != null) {
+      let match = names[0];
+      if (options.timestamp != null) {
+        const at = parsePricingTimestamp(options.timestamp)?.getTime();
+        if (!Number.isFinite(at)) throw new Error("Invalid observation lookup timestamp");
+        // Index all retained observations, then load the actual predecessor for
+        // this request. A memory bound must never revive an older bundled rate.
+        match = names.find(name => Number(name.split("-")[0]) <= at);
+      }
+      selected = namesAtInstant.get(match?.split("-")[0]) || [];
     }
     const selection = selected.join(";");
     if (stamp === cachedStamp && selection === cachedSelection) return history;
@@ -141,7 +150,10 @@ export function parseModelsDevCatalog(bytes) {
 /** Read the full HTTPS response with an explicit size cap before hashing it. */
 export async function readModelsDevResponse(response, signal) {
   const announced = Number(response.headers.get("content-length"));
-  if (announced > MAX_CATALOG_BYTES) throw new Error("models.dev response is too large");
+  if (announced > MAX_CATALOG_BYTES) {
+    void response.body?.cancel().catch(() => {});
+    throw new Error("models.dev response is too large");
+  }
   const reader = response.body?.getReader();
   if (!reader) throw new Error("models.dev response has no catalog body");
   const chunks = [];
@@ -173,6 +185,8 @@ export async function readModelsDevResponse(response, signal) {
 
 export function installPricingObservationStore(directory) {
   const store = createPricingObservationStore(directory);
-  setModelsDevPricingObservationSource(store.read);
+  // Resolver callers use one observation instant at a time. Do not load the
+  // unrelated history into memory for ordinary, undated catalog lookups.
+  setModelsDevPricingObservationSource(options => store.read({ ...options, latestOnly: true }));
   return store;
 }

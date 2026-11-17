@@ -165,11 +165,25 @@ export function getResponseServiceTier(response, eventType = response?.type ?? r
   return typeof value === "string" && value ? value : null;
 }
 
+/** GenerateContent reports its delivered tier in the response header. */
+export function getGeminiServiceTierSelection(requested, headers) {
+  const requestedServiceTier = requested === "standard" ? "default"
+    : typeof requested === "string" && requested ? requested : null;
+  const header = headers?.get("x-gemini-service-tier")?.trim().toLowerCase();
+  const actualServiceTier = header === "standard" ? "default"
+    : header === "priority" || header === "flex" ? header : null;
+  return {
+    requestedServiceTier,
+    actualServiceTier,
+    ...(header != null && actualServiceTier === null && { serviceTierCostStatus: "unconfirmed" }),
+  };
+}
+
 /** Preserve raw actual spelling: a requested Fast may have run at Standard. */
 export function getServiceTierAccounting(provider, selection = null, response = null) {
-  if (!supportsServiceTiers(provider)) return null;
+  if (provider !== "gemini" && !supportsServiceTiers(provider)) return null;
   const requestedServiceTier = selection?.requestedServiceTier ?? null;
-  const actualServiceTier = getResponseServiceTier(response) ?? selection?.actualServiceTier ?? null;
+  const actualServiceTier = (provider === "gemini" ? null : getResponseServiceTier(response)) ?? selection?.actualServiceTier ?? null;
   const wire = selection?.wireServiceTier ?? requestedServiceTier;
   // The pricing layer requires an explicit tariff for confirmed premium tiers.
   // Auto is a policy echo, not proof of Standard or paid-tier delivery.

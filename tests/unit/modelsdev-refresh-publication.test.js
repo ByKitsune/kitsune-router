@@ -29,6 +29,29 @@ afterEach(async () => {
 });
 
 describe("public catalog sync and pricing publication", { timeout: 20_000 }, () => {
+  it("recovers eligible persisted usage at startup with outbound sync disabled", async () => {
+    const { saveRequestUsage, getUsageHistory } = await import("../../src/lib/db/repos/usageRepo.js");
+    const { createPricingObservationStore } = await import("../../src/lib/modelCatalog/pricingObservations.js");
+    const timestamp = "2030-02-01T12:00:00Z";
+    const request = { provider: "openrouter", model: id, tokens: { prompt_tokens: 1000, completion_tokens: 1000 } };
+    await saveRequestUsage({ ...request, timestamp: "2030-02-01T11:00:00Z" });
+    await saveRequestUsage({ ...request, timestamp });
+    expect((await getUsageHistory()).map(row => row.cost)).toEqual([null, null]);
+
+    const catalog = payload(1);
+    createPricingObservationStore(path.join(temporary, "model-pricing-observations")).publish(catalog, {
+      url: "https://models.dev/api.json", verifiedAtUtc: timestamp,
+      sha256: createHash("sha256").update(JSON.stringify(catalog)).digest("hex"),
+    });
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    sync.startModelCatalogSync();
+    sync.startModelCatalogSync();
+    await vi.waitFor(() => expect(sync.getSyncState().startupPricingRecovery).toEqual({ checked: 2, recovered: 1 }));
+    expect(fetch).not.toHaveBeenCalled();
+    expect((await getUsageHistory()).map(row => row.cost)).toEqual([null, 0.003]);
+  });
+
   it("checks persisted unpriced requests after publication", async () => {
     const { saveRequestUsage, getUsageHistory } = await import("../../src/lib/db/repos/usageRepo.js");
     const request = { provider: "openrouter", model: id, tokens: { prompt_tokens: 1000, completion_tokens: 1000 } };
@@ -45,6 +68,7 @@ describe("public catalog sync and pricing publication", { timeout: 20_000 }, () 
     const fetch = vi.fn().mockResolvedValueOnce(new Response(first, { headers: { etag: '"first"' } })).mockResolvedValueOnce(new Response(second));
     vi.stubGlobal("fetch", fetch);
     expect(await sync.syncModelCatalog()).toMatchObject({ status: "updated", pricingReferences: 1 });
+    expect(fetch.mock.calls[0]).toEqual(["https://models.dev/api.json", expect.objectContaining({ redirect: "error" })]);
     const original = pricing.getModelsDevPricingEstimate("openrouter", id, { timestamp: "2030-02-01T13:00:00Z" });
     expect(original).toMatchObject({ input: 1, provenance: { sha256: createHash("sha256").update(first).digest("hex") } });
     vi.setSystemTime(new Date("2030-02-02T12:00:00Z"));

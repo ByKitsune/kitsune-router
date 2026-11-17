@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateCostBreakdown, getDefaultPricing, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import { getOpenAIPublishedTokenPricing } from "../../open-sse/config/processingSpeedPricing.js";
+import { getServiceTierOptions, resolveServiceTier } from "../../open-sse/providers/serviceTiers.js";
 
 describe("dated public OpenAI processing-speed tariffs", () => {
   // Literal USD/1M-token table from OpenAI pricing.md, captured 2026-10-21.
@@ -69,5 +70,44 @@ describe("GPT-6.2 public OpenAI rates", () => {
     const options = { timestamp: "2027-03-01T08:00:00Z" };
     expect(getOpenAIPublishedTokenPricing(model, options)).toEqual(price(options.timestamp));
     expect(getDefaultPricing(options).openai[model]).toEqual(price(options.timestamp));
+  });
+});
+
+describe("official OpenAI text Batch tariffs", () => {
+  it("prices Astra Batch cache reads, writes and output at the delivered context tier", () => {
+    const quote = getPricingForModel("openai", "gpt-6-astra");
+    const usage = {
+      cached_tokens: 10000, cache_write_tokens: 3000, cache_write_30m_tokens: 1000, cache_write_12h_tokens: 2000,
+      completion_tokens: 1000, reasoning_tokens: 100, actualServiceTier: "batch",
+    };
+    const short = calculateCostBreakdown({ ...usage, prompt_tokens: 272000 }, quote);
+    expect(short).toMatchObject({ inputCost: 1.295, cachedCost: 0.005, cacheCreationCost: 0.03125 });
+    expect(short.outputCost + short.reasoningCost).toBeCloseTo(0.025, 12);
+    const long = calculateCostBreakdown({ ...usage, prompt_tokens: 272001 }, quote);
+    expect(long).toMatchObject({ inputCost: 2.59001, cachedCost: 0.01, cacheCreationCost: 0.0625 });
+    expect(long.outputCost + long.reasoningCost).toBeCloseTo(0.0375, 12);
+  });
+
+  it("uses literal Batch cells and retains published gaps", () => {
+    const gpt54 = getPricingForModel("openai", "gpt-5.4");
+    expect(gpt54.service_tiers.batch.cached).toBe(0.13);
+    const usage = { prompt_tokens: 272001, completion_tokens: 1000, actualServiceTier: "batch" };
+    expect(calculateCostBreakdown(usage, getPricingForModel("openai", "gpt-5.5-pro")).totalCost).toBeNull();
+    const gpt41 = getPricingForModel("openai", "gpt-4.1");
+    expect(calculateCostBreakdown(usage, gpt41).totalCost).toBeCloseTo(0.276001, 12);
+    expect(calculateCostBreakdown({ ...usage, cached_tokens: 100 }, gpt41).totalCost).toBeNull();
+  });
+
+  it.each([["gpt-5.2-pro", 10.5, 84], ["gpt-5-pro", 7.5, 60], ["o3-pro", 10, 40]])("indexes the standalone %s Batch quote", (model, input, output) => {
+    expect(getDefaultPricing().openai[model].service_tiers).toMatchObject({ batch: { input, output, cached: null } });
+  });
+
+  it("keeps Batch quote coverage separate from online gateway speed support", () => {
+    const model = "gpt-6-astra";
+    expect(getPricingForModel("openai", model).service_tiers.batch).toBeDefined();
+    expect(getServiceTierOptions("openai", model).map(option => option.value)).not.toContain("batch");
+    expect(() => resolveServiceTier("openai", model, "batch"))
+      .toThrow(expect.objectContaining({ code: "invalid_service_tier", param: "service_tier" }));
+    expect(getPricingForModel("codex", model)?.service_tiers?.batch).toBeUndefined();
   });
 });

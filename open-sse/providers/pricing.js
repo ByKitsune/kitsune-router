@@ -5,6 +5,7 @@ export { getModelsDevPricingReference } from "./metadata/modelsDevPricing.js";
 import * as openAIProcessingQuotes from "../config/processingSpeedPricing.js";
 import { LITERAL_ONLY_PRICING_PROVIDERS, PRICING_RATE_FIELDS } from "../config/pricingConfig.js";
 import { getTimeOfUsePricing, parsePricingTimestamp } from "../config/timeOfUsePricing.js";
+import { GEMINI_API_PRICED_MODELS, getGeminiApiTokenPricing } from "../config/geminiApiPricing.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
 //
@@ -774,6 +775,8 @@ export function getPricingForModel(provider, model, options = {}) {
   function resolve(id) {
     if (seen.has(id)) return null;
     seen.add(id);
+    const gemini = owner === "gemini" ? getGeminiApiTokenPricing(id, options) : null;
+    if (gemini) return gemini;
     const reviewed = getReviewedModelMetadata(provider, id);
     const billing = reviewed?.billing;
     if (options.timestamp !== undefined && (billing?.effectiveFrom || billing?.effectiveUntil)) {
@@ -825,7 +828,11 @@ export function getDefaultPricing(options = {}) {
   for (const model of Object.keys(openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_PRICING)) {
     openai[model] = getPricingForModel("openai", model, options);
   }
-  return { ...PROVIDER_PRICING, openai };
+  const gemini = { ...PROVIDER_PRICING.gemini };
+  for (const model of GEMINI_API_PRICED_MODELS) {
+    gemini[model] = getPricingForModel("gemini", model, options);
+  }
+  return { ...PROVIDER_PRICING, openai, gemini };
 }
 
 /**

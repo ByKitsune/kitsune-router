@@ -669,11 +669,12 @@ Zero actionable compared capability mismatches does not mean all routes were
 verified. The historical snapshot is reconstructed from commit
 `22dc88b304dd15ab1c1692794ead3696bc97994d`, separately from current API captures.
 
-Gemini 4 Argon's context is 1,048,576; its direct non-streaming output ceiling is
-32,768 and streaming ceiling 65,536. Claude Opus 5.5's context is 1,000,000 with
-128,000 synchronous output. Neither implies an independently published maximum
-input or a 1M output allowance. Keep route-specific limits and account eligibility
-separate. Native long-decode continuation is not implemented by this gateway.
+Gemini 4 Argon, Carbon, and Hydrogen share a 1,048,576-token window for input,
+thinking, and output. Direct GenerateContent allows up to 65,536 streaming
+output tokens on all three. The non-streaming ceiling is 32,768 on Argon and
+Carbon and 65,536 on Hydrogen. Claude Opus 5.5 has a 1,000,000-token context
+and 128,000 synchronous output tokens. Independent maximum input is unverified
+for these routes. [Google GenerateContent limits](https://aistudio.google.com/docs/long-decode?generate-content=true).
 
 Reviewed pricing fixes preserve literal provider tariffs, cache-write TTLs and
 full model namespaces. Perplexity Agent's Grok tier begins inclusively at 200,000
@@ -798,8 +799,8 @@ Model/token-price facts remain provider/product-specific. The configured pricing
 view resolves every registered row plus operator-configured custom routes from
 a captured pricing/node snapshot; unknown rates are visible rather than silently
 missing. Runtime estimates select recorded-time native schedules and published
-replacement rates before saved operator overrides. Existing history is never
-repriced during a metadata refresh. See the
+replacement rates before saved operator overrides. A metadata refresh preserves
+previously recorded costs. See the
 [client/model/pricing review](audit/18-client-model-pricing-refresh-2026-10.md).
 
 Provider billing resolution does not use unscoped vendor-family fallbacks.
@@ -807,8 +808,7 @@ A public API price must not become a subscription or reseller tariff merely
 because the model names match. Exact models.dev product/model observations are
 references; only compatible public pay-as-you-go text-token rows can supply
 catalog estimates. Reviewed route-specific conditions and operator overrides
-remain separate. Unverified used components remain `null`, not free, and
-already accepted usage is never repriced by a catalog refresh.
+remain separate. Unverified used components retain an unknown (`null`) cost.
 
 The catalog scheduler attempts a fresh, bounded full models.dev response every
 six hours. A successful complete response is validated and hashed before
@@ -820,8 +820,18 @@ selected by the original recorded request timestamp, preserving prior
 observations for in-flight work. Missing rows in a newer observation do not revive
 older tariffs. Private content-addressed files allow independent workers to
 publish without shared-manifest overwrite races; unreadable or corrupt state
-fails closed. Disabling outbound sync with `MODEL_CATALOG_SYNC=off` leaves restored
-observations readable but does not renew them.
+fails closed. At startup and after each successful refresh, the database checks
+retained requests with missing costs against the tariff valid at their recorded
+time. It fills eligible costs and their daily totals in the same transaction,
+using only persisted usage facts. Setting `MODEL_CATALOG_SYNC=off` keeps the
+startup recovery and skips the scheduled network refresh.
+
+Gemini Developer API quotes include separate Standard, Batch, Flex, and Priority
+token rates where Google publishes them. Output includes thinking. Billed cache
+storage uses token-hours, which are displayed as billing metadata. The estimator
+selects the Argon, Carbon, and Flash promotion by request date. Quote displays
+show unknown rates during the possible cutover interval when the publisher gives
+only a civil date. [Google Gemini pricing](https://aistudio.google.com/docs/pricing).
 
 The pricing editor explains effective sources and reference-only, expired and
 unmapped states. `GET /api/pricing?view=diagnostics` is a read-only view of known

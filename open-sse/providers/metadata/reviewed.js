@@ -10,9 +10,12 @@ import codebuddyModels from "./codebuddyModels.js";
 import opencodeRefreshModels from "./opencodeRefreshModels.js";
 import loginCatalogRefreshModels from "./loginCatalogRefreshModels.js";
 import { applyOpenCodeCatalog } from "./opencodeCatalog.js";
+import { applyHostedModelTariffs } from "./hostedModelTariffs.js";
+import { applyGeminiDeveloperCatalog } from "./geminiDeveloperCatalog.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
 import { applyExactCatalogCapabilities, getCapabilityVerification, getPublicCapabilityCatalogReference } from "./modelsDevCapabilityResolution.js";
 import { getOpenAIPublishedTokenPricing } from "../../config/processingSpeedPricing.js";
+import { getGeminiApiCacheStorage, getGeminiApiPriceSchedule, getGeminiApiTokenPricing } from "../../config/geminiApiPricing.js";
 
 export const REVIEWED_MODEL_METADATA = {};
 for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antigravityModels, oauthModels, codebuddyModels, opencodeRefreshModels, loginCatalogRefreshModels]) {
@@ -26,6 +29,8 @@ for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antig
 }
 
 applyOpenCodeCatalog(REVIEWED_MODEL_METADATA);
+applyHostedModelTariffs(REVIEWED_MODEL_METADATA);
+applyGeminiDeveloperCatalog(REVIEWED_MODEL_METADATA);
 
 // A later tariff review may add pricing URLs to `sources` without revisiting
 // the capability facts. Refresh records explicitly tagged as catalog imports
@@ -97,6 +102,14 @@ export function getPublicModelMetadata(provider, model, capabilities, declaredCa
   const capabilityCatalog = getPublicCapabilityCatalogReference(provider, model);
   if (!record && !capabilityCatalog && !capabilities) return null;
   const result = publicMetadataValue(record || {});
+  if (canonicalizeProviderId(provider) === "gemini" && getGeminiApiPriceSchedule(model)) {
+    const timestamp = Date.now();
+    const quote = getGeminiApiTokenPricing(model, { timestamp });
+    if (quote) {
+      result.pricing = publicMetadataValue(quote);
+      result.billing.cacheStorage = getGeminiApiCacheStorage(model, { timestamp });
+    }
+  }
   const processingTiers = openAIProcessingTiers(provider, model, record);
   if (processingTiers) result.processingTiers = publicMetadataValue(processingTiers);
   if (capabilityCatalog) result.capabilityCatalog = capabilityCatalog;
