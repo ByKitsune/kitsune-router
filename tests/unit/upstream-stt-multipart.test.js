@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import edgePrimitives from "next/dist/compiled/@edge-runtime/primitives/fetch.js";
-import { fetch as undiciFetch } from "undici";
+import { fetch as undiciFetch, Response as UndiciResponse } from "undici/index.js";
 
 const NativeFormData = globalThis.FormData;
-const NativeResponse = globalThis.Response;
 const NativeFile = globalThis.File;
 const nativeFetch = globalThis.fetch;
 const fetchStateKey = Symbol.for("kitsunerouter.proxy-fetch.v1");
@@ -70,7 +69,7 @@ const transcribe = (format, formData = inputForm()) => handleSttCore({
 async function expectMultipart(request, format) {
   expect(request.headers["content-type"]).toMatch(/^multipart\/form-data; boundary=/);
   expect(request.headers.authorization).toBe("Bearer synthetic-stt-fixture");
-  const form = await new NativeResponse(request.body, { headers: { "content-type": request.headers["content-type"] } }).formData();
+  const form = await new UndiciResponse(request.body, { headers: { "content-type": request.headers["content-type"] } }).formData();
   expect(form.get("model")).toBe("fixture-transcriber");
   const file = form.get("file");
   expect(file.name).toBe("speech-ä.wav");

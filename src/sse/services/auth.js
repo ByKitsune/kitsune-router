@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { getDbImportGeneration } from "@/lib/db/helpers/importGeneration.js";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, classifyAvailabilityError, isRequestValidationError, isModelLockActive, getModelLockUntil, getModelLockIdentity, buildModelLockUpdate, needsOperatorReauth } from "open-sse/services/accountFallback.js";
-import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS, CODEX_ENTITLEMENT_DENIAL_MS, CODEX_ENTITLEMENT_DENIAL_TEXT } from "open-sse/config/errorConfig.js";
+import { MAX_RATE_LIMIT_COOLDOWN_MS, TRANSIENT_COOLDOWN_MS, CODEX_ENTITLEMENT_DENIAL_MS, CODEX_ENTITLEMENT_DENIAL_TEXT, OPENCODE_QUOTA_CODES, OPENCODE_QUOTA_PROVIDERS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { safeAccountLabel, redactAccountName } from "@/shared/utils/accountRedaction.js";
 import { setBounded, CACHE_LIMITS } from "open-sse/utils/boundedCache.js";
@@ -556,6 +556,9 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   const connections = await getProviderConnections({ provider: resolveProviderId(provider) === "codex" ? "codex" : provider });
   const conn = connections.find(c => c.id === connectionId);
   const backoffLevel = conn?.backoffLevel || 0;
+  const openCodeProvider = OPENCODE_QUOTA_PROVIDERS.has(resolveProviderId(provider));
+  const workspaceQuota = openCodeProvider && Number(status) === 429 &&
+    [OPENCODE_QUOTA_CODES.go, OPENCODE_QUOTA_CODES.workspaceBudget].includes(errorText?.code);
 
   if (isCodexEntitlementDenial(provider, status, errorText, model)) {
     // Legacy callers still get zero-cooldown fallback, but cannot attribute a
@@ -581,8 +584,8 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     newBackoffLevel = 0;
   } else if (resetsAtMs && resetsAtMs > Date.now()) {
     shouldFallback = true;
-    // Antigravity quota API provides exact per-model resetAt. Do not truncate it.
-    cooldownMs = resolveProviderId(provider) === "antigravity"
+    // OpenCode and Antigravity can report exact resets beyond the generic cap.
+    cooldownMs = openCodeProvider || resolveProviderId(provider) === "antigravity"
       ? resetsAtMs - Date.now()
       : Math.min(resetsAtMs - Date.now(), MAX_RATE_LIMIT_COOLDOWN_MS);
     newBackoffLevel = 0;
@@ -597,7 +600,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   if (!cooldownMs) return { shouldFallback: true, cooldownMs: 0 };
 
   const reason = describeProviderError(errorText);
-  const lockUpdate = buildModelLockUpdate(githubResetAtMs ? null : model, cooldownMs);
+  const lockUpdate = buildModelLockUpdate(githubResetAtMs || workspaceQuota ? null : model, cooldownMs);
 
   // A revoked/invalidated OAuth credential cannot be healed by a refresh, so
   // the operator must re-auth. Surface that distinctly instead of the generic
@@ -623,7 +626,9 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     console.error(`❌ ${provider} [${status}]: ${reason}`);
   }
 
-  return { shouldFallback: true, cooldownMs };
+  // A workspace refusal can also affect the other keys on this route. The
+  // caller's configured combo may still select an independent model/provider.
+  return { shouldFallback: !workspaceQuota, cooldownMs };
 }
 
 /**

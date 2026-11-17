@@ -1,10 +1,12 @@
 import { BRAND } from "../../../branding/identity.mjs";
+import { getOpenCodeRegistryModel, openCodeTransports } from "../../config/opencodeCatalog.js";
+import { openCodeGoCatalog } from "../metadata/opencodeCatalogData.js";
 
 // https://opencode.ai/v2/docs/console/go/#where-can-i-use-it
 // This identifies the router, not an OpenCode/free-tier client fingerprint.
 const routerHeaders = Object.freeze({ "User-Agent": BRAND.binary });
 
-export default {
+const provider = {
   id: "opencode-go",
   priority: 210,
   alias: "opencode-go",
@@ -35,6 +37,7 @@ export default {
     { format: "openai", baseUrl: "https://opencode.ai/zen/go/v1/chat/completions", headers: routerHeaders, auth: { combined: true, header: "Authorization", scheme: "bearer" } },
     { format: "claude", baseUrl: "https://opencode.ai/zen/go/v1/messages", headers: routerHeaders, auth: { combined: true, header: "x-api-key", scheme: "raw", anthropicVersion: true } },
     { format: "openai-responses", baseUrl: "https://opencode.ai/zen/go/v1/responses", headers: routerHeaders, auth: { combined: true, header: "Authorization", scheme: "bearer" } },
+    ...openCodeTransports("go", routerHeaders).filter(({ format }) => format === "gemini"),
   ],
   models: [
     { id: "glm-5.3-flash", name: "GLM 5.3 Flash (Vision)", supportedFormats: ["openai"] },
@@ -85,3 +88,8 @@ export default {
     {"id": "space-bunny", "name": "Space Bunny", "targetFormat": "openai", "supportedFormats": ["openai"]},
   ],
 };
+
+const existingIds = new Set(provider.models.map(({ id }) => id));
+provider.models.push(...openCodeGoCatalog.models.filter(({ id }) => !existingIds.has(id)).map(getOpenCodeRegistryModel));
+
+export default provider;

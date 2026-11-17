@@ -31,6 +31,14 @@ export const DEFAULT_ERROR_MESSAGES = {
 };
 
 export const FALLBACK_SCOPE = { ACCOUNT: "account", COMBO: "combo" };
+export const OPENCODE_QUOTA_PROVIDERS = new Set(["opencode", "opencode-go", "opencode-zen"]);
+export const OPENCODE_QUOTA_CODES = {
+  free: "free_usage_limit",
+  go: "plan_usage_limit",
+  modelBudget: "model_budget_limit",
+  workspaceBudget: "workspace_budget_limit",
+};
+export const OPENCODE_FREE_LIMIT_MESSAGE = "Free usage limit reached. Wait for the allowance to reset or choose another provider.";
 // Missing authentic continuity/account binding cannot be repaired by replaying
 // the same history on another credential or silently generating replacement data.
 export const REQUEST_SAFETY_ERROR_MESSAGES = {

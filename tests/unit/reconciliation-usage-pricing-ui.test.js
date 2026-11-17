@@ -216,7 +216,7 @@ describe("recorded pricing coverage explanation", () => {
     expect(html).toContain("Some requests have no recorded price");
     expect(html).toContain("2 unpriced");
     expect(html).toContain('href="/dashboard/settings/pricing"');
-    expect(html).toContain("saved history keeps its original estimate");
+    expect(html).toContain("Missing costs can be filled in when a verified rate covers the request date.");
     expect(html).toContain("A recorded $0.00 can mean no charge or no tokens used for that component.");
   });
 

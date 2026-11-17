@@ -1,11 +1,12 @@
 import { HTTP_STATUS, RETRY_CONFIG, DEFAULT_RETRY_CONFIG, resolveRetryEntry, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { OPENCODE_QUOTA_PROVIDERS } from "../config/errorConfig.js";
 import { shouldRefreshCredentials } from "../services/oauthCredentialManager.js";
 import { discardAccountResponse, fetchWithAccountPolicy, isAccountRoutingFailure } from "../utils/accountTransport.js";
 import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
-import { parseUpstreamErrorBody } from "../utils/error.js";
+import { openCodeRetryAt, parseUpstreamErrorBody } from "../utils/error.js";
 import { setTimeout as delay } from "node:timers/promises";
 
 /**
@@ -121,6 +122,8 @@ export class BaseExecutor {
       signal?.throwIfAborted();
       const { attempts, delayMs } = resolveRetryEntry(retryConfig[statusKey]);
       if (attempts <= 0 || retryAttemptsByUrl[urlIndex] >= attempts) return false;
+      // Let the router publish an upstream deadline instead of retrying before it.
+      if (response && OPENCODE_QUOTA_PROVIDERS.has(this.provider) && openCodeRetryAt(response)) return false;
       // Hook: subclass may derive delay from the response (headers/body). null → skip retry, use fallback.
       let waitMs = delayMs;
       if (response && this.computeRetryDelay) {

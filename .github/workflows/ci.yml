@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       build_candidate:
-        description: "Build an unpublished Node 24.19.0 deployment candidate"
+        description: "Build an unpublished Bun deployment candidate"
         type: boolean
         default: false
         required: false
@@ -35,12 +35,15 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             tests/package-lock.json
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
       - name: Isolate application state
         run: node scripts/release-publication-helpers.mjs isolate
       - name: Install locked test and application dependencies
         run: |
-          npm ci
-          npm --prefix tests ci
+          bun install --frozen-lockfile
+          bun install --cwd=tests --frozen-lockfile
       - name: Check UI translation coverage
         run: npm run check:i18n
       - name: Install Chromium for isolated browser checks
@@ -121,13 +124,16 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24.19.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
       - name: Isolate application state
         run: node scripts/release-publication-helpers.mjs isolate
       - name: Check exact source and install locked dependencies
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          npm ci
-          npm --prefix cli ci
+          bun install --frozen-lockfile
+          bun install --cwd=cli --frozen-lockfile --ignore-scripts
           git diff --quiet
           git diff --cached --quiet
       - name: Build unpublished CLI package
@@ -135,7 +141,7 @@ jobs:
           NEXT_PHASE: phase-production-build
           NODE_ENV: production
         run: |
-          npm run cli:pack
+          bun run cli:pack
           git diff --quiet
           git diff --cached --quiet
           node <<'NODE'
@@ -153,6 +159,7 @@ jobs:
             sourceTree: execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim(),
             runId: process.env.GITHUB_RUN_ID,
             node: process.version,
+            bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
             platform: process.platform,
             arch: process.arch,
             glibc: process.report.getReport().header.glibcVersionRuntime,
@@ -161,10 +168,11 @@ jobs:
           };
           writeFileSync('candidate-build.json', JSON.stringify(metadata, null, 2) + '\n');
           NODE
-      - name: Verify SQL.js fallback in the packed CLI
+      - name: Verify Bun SQLite and forced SQL.js fallback in the packed CLI
         run: |
           VERSION=$(node -p "require('./cli/package.json').version")
           node scripts/verify-cli-sqljs-package.mjs "bykitsune-router-$VERSION.tgz"
+          bun --no-env-file scripts/verify-cli-sqljs-package.mjs "bykitsune-router-$VERSION.tgz" --bun
       - name: Preserve unpublished candidate and build metadata
         uses: actions/upload-artifact@v7
         with:

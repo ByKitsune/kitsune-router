@@ -9,7 +9,12 @@ const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 export function createBetterSqliteAdapter(filePath) {
   const Database = loadBetterSqlite();
   const db = new Database(filePath);
-  db.exec(PRAGMA_SQL);
+  try {
+    db.exec(PRAGMA_SQL);
+  } catch (error) {
+    try { db.close(); } catch {}
+    throw error;
+  }
   // Schema is created/synced by migrate.js after adapter init
 
   const stmtCache = createStatementCache(db);

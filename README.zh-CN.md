@@ -39,7 +39,7 @@ ByKitsune 在提供商列表中作为首要官方提供商突出显示。在 **P
 
 ## 安装和启动
 
-启动器要求 **Node.js >=22.19.0**：
+当前源码默认使用 **Bun >=1.4.4**。已发布的 1.0.8 npm 启动器支持 **Node.js >=22.19.0**。
 
 ```bash
 # 仅在 npm 1.0.8 发布并读回验证成功后：
@@ -51,14 +51,14 @@ kitsune-router
 
 源码方式（已确认的规范仓库或现有工作副本，在根目录运行，没有 `app/` 子目录）：
 
-以下生成密钥仅用于**全新源码安装**（POSIX shell 和 Node.js）。`next dev` 不经过启动器的自动密钥配置；`JWT_SECRET` 必须为至少 32 字符的强随机值，否则登录失败。升级/迁移必须保留原有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`，先阅读 [迁移](docs/MIGRATION.md)。
+以下生成密钥仅用于**全新源码安装**（POSIX shell 和 Bun）。`next dev` 不经过启动器的自动密钥配置；`JWT_SECRET` 必须为至少 32 字符的强随机值，否则登录失败。升级/迁移必须保留原有有效 `JWT_SECRET`、`API_KEY_SECRET`、`MACHINE_ID_SALT` 和绝对 `DATA_DIR`，先阅读 [迁移](docs/MIGRATION.md)。
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
 # Keep runtime secrets outside the checkout and standalone build.
 kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
-node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+bun - "$kitsune_env" "$PWD/.data" <<'BUN'
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 const values = {
@@ -74,18 +74,11 @@ try {
 } catch (error) {
   if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
 }
-NODE
+BUN
 chmod 600 "$kitsune_env"
-npm ci
-npm run check:deps
-# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
-node --env-file="$kitsune_env" -e '
-const result = require("node:child_process").spawnSync(process.execPath,
-  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
-  { env: process.env, stdio: "inherit" });
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
-'
+bun install --frozen-lockfile
+bun run check:deps
+bun --env-file="$kitsune_env" run dev --hostname 127.0.0.1
 ```
 
 对外开放前，在私密环境中设置强 `INITIAL_PASSWORD`。打开 `http://localhost:20128/dashboard`，连接你有权使用的提供商，创建/复制网关 API key，然后从当前目录选择模型或创建组合。

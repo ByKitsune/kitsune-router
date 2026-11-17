@@ -34,6 +34,9 @@ describe("OpenCode Go model catalog", () => {
       "grok-4.6", "gpt-5.6-luna", "claude-haiku-5-5", "longcat-2.0",
       "step-5-preview-free", "muse-spark-1.3-contributor", "muse-spark-1.2-contributor",
       "hy4-preview", "hy3", "space-bunny",
+      // First-party Go catalog rows not already covered by a legacy declaration.
+      "minimax-m3.1-flash", "step-5-preview", "beam-free", "iceman-contributor-free",
+      "gemini-4-argon", "hy4", "longcat-2.5-free", "hy4-flash-free", "qwen4-max",
     ]);
   });
 });
@@ -59,9 +62,9 @@ describe("OpenCode Go per-model supportedFormats", () => {
 });
 
 describe("OpenCode Go multi-endpoint transports", () => {
-  it("declares openai / claude / openai-responses transports", () => {
+  it("declares Chat, Messages, Responses and Gemini transports", () => {
     const formats = (PROVIDERS["opencode-go"].transports || []).map((t) => t.format);
-    expect(formats).toEqual(["openai", "claude", "openai-responses"]);
+    expect(formats).toEqual(["openai", "claude", "openai-responses", "gemini"]);
   });
 
   it("resolveTransport picks the endpoint matching the client sourceFormat", () => {

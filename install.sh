@@ -13,12 +13,13 @@ set -e
 #   --dir PATH      Custom install directory (default: ~/.kitsune-router/app for source fallback)
 #   --branch NAME   Git branch to clone (default: master)
 #   --help          Show help
-#   --no-build      Skip npm build step when using source fallback
+#   --no-build      Skip build step when using source fallback
 #   --skip-deps     Skip system dependency auto-install
+#   --runtime NAME  Runtime preference (bun by default, node for compatibility)
 #
 # Features (inspired by hermes-agent zero-config):
 #   - Auto-detects OS/arch, handles Linux/macOS/WSL/Termux
-#   - Auto-installs missing deps: git, curl, Node.js (>=22.19.0), build tools
+#   - Auto-installs missing deps: git, curl, Bun (>=1.4.4) or Node.js (>=22.19.0)
 #   - Managed Node fallback (downloads official tarball to ~/.kitsune-router/node if system Node is too old)
 #   - Non-interactive safe (curl | bash), handles sudo gracefully
 #   - Re-runs fast-forward clean source checkouts; never discard local work
@@ -52,6 +53,8 @@ NODE_VERSION="22"
 MIN_NODE_MAJOR=22
 MIN_NODE_MINOR=19
 MIN_NODE_PATCH=0
+MIN_BUN_VERSION=1.4.4
+PREFERRED_RUNTIME="${KITSUNE_ROUTER_RUNTIME:-bun}"
 RUNTIME=""
 NODE_CMD=""
 NPM_CMD=""
@@ -80,6 +83,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-build) SKIP_BUILD=true; shift ;;
     --skip-deps) SKIP_DEPS=true; shift ;;
+    --runtime)
+      case "${2:-}" in
+        bun|node) PREFERRED_RUNTIME="$2"; shift 2 ;;
+        *) printf '%s\n' '--runtime requires bun or node' >&2; exit 1 ;;
+      esac
+      ;;
     -h|--help)
       echo "Kitsune Router Installer"
       echo ""
@@ -88,6 +97,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --branch NAME  Git branch (default: master)"
       echo "  --no-build     Skip build step"
       echo "  --skip-deps    Skip system dependency auto-install"
+      echo "  --runtime NAME Install using Bun (default) or Node.js"
       echo "  -h, --help     Show help"
       exit 0
       ;;
@@ -247,14 +257,18 @@ check_git() {
 }
 
 # Node helpers
-node_satisfies() {
+version_at_least() {
   local ver="${1#v}"
   [[ "$ver" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || return 1
   local major="${BASH_REMATCH[1]}" minor="${BASH_REMATCH[2]}" patch="${BASH_REMATCH[3]}"
-  if [ "$major" -gt "$MIN_NODE_MAJOR" ]; then return 0; fi
-  [ "$major" -eq "$MIN_NODE_MAJOR" ] || return 1
-  if [ "$minor" -gt "$MIN_NODE_MINOR" ]; then return 0; fi
-  [ "$minor" -eq "$MIN_NODE_MINOR" ] && [ "$patch" -ge "$MIN_NODE_PATCH" ]
+  if [ "$major" -gt "$2" ]; then return 0; fi
+  [ "$major" -eq "$2" ] || return 1
+  if [ "$minor" -gt "$3" ]; then return 0; fi
+  [ "$minor" -eq "$3" ] && [ "$patch" -ge "$4" ]
+}
+
+node_satisfies() {
+  version_at_least "$1" "$MIN_NODE_MAJOR" "$MIN_NODE_MINOR" "$MIN_NODE_PATCH"
 }
 
 select_node_runtime() {
@@ -270,13 +284,16 @@ select_node_runtime() {
 }
 
 select_bun_runtime() {
-  local bun_cmd
+  local bun_cmd version major minor patch
   bun_cmd=$(command -v bun) || return 1
-  "$bun_cmd" --version >/dev/null 2>&1 || return 1
+  version=$("$bun_cmd" --version 2>/dev/null) || return 1
+  IFS=. read -r major minor patch <<< "$MIN_BUN_VERSION"
+  version_at_least "$version" "$major" "$minor" "$patch" || return 1
   RUNTIME="bun"
   BUN_CMD="$bun_cmd"
   NODE_CMD=""
   NPM_CMD=""
+  export PATH="${BUN_CMD%/*}:$PATH"
 }
 
 managed_node_is_owned() {
@@ -525,8 +542,28 @@ install_managed_node() {
   return 0
 }
 
-check_node() {
-  log_step "Checking Node.js (>=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH}) / Bun"
+check_runtime() {
+  log_step "Checking Bun (>=${MIN_BUN_VERSION}) and Node.js (>=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH})"
+  case "$PREFERRED_RUNTIME" in
+    bun)
+      if select_bun_runtime; then
+        log_success "Bun $("$BUN_CMD" --version) found ($BUN_CMD)"
+        return 0
+      fi
+      if [ "$SKIP_DEPS" = false ] && ! is_termux; then
+        log_info "Installing Bun v${MIN_BUN_VERSION}..."
+        if (set -o pipefail; curl -fsSL https://bun.com/install | bash -s -- "bun-v${MIN_BUN_VERSION}") >/dev/null 2>&1; then
+          export PATH="${BUN_INSTALL:-$HOME/.bun}/bin:$PATH"
+          if select_bun_runtime; then
+            log_success "Bun $("$BUN_CMD" --version) installed"
+            return 0
+          fi
+        fi
+      fi
+      ;;
+    node) ;;
+    *) log_error "KITSUNE_ROUTER_RUNTIME must be bun or node"; return 1 ;;
+  esac
   configure_managed_npm_prefix || return 1
 
   # Prefer existing system node if good
@@ -550,15 +587,8 @@ check_node() {
     fi
   fi
 
-  # Check Bun as alternative (can run kitsune-router but npm needed for global install)
-  if command -v bun >/dev/null 2>&1; then
-    log_info "Bun $(bun --version 2>/dev/null) found — can run Kitsune Router, but Node is preferred for npm global"
-    # Still try to get Node for npm global path; Bun can be fallback
-  fi
-
   if [ "$SKIP_DEPS" = true ]; then
-    if select_bun_runtime; then log_info "Using Bun (--skip-deps)"; return 0; fi
-    log_warn "No supported Node/npm or working Bun found and --skip-deps set"
+    log_warn "No supported runtime found with --skip-deps"
     return 1
   fi
 
@@ -606,46 +636,8 @@ check_node() {
   # Fallback: managed tarball
   if install_managed_node && select_node_runtime "$(command -v node || true)" "$(command -v npm || true)"; then return 0; fi
 
-  # Ultimate fallback: Bun
-  if select_bun_runtime; then
-    log_warn "Node install failed, but Bun is available — will use Bun"
-    return 0
-  fi
-  log_info "Trying Bun as runtime fallback..."
-  if curl -fsSL https://bun.sh/install | bash >/dev/null 2>&1; then
-    export BUN_INSTALL="$HOME/.bun"
-    export PATH="$BUN_INSTALL/bin:$PATH"
-    if select_bun_runtime; then log_success "Bun $("$BUN_CMD" --version) installed"; return 0; fi
-  fi
-
-  log_error "Failed to install Node.js or Bun. Install Node >=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH} manually: https://nodejs.org/"
+  log_error "No supported runtime installed. Install Bun >=${MIN_BUN_VERSION} or Node.js >=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH} manually."
   return 1
-}
-
-check_build_tools() {
-  log_step "Checking build tools (for better-sqlite3 — optional, sql.js fallback exists)"
-  local missing=()
-  if ! command -v python3 >/dev/null 2>&1 && ! command -v python >/dev/null 2>&1; then missing+=("python3"); fi
-  if ! command -v make >/dev/null 2>&1 && ! command -v gmake >/dev/null 2>&1; then missing+=("make"); fi
-  if ! command -v g++ >/dev/null 2>&1 && ! command -v clang++ >/dev/null 2>&1; then missing+=("g++"); fi
-  if [ ${#missing[@]} -eq 0 ]; then log_success "Build tools OK"; return 0; fi
-  log_warn "Missing: ${missing[*]} (only needed if you want better-sqlite3; otherwise sql.js fallback works)"
-  if [ "$SKIP_DEPS" = true ]; then return 0; fi
-  local sudo_cmd=""; [ "$(id -u 2>/dev/null || echo 1000)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && sudo_cmd="sudo"
-  log_info "Attempting to install build tools..."
-  case "$DISTRO" in
-    ubuntu|debian) $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 || true; $sudo_cmd apt-get install -y -qq build-essential python3 >/dev/null 2>&1 || true ;;
-    fedora) $sudo_cmd dnf install -y gcc-c++ make python3 >/dev/null 2>&1 || true ;;
-    arch) $sudo_cmd pacman -S --noconfirm base-devel python >/dev/null 2>&1 || true ;;
-    termux) pkg install -y clang make python pkg-config libffi openssl >/dev/null 2>&1 || true ;;
-    macos) 
-      if command -v xcode-select >/dev/null 2>&1; then
-        log_info "macOS: ensure Xcode CLI tools are installed (xcode-select --install) for native builds"
-      fi
-      ;;
-  esac
-  # Re-check silently, don't fail hard
-  if command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1; then log_success "Build tools now available"; else log_warn "Build tools still missing — will use sql.js fallback"; fi
 }
 
 # Replace the directory entry, never redirect through an existing package symlink.
@@ -660,7 +652,7 @@ create_bun_launcher() {
   temporary=$(mktemp "${cli_link}.XXXXXX") || return 1
   quoted_bun=${BUN_CMD//\'/\'\\\'\'}
   quoted_cli=${cli_src//\'/\'\\\'\'}
-  if ! printf '#!/bin/sh\n# Kitsune Router Bun launcher (managed by install.sh)\nexec '\''%s'\'' '\''%s'\'' "$@"\n' "$quoted_bun" "$quoted_cli" > "$temporary" ||
+  if ! printf '#!/bin/sh\n# Kitsune Router Bun launcher (managed by install.sh)\nexec '\''%s'\'' --no-env-file '\''%s'\'' "$@"\n' "$quoted_bun" "$quoted_cli" > "$temporary" ||
      ! chmod 755 "$temporary" || ! mv -f -- "$temporary" "$cli_link"; then
     rm -f -- "$temporary"
     return 1
@@ -669,7 +661,7 @@ create_bun_launcher() {
 
 # Install kitsune-router via npm
 install_via_npm() {
-  log_step "Installing Kitsune Router CLI via npm"
+  log_step "Installing Kitsune Router CLI via $RUNTIME"
   local npm_cmd="$NPM_CMD"
   if [ "$RUNTIME" = "node" ]; then
     export PATH="${NODE_CMD%/*}:$PATH"
@@ -864,7 +856,7 @@ install_via_source() {
 
   log_info "Installing dependencies ($pm install)..."
   if [ "$RUNTIME" = "bun" ]; then
-    if ! "$pm" install; then log_error "bun install failed; no supported Node/npm fallback selected"; return 1; fi
+    if ! "$pm" install --frozen-lockfile; then log_error "bun install failed; locked dependencies were not replaced"; return 1; fi
   fi
   if [ "$RUNTIME" = "node" ]; then
     # Use npm ci if lock exists, otherwise install
@@ -881,7 +873,9 @@ install_via_source() {
   if [ "$SKIP_BUILD" = false ]; then
     log_info "Building Kitsune Router ($pm run build)..."
     local build_args=(run build --silent)
-    if [ "$RUNTIME" = "bun" ]; then build_args=(--bun "${build_args[@]}"); fi
+    if [ "$RUNTIME" = "bun" ]; then build_args=(--bun "${build_args[@]}")
+    elif [ -f package.json ] && grep -q '"build:node"[[:space:]]*:' package.json; then build_args=(run build:node --silent)
+    fi
     if ! "$pm" "${build_args[@]}"; then
       log_error "Production build failed; source installation is incomplete. Review the build before retrying."
       return 1
@@ -985,20 +979,19 @@ main() {
   ensure_curl
   check_network
   check_git || true
-  if ! check_node; then
-    log_error "A working Node >=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH} with npm, or Bun, is required. No package installation attempted."
+  if ! check_runtime; then
+    log_error "A working Bun >=${MIN_BUN_VERSION} or Node.js >=${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.${MIN_NODE_PATCH} with npm is required. No package installation attempted."
     return 1
   fi
-  check_build_tools || true
 
   echo ""
   local installed=false
 
-  # Try npm first (fastest, preferred)
+  # Prefer the published package over building a checkout from source.
   if install_via_npm; then
     installed=true
   else
-    log_warn "npm global install failed — falling back to source"
+    log_warn "Global package install failed — falling back to source"
     if install_via_source; then installed=true; else log_error "Source install also failed"; fi
   fi
 
@@ -1013,8 +1006,8 @@ main() {
     echo ""
     log_error "Kitsune Router installation failed"
     echo -e "  ${GRAY}Check output above. Try manual steps:${RESET}"
-    echo -e "  ${GRAY}  npm install -g @bykitsune/router  # or${RESET}"
-    echo -e "  ${GRAY}  git clone $REPO_URL $INSTALL_DIR && cd $INSTALL_DIR && npm install && npm run build${RESET}"
+    echo -e "  ${GRAY}  bun add -g @bykitsune/router  # or${RESET}"
+    echo -e "  ${GRAY}  git clone $REPO_URL $INSTALL_DIR && cd $INSTALL_DIR && bun install --frozen-lockfile && bun run build${RESET}"
     return 1
   fi
 

@@ -1,7 +1,7 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
-import { isGemini4Model } from "../../config/models.js";
+import { isGemini4Model, isGpt62Model } from "../../config/models.js";
 import { FORMATS } from "../formats.js";
 import { rejectClaudeAudio } from "./requestMedia.js";
 import { antigravityOutputConfig } from "./structuredOutput.js";
@@ -40,6 +40,9 @@ const STRIP_RULES = [
   // them. Keep the restriction on those models rather than all Claude wires.
   { match: /claude-(?:(?:opus|sonnet|haiku)-(?:4[.-][7-9]|[5-9])|(?:fable|mythos)-)/i, drop: ["temperature", "top_p", "top_k"] },
   { provider: "openai", drop: ["top_k"] },
+  // Both GPT-6.2 API models reject these legacy sampling controls.
+  { match: isGpt62Model, checkProvider: provider => provider === "openai" || provider === "codex" || provider === "opencode-zen",
+    drop: ["temperature", "top_p", "logprobs", "top_logprobs"], dropInclude: ["message.output_text.logprobs"] },
   { provider: "azure", drop: ["top_k"] },
   // GitHub Copilot GPT-5.4+ and GPT-6.x: temperature unsupported. Originally
   // gpt-5.4 only; the Responses route bypassed the chat-path filter entirely,
@@ -161,6 +164,9 @@ export function stripUnsupportedParams(provider, model, body) {
     if (!matches(rule, model)) continue;
     for (const key of rule.drop || []) {
       if (body[key] !== undefined) delete body[key];
+    }
+    if (rule.dropInclude && Array.isArray(body.include) && body.include.some(field => rule.dropInclude.includes(field))) {
+      body.include = body.include.filter(field => !rule.dropInclude.includes(field));
     }
     if (rule.dropMessageFields && Array.isArray(body.messages)) {
       for (const message of body.messages) {

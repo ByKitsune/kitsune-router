@@ -15,3 +15,7 @@ export function getModelInfo(modelId) {
 export function isGemini4Model(model) {
   return /(?:^|\/)gemini-4(?:$|[-.])/i.test(String(model || ""));
 }
+
+export function isGpt62Model(model) {
+  return /(?:^|\/)gpt-6\.2-(?:astra|sol)$/i.test(String(model || ""));
+}

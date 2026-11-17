@@ -7,6 +7,7 @@ export { closeUpstreamPools, configureUpstreamPools, getUpstreamPoolStats } from
 
 const FETCH_STATE_KEY = Symbol.for("kitsunerouter.proxy-fetch.v1");
 const fetchState = (globalThis[FETCH_STATE_KEY] ??= { original: globalThis.fetch, patched: null, implementation: null });
+const runtimeFetch = (fetchState.runtimeFetch ??= fetchState.original);
 
 export const getDefaultAgent = () => getUpstreamDispatcher();
 
@@ -236,9 +237,30 @@ async function createBypassRequest(parsedUrl, realIP, options = {}) {
 
 export const __testing = { createBypassRequest };
 
+async function fetchWithDispatcher(fetchImpl, input, options) {
+  // Bun's native fetch ignores the Undici dispatcher option. Use the same
+  // implementation that owns the proxy/tunnel and pinned connection pool.
+  if (!process.versions.bun || fetchImpl !== runtimeFetch || typeof runtimeFetch.preconnect !== "function") return fetchImpl(input, options);
+  const { fetch, FormData: UndiciFormData, Request: UndiciRequest } = await import("undici/index.js");
+  const request = input instanceof Request && !(input instanceof UndiciRequest)
+    ? new UndiciRequest(input.url, {
+      method: input.method, headers: input.headers, body: input.body, signal: input.signal,
+      cache: input.cache, credentials: input.credentials, integrity: input.integrity,
+      mode: input.mode, redirect: input.redirect, referrer: input.referrer,
+      referrerPolicy: input.referrerPolicy, keepalive: input.keepalive, duplex: "half",
+    })
+    : input;
+  if (options.body?.[Symbol.toStringTag] === "FormData" && !(options.body instanceof UndiciFormData)) {
+    const body = new UndiciFormData();
+    for (const [key, value] of options.body) body.append(key, value);
+    return fetch(request, { ...options, body });
+  }
+  return fetch(request, options);
+}
+
 export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
   throwIfCancelled(options.signal);
-  const targetUrl = typeof url === "string" ? url : url instanceof Request ? url.url : url.toString();
+  const targetUrl = typeof url === "string" ? url : url.url ?? url.toString();
   // Next installs its own fetch wrapper after instrumentation has installed
   // ours. That wrapper delegates back to our patch: calling it from here would
   // recurse Next -> Kitsune Router -> Next for chat AND background OAuth/catalog
@@ -275,7 +297,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
       headers.set("x-relay-path", `${parsed.pathname}${parsed.search}`);
       const dispatcher = await getUpstreamDispatcher({ relayUrl: new URL(relayUrl).origin, headersTimeoutMs: options.upstreamHeadersTimeoutMs });
       throwIfCancelled(options.signal);
-      return await fetchImpl(relayUrl, { ...options, headers, dispatcher, redirect: "error" });
+      return await fetchWithDispatcher(fetchImpl, relayUrl, { ...options, headers, dispatcher, redirect: "error" });
     } catch (error) {
       throwIfCancelled(options.signal, error);
       throw new Error(`[ProxyFetch] Relay required but failed${proxyOptions?.strictProxy === true ? " (strictProxy=true)" : ""}; direct egress is disabled`);
@@ -286,14 +308,15 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     try {
       const dispatcher = await getUpstreamDispatcher({ proxyUrl, headersTimeoutMs: options.upstreamHeadersTimeoutMs });
       throwIfCancelled(options.signal);
-      return await fetchImpl(url, { ...options, dispatcher });
+      return await fetchWithDispatcher(fetchImpl, url, { ...options, dispatcher });
     } catch (error) {
       throwIfCancelled(options.signal, error);
       throw new Error(`[ProxyFetch] Proxy required but failed${proxyOptions?.strictProxy === true ? " (strictProxy=true)" : ""}; direct egress is disabled`);
     }
   }
 
-  if (options.dispatcher || fetchImpl !== fetchState.original || !/^https?:/i.test(targetUrl)) {
+  if (options.dispatcher) return fetchWithDispatcher(fetchImpl, url, options);
+  if (fetchImpl !== fetchState.original || !/^https?:/i.test(targetUrl)) {
     return fetchImpl(url, options);
   }
 
@@ -319,7 +342,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
 
   const dispatcher = await getUpstreamDispatcher({ headersTimeoutMs: options.upstreamHeadersTimeoutMs });
   throwIfCancelled(options.signal);
-  return fetchImpl(url, { ...options, dispatcher });
+  return fetchWithDispatcher(fetchImpl, url, { ...options, dispatcher });
 }
 
 fetchState.implementation = proxyAwareFetch;

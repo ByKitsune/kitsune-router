@@ -65,16 +65,16 @@ Removing the package does not remove your state. Do not delete data as a trouble
 
 ## Source checkout
 
-Use the canonical repository or an existing checkout. Commands run at the root, not `kitsune-router/app`:
+Use **Bun >=1.4.4** from the checkout root. `bun install --frozen-lockfile` imports the committed `package-lock.json` without rewriting it. npm and Bun share this lockfile.
 
-The initialization below is for a **fresh source install** (POSIX shell and Node.js). `next dev` does not run the CLI's secret generator, and source/standalone execution must not assume automatic secret provisioning. A strong `JWT_SECRET` of at least 32 characters is required; otherwise dashboard login fails. Generate it once into private external `kitsune-router.source.env`, reuse it on restarts, and never commit or print it. For existing state, retain the original effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` using [migration](MIGRATION.md), not new generated values.
+The initialization below is for a **fresh source install** (POSIX shell and Bun). `next dev` does not run the CLI's secret generator, and source/standalone execution must not assume automatic secret provisioning. A strong `JWT_SECRET` of at least 32 characters is required; otherwise dashboard login fails. Generate it once into private external `kitsune-router.source.env`, reuse it on restarts, and never commit or print it. For existing state, retain the original effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` using [migration](MIGRATION.md), not new generated values.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
 # Keep runtime secrets outside the checkout and standalone build.
 kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
-node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+bun - "$kitsune_env" "$PWD/.data" <<'BUN'
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 const values = {
@@ -90,32 +90,20 @@ try {
 } catch (error) {
   if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
 }
-NODE
+BUN
 chmod 600 "$kitsune_env"
-npm ci
-npm run check:deps
-# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
-node --env-file="$kitsune_env" -e '
-const result = require("node:child_process").spawnSync(process.execPath,
-  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
-  { env: process.env, stdio: "inherit" });
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
-'
+bun install --frozen-lockfile
+bun run check:deps
+bun --env-file="$kitsune_env" run dev --hostname 127.0.0.1
 ```
 
-The development launcher parses this env file as data, then spawns Next with
-explicit arguments. Directly passing Node's `--env-file` to the Next CLI can
-copy that unsupported flag into a worker's `NODE_OPTIONS`; the parent/spawn
-boundary avoids it. Do not source the JSON-quoted file as shell code: paths and
-values can contain literal shell metacharacters. This is distinct from the
-standalone entry, which can be launched directly with Node's env-file option.
+Bun reads the private env file as data and expands unescaped `$NAME` references. Export existing values that contain literal dollar signs before starting. Keep the file outside the checkout and do not source it through a shell.
 
 For production source builds, keep runtime secrets outside the checkout, then run:
 
 ```bash
-npm run build
-HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js
+bun run build
+HOSTNAME=127.0.0.1 bun --env-file="$kitsune_env" .next/standalone/custom-server.js
 ```
 
 The standalone entry reads its environment, not launcher flags. Do not leave a private `.env` or `.env.*` in the checkout during a production build: Next can trace/copy it, and the postbuild guard correctly refuses embedded state or secrets. If upgrading a setup that already uses `.env`, preserve its exact effective values securely outside the checkout before changing the configuration path. Do not generate replacement credentials or delete the only copy.
@@ -126,24 +114,21 @@ Build-time page collection can initialize local SQLite state even though it does
 not need operator credentials. If the default home/state directory is read-only,
 give only the build process a writable absolute `DATA_DIR` belonging to an
 isolated build directory. For example,
-`DATA_DIR=/absolute/private/kitsune-build-state npm run build` selects build state;
+`DATA_DIR=/absolute/private/kitsune-build-state bun run build` selects build state;
 it does not change the runtime file's existing `DATA_DIR`. Do not point automated
 builds/tests at an operator database or copy runtime credentials into the build.
 
-If native dependency installation cannot write the default node-gyp cache, set
-`npm_package_config_node_gyp_devdir` to a writable absolute cache directory and
-rerun `npm ci`. Retain TLS and artifact checksum verification; do not run npm as
-root or change the lockfile merely to match an incomplete installation. An
-optional package omitted by npm is distinct from a missing lockfile entry.
-Build and functional checks remain necessary after the dependency metadata check.
+The gateway opens the existing SQLite file with `better-sqlite3` 13.x where its N-API prebuild is available. Otherwise it uses Bun's built-in SQLite. Use the same absolute `DATA_DIR` when switching runtimes.
+
+Node.js >=22.19.0 remains available for source compatibility. Install with `npm ci`, use `npm run build:node`, and start with `npm run start:node` after loading your existing configuration. For a CLI installed with npm, `KITSUNE_ROUTER_RUNTIME=node kitsune-router` keeps its server on Node.js when Bun is present.
 
 The current source CLI can also launch the completed root standalone build:
 
 ```bash
-npm ci
-npm run build
-node cli/cli.js --check-install
-node cli/cli.js --host 127.0.0.1 --no-browser --skip-update
+bun install --frozen-lockfile
+bun run build
+bun --no-env-file cli/cli.js --check-install
+bun --no-env-file cli/cli.js --host 127.0.0.1 --no-browser --skip-update
 ```
 
 `--check-install` checks for the generated production entry and build ID without
@@ -152,9 +137,7 @@ It is a source addition after the published 1.0.8 artifact; do not assume an
 older installed CLI supports it. Normal CLI startup keeps its documented private
 secret setup. A version response alone does not establish a usable server build.
 
-The installer still prefers the published npm CLI and uses source only as its
-fallback. Its source path now stops on `npm ci` or build failure instead of
-replacing the lockfile or reporting an unbuilt gateway as installed. `--no-build`
+The installer prefers Bun, uses Node.js where supported if Bun is unavailable, and tries the published CLI before the source build. `--runtime node` selects Node.js for installation. The source path stops on locked dependency or build failure. `--no-build`
 requires a completed existing production bundle; it does not enable development
 mode. A failed clone/build remains on disk for diagnosis. Review its error and
 retry after fixing it; preserve operator changes and state.

@@ -2,6 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.js";
 import { PROVIDERS } from "../config/providers.js";
 import { CODEX_CLI_VERSION, CODEX_PROMPT_CACHE_TTLS } from "../config/clientVersions.js";
+import { isGpt62Model } from "../config/models.js";
 import {
   refreshProviderCredentials,
   shouldRefreshCredentials,
@@ -662,7 +663,8 @@ export class CodexExecutor extends BaseExecutor {
       body.reasoning.effort = body.reasoning_effort || modelEffort || defaultEffort;
     }
     if (body.reasoning.effort !== undefined) body.reasoning.effort = String(body.reasoning.effort).trim().toLowerCase();
-    if (body.reasoning.summary === undefined) body.reasoning.summary = "auto";
+    // Native GPT-6.2 clients opt into summaries through the reasoning request.
+    if (body.reasoning.summary === undefined && !isGpt62Model(body.model)) body.reasoning.summary = "auto";
     delete body.reasoning_effort;
 
     // Include reasoning encrypted content (required by Codex backend for reasoning models)

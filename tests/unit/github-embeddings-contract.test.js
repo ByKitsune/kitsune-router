@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { fetch as transportFetch } from "undici";
+import { fetch as transportFetch } from "undici/index.js";
 import { handleEmbeddingsCore } from "../../open-sse/handlers/embeddingsCore.js";
 
 const vectors = new Map([

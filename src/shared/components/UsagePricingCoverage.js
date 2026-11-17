@@ -18,7 +18,7 @@ export default function UsagePricingCoverage({ stats }) {
           <h3 className="text-sm font-semibold text-text-main">Some requests have no recorded price</h3>
           {hasCount && <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">{translate("{count} unpriced", { count })}</span>}
         </div>
-        <p className="mt-1 text-xs leading-5 text-text-muted">Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.</p>
+        <p className="mt-1 text-xs leading-5 text-text-muted">Known subtotals exclude unpriced requests. Missing costs can be filled in when a verified rate covers the request date.</p>
         <details className="mt-2 text-xs leading-5 text-text-muted">
           <summary className="w-fit cursor-pointer rounded text-text-main focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">Why can prices be missing?</summary>
           <p className="mt-2 max-w-3xl">Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.</p>

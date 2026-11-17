@@ -75,18 +75,43 @@ fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ prerequisite: 'brows
 if (process.env.SCENARIO === 'browser-install') process.exit(1);
 fs.writeFileSync(process.env.FIXTURE_BROWSER_STATE, JSON.stringify({ ready: true }));
 `;
+  const logCommand = `
+const browserReady = JSON.parse(fs.readFileSync(process.env.FIXTURE_BROWSER_STATE, 'utf8')).ready;
+fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ args, browserReady, home: process.env.HOME, data: process.env.DATA_DIR, xdg: process.env.XDG_CONFIG_HOME, xdgData: process.env.XDG_DATA_HOME, refresh: process.env.DISABLE_BACKGROUND_TOKEN_REFRESH, catalog: process.env.MODEL_CATALOG_SYNC, cache: process.env.AG_CACHE_TEST, migration: process.env.KITSUNE_ROUTER_MIGRATION })+'\\n');
+`;
+  const bun = resolve(bin, "bun");
+  writeFileSync(bun, `#!${process.execPath}
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2);
+if (args[0] === '--no-env-file') {
+  assert.deepEqual(args, ['--no-env-file', 'cli/cli.js', '--check-install']);
+  const result = require('node:child_process').spawnSync(process.execPath, args.slice(1), { stdio: 'inherit', timeout: 5000 });
+  process.exit(result.status ?? 1);
+}
+${logCommand}
+if (args[0] === 'install') {
+  assert(args.includes('--frozen-lockfile'));
+  if (args.some(arg => arg.startsWith('--cwd='))) process.exit(0);
+  const browser = path.join('node_modules', 'playwright');
+  fs.mkdirSync(browser, { recursive: true });
+  if (process.env.SCENARIO !== 'browser-missing') fs.writeFileSync(path.join(browser, 'cli.js'), ${JSON.stringify(browserCli)});
+  process.exit(0);
+}
+assert.deepEqual(args, ['run', 'build']);
+assert.equal(process.env.NODE_ENV, 'production');
+if (process.env.SCENARIO === 'build') process.exit(1);
+fs.writeFileSync('fixture-production-build', 'complete');
+if (process.env.SCENARIO === 'changed-report') fs.writeFileSync(path.join('verification',process.env.GITHUB_SHA,'vitest.json'), JSON.stringify({success:false}));
+`);
+  chmodSync(bun, 0o755);
   const npm = resolve(bin, "npm");
   writeFileSync(npm, `#!${process.execPath}
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
-const browserReady = JSON.parse(fs.readFileSync(process.env.FIXTURE_BROWSER_STATE, 'utf8')).ready;
-fs.appendFileSync(process.env.FIXTURE_LOG, JSON.stringify({ args, browserReady, home: process.env.HOME, data: process.env.DATA_DIR, xdg: process.env.XDG_CONFIG_HOME, xdgData: process.env.XDG_DATA_HOME, refresh: process.env.DISABLE_BACKGROUND_TOKEN_REFRESH, catalog: process.env.MODEL_CATALOG_SYNC, cache: process.env.AG_CACHE_TEST, migration: process.env.KITSUNE_ROUTER_MIGRATION })+'\\n');
-if (args[0] === 'ci' && !args.includes('--prefix')) {
-  const browser = path.join('node_modules', 'playwright');
-  fs.mkdirSync(browser, { recursive: true });
-  if (process.env.SCENARIO !== 'browser-missing') fs.writeFileSync(path.join(browser, 'cli.js'), ${JSON.stringify(browserCli)});
-}
+${logCommand}
 if (args[0] === 'exec' && args.includes('playwright')) {
   const result = require('node:child_process').spawnSync(process.execPath, [path.join('node_modules', 'playwright', 'cli.js'), ...args.slice(args.indexOf('playwright') + 1)], { stdio: 'inherit', timeout: 5000 });
   process.exit(result.status ?? 1);
@@ -109,9 +134,6 @@ if (args[0] === 'test' && !args.includes('--prefix')) {
 if (args.includes('test:compat') && process.env.SCENARIO === 'compat') process.exit(1);
 if (args.includes('check:brand') && process.env.SCENARIO === 'brand') process.exit(1);
 if (args.includes('lint') && process.env.SCENARIO === 'lint') process.exit(1);
-if (args.includes('build') && process.env.SCENARIO === 'build') process.exit(1);
-if (args.includes('build')) fs.writeFileSync('fixture-production-build', 'complete');
-if (args.includes('build') && process.env.SCENARIO === 'changed-report') fs.writeFileSync(path.join('verification',process.env.GITHUB_SHA,'vitest.json'), JSON.stringify({success:false}));
 `);
   chmodSync(npm, 0o755);
   const docker = resolve(bin, "docker");
@@ -157,7 +179,7 @@ describe("workflow source verification actually gates publication", () => {
     expect(f.calls.filter(c => c.gate).map(c => c.gate)).toEqual(["identity", "providers", "aliases", "oauth", "runtime"]);
     expect(f.calls.some(c => c.args?.includes("test:compat"))).toBe(true);
     expect(f.calls.some(c => c.args?.includes("check:brand"))).toBe(true);
-    const dependencies = f.calls.findIndex(c => c.args?.[0] === "ci");
+    const dependencies = f.calls.findIndex(c => c.args?.[0] === "install" && c.args.includes("--frozen-lockfile"));
     const browserInstall = f.calls.findIndex(c => c.prerequisite === "browser-install");
     const browserFirst = f.calls.findIndex(c => c.args?.includes("tests/unit/upstream-usage-dashboard-browser.test.js"));
     const sourceTest = f.calls.findIndex(c => c.args?.some(arg => arg.startsWith("--outputFile=")));

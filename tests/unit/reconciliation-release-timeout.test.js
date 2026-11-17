@@ -18,10 +18,13 @@ describe("publication subprocess wall-clock bounds", () => {
     writeFileSync(path, `#!${process.execPath}\nprocess.on('SIGTERM', () => {}); setInterval(() => {}, 1000); setTimeout(() => process.exit(0), 2500);\n`);
     chmodSync(path, 0o755);
     const code = `import { command } from ${JSON.stringify(helper)}; try { command(${JSON.stringify(executable)}, ['offline-fixture']); process.exit(2); } catch (e) { console.log(JSON.stringify({ code: e.code, signal: e.signal })); }`;
+    // Budget separately for the fixture Node startup. The release helper
+    // still has 100 ms to terminate its subprocess.
     const result = spawnSync(process.execPath, ["--input-type=module", "-e", code], {
-      encoding: "utf8", timeout: 1500, killSignal: "SIGKILL",
+      encoding: "utf8", timeout: 5000, killSignal: "SIGKILL",
       env: { PATH: `${dir}:${process.env.PATH}`, HOME: dir, RELEASE_COMMAND_TIMEOUT_MS: "100" },
     });
+    expect(result.error).toBeUndefined();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({ code: "ETIMEDOUT", signal: "SIGKILL" });
   });
@@ -41,7 +44,8 @@ describe("publication subprocess wall-clock bounds", () => {
     writeFileSync(path, `#!${process.execPath}\n${output} setInterval(() => {},1000);\n`);
     chmodSync(path, 0o755);
     const code = `import { npmArtifact, dockerLatest, githubLatest } from ${JSON.stringify(helper)}; try { ${expression}; console.log('incorrectly confirmed absence'); process.exit(2); } catch (e) { console.log(e.code); }`;
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8", timeout: 2000, env: { PATH: `${dir}:${process.env.PATH}`, HOME: dir, RELEASE_COMMAND_TIMEOUT_MS: "200" } });
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8", timeout: 5000, env: { PATH: `${dir}:${process.env.PATH}`, HOME: dir, RELEASE_COMMAND_TIMEOUT_MS: "200" } });
+    expect(result.error).toBeUndefined();
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout.trim()).toBe("ETIMEDOUT");
   });

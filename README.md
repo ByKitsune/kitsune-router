@@ -63,7 +63,7 @@ registry failures do not establish current availability or production deployment
 
 ## Quick start
 
-Requires **Node.js >=22.19.0** for the launcher.
+From source, use **Bun >=1.4.4**. The published 1.0.8 npm launcher supports **Node.js >=22.19.0**.
 
 ```bash
 # Published 1.0.8; see the receipt for integrity and npm 11.17 review:
@@ -87,14 +87,14 @@ Do not append it to NPX or source/project installs; see the
 
 For a source checkout, run these commands from the repository root (there is no `app/` subdirectory):
 
-For a **fresh** source install, generate the session secret once in a private external `kitsune-router.source.env` as below (POSIX shell and Node.js). `next dev` does **not** use the launcher's automatic secret setup; without a strong `JWT_SECRET` of at least 32 characters dashboard login fails. For an upgrade/migration, retain the existing effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` instead; follow [migration](docs/MIGRATION.md) before starting.
+For a **fresh** source install, generate the session secret once in a private external `kitsune-router.source.env` as below (POSIX shell and Bun). `next dev` does **not** use the launcher's automatic secret setup; without a strong `JWT_SECRET` of at least 32 characters dashboard login fails. For an upgrade/migration, retain the existing effective `JWT_SECRET`, `API_KEY_SECRET`, `MACHINE_ID_SALT` and absolute `DATA_DIR` instead; follow [migration](docs/MIGRATION.md) before starting.
 
 ```bash
 git clone https://github.com/ByKitsune/kitsune-router.git
 cd kitsune-router
 # Keep runtime secrets outside the checkout and standalone build.
 kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
-node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+bun - "$kitsune_env" "$PWD/.data" <<'BUN'
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 const values = {
@@ -110,21 +110,16 @@ try {
 } catch (error) {
   if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
 }
-NODE
+BUN
 chmod 600 "$kitsune_env"
-npm ci
-npm run check:deps
-# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
-node --env-file="$kitsune_env" -e '
-const result = require("node:child_process").spawnSync(process.execPath,
-  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
-  { env: process.env, stdio: "inherit" });
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
-'
+bun install --frozen-lockfile
+bun run check:deps
+bun --env-file="$kitsune_env" run dev --hostname 127.0.0.1
 ```
 
 The canonical repository is available; an existing checkout can also be used. The launcher can bind beyond loopback by default; for a local-only session use `kitsune-router --host 127.0.0.1` (or append `--host 127.0.0.1` to NPX). Set a strong `INITIAL_PASSWORD` in your private environment before exposing the service. Open `http://localhost:20128/dashboard`, connect a permitted upstream, create/copy a gateway API key, and select a model actually listed by your installation.
+
+For a production build, run `bun run build` and start it with `bun --env-file="$kitsune_env" .next/standalone/custom-server.js`. Bun imports the committed npm lockfile during frozen installation. See the [source installation guide](docs/INSTALLATION.md#source-checkout) for the Node.js compatibility commands.
 
 Application and documentation fonts are included in their locked dependency trees; their builds do not fetch Google Fonts. Install dependencies before building.
 

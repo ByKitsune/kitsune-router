@@ -158,8 +158,8 @@ describe("CLI + postinstall wiring", () => {
 
   it("Docker entrypoint provisions secrets without requiring an env_file", () => {
     const dockerfile = fs.readFileSync(new URL("../../Dockerfile", import.meta.url), "utf8");
-    expect(dockerfile).toContain('CMD ["node", "--require", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]');
-    expect(dockerfile).toContain('exec su-exec node "$@"');
+    expect(dockerfile).toContain('CMD ["bun", "--no-env-file", "--preload", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]');
+    expect(dockerfile).toContain('exec su-exec bun "$@"');
     expect(dockerfile).not.toContain('. "$SECRETS_FILE"');
     const preload = fs.readFileSync(new URL("../../cli/hooks/containerEntrypoint.js", import.meta.url), "utf8");
     expect(preload).toContain('require("./runtimeSecrets")');

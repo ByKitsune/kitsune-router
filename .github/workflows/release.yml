@@ -50,6 +50,10 @@ jobs:
             cli/package-lock.json
             gitbook/package-lock.json
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
       - name: Isolate application state before dependency lifecycle scripts
         run: node scripts/release-publication-helpers.mjs isolate
 
@@ -68,9 +72,9 @@ jobs:
 
       - name: Install locked dependencies
         run: |
-          npm ci
-          npm --prefix tests ci
-          npm --prefix cli ci
+          bun install --frozen-lockfile
+          bun install --cwd=tests --frozen-lockfile
+          bun install --cwd=cli --frozen-lockfile --ignore-scripts
           npm --prefix gitbook ci
 
       - name: Install Chromium for isolated browser checks
@@ -103,14 +107,16 @@ jobs:
           DISABLE_BACKGROUND_TOKEN_REFRESH: "1"
           NODE_ENV: production
         run: |
-          npm run cli:pack
+          bun run cli:pack
           node scripts/check-release-version.mjs "$RELEASE_TAG"
           mv "bykitsune-router-${RELEASE_TAG#v}.tgz" "$TARBALL_FILE"
 
-      - name: Verify SQL.js fallback in the packed CLI
+      - name: Verify Bun SQLite and forced SQL.js fallback in the packed CLI
         env:
           TARBALL_FILE: ${{ steps.tarball.outputs.file }}
-        run: node scripts/verify-cli-sqljs-package.mjs "$TARBALL_FILE"
+        run: |
+          node scripts/verify-cli-sqljs-package.mjs "$TARBALL_FILE"
+          bun --no-env-file scripts/verify-cli-sqljs-package.mjs "$TARBALL_FILE" --bun
 
       - name: Persist original tarball before immutable npm publication
         if: steps.tarball.outputs.build == 'true'

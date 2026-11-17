@@ -821,6 +821,18 @@
           "header": "Authorization",
           "scheme": "bearer"
         }
+      },
+      {
+        "format": "gemini",
+        "baseUrl": "https://opencode.ai/inference/go/google/v1beta/models",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
+        "auth": {
+          "combined": true,
+          "header": "x-goog-api-key",
+          "scheme": "raw"
+        }
       }
     ]
   },
@@ -831,6 +843,70 @@
     },
     "noAuth": true,
     "format": "openai"
+  },
+  "opencode-zen": {
+    "format": "openai",
+    "baseUrl": "https://opencode.ai/inference/openai/v1/chat/completions",
+    "headers": {
+      "User-Agent": "kitsune-router"
+    },
+    "auth": {
+      "combined": true,
+      "header": "Authorization",
+      "scheme": "bearer"
+    },
+    "authProbeModel": "deepseek-v4.1-flash",
+    "transports": [
+      {
+        "format": "openai",
+        "baseUrl": "https://opencode.ai/inference/openai/v1/chat/completions",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
+        "auth": {
+          "combined": true,
+          "header": "Authorization",
+          "scheme": "bearer"
+        }
+      },
+      {
+        "format": "openai-responses",
+        "baseUrl": "https://opencode.ai/inference/openai/v1/responses",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
+        "auth": {
+          "combined": true,
+          "header": "Authorization",
+          "scheme": "bearer"
+        }
+      },
+      {
+        "format": "claude",
+        "baseUrl": "https://opencode.ai/inference/anthropic/v1/messages",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
+        "auth": {
+          "combined": true,
+          "header": "x-api-key",
+          "scheme": "raw",
+          "anthropicVersion": true
+        }
+      },
+      {
+        "format": "gemini",
+        "baseUrl": "https://opencode.ai/inference/google/v1beta/models",
+        "headers": {
+          "User-Agent": "kitsune-router"
+        },
+        "auth": {
+          "combined": true,
+          "header": "x-goog-api-key",
+          "scheme": "raw"
+        }
+      }
+    ]
   },
   "openrouter": {
     "baseUrl": "https://openrouter.ai/api/v1/chat/completions",

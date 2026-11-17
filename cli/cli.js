@@ -92,7 +92,7 @@ Commands:
                      (see: ${APP_NAME} xai video --help)`);
   process.exit(0);
 }
-const { resolveServerRuntime } = require("./hooks/serverRuntime");
+const { resolveServerRuntime, resolveServerInterpreter } = require("./hooks/serverRuntime");
 if (!videoCommand && args.includes("--check-install")) {
   try {
     const runtime = resolveServerRuntime(__dirname);
@@ -130,9 +130,8 @@ if (videoCommand) {
   return;
 }
 
-// Self-heal SQLite runtime deps (sql.js + better-sqlite3) into ~/.kitsune-router/runtime
-// so the server can resolve them via NODE_PATH. Best-effort — sql.js is required,
-// better-sqlite3 is optional. Logs to stderr only on failure.
+// Warm up optional runtime SQLite packages in the data directory so the
+// server can resolve them via NODE_PATH. The built-in engine remains available.
 try { ensureSqliteRuntime({ silent: true }); } catch {}
 
 // Self-heal tray runtime (systray for macOS/Linux only). Windows skipped.
@@ -167,7 +166,9 @@ try {
 }
 
 // Configuration constants
-const INSTALL_CMD_LATEST = `npm i -g ${pkg.name}@latest --prefer-online`;
+const INSTALL_CMD_LATEST = process.versions.bun
+  ? "curl -fsSL https://raw.githubusercontent.com/ByKitsune/kitsune-router/master/install.sh | bash"
+  : `npm i -g ${pkg.name}@latest --prefer-online`;
 
 const DEFAULT_PORT = 20128;
 const DEFAULT_HOST = "0.0.0.0";
@@ -230,8 +231,8 @@ if (skipUpdate && !trayMode && !process.stdin.isTTY) {
   process.env.TRAY_MODE = "1";
 }
 
-// Always use Node.js runtime with absolute path
-const RUNTIME = process.execPath;
+const runtime = resolveServerInterpreter();
+const RUNTIME_FLAGS = [...(runtime.bun ? ["--no-env-file"] : []), "--dns-result-order=ipv4first"];
 
 // Compare semver versions: returns 1 if a > b, -1 if a < b, 0 if equal
 function compareVersions(a, b) {
@@ -709,7 +710,8 @@ function startServer(updatePromise) {
   function spawnServer() {
     serverStartTime = Date.now();
     crashLog = [];
-    const child = spawn(RUNTIME, ["--dns-result-order=ipv4first", ...resolveHeapFlags(process.env), serverPath], {
+    const heapFlags = runtime.bun ? [] : resolveHeapFlags(process.env);
+    const child = spawn(runtime.command, [...RUNTIME_FLAGS, ...heapFlags, serverPath], {
       cwd: standaloneDir,
       stdio: ["ignore", "pipe", "pipe", "ipc"],
       detached: true,
@@ -920,7 +922,7 @@ function startServer(updatePromise) {
           // and replace them. Otherwise its startup cleanup races our drain.
           const stopped = await cleanup();
           if (stopped.code) { process.exit(stopped.code); return; }
-          const bgProcess = spawn(process.execPath, ["--dns-result-order=ipv4first", __filename, "--tray", "--skip-update", "-p", port.toString(), "--host", host], {
+          const bgProcess = spawn(runtime.command, [...RUNTIME_FLAGS, __filename, "--tray", "--skip-update", "-p", port.toString(), "--host", host], {
             detached: true,
             stdio: "ignore",
             windowsHide: true,
@@ -984,8 +986,8 @@ function startServer(updatePromise) {
       if (fs.existsSync(sqlitePath)) {
         let db = null;
         try {
-          const { DatabaseSync } = require("node:sqlite");
-          db = new DatabaseSync(sqlitePath);
+          const BuiltinDatabase = process.versions.bun ? require("bun:sqlite").Database : require("node:sqlite").DatabaseSync;
+          db = new BuiltinDatabase(sqlitePath);
         } catch {}
 
         if (!db) {
@@ -1004,8 +1006,7 @@ function startServer(updatePromise) {
               settings.mitmEnabled = false;
               db.prepare("UPDATE settings SET data = ? WHERE id = 1").run(JSON.stringify(settings));
             }
-            if (typeof db.close === "function") db.close();
-          } catch {}
+          } catch {} finally { db.close(); }
         }
       }
     } catch { /* best effort */ }

@@ -5,7 +5,7 @@ const { lookupMock, fetchMock, dispatchers } = vi.hoisted(() => ({
   lookupMock: vi.fn(), fetchMock: vi.fn(), dispatchers: [],
 }));
 vi.mock("node:dns/promises", () => ({ lookup: (...a) => lookupMock(...a) }));
-vi.mock("undici", async (importOriginal) => {
+vi.mock("undici/index.js", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, fetch: fetchMock, Agent: class extends actual.Agent {
     constructor(options) { super(options); dispatchers.push({ dispatcher: this, options }); }

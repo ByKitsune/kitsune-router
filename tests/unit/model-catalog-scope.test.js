@@ -28,17 +28,20 @@ const entries = [
   { provider: "kimi", model: "kimi-k3", current: { contextWindow: 128000, maxOutput: 32000 } },
 ];
 
-let build, getCatalogModalities, invalidateCatalog, syncModelCatalog, startModelCatalogSync, capabilities, catalogVersion;
+let build, getCatalogModalities, invalidateCatalog, syncModelCatalog, startModelCatalogSync, stopModelCatalogSync, capabilities, catalogVersion;
 
 beforeAll(async () => {
-  ({ build, syncModelCatalog, startModelCatalogSync } = await import("../../src/lib/modelCatalog/sync.js"));
+  ({ build, syncModelCatalog, startModelCatalogSync, stopModelCatalogSync } = await import("../../src/lib/modelCatalog/sync.js"));
   ({ getCatalogModalities, invalidateCatalog, CATALOG_VERSION: catalogVersion } = await import("../../open-sse/providers/catalogOverride.js"));
   const { models, providers } = build(upstream, entries);
   fs.writeFileSync(catalogFile, JSON.stringify({ v: catalogVersion, models, providers }));
   capabilities = await import("../../open-sse/providers/capabilities.js");
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await stopModelCatalogSync();
+  const { closeDb } = await import("../../src/lib/db/driver.js");
+  await closeDb();
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 

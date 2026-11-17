@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 // Exercise the actual npm tarball, not the pre-pack build directory. No real
 // application state, inherited credentials, or background network jobs are used.
-assert.equal(process.argv.length, 3, "Expected exactly one CLI package tarball");
+assert(process.argv.length === 3 || (process.argv.length === 4 && process.argv[3] === "--bun"), "Expected one CLI package tarball and optionally --bun");
+const bun = process.argv[3] === "--bun";
+assert.equal(Boolean(process.versions.bun), bun, "Invoke the package verifier with the intended runtime");
+const driver = bun ? "better-sqlite3" : "sql.js";
 const archive = path.resolve(process.argv[2]);
 assert(existsSync(archive), "CLI package tarball is missing");
 const runnerTemp = process.env.RUNNER_TEMP;
@@ -48,9 +51,9 @@ async function stop() {
   if (!result) {
     running.kill("SIGKILL");
     await exited;
-    throw new Error("Synthetic SQL.js server failed to shut down");
+    throw new Error(`Synthetic ${driver} server failed to shut down`);
   }
-  assert.deepEqual(result, { code: 0, signal: null }, "Synthetic SQL.js server exited uncleanly");
+  assert.deepEqual(result, { code: 0, signal: null }, `Synthetic ${driver} server exited uncleanly`);
 }
 
 try {
@@ -81,28 +84,31 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
   }
   const data = path.join(fixture, "data");
   const home = path.join(fixture, "home");
-  mkdirSync(path.join(data, "runtime/node_modules"), { recursive: true });
+  const runtimeModules = path.join(data, "runtime/node_modules");
+  mkdirSync(runtimeModules, { recursive: true });
+  if (bun) cpSync(path.resolve("node_modules/better-sqlite3"), path.join(runtimeModules, "better-sqlite3"), { recursive: true, dereference: true });
   mkdirSync(home, { recursive: true });
   const port = await freePort();
   const base = `http://127.0.0.1:${port}`;
   const password = "synthetic-sqljs-test-password";
   const env = {
     PATH: process.env.PATH, HOME: home, DATA_DIR: data, PORT: String(port), HOSTNAME: "127.0.0.1",
-    NODE_ENV: "production", NODE_PATH: `${path.join(data, "runtime/node_modules")}${path.delimiter}${path.join(app, "node_modules")}`,
-    KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS: "true", MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1",
+    NODE_ENV: "production", NODE_PATH: `${runtimeModules}${path.delimiter}${path.join(app, "node_modules")}`,
+    ...(bun ? {} : { KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS: "true" }),
+    MODEL_CATALOG_SYNC: "off", DISABLE_BACKGROUND_TOKEN_REFRESH: "1",
     KITSUNE_ROUTER_DISABLE_MITM: "1", KITSUNE_ROUTER_MIGRATION: "skip", NEXT_TELEMETRY_DISABLED: "1", TZ: "UTC",
     INITIAL_PASSWORD: password, JWT_SECRET: "synthetic-jwt-secret-01234567890123456789",
     API_KEY_SECRET: "synthetic-api-key-secret-0123456789012345", MACHINE_ID_SALT: "synthetic-machine-salt-0123456789012345",
   };
   async function start(expectedAccounts) {
     output = "";
-    child = spawn(process.execPath, ["--no-experimental-sqlite", path.join(app, "custom-server.js")], {
+    child = spawn(process.execPath, [bun ? "--no-env-file" : "--no-experimental-sqlite", path.join(app, "custom-server.js")], {
       cwd: path.join(fixture, "package"), env, stdio: ["ignore", "pipe", "pipe"],
     });
     child.stdout.on("data", value => { output += value.toString(); });
     child.stderr.on("data", value => { output += value.toString(); });
     for (let i = 0; i < 120; i++) {
-      if (child.exitCode !== null || child.signalCode !== null) throw new Error("Synthetic SQL.js server exited before becoming healthy");
+      if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Synthetic ${driver} server exited before becoming healthy`);
       try {
         const response = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(1500) });
         if (response.ok) {
@@ -110,7 +116,7 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
           assert.equal(health.ok, true);
           assert.equal(health.checks.database, true);
           assert.equal(health.checks.accounts, expectedAccounts);
-          assert.match(output, /\[DB\] Driver: sql\.js\b/, "Server did not actually select the SQL.js fallback");
+          assert(output.includes(`[DB] Driver: ${driver} |`), `Server did not actually select ${driver}`);
           return;
         }
       } catch (error) {
@@ -118,7 +124,7 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
       }
       await sleep(250);
     }
-    throw new Error("Synthetic SQL.js server did not become healthy");
+    throw new Error(`Synthetic ${driver} server did not become healthy`);
   }
   async function request(route, options = {}, expected = 200) {
     const response = await fetch(base + route, { ...options, signal: AbortSignal.timeout(10000) });
@@ -148,7 +154,7 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
   const connections = (await request("/api/providers", { headers: { cookie: newCookie } })).body.connections;
   assert(connections.some(connection => connection.id === created.id && connection.name === "synthetic-sqljs"));
   await stop();
-  console.log("Packed SQL.js fallback passed: matching JS/WASM, forced fallback, persistence and restart.");
+  console.log(bun ? "Packed Bun runtime passed: better-sqlite3, persistence and restart." : "Packed SQL.js fallback passed: matching JS/WASM, forced fallback, persistence and restart.");
 } catch (error) {
   if (output) console.error(output.slice(-12000));
   throw error;

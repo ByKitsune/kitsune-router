@@ -11,7 +11,7 @@ const transport = vi.hoisted(() => ({ agents: [], port: null }));
 vi.mock("next/server", () => ({
   NextResponse: { json: (body, init) => Response.json(body, init) },
 }));
-vi.mock("undici", async (importOriginal) => {
+vi.mock("undici/index.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -98,7 +98,7 @@ beforeAll(async () => {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://public.example:${server.address().port}`;
   transport.port = server.address().port;
-  actualUndici = await vi.importActual("undici");
+  actualUndici = await vi.importActual("undici/index.js");
   // The vulnerable route uses global fetch. Calibrate that transport too, so
   // RED can demonstrate unrestricted dispatch/redirects without ever probing an
   // actual private or metadata service. Every connection ends at this fixture.

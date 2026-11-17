@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, Dispatcher1Wrapper, fetch as undiciFetch } from "undici/index.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const nativeFetch = globalThis.fetch;
+const dispatcherFetch = process.versions.bun ? undiciFetch : nativeFetch;
 const servers = new Set();
 const sockets = new Set();
 let transport;
@@ -160,7 +161,7 @@ describe("actual proxyAwareFetch binding and route policy", () => {
     const trap = await serve((_req, res) => res.end("direct-leak"));
     const direct = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
       if (String(url).startsWith(trap.url) || !init.dispatcher) throw new Error("Direct egress trap");
-      return nativeFetch(url, init);
+      return dispatcherFetch(url, init);
     });
     const proxy = await serve((_req, res) => res.writeHead(502).end());
     proxy.server.on("connect", (_req, socket) => socket.end("HTTP/1.1 502 Rejected\r\nConnection: close\r\n\r\n"));
@@ -189,7 +190,7 @@ describe("actual proxyAwareFetch binding and route policy", () => {
     const shim = vi.spyOn(globalThis, "fetch").mockImplementation((url, init) => {
       expect(String(url)).toBe(external);
       expect(init.dispatcher).toBeUndefined();
-      return nativeFetch(target.url, init);
+      return dispatcherFetch(target.url, init);
     });
     expect(await (await transport.proxyAwareFetch(external, {}, { enabled: true, url: trap.url, noProxy: ".fixture.invalid" })).text()).toBe("direct-local");
     await expect(transport.proxyAwareFetch(target.url, {}, { enabled: true, url: trap.url, strictProxy: true })).rejects.toThrow("strictProxy=true");

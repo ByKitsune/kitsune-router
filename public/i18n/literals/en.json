@@ -1883,7 +1883,7 @@
   "No complete price was recorded for this cost.": "No complete price was recorded for this cost.",
   "Recorded price coverage": "Recorded price coverage",
   "Some requests have no recorded price": "Some requests have no recorded price",
-  "Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.": "Known subtotals exclude unpriced requests. Review rates for new requests; saved history keeps its original estimate.",
+  "Known subtotals exclude unpriced requests. Missing costs can be filled in when a verified rate covers the request date.": "Known subtotals exclude unpriced requests. Missing costs can be filled in when a verified rate covers the request date.",
   "Why can prices be missing?": "Why can prices be missing?",
   "Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.": "Missing token rates, subscription or media billing, and unconfirmed service tiers can leave requests unpriced. A recorded $0.00 can mean no charge or no tokens used for that component.",
   "Review pricing": "Review pricing",

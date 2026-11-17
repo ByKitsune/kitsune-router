@@ -54,6 +54,9 @@ export default {
   },
   models: [
     { id: "gpt-6-astra", name: "GPT 6 Astra" },
+    // Listing the public Codex IDs does not establish a connected account's entitlement.
+    { id: "gpt-6.2-sol", name: "GPT-6.2 Sol" },
+    { id: "gpt-6.2-astra", name: "GPT-6.2 Astra" },
     // Gateway review aliases: the model-list endpoint synthesizes these rows.
     // Successful gateway calls do not prove literal native "-review" wire IDs.
     { id: "gpt-6-astra-review", name: "GPT 6 Astra Review", upstreamModelId: "gpt-6-astra", quotaFamily: "review" },

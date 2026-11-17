@@ -13,7 +13,7 @@ const { resolveDataDirectory } = require("./dataDirectory");
 // compatibility branch stays on 12.x; 12.10+ no longer ships Node 20 prebuilds
 // and may need source-build tools. This does not extend CLI support below 22.19.
 const [NODE_MAJOR] = process.versions.node.split(".").map(Number);
-const USE_NAPI_BUILD = NODE_MAJOR >= 22;
+const USE_NAPI_BUILD = Boolean(process.versions.bun) || NODE_MAJOR >= 22;
 const BETTER_SQLITE3_VERSION = USE_NAPI_BUILD ? "13.2.0" : "12.11.1";
 const SQL_JS_VERSION = "1.16.0";
 
@@ -166,17 +166,31 @@ function runNpmInstall({ cwd, pkgs, extraArgs = [], timeout = 180000 }) {
   return { ok: res.status === 0, code: res.status, stderr: res.stderr || "", stdout: res.stdout || "" };
 }
 
-function npmInstall(pkgs, opts = {}) {
+function runRuntimeInstall({ cwd, pkgs, extraArgs = [], timeout = 180000 }) {
+  if (!process.versions.bun) return runNpmInstall({ cwd, pkgs, extraArgs, timeout });
+  // The manifest already contains the exact runtime dependencies. An install
+  // keeps sibling packages while using the bundled N-API and tray binaries.
+  const res = spawnSync(process.execPath, ["--no-env-file", "install", "--production", "--ignore-scripts"], {
+    cwd: path.resolve(cwd),
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout,
+    encoding: "utf8",
+  });
+  return { ok: res.status === 0, code: res.status, stderr: res.stderr || "", stdout: res.stdout || "" };
+}
+
+function installSqliteDependencies(pkgs, opts = {}) {
   const cwd = ensureRuntimeDir();
   const extra = [opts.optional ? "--save-optional" : "--save-prod", "--save-exact"];
   if (opts.ignoreScripts) extra.push("--ignore-scripts");
   if (!opts.silent) console.log("⏳ Installing SQLite engine (first run)...");
-  const res = runNpmInstall({ cwd, pkgs, extraArgs: extra, timeout: opts.timeout || 180000 });
+  const res = runRuntimeInstall({ cwd, pkgs, extraArgs: extra, timeout: opts.timeout || 180000 });
   if (!res.ok && !opts.silent) {
     const reason = summarizeNpmError(res.stderr);
     console.warn("⚠️  SQLite engine install failed — using fallback");
     console.warn(`   Reason: ${reason}`);
-    console.warn(`   Retry:  cd "${cwd}" && npm install ${pkgs.join(" ")}`);
+    const repair = process.versions.bun ? "bun install --production --ignore-scripts" : `npm install ${pkgs.join(" ")}`;
+    console.warn(`   Retry:  cd "${cwd}" && ${repair}`);
   }
   return res.ok;
 }
@@ -200,7 +214,8 @@ function ensureSqliteRuntime({ silent = false } = {}) {
   if (!sqlJsOk) {
     // The retained optional N-API package may also be installed during this
     // repair; its bundled prebuild must not trigger implicit node-gyp rebuilds.
-    sqlJsOk = npmInstall([`sql.js@${SQL_JS_VERSION}`], { silent, ignoreScripts: USE_NAPI_BUILD });
+    if (process.versions.bun) retainRuntimeDependency("sql.js", SQL_JS_VERSION);
+    sqlJsOk = installSqliteDependencies([`sql.js@${SQL_JS_VERSION}`], { silent, ignoreScripts: USE_NAPI_BUILD });
     if (sqlJsOk) sqlJsOk = isSqlJsWasmValid();
   }
 
@@ -213,7 +228,7 @@ function ensureSqliteRuntime({ silent = false } = {}) {
   // npm injects an implicit `node-gyp rebuild` for any package carrying a
   // binding.gyp, which would demand build tools even though 13.x already bundles
   // the binary — skip scripts so the bundled prebuild is used as-is.
-  const ok = npmInstall([`better-sqlite3@${BETTER_SQLITE3_VERSION}`], { optional: true, silent, ignoreScripts: USE_NAPI_BUILD });
+  const ok = installSqliteDependencies([`better-sqlite3@${BETTER_SQLITE3_VERSION}`], { optional: true, silent, ignoreScripts: USE_NAPI_BUILD });
   const betterSqlite = ok && hasModule("better-sqlite3", BETTER_SQLITE3_VERSION) && isBetterSqliteBinaryValid();
   if (ok && !betterSqlite && !silent) console.warn("⚠️  SQLite engine unavailable — using fallback");
   return {
@@ -222,7 +237,7 @@ function ensureSqliteRuntime({ silent = false } = {}) {
   };
 }
 
-// Inject runtime + bundled node_modules into NODE_PATH so child Node processes
+// Inject runtime + bundled node_modules into NODE_PATH so server processes
 // resolve sql.js (bundled in bin/app/node_modules) and better-sqlite3 (runtime).
 function buildEnvWithRuntime(baseEnv = process.env) {
   const runtimeNm = getRuntimeNodeModules(baseEnv);
@@ -239,5 +254,6 @@ module.exports = {
   getRuntimeNodeModules,
   retainRuntimeDependency,
   runNpmInstall,
+  runRuntimeInstall,
   summarizeNpmError,
 };

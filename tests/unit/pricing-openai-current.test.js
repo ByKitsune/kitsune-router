@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { MODEL_PRICING, getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { MODEL_PRICING, calculateCostBreakdown, getPricingForModel } from "../../open-sse/providers/pricing.js";
 import openaiRegistry from "../../open-sse/providers/registry/openai.js";
+import { canonicalizeUsage, extractUsage } from "../../open-sse/utils/usageTracking.js";
 
 // Official OpenAI pricing (developers.openai.com/api/docs/pricing, snapshot 2026-09-23).
 describe("OpenAI current pricing", () => {
@@ -39,6 +40,23 @@ describe("OpenAI current pricing", () => {
     expect(MODEL_PRICING["gpt-5-codex"]).toBeUndefined();
     expect(MODEL_PRICING["gpt-5.1-codex"]).toBeUndefined();
     expect(MODEL_PRICING["gpt-5.2-codex"]).toBeUndefined();
+  });
+
+  it.each([
+    ["gpt-6.2-astra", 0.48, 0.12, 0.68, 1.28],
+    ["gpt-6.2-sol", 0.12, 0.03, 0.17, 0.32],
+  ])("uses the same Standard token tariff for actual %s pro-mode reasoning usage", (model, input, output, reasoning, total) => {
+    const pricing = getPricingForModel("openai", model);
+    const cost = (mode, reasoningTokens) => calculateCostBreakdown(canonicalizeUsage(extractUsage({
+      model, reasoning: { mode, effort: "medium" },
+      usage: { input_tokens: 60000, output_tokens: 3000 + reasoningTokens, output_tokens_details: { reasoning_tokens: reasoningTokens } },
+    })), pricing);
+    const pro = cost("pro", 17000);
+    expect(pro).toEqual(cost("standard", 17000));
+    expect(pro).toMatchObject({ inputCost: input, outputCost: output, reasoningCost: reasoning });
+    expect(pro.totalCost).toBeCloseTo(total, 12);
+    expect(cost("standard", 0).totalCost).toBeCloseTo(input + output, 12);
+    expect(getPricingForModel("openai", `${model}-pro`)).toBeNull();
   });
 });
 

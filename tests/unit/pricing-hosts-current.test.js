@@ -44,9 +44,7 @@ describe("Cohere / Sonar / Voyage catalog", () => {
       expect(ids(cohereRegistry)).toContain(id);
     }
     expect(getCapabilitiesForModel("cohere", "command-a-03-2025").contextWindow).toBe(256000);
-    // Captured current Command R page has no price. Do not use search summaries
-    // or the pricing FAQ's different03-2024 model as a current08-2024 quote.
-    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("cohere", "command-r-08-2024"))).toBeNull();
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("cohere", "command-r-08-2024"))).toBe(0.75);
   });
   it("perplexity lists reasoning-pro/deep-research with 200K sonar-pro caps", () => {
     expect(ids(perplexityRegistry)).toContain("sonar-reasoning-pro");

@@ -10,6 +10,7 @@ import { normalizeProviderId } from "@/lib/providerNormalization";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { validateFalApiKey } from "open-sse/services/falValidation.js";
+import { validateOpenCodeKey } from "open-sse/services/opencodeValidation.js";
 
 // Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
 // Returns true if API key is accepted (status !== 401 && !== 403).
@@ -429,18 +430,11 @@ export async function POST(request) {
           break;
         }
 
-        case "opencode-go": {
-          const res = await fetch("https://opencode.ai/zen/go/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: getDefaultModel("opencode-go"),
-              messages: [{ role: "user", content: "ping" }],
-              max_tokens: 1,
-              stream: false,
-            }),
-          });
-          isValid = res.status !== 401 && res.status !== 403;
+        case "opencode-go":
+        case "opencode-zen": {
+          const result = await validateOpenCodeKey(provider, apiKey, fetch);
+          isValid = result.valid;
+          error = result.error;
           break;
         }
 

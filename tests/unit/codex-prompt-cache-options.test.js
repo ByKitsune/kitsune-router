@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../open-sse/utils/proxyFetch.js", () => ({ proxyAwareFetch: vi.fn() }));
 
 import { CodexExecutor } from "../../open-sse/executors/codex.js";
+import { stripUnsupportedParams } from "../../open-sse/translator/concerns/paramSupport.js";
+import { FORMATS } from "../../open-sse/translator/formats.js";
+import { translateRequest } from "../../open-sse/translator/index.js";
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";
 
 const model = "gpt-6.1-sol";
@@ -11,6 +14,69 @@ const request = options => ({
   instructions: "Retain the caller's cache policy",
   input: [{ role: "user", content: "Continue" }],
   ...(options === undefined ? {} : { prompt_cache_options: options }),
+});
+
+describe("GPT-6.2 Codex wire contract", () => {
+  it.each([["gpt-6.2-astra", "xhigh"], ["gpt-6.2-sol", "max"]])("preserves Chat cache control, tools and explicit %s effort", async (model, effort) => {
+    const body = {
+      model,
+      messages: [{ role: "user", content: "Continue" }],
+      reasoning_effort: effort,
+      temperature: 0.6, top_p: 0.9, logprobs: true, top_logprobs: 2,
+      prompt_cache_options: { ttl: "12h" },
+      tools: [{ type: "function", function: { name: "lookup", parameters: { type: "object", properties: {} }, strict: true } }],
+      parallel_tool_calls: true,
+    };
+    const translated = translateRequest(FORMATS.OPENAI, FORMATS.OPENAI_RESPONSES, model, body, true, null, "codex");
+    await new CodexExecutor().execute({ model, body: translated, stream: true, credentials: auth(model) });
+    const sent = JSON.parse(proxyAwareFetch.mock.calls[0][1].body);
+    expect(sent).toMatchObject({
+      model,
+      reasoning: { effort },
+      prompt_cache_options: { ttl: "12h" },
+      parallel_tool_calls: true,
+      tools: [{ type: "function", name: "lookup", strict: true }],
+    });
+    for (const field of ["temperature", "top_p", "logprobs", "top_logprobs", "reasoning_effort"]) {
+      expect(sent).not.toHaveProperty(field);
+    }
+    expect(body.reasoning_effort).toBe(effort);
+  });
+
+  it.each(["gpt-6.2-astra", "gpt-6.2-sol"])("defaults %s to Codex low and preserves native reasoning updates", async model => {
+    const input = [
+      { type: "configuration_update", reasoning: { effort: "max" } },
+      { type: "message", role: "user", content: [{ type: "input_text", text: "Continue" }] },
+    ];
+    const body = { model, input, include: ["message.output_text.logprobs"] };
+    await new CodexExecutor().execute({ model, body, stream: true, credentials: auth(model) });
+    const sent = JSON.parse(proxyAwareFetch.mock.calls[0][1].body);
+    expect(sent.input).toEqual(input);
+    expect(sent.reasoning).toEqual({ effort: "low" });
+    expect(sent.include).toEqual(["reasoning.encrypted_content"]);
+  });
+});
+
+describe.each(["openai", "opencode-zen"])("GPT-6.2 %s Responses wire contract", provider => {
+  const model = "gpt-6.2-sol";
+
+  it("preserves modern prompt caching and valid effort after removing unsupported parameters", () => {
+    const body = {
+      model, messages: [{ role: "user", content: "Continue" }],
+      reasoning_effort: "max", prompt_cache_options: { ttl: "30m" }, temperature: 0.5, top_p: 0.9,
+    };
+    const sent = translateRequest(FORMATS.OPENAI, FORMATS.OPENAI_RESPONSES, model, body, true, null, provider);
+    stripUnsupportedParams(provider, model, sent);
+    expect(sent).toMatchObject({ reasoning: { effort: "max" }, prompt_cache_options: { ttl: "30m" } });
+    expect(sent).not.toHaveProperty("temperature");
+    expect(sent).not.toHaveProperty("top_p");
+  });
+
+  it.each(["none", "minimal", "ultra"])("rejects %s as a raw inference effort", effort => {
+    expect(() => translateRequest(FORMATS.OPENAI_RESPONSES, FORMATS.OPENAI_RESPONSES, model, {
+      model, input: "Continue", reasoning: { effort },
+    }, true, null, provider)).toThrow(/reasoning effort low, medium, high, xhigh, max/i);
+  });
 });
 const auth = id => ({ connectionId: `cache-policy-${id}`, accessToken: "synthetic-cache-token" });
 

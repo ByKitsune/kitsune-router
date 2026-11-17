@@ -46,6 +46,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24.19.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
 
       - name: Validate separate tooling and release source boundaries
         run: node release-tools/scripts/recover-container-release.mjs validate

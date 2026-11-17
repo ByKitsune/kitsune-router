@@ -4,7 +4,7 @@ import "../translator/registerAll.js";
 
 // Only persistence and the external HTTP boundary are substituted. The real
 // core, translators, executors, JSON serializer and a loopback HTTP server run.
-const fixture = vi.hoisted(() => ({ base: "", requests: [], urls: [], tier: "default", status: 200, sse: false }));
+const fixture = vi.hoisted(() => ({ base: "", requests: [], urls: [], tier: "default", reasoning: null, status: 200, sse: false }));
 vi.mock("../../open-sse/utils/proxyFetch.js", () => ({
   proxyAwareFetch: (url, init) => {
     fixture.urls.push(String(url));
@@ -42,7 +42,8 @@ beforeAll(async () => {
     const result = request.url.endsWith("/responses")
       ? { id: "resp_fixture", object: "response", status: "completed", model: body.model,
           output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "ok" }] }],
-          usage: { input_tokens: 20, output_tokens: 5, total_tokens: 25 }, ...tier }
+          usage: { input_tokens: 20, output_tokens: 5, total_tokens: 25 },
+          ...(fixture.reasoning && { reasoning: fixture.reasoning }), ...tier }
       : { id: "chatcmpl_fixture", object: "chat.completion", model: body.model,
           choices: [{ index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" }],
           usage: { prompt_tokens: 20, completion_tokens: 5, total_tokens: 25 }, ...tier };
@@ -65,6 +66,7 @@ beforeEach(() => {
   fixture.requests = [];
   fixture.urls = [];
   fixture.tier = "default";
+  fixture.reasoning = null;
   fixture.status = 200;
   fixture.sse = false;
 });
@@ -94,6 +96,32 @@ describe("processing-speed serialization to real HTTP", () => {
     expect(fixture.urls).toEqual(["https://api.openai.com/v1/responses"]);
     expect(fixture.requests[0].body).toMatchObject({ model: "gpt-6-astra", service_tier: tier, reasoning: { effort: "high" }, instructions: "Be precise.", store: false });
     expect(fixture.requests[0].body).not.toHaveProperty("serviceTier");
+  });
+
+  it.each([
+    ["gpt-6.2-astra", "pro", "max"],
+    ["gpt-6.2-sol", "pro", "medium"],
+    ["gpt-6.2-sol", "standard", "xhigh"],
+  ])("preserves %s %s mode and %s effort on the same native Responses model", async (model, mode, effort) => {
+    fixture.tier = "fast";
+    fixture.reasoning = { mode, effort };
+    const result = await dispatch({
+      model, extra: { reasoning: { mode, effort, summary: "concise" }, service_tier: "fast" },
+    });
+    expect(result.success).toBe(true);
+    expect(fixture.urls).toEqual(["https://api.openai.com/v1/responses"]);
+    expect(fixture.requests[0].body).toMatchObject({
+      model, reasoning: { mode, effort, summary: "concise" }, service_tier: "fast",
+    });
+    expect(await result.response.json()).toMatchObject({ reasoning: fixture.reasoning });
+  });
+
+  it("preserves omitted GPT-6.2 mode and effort independently", async () => {
+    const model = "gpt-6.2-astra";
+    expect((await dispatch({ model })).success).toBe(true);
+    expect(fixture.requests[0].body.reasoning).toEqual({ effort: "high" });
+    expect((await dispatch({ model, extra: { reasoning: { mode: "pro" } } })).success).toBe(true);
+    expect(fixture.requests[1].body.reasoning).toEqual({ mode: "pro" });
   });
 
   it("keeps the unconfigured public tier omitted", async () => {

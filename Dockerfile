@@ -1,23 +1,23 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_IMAGE=node:22-alpine
-FROM ${NODE_IMAGE} AS base
+ARG BUN_IMAGE=oven/bun:1.4.4-alpine
+FROM ${BUN_IMAGE} AS base
 WORKDIR /app
 
 FROM base AS builder
 
-RUN apk --no-cache upgrade && apk --no-cache add python3 make g++ linux-headers
+RUN apk --no-cache upgrade
 
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-  npm ci
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile
 
 COPY . ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN HOME=/tmp/kitsune-router-build-home DATA_DIR=/tmp/kitsune-router-build-data \
   KITSUNE_ROUTER_MIGRATION=skip NEXT_PHASE=phase-production-build \
-  DISABLE_BACKGROUND_TOKEN_REFRESH=1 npm run build
+  DISABLE_BACKGROUND_TOKEN_REFRESH=1 bun run build
 
-FROM ${NODE_IMAGE} AS runner
+FROM ${BUN_IMAGE} AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="Kitsune Router" \
@@ -44,11 +44,12 @@ COPY --from=builder /app/node_modules/next ./node_modules/next
 COPY --from=builder /app/node_modules/sql.js ./node_modules/sql.js
 # node-machine-id is createRequire-loaded at runtime; tracing omits it.
 COPY --from=builder /app/node_modules/node-machine-id ./node_modules/node-machine-id
+COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
-RUN mkdir -p /app/data /app/data-home && chown -R node:node /app
+RUN mkdir -p /app/data /app/data-home && chown -R bun:bun /app
 
-# Fix mounted-volume ownership, then exec the actual command as the node user.
-# The default Node command preloads the shared JSON/legacy-env secret resolver;
+# Fix mounted-volume ownership, then exec the actual command as the bun user.
+# The Bun command preloads the shared JSON/legacy-env secret resolver;
 # never source a secret file as shell code or put resolved values in argv.
 RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
   printf '%s\n' \
@@ -57,13 +58,13 @@ RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
     'DATA_DIR="${DATA_DIR:-/app/data}"' \
     'case "$DATA_DIR" in /*) ;; *) printf "%s\n" "DATA_DIR must be absolute" >&2; exit 1 ;; esac' \
     'mkdir -p "$DATA_DIR" /app/data-home' \
-    'chown -R node:node "$DATA_DIR" /app/data-home' \
+    'chown -R bun:bun "$DATA_DIR" /app/data-home' \
     'export DATA_DIR' \
-    'exec su-exec node "$@"' \
+    'exec su-exec bun "$@"' \
     > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
 EXPOSE 20128
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["node", "--require", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]
+CMD ["bun", "--no-env-file", "--preload", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]

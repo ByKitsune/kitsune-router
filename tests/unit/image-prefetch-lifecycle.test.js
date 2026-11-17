@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const network = vi.hoisted(() => ({ lookup: vi.fn(), image: vi.fn(), inference: vi.fn() }));
 vi.mock("node:dns/promises", () => ({ lookup: (...args) => network.lookup(...args) }));
-vi.mock("undici", async (original) => ({ ...await original(), fetch: network.image }));
+vi.mock("undici/index.js", async (original) => ({ ...await original(), fetch: network.image }));
 vi.mock("../../open-sse/utils/proxyFetch.js", async (original) => ({ ...await original(), proxyAwareFetch: network.inference }));
 vi.mock("@/lib/usageDb.js", () => ({
   trackPendingRequest: vi.fn(), appendRequestLog: vi.fn(async () => {}),

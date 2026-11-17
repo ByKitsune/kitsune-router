@@ -27,6 +27,17 @@ export const OPENAI_TERRA_TOKEN_PRICING_SOURCE = {
   },
 };
 
+export const OPENAI_GPT_62_TOKEN_PRICING_SOURCE = {
+  url: "https://developers.openai.com/api/docs/pricing.md",
+  capturedAtUtc: "2026-11-17T21:32:11Z",
+  sha256: "427698a0c4f1cf4abb2569cb0f9a4ca7fcacfa2f45d61a75f221f0b590ac5114",
+  currency: "USD",
+  unit: "1M tokens",
+};
+
+// March 1 at midnight in Pacific Standard Time (UTC−08:00).
+export const OPENAI_GPT_62_ULTRAFAST_LIST_RATE_FROM = "2027-03-01T08:00:00Z";
+
 // A dash/unpublished component is unknown, not free or a Standard fallback.
 // Output includes reasoning. Native 30m/12h writes replace ordinary input for
 // those tokens; they are not Anthropic 5m/1h cache_creation fees.
@@ -48,6 +59,8 @@ const tokenQuotes = rows => Object.fromEntries(Object.entries(rows).map(([model,
 // per-character/minute prices, tools, and fine-tuned rates are separate units.
 // Restricted IDs here are factual quotes, not registry recommendations.
 export const OPENAI_STANDARD_TOKEN_PRICING = tokenQuotes({
+  "gpt-6.2-astra": { input: 8, output: 40, cached: 0.4, cache_write_30m: 10, cache_write_12h: 20, tier: { threshold: 272000, inclusive: false, input: 16, output: 60, cached: 0.8, cache_write_30m: 20, cache_write_12h: 40 } },
+  "gpt-6.2-sol": { input: 2, output: 10, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10 } },
   "gpt-6-astra": { input: 10, output: 50, cached: 1, cache_write_30m: 12.5, cache_write_12h: 25, tier: { threshold: 272000, inclusive: false, input: 20, output: 75, cached: 2, cache_write_30m: 25, cache_write_12h: 50 } },
   "gpt-6.1-sol": { input: 2, output: 10, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5, tier: { threshold: 272000, inclusive: false, input: 4, output: 15, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10 } },
   "gpt-6.1-terra": { input: 1, output: 5, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5 } },
@@ -101,6 +114,16 @@ export const OPENAI_STANDARD_TOKEN_PRICING = tokenQuotes({
 // Complete, independent mode quotes. A missing mode (including Scale) is not
 // priced. Explicit-null >272K cells prevent extrapolating short Fast prices.
 export const OPENAI_PROCESSING_SPEED_PRICING = Object.fromEntries(Object.entries({
+  "gpt-6.2-astra": {
+    batch: { input: 4, output: 20, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30, cached: 0.4, cache_write_30m: 10, cache_write_12h: 20 } },
+    fast: { input: 16, output: 80, cached: 0.8, cache_write_30m: 20, cache_write_12h: 40, tier: { threshold: 272000, inclusive: false, input: 32, output: 120, cached: 1.6, cache_write_30m: 40, cache_write_12h: 80 } },
+    ultrafast: { input: 24, output: 120, cached: 1.2, cache_write_30m: 30, cache_write_12h: 60, tier: { threshold: 272000, inclusive: false, input: 48, output: 180, cached: 2.4, cache_write_30m: 60, cache_write_12h: 120 } },
+  },
+  "gpt-6.2-sol": {
+    batch: { input: 1, output: 5, cached: 0.05, cache_write_30m: 1.25, cache_write_12h: 2.5, tier: { threshold: 272000, inclusive: false, input: 2, output: 7.5, cached: 0.1, cache_write_30m: 2.5, cache_write_12h: 5 } },
+    fast: { input: 4, output: 20, cached: 0.2, cache_write_30m: 5, cache_write_12h: 10, tier: { threshold: 272000, inclusive: false, input: 8, output: 30, cached: 0.4, cache_write_30m: 10, cache_write_12h: 20 } },
+    ultrafast: { input: 6, output: 30, cached: 0.3, cache_write_30m: 7.5, cache_write_12h: 15, tier: { threshold: 272000, inclusive: false, input: 12, output: 45, cached: 0.6, cache_write_30m: 15, cache_write_12h: 30 } },
+  },
   "gpt-6-astra": {
     fast: { input: 20, cached: 2, output: 100, cache_write_30m: 25, cache_write_12h: 50, tier: { threshold: 272000, inclusive: false, input: 40, cached: 4, output: 150, cache_write_30m: 50, cache_write_12h: 100 } },
     ultrafast: { input: 60, cached: 6, output: 300, cache_write_30m: 75, cache_write_12h: 150, tier: { threshold: 272000, inclusive: false, input: 120, cached: 12, output: 450, cache_write_30m: 150, cache_write_12h: 300 } },
@@ -187,6 +210,11 @@ export const OPENAI_PROCESSING_SPEED_PRICING = Object.fromEntries(Object.entries
   },
   "gpt-5.3-codex": { fast: { input: 3.5, output: 28, cached: 0.35 } },
 }).map(([model, modes]) => [model, tokenQuotes(modes)]));
+
+export const OPENAI_GPT_62_ULTRAFAST_LIST_PRICING = tokenQuotes({
+  "gpt-6.2-astra": { input: 48, output: 240, cached: 2.4, cache_write_30m: 60, cache_write_12h: 120, tier: { threshold: 272000, inclusive: false, input: 96, output: 360, cached: 4.8, cache_write_30m: 120, cache_write_12h: 240 } },
+  "gpt-6.2-sol": { input: 12, output: 60, cached: 0.6, cache_write_30m: 15, cache_write_12h: 30, tier: { threshold: 272000, inclusive: false, input: 24, output: 90, cached: 1.2, cache_write_30m: 30, cache_write_12h: 60 } },
+});
 
 // Compatibility projection for existing native cache-write consumers. Every
 // Standard key is present (including unknown writes) so the old integration

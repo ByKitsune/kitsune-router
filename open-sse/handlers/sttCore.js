@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { FormData as MultipartFormData, Request as MultipartRequest } from "undici";
+import { FormData as MultipartFormData, Request as MultipartRequest } from "undici/index.js";
 import { createErrorResult } from "../utils/error.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { createAccountTransport, isAccountRoutingFailure } from "../utils/accountTransport.js";

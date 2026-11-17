@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
-import { fetch as socketFetch } from "undici";
+import { fetch as socketFetch } from "undici/index.js";
 
 const mocks = vi.hoisted(() => ({
   getProviderCredentials: vi.fn(),

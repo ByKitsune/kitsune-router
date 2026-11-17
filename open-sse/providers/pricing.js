@@ -3,8 +3,8 @@ import { REVIEWED_MODEL_METADATA, getReviewedModelMetadata, getReviewedPricing }
 import { FREE_MODEL_NAMESPACE_OWNERS, getModelsDevPricingEstimate } from "./metadata/modelsDevPricing.js";
 export { getModelsDevPricingReference } from "./metadata/modelsDevPricing.js";
 import * as openAIProcessingQuotes from "../config/processingSpeedPricing.js";
-import { LITERAL_ONLY_PRICING_PROVIDERS } from "../config/pricingConfig.js";
-import { getTimeOfUsePricing } from "../config/timeOfUsePricing.js";
+import { LITERAL_ONLY_PRICING_PROVIDERS, PRICING_RATE_FIELDS } from "../config/pricingConfig.js";
+import { getTimeOfUsePricing, parsePricingTimestamp } from "../config/timeOfUsePricing.js";
 
 // Pricing rates for AI models — all rates in $/1M tokens
 //
@@ -762,7 +762,9 @@ function exactPrice(table, model, allowCaseFold = false) {
 /** Resolve provider-specific prices without changing the upstream request ID. */
 export function getPricingForModel(provider, model, options = {}) {
   if (!model) return null;
-  const timed = getTimeOfUsePricing(canonicalizeProviderId(provider), getDeclaredUpstreamModelId(provider, model), options.timestamp);
+  const owner = canonicalizeProviderId(provider);
+  const upstreamModel = getDeclaredUpstreamModelId(provider, model);
+  const timed = getTimeOfUsePricing(owner, upstreamModel, options.timestamp);
   if (timed !== undefined) return timed;
   const providerTables = getProviderIdentityTokens(provider)
     .filter(token => Object.hasOwn(PROVIDER_PRICING, token))
@@ -772,6 +774,16 @@ export function getPricingForModel(provider, model, options = {}) {
   function resolve(id) {
     if (seen.has(id)) return null;
     seen.add(id);
+    const reviewed = getReviewedModelMetadata(provider, id);
+    const billing = reviewed?.billing;
+    if (options.timestamp !== undefined && (billing?.effectiveFrom || billing?.effectiveUntil)) {
+      const at = parsePricingTimestamp(options.timestamp);
+      const start = billing.effectiveFrom && parsePricingTimestamp(billing.effectiveFrom);
+      const end = billing.effectiveUntil && parsePricingTimestamp(billing.effectiveUntil);
+      if (!at || (billing.effectiveFrom && (!start || at < start)) || (billing.effectiveUntil && (!end || at >= end))) {
+        return Object.fromEntries(PRICING_RATE_FIELDS.map(field => [field, null]));
+      }
+    }
     // Explicit provider tariffs are complete, even when they contain nulls.
     for (const { table } of providerTables) {
       const price = exactPrice(table, id);
@@ -779,7 +791,6 @@ export function getPricingForModel(provider, model, options = {}) {
     }
     const upstream = getDeclaredUpstreamModelId(provider, id);
     const reviewedPrice = getReviewedPricing(provider, id);
-    const reviewed = getReviewedModelMetadata(provider, id);
     if (reviewedPrice) return reviewedPrice;
     // A reviewed record without a price is also a blocker: its billing scope
     // may explicitly reject an otherwise plausible alias or catalog reference.
@@ -795,11 +806,18 @@ export function getPricingForModel(provider, model, options = {}) {
       const price = resolve(upstream);
       if (price) return price;
     }
-    const owner = canonicalizeProviderId(provider);
     if (FREE_MODEL_NAMESPACES.some(namespace => FREE_MODEL_NAMESPACE_OWNERS[namespace] === owner && id.startsWith(namespace))) return ZERO_PRICING;
     return getModelsDevPricingEstimate(provider, id, options);
   }
-  return resolve(model);
+  const pricing = resolve(model);
+  if (owner !== "openai" || !pricing?.service_tiers?.ultrafast) return pricing;
+  const listQuotes = openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_PRICING;
+  const id = upstreamModel.toLowerCase();
+  if (!Object.hasOwn(listQuotes, id)) return pricing;
+  const date = parsePricingTimestamp(options.timestamp === undefined ? Date.now() : options.timestamp);
+  if (date && date.getTime() < Date.parse(openAIProcessingQuotes.OPENAI_GPT_62_ULTRAFAST_LIST_RATE_FROM)) return pricing;
+  const ultrafast = date ? listQuotes[id] : null;
+  return { ...pricing, service_tiers: { ...pricing.service_tiers, ultrafast } };
 }
 
 /**
@@ -860,7 +878,7 @@ function resolveDeliveredTierPricing(tokens, pricing) {
   if (actual != null) {
     // Auto describes selection policy, not delivered service. Do not infer a
     // Standard invoice from an echoed request or a future upstream tier value.
-    if (!["fast", "priority", "ultrafast", "flex", "scale"].includes(actual)) return null;
+    if (!["fast", "priority", "ultrafast", "flex", "scale", "batch"].includes(actual)) return null;
     const tiers = pricing?.service_tiers;
     if (!tiers || typeof tiers !== "object") return null;
     if (Object.hasOwn(tiers, actual)) return tiers[actual];

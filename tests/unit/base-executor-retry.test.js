@@ -24,6 +24,15 @@ const creds = { apiKey: "k" };
 beforeEach(() => fetchMock.mockReset());
 
 describe("BaseExecutor.execute — retry by status (config-driven)", () => {
+  it("returns an OpenCode retry deadline without replaying the request before it", async () => {
+    const ex = new BaseExecutor("opencode-zen", { baseUrl: "https://x/api", retry: { 503: { attempts: 1, delayMs: 0 } } });
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 503, headers: { "retry-after-ms": "", "retry-after": "60" } }));
+    const out = await ex.execute({ model: "m", body: {}, stream: false, credentials: creds });
+    expect(out.response.status).toBe(503);
+    expect(out.response.headers.get("retry-after")).toBe("60");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("retries 502 `attempts` times then succeeds", async () => {
     const ex = makeExec({ baseUrl: "https://x/api", retry: { 502: { attempts: 3, delayMs: 0 } } });
     fetchMock

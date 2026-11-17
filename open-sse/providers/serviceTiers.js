@@ -1,4 +1,9 @@
-import { OPENAI_FAST_MODELS, OPENAI_ULTRAFAST_MODELS, CODEX_NO_ULTRAFAST_MODELS, CODEX_NO_ULTRAFAST_PLANS, OPENAI_ULTRAFAST_REGIONS, SERVICE_TIER_MODES, SERVICE_TIER_WIRE_VALUES } from "../config/serviceTierConfig.js";
+import {
+  OPENAI_FAST_MODELS, OPENAI_ULTRAFAST_MODELS, OPENAI_MODELS_WITHOUT_FLEX,
+  CODEX_NO_ULTRAFAST_MODELS, CODEX_NO_ULTRAFAST_PLANS, CODEX_LIMITED_ULTRAFAST_PLANS,
+  OPENAI_ULTRAFAST_REGIONS, SERVICE_TIER_MODES, SERVICE_TIER_WIRE_VALUES,
+} from "../config/serviceTierConfig.js";
+import { isGpt62Model } from "../config/models.js";
 import openai from "./registry/openai.js";
 
 // Browser-safe: no auth, persistence, fetch or process-level capability cache.
@@ -50,11 +55,14 @@ export function getServiceTierAvailability(provider, model, tier, credentials = 
     }
     return ultrafastModels.has(id)
       ? { status: "supported", reason: null }
-      : { status: "unsupported", reason: "Public API Ultrafast requires gpt-6-astra or gpt-6.1-sol on the Responses API." };
+      : { status: "unsupported", reason: "Ultrafast is unavailable for this model on the public Responses API." };
   }
   if (tier === "fast" && provider === "openai") {
     if (fastModels.has(id)) return { status: "supported", reason: null };
     if (knownModels.has(id)) return { status: "unsupported", reason: "Fast is not supported for this model." };
+  }
+  if (tier === "flex" && provider === "openai" && OPENAI_MODELS_WITHOUT_FLEX.includes(id)) {
+    return { status: "unsupported", reason: "Flex is not supported for this model." };
   }
   if (provider === "codex" || provider === "cx") {
     const account = credentials?.providerSpecificData;
@@ -63,8 +71,16 @@ export function getServiceTierAvailability(provider, model, tier, credentials = 
     if (account?.serviceTierPermissions?.[tier] === false) {
       return { status: "unsupported", scope: "account", reason: "This processing speed is disabled by the selected account/workspace permission. Enable it or choose Standard." };
     }
-    if (tier === "ultrafast" && CODEX_NO_ULTRAFAST_PLANS.includes(account?.chatgptPlanType)) {
-      return { status: "unsupported", scope: "account", reason: "This plan does not support Ultrafast. It requires Pro $500 or an eligible Enterprise/Edu plan; purchased credits alone do not enable it." };
+    if (tier === "ultrafast" && typeof account?.chatgptPlanType === "string") {
+      const plan = account.chatgptPlanType;
+      const limitedModels = Object.hasOwn(CODEX_LIMITED_ULTRAFAST_PLANS, plan) ? CODEX_LIMITED_ULTRAFAST_PLANS[plan] : null;
+      if (CODEX_NO_ULTRAFAST_PLANS.includes(plan) || (limitedModels && !limitedModels.includes(id))) {
+        return { status: "unsupported", scope: "account", reason: "This plan does not support Ultrafast for the selected model." };
+      }
+    }
+    if (tier === "ultrafast" && isGpt62Model(id) && account?.dataResidency
+        && !OPENAI_ULTRAFAST_REGIONS[id]?.includes(account.dataResidency)) {
+      return { status: "unsupported", scope: "account", reason: "Ultrafast is unavailable in the configured data residency region for this model." };
     }
     // The official account-specific Codex catalog uses service_tiers; the
     // app-server exposes the same data as serviceTiers. Empty is a known no.
@@ -79,7 +95,7 @@ export function getServiceTierAvailability(provider, model, tier, credentials = 
       return { status: "unsupported", reason: "This public API service tier is not supported on the Codex subscription transport." };
     }
     if (tier === "ultrafast" && CODEX_NO_ULTRAFAST_MODELS.includes(id)) {
-      return { status: "unsupported", reason: "Ultrafast is not supported for this model. Select gpt-6-astra, gpt-6.1-sol or a model advertising Ultrafast." };
+      return { status: "unsupported", reason: "Ultrafast is not supported for this model. Select a model advertising Ultrafast." };
     }
   }
   return { status: "unknown", reason: "Model/account speed entitlement is unverified; the upstream will validate this request." };

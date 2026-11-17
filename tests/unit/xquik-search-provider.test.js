@@ -2,7 +2,7 @@ import dns from "node:dns";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { publicFetch } = vi.hoisted(() => ({ publicFetch: vi.fn() }));
-vi.mock("undici", async (importOriginal) => ({
+vi.mock("undici/index.js", async (importOriginal) => ({
   ...await importOriginal(),
   fetch: publicFetch,
 }));

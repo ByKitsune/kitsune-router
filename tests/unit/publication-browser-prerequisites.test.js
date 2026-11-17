@@ -18,7 +18,7 @@ describe("publication browser prerequisites", () => {
       expect(block).not.toMatch(/\bHOME:|PLAYWRIGHT_BROWSERS_PATH|--skip|--passWithNoTests/);
     }
     const isolated = workflow.indexOf("run: node scripts/release-publication-helpers.mjs isolate\n");
-    const dependencies = workflow.indexOf("npm --prefix tests ci\n");
+    const dependencies = workflow.indexOf("bun install --cwd=tests --frozen-lockfile\n");
     const browserInstall = workflow.indexOf("- name: Install Chromium for isolated browser checks\n");
     const browserFirst = workflow.indexOf("- name: Run synthetic Usage browser regressions first\n");
     const sourceGate = workflow.indexOf("run: node scripts/release-publication-helpers.mjs verify-source\n");

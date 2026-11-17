@@ -17,9 +17,28 @@ beforeEach(async () => {
   sync = await import("../../src/lib/modelCatalog/sync.js");
   pricing = await import("../../open-sse/providers/metadata/modelsDevPricing.js");
 });
-afterEach(async () => { await sync.stopModelCatalogSync(); pricing.setModelsDevPricingObservationSource(null); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); fs.rmSync(temporary, { recursive: true, force: true }); });
+afterEach(async () => {
+  await sync.stopModelCatalogSync();
+  const { closeDb } = await import("../../src/lib/db/driver.js");
+  await closeDb();
+  pricing.setModelsDevPricingObservationSource(null);
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+  fs.rmSync(temporary, { recursive: true, force: true });
+});
 
-describe("public catalog sync and pricing publication", () => {
+describe("public catalog sync and pricing publication", { timeout: 20_000 }, () => {
+  it("checks persisted unpriced requests after publication", async () => {
+    const { saveRequestUsage, getUsageHistory } = await import("../../src/lib/db/repos/usageRepo.js");
+    const request = { provider: "openrouter", model: id, tokens: { prompt_tokens: 1000, completion_tokens: 1000 } };
+    await saveRequestUsage({ ...request, timestamp: "2030-02-01T11:00:00Z" });
+    await saveRequestUsage({ ...request, timestamp: "2030-02-01T12:00:00Z" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(payload(1)))));
+    expect(await sync.syncModelCatalog()).toMatchObject({ status: "updated", pricingRecovery: { checked: 2, recovered: 1 } });
+    expect((await getUsageHistory()).map(row => row.cost)).toEqual([null, 0.003]);
+  });
+
   it("publishes the full validated response with its actual digest and retains previous request-time quotes", async () => {
     const first = JSON.stringify(payload(1));
     const second = JSON.stringify(payload(2));

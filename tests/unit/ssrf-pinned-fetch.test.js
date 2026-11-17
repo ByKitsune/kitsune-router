@@ -6,7 +6,7 @@ const transport = vi.hoisted(() => ({ lookups: [], agents: [] }));
 vi.mock("next/server", () => ({
   NextResponse: { json: (body, init) => Response.json(body, init) },
 }));
-vi.mock("undici", async (importOriginal) => {
+vi.mock("undici/index.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

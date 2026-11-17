@@ -30,3 +30,27 @@ describe("dated public OpenAI processing-speed tariffs", () => {
     }
   });
 });
+
+describe("GPT-6.2 public OpenAI rates", () => {
+  it.each([
+    ["gpt-6.2-astra", 8, 16, 40, 60, 20],
+    ["gpt-6.2-sol", 2, 4, 10, 15, 5],
+  ])("prices %s at the exact long-context boundary and honors batch quotes", (model, shortInput, longInput, shortOutput, longOutput, batchOutput) => {
+    const quote = getPricingForModel("openai", model, { timestamp: "2026-11-18T00:00:00Z" });
+    const standard = prompt_tokens => calculateCostBreakdown({ prompt_tokens, completion_tokens: 10000, actualServiceTier: "default" }, quote);
+    expect(standard(272000)).toMatchObject({ inputCost: shortInput * 0.272, outputCost: shortOutput * 0.01 });
+    expect(standard(272001)).toMatchObject({ inputCost: longInput * 272001 / 1000000, outputCost: longOutput * 0.01 });
+    expect(calculateCostBreakdown({ prompt_tokens: 100000, completion_tokens: 10000, actualServiceTier: "batch" }, quote).outputCost)
+      .toBe(batchOutput * 0.01);
+    expect(calculateCostBreakdown({ prompt_tokens: 100000, actualServiceTier: "flex" }, quote).totalCost).toBeNull();
+  });
+
+  it.each([["gpt-6.2-astra", 180, 360], ["gpt-6.2-sol", 45, 90]])("changes %s Ultrafast at midnight Pacific", (model, promotionalOutput, listOutput) => {
+    const usage = { prompt_tokens: 272001, completion_tokens: 10000, actualServiceTier: "ultrafast" };
+    const price = timestamp => getPricingForModel("openai", model, { timestamp });
+    expect(calculateCostBreakdown(usage, price("2027-03-01T07:59:59.999Z")).outputCost).toBe(promotionalOutput * 0.01);
+    expect(calculateCostBreakdown(usage, price("2027-03-01T08:00:00Z")).outputCost).toBe(listOutput * 0.01);
+    expect(calculateCostBreakdown(usage, price("2027-02-29T00:00:00Z")).totalCost).toBeNull();
+    expect(calculateCostBreakdown(usage, getPricingForModel("cx", model, { timestamp: "2027-03-01T08:00:00Z" })).totalCost).toBeNull();
+  });
+});

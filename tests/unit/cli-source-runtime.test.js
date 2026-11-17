@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const { resolveServerRuntime } = require("../../cli/hooks/serverRuntime.js");
+const { resolveServerRuntime, resolveServerInterpreter } = require("../../cli/hooks/serverRuntime.js");
 const fixtures = [];
 
 afterEach(() => {
@@ -39,6 +39,13 @@ function build(directory, dist = ".next", custom = true) {
 }
 
 describe("source and packaged CLI production runtime resolution", () => {
+  it("allows a Node launcher to retain Node explicitly or when Bun is unavailable", () => {
+    const usingBun = Boolean(process.versions.bun);
+    const current = { command: process.execPath, bun: usingBun };
+    expect(resolveServerInterpreter({ ...process.env, KITSUNE_ROUTER_RUNTIME: "node" })).toEqual(current);
+    expect(resolveServerInterpreter({ ...process.env, PATH: "" })).toEqual(current);
+  });
+
   it.each(["--dir", "--branch"])("rejects missing %s values before network or install work", option => {
     const result = spawnSync("bash", [fileURLToPath(new URL("../../install.sh", import.meta.url)), option], {
       encoding: "utf8", timeout: 5000,

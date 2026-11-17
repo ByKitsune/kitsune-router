@@ -133,7 +133,7 @@ Legacy `secrets.env` is parsed as data, never sourced or executed. It accepts on
 
 Malformed documents, invalid persisted values, or differing persisted values fail closed. A valid explicit override may resolve an invalid/conflicting **individual key**, but does not rewrite that original key; keep supplying the override until you deliberately reconcile the private files. Unknown keys or malformed file structure require local review. The minimum is 32 characters for all three keys; older Docker-generated 64-character values are supported. A shorter historical API secret or machine salt is not silently replaced—review it deliberately before starting. Do not post either secret file or its values in logs/issues.
 
-If overriding the image's command with your own Node invocation, retain the preload: `node --require ./cli/hooks/containerEntrypoint.js custom-server.js`. The default process is exec'd directly, so shutdown signals reach the application without an extra Node wrapper. The preload does not alter `NODE_OPTIONS`, so normally spawned helper commands do not rerun secret setup.
+When overriding the source image's command, retain the preload with `bun --no-env-file --preload ./cli/hooks/containerEntrypoint.js custom-server.js`. The entrypoint execs Bun directly so the application receives shutdown signals. The preload leaves helper process configuration alone.
 
 ## Operations
 
@@ -153,7 +153,7 @@ The gateway image does not bundle Python/Headroom. A separately reviewed sidecar
 
 ## Build from this checkout
 
-Run from the repository root, using disposable state for evaluation:
+The source image runs Bun 1.4.4 and prefers the bundled `better-sqlite3` N-API driver. Run from the repository root with a disposable state volume for evaluation.
 
 ```bash
 docker build -t kitsune-router:local .

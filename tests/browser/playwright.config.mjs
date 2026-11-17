@@ -34,7 +34,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "node scripts/ui-test-server.mjs",
+    command: "bun --no-env-file scripts/ui-test-server.mjs",
     cwd: root,
     url: `${UI_TEST_ORIGIN}/api/health`,
     reuseExistingServer: false,

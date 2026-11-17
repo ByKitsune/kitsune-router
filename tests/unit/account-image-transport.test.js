@@ -22,7 +22,7 @@ vi.mock("node:dns/promises", async importOriginal => ({
   ...await importOriginal(),
   lookup: async hostname => hostname === "image-fixture.example" ? [{ address: "8.8.8.8", family: 4 }] : [],
 }));
-vi.mock("undici", async importOriginal => ({ ...await importOriginal(), fetch: (...args) => state.imageFetch(...args) }));
+vi.mock("undici/index.js", async importOriginal => ({ ...await importOriginal(), fetch: (...args) => state.imageFetch(...args) }));
 
 import { handleImageGenerationCore } from "open-sse/handlers/imageGenerationCore.js";
 import { handleImageGeneration } from "@/sse/handlers/imageGeneration.js";
@@ -30,6 +30,7 @@ import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { readImageUrl } from "open-sse/handlers/imageProviders/_base.js";
 import { AntigravityExecutor } from "open-sse/executors/antigravity.js";
 
+const socketFetch = process.versions.bun ? (await vi.importActual("undici/index.js")).fetch : state.nativeFetch;
 const servers = [];
 let direct;
 const log = { debug() {}, info() {}, warn() {}, error() {} };
@@ -57,7 +58,7 @@ beforeEach(() => {
       direct.push(String(url));
       throw new Error("Unexpected direct image egress");
     }
-    return state.nativeFetch(url, init);
+    return socketFetch(url, init);
   });
 });
 afterEach(async () => {
@@ -243,7 +244,9 @@ describe("image submissions are not replayed after uncertain or accepted work", 
       } else response.end(outcome === "server error" ? '{"error":{"message":"image job outcome uncertain"}}' : "{broken JSON");
     });
     const response = await requestImage();
-    expect(response.status).toBe(outcome === "server error" ? 503 : outcome === "invalid rejection JSON" ? 429 : 502);
+    // A socket may close before headers reach the client or after its 429 was received.
+    if (outcome === "truncated rejection body") expect([429, 502]).toContain(response.status);
+    else expect(response.status).toBe(outcome === "server error" ? 503 : outcome === "invalid rejection JSON" ? 429 : 502);
     expect(response.headers.get("x-should-retry")).toBe("false");
     expect(state.getProviderCredentials).toHaveBeenCalledOnce();
     expect(route.requests).toHaveLength(1);
@@ -380,7 +383,7 @@ describe("image async polling routes", () => {
     servers.push(server);
     await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
     const endpoint = `http://127.0.0.1:${server.address().port}/submit`;
-    vi.stubGlobal("fetch", (_url, init) => state.nativeFetch(endpoint, init));
+    vi.stubGlobal("fetch", (_url, init) => socketFetch(endpoint, init));
     expect(await invoke("black-forest-labs")).toMatchObject({ success: false, status: 502, localFailure: true });
     expect(requests).toEqual([{ url: "/submit", key: "synthetic-image-key" }]);
   });

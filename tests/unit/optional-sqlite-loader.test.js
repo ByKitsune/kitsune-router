@@ -9,6 +9,8 @@ import { spawnSync } from "node:child_process";
 const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const loader = join(root, "src/lib/db/helpers/optionalNativeSqlite.js");
+const bunCommand = process.versions.bun ? process.execPath : process.platform === "win32" ? "bun.exe" : "bun";
+const bunAvailable = spawnSync(bunCommand, ["--version"], { timeout: 3000 }).status === 0;
 const directories = [];
 
 afterEach(() => {
@@ -23,8 +25,9 @@ function fixture() {
   return { directory, isolatedLoader };
 }
 
-function evaluate(source, directory, environment = {}) {
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", source], {
+function evaluate(source, directory, environment = {}, { bun = false, addons = true } = {}) {
+  const runtimeArgs = bun ? ["--no-env-file", ...(addons ? [] : ["--no-addons"])] : ["--input-type=module"];
+  const result = spawnSync(bun ? bunCommand : process.execPath, [...runtimeArgs, "--eval", source], {
     cwd: directory,
     encoding: "utf8",
     timeout: 15000,
@@ -146,4 +149,33 @@ describe("optional native SQLite loading", () => {
     `, directory);
     expect(stdout).toContain("fallback database works");
   });
+
+  it.skipIf(!bunAvailable)("keeps a Node database when Bun uses the N-API driver or its built-in fallback", () => {
+    const { directory } = fixture();
+    const driver = JSON.stringify(pathToFileURL(resolve(root, "src/lib/db/driver.js")).href);
+    const exercise = (expectedDriver, query) => `
+      import assert from 'node:assert/strict';
+      const { getAdapter, closeDb } = await import(${driver});
+      try {
+        const db = await getAdapter();
+        assert.equal(db.driver, ${JSON.stringify(expectedDriver)});
+        ${query}
+      } finally { await closeDb(); }
+    `;
+    evaluate(exercise("better-sqlite3", `
+      db.exec('CREATE TABLE runtime_probe(value TEXT)');
+      db.run('INSERT INTO runtime_probe VALUES (?)', ['created on Node']);
+    `), directory);
+    evaluate(exercise("better-sqlite3", `
+      assert.equal(db.get('SELECT value FROM runtime_probe').value, 'created on Node');
+      db.run('UPDATE runtime_probe SET value = ?', ['updated on Bun']);
+    `), directory, {}, { bun: true });
+    evaluate(exercise("bun:sqlite", `
+      assert.equal(db.get('SELECT value FROM runtime_probe').value, 'updated on Bun');
+      db.run('UPDATE runtime_probe SET value = ?', ['updated by built-in Bun']);
+    `), directory, {}, { bun: true, addons: false });
+    evaluate(exercise("better-sqlite3", `
+      assert.equal(db.get('SELECT value FROM runtime_probe').value, 'updated by built-in Bun');
+    `), directory);
+  }, 15000);
 });

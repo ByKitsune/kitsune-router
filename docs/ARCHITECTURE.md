@@ -197,8 +197,9 @@ The process-isolated regression harness does not relax this production boundary:
 
 Startup recognizes legacy-prefixed operator settings at the migration boundary without rewriting environment files; explicit current names win. Process-only trusted-peer proof tokens are never imported. An existing implicit legacy SAML entity ID is persisted when no custom issuer was saved; fresh installations use `urn:kitsunerouter:sp`. Do not replace an existing IdP configuration to make its name look new.
 
-Primary state DB — **SQLite** under `src/lib/db/`. Bun uses `bun:sqlite`;
-Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5).
+Primary state is **SQLite** under `src/lib/db/`. Bun and Node prefer the optional
+N-API `better-sqlite3` driver. Bun falls back to `bun:sqlite` and Node falls back
+to `node:sqlite` (Node ≥22.5). The same SQLite file works with all three drivers.
 Pure-JS `sql.js` requires `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive
 single-process DATA_DIR ownership; native/sql.js mixed writers fail closed.
 A crash-left owner directory requires confirming the old process is gone before

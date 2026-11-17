@@ -256,8 +256,8 @@ describe("container preload without wrapper processes or secret output", () => {
 
   it("execs the default preloaded application after dropping privileges", () => {
     const dockerfile = fs.readFileSync(path.join(root, "Dockerfile"), "utf8");
-    expect(dockerfile).toContain('CMD ["node", "--require", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]');
-    expect(dockerfile).toContain('exec su-exec node "$@"');
+    expect(dockerfile).toContain('CMD ["bun", "--no-env-file", "--preload", "./cli/hooks/containerEntrypoint.js", "custom-server.js"]');
+    expect(dockerfile).toContain('exec su-exec bun "$@"');
     expect(dockerfile).toContain("COPY --from=builder /app/cli/hooks/containerEntrypoint.js ./cli/hooks/containerEntrypoint.js");
     expect(dockerfile).not.toContain('. "$SECRETS_FILE"');
     expect(dockerfile).not.toContain("NODE_OPTIONS=");

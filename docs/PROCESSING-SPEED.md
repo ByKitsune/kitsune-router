@@ -1,6 +1,6 @@
 # Processing speed: Standard, Fast and Ultrafast
 
-Reviewed against OpenAI and OpenCode sources on **2026-10-19**. Processing speed
+Reviewed against OpenAI and OpenCode sources on **2026-11-18 WIB**. Processing speed
 is independent of reasoning effort: `reasoning.effort: "high"` can be used with
 Standard, Fast or Ultrafast. An effort named `ultra` is not Ultrafast service.
 
@@ -36,33 +36,35 @@ curl http://localhost:20128/v1/responses \
   -H "Authorization: Bearer $KITSUNE_ROUTER_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "codex/gpt-6.1-sol",
+    "model": "codex/gpt-6.2-sol",
     "input": "Explain this function",
     "reasoning": {"effort": "high"},
     "service_tier": "ultrafast"
   }'
 ```
 
-Use `openai/gpt-6.1-sol` to route through the public API instead of a Codex
+Use `openai/gpt-6.2-sol` to route through the public API instead of a Codex
 subscription. For Fast, set `service_tier` to `fast`; for Standard, use `default`.
 Prefer `/v1/responses` when selecting Ultrafast. A successful request does not by
 itself prove that the upstream delivered the requested speed tier.
 
 ## Eligibility and cost
 
-- Public API Ultrafast is currently documented for **GPT-6 Astra** and **GPT-6.1
-  Sol** using Responses. API model access, region and rate limits still apply.
-- Codex Ultrafast requires a supported model and an eligible **Pro $500** or
-  Enterprise/Edu arrangement. Enterprise workspace permission is separate and
-  disabled by default. Generic `pro` membership or buying credits is not proof
-  of access. Unknown eligibility is unverified, not a promise of support.
+- Public API Ultrafast is documented for **GPT-6.2 Sol**, **GPT-6.2 Astra**,
+  **GPT-6 Astra**, and **GPT-6.1 Sol** using Responses. API access depends on
+  the account, region, and rate limits.
+- Codex Ultrafast for GPT-6.2 Sol is available to Pro $200, Pro $500, and
+  eligible Enterprise/Edu accounts. GPT-6.2 Astra requires Pro $500 or eligible
+  Enterprise/Edu access. Workspace permission and regional availability also
+  apply. The connected account's advertised eligibility controls routing.
 - Fast and Ultrafast can cost substantially more. For public GPT-6.1 Sol at
   short context, documented input/output rates are $2/$10 Standard, $4/$20 Fast
   and $12/$60 Ultrafast per million tokens. Other models, long context, caching
   and residency have separate rates; do not apply a universal multiplier.
-- Subscription Fast uses 2.5× included usage or 2× purchased credits/PAYG;
-  Ultrafast uses 8× included usage or 6× purchased credits/PAYG. These are not
-  throughput guarantees and are not public API prices.
+- GPT-6.2 Codex Fast uses 2× subscription credits. Ultrafast uses 6× included
+  usage. For eligible purchased credits, the introductory Ultrafast rate is
+  3× through February 28, 2027 Pacific Time, then 6×. Older models and legacy
+  billing have separate multipliers.
 - Preserve the upstream's actual `service_tier` separately from the requested
   tier. Fast may be downgraded to Standard upstream. Missing actual-tier data
   must not be presented as confirmed premium delivery or used to invent an
@@ -80,15 +82,24 @@ components never inherit Standard rates.
 Actual `auto` is a selection-policy echo, not confirmed delivery. Missing or
 unconfirmed premium delivery therefore remains **unknown (`null`)**, never zero
 or assumed Standard. A group's known recorded subtotal can be shown separately
-with its unpriced count, without claiming a complete total or repricing old
-requests. Native OpenAI cache writes remain distinct from Anthropic's 5m/1h
-writes; an unexplained lifetime split is unknown.
+with its unpriced count. Recovery of a missing historical cost requires a
+verified rate for the request timestamp. Native OpenAI and Anthropic cache
+writes have separate lifetime schedules. A missing lifetime split leaves the
+cache-write cost unknown.
 
 Public API premium prices are **not** automatically applied to Codex subscription
 or arbitrary reseller routes. An operator can supply a local tier-specific
 estimate; subscription credit/usage multipliers do not become USD invoices.
 Existing Standard/default estimates remain estimates; use the upstream billing
 dashboard for actual charges. See the [October reconciliation](audit/17-october-reconciliation-2026-10.md).
+
+### GPT-6.2 Sol and Astra
+
+For both models, the public API prices Fast at 2× Standard and Batch at half
+the Standard rate. Ultrafast costs 3× through February 28, 2027 Pacific Time
+and 6× afterward. Each tier has its own short-context, long-context, and cache
+tariffs. [GPT-6.2 routes and Standard rates](GPT-6.2.md),
+[OpenAI API pricing](https://developers.openai.com/api/docs/pricing).
 
 ### GPT-6.1 Terra public API reference
 
@@ -137,7 +148,7 @@ reasoning high while exposing independent speed variants:
       },
       "models": {
         "sol": {
-          "modelID": "codex/gpt-6.1-sol",
+          "modelID": "codex/gpt-6.2-sol",
           "body": { "reasoning": { "effort": "high" } },
           "variants": [
             { "id": "standard", "body": { "service_tier": "default" } },

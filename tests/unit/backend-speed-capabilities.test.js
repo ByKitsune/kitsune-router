@@ -100,4 +100,23 @@ describe("account- and model-local Codex service tier policy", () => {
     expect(() => resolveServiceTier("openai", "gpt-6-astra", "ultrafast", credentials)).toThrow(/region/i);
     expect(resolveServiceTier("openai", "gpt-6.1-sol", "ultrafast", credentials)).toBe("ultrafast");
   });
+
+  it.each(["gpt-6.2-astra", "gpt-6.2-sol"])("exposes native %s speed choices with API residency checks", model => {
+    expect(getServiceTierOptions("openai", model).map(option => option.value)).toContain("ultrafast");
+    expect(resolveServiceTier("openai", model, "fast")).toBe("fast");
+    expect(resolveServiceTier("openai", model, "ultrafast", account([], { dataResidency: "us" }))).toBe("ultrafast");
+    expect(() => resolveServiceTier("openai", model, "ultrafast", account([], { dataResidency: "eu" }))).toThrow(/region/i);
+    expect(() => resolveServiceTier("openai", model, "flex")).toThrow(/not supported/i);
+    expect(() => resolveServiceTier("openai", model, "batch")).toThrow(/invalid/i);
+  });
+
+  it("lets Pro $200 use advertised Sol Ultrafast while applying model, region and workspace restrictions", () => {
+    const models = ["gpt-6.2-sol", "gpt-6.2-astra"].map(slug => ({ slug, service_tiers: [{ id: "ultrafast" }] }));
+    const credentials = account(models, { chatgptPlanType: "pro_200" });
+    expect(resolveServiceTier("codex", "gpt-6.2-sol", "ultrafast", credentials)).toBe("ultrafast");
+    expect(() => resolveServiceTier("codex", "gpt-6.2-astra", "ultrafast", credentials)).toThrow(/plan/i);
+    expect(() => resolveServiceTier("codex", "gpt-6.2-sol", "ultrafast", account(models, { chatgptPlanType: "pro_200", dataResidency: "eu" }))).toThrow(/region/i);
+    expect(() => resolveServiceTier("codex", "gpt-6.2-sol", "ultrafast", account(models, { chatgptPlanType: "pro_200", serviceTierPermissions: { ultrafast: false } }))).toThrow(/permission/i);
+    expect(getServiceTierAvailability("codex", "gpt-6.2-sol", "ultrafast", account(undefined, { chatgptPlanType: "pro_200" })).status).toBe("unknown");
+  });
 });

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -23,7 +23,8 @@ mkdirSync(data, { recursive: true, mode: 0o700 });
 
 // Intentionally create the environment from a short allowlist. Provider tokens,
 // real gateway credentials, proxy secrets and operator .env files are not used.
-const child = spawn(process.execPath, [server], {
+const runtimeArgs = process.versions.bun ? ["--no-env-file", server] : [server];
+const child = spawn(process.execPath, runtimeArgs, {
   cwd: temporary,
   detached: process.platform !== "win32",
   stdio: "inherit",

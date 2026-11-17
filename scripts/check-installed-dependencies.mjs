@@ -52,7 +52,7 @@ export function checkInstalledDependencies(directory) {
     checked++;
   }
   if (issues.length) {
-    throw new Error(`Dependency installation mismatch in ${manifest.name || root}:\n- ${issues.join("\n- ")}\nRun npm ci in that project before testing or building. Do not weaken the lockfile to match stale node_modules.`);
+    throw new Error(`Dependency installation mismatch in ${manifest.name || root}:\n- ${issues.join("\n- ")}\nRun bun install --frozen-lockfile in that project before testing or building. Run npm ci when using the Node.js compatibility path.`);
   }
   return { project: manifest.name, version: manifest.version, checked, optionalSkipped };
 }

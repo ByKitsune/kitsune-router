@@ -14,7 +14,7 @@
 
 import dns from "node:dns";
 import { isIP } from "node:net";
-import { Agent, fetch as undiciFetch, Response } from "undici";
+import { Agent, fetch as undiciFetch, Response } from "undici/index.js";
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "ip6-localhost", "ip6-loopback"]);
 const BLOCKED_SUFFIXES = [".internal", ".local", ".localhost"];

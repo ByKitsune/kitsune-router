@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, Dispatcher1Wrapper, fetch as undiciFetch } from "undici/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createUpstreamTransportPool } from "../../open-sse/utils/transportPool.js";
 
-const nativeFetch = globalThis.fetch;
+const dispatcherFetch = process.versions.bun ? undiciFetch : globalThis.fetch;
 const servers = new Set();
 const sockets = new Set();
 const managers = new Set();
@@ -32,7 +32,7 @@ function manager(config = {}) {
 }
 
 async function request(pool, url, options = {}, route = {}) {
-  return nativeFetch(url, {
+  return dispatcherFetch(url, {
     signal: AbortSignal.timeout(2000),
     ...options,
     dispatcher: await pool.getDispatcher(route),
@@ -82,7 +82,7 @@ afterEach(async () => {
   await until(() => sockets.size === 0);
 });
 
-describe("managed upstream pools on real Node native fetch", () => {
+describe("managed upstream pools on real HTTP transports", () => {
   it("single-flights the default wrapper and reuses the actual sequential HTTP connection", async () => {
     const ports = [];
     const fixture = await serve((req, res) => { ports.push(req.socket.remotePort); res.end("reused"); });

@@ -100,6 +100,65 @@ afterEach(async () => {
 });
 
 describe("SQLite usage consumers preserve unknown cost", () => {
+  it("recovers only usage covered by dated provider evidence and updates retained aggregates once", async () => {
+    const { createModelsDevPricingObservation, setModelsDevPricingObservationSource } = await import("../../open-sse/providers/metadata/modelsDevPricing.js");
+    const model = "synthetic-history-recovery";
+    const provider = "openrouter";
+    const when = "2026-10-17T19:34:45+07:00";
+    await usage.saveRequestUsage(request({ provider, model, timestamp: "2026-10-17T10:00:00Z" }));
+    await usage.saveRequestUsage(request({ provider, model, timestamp: when }));
+    await usage.saveRequestUsage(request({ model: "synthetic-unknown" }));
+    await usage.saveRequestUsage(request({ provider, model, tokens: { ...defaultTokens, actualServiceTier: "fast" } }));
+    const immutableFields = "SELECT timestamp, sourceTimestamp, provider, model, connectionId, apiKey, endpoint, tokens FROM usageHistory ORDER BY id";
+    const originalFields = db.all(immutableFields);
+    await usage.getActiveRequests();
+    await pricing.updatePricing({ openrouter: { [model]: { input: 100, output: 100 } } });
+    const observed = createModelsDevPricingObservation({ openrouter: { models: {
+      [model]: { id: model, cost: { input: 3, output: 6 }, modalities: { input: ["text"], output: ["text"] } },
+    } } }, { url: "https://models.dev/api.json", verifiedAtUtc: "2026-10-17T11:00:00Z", sha256: "a".repeat(64) });
+    setModelsDevPricingObservationSource(() => [observed]);
+    try {
+      expect(await usage.recoverUnpricedUsage()).toEqual({ checked: 4, recovered: 1 });
+      const { closeDb, getAdapter } = await import("../../src/lib/db/driver.js");
+      await closeDb();
+      db = await getAdapter();
+      expect(await usage.recoverUnpricedUsage()).toEqual({ checked: 3, recovered: 0 });
+      const rows = db.all("SELECT cost, meta FROM usageHistory ORDER BY id");
+      expect(rows.map(row => row.cost)).toEqual([null, 0.006, null, null]);
+      expect(db.all(immutableFields)).toEqual(originalFields);
+      expect(JSON.parse(rows[1].meta)).toMatchObject({
+        quote: { timestamp: when, pricing: null, breakdown: { totalCost: null } },
+        recoveredQuote: { timestamp: "2026-10-17T12:34:45.000Z", pricing: { provenance: { sha256: "a".repeat(64) } }, breakdown: { totalCost: 0.006 } },
+      });
+      expect((await usage.getActiveRequests()).recentRequests.find(row => row.model === model).cost).toBe(0.006);
+      const stats = await usage.getUsageStats("all");
+      expect(stats.byModel[`${model} (${provider})`]).toMatchObject({ requests: 3, cost: null,
+        costCoverage: { totalCost: { knownCost: 0.006, unknownRequests: 2 } } });
+      const daily = JSON.parse(db.get("SELECT data FROM usageDaily").data);
+      for (const axis of ["byProvider", "byModel", "byAccount", "byApiKey", "byEndpoint"]) {
+        expect(Object.values(daily[axis]).some(row => row.costCoverage.totalCost.knownCost === 0.006)).toBe(true);
+      }
+    } finally {
+      setModelsDevPricingObservationSource(null);
+    }
+  });
+
+  it("recovers usage using a provider tariff published at an earlier date", async () => {
+    const provider = "cohere";
+    const model = "command-a-03-2025";
+    const missing = vi.spyOn(pricing, "getPricingForModel").mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    await usage.saveRequestUsage(request({ provider, model, timestamp: "2025-03-13T23:59:59Z" }));
+    await usage.saveRequestUsage(request({ provider, model, timestamp: "2025-03-14T12:00:00Z" }));
+    missing.mockRestore();
+    expect(db.all("SELECT cost FROM usageHistory ORDER BY id").map(row => row.cost)).toEqual([null, null]);
+    expect(await usage.recoverUnpricedUsage()).toEqual({ checked: 2, recovered: 1 });
+    const rows = db.all("SELECT cost, meta FROM usageHistory ORDER BY id");
+    expect(rows.map(row => row.cost)).toEqual([null, 0.0075]);
+    expect(JSON.parse(rows[1].meta).recoveredQuote.pricing.provenance).toMatchObject({
+      kind: "published-provider-tariff", effectiveFrom: "2025-03-14T00:00:00Z",
+    });
+  });
+
   it("persists an unpriced request as NULL and retains unused zero components after history and ring reload", async () => {
     const entry = request();
     await usage.saveRequestUsage(entry);

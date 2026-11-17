@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // Contract note: lookup(host, {all:true}) resolves to an ARRAY of records.
 const { imageFetch, lookupMock } = vi.hoisted(() => ({ imageFetch: vi.fn(), lookupMock: vi.fn() }));
 vi.mock("node:dns/promises", () => ({ lookup: (...args) => lookupMock(...args) }));
-vi.mock("undici", async (importOriginal) => ({ ...await importOriginal(), fetch: imageFetch }));
+vi.mock("undici/index.js", async (importOriginal) => ({ ...await importOriginal(), fetch: imageFetch }));
 
 import { CodexExecutor } from "../../open-sse/executors/codex.js";
 import * as proxyFetchModule from "../../open-sse/utils/proxyFetch.js";

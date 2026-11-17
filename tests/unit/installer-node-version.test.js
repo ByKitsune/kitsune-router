@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const installer = readFileSync(new URL("../../install.sh", import.meta.url), "utf8");
 const constants = installer.match(/^MIN_NODE_(?:MAJOR|MINOR|PATCH)=\d+$/gm)?.join("\n") || "";
-const check = installer.match(/^node_satisfies\(\) \{[\s\S]*?^\}/m)?.[0];
+const check = installer.match(/^(?:version_at_least|node_satisfies)\(\) \{[\s\S]*?^\}/gm)?.join("\n");
 const hasBash = spawnSync("bash", ["--version"], { stdio: "ignore" }).status === 0;
 
 // Evaluate only the pure version predicate, never the installer/main or host

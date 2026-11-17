@@ -2,6 +2,8 @@
 // different model. Keep exact capabilities separate from account entitlement.
 // https://developers.openai.com/api/docs/pricing (Fast table)
 export const OPENAI_FAST_MODELS = [
+  // GPT-6.2: OpenAI public pricing capture 2026-11-17 UTC.
+  "gpt-6.2-astra", "gpt-6.2-sol",
   // GPT-6.1 Terra: independently reviewed public pricing capture 2026-10-28 UTC.
   "gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol", "gpt-6-luna",
   "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4",
@@ -11,7 +13,8 @@ export const OPENAI_FAST_MODELS = [
 ];
 // https://developers.openai.com/api/docs/guides/ultrafast-mode
 // https://developers.openai.com/api/docs/changelog (2026-10-08 Sol 6.1)
-export const OPENAI_ULTRAFAST_MODELS = ["gpt-6-astra", "gpt-6.1-sol"];
+export const OPENAI_ULTRAFAST_MODELS = ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6-astra", "gpt-6.1-sol"];
+export const OPENAI_MODELS_WITHOUT_FLEX = ["gpt-6.2-astra", "gpt-6.2-sol"];
 // A newer account-specific catalog may override these documented model limits.
 export const CODEX_NO_ULTRAFAST_MODELS = [
   "gpt-6-sol", "gpt-6-luna", "gpt-5.6-terra", "gpt-5.6-luna",
@@ -19,8 +22,11 @@ export const CODEX_NO_ULTRAFAST_MODELS = [
 ];
 // https://developers.openai.com/codex/agent-configuration/speed
 // Generic `pro`/`enterprise`/`edu` are deliberately NOT enough to decide access.
-export const CODEX_NO_ULTRAFAST_PLANS = ["free", "go", "plus", "team", "business", "pro_100", "pro_200", "enterprise_legacy"];
+export const CODEX_NO_ULTRAFAST_PLANS = ["free", "go", "plus", "team", "business", "pro_100", "enterprise_legacy"];
+export const CODEX_LIMITED_ULTRAFAST_PLANS = { pro_200: ["gpt-6.2-sol"] };
 export const OPENAI_ULTRAFAST_REGIONS = {
+  "gpt-6.2-astra": ["global", "us"],
+  "gpt-6.2-sol": ["global", "us"],
   "gpt-6-astra": ["global", "us"],
   "gpt-6.1-sol": ["global", "us", "eu"],
 };

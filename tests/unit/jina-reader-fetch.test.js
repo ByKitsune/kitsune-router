@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import dns from "node:dns";
-import { Agent, fetch as pinnedFetch } from "undici";
+import { Agent, fetch as pinnedFetch } from "undici/index.js";
 import { handleFetchCore } from "../../open-sse/handlers/fetch/index.js";
 
 vi.mock("node:dns", async original => {
   const actual = await original();
   return { ...actual, default: { ...actual.default, promises: { ...actual.default.promises, lookup: vi.fn() } } };
 });
-vi.mock("undici", async original => ({ ...await original(), fetch: vi.fn() }));
+vi.mock("undici/index.js", async original => ({ ...await original(), fetch: vi.fn() }));
 
 const lookup = dns.promises.lookup;
 

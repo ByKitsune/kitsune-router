@@ -126,6 +126,37 @@ export async function getPricingForModel(provider, model, options = {}) {
   }
 }
 
+export async function createHistoricalPricingResolver() {
+  const [{ getPricingForModel: resolveConst, PROVIDER_PRICING }, { getReviewedModelMetadata }, { stripThinkingSuffix }] = await Promise.all([
+    import("open-sse/providers/pricing.js"), import("open-sse/providers/metadata/reviewed.js"), import("open-sse/translator/concerns/thinkingUnified.js"),
+  ]);
+  return (provider, model, instant) => {
+    const timestamp = parsePricingTimestamp(instant);
+    if (!timestamp || !provider || !model) return null;
+    const options = { timestamp };
+    const resolveDefaults = defaultResolver(resolveConst, null, options, getReviewedModelMetadata);
+    // Today's saved override or custom-node URL cannot establish a historical
+    // price. Only a dated source for the exact route can fill missing costs.
+    return resolveModelPricing({}, provider, model, (product, id) => {
+      const quote = resolveDefaults(product, id);
+      if (!quote) return null;
+      if (quote.provenance?.kind === "models-dev-catalog-estimate") return quote;
+      const record = getReviewedModelMetadata(product, id);
+      const billing = record?.billing;
+      const effectiveFrom = billing?.effectiveFrom || record?.provenance?.catalog?.verifiedAtUtc;
+      const start = parsePricingTimestamp(effectiveFrom);
+      const end = billing?.effectiveUntil && parsePricingTimestamp(billing.effectiveUntil);
+      if (!start || timestamp < start || (billing?.effectiveUntil && (!end || timestamp >= end))
+        || billing?.currency !== "USD" || !record.sources?.length) return null;
+      return {
+        ...quote,
+        provenance: { kind: "published-provider-tariff", provider: canonicalizeProviderId(product), model: id,
+          effectiveFrom, ...(end ? { effectiveUntil: billing.effectiveUntil } : {}), sources: record.sources },
+      };
+    }, stripThinkingSuffix, (product, id) => hasLiteralQuote(PROVIDER_PRICING, product, id, null, options));
+  };
+}
+
 function hasLiteralQuote(providerPrices, provider, model, node, options = {}) {
   const reference = getCustomPricingProvider(node?.baseUrl) || provider;
   return getProviderIdentityTokens(reference).some(token => Object.hasOwn(providerPrices[token] || {}, model))

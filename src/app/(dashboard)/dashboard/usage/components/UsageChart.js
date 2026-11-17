@@ -11,7 +11,7 @@ const fmtTokens = (n) => {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n || 0);
 };
-const fmtCost = (n) => n === null ? "Not specified" : `$${(n || 0).toFixed(4)}`;
+const fmtCost = (n) => Number.isFinite(n) && n >= 0 ? `$${n.toFixed(4)}` : "Not specified";
 
 function UsageChart({ period, periodLabel, snapshot, snapshotPeriodLabel, error, fetching, onRetry }) {
   const [viewMode, setViewMode] = useState("tokens");

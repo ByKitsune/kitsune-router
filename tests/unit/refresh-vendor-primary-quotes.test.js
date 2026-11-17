@@ -5,9 +5,15 @@ import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.j
 // Literal expectations are independently transcribed from the captured primary
 // pages, not models.dev normalized dollar guesses or the production metadata.
 describe("2026-10-21 vendor-native quote consumers", () => {
-  it.each(["command-a-03-2025", "command-r-08-2024", "command-r7b-12-2024"])("does not turn uncaptured Cohere %s pricing claims into production dollars", model => {
-    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("cohere", model))).toBeNull();
+  it.each([["command-a-03-2025", 12.5], ["command-r-08-2024", 0.75], ["command-r7b-12-2024", 0.1875]])("uses published Cohere %s rates without assuming cache pricing", (model, expected) => {
+    expect(calculateCostFromTokens({ prompt_tokens: 1000000, completion_tokens: 1000000 }, getPricingForModel("cohere", model))).toBe(expected);
     expect(calculateCostFromTokens({ prompt_tokens: 1000000, cached_tokens: 1000000 }, getPricingForModel("cohere", model))).toBeNull();
+  });
+
+  it.each(["command-a-plus-05-2026", "command-a-vision-07-2025", "command-a-reasoning-08-2025", "command-a-translate-08-2025"])("applies the documented Cohere %s free quota to the shared API from verified evidence", model => {
+    const usage = { prompt_tokens: 1000000, completion_tokens: 1000000, reasoning_tokens: 250000 };
+    expect(calculateCostFromTokens(usage, getPricingForModel("cohere", model, { timestamp: "2026-11-17T21:34:35.477Z" }))).toBe(0);
+    expect(calculateCostFromTokens(usage, getPricingForModel("cohere", model, { timestamp: "2026-11-17T21:34:35.476Z" }))).toBeNull();
   });
 
   it("bills Perplexity Sonnet 5.5 cache reads at 0.10, not Sonnet 5's rate", () => {

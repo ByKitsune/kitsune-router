@@ -40,7 +40,8 @@ export function createUpstreamTransportPool(config = {}) {
   function loadUndici() {
     if (!undiciPromise) {
       counters.initializations++;
-      undiciPromise = import("undici").then(
+      // Bun maps the bare specifier to a shim without the dispatcher classes.
+      undiciPromise = import("undici/index.js").then(
         module => (undici = module),
         error => { undiciPromise = null; throw error; },
       );

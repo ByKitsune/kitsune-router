@@ -12,11 +12,13 @@ import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../service
 import { getSettings, isApiKeyRequired, getProviderConnectionById } from "@/lib/localDb";
 import { getDisabledByProvider } from "@/lib/disabledModelsDb";
 import { getModelInfo, getComboModels, resolveModelCapabilities } from "../services/model.js";
+import { getOpenCodeFreeCooldown, recordOpenCodeFreeCooldown } from "../services/opencodeFreeCooldown.js";
 import { handleChatCore, createChatRoutingFailure } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
 import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
-import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
+import { createErrorResult, errorResponse, unavailableResponse } from "open-sse/utils/error.js";
+import { OPENCODE_FREE_LIMIT_MESSAGE, OPENCODE_QUOTA_CODES } from "open-sse/config/errorConfig.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
 import { classifyAvailabilityError } from "open-sse/services/accountFallback.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy, getCapacityAdapterModels } from "open-sse/services/capacityAdapter.js";
@@ -514,6 +516,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return errorResponse(499, "Client Closed Request");
     }
 
+    const freeCooldown = provider === "opencode" ? await getOpenCodeFreeCooldown() : null;
+    if (freeCooldown) {
+      const { response } = createErrorResult(429, OPENCODE_FREE_LIMIT_MESSAGE, freeCooldown.resetsAtMs, { code: OPENCODE_QUOTA_CODES.free });
+      return withRateLimitHeaders(response, rateLimit);
+    }
+
     const selectionDone = startRequestPhase("provider_selection");
     let credentials;
     try {
@@ -721,6 +729,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     if (isClientAborted) {
       log.warn("CHAT", "Client aborted before upstream completion");
       return withRateLimitHeaders(result.response || errorResponse(499, "Client Closed Request"), rateLimit);
+    }
+    if (provider === "opencode" && result.status === 429 && result.diagnostics?.code === OPENCODE_QUOTA_CODES.free) {
+      await recordOpenCodeFreeCooldown(result.resetsAtMs);
+      return withRateLimitHeaders(result.response, rateLimit);
     }
     if (result.accountServiceTierDenied === true) {
       // Skip only this account for this request, keeping the selected tier.

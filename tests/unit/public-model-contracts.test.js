@@ -166,6 +166,31 @@ describe("route-scoped capabilities and actionable constraints", () => {
     expect(row.metadata.limits.promptAccounting).not.toHaveProperty("instructionTokens");
   });
 
+  it.each([["gpt-6.2-sol", 500000], ["gpt-6.2-astra", 272000]])("publishes %s with the Codex CLI default and separate OpenAI API limits", async (model, contextWindow) => {
+    connect("codex", { enabledModels: [model] });
+    const row = await rowFor(`cx/${model}`);
+    expect(row).toMatchObject({
+      context_length: contextWindow,
+      capabilities: { contextWindow, maxInput: null, maxOutput: null },
+      metadata: { modalities: { input: ["text", "image"], output: ["text"] }, limits: { cliDefaultContext: contextWindow, cliMaxContext: 872000, apiContextWindow: 1050000, apiMaxInput: 922000, apiMaxOutput: 128000 } },
+    });
+    expect(row).not.toHaveProperty("max_input_tokens");
+    expect(row).not.toHaveProperty("max_completion_tokens");
+    expect(row.capabilities).not.toHaveProperty("reasoningModes");
+  });
+
+  it.each([["gpt-6.2-sol", "2026-06-01"], ["gpt-6.2-astra", "2026-05-18"]])("publishes %s Pro reasoning on the existing OpenAI Responses route", async (model, knowledgeCutoff) => {
+    connect("openai", { enabledModels: [model] });
+    const row = await rowFor(`openai/${model}`);
+    expect(row).toMatchObject({
+      context_length: 1050000, max_input_tokens: 922000, max_completion_tokens: 128000,
+      capabilities: { reasoningModes: ["standard", "pro"], thinkingEfforts: ["low", "medium", "high", "xhigh", "max"] },
+      metadata: { knowledgeCutoff, modalities: { input: ["text", "image"], output: ["text"] }, limits: { apiDefaultReasoningEffort: "medium", apiReasoningModes: ["standard", "pro"], apiDefaultReasoningMode: "standard", apiReasoningModeEndpoint: "/v1/responses" } },
+    });
+    expect(isValidModel("openai", `${model}-pro`)).toBe(false);
+    expect(getCapabilitiesForModel("opencode-zen", model)).not.toHaveProperty("reasoningModes");
+  });
+
   it("removes the stale tools-require-none restriction from API and copied Codex facts", async () => {
     for (const provider of ["openai", "cx"]) {
       for (const model of ["gpt-6-sol", "gpt-6-luna"]) {

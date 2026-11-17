@@ -1,5 +1,5 @@
-import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS, NON_RETRYABLE_ROUTER_CODES } from "../config/errorConfig.js";
-import { classifyAvailabilityError, extractResetsAtMs, isRequestValidationError } from "../services/accountFallback.js";
+import { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, GOOGLE_QUOTA_RESET_HINTS, MAX_RATE_LIMIT_COOLDOWN_MS, NON_RETRYABLE_ROUTER_CODES, OPENCODE_FREE_LIMIT_MESSAGE, OPENCODE_QUOTA_CODES, OPENCODE_QUOTA_PROVIDERS } from "../config/errorConfig.js";
+import { classifyAvailabilityError, extractResetsAtMs, isRequestValidationError, retryAfterDateMs } from "../services/accountFallback.js";
 import { redactClientDiagnostic, sanitizeClientError } from "./clientErrors.js";
 
 export { extractResetsAtMs } from "../services/accountFallback.js";
@@ -217,6 +217,10 @@ export async function parseUpstreamError(response, executor = null, onResponseBo
   if (isRequestValidationError(response.status, message, diagnostics)) {
     return { statusCode: response.status, message, ...diagnostics };
   }
+  if (OPENCODE_QUOTA_PROVIDERS.has(executor?.provider) && RESET_BEARING_STATUSES.has(response.status)) {
+    const openCode = parseOpenCodeQuota(response, capture.complete && !capture.truncated ? bodyText : "");
+    if (openCode) return { statusCode: response.status, message: message || DEFAULT_ERROR_MESSAGES[response.status], ...diagnostics, ...openCode };
+  }
   const structuredReset = executor?.provider === "antigravity"
     ? parseGoogleQuotaReset(response, bodyText) : null;
 
@@ -356,6 +360,50 @@ export function parseUpstreamErrorBody(response, bodyText) {
 // because several providers (Anthropic org limits, Antigravity quota) report
 // quota exhaustion there instead of 429, and 402 for credit/billing resets.
 const RESET_BEARING_STATUSES = new Set([402, 403, 429, 500, 502, 503, 504, 529]);
+
+export function openCodeRetryAt(response, now = Date.now()) {
+  const millis = response.headers.get("retry-after-ms")?.trim();
+  const millisecondReset = /^\d+$/.test(millis || "") ? now + Number(millis) : null;
+  if (millisecondReset > now && Number.isFinite(new Date(millisecondReset).getTime())) return millisecondReset;
+  const standardReset = retryAfterDateMs(response.headers.get("retry-after"), now);
+  return standardReset !== null && Number.isFinite(new Date(standardReset).getTime()) ? standardReset : null;
+}
+
+function parseOpenCodeQuota(response, bodyText) {
+  const now = Date.now();
+  const headerReset = openCodeRetryAt(response, now);
+  let body;
+  try { body = JSON.parse(bodyText); } catch { /* A proxy may return a non-JSON error. */ }
+  const error = body?.error;
+  const info = error?.status === "RESOURCE_EXHAUSTED" && error?.code === response.status && Array.isArray(error.details)
+    ? error.details.slice(0, GOOGLE_QUOTA_RESET_HINTS.maxDetails).find(detail =>
+      detail?.["@type"] === GOOGLE_QUOTA_RESET_HINTS.errorInfoType && detail.domain === "opencode.ai")
+    : null;
+  const subtype = info?.reason ?? error?.type ?? error?.code;
+  const metadata = info?.metadata ?? body?.metadata;
+  const metadataReset = parseQuotaTimestamp(metadata?.resetsAt);
+  const resetsAtMs = headerReset ?? (metadataReset > now ? metadataReset : null);
+
+  if (response.status === 429) {
+    const quota = (code, message) => ({ type: "rate_limit_error", code, message, resetsAtMs });
+    switch (subtype) {
+      case "FreeUsageLimitError":
+        return quota(OPENCODE_QUOTA_CODES.free, OPENCODE_FREE_LIMIT_MESSAGE);
+      case "GoUsageLimitError": {
+        const window = ["5 hour", "weekly", "monthly"].includes(metadata?.limitName) ? `${metadata.limitName.replace(" ", "-")} ` : "";
+        return quota(OPENCODE_QUOTA_CODES.go, `The ${window}plan usage limit was reached. Check your plan usage for the reset time.`);
+      }
+      case "BudgetLimitError":
+        return metadata?.coverage === "models"
+          ? quota(OPENCODE_QUOTA_CODES.modelBudget, "The spend limit for this model was reached. Choose another model or wait for the limit to reset.")
+          : quota(OPENCODE_QUOTA_CODES.workspaceBudget, "The workspace spend limit was reached. Model use can resume after the spend limit resets.");
+    }
+  }
+  if (response.status === 402 && subtype === "CreditLimitExceeded") {
+    return { type: "billing_error", code: "insufficient_credits", message: "The upstream account has insufficient credits.", resetsAtMs };
+  }
+  return headerReset ? { resetsAtMs: headerReset } : null;
+}
 
 function safeDiagnostic(value) {
   return redactClientDiagnostic(value) || undefined;

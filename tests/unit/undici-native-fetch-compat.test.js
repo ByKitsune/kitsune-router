@@ -2,9 +2,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import dns from "node:dns";
 import http from "node:http";
 import net from "node:net";
+import { fetch as undiciFetch } from "undici/index.js";
 
 // Keep DNS validation real; only map its already-approved socket to our fixture.
-vi.mock("undici", async (importOriginal) => {
+vi.mock("undici/index.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -30,6 +31,7 @@ vi.mock("undici", async (importOriginal) => {
 });
 
 const nativeFetch = globalThis.fetch;
+const dispatcherFetch = process.versions.bun ? undiciFetch : nativeFetch;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 let server;
 let privateServer;
@@ -102,9 +104,9 @@ afterAll(async () => {
 });
 
 describe("Undici dispatchers at the Node native fetch boundary", () => {
-  it("keeps the default pooled dispatcher compatible with Node's built-in fetch", async () => {
+  it("passes actual traffic through the default pooled dispatcher", async () => {
     defaultAgent = await getDefaultAgent();
-    const response = await nativeFetch(base, { dispatcher: defaultAgent, signal: AbortSignal.timeout(2000) });
+    const response = await dispatcherFetch(base, { dispatcher: defaultAgent, signal: AbortSignal.timeout(2000) });
     expect(await response.text()).toBe("loopback transport");
   });
 

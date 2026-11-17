@@ -109,10 +109,11 @@ synthetic process/HTTP fixtures, not a claim that a real Windows/macOS tray icon
 was tested in the Linux cloud environment. See the
 [source reconciliation audit](https://github.com/ByKitsune/kitsune-router/blob/master/docs/audit/2026-11-17-upstream-reconciliation.md).
 
-Managed source runtime pins now align SQLite with better-sqlite3 13.2.0 and
-sql.js 1.16.0; systray2 remains 2.1.4. Existing exact-runtime retention, private
-state and migration safeguards remain in effect. These are Unreleased source
-changes, separate from the published 1.0.8 artifact described above.
+The source launcher prefers Bun >=1.4.4 for the gateway when available. A Node
+launcher can use `KITSUNE_ROUTER_RUNTIME=node` to retain Node.js. Bun and Node
+first try `better-sqlite3` 13.2.0. Their built-in SQLite drivers can open the same
+database if the optional module is unavailable. One data directory retains
+settings, credentials and history across runtime changes.
 
 ## Existing installations
 

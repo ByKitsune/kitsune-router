@@ -52,14 +52,15 @@ afterEach(() => {
 });
 
 describe("CLI build server artifacts", () => {
-  it("gates candidate and release tarballs on the packed SQL.js fallback test", () => {
+  it("checks packed SQLite persistence on Bun and with the SQL.js fallback before publication", () => {
     const ci = fs.readFileSync(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8");
     const release = fs.readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
-    const check = "node scripts/verify-cli-sqljs-package.mjs";
-    assert(ci.includes(check));
-    assert(ci.indexOf(check) < ci.indexOf("name: Preserve unpublished candidate and build metadata"));
-    assert(release.includes(check));
-    assert(release.indexOf(check) < release.indexOf("name: Publish exact CLI tarball to npm"));
+    for (const check of ["node scripts/verify-cli-sqljs-package.mjs", "bun --no-env-file scripts/verify-cli-sqljs-package.mjs"]) {
+      assert(ci.includes(check));
+      assert(ci.indexOf(check) < ci.indexOf("name: Preserve unpublished candidate and build metadata"));
+      assert(release.includes(check));
+      assert(release.indexOf(check) < release.indexOf("name: Publish exact CLI tarball to npm"));
+    }
   });
 
   it("completes a trace-pruned sql.js with the matching WebAssembly binary", () => {

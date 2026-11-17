@@ -148,7 +148,7 @@ export class DefaultExecutor extends BaseExecutor {
       }
     }
 
-    if (this.config.format === "gemini") {
+    if ((credentials?.runtimeTransport?.format || this.config.format) === FORMATS.GEMINI) {
       const contents = validateGoogleThoughtSignatures(transformed?.contents, model);
       if (contents !== transformed?.contents) transformed = { ...transformed, contents };
     }
@@ -181,6 +181,11 @@ export class DefaultExecutor extends BaseExecutor {
   buildUrl(model, stream, urlIndex = 0, credentials = null) {
     // Runtime transport (multi-endpoint providers): use the sourceFormat-matched endpoint
     const rt = credentials?.runtimeTransport;
+    const runtimeFormat = rt?.format || this.config.format;
+    if (runtimeFormat === FORMATS.GEMINI) {
+      const baseUrl = rt?.baseUrl || this.config.baseUrl;
+      return `${baseUrl}/${model}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
+    }
     if (rt?.baseUrl) {
       return rt.urlSuffix ? `${rt.baseUrl}${rt.urlSuffix}` : rt.baseUrl;
     }
@@ -194,10 +199,6 @@ export class DefaultExecutor extends BaseExecutor {
       const baseUrl = credentials?.providerSpecificData?.baseUrl || ANTHROPIC_COMPAT_BASE;
       const normalized = baseUrl.replace(/\/$/, "");
       return `${normalized}/messages`;
-    }
-    // gemini-format: build :streamGenerateContent / :generateContent path
-    if (this.config.format === "gemini") {
-      return `${this.config.baseUrl}/${model}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
     }
     // urlSuffix (e.g. ?beta=true) declared per-provider in registry
     if (this.config.urlSuffix) {

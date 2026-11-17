@@ -40,11 +40,11 @@ The code lives in `src/` (Next.js app + dashboard/compat APIs), `open-sse/` (the
 
 Dashboard/gateway (run from repo root):
 
-The source server (`next dev`, source production/standalone) is not the CLI launcher's secret-provisioning path. `JWT_SECRET` must be a strong value of at least 32 characters or dashboard login fails. The initialization below is for a **fresh** source install with POSIX shell/Node.js. On upgrades, retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR`; use `docs/MIGRATION.md` rather than generating replacements. Keep the external `kitsune-router.source.env` private/uncommitted and replace other public example defaults only for a fresh installation.
+The source server (`next dev`, source production/standalone) is not the CLI launcher's secret-provisioning path. `JWT_SECRET` must be a strong value of at least 32 characters or dashboard login fails. The initialization below is for a **fresh** source install with POSIX shell and Bun. On upgrades, retain the effective existing JWT/API/identity secrets and absolute `DATA_DIR`; use `docs/MIGRATION.md` rather than generating replacements. Keep the external `kitsune-router.source.env` private/uncommitted and replace other public example defaults only for a fresh installation.
 ```bash
 # Keep runtime secrets outside the checkout and standalone build.
 kitsune_env="$(dirname "$PWD")/kitsune-router.source.env"
-node --input-type=module - "$kitsune_env" "$PWD/.data" <<'NODE'
+bun - "$kitsune_env" "$PWD/.data" <<'BUN'
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 const values = {
@@ -60,45 +60,34 @@ try {
 } catch (error) {
   if (error.code !== "EEXIST") throw error; // Preserve an existing installation.
 }
-NODE
+BUN
 chmod 600 "$kitsune_env"
-npm ci
-npm run check:deps
-# Parse env as data; keep --env-file out of Next worker NODE_OPTIONS.
-node --env-file="$kitsune_env" -e '
-const result = require("node:child_process").spawnSync(process.execPath,
-  ["node_modules/next/dist/bin/next", "dev", "--port", "20128", "--hostname", "127.0.0.1"],
-  { env: process.env, stdio: "inherit" });
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
-'
-npm run build
-HOSTNAME=127.0.0.1 node --env-file="$kitsune_env" .next/standalone/custom-server.js # production (node)
-npm run build
-bun --env-file="$kitsune_env" ./.next/standalone/custom-server.js       # production (bun runtime; bun:sqlite)
+bun install --frozen-lockfile
+bun run check:deps
+bun --env-file="$kitsune_env" run dev --hostname 127.0.0.1
+bun run build
+HOSTNAME=127.0.0.1 bun --env-file="$kitsune_env" .next/standalone/custom-server.js
 ```
 - All ports are aligned to **20128** (dashboard at `/dashboard`, API at `/v1`). The standalone server reads `PORT` from its process environment and ignores CLI args; load the external env file explicitly and keep `DATA_DIR` ABSOLUTE when running the standalone/bun build (it chdirs into `.next/standalone`; a relative DATA_DIR silently creates a fresh empty DB).
-- Source Next CLI development uses a data-only Node env-file parent and explicit
-  child arguments; do not pass `--env-file` through Next's worker execArgv or
-  source the JSON-quoted file as shell code. Standalone Node startup can use
-  `--env-file` directly.
+- Source development and builds use Bun >=1.4.4. Frozen Bun installs import the committed npm lockfiles. For Node compatibility, use `npm ci` and the `dev:node`, `build:node`, and `start:node` scripts.
 - Lint: `npm run lint -- --max-warnings=0`. The composed runner applies Oxlint's Next.js policies (`.oxlintrc.json`) and ESLint's React/import/accessibility policies (`eslint.config.mjs`). Running ESLint alone does not cover the Next.js rules. Run `npm run lint:policy` after changing either policy or the runner.
 
 CLI package (`cli/`):
 ```bash
-npm run cli:pack       # build + npm pack from root
-cd cli && npm run dev  # node --watch launcher
+bun install --cwd=cli --frozen-lockfile --ignore-scripts
+bun run cli:pack       # Bun build plus npm tarball from root
+cd cli && bun run dev  # Bun watch mode
 ```
 
 Tests (Vitest lives in `tests/`, an **independent** ESM package, also exposed by root `npm test`):
 ```bash
-npm ci                                  # ROOT deps first — tests import from src/ which needs `open`, `undici`, etc.
-cd tests && npm ci                      # then tests' own locked deps → tests/node_modules (allowed by tests/.gitignore)
+bun install --frozen-lockfile              # Install application dependencies first
+cd tests && bun install --frozen-lockfile  # Install the isolated Vitest project
 npx vitest run                          # all tests; auto-discovers tests/vitest.config.js
 npx vitest run unit/capabilities.test.js   # single file (path relative to tests/)
 ```
 > From the repository root, use `npm test` after installing both dependency sets, or `npm --prefix tests test`. The committed Vitest configuration resolves the repository root and `open-sse`/`@/` aliases regardless of the invocation directory. It does not load repository `.env` files (`envDir: false`); supply synthetic configuration or deliberate live-test opt-ins explicitly through the process environment. Do not point test state at a production `DATA_DIR`.
-> Source `prebuild`/`pretest` hooks reject installed direct-dependency drift from the lockfile. `node scripts/check-installed-dependencies.mjs . tests cli gitbook` checks all four installed projects. Restore them with `npm ci`; never lower locked versions to match a stale install. These metadata checks do not replace integrity checks or security audits.
+> Source `prebuild`/`pretest` hooks reject installed direct-dependency drift from the lockfile. `node scripts/check-installed-dependencies.mjs . tests cli gitbook` checks all four installed projects. Restore them with `bun install --frozen-lockfile` or `npm ci` for Node compatibility. Never lower locked versions to match a stale install. These metadata checks do not replace integrity checks or security audits.
 >
 > **Report actual case and suite failures from the current run**, rather than relying on an old expected count. Notes:
 > - `unit/embeddings.cloud.test.js.skip` targets the private `cloud/` worker — rename back to `.test.js` only when that checkout exists.
@@ -135,7 +124,7 @@ Two authoritative docs already exist — read them before working in these areas
 - After changing provider identities, aliases or declared upstream model IDs, run `node scripts/generate-provider-identity.mjs` and verify with `node scripts/generate-provider-identity.mjs --check`. This generates `open-sse/providers/identity.js`, not the registry index.
 
 ### Persistence
-State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a runtime-specific adapter fallback chain (`driver.js`): Bun uses `bun:sqlite`; Node prefers optional `better-sqlite3`, then `node:sqlite` (Node ≥22.5). Pure-JS `sql.js` requires explicit `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive single-process ownership of `DATA_DIR`; mixed writers fail closed. A stale `.sqljs-owner` directory requires operator review after confirming no owner remains. `better-sqlite3` stays optional so installation can succeed without build tools.
+State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with a runtime-specific adapter fallback chain (`driver.js`): The optional N-API `better-sqlite3` driver is preferred on Bun and Node. Built-in fallback is `bun:sqlite` on Bun and `node:sqlite` on Node (≥22.5). Pure-JS `sql.js` requires explicit `KITSUNE_ROUTER_SQLJS_SINGLE_PROCESS=true` and exclusive single-process ownership of `DATA_DIR`; mixed writers fail closed. A stale `.sqljs-owner` directory requires operator review after confirming no owner remains. `better-sqlite3` stays optional so installation can succeed without build tools.
 - `src/lib/localDb.js` is a **backward-compat shim** re-exporting `src/lib/db/index.js`. New code should import from `@/lib/db/index.js`; per-entity logic lives in `src/lib/db/repos/*`. Schema/migrations in `src/lib/db/migrations/`.
 - DB file location resolves via `src/lib/db/paths.js` (`DATA_DIR`, else `~/.kitsune-router/`).
 - Usage/request logs use the same SQLite repository layer and absolute `DATA_DIR`; `usage.json` is a legacy import source, not the active usage database.

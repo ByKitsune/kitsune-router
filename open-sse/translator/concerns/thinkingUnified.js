@@ -8,7 +8,8 @@ import { PROVIDERS } from "../../providers/index.js";
 import { EFFORT_LEVELS, LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel, getThinkingContext, setThinkingContext } from "./thinking.js";
 import { CLAUDE_MIN_THINKING_BUDGET } from "../../config/runtimeConfig.js";
 import { canonicalizeProviderId } from "../../providers/identity.js";
-import { getProviderModels } from "../../config/providerModels.js";
+import { getProviderModels, PROVIDER_ID_TO_ALIAS } from "../../config/providerModels.js";
+import { isGpt62Model } from "../../config/models.js";
 
 // Map a target wire-format to its native thinking format (when capability has none).
 const FORMAT_TO_NATIVE = {
@@ -171,9 +172,10 @@ function unsupportedThinking(param, message) {
 // registry preset, precedence rule or ordinal clamp hide rejected client intent.
 export function validateThinkingParams(provider, model, body, targetFormat = null, requestedModel = null, options = {}) {
   const nativeProvider = canonicalizeProviderId(provider);
-  if (nativeProvider !== "antigravity" && nativeProvider !== "codex") return;
+  const strictGpt62 = (nativeProvider === "openai" || nativeProvider === "opencode-zen") && isGpt62Model(stripThinkingSuffix(model));
+  if (nativeProvider !== "antigravity" && nativeProvider !== "codex" && !strictGpt62) return;
   const context = getThinkingContext(body);
-  const alias = nativeProvider === "codex" ? "cx" : "ag";
+  const alias = PROVIDER_ID_TO_ALIAS[nativeProvider] || nativeProvider;
   const localModel = value => typeof value === "string" && (value.startsWith(`${alias}/`) || value.startsWith(`${nativeProvider}/`))
     ? value.slice(value.indexOf("/") + 1) : value;
   const requested = localModel(requestedModel || context?.requestedModel || model);
@@ -200,7 +202,7 @@ export function validateThinkingParams(provider, model, body, targetFormat = nul
     unsupportedThinking("model", "the thinking suffix is not supported; use a declared effort or remove the suffix.");
   }
 
-  if (nativeProvider === "codex") {
+  if (nativeProvider === "codex" || strictGpt62) {
     const levels = getThinkingLevels(nativeProvider, cleanModel);
     for (const [param, raw] of efforts) {
       const effort = typeof raw === "string" ? raw.trim().toLowerCase() : null;

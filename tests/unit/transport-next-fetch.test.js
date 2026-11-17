@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { setTimeout as delay } from "node:timers/promises";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, Dispatcher1Wrapper } from "undici/index.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { patchFetch } = createRequire(import.meta.url)("next/dist/server/lib/patch-fetch.js");
@@ -94,6 +94,24 @@ describe("Next.js fetch wrapping the process-wide Kitsune Router transport", () 
     expect(await (await transport.proxyAwareFetch(target.url)).text()).toBe("one-hop");
     expect(downstream).not.toHaveBeenCalled();
     expect(transport.getUpstreamPoolStats().requests - before).toBe(1);
+  });
+
+  it("keeps native Request and FormData bodies when the runtime dispatches through the npm client", async () => {
+    const target = await serve(async (req, res) => {
+      const body = [];
+      for await (const chunk of req) body.push(chunk);
+      res.end(JSON.stringify({ payload: Buffer.concat(body).toString(), contentType: req.headers["content-type"] }));
+    });
+    const request = new Request(target.url, { method: "POST", body: "request fixture" });
+    const sentRequest = await transport.proxyAwareFetch(request);
+    expect((await sentRequest.json()).payload).toBe("request fixture");
+
+    const form = new FormData();
+    form.set("field", "form fixture");
+    const sentForm = await transport.proxyAwareFetch(target.url, { method: "POST", body: form });
+    const parsed = await sentForm.json();
+    expect(parsed.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(parsed.payload).toContain('name="field"\r\n\r\nform fixture');
   });
 
   it("preserves POST body and headers inside an actual Next request work store", async () => {

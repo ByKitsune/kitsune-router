@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeSqliteAdapter } from "@/lib/db/adapters/nodeSqliteAdapter.js";
 import { createBetterSqliteAdapter } from "@/lib/db/adapters/betterSqliteAdapter.js";
+import { createBunSqliteAdapter } from "@/lib/db/adapters/bunSqliteAdapter.js";
 import { createSqlJsAdapter } from "@/lib/db/adapters/sqljsAdapter.js";
 
 const fixtures = [];
@@ -32,6 +33,7 @@ describe.each([
   ["node:sqlite", createNodeSqliteAdapter],
   ["better-sqlite3", createBetterSqliteAdapter],
   ["sql.js", createSqlJsAdapter],
+  ...(process.versions.bun ? [["bun:sqlite", createBunSqliteAdapter]] : []),
 ])("%s synchronous transaction contract", (_name, factory) => {
   it("rolls back writes when a transaction callback returns a promise", async () => {
     const adapter = await open(factory);

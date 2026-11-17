@@ -33,7 +33,7 @@ describe("vendor billing provenance in the public dashboard catalog", () => {
       ["kimi", "k3", "subscription-unknown"],
       ["xiaomi-mimo", "mimo-v2.6-pro", "quote-verified"],
       ["xiaomi-tokenplan", "mimo-v2.6-pro", "subscription-unknown"],
-      ["cohere", "command-a-plus-05-2026", "unpublished"],
+      ["cohere", "command-a-plus-05-2026", "quote-verified", "2026-11-17"],
       ["qianfan", "ernie-5.1", "quote-verified"],
       ["mistral", "mistral-large-latest", "quote-verified"],
       ["ps", "poolside/laguna-s-2.1", "unpublished"],
@@ -42,10 +42,10 @@ describe("vendor billing provenance in the public dashboard catalog", () => {
       ["ark", "DeepSeek-V4-Pro", "subscription-unknown"],
       ["bpm", "seed-2-0-pro-260328", "subscription-unknown"],
     ];
-    for (const [provider, model, status] of cases) {
+    for (const [provider, model, status, reviewedAt = "2026-10-21"] of cases) {
       const row = models.find(item => item.model === model && (item.provider === provider || item.routedModel === `${provider}/${model}`));
       expect(row, `${provider}/${model} must retain billing provenance`).toBeDefined();
-      expect(row.metadata.billing).toMatchObject({ quoteStatus: status, reviewedAt: "2026-10-21", authenticatedRouteVerified: false });
+      expect(row.metadata.billing).toMatchObject({ quoteStatus: status, reviewedAt, authenticatedRouteVerified: false });
     }
   });
 

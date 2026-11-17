@@ -4,24 +4,27 @@
   "description": "Kitsune Router dashboard and provider-neutral AI gateway. Your models. Your routes.",
   "private": true,
   "allowScripts": {
-    "better-sqlite3@13.2.0": true
+    "better-sqlite3@13.2.0": false
   },
   "scripts": {
-    "dev": "next dev --port 20128",
-    "dev:webpack": "next dev --webpack --port 20128",
-    "check:deps": "node scripts/check-installed-dependencies.mjs",
+    "dev": "bun --bun next dev --webpack --port 20128",
+    "dev:webpack": "bun run dev",
+    "dev:node": "node node_modules/next/dist/bin/next dev --port 20128",
+    "check:deps": "bun scripts/check-installed-dependencies.mjs",
     "check:brand": "node scripts/rebrand-identity.mjs",
-    "prebuild": "node scripts/check-installed-dependencies.mjs",
-    "build": "next build --webpack",
-    "postbuild": "node scripts/copy-standalone-assets.mjs",
-    "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
-    "start": "node custom-server.js --port 20128",
-    "dev:bun": "bun --bun next dev --webpack --port 20128",
-    "prebuild:bun": "node scripts/check-installed-dependencies.mjs",
-    "build:bun": "bun --bun next build --webpack",
-    "start:bun": "bun ./.next/standalone/custom-server.js",
-    "cli:pack": "npm --prefix cli run pack:cli",
-    "cli:publish": "npm --prefix cli run publish:cli",
+    "prebuild": "bun scripts/check-installed-dependencies.mjs",
+    "build": "bun --bun next build --webpack",
+    "postbuild": "bun scripts/copy-standalone-assets.mjs",
+    "start": "bun --no-env-file custom-server.js --port 20128",
+    "dev:bun": "bun run dev",
+    "build:bun": "bun run build",
+    "start:bun": "bun --no-env-file ./.next/standalone/custom-server.js",
+    "prebuild:node": "node scripts/check-installed-dependencies.mjs",
+    "build:node": "node node_modules/next/dist/bin/next build --webpack",
+    "postbuild:node": "node scripts/copy-standalone-assets.mjs",
+    "start:node": "node custom-server.js --port 20128",
+    "cli:pack": "cd cli && bun run pack:cli",
+    "cli:publish": "cd cli && bun run publish:cli",
     "pretest": "node scripts/check-installed-dependencies.mjs . tests",
     "test": "node tests/node_modules/vitest/vitest.mjs run --config tests/vitest.config.js",
     "test:compat": "node --test tests/unit/*.test.cjs",
@@ -113,6 +116,7 @@
     "url": "https://github.com/ByKitsune/kitsune-router.git"
   },
   "engines": {
+    "bun": ">=1.4.4",
     "node": ">=22.19.0"
   }
 }

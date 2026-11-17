@@ -326,7 +326,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   });
 
   it("uses working Bun with --skip-deps instead of falling back to unsupported npm", () => {
-    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0", args: ["--skip-deps"] });
+    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.4.4", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
     expect(result.calls).toContain("CALL bun add -g @bykitsune/router");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
@@ -350,11 +350,20 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
     expect(result.stdout).not.toMatch(/successfully installed|installation completed|Get Started/);
   });
 
-  it("retains Bun selection when automatic Node provisioning fails in the default flow", () => {
-    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0" });
+  it("prefers supported Bun when Node is also available", () => {
+    const result = runInstaller({ bun: "1.4.4" });
     expect(result.status).toBe(0);
     expect(result.calls).toContain("CALL bun add -g @bykitsune/router");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
+  });
+
+  it("honors explicit Node installation and ignores outdated Bun", () => {
+    for (const installation of [{ bun: "1.4.4", args: ["--runtime", "node"] }, { bun: "1.4.3", args: ["--skip-deps"] }]) {
+      const result = runInstaller(installation);
+      expect(result.status).toBe(0);
+      expect(result.calls).toContain("CALL npm:system node:/mock/system/bin/node install -g @bykitsune/router --silent");
+      expect(result.calls).not.toContain("CALL bun add -g @bykitsune/router");
+    }
   });
 
   it("retains the selected system Node/npm pair throughout source fallback", () => {
@@ -432,7 +441,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
 
   it("fails a Bun-only source install without trying unsupported npm or claiming completion", () => {
     const result = runInstaller({
-      systemNode: "v22.18.0", bun: "1.3.0", bunInstallWorks: false, args: ["--skip-deps"],
+      systemNode: "v22.18.0", bun: "1.4.4", bunInstallWorks: false, args: ["--skip-deps"],
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
@@ -460,7 +469,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   });
 
   it("verifies the Bun global user launcher directly against its installed package", () => {
-    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", staleCliDir: "/mock/home/.bun/bin", args: ["--skip-deps"] });
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.4.4", staleCliDir: "/mock/home/.bun/bin", args: ["--skip-deps"] });
     expect(result.status).toBe(0);
     expect(result.calls).toContain("CALL launcher /mock/global/node_modules/@bykitsune/router/cli.js /mock/links/kitsune-router");
     expect(result.calls).toContain("CALL launcher-bun /mock/global/node_modules/@bykitsune/router/cli.js --version");
@@ -509,7 +518,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
   });
 
   it("does not select an unusable Bun executable", () => {
-    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.3.0", bunWorks: false, args: ["--skip-deps"] });
+    const result = runInstaller({ systemNode: "v22.18.0", bun: "1.4.4", bunWorks: false, args: ["--skip-deps"] });
     expect(result.status).toBe(1);
     expect(result.calls).toEqual([]);
   });
@@ -542,11 +551,11 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
 
   it("keeps Bun throughout a successful source fallback", () => {
     const result = runInstaller({
-      systemNode: "v22.18.0", bun: "1.3.0", args: ["--skip-deps"],
+      systemNode: "v22.18.0", bun: "1.4.4", args: ["--skip-deps"],
       action: "install_via_npm() { return 1; }; main",
     });
     expect(result.status).toBe(0);
-    expect(result.calls).toContain("CALL bun install");
+    expect(result.calls).toContain("CALL bun install --frozen-lockfile");
     expect(result.calls).toContain("CALL bun --bun run build --silent");
     expect(result.calls.some((call) => call.startsWith("CALL npm:"))).toBe(false);
     expect(result.calls).toContain("CALL launcher-bun /mock/home/.kitsune-router/app/cli/cli.js --check-install");
@@ -600,7 +609,7 @@ describe.skipIf(!bashPath)("installer runtime selection (mock-only)", () => {
 
 describe.skipIf(!bashPath)("installer launcher regressions", () => {
   it("reinstalls Bun global launchers using the package rather than the previous shell wrapper", () => {
-    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", args: ["--skip-deps"], action: "resolve_install_layout; check_node; install_via_npm; verify_install; install_via_npm; verify_install" });
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.4.4", args: ["--skip-deps"], action: "resolve_install_layout; check_runtime; install_via_npm; verify_install; install_via_npm; verify_install" });
     expect(result.status).toBe(0);
     expect(result.calls.filter(call => call === "CALL launcher /mock/global/node_modules/@bykitsune/router/cli.js /mock/global/bin/kitsune-router")).toHaveLength(2);
     expect(result.calls.filter(call => call === "CALL launcher-bun /mock/global/node_modules/@bykitsune/router/cli.js --version")).toHaveLength(2);
@@ -608,7 +617,7 @@ describe.skipIf(!bashPath)("installer launcher regressions", () => {
   });
 
   it("recovers a missing Bun source launcher and checks the source runtime directly", () => {
-    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", cliInLinks: false,
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.4.4", cliInLinks: false,
       action: 'resolve_install_layout; RUNTIME=bun; BUN_CMD=/mock/home/.bun/bin/bun; MOCK_SOURCE_READY=true; verify_install' });
     expect(result.status).toBe(0);
     expect(result.calls).toContain("CALL launcher-bun /mock/home/.kitsune-router/app/cli/cli.js --version");
@@ -641,19 +650,27 @@ describe.skipIf(!bashPath)("installer launcher regressions", () => {
       const result = spawnSync(bashPath, ["--noprofile", "--norc", "-s"], { input: `set -e\n${configuration}\n${functions}\nBUN_CMD=${quote(runtime)}\nchmod +x "$BUN_CMD"\nln -s ${quote(target)} ${quote(launcher)}\ncreate_bun_launcher ${quote(target)} ${quote(launcher)}\nPATH=/nonexistent ${quote(launcher)} --port 20128 'argument with spaces' "" "apostrophe's"`, encoding: "utf8", timeout: 5000 });
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(23);
-      expect(result.stdout).toBe(`<${target}>\n<--port>\n<20128>\n<argument with spaces>\n<>\n<apostrophe's>\n`);
+      expect(result.stdout).toBe(`<--no-env-file>\n<${target}>\n<--port>\n<20128>\n<argument with spaces>\n<>\n<apostrophe's>\n`);
       expect(readFileSync(`${directory}/cli's.js`, "utf8")).toBe("original JS bytes\n");
     } finally { rmSync(directory, { recursive: true, force: true }); }
   });
 
   it.each([false, true])("rejects failed Bun direct verification, source=%s", source => {
-    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.3.0", cliWorks: false, args: ["--skip-deps"], action: source ? "install_via_npm() { return 1; }; main" : "main" });
+    const result = runInstaller({ systemNode: "", systemNpm: false, bun: "1.4.4", cliWorks: false, args: ["--skip-deps"], action: source ? "install_via_npm() { return 1; }; main" : "main" });
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toMatch(/successfully installed|Get Started/);
   });
 });
 
 describe("CLI minimum engine alignment", () => {
+  it("matches the source Bun engine and its lock metadata to the installer", () => {
+    const minimum = installer.match(/^MIN_BUN_VERSION=(\d+\.\d+\.\d+)$/m)[1];
+    const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+    const lock = JSON.parse(readFileSync(new URL("../../package-lock.json", import.meta.url), "utf8"));
+    expect(pkg.engines.bun).toBe(`>=${minimum}`);
+    expect(lock.packages[""].engines.bun).toBe(pkg.engines.bun);
+  });
+
   it("matches the published CLI and its lock metadata to the exact installer minimum", () => {
     const minimum = ["MAJOR", "MINOR", "PATCH"].map((part) => installer.match(new RegExp(`^MIN_NODE_${part}=(\\d+)$`, "m"))[1]).join(".");
     const pkg = JSON.parse(readFileSync(new URL("../../cli/package.json", import.meta.url), "utf8"));

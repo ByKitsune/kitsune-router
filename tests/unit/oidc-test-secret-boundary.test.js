@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const fixture = vi.hoisted(() => ({ settings: {}, requests: [], networkFetch: vi.fn() }));
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => fixture.settings }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
-vi.mock("undici", async (importOriginal) => ({ ...await importOriginal(), fetch: fixture.networkFetch }));
+vi.mock("undici/index.js", async (importOriginal) => ({ ...await importOriginal(), fetch: fixture.networkFetch }));
 
 import { POST } from "../../src/app/api/auth/oidc/test/route.js";
 import { exchangeOidcCode, verifyOidcIdToken } from "../../src/lib/auth/oidc.js";

@@ -18,7 +18,7 @@ const io = vi.hoisted(() => {
   return state;
 });
 
-vi.mock("undici", async original => ({
+vi.mock("undici/index.js", async original => ({
   ...await original(), fetch: (...args) => io.pinnedFetch(...args),
 }));
 vi.mock("node:dns", async original => {

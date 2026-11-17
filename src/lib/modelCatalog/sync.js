@@ -215,6 +215,15 @@ async function runSync(signal) {
       state.etag = etag;
       state.fileVersion = CATALOG_VERSION;
       invalidateCatalog();
+      let pricingRecovery;
+      try {
+        signal.throwIfAborted();
+        const { recoverUnpricedUsage } = await import("@/lib/db/repos/usageRepo.js");
+        pricingRecovery = await recoverUnpricedUsage(signal);
+      } catch (error) {
+        pricingRecovery = { error: error?.message || String(error) };
+        console.warn(`[modelCatalog] pricing recovery failed: ${pricingRecovery.error}`);
+      }
       result = {
         status: "updated",
         etag,
@@ -222,6 +231,7 @@ async function runSync(signal) {
         models: Object.keys(models).length,
         providers: Object.keys(providers).length,
         pricingReferences: Object.values(pricing.references).reduce((count, rows) => count + Object.keys(rows).length, 0),
+        pricingRecovery,
       };
       console.log(`[modelCatalog] ${result.models} models, ${result.providers} providers, ${(result.bytes / 1024).toFixed(1)}KB`);
     }

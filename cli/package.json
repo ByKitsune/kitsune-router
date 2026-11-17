@@ -17,13 +17,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "node --watch cli.js",
-    "prebuild": "node ../scripts/check-installed-dependencies.mjs",
-    "build": "node scripts/build-cli.js",
-    "pack:cli": "npm run build && npm pack --pack-destination ..",
-    "publish:cli": "npm run build && npm publish",
+    "dev": "bun --watch cli.js",
+    "prebuild": "bun ../scripts/check-installed-dependencies.mjs",
+    "build": "bun scripts/build-cli.js",
+    "pack:cli": "bun run build && npm pack --pack-destination ..",
+    "publish:cli": "bun run build && npm publish --ignore-scripts",
     "postinstall": "node hooks/postinstall.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "enquirer": "^2.4.1",
@@ -31,7 +31,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
-  "comment_sqlite": "sql.js + better-sqlite3 are installed into the resolved DATA_DIR/runtime by hooks/postinstall.js. Legacy state is migrated before setup.",
+  "comment_sqlite": "The launcher installs optional better-sqlite3 into the resolved DATA_DIR/runtime. Bundled sql.js and each runtime's built-in SQLite are fallbacks. Legacy state is migrated before setup.",
   "comment_systray": "systray2 is NOT bundled here. It is lazy-installed into runtime directories by hooks/postinstall.js.",
   "engines": {
     "node": ">=22.19.0"

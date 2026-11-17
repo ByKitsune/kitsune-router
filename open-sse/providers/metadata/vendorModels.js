@@ -28,7 +28,7 @@ function reviewed(rows, common) {
     const pricing = { ...unknownUsd, ...row.pricing };
     if (row.pricing?.reasoning === undefined) pricing.reasoning = pricing.output;
     const billing = {
-      ...common.billing, ...row.billing, reviewedAt: asOf,
+      ...common.billing, reviewedAt: asOf, ...row.billing,
       authenticatedRouteVerified: false,
       unverifiedPriceFields: Object.keys(unknownUsd).filter(key => pricing[key] === null),
     };
@@ -160,6 +160,14 @@ const mimoPlanNote = "MiMo Token Plan uses Credits, not PAYG USD invoices; ordin
 const cohereModels = "https://docs.cohere.com/docs/models.md";
 const cohereCompatibility = "https://docs.cohere.com/docs/compatibility-api.md";
 const cohereUnpublished = "Public model docs distinguish rate-limited evaluation access from paid production/Model Vault. No production per-token USD quote is published for this model; free evaluation is not unlimited free production, and per-instance Vault prices are not token rates. Compatibility API uses /compatibility/v1/chat/completions. Context/output follow the explicit model table's decimal-k convention.";
+const coherePricingObservedAt = "2026-11-17T21:34:35.477Z";
+const cohereFreeApiQuote = {
+  pricing: Object.fromEntries(Object.keys(unknownUsd).map(field => [field, 0])),
+  billing: {
+    reviewedAt: "2026-11-17", effectiveFrom: coherePricingObservedAt, kind: "public-api-free-quota", quoteStatus: "quote-verified",
+    note: "Shared Cohere API evaluation is free on trial and production keys until the rate limit is reached. Dedicated Model Vault instances use separate billing.",
+  },
+};
 const baiduModels = "https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j";
 const baiduBilling = "https://cloud.baidu.com/doc/qianfan/s/wmh4sv6ya";
 const baiduNote = "Qianfan native hosted route, CNY per 1000 tokens. No FX conversion or direct-vendor USD fallback. Native max_tokens ranges take precedence over conflicting overview k notation. Independent input/context k/M notation is not silently converted from another host. Native price facts are billing.nativeQuote only; the USD calculator remains explicitly unknown. Search enhancement and other tools are separately billed.";
@@ -341,24 +349,29 @@ export default {
   cohere: reviewed({
     "command-a-03-2025": {
       capabilities: caps(256000, 8000, { reasoning: false, tools: true }),
-      sources: ["https://docs.cohere.com/docs/command-a.md"],
-      billing: { note: "Current captured Command A model page proves model capabilities but publishes no token prices. Search summaries suggesting USD2.50/USD10 are not a captured primary quote. Trial-key quotas are not a universal free price; native production input/output/cache remain explicitly unknown." },
+      pricing: { input: 2.5, output: 10 },
+      sources: ["https://docs.cohere.com/docs/command-a", "https://cohere.com/blog/command-a"],
+      billing: { reviewedAt: "2026-11-17", effectiveFrom: "2025-03-14T00:00:00Z", quoteStatus: "quote-verified", kind: "payg", note: "The March 13, 2025 launch and current model docs publish the same USD input/output token rates. No cache tariff published." },
     },
-    "command-a-reasoning-08-2025": { capabilities: caps(256000, 32000, { reasoning: true, tools: true }) },
-    "command-a-vision-07-2025": { capabilities: caps(128000, 8000, { vision: true, reasoning: false, tools: false }) },
-    "command-a-translate-08-2025": { capabilities: caps(8000, 8000, { reasoning: false, tools: true }) },
-    "command-a-plus-05-2026": { capabilities: caps(128000, 64000, { vision: true, reasoning: true, tools: true, structuredOutput: true }), sources: ["https://docs.cohere.com/docs/command-a-plus.md"] },
+    "command-a-reasoning-08-2025": { ...cohereFreeApiQuote, capabilities: caps(256000, 32000, { reasoning: true, tools: true }), sources: ["https://docs.cohere.com/docs/command-a-reasoning"] },
+    "command-a-vision-07-2025": { ...cohereFreeApiQuote, capabilities: caps(128000, 8000, { vision: true, reasoning: false, tools: false }), sources: ["https://docs.cohere.com/docs/command-a-vision"] },
+    "command-a-translate-08-2025": { ...cohereFreeApiQuote, capabilities: caps(8000, 8000, { reasoning: false, tools: true }), sources: ["https://docs.cohere.com/docs/command-a-translate"] },
+    "command-a-plus-05-2026": { ...cohereFreeApiQuote, capabilities: caps(128000, 64000, { vision: true, reasoning: true, tools: true, structuredOutput: true }), sources: ["https://docs.cohere.com/docs/command-a-plus"] },
     "command-r-plus-08-2024": {
       capabilities: caps(128000, 4000, { reasoning: false, tools: true }), pricing: { input: 2.5, output: 10 },
       sources: ["https://cohere.com/pricing"], billing: { quoteStatus: "quote-verified", kind: "payg", note: "Cohere's pricing FAQ explicitly quotes existing-customer Command R+08-2024 USD2.50 input/USD10 output per1M. No cache tariff verified; do not apply04-2024 pricing." },
     },
     "command-r-08-2024": {
       capabilities: caps(128000, 4000, { reasoning: false, tools: true }),
-      sources: ["https://docs.cohere.com/v2/docs/command-r.md"], billing: { note: "Current captured Command R model page proves the08-2024 exact ID and128000 context, but no current token tariff. Do not borrow the03-2024 legacy FAQ price or treat search summaries as primary billing evidence." },
+      pricing: { input: 0.15, output: 0.6 },
+      sources: ["https://docs.cohere.com/docs/command-r"],
+      billing: { reviewedAt: "2026-11-17", effectiveFrom: coherePricingObservedAt, quoteStatus: "quote-verified", kind: "payg", note: "Current pricing applies to the August 2024 model. No cache tariff published." },
     },
     "command-r7b-12-2024": {
       capabilities: caps(128000, 4000, { reasoning: false, tools: true }),
-      sources: ["https://docs.cohere.com/docs/command-r7b.md"], billing: { note: "Current captured Command R7B page proves exact ID/capabilities but publishes no current token tariff. No0.0375/0.15 search-summary or catalog rate is promoted to verified production pricing." },
+      pricing: { input: 0.0375, output: 0.15 },
+      sources: ["https://docs.cohere.com/v2/docs/command-r7b"],
+      billing: { reviewedAt: "2026-11-17", effectiveFrom: coherePricingObservedAt, quoteStatus: "quote-verified", kind: "payg", note: "The model documentation and current Cohere price list publish the same input and output rates. No cache tariff published." },
     },
   }, {
     catalogProvider: "cohere", sources: [cohereModels, cohereCompatibility, "https://cohere.com/pricing", catalogSource],

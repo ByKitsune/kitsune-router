@@ -9,7 +9,7 @@
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const { getRuntimeDir, getRuntimeNodeModules, retainRuntimeDependency, runNpmInstall, summarizeNpmError } = require("./sqliteRuntime");
+const { getRuntimeDir, getRuntimeNodeModules, retainRuntimeDependency, runRuntimeInstall, summarizeNpmError } = require("./sqliteRuntime");
 
 const SYSTRAY_PKG = "systray2";
 const SYSTRAY_VERSION = "2.1.4";
@@ -73,15 +73,16 @@ function ensureRuntimeDir() {
   return dir;
 }
 
-function npmInstall(pkgs, { silent = false } = {}) {
+function installTrayDependencies(pkgs, { silent = false } = {}) {
   const cwd = ensureRuntimeDir();
   if (!silent) console.log("⏳ Installing system tray (first run)...");
-  const res = runNpmInstall({ cwd, pkgs, extraArgs: ["--save-optional", "--save-exact"], timeout: 120000 });
+  const res = runRuntimeInstall({ cwd, pkgs, extraArgs: ["--save-optional", "--save-exact"], timeout: 120000 });
   if (!res.ok && !silent) {
     const reason = summarizeNpmError(res.stderr);
     console.warn("⚠️  System tray install failed — tray disabled");
     console.warn(`   Reason: ${reason}`);
-    console.warn(`   Retry:  cd "${cwd}" && npm install ${pkgs.join(" ")}`);
+    const repair = process.versions.bun ? "bun install --production --ignore-scripts" : `npm install ${pkgs.join(" ")}`;
+    console.warn(`   Retry:  cd "${cwd}" && ${repair}`);
   }
   return res.ok;
 }
@@ -102,7 +103,7 @@ function ensureTrayRuntime({ silent = false } = {}) {
     if (!silent) console.log("✅ System tray ready");
     return { systray: true };
   }
-  const ok = npmInstall([`${SYSTRAY_PKG}@${SYSTRAY_VERSION}`], { silent });
+  const ok = installTrayDependencies([`${SYSTRAY_PKG}@${SYSTRAY_VERSION}`], { silent });
   if (ok) chmodSystrayBin({ silent });
   const systray = ok && hasSystray();
   if (ok && !systray && !silent) console.warn("⚠️  System tray unavailable — tray disabled");

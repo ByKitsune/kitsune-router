@@ -35,6 +35,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24.19.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
 
       - name: Validate release tag and source
         id: version
@@ -55,8 +58,8 @@ jobs:
 
       - name: Install locked test and application dependencies
         run: |
-          npm ci
-          npm --prefix tests ci
+          bun install --frozen-lockfile
+          bun install --cwd=tests --frozen-lockfile
 
       - name: Install Chromium for isolated browser checks
         run: node node_modules/playwright/cli.js install --with-deps chromium

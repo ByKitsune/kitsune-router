@@ -9,6 +9,7 @@ import oauthModels from "./oauthModels.js";
 import codebuddyModels from "./codebuddyModels.js";
 import opencodeRefreshModels from "./opencodeRefreshModels.js";
 import loginCatalogRefreshModels from "./loginCatalogRefreshModels.js";
+import { applyOpenCodeCatalog } from "./opencodeCatalog.js";
 import { canonicalizeProviderId, getDeclaredUpstreamModelId } from "../identity.js";
 import { applyExactCatalogCapabilities, getCapabilityVerification, getPublicCapabilityCatalogReference } from "./modelsDevCapabilityResolution.js";
 
@@ -22,6 +23,8 @@ for (const shard of [vendorModels, coreModels, gatewayModels, mediaModels, antig
     }
   }
 }
+
+applyOpenCodeCatalog(REVIEWED_MODEL_METADATA);
 
 // A later tariff review may add pricing URLs to `sources` without revisiting
 // the capability facts. Refresh records explicitly tagged as catalog imports

@@ -19,6 +19,15 @@ describe("suggested models filters", () => {
     expect(ids).not.toContain("other-paid-model");
   });
 
+  it("requires explicit zero input and output in the detailed OpenCode listing", () => {
+    const chat = (id, price) => ({
+      id, type: "chat", cost: { text: { input: { price }, output: { price } } },
+      api: { "chat-completions": { base_url: "https://opencode.ai/inference/openai/v1" } },
+    });
+    const result = FILTERS["opencode-free"]([chat("verified-zero", 0), chat("priced-free", 1), { id: "ambiguous-free" }]);
+    expect(result.map(row => row.id)).toEqual(["verified-zero"]);
+  });
+
   it("filters openrouter-free models with zero prompt and completion pricing", () => {
     const raw = [
       { id: "free-model-1", name: "Free 1", pricing: { prompt: "0", completion: "0" }, context_length: 250000 },

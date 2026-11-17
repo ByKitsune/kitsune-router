@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { fetch as directFetch } from "undici";
+import { fetch as directFetch } from "undici/index.js";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ credentials: null, health: [], selections: 0, pool: null, poolCalls: 0 }));

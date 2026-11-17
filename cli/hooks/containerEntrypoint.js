@@ -1,5 +1,5 @@
 // Preload the same per-key resolver used by the CLI before custom-server.js
-// imports application modules. Docker execs this Node process after su-exec;
+// imports application modules. Docker execs the server process after su-exec;
 // there is no wrapper child, inherited NODE_OPTIONS hook or secret in argv.
 const { ensureRuntimeSecrets } = require("./runtimeSecrets");
 

@@ -14,7 +14,7 @@ export function parseDataUri(url) {
 
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { Agent, fetch as undiciFetch } from "undici";
+import { Agent, fetch as undiciFetch } from "undici/index.js";
 import { MAX_IMAGE_BYTES, FETCH_TIMEOUT_MS, IMAGE_SIGNATURES, BLOCKED_HOSTS, BLOCKED_IMAGE_IPV4_RANGES, BLOCKED_IMAGE_IPV6_RANGES, IMAGE_EMBEDDED_IPV4_PREFIXES } from "../../config/mediaConfig.js";
 
 const ipv4Number = (ip) => ip.split(".").reduce((value, octet) => (value << 8n) | BigInt(octet), 0n);

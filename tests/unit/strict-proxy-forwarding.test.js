@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
-import { fetch as nativeFetch } from "undici";
+import { fetch as nativeFetch } from "undici/index.js";
 import * as models from "../../src/models/index.js";
 import { resolveConnectionProxyConfig } from "../../src/lib/network/connectionProxy.js";
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";

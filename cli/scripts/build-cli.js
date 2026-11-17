@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execFileSync, execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
@@ -218,8 +218,11 @@ async function buildCliPackage() {
   // Step 1: Build app with Next.js (workspace tracing root → traced node_modules in standalone).
   console.log("1️⃣  Building Next.js app...");
   try {
-    execSync("npm run build", {
+    const build = process.versions.bun ? "build" : "build:node";
+    const command = process.versions.bun ? process.execPath : process.platform === "win32" ? "npm.cmd" : "npm";
+    execFileSync(command, ["run", build], {
       stdio: "inherit",
+      shell: !process.versions.bun && process.platform === "win32",
       cwd: appDir,
       env: {
         ...process.env,
@@ -358,7 +361,7 @@ async function buildCliPackage() {
   // Step 8: Build MITM server (config driven - see app/cli/scripts/buildMitm.js)
   console.log("8️⃣  Building MITM server...");
   try {
-    execSync("node scripts/buildMitm.js", { stdio: "inherit", cwd: cliDir });
+    execFileSync(process.execPath, [path.join(cliDir, "scripts", "buildMitm.js")], { stdio: "inherit", cwd: cliDir });
     console.log("✅ MITM server build completed\n");
   } catch (error) {
     console.error("❌ MITM build failed");

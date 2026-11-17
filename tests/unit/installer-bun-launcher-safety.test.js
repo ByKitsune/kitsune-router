@@ -35,7 +35,9 @@ if [ "$1 $2" = 'add -g' ]; then
   ln -sf ${quote(target)} ${quote(path.join(bin, "kitsune-router"))}
   exit 0
 fi
-if [ "$1" = ${quote(target)} ]; then printf 'fixture-version\\n'; exit 0; fi
+if [ "$1" = --no-env-file ] && [ "$2" = ${quote(target)} ] && [ "$3" = --version ]; then
+  printf 'fixture-version\\n'; exit 0
+fi
 exit 99
 `);
   fs.chmodSync(runtime, 0o755);

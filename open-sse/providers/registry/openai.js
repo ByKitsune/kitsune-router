@@ -40,6 +40,9 @@ export default {
     // excluded from new advertisements even before their shutdown date.
     // https://developers.openai.com/api/docs/models/gpt-6.1-sol.md
     { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    // Tool calling for the GPT-6.2 API models requires Responses.
+    { id: "gpt-6.2-sol", name: "GPT-6.2 Sol", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    { id: "gpt-6.2-astra", name: "GPT-6.2 Astra", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     // Chat Completions is supported upstream, but tool calling requires Responses.
     // Route all client formats through Responses until routing can depend on the request body.
     { id: "gpt-6.1-terra", name: "GPT-6.1 Terra", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },

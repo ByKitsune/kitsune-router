@@ -1,4 +1,4 @@
-// Bun runtime adapter — uses built-in bun:sqlite (native, fastest under Bun).
+// Bun runtime adapter backed by the built-in SQLite driver.
 // Loaded only when process.versions.bun is present.
 import { PRAGMA_SQL } from "../schema.js";
 import { registerAdapterShutdown } from "../helpers/adapterLifecycle.js";
@@ -43,7 +43,13 @@ export async function createBunSqliteAdapter(filePath) {
     },
     exec(sql) { return db.exec(sql); },
     transaction(fn) {
-      return db.transaction(fn).immediate();
+      return db.transaction(() => {
+        const result = fn();
+        if (result && typeof result.then === "function") {
+          throw new TypeError("Transaction function cannot return a promise");
+        }
+        return result;
+      }).immediate();
     },
     checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
     close() {

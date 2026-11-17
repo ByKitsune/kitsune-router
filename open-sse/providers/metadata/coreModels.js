@@ -10,6 +10,29 @@
  * Most Gemini pages publish input allowances; Argon documents a unified window.
  */
 
+import { OPENAI_GPT_62_TOKEN_PRICING_SOURCE, OPENAI_STANDARD_TOKEN_PRICING } from "../../config/processingSpeedPricing.js";
+
+const gpt62Efforts = ["low", "medium", "high", "xhigh", "max"];
+const gpt62ReasoningModes = ["standard", "pro"];
+const gpt62Modalities = { input: ["text", "image"], output: ["text"] };
+const gpt62Capabilities = {
+  contextWindow: 1050000, maxInput: 922000, maxOutput: 128000,
+  vision: true, pdf: true, audioInput: false, videoInput: false,
+  imageOutput: false, audioOutput: false, tools: true, search: true,
+  reasoning: true, structuredOutput: true, temperature: false,
+  thinkingFormat: "openai", thinkingCanDisable: false,
+  thinkingEffortSupported: true, thinkingEfforts: gpt62Efforts,
+};
+const gpt62Models = {
+  "gpt-6.2-sol": { knowledgeCutoff: "2026-06-01", cliDefaultContext: 500000, credits: { input: 50, cached: 2.5, output: 250 } },
+  "gpt-6.2-astra": { knowledgeCutoff: "2026-05-18", cliDefaultContext: 272000, credits: { input: 200, cached: 10, output: 1000 } },
+};
+const gpt62CodexCatalog = {
+  url: "https://raw.githubusercontent.com/openai/codex/8fca6ffb92a602875a0b97e3e535eb48375bdd8c/codex-rs/models-manager/models.json",
+  sha256: "d50b6749506d97e5f334dbabcb666eb1689f423cf3e88cfabdcf3c536b873068",
+};
+const gpt62CodexRateCard = "https://help.openai.com/en/articles/11481834-chatgpt-rate-card-business-enterpriseedu-credit-based-pricing";
+
 const openai = {
   "gpt-5.5-pro": {
     "sources": [
@@ -3451,6 +3474,30 @@ openai["gpt-6.1-terra"] = {
   },
 };
 
+for (const [id, { knowledgeCutoff }] of Object.entries(gpt62Models)) {
+  openai[id] = {
+    knowledgeCutoff,
+    modalities: gpt62Modalities,
+    sources: [
+      `https://developers.openai.com/api/docs/models/${id}`,
+      "https://developers.openai.com/api/docs/guides/latest-model",
+      "https://developers.openai.com/api/docs/guides/reasoning#reasoning-mode",
+      "https://developers.openai.com/api/docs/pricing",
+    ],
+    capabilities: { ...gpt62Capabilities, reasoningModes: gpt62ReasoningModes },
+    pricing: OPENAI_STANDARD_TOKEN_PRICING[id],
+    provenance: { pricing: OPENAI_GPT_62_TOKEN_PRICING_SOURCE },
+    billing: { kind: "api", currency: "USD", unit: "1M tokens", note: "Published Standard API rates, with the long-context rates applied to the full request above 272,000 input tokens." },
+    limits: {
+      scope: "public-api-specification", catalogProvider: "openai", catalogModelId: id, catalogAsOf: "2026-11-17",
+      authenticatedRouteVerified: false, apiDefaultReasoningEffort: "medium", apiReasoningEfforts: gpt62Efforts,
+      apiReasoningModes: gpt62ReasoningModes, apiDefaultReasoningMode: "standard",
+      apiReasoningModeEndpoint: "/v1/responses",
+      toolCallingRequiresResponses: true, unsupportedReasoningEfforts: ["none", "minimal", "ultra"],
+    },
+  };
+}
+
 const reference = (entry, note) => {
   const result = copy(entry);
   result.billing.kind = "api-reference";
@@ -3468,6 +3515,40 @@ const reference = (entry, note) => {
   return result;
 };
 const codex = {};
+for (const [id, { cliDefaultContext, credits }] of Object.entries(gpt62Models)) {
+  const api = openai[id];
+  codex[id] = {
+    modalities: gpt62Modalities,
+    capabilities: { ...gpt62Capabilities, contextWindow: cliDefaultContext, maxInput: null, maxOutput: null, pdf: false },
+    pricing: { input: null, output: null, cached: null, reasoning: null, cache_creation: null, cache_write_30m: null, cache_write_12h: null },
+    sources: [
+      ...api.sources,
+      "https://learn.chatgpt.com/docs/models",
+      gpt62CodexCatalog.url,
+      gpt62CodexRateCard,
+    ],
+    billing: {
+      kind: "plan", currency: "unknown", unit: "subscription",
+      note: "Account availability and charges depend on the connected ChatGPT plan.",
+      planPricing: {
+        ...credits, currency: "credits", unit: "1M tokens", speed: "standard", separateCacheWriteCharge: false,
+        source: gpt62CodexRateCard,
+        note: "Published Business, Enterprise and Edu credit rates for ChatGPT sign-in.",
+      },
+    },
+    limits: {
+      scope: "codex-cli-catalog", authenticatedRouteVerified: false, cliDefaultContext,
+      cliMaxContext: 872000, cliMinimumVersion: "0.166.0", cliDefaultReasoningEffort: "low",
+      cliReasoningEfforts: [...gpt62Efforts, "ultra"],
+      cliUltraInferenceEffort: "xhigh", cliMultiAgentVersion: "v2", cliUsesResponsesLite: true,
+      unverifiedCapabilityFields: ["maxInput", "maxOutput"],
+      contextWindowStatus: "The default Codex CLI context setting is published. This account's independent input and output limits are unverified.",
+      apiContextWindow: api.capabilities.contextWindow, apiMaxInput: api.capabilities.maxInput, apiMaxOutput: api.capabilities.maxOutput,
+      routeReasoningEfforts: gpt62Efforts,
+    },
+    provenance: { cliCatalog: gpt62CodexCatalog },
+  };
+}
 const codexSources = [
   "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/codex-rs/models-manager/models.json",
   "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/codex-rs/protocol/src/openai_models.rs",

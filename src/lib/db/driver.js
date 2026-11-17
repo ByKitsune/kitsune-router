@@ -11,8 +11,6 @@ function stopOnCorruption(error) {
 }
 
 async function tryBunSqlite() {
-  // Bun runtime only — built-in, no install needed
-  if (!process.versions.bun) return null;
   try {
     const { createBunSqliteAdapter } = await import("./adapters/bunSqliteAdapter.js");
     return await createBunSqliteAdapter(DATA_FILE);
@@ -24,8 +22,6 @@ async function tryBunSqlite() {
 }
 
 async function tryBetterSqlite() {
-  // Skip on Bun — better-sqlite3 native bindings unsupported
-  if (process.versions.bun) return null;
   try {
     const { createBetterSqliteAdapter } = await import("./adapters/betterSqliteAdapter.js");
     return createBetterSqliteAdapter(DATA_FILE);
@@ -37,8 +33,7 @@ async function tryBetterSqlite() {
 }
 
 async function tryNodeSqlite() {
-  // Built-in since Node 22.5.0 — no install needed. Skip under Bun (no node:sqlite).
-  if (process.versions.bun) return null;
+  // Built-in since Node 22.5.0.
   const [maj, min] = process.versions.node.split(".").map(Number);
   if (maj < 22 || (maj === 22 && min < 5)) return null;
   try {
@@ -73,11 +68,10 @@ async function initAdapter() {
     throw Object.assign(new Error("[DB] sql.js exclusive owner exists; refuse native/sql.js mixed writers"), { code: "SQLJS_EXCLUSIVE_OWNER" });
   }
   // Order per runtime:
-  //   Bun:  bun:sqlite → sql.js
+  //   Bun:  better-sqlite3 (N-API) → bun:sqlite → sql.js
   //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
-  let adapter = await tryBunSqlite();
-  if (!adapter) adapter = await tryBetterSqlite();
-  if (!adapter) adapter = await tryNodeSqlite();
+  let adapter = await tryBetterSqlite();
+  if (!adapter) adapter = process.versions.bun ? await tryBunSqlite() : await tryNodeSqlite();
   if (!adapter) adapter = await trySqlJs();
   if (!adapter) throw new Error("[DB] No SQLite driver available (bun/better/node/sql.js all failed)");
 

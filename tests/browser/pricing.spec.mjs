@@ -19,6 +19,34 @@ test("effective pricing diagnostics distinguish priced, missing and reference-on
   expect(unknown.source).toBe("unpriced");
 });
 
+test("GPT-6.2 model discovery keeps API rates and Codex plan billing separate", async ({ page }) => {
+  const cases = [
+    { model: "gpt-6.2-sol", input: 2, output: 10, cached: 0.1, cliDefaultContext: 500000 },
+    { model: "gpt-6.2-astra", input: 8, output: 40, cached: 0.4, cliDefaultContext: 272000 },
+  ];
+  const modelInfo = async (id) => {
+    const response = await page.request.get("/v1/models/info", { params: { id } });
+    expect(response.status(), id).toBe(200);
+    return response.json();
+  };
+  for (const { model, input, output, cached, cliDefaultContext } of cases) {
+    const [api, zen, codex] = await Promise.all([
+      modelInfo(`openai/${model}`), modelInfo(`opencode-zen/${model}`), modelInfo(`cx/${model}`),
+    ]);
+    for (const entry of [api, zen]) {
+      expect(entry.capabilities).toMatchObject({ contextWindow: 1050000, maxInput: 922000, maxOutput: 128000 });
+      expect(entry.metadata.pricing).toMatchObject({ input, output, cached, tier: { threshold: 272000 } });
+    }
+    expect(codex.capabilities.thinkingEfforts).toEqual(["low", "medium", "high", "xhigh", "max"]);
+    expect(codex.contextWindow).toBe(cliDefaultContext);
+    expect(codex.capabilities.maxInput ?? null).toBeNull();
+    expect(codex.capabilities.maxOutput ?? null).toBeNull();
+    expect(codex.metadata.limits.cliDefaultContext).toBe(cliDefaultContext);
+    expect(codex.metadata.billing).toMatchObject({ kind: "plan", unit: "subscription" });
+    expect(codex.metadata.pricing).toMatchObject({ input: null, output: null });
+  }
+});
+
 test("pricing editor fits a phone, retains fractional rates and restores focus", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dashboard/settings/pricing");

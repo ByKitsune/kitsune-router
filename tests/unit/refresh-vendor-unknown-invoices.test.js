@@ -21,7 +21,6 @@ describe("vendor product boundaries at the invoice calculator", () => {
     ["minimax-cn", "MiniMax-M3"],
     ["perplexity", "sonar-pro"],
     ["perplexity-agent", "anthropic/claude-opus-4-8"],
-    ["cohere", "command-a-plus-05-2026"],
     ["poolside", "poolside/laguna-xs-2.1"],
   ])("does not fabricate USD input/output costs for %s/%s", (provider, model) => {
     const pricing = getPricingForModel(provider, model);

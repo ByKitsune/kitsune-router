@@ -1,4 +1,9 @@
-export default {
+import { getOpenCodeRegistryModel, isFreeOpenCodeModel, OPENCODE_CATALOG_URLS } from "../../config/opencodeCatalog.js";
+import { openCodeZenCatalog } from "../metadata/opencodeCatalogData.js";
+
+const bundledFreeModels = openCodeZenCatalog.models.filter(isFreeOpenCodeModel).map(getOpenCodeRegistryModel);
+
+const provider = {
   id: "opencode",
   priority: 40,
   hasFree: true,
@@ -42,6 +47,11 @@ export default {
     {"id": "nemotron-3-ultra-free", "name": "Nemotron 3 Ultra Free", "targetFormat": "openai", "supportedFormats": ["openai"]},
     {"id": "nemotron-3.5-lightning-free", "name": "Nemotron 3.5 Lightning Free", "targetFormat": "openai", "supportedFormats": ["openai"]},
   ],
-  modelsFetcher: { url: "https://opencode.ai/zen/v1/models", type: "opencode-free" },
+  modelsFetcher: { url: OPENCODE_CATALOG_URLS.zen, type: "opencode-free" },
   passthroughModels: true,
 };
+
+const existingIds = new Set(provider.models.map(({ id }) => id));
+provider.models.push(...bundledFreeModels.filter(({ id }) => !existingIds.has(id)));
+
+export default provider;

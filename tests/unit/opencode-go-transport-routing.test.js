@@ -54,7 +54,7 @@ vi.mock("@/lib/usageDb.js", () => ({
   enqueueRequestUsage: vi.fn(async entry => ({ accepted: true, eventId: entry.eventId })),
 }));
 
-// image.js imports Agent from "undici" (not installed in some dev envs); the
+// image.js imports Agent from "undici/index.js" (not installed in some dev envs); the
 // prefetch path is irrelevant to routing assertions.
 vi.mock("../../open-sse/translator/concerns/image.js", () => ({
   encodeDataUri: (mimeType, base64) => `data:${mimeType};base64,${base64}`,

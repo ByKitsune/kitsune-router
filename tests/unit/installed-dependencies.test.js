@@ -36,11 +36,11 @@ describe("installed dependency/lockfile boundary", () => {
   it("guards application, CLI and docs source builds plus both test entrypoints", () => {
     const read = path => JSON.parse(readFileSync(resolve(path), "utf8")).scripts;
     const app = read("package.json");
-    expect(app.prebuild).toBe("node scripts/check-installed-dependencies.mjs");
-    expect(app["prebuild:bun"]).toBe(app.prebuild);
+    expect(app.prebuild).toBe("bun scripts/check-installed-dependencies.mjs");
+    expect(app["prebuild:node"]).toBe("node scripts/check-installed-dependencies.mjs");
     expect(app.pretest).toBe("node scripts/check-installed-dependencies.mjs . tests");
     expect(read("tests/package.json").pretest).toBe("node ../scripts/check-installed-dependencies.mjs .. .");
-    expect(read("cli/package.json").prebuild).toBe("node ../scripts/check-installed-dependencies.mjs");
+    expect(read("cli/package.json").prebuild).toBe("bun ../scripts/check-installed-dependencies.mjs");
     expect(read("gitbook/package.json").prebuild).toBe("node ../scripts/check-installed-dependencies.mjs");
   });
 

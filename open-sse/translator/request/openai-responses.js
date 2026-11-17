@@ -13,6 +13,7 @@ import { normalizeMediaPart, splitToolResultContent } from "../concerns/multimod
 import { expandToolResultMessages } from "../concerns/toolCall.js";
 import { readOutputTokenCap } from "../formats/maxTokens.js";
 import { splitToolCallId } from "../concerns/thoughtSignature.js";
+import { isGpt62Model } from "../../config/models.js";
 
 const MAX_CALL_ID_LEN = 64;
 
@@ -94,7 +95,7 @@ function buildReasoningInputItem(msg) {
 /**
  * Convert OpenAI Chat Completions to OpenAI Responses API format
  */
-export function openaiToOpenAIResponsesRequest(model, body, stream, credentials) {
+export function openaiToOpenAIResponsesRequest(model, body, stream, credentials, provider) {
   // Body already in Responses API format (e.g. Cursor CLI calling /chat/completions with input[])
   if (Object.hasOwn(body, "input")) {
     const out = { ...body, model, stream: true };
@@ -260,6 +261,9 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
   if (body.reasoning_effort !== undefined) result.reasoning = { effort: body.reasoning_effort, summary: "auto" };
   if (body.service_tier !== undefined) result.service_tier = body.service_tier;
   if (body.prompt_cache_key !== undefined) result.prompt_cache_key = body.prompt_cache_key;
+  if (body.prompt_cache_options !== undefined && isGpt62Model(model) && ["openai", "codex", "cx", "opencode-zen"].includes(provider)) {
+    result.prompt_cache_options = body.prompt_cache_options;
+  }
 
   // Structured output (9router #4547, fixes #2896): Chat Completions'
   // response_format becomes the Responses API's text.format, which the Codex

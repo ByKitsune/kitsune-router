@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, Dispatcher1Wrapper } from "undici/index.js";
 
 // Real SQLite repositories, selector, classifier, chat loop and proxy transport.
 // Only randomness is controlled; every HTTP response comes from a loopback fixture.
@@ -97,11 +97,11 @@ async function configure(override) {
   await db.updateSettings({ providerStrategies: { [provider]: override } });
 }
 
-function request(signal) {
+function request(signal, modelId = model) {
   return new Request("http://localhost/v1/chat/completions", {
     method: "POST", signal,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: `${provider}/${model}`, stream: false, messages: [{ role: "user", content: "offline fixture" }] }),
+    body: JSON.stringify({ model: `${provider}/${modelId}`, stream: false, messages: [{ role: "user", content: "offline fixture" }] }),
   });
 }
 
@@ -248,6 +248,28 @@ describe("no-auth failure classification and persistence", () => {
       .toEqual({ shouldFallback: false, cooldownMs: 0 });
   });
 
+  it("keeps an authenticated OpenCode workspace capped across models until its reported reset", async () => {
+    const paid = "opencode-go";
+    const connection = await db.createProviderConnection({ provider: paid, authType: "apikey", name: "Go fixture", apiKey: "synthetic-key" });
+    try {
+      const now = Date.now();
+      vi.spyOn(Date, "now").mockReturnValue(now);
+      const resetAt = now + 7 * 24 * 60 * 60 * 1000;
+      const result = await auth.markAccountUnavailable(connection.id, 429, {
+        code: "plan_usage_limit", message: "The weekly plan usage limit was reached.",
+      }, paid, "glm-5.3", resetAt);
+      expect(result.shouldFallback).toBe(false);
+      const saved = await db.getProviderConnectionById(connection.id);
+      expect(Date.parse(saved.modelLock___all)).toBe(resetAt);
+      expect(saved["modelLock_glm-5.3"]).toBeUndefined();
+      expect(await auth.getProviderCredentials(paid, new Set(), "deepseek-v4.1-flash")).toMatchObject({
+        allRateLimited: true, retryAfter: saved.modelLock___all, lastErrorCode: 429,
+      });
+    } finally {
+      await db.deleteProviderConnection(connection.id);
+    }
+  });
+
   it("success cleanup and credential refresh cannot create a persistent virtual account", async () => {
     const credentials = await auth.getProviderCredentials(provider);
     expect(credentials.connectionId).toEqual(expect.any(String));
@@ -375,6 +397,34 @@ describe("real no-auth proxy transport", () => {
     expect((await response.json()).choices[0].message.content).toBe("relay fixture");
     expect(hits).toHaveLength(1);
     expect(hits[0]).toMatchObject({ target: "https://opencode.ai", body: { model, messages: [{ role: "user", content: "offline fixture" }] } });
+    expect(await db.getProviderConnections()).toEqual([]);
+  });
+
+  it("pauses Free requests across models and relays until the upstream allowance resets", async () => {
+    const hits = [];
+    await relayPools((id, _req, res) => {
+      hits.push(id);
+      res.writeHead(429, { "Content-Type": "application/json", "retry-after-ms": "-1", "retry-after": "60" });
+      res.end(JSON.stringify({ error: { type: "FreeUsageLimitError", message: "Rate limit exceeded." } }));
+    });
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now);
+    const firstResponse = await handleChat(request(AbortSignal.timeout(2000)));
+    expect(firstResponse.status).toBe(429);
+    expect(firstResponse.headers.get("retry-after")).toBe("60");
+    expect((await firstResponse.json()).error.code).toBe("free_usage_limit");
+
+    clock.mockReturnValue(now + 5_000);
+    const secondResponse = await handleChat(request(AbortSignal.timeout(2000), "other-free-fixture"));
+    expect(secondResponse.status).toBe(429);
+    expect(secondResponse.headers.get("retry-after")).toBe("55");
+    expect((await secondResponse.json()).error.code).toBe("free_usage_limit");
+    expect(hits).toHaveLength(1);
+
+    clock.mockReturnValue(now + 60_001);
+    const resumed = await handleChat(request(AbortSignal.timeout(2000), "other-free-fixture"));
+    expect(resumed.status).toBe(429);
+    expect(hits).toHaveLength(2);
     expect(await db.getProviderConnections()).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 // Native pricing keys, independent from reasoning effort and model aliases.
-export const PRICING_SERVICE_TIERS = ["fast", "ultrafast", "flex", "scale"];
+export const PRICING_SERVICE_TIERS = ["fast", "ultrafast", "flex", "scale", "batch"];
 export const PRICING_RATE_FIELDS = ["input", "output", "cached", "reasoning", "cache_creation", "cache_creation_1h", "cache_write_30m", "cache_write_12h"];
 export const LITERAL_ONLY_PRICING_PROVIDERS = ["tokenharbor"];
 

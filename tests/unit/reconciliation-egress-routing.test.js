@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import dns from "node:dns/promises";
 import http from "node:http";
 import net from "node:net";
-import { Agent, Dispatcher1Wrapper } from "undici";
+import { Agent, Dispatcher1Wrapper, fetch as undiciFetch } from "undici/index.js";
 
 // Pool reads are the only application boundary replaced: no production DB,
 // account mutations, external DNS or upstream credentials are used here.
@@ -11,6 +11,7 @@ import { getProxyPoolById } from "@/models";
 import { resolveConnectionProxyConfig } from "../../src/lib/network/connectionProxy.js";
 
 const nativeFetch = globalThis.fetch;
+const dispatcherFetch = process.versions.bun ? undiciFetch : nativeFetch;
 const authorization = "Bearer offline-egress-fixture";
 const body = JSON.stringify({ refresh_token: "offline-refresh-fixture" });
 const proxyEnvKeys = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy", "NO_PROXY", "no_proxy"];
@@ -344,7 +345,7 @@ describe("guard, cancellation and diagnostic boundaries", () => {
   it.each(["strict missing", "non-strict missing", "non-strict broken"])("keeps guards after global fetch replacement: %s", async mode => {
     const trap = await origin("DIRECT EGRESS");
     const broken = await proxy();
-    globalThis.fetch = (url, options) => nativeFetch(url, options);
+    globalThis.fetch = (url, options) => dispatcherFetch(url, options);
     const result = await outcome(proxyAwareFetch(upstreamUrl(trap), requestOptions(), {
       connectionProxyEnabled: true, connectionProxyUrl: mode.endsWith("broken") ? broken.url : "", strictProxy: mode === "strict missing",
     }));
@@ -355,7 +356,7 @@ describe("guard, cancellation and diagnostic boundaries", () => {
   it("preserves a replaced global-fetch seam after applying relay routing", async () => {
     const trap = await origin("DIRECT EGRESS");
     const relay = await origin("replaced fetch relay fixture");
-    globalThis.fetch = (url, options) => nativeFetch(url, options);
+    globalThis.fetch = (url, options) => dispatcherFetch(url, options);
     const response = await proxyAwareFetch(upstreamUrl(trap), requestOptions(), { vercelRelayUrl: relay.url });
     expect(await response.text()).toBe("replaced fetch relay fixture");
     expect(relay.requests).toHaveLength(1);
@@ -446,7 +447,7 @@ describe("guard, cancellation and diagnostic boundaries", () => {
     const dispatch = vi.spyOn(fetchState, "original").mockImplementation((url, options) => {
       expect(url).toBe(target);
       expect(options.dispatcher).toBeInstanceOf(Dispatcher1Wrapper);
-      return nativeFetch(direct.url, options);
+      return dispatcherFetch(direct.url, options);
     });
     const response = await proxyAwareFetch(target, {
       method: "POST", headers: { authorization }, body, signal: AbortSignal.timeout(2000),

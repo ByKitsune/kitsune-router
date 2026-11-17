@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { setImmediate as yieldToEventLoop } from "node:timers/promises";
 import { initializeOutbox, acceptOutbox, projectOutboxBatch, usageOutboxMetrics } from "../helpers/usageOutbox.js";
 import { readScopeRevision } from "../helpers/scopedCache.js";
 import { EventEmitter } from "events";
@@ -44,6 +45,8 @@ const CONN_CACHE_TTL_MS = 30 * 1000;
 const PERIOD_MS = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
 const USAGE_PERIODS = new Set(["today", "24h", "7d", "30d", "60d", "all"]);
 const COMPONENT_COST_FIELDS = ["inputCost", "cachedCost", "outputCost"];
+const PRICING_RECOVERY_BATCH_SIZE = 128;
+const PRICING_RECOVERY_SCOPE = "usagePricingRecovery";
 const acceptedQuoteTimestamp = Symbol.for("kitsunerouter.usage.acceptedQuoteTimestamp");
 
 // In-memory state shared across Next.js modules
@@ -206,10 +209,10 @@ async function getConnectionMapCached() {
 }
 
 async function ensureRingInitialized() {
-  if (recentRing.initialized) return;
-  recentRing.initialized = true;
   try {
     const db = await getAdapter();
+    const revision = readScopeRevision(db, [PRICING_RECOVERY_SCOPE]);
+    if (recentRing.initialized && recentRing.revision === revision) return;
     const rows = db.all(`SELECT timestamp, provider, model, connectionId, apiKey, endpoint, cost, status, tokens, meta FROM usageHistory ORDER BY id DESC LIMIT ?`, [RING_CAP]);
     recentRing.items = rows.reverse().map((r) => ({
       timestamp: r.timestamp, provider: r.provider, model: r.model, connectionId: r.connectionId,
@@ -217,6 +220,8 @@ async function ensureRingInitialized() {
       tokens: parseJson(r.tokens, {}),
       ...readCostComponents(r.meta),
     }));
+    recentRing.initialized = true;
+    recentRing.revision = revision;
   } catch {}
 }
 
@@ -390,6 +395,117 @@ function projectUsageEvent(db, entry) {
   }
   db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '1') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1`);
   return { ...entry, timestamp, _persistedUsageId: Number(result.lastInsertRowid) };
+}
+
+function agreesWithRecordedCosts(recorded, next) {
+  return Object.entries(next).every(([field, amount]) => {
+    const previous = recorded?.[field];
+    return !Number.isFinite(previous) || Math.abs(amount - previous) <= 8 * Number.EPSILON * Math.max(amount, previous);
+  });
+}
+
+function applyRecoveredCoverage(bucket, before, after) {
+  if (!bucket || !Number.isSafeInteger(bucket.requests) || bucket.requests <= 0) return false;
+  for (const [field, next] of Object.entries(after)) {
+    const prior = before[field];
+    if (prior.knownCost === next.knownCost && prior.unknownRequests === next.unknownRequests) continue;
+    const current = bucket.costCoverage?.[field];
+    if (!Number.isFinite(current?.knownCost) || !Number.isSafeInteger(current.unknownRequests)
+      || prior.unknownRequests !== 1 || current.unknownRequests < 1) return false;
+    current.knownCost += next.knownCost;
+    current.unknownRequests--;
+    bucket[field === "totalCost" ? "cost" : field] = current.unknownRequests === 0 ? current.knownCost : null;
+  }
+  return true;
+}
+
+function recoverUsageRow(db, row, resolveTariff, calculateBreakdown) {
+  const timestamp = canonicalUsageTimestamp(row.timestamp);
+  if (!timestamp || (row.sourceTimestamp && canonicalUsageTimestamp(row.sourceTimestamp) !== timestamp)) return false;
+  const pricing = resolveTariff(row.provider, row.model, timestamp);
+  if (!pricing) return false;
+  const meta = parseJson(row.meta, {}) || {};
+  if (meta.quote?.pricing?.provenance?.overriddenFields?.length) return false;
+  const rawTokens = parseJson(row.tokens, null);
+  const tokens = canonicalizeUsage(rawTokens);
+  if (!(tokens?.total_tokens > 0) || (rawTokens?.total_tokens > 0 && rawTokens.total_tokens !== tokens.total_tokens
+    && !Object.hasOwn(rawTokens, "cache_read_input_tokens") && !Object.hasOwn(rawTokens, "cache_creation_input_tokens"))) return false;
+  tokens.actualServiceTier = rawTokens.actualServiceTier;
+  tokens.serviceTierCostStatus = rawTokens.serviceTierCostStatus;
+  const breakdown = calculateBreakdown(tokens, pricing);
+  if (!Number.isFinite(breakdown.totalCost) || !agreesWithRecordedCosts(meta.quote?.breakdown, breakdown)) return false;
+  const components = {
+    inputCost: breakdown.inputCost + breakdown.cacheCreationCost,
+    cachedCost: breakdown.cachedCost,
+    outputCost: breakdown.outputCost + breakdown.reasoningCost,
+  };
+  if (!agreesWithRecordedCosts(meta, components)) return false;
+
+  // The recording timezone may differ from the current worker's timezone.
+  // Use its saved local-day key. Without it, a legacy aggregate may already
+  // contain this request and cannot be adjusted safely.
+  const dateKey = meta.dateKey;
+  if (typeof dateKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    const daily = db.get("SELECT data FROM usageDaily WHERE dateKey = ?", [dateKey]);
+    if (daily) {
+      const day = parseJson(daily.data, null);
+      const original = { ...row, ...readCostComponents(row.meta), tokens: rawTokens };
+      const before = requestCostCoverage(original);
+      const after = requestCostCoverage({ cost: breakdown.totalCost, ...components });
+      if (!applyRecoveredCoverage(day, before, after)) return false;
+      const single = {};
+      aggregateEntryToDay(single, original);
+      for (const axis of ["byProvider", "byModel", "byAccount", "byApiKey", "byEndpoint"]) {
+        for (const key of Object.keys(single[axis])) {
+          if (!applyRecoveredCoverage(day[axis]?.[key], before, after)) return false;
+        }
+      }
+      db.run("UPDATE usageDaily SET data = ? WHERE dateKey = ?", [stringifyJson(day), dateKey]);
+    }
+  } else {
+    const at = Date.parse(timestamp);
+    const from = new Date(at - 86400000).toISOString().slice(0, 10);
+    const through = new Date(at + 86400000).toISOString().slice(0, 10);
+    if (db.get("SELECT 1 FROM usageDaily WHERE dateKey BETWEEN ? AND ? LIMIT 1", [from, through])) return false;
+  }
+
+  const recoveredQuote = { timestamp, pricing, breakdown };
+  db.run("UPDATE usageHistory SET cost = ?, meta = ? WHERE id = ? AND cost IS NULL",
+    [breakdown.totalCost, stringifyJson({ ...meta, ...components, recoveredQuote }), row.id]);
+  return true;
+}
+
+export async function recoverUnpricedUsage(signal) {
+  const [db, resolveTariff, { calculateCostBreakdown }] = await Promise.all([
+    getAdapter(), import("./pricingRepo.js").then(module => module.createHistoricalPricingResolver()),
+    import("open-sse/providers/pricing.js"),
+  ]);
+  const maximum = db.get("SELECT MAX(id) AS id FROM usageHistory")?.id ?? 0;
+  let afterId = 0;
+  let checked = 0;
+  let recovered = 0;
+  try {
+    while (afterId < maximum) {
+      signal?.throwIfAborted();
+      const result = db.transaction(() => {
+        const rows = db.all(`SELECT id, timestamp, sourceTimestamp, provider, model, connectionId, apiKey, endpoint, cost, tokens, meta
+          FROM usageHistory WHERE id > ? AND id <= ? AND cost IS NULL ORDER BY id LIMIT ?`,
+        [afterId, maximum, PRICING_RECOVERY_BATCH_SIZE]);
+        const changes = rows.filter(row => recoverUsageRow(db, row, resolveTariff, calculateCostBreakdown)).length;
+        if (changes) db.run("INSERT INTO _meta(key, value) VALUES(?, '1') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1", [`cacheRevision:${PRICING_RECOVERY_SCOPE}`]);
+        return { checked: rows.length, recovered: changes, lastId: rows.at(-1)?.id };
+      });
+      checked += result.checked;
+      recovered += result.recovered;
+      if (result.recovered) db.flushDurable?.();
+      if (result.checked < PRICING_RECOVERY_BATCH_SIZE) break;
+      afterId = result.lastId;
+      await yieldToEventLoop();
+    }
+    return { checked, recovered };
+  } finally {
+    if (recovered) scheduleStatsEvent("update");
+  }
 }
 
 export async function enqueueRequestUsage(entry) {
